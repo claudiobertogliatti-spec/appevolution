@@ -8,7 +8,7 @@
  * leggibile). Il flyout al hover resta come quick-nav.
  *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi        [link diretto]
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
- *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Analisi da validare · Trattative OK · Trattative KO
+ *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
  *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
@@ -100,8 +100,8 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €67 — analisi acquistata" },
-      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
+      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
       { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
     ],
