@@ -9,7 +9,7 @@
  *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi        [link diretto]
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Analisi da validare · Trattative OK · Trattative KO
- *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner
+ *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
  *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
  *
@@ -116,10 +116,9 @@ const NAV = [
       { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
       { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
       { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
+      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
       { to: "/admin/delivery-masterclass", label: "Masterclass", desc: "Produzione masterclass dei partner" },
       { to: "/admin/delivery-lezioni", label: "Video Lezioni", desc: "Produzione lezioni del videocorso" },
-      { to: "/admin/delivery-bonus", label: "Bonus", desc: "Materiali bonus dei partner" },
-      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
       { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
       { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
       { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
@@ -524,10 +523,9 @@ export default function CiakAdminApp() {
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
         <Route path="quarantena-partner" element={<QuarantenaPartner onAuthExpired={handleLogout} />} />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
+        <Route path="documenti-partner" element={<PartnerDocumenti onAuthExpired={handleLogout} />} />
         <Route path="delivery-masterclass" element={<SectionStub />} />
         <Route path="delivery-lezioni" element={<SectionStub />} />
-        <Route path="delivery-bonus" element={<SectionStub />} />
-        <Route path="documenti-partner" element={<PartnerDocumenti onAuthExpired={handleLogout} />} />
         <Route path="calendario-editoriale" element={<CalendarioEditoriale onAuthExpired={handleLogout} />} />
         <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
