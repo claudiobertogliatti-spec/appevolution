@@ -247,12 +247,13 @@ async def check_duplicate(source: str, username: str, email: Optional[str] = Non
         return False
     
     # Check by username + platform
-    existing = await db.discovery_leads.find_one({
-        "source": source,
-        "platform_username": username.lower()
-    })
-    if existing:
-        return True
+    if username and username.strip():
+        existing = await db.discovery_leads.find_one({
+            "source": source,
+            "platform_username": username.lower()
+        })
+        if existing:
+            return True
     
     # Check by email if provided
     if email:
@@ -715,7 +716,7 @@ async def get_leads(
     
     leads = await db.discovery_leads.find(
         query, {"_id": 0, "website_html": 0}  # Escludi HTML pesante
-    ).sort("score_total", -1).skip(skip).limit(limit).to_list(limit)
+    ).sort("discovered_at", -1).skip(skip).limit(limit).to_list(limit)
     
     total = await db.discovery_leads.count_documents(query)
     
