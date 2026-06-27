@@ -16911,6 +16911,11 @@ from routers.funnel_builder import router as funnel_builder_router, set_db as se
 set_funnel_builder_db(db)
 app.include_router(funnel_builder_router)
 
+# Campagne email — stats per pagina Oggi (CLAUDE.md 2026-06-27)
+from routers.email_campaigns import router as email_campaigns_router, set_db as set_email_campaigns_db
+set_email_campaigns_db(db)
+app.include_router(email_campaigns_router)
+
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
 from routers.proposta import (
     router as proposta_router,
