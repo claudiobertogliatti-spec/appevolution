@@ -1005,3 +1005,31 @@ Struttura (organigramma a reparti):
 Tutte le route preesistenti restano registrate (è un filtro di vista). Pagine fuori sidebar ma vive via URL: `leads`, `clienti-analisi`, `partner-setup-pending`, `automazione` (serve all'area partner), `metriche`, `analisi-prompt`, `template-email`.
 
 Commit: `660de01` (5 macro + Agente di Riferimento) · `b266800` (Panoramica Reparti = home /admin). Deploy via connettore GitHub, sha verificata + parse Babel/JSX OK.
+
+
+## Sessione 2026-06-27 — Card "Campagne email" nella pagina admin "Oggi"
+
+Claudio voleva vedere le statistiche delle campagne email nella pagina admin **Oggi**, aggiornate da sole ogni giorno.
+
+**Vincolo**: le stats campagne email NON sono nella API pubblica Systeme (chiave). Vivono dietro la **sessione browser** dell'account Systeme `evolutionpro`, su endpoint interni `/api/dashboard/customer/mailing/...`. Il backend non puo' leggerle da solo -> le alimenta un task giornaliero che gira nel browser loggato su Systeme.
+
+### Endpoint interni Systeme (sessione browser, NON API pubblica)
+- Lista newsletter (broadcast): `GET https://systeme.io/api/dashboard/customer/mailing/newsletters/list?pagination[order]=next&pagination[limit]=50` — il limite DEVE essere 10/25/50. Ritorna `{items:[{mailing:{id,subject}, scheduledAt, stats:{emailsSent,emailsOpened,clicks}}], hasMore}`.
+- Stats ricche + oggetto per singolo mailing: `GET .../mailing/{mailingId}/preview` -> `{email:{subject,fromName}, stats:{sentAmount,openedAmount,clickedAmount,bouncedAmount,spamReportAmount}}`.
+- Altri: `.../mailing/{id}/statistics/list?pagination[limit]=N` (createdAt = data invio), `.../statistics/count`, `.../click-link-statistics`.
+- Le campagne che NON sono "newsletter" (es. la riavvivazione mailing_id `12236704`) NON compaiono in newsletters/list -> vanno aggiunte come ID extra nel task.
+
+### Backend (Cloud Run)
+Nuovo router `backend/routers/email_campaigns.py` (registrato in `server.py` dopo funnel_builder), prefix `/api/admin/ciak`:
+- `POST /email-campaigns/snapshot` -> upsert collection `email_campaign_stats` (una per mailing_id). Auth = **chiave condivisa** header `X-Snapshot-Key` (env `EMAIL_SNAPSHOT_KEY`, fallback `ciak-email-snapshot-2026`), NON il JWT admin (il task gira nel browser, non sempre loggato admin).
+- `GET /email-campaigns` -> richiede JWT admin; lista recenti ordinata per `sent_at` desc.
+
+### Frontend (Vercel)
+- `frontend/src/ciak/admin/components/EmailCampaignsBlock.jsx` -> card che legge `GET /api/admin/ciak/email-campaigns` e mostra oggetto + data + inviate + aperture% + click% (+ spam se >0). Click a 0 evidenziato rosso.
+- Montato in `frontend/src/ciak/admin/pages/Oggi.jsx` prima della sezione Alert.
+
+### Task schedulato
+`briefing-cabina-regia` (07:35) esteso: prima del briefing fa lo snapshot email (Systeme -> POST snapshot con la chiave) e aggiunge una riga "Email" nel briefing.
+
+### Note deploy (importante)
+Sandbox bash Cowork: NESSUNA credenziale git push + DNS ristretto (no ssh github). I 2 file NUOVI committati via **connettore GitHub** (sha byte-esatta verificata). I 2 file ESISTENTI modificati (`server.py` ~683KB, `Oggi.jsx`) via **editor web GitHub + CM6**: il connettore richiede il contenuto COMPLETO, e i file base (origin/main) non sono riproducibili byte-esatti a mano. Pattern di sicurezza usato: confronto SHA-256 del documento CM6 col file validato in sandbox PRIMA del commit (TextEncoder->crypto.subtle.digest), poi commit dal dialog GitHub.
