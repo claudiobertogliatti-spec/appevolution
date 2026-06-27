@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { adminFetch } from "../api";
 import ApprovazioniMaterialiPanel from "../components/ApprovazioniMaterialiPanel";
+import EmailCampaignsBlock from "../components/EmailCampaignsBlock";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -579,6 +580,9 @@ export function Oggi({ onAuthExpired }) {
             </div>
           </Block>
         </div>
+
+        {/* ── Campagne email ── */}
+        <EmailCampaignsBlock />
 
         {/* ── 7. ALERT (compatto) ── */}
         {alerts.length > 0 && (
