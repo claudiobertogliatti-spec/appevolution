@@ -3,11 +3,12 @@
  * 4 reparti operativi col semaforo di autonomia. Ogni reparto ha un RESPONSABILE
  * (uno dei 6 agenti). I 4 responsabili continuano a far parte del team che lavora
  * il percorso partner nella Delivery (con Marco e Matteo). Le card portano al reparto.
- * Approva/Rifiuta sui task in attesa (sblocco 🟡); Visualizza espande il dettaglio.
+ * Il riquadro "Cosa aspetta il tuo OK" (Approva/Rifiuta task) è stato spostato in
+ * "Oggi" (componente ApprovalsQueue): qui resta solo il semaforo aggregato.
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminFetch, getAdminUser } from "../api";
+import { adminFetch } from "../api";
 
 const REPARTI = [
   { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/lead-manager" },
@@ -30,17 +31,10 @@ function kpisFor(id, sum, health, lead) {
   return [["MRR", sum.mrr != null ? "€ " + Number(sum.mrr).toLocaleString("it-IT") : "—"], ["LTV medio", sum.avg_ltv != null ? "€ " + sum.avg_ltv : "—"], ["Tech", health.tech || "—"]];
 }
 
-function fmtDateTime(s) {
-  if (!s) return "—";
-  try { return new Date(s).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return "—"; }
-}
-
 export function CabinaRegia({ onAuthExpired }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(null);
-  const [openId, setOpenId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -57,30 +51,6 @@ export function CabinaRegia({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   useEffect(() => { load(); }, [load]);
-
-  async function act(task, kind) {
-    const id = task.id || task.task_id;
-    if (!id) return;
-    const reviewer = (getAdminUser() && getAdminUser().name) || "Claudio";
-    const body = { reviewer };
-    if (kind === "reject") {
-      const fb = window.prompt("Motivo del rifiuto (verrà usato per rigenerare):");
-      if (!fb || !fb.trim()) return;
-      body.feedback = fb.trim();
-    }
-    setBusy(id + kind);
-    try {
-      const r = await adminFetch("/api/agent-tasks/" + id + "/" + kind, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) { const t = await r.text(); window.alert("Errore: " + t); }
-      else { await load(); }
-    } catch (e) {
-      if (e && e.message === "AUTH_EXPIRED") onAuthExpired?.();
-    } finally { setBusy(null); }
-  }
 
   if (loading) return <div className="py-24 text-center text-slate-400">Carico la cabina di regia…</div>;
 
@@ -100,7 +70,7 @@ export function CabinaRegia({ onAuthExpired }) {
         <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-4"><div className="text-2xl font-bold text-rose-700">{gR}</div><p className="text-xs text-rose-800/70 mt-1">🔴 Urgenti · fermi da &gt;4h</p></div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {REPARTI.map((r) => (
           <button key={r.id} onClick={() => navigate(r.to)} className="text-left rounded-2xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 hover:shadow-sm transition">
             <div className="px-5 py-4 flex items-center justify-between" style={{ background: r.soft }}>
@@ -129,73 +99,6 @@ export function CabinaRegia({ onAuthExpired }) {
             )}
           </button>
         ))}
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <h2 className="font-bold text-slate-900">Cosa aspetta il tuo OK</h2>
-          <span className="ml-auto text-xs text-slate-400">{d.approvals.length} task</span>
-        </div>
-        {d.approvals.length === 0 ? (
-          <div className="px-5 py-10 text-center text-slate-400 text-sm">Nessun task in attesa. I reparti stanno lavorando in autonomia.</div>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {d.approvals.map((t, i) => {
-              const id = t.id || t.task_id;
-              const open = openId === id;
-              const res = t.result || {};
-              const output = res.output != null
-                ? (typeof res.output === "string" ? res.output : JSON.stringify(res.output, null, 2))
-                : null;
-              return (
-                <li key={id || i} className="px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                    <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || "Task"}</span>
-                    <span className="text-xs text-slate-400 shrink-0 mr-1">{t.agent || t.created_by_agent || ""}</span>
-                    <button
-                      onClick={() => setOpenId(open ? null : id)}
-                      className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
-                    >
-                      {open ? "Nascondi" : "Visualizza"}
-                    </button>
-                    <button disabled={!!busy} onClick={() => act(t, "approve")} className="text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Approva</button>
-                    <button disabled={!!busy} onClick={() => act(t, "reject")} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
-                  </div>
-
-                  {open && (
-                    <div className="mt-3 ml-5 rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-3">
-                      {t.description && (
-                        <div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Richiesta</div>
-                          <p className="text-sm text-slate-700 mt-0.5">{t.description}</p>
-                        </div>
-                      )}
-                      {output && (
-                        <div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Output da approvare</div>
-                          <pre className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap break-words font-sans">{output}</pre>
-                        </div>
-                      )}
-                      {res.message && (
-                        <p className="text-xs text-slate-500 italic">{res.message}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-                        <span>Agente: {t.agent || "—"}</span>
-                        <span>Richiesto da: {t.created_by || "—"}</span>
-                        <span>Priorità: {t.priority || "—"}</span>
-                        <span>Creato: {fmtDateTime(t.created_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
-          Ogni reparto ha un responsabile. I 4 responsabili restano nel team che lavora il percorso partner nella Delivery. Approva/Rifiuta sblocca i task 🟡.
-        </div>
       </div>
     </div>
   );
