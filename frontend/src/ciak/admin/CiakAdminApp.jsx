@@ -7,6 +7,8 @@
  * cliccabili dei sotto-argomenti (titolo + descrizione, tutto ampio e
  * leggibile). NESSUN menu a tendina: si entra solo cliccando la sezione.
  * Le sezioni con una sola pagina (es. Casi studio) linkano direttamente.
+ * Ogni sotto-pagina mostra in cima un tasto "← Torna a [Sezione]" che riporta
+ * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
@@ -24,7 +26,7 @@
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
 import { useState } from "react";
-import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
@@ -164,6 +166,27 @@ function macroTarget(macro) {
   return macroPages(macro)[0].to;
 }
 
+// Una pagina "possiede" una path se è esattamente quella o un suo sotto-path.
+// Evita che to="/admin/pipeline" catturi "/admin/pipeline-blueprint".
+function pageOwns(pathname, p) {
+  if (p.end) return pathname === p.to;
+  return pathname === p.to || pathname.startsWith(p.to + "/");
+}
+
+// Data una path, trova la sezione (macro landing) a cui appartiene, per il
+// tasto "Indietro". Esclude il root /admin e le pagine-reparto (le home).
+function sectionLandingFor(pathname) {
+  if (pathname === "/admin") return null;
+  if (pathname.startsWith("/admin/reparto/")) return null;
+  for (const macro of NAV) {
+    if (!macro.landing) continue;
+    if (macroPages(macro).some((p) => pageOwns(pathname, p))) {
+      return { to: `/admin/reparto/${macro.id}`, label: macro.label };
+    }
+  }
+  return null;
+}
+
 // ─── Login ───────────────────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }) {
@@ -281,6 +304,9 @@ function AdminShell({ user, onLogout, children }) {
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
+  // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
+  // sotto-pagina di una sezione con landing).
+  const back = sectionLandingFor(pathname);
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
@@ -304,7 +330,19 @@ function AdminShell({ user, onLogout, children }) {
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto">
+        {back && (
+          <div className="px-8 pt-6">
+            <Link
+              to={back.to}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition"
+            >
+              <span aria-hidden>←</span> Torna a {back.label}
+            </Link>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
