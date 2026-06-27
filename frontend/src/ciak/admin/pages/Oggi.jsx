@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Oggi (portato da OggiDashboard del back-office Evolution).
- * Cruscotto operativo: azioni prioritarie, colli di bottiglia, pipeline,
- * clienti bloccati, sistema AI, KPI, alert.
+ * Cruscotto operativo: azioni prioritarie, task agenti in attesa del tuo OK,
+ * colli di bottiglia, pipeline, clienti bloccati, sistema AI, KPI, alert.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import {
 import { adminFetch } from "../api";
 import ApprovazioniMaterialiPanel from "../components/ApprovazioniMaterialiPanel";
 import EmailCampaignsBlock from "../components/EmailCampaignsBlock";
+import { ApprovalsQueue } from "../components/ApprovalsQueue";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -433,6 +434,9 @@ export function Oggi({ onAuthExpired }) {
             />
           </div>
         </Block>
+
+        {/* ── Cosa aspetta il tuo OK (task agenti) ── */}
+        <ApprovalsQueue onAuthExpired={onAuthExpired} />
 
         {/* ── 2. COLLI DI BOTTIGLIA ── */}
         <Block
