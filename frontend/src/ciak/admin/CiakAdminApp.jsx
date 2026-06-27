@@ -7,7 +7,7 @@
  * cliccabili dei sotto-argomenti (titolo + descrizione, tutto ampio e
  * leggibile). NESSUN menu a tendina: si entra solo cliccando la sezione.
  * Le sezioni con una sola pagina (es. Casi studio) linkano direttamente.
- *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
+ *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
@@ -74,8 +74,8 @@ const NAV = [
     agente: "Luca",
     landing: true,
     pages: [
-      { to: "/admin", label: "Home", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
       { to: "/admin/oggi", label: "Oggi", desc: "Cosa richiede la tua attenzione adesso" },
+      { to: "/admin", label: "Cabina di Regia", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
     ],
   },
   // ── ACQUISIZIONE · Andrea ── dal freddo al €67 ─────────────────────────
