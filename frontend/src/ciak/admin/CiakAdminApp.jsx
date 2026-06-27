@@ -2,13 +2,15 @@
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
  * Sidebar a 6 MACRO = i reparti dell'organigramma Ciak, in ordine di funnel.
- * Ogni macro mostra il suo "Agente di Riferimento" e apre al hover un flyout
- * con le pagine:
- *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
+ * Ogni macro mostra il suo "Agente di Riferimento". Click su un reparto
+ * multi-pagina → apre una LANDING (/admin/reparto/:id) con grandi finestre
+ * cliccabili dei sotto-argomenti (titolo + descrizione, tutto ampio e
+ * leggibile). Il flyout al hover resta come quick-nav.
+ *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi        [link diretto]
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Analisi da validare · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner
- *  - Casi studio  (Andrea)    → Casi studio (prova sociale per il funnel)
+ *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
  *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
  *
  * Le voci tecniche/di sistema (KB Matteo, Analisi Prompt, Automazione, Template
@@ -59,8 +61,9 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 
 // Sidebar a 6 macro = i reparti dell'organigramma Ciak, in ordine di funnel.
 // Ogni macro ha un `agente` (responsabile, mostrato come "Agente di
-// Riferimento"). hideFor nasconde la macro alla vista Antonella, che opera nel
-// reparto Delivery. Tutte le route restano registrate: e' un filtro di vista.
+// Riferimento"). `landing: true` → il click sul reparto apre la pagina-reparto
+// con grandi card cliccabili. hideFor nasconde la macro alla vista Antonella.
+// Ogni pagina ha un `desc` breve usato nelle card della landing.
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
@@ -68,8 +71,8 @@ const NAV = [
     label: "Dashboard",
     agente: "Luca",
     pages: [
-      { to: "/admin", label: "Home", end: true },
-      { to: "/admin/oggi", label: "Oggi" },
+      { to: "/admin", label: "Home", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
+      { to: "/admin/oggi", label: "Oggi", desc: "Cosa richiede la tua attenzione adesso" },
     ],
   },
   // ── ACQUISIZIONE · Andrea ── dal freddo al €67 ─────────────────────────
@@ -77,14 +80,15 @@ const NAV = [
     id: "acquisizione",
     label: "Acquisizione",
     agente: "Andrea",
+    landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/lead-manager", label: "New Lead" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda" },
-      { to: "/admin/masterclass-analytics", label: "Masterclass gratuita" },
-      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
-      { to: "/admin/acq-campagne-ads", label: "Campagne Ads" },
-      { to: "/admin/acq-calendario", label: "Calendario Editoriale" },
+      { to: "/admin/lead-manager", label: "New Lead", desc: "Inserisci e lavora i nuovi contatti in entrata" },
+      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Database freddo da riscaldare con l'outreach" },
+      { to: "/admin/masterclass-analytics", label: "Masterclass gratuita", desc: "Iscritti e performance della masterclass di acquisizione" },
+      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect", desc: "Funnel pre-acquisto: dall'iscrizione al click €67" },
+      { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Campagne pubblicitarie di acquisizione" },
+      { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Piano contenuti organici per attrarre lead" },
     ],
   },
   // ── VENDITE · Gaia ── dal €67 alla firma (stadi separati) ──────────────
@@ -92,13 +96,14 @@ const NAV = [
     id: "vendite",
     label: "Vendite",
     agente: "Gaia",
+    landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint" },
-      { to: "/admin/vendite-call", label: "Call di vendita" },
-      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
-      { to: "/admin/vendite-ok", label: "Trattative OK" },
-      { to: "/admin/vendite-ko", label: "Trattative KO" },
+      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €67 — analisi acquistata" },
+      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
+      { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
+      { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
+      { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
@@ -106,17 +111,18 @@ const NAV = [
     id: "delivery",
     label: "Delivery",
     agente: "Stefania",
+    landing: true,
     pages: [
-      { to: "/admin/partner", label: "Pipeline Partner" },
-      { to: "/admin/quarantena-partner", label: "Quarantena" },
-      { to: "/admin/ex-partner", label: "Ex Partner" },
-      { to: "/admin/delivery-masterclass", label: "Masterclass" },
-      { to: "/admin/delivery-lezioni", label: "Video Lezioni" },
-      { to: "/admin/delivery-bonus", label: "Bonus" },
-      { to: "/admin/documenti-partner", label: "File" },
-      { to: "/admin/calendario-editoriale", label: "Calendario editoriale" },
-      { to: "/admin/campagne-ads", label: "Campagne ADV" },
-      { to: "/admin/metriche", label: "KPI Partner" },
+      { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+      { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
+      { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
+      { to: "/admin/delivery-masterclass", label: "Masterclass", desc: "Produzione masterclass dei partner" },
+      { to: "/admin/delivery-lezioni", label: "Video Lezioni", desc: "Produzione lezioni del videocorso" },
+      { to: "/admin/delivery-bonus", label: "Bonus", desc: "Materiali bonus dei partner" },
+      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
+      { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
+      { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
+      { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
     ],
   },
   // ── CASI STUDIO · Andrea ── prova sociale che alimenta il funnel ───────
@@ -126,7 +132,7 @@ const NAV = [
     agente: "Andrea",
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/casi-studio", label: "Casi studio" },
+      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: risultati dei partner per il funnel" },
     ],
   },
   // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
@@ -134,14 +140,28 @@ const NAV = [
     id: "back-office",
     label: "Back office",
     agente: "Valentina",
+    landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/transactions", label: "Pagamenti" },
-      { to: "/admin/date-contratti", label: "Date contratti" },
-      { to: "/admin/servizi-extra", label: "Servizi extra" },
+      { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
+      { to: "/admin/date-contratti", label: "Date contratti", desc: "Scadenze e rinnovi contrattuali" },
+      { to: "/admin/servizi-extra", label: "Servizi extra", desc: "Upsell e servizi aggiuntivi" },
     ],
   },
 ];
+
+// Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
+function macroPages(macro) {
+  return macro.groups ? macro.groups.flatMap((g) => g.pages) : macro.pages || [];
+}
+
+// Dove punta il click sulla macro: landing-reparto se `landing`, altrimenti
+// link diretto (macro.to o prima pagina).
+function macroTarget(macro) {
+  if (macro.to) return macro.to;
+  if (macro.landing) return `/admin/reparto/${macro.id}`;
+  return macroPages(macro)[0].to;
+}
 
 // ─── Login ───────────────────────────────────────────────────────────────
 
@@ -210,7 +230,7 @@ function FlyoutLink({ page }) {
       to={page.to}
       end={page.end}
       className={({ isActive }) =>
-        `block px-3 py-2 text-sm transition ${
+        `block px-4 py-2.5 text-[15px] transition ${
           isActive
             ? "text-yellow-400 font-medium bg-slate-700/50"
             : "text-slate-300 hover:bg-slate-700/50"
@@ -230,16 +250,16 @@ function MacroItem({ macro, currentPath }) {
         to={macro.to}
         end={macro.end}
         className={({ isActive }) =>
-          `block px-3 py-2.5 rounded-lg text-sm transition ${
+          `block px-3 py-3 rounded-lg transition ${
             isActive
               ? "bg-slate-800 text-yellow-400 font-medium"
-              : "text-slate-300 hover:bg-slate-800/60"
+              : "text-slate-200 hover:bg-slate-800/60"
           }`
         }
       >
-        <span className="block leading-tight">{macro.label}</span>
+        <span className="block text-base font-medium leading-tight">{macro.label}</span>
         {macro.agente && (
-          <span className="block text-[10px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
+          <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
             (Agente di Riferimento: {macro.agente})
           </span>
         )}
@@ -247,34 +267,34 @@ function MacroItem({ macro, currentPath }) {
     );
   }
 
-  // Una macro puo' avere pagine flat (`pages`) oppure sotto-gruppi (`groups`).
-  const allPages = macro.groups ? macro.groups.flatMap((g) => g.pages) : macro.pages;
-  const isActive = allPages.some((p) =>
-    p.end ? currentPath === p.to : currentPath.startsWith(p.to)
-  );
+  const allPages = macroPages(macro);
+  const landingPath = macro.landing ? `/admin/reparto/${macro.id}` : null;
+  const isActive =
+    (landingPath && currentPath.startsWith(landingPath)) ||
+    allPages.some((p) => (p.end ? currentPath === p.to : currentPath.startsWith(p.to)));
   return (
     <div className="group relative">
-      {/* Macro-voce: link alla prima pagina della macro */}
+      {/* Macro-voce: link alla landing-reparto (o alla prima pagina) */}
       <NavLink
-        to={allPages[0].to}
-        className={`block px-3 py-2.5 rounded-lg text-sm transition ${
+        to={macroTarget(macro)}
+        className={`block px-3 py-3 rounded-lg transition ${
           isActive
             ? "bg-slate-800 text-yellow-400 font-medium"
-            : "text-slate-300 hover:bg-slate-800/60"
+            : "text-slate-200 hover:bg-slate-800/60"
         }`}
       >
-        <span className="block leading-tight">{macro.label}</span>
+        <span className="block text-base font-medium leading-tight">{macro.label}</span>
         {macro.agente && (
-          <span className="block text-[10px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
+          <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
             (Agente di Riferimento: {macro.agente})
           </span>
         )}
       </NavLink>
 
-      {/* Flyout: appare al hover sulla macro, mostra le pagine */}
+      {/* Flyout: appare al hover sulla macro, mostra le pagine (quick-nav) */}
       <div className="absolute left-full top-0 ml-1 hidden group-hover:block z-50">
-        <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2 min-w-[200px]">
-          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+        <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2 min-w-[240px]">
+          <p className="px-4 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             {macro.label}
           </p>
           {macro.groups
@@ -283,7 +303,7 @@ function MacroItem({ macro, currentPath }) {
                   key={g.label}
                   className={gi > 0 ? "mt-1 pt-1 border-t border-slate-700/60" : ""}
                 >
-                  <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-500/80">
+                  <p className="px-4 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-500/80">
                     {g.label}
                   </p>
                   {g.pages.map((p) => (
@@ -307,12 +327,12 @@ function AdminShell({ user, onLogout, children }) {
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-56 bg-slate-900 text-white flex flex-col flex-shrink-0">
+      <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
         <div className="px-6 py-5 border-b border-slate-800">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Ciak</p>
           <p className="text-sm text-slate-400 mt-0.5">Area Admin</p>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1.5">
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
@@ -329,6 +349,44 @@ function AdminShell({ user, onLogout, children }) {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
+    </div>
+  );
+}
+
+// ─── Pagina-reparto: grandi finestre cliccabili dei sotto-argomenti ──────
+
+function RepartoLanding({ macro }) {
+  const pages = macroPages(macro);
+  return (
+    <div className="p-10 max-w-5xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-slate-900 leading-tight">{macro.label}</h1>
+        {macro.agente && (
+          <p className="text-lg text-slate-500 mt-2">
+            Agente di Riferimento: <span className="font-medium text-slate-700">{macro.agente}</span>
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {pages.map((p) => (
+          <NavLink
+            key={p.to}
+            to={p.to}
+            end={p.end}
+            className="group flex flex-col justify-between min-h-[150px] rounded-3xl border-2 border-slate-200 bg-white p-7 transition hover:border-yellow-400 hover:shadow-lg"
+          >
+            <div>
+              <span className="block text-2xl font-semibold text-slate-900 group-hover:text-yellow-600 transition">
+                {p.label}
+              </span>
+              {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+            </div>
+            <span className="mt-6 inline-flex items-center gap-1 text-base font-medium text-slate-400 group-hover:text-yellow-600 transition">
+              Apri <span aria-hidden>→</span>
+            </span>
+          </NavLink>
+        ))}
+      </div>
     </div>
   );
 }
@@ -385,6 +443,11 @@ export default function CiakAdminApp() {
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : <CabinaRegia onAuthExpired={handleLogout} />} />
+
+        {/* ── Landing-reparto: grandi finestre cliccabili ── */}
+        {NAV.filter((m) => m.landing).map((m) => (
+          <Route key={m.id} path={`reparto/${m.id}`} element={<RepartoLanding macro={m} />} />
+        ))}
 
         {/* ── Dashboard ── */}
         <Route path="oggi" element={isAntonella
