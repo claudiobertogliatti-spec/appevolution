@@ -331,17 +331,18 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
             
             # Calculate score
             score = 30  # Base score
-            if 1000 <= followers < 10000:
+            if followers < 1000:
                 score += 25
-            elif 10000 <= followers < 50000:
-                score += 20
-            elif followers >= 50000:
-                score += 10
+            elif followers < 5000:
+                score += 18
+            # >= 5000 follower: fuori target (nessun bonus social)
             if nicchia:
                 score += 15
             if email:
                 score += 10
             
+            if followers >= 5000:
+                score = min(score, 35)
             score = min(score, 100)
             target_fit = calculate_target_fit(score)
             status = "hot" if score >= 80 else "nuovo"
@@ -562,21 +563,16 @@ async def auto_score_imported_leads(lead_ids: List[str]):
             # Calcola score base
             score = 50  # Base score
             
-            if lead.get("followers_count"):
-                fc = lead["followers_count"]
-                if fc >= 100000:
-                    score += 30
-                elif fc >= 50000:
-                    score += 25
-                elif fc >= 10000:
-                    score += 20
-                elif fc >= 5000:
-                    score += 15
-                elif fc >= 1000:
-                    score += 10
+            fc = lead.get("followers_count") or 0
+            if fc < 1000:
+                score += 25
+            elif fc < 5000:
+                score += 18
+            # >= 5000 follower: fuori target
+            if fc >= 5000:
+                score = min(score, 35)
             
-            if lead.get("website_url"):
-                score += 10
+            # Sito web indifferente per il target: nessun bonus (Claudio 2026-06-27)
             
             if lead.get("bio") and len(lead["bio"]) > 50:
                 score += 5
@@ -1729,18 +1725,13 @@ async def score_lead(lead_id: str):
     # ── Social (YouTube/Instagram/etc): scoring creator digitale ─────────────
     score_breakdown = {}
 
-    # 1. Audience Size (0-25)
+    # 1. Presenza social (0-25) — INVERTITO: in target chi ha POCHI follower
+    # (scarsa visibilita'). Da 5.000 follower in su = fuori target (Claudio 2026-06-27)
     followers = lead.get("followers_count", 0)
-    if followers >= 50000:
+    if followers < 1000:
         score_breakdown["audience_size"] = 25
-    elif followers >= 20000:
-        score_breakdown["audience_size"] = 20
-    elif followers >= 10000:
-        score_breakdown["audience_size"] = 15
-    elif followers >= 5000:
-        score_breakdown["audience_size"] = 10
-    elif followers >= 1000:
-        score_breakdown["audience_size"] = 5
+    elif followers < 5000:
+        score_breakdown["audience_size"] = 18
     else:
         score_breakdown["audience_size"] = 0
 
@@ -1769,14 +1760,12 @@ async def score_lead(lead_id: str):
     monetization = lead.get("monetization_signals", [])
     website_analysis = lead.get("website_analysis") or {}
 
-    mon_score = 0
-    if monetization:
-        mon_score += min(len(monetization) * 4, 12)
-    if website_analysis.get("existing_courses"):
-        mon_score += 4
-    if website_analysis.get("email_capture"):
-        mon_score += 4
-    score_breakdown["monetization_signals"] = min(mon_score, 20)
+    # INVERTITO: in target chi NON vende gia' online; corsi/e-commerce di
+    # videocorsi gia' attivi = FUORI target (Claudio 2026-06-27)
+    if website_analysis.get("existing_courses") or monetization:
+        score_breakdown["monetization_signals"] = 0
+    else:
+        score_breakdown["monetization_signals"] = 20
 
     # 5. Niche Fit (0-20) - basato su analisi Stefania
     niche_fit = 10  # Default medio
@@ -1787,6 +1776,10 @@ async def score_lead(lead_id: str):
 
     # Calcola totale
     score_total = sum(score_breakdown.values())
+    # Fuori target: gia' visibile (>= 5.000 follower) o gia' vende videocorsi
+    # → score basso, esce dai lead caldi (Claudio 2026-06-27)
+    if followers >= 5000 or website_analysis.get("existing_courses"):
+        score_total = min(score_total, 35)
     
     # Determina target_fit_level basato sullo score
     if score_total >= 80:
