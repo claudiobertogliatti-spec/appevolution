@@ -7,7 +7,7 @@
  * cliccabili dei sotto-argomenti (titolo + descrizione, tutto ampio e
  * leggibile). Il flyout al hover resta come quick-nav.
  *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi        [link diretto]
- *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
+ *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
@@ -37,6 +37,7 @@ import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
+import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
 import { VideoReview } from "./pages/VideoReview";
@@ -85,8 +86,7 @@ const NAV = [
     pages: [
       { to: "/admin/lead-manager", label: "New Lead", desc: "Inserisci e lavora i nuovi contatti in entrata" },
       { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Database freddo da riscaldare con l'outreach" },
-      { to: "/admin/masterclass-analytics", label: "Masterclass gratuita", desc: "Iscritti e performance della masterclass di acquisizione" },
-      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect", desc: "Funnel pre-acquisto: dall'iscrizione al click €67" },
+      { to: "/admin/pipeline", label: "Pipeline", desc: "Funnel masterclass → €67: numeri (Panoramica) e contatti in un'unica vista" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Campagne pubblicitarie di acquisizione" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Piano contenuti organici per attrarre lead" },
     ],
@@ -456,6 +456,9 @@ export default function CiakAdminApp() {
         {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
+        {/* Pipeline = Masterclass (Panoramica) + Pipeline Prospect (Contatti) accorpate */}
+        <Route path="pipeline" element={<PipelineAcquisizione onAuthExpired={handleLogout} />} />
+        {/* Route vecchie mantenute per i link diretti */}
         <Route
           path="masterclass-analytics"
           element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
