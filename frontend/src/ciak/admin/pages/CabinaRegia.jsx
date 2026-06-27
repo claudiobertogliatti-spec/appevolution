@@ -1,20 +1,25 @@
 /**
- * Ciak Admin — CABINA DI REGIA (v3).
- * 4 reparti operativi col semaforo di autonomia. Ogni reparto ha un RESPONSABILE
- * (uno dei 6 agenti). I 4 responsabili continuano a far parte del team che lavora
- * il percorso partner nella Delivery (con Marco e Matteo). Le card portano al reparto.
- * Il riquadro "Cosa aspetta il tuo OK" (Approva/Rifiuta task) è stato spostato in
- * "Oggi" (componente ApprovalsQueue): qui resta solo il semaforo aggregato.
+ * Ciak Admin — CABINA DI REGIA (v4).
+ * Panoramica delle 5 SEZIONI operative dell'organigramma Ciak (le stesse della
+ * sidebar, esclusa la Dashboard): Acquisizione · Vendite · Delivery · Casi studio
+ * · Back office. Ogni finestra mostra il suo "Agente di Riferimento" + KPI sintetici
+ * e, al click, apre la pagina-reparto con le sue macro-finestre.
+ * In cima resta il semaforo di autonomia (🟢 approvati · 🟡 in attesa · 🔴 urgenti).
+ * Il riquadro "Cosa aspetta il tuo OK" (Approva/Rifiuta) è in "Oggi".
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminFetch } from "../api";
 
+// Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard). `to`
+// punta alla pagina-reparto (landing con macro-finestre); Casi studio è una
+// pagina singola e linka direttamente.
 const REPARTI = [
-  { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/lead-manager" },
-  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", resp: "Stefania", respAvatar: "/agents/stefania.jpg", team: "Stefania · Valentina · Andrea · Gaia · Marco · Matteo", to: "/admin/partner" },
-  { id: "comunicazione", nome: "Comunicazione", mandato: "Macchina dei contenuti", color: "#F59E0B", soft: "#FEF3C7", emoji: "📣", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/calendario-editoriale" },
-  { id: "backoffice", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", resp: "Valentina", respAvatar: "/agents/valentina.jpg", to: "/admin/transactions" },
+  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al €67", color: "#F59E0B", soft: "#FEF3C7", emoji: "🧲", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/acquisizione" },
+  { id: "vendite", nome: "Vendite", mandato: "Dal €67 alla firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/reparto/vendite" },
+  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", resp: "Stefania", respAvatar: "/agents/stefania.jpg", team: "Stefania · Valentina · Andrea · Gaia · Marco · Matteo", to: "/admin/reparto/delivery" },
+  { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per il funnel", color: "#EC4899", soft: "#FCE7F3", emoji: "⭐", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/casi-studio" },
+  { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", resp: "Valentina", respAvatar: "/agents/valentina.jpg", to: "/admin/reparto/back-office" },
 ];
 
 async function getJSON(path) {
@@ -25,9 +30,10 @@ async function getJSON(path) {
 
 function kpisFor(id, sum, health, lead) {
   const lp = lead?.pipeline || {}, lpa = lead?.pending_actions || {}, lt = lead?.today || {};
-  if (id === "vendite") return [["Lead totali", lp.total_leads], ["Lead caldi", lp.hot_leads], ["Da revisionare", lpa.messages_to_review]];
+  if (id === "acquisizione") return [["Lead totali", lp.total_leads], ["Lead caldi", lp.hot_leads], ["Scoperti oggi", lt.discovered]];
+  if (id === "vendite") return [["Lead caldi", lp.hot_leads], ["Da revisionare", lpa.messages_to_review], ["Inviati oggi", lt.messages_sent]];
   if (id === "delivery") return [["Partner", sum.total_partners], ["Attivi", sum.active_partners], ["Accountability", health.accountability || "—"]];
-  if (id === "comunicazione") return [["Scoperti oggi", lt.discovered], ["Inviati oggi", lt.messages_sent], ["Engagement", health.engagement || "—"]];
+  if (id === "casi-studio") return [["Partner attivi", sum.active_partners], ["Engagement", health.engagement || "—"]];
   return [["MRR", sum.mrr != null ? "€ " + Number(sum.mrr).toLocaleString("it-IT") : "—"], ["LTV medio", sum.avg_ltv != null ? "€ " + sum.avg_ltv : "—"], ["Tech", health.tech || "—"]];
 }
 
@@ -61,7 +67,7 @@ export function CabinaRegia({ onAuthExpired }) {
     <div className="max-w-6xl p-6 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Cabina di Regia</h1>
-        <p className="text-sm text-slate-500 mt-1">Evolution PRO nei suoi 4 reparti operativi. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
+        <p className="text-sm text-slate-500 mt-1">Le 5 sezioni operative di Ciak. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-7">
@@ -79,9 +85,9 @@ export function CabinaRegia({ onAuthExpired }) {
                 <div><h3 className="font-bold text-slate-900 leading-tight">{r.nome}</h3><p className="text-xs text-slate-600">{r.mandato}</p></div>
               </div>
               <div className="flex items-center gap-2">
-                <img src={r.respAvatar} alt={r.resp} title={"Responsabile: " + r.resp} className="w-8 h-8 rounded-full object-cover border-2 border-white" />
+                <img src={r.respAvatar} alt={r.resp} title={"Agente di Riferimento: " + r.resp} className="w-8 h-8 rounded-full object-cover border-2 border-white" />
                 <div className="text-right leading-tight">
-                  <div className="text-[10px] uppercase tracking-wide text-slate-400">Responsabile</div>
+                  <div className="text-[10px] uppercase tracking-wide text-slate-400">Agente di Riferimento</div>
                   <div className="text-xs font-semibold text-slate-700">{r.resp}</div>
                 </div>
               </div>
