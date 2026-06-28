@@ -1224,6 +1224,8 @@ class PlacesSearchRequest(BaseModel):
     max_results: int = 20
     min_rating: float = 0.0
     only_without_website: bool = False  # Filtra solo chi non ha sito
+    only_with_website: bool = False     # Solo chi HA un sito (per l'email)
+    all_italy: bool = False             # Cerca in tutte le citta' italiane
     use_group: bool = False             # Se True, profession = chiave PROFESSION_GROUPS
 
 
@@ -1270,20 +1272,23 @@ async def search_places(request: PlacesSearchRequest, background_tasks: Backgrou
     total_hot = 0
     errors = []
 
+    cities_to_run = ITALIAN_CITIES if request.all_italy else [request.city]
     async with httpx.AsyncClient(timeout=30) as client:
-        for query_text, category_label in queries_to_run:
-            try:
-                result = await _run_places_query(
-                    client, api_key, query_text, category_label,
-                    request.city, request.max_results,
-                    request.min_rating, request.only_without_website
-                )
-                total_imported += result["imported"]
-                total_skipped += result["skipped"]
-                total_hot += result["hot"]
-            except Exception as e:
-                errors.append(f"{query_text}: {str(e)}")
-                logger.error(f"[PLACES] Errore query '{query_text}': {e}")
+        for city in cities_to_run:
+            for query_text, category_label in queries_to_run:
+                try:
+                    result = await _run_places_query(
+                        client, api_key, query_text, category_label,
+                        city, request.max_results,
+                        request.min_rating, request.only_without_website,
+                        request.only_with_website
+                    )
+                    total_imported += result["imported"]
+                    total_skipped += result["skipped"]
+                    total_hot += result["hot"]
+                except Exception as e:
+                    errors.append(f"{query_text} ({city}): {str(e)}")
+                    logger.error(f"[PLACES] Errore query '{query_text}' in {city}: {e}")
 
     return {
         "success": True,
@@ -1305,7 +1310,8 @@ async def _run_places_query(
     city: str,
     max_results: int,
     min_rating: float,
-    only_without_website: bool
+    only_without_website: bool,
+    only_with_website: bool = False,
 ) -> dict:
     """Esegue una singola ricerca Places e salva i lead trovati"""
 
@@ -1365,6 +1371,9 @@ async def _run_places_query(
             # Salta se only_without_website e ha un sito
             if only_without_website and has_website:
                 continue
+            # Salta se only_with_website e NON ha un sito (serve per l'email)
+            if only_with_website and not has_website:
+                continue
 
             # Cerca email nel sito (campo non fornito da Places)
             email = None
@@ -1405,7 +1414,7 @@ async def _run_places_query(
                 "followers_count": 0,   # N/A per offline
                 "score_breakdown": {
                     "categoria_professionale": 25 if any(t in _PROFESSIONAL_PLACE_TYPES for t in types) else 10,
-                    "assenza_sito_web": 20 if not has_website else (10 if "facebook" in (website or "").lower() else 0),
+                    "sito_web_contattabile": 15 if (has_website and "facebook" not in (website or "").lower()) else 10,
                     "telefono_disponibile": 20 if phone else 0,
                     "rating_passaparola": 15 if 3.8 <= rating <= 4.8 else (10 if rating > 4.8 else 5 if rating >= 3.0 else 0),
                     "volume_recensioni": 15 if 5 <= review_count <= 50 else (10 if 51 <= review_count <= 100 else 5 if review_count > 0 else 0),
@@ -1570,10 +1579,10 @@ def calculate_offline_professional_score(
 
     # 2. Assenza di sito web = segnale forte di offline (+20)
     #    Solo pagina Facebook invece di sito = quasi offline (+10)
-    if not has_website:
-        score += 20
-    elif "facebook.com" in website_url.lower() or "fb.com" in website_url.lower():
-        score += 10  # Solo FB, nessun sito vero
+    if has_website and "facebook.com" not in website_url.lower() and "fb.com" not in website_url.lower():
+        score += 15  # Sito vero = email scrapabile per la Lista Fredda
+    else:
+        score += 10  # Niente sito o solo social: comunque contattabile
 
     # 3. Telefono disponibile = contattabile via WhatsApp/chiamata (+20)
     if has_phone:
