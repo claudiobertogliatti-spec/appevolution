@@ -1111,20 +1111,24 @@ def calculate_youtube_lead_score(subscriber_count: int, video_count: int, descri
     """
     score = 0
     
-    # Subscriber score
-    if 1000 <= subscriber_count < 10000:
-        score += 30  # Sweet spot - crescita, non troppo grande
-    elif 10000 <= subscriber_count < 50000:
-        score += 25  # Buono, audience consolidata
-    elif subscriber_count >= 50000:
-        score += 15  # Troppo grande, probabilmente già strutturato
+    # Subscriber score — INVERTITO: in target chi ha POCHI iscritti (<5000),
+    # scarsa presenza. Da 5.000 in su = gia' visibile, fuori target. (Claudio 2026-06-27)
+    if subscriber_count < 1000:
+        score += 30
+    elif subscriber_count < 5000:
+        score += 18
+    # >= 5000 iscritti: nessun bonus (fuori target)
     
-    # Video frequency estimate (assumendo canale attivo da 2 anni)
-    avg_videos_per_month = video_count / 24 if video_count > 0 else 0
-    if avg_videos_per_month >= 2:
+    # Tanti video pubblicati = gia' produce molto contenuto / visibile → fuori
+    # target. Pochi video = in target. (Claudio 2026-06-27)
+    if video_count <= 10:
         score += 20
-    elif avg_videos_per_month >= 1:
-        score += 10
+    elif video_count <= 30:
+        score += 8
+    # > 30 video: nessun bonus
+    # Cap fuori target: gia' visibile (>= 5000 iscritti o molti video)
+    if subscriber_count >= 5000 or video_count > 50:
+        score = min(score, 30)
     
     # Keywords check
     target_keywords = [
@@ -1631,6 +1635,23 @@ async def analyze_website(lead_id: str):
         from ollama_service import extract_lead_data_from_html
         
         website_analysis = await extract_lead_data_from_html(html_content, website_url)
+
+        # Rilevazione a regole "vende gia' videocorsi" (FUORI target): cerca
+        # piattaforme corsi / checkout / membership nell'HTML e imposta
+        # existing_courses, cosi' la penalita' nello scoring scatta. (Claudio 2026-06-27)
+        _html_low = (html_content or "").lower()
+        _course_signals = [
+            "teachable", "kajabi", "thrivecart", "hotmart", "podia", "learnworlds",
+            "learndash", "thinkific", "systeme.io", "/checkout", "add-to-cart",
+            "aggiungi al carrello", "iscriviti al corso", "acquista il corso",
+            "area membri", "area riservata", "membership", "abbonati",
+            "videocorso", "video corso", "i miei corsi", "accedi al corso",
+        ]
+        _found = [s for s in _course_signals if s in _html_low]
+        if _found:
+            website_analysis = website_analysis or {}
+            website_analysis["existing_courses"] = True
+            website_analysis["course_platforms"] = _found[:8]
         
         # Determina successo
         has_error = website_analysis.get("error") or website_analysis.get("parse_error")
