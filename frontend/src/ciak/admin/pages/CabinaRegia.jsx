@@ -6,10 +6,12 @@
  * e, al click, apre la pagina-reparto con le sue macro-finestre.
  * In cima resta il semaforo di autonomia (🟢 approvati · 🟡 in attesa · 🔴 urgenti).
  * Il riquadro "Cosa aspetta il tuo OK" (Approva/Rifiuta) è in "Oggi".
+ * In fondo: la chat con LUCA, l'Amministratore Delegato che coordina i reparti.
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminFetch } from "../api";
+import { LucaChat } from "./LucaChat";
 
 // Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard). `to`
 // punta alla pagina-reparto (landing con macro-finestre); Casi studio è una
@@ -67,7 +69,7 @@ export function CabinaRegia({ onAuthExpired }) {
     <div className="max-w-6xl p-6 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Cabina di Regia</h1>
-        <p className="text-sm text-slate-500 mt-1">Le 5 sezioni operative di Ciak. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
+        <p className="text-sm text-slate-500 mt-1">Le 5 sezioni operative di Ciak, coordinate dall'AD Luca. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-7">
@@ -105,6 +107,15 @@ export function CabinaRegia({ onAuthExpired }) {
             )}
           </button>
         ))}
+      </div>
+
+      {/* AD Luca — chat di coordinamento dei reparti */}
+      <div className="mt-8">
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-slate-900">Parla con Luca, il tuo AD</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Legge i dati live dei reparti e ti dà la prossima mossa. Consiglia e prepara — esegui tu.</p>
+        </div>
+        <LucaChat onAuthExpired={onAuthExpired} />
       </div>
     </div>
   );
