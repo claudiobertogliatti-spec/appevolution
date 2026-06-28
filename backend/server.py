@@ -16940,6 +16940,11 @@ from routers.admin_stefania import router as admin_stefania_router, set_db as se
 set_admin_stefania_db(db)
 app.include_router(admin_stefania_router)
 
+# LUCA - Amministratore Delegato AI: chat admin di coordinamento dei reparti
+from routers.admin_luca import router as admin_luca_router, set_db as set_admin_luca_db
+set_admin_luca_db(db)
+app.include_router(admin_luca_router)
+
 # Ciak Systeme.io tag emission service (init DB per audit log ciak_systeme_events)
 from services.ciak_systeme import set_db as set_ciak_systeme_db
 set_ciak_systeme_db(db)
