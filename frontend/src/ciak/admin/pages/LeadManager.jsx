@@ -517,7 +517,8 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
     use_group: true,
     city: "Milano",
     max_results: 20,
-    only_without_website: false,
+    all_italy: true,
+    only_with_website: true,
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -532,7 +533,8 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
         profession: form.use_group ? form.profession_group : form.custom_profession,
         city: form.city,
         max_results: Number(form.max_results),
-        only_without_website: form.only_without_website,
+        all_italy: form.all_italy,
+        only_with_website: form.only_with_website,
         use_group: form.use_group,
       };
       const res = await adminFetch("/api/discovery/search-places", {
@@ -592,8 +594,8 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Città</label>
-              <select value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Città {form.all_italy ? "(tutta Italia)" : ""}</label>
+              <select value={form.city} disabled={form.all_italy} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200">
                 {ITALIAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -607,15 +609,27 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
             </div>
           </div>
 
-          <div className={`flex items-center justify-between p-3 rounded-xl border ${form.only_without_website ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+          <div className={`flex items-center justify-between p-3 rounded-xl border ${form.all_italy ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
             <div>
-              <div className="text-sm font-semibold text-slate-900">Solo senza sito web</div>
-              <div className="text-[11px] text-slate-400">Filtra solo chi non ha un sito → segnale offline forte</div>
+              <div className="text-sm font-semibold text-slate-900">Cerca in tutta Italia</div>
+              <div className="text-[11px] text-slate-400">Scorre le città italiane principali (ignora la città singola). Più lenta.</div>
             </div>
-            <button onClick={() => setForm(p => ({ ...p, only_without_website: !p.only_without_website }))}
-              className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.only_without_website ? "bg-emerald-600" : "bg-gray-300"}`}>
+            <button onClick={() => setForm(p => ({ ...p, all_italy: !p.all_italy }))}
+              className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.all_italy ? "bg-emerald-600" : "bg-gray-300"}`}>
               <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
-                style={{ left: form.only_without_website ? "22px" : "2px" }} />
+                style={{ left: form.all_italy ? "22px" : "2px" }} />
+            </button>
+          </div>
+
+          <div className={`flex items-center justify-between p-3 rounded-xl border ${form.only_with_website ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Solo con sito web</div>
+              <div className="text-[11px] text-slate-400">Tiene solo chi ha un sito → email reperibile per la Lista Fredda</div>
+            </div>
+            <button onClick={() => setForm(p => ({ ...p, only_with_website: !p.only_with_website }))}
+              className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.only_with_website ? "bg-emerald-600" : "bg-gray-300"}`}>
+              <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
+                style={{ left: form.only_with_website ? "22px" : "2px" }} />
             </button>
           </div>
 
