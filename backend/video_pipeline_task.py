@@ -1394,6 +1394,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     # intro/musica/zoom/overlay/outro). Default False: il partner riceve il video
     # pulito (taglio + audio normalizzato) e fa l'editing creativo manualmente.
     VIDEO_ENHANCE_ENABLED = os.environ.get("VIDEO_ENHANCE_ENABLED", "false").strip().lower() == "true"
+    # Checkpoint revisione testo (stile Descript): se True la pipeline si ferma a
+    # "da_revisionare" dopo la trascrizione, invece di tagliare e pubblicare al volo.
+    VIDEO_REVIEW_ENABLED = os.environ.get("VIDEO_REVIEW_ENABLED", "false").strip().lower() == "true"
 
     mongo = AsyncIOMotorClient(
         MONGO_URL,
@@ -1516,6 +1519,44 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         logger.warning(f"[VIDEO-PIPE] Smart edit error: {se}")
                 all_segs = filler_segs + silence_segs + smart_segs
                 all_segs.sort(key=lambda x: x["start"])
+                # ── CHECKPOINT REVISIONE TESTO (stile Descript) ─────────────
+                # Se attivo, NON taglia: salva trascrizione + parole + tagli proposti
+                # e si ferma a "da_revisionare" per la revisione umana sul testo.
+                # Gated (default OFF) e solo masterclass: il path normale resta intatto.
+                if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
+                    _cut_rev = []
+                    for _i, _s in enumerate(all_segs):
+                        _typ = "filler" if _s.get("word") else ("smart" if _s.get("reason") else "silence")
+                        _cut_rev.append({
+                            "id": _i,
+                            "start": round(float(_s["start"]), 3),
+                            "end": round(float(_s["end"]), 3),
+                            "type": _typ,
+                            "reason": _s.get("reason", ""),
+                            "word": _s.get("word", ""),
+                            "enabled": True,
+                        })
+                    await db.masterclass_factory.update_one(
+                        {"partner_id": partner_id},
+                        {"$set": {
+                            "video_pipeline_status": "da_revisionare",
+                            "video_raw_url": video_url,
+                            "video_raw_duration_s": int(raw_dur),
+                            "review_transcript": transcript,
+                            "review_words": words,
+                            "review_cut_segments": _cut_rev,
+                            "review_filler_report": filler_report,
+                            "review_created_at": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                        }},
+                        upsert=True,
+                    )
+                    logger.info(f"[VIDEO-PIPE] Checkpoint revisione: {len(_cut_rev)} tagli proposti — fermo a da_revisionare")
+                    try:
+                        await telegram(f"📝 <b>Video pronto per revisione testo</b>\n👤 {name} — {label}\n{len(_cut_rev)} tagli proposti. Aprilo in admin → Revisione Video.")
+                    except Exception:
+                        pass
+                    return
                 if all_segs:
                     await set_status("cutting_fillers")
                     await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, all_segs, raw_dur)
