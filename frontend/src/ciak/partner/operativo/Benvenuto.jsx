@@ -3,26 +3,26 @@ import { WELCOME_VIDEO_EMBED } from "./phases";
 
 /**
  * Schermata di Benvenuto al primo accesso del partner.
- * Voce di Stefania (agente AI coordinatrice): diretta, sicura, con prova sul campo.
- * Contiene: accoglienza + video del fondatore + spiegazione Metodo EVO + team
- * (foto reali grandi) + CTA "Inizia il percorso".
+ * Voce di Stefania (coordinatrice del team). Ciak è presentato come un'azienda
+ * digitale: un team di specialisti — ognuno potenziato dall'AI — che lavora al
+ * progetto del partner. Contiene: accoglienza + video del fondatore + Metodo
+ * E.V.O. + il team (foto reali) + CTA "Inizia il percorso".
  *
- * Usata in due punti: come gate al primo accesso (PartnerOperativo) e come
- * contenuto del passo "Conosciamoci" (Step02), ri-apribile dalla mappa.
+ * Usata come gate al primo accesso (PartnerOperativo) e come passo "Conosciamoci".
  */
 const TEAM = [
-  { id: "stefania", name: "Stefania", role: "Coordina il percorso", img: "/agents/stefania.jpg" },
-  { id: "valentina", name: "Valentina", role: "Brand e posizionamento", img: "/agents/valentina.jpg" },
-  { id: "andrea", name: "Andrea", role: "Video e contenuti", img: "/agents/andrea.jpg" },
-  { id: "gaia", name: "Gaia", role: "Tecnica e funnel", img: "/agents/gaia.jpg" },
-  { id: "marco", name: "Marco", role: "Strategia e lancio", img: "/agents/marco.jpg" },
-  { id: "matteo", name: "Matteo", role: "Analisi e numeri", img: "/agents/matteo.jpg" },
+  { id: "stefania", name: "Stefania", role: "Coordina il progetto e ti guida passo dopo passo.", img: "/agents/stefania.jpg" },
+  { id: "valentina", name: "Valentina", role: "Brand, posizionamento e metodo.", img: "/agents/valentina.jpg" },
+  { id: "andrea", name: "Andrea", role: "Masterclass, video e contenuti.", img: "/agents/andrea.jpg" },
+  { id: "gaia", name: "Gaia", role: "Funnel, pagine e parte tecnica.", img: "/agents/gaia.jpg" },
+  { id: "marco", name: "Marco", role: "Strategia commerciale e lancio.", img: "/agents/marco.jpg" },
+  { id: "matteo", name: "Matteo", role: "Analisi dei risultati e ottimizzazione.", img: "/agents/matteo.jpg" },
 ];
 
 const PHASES = [
-  { n: 1, name: "Esamina", desc: "Chiariamo chi sei, a chi parli e qual è la tua offerta." },
-  { n: 2, name: "Valida", desc: "Costruiamo accademia e pagine e andiamo online, pronti a vendere." },
-  { n: 3, name: "Ottimizza", desc: "Miglioriamo sui numeri veri, fino a renderti il riferimento del mercato." },
+  { n: 1, name: "Esamina", desc: "Costruiamo le fondamenta. Definiamo il tuo brand, il tuo posizionamento, il metodo e l'offerta." },
+  { n: 2, name: "Valida", desc: "Trasformiamo il progetto in qualcosa che le persone possono acquistare. Creiamo corso, masterclass, funnel e lancio." },
+  { n: 3, name: "Ottimizza", desc: "Analizziamo i risultati reali. Miglioriamo comunicazione, conversioni e vendite fino a costruire un sistema sempre più efficace." },
 ];
 
 function Photo({ src, alt, className, fallbackText }) {
@@ -58,16 +58,26 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il 
                 {nome ? `Ciao ${nome}, sono Stefania` : "Ciao, sono Stefania"}
               </h1>
               <p className="text-[15px] leading-relaxed text-slate-300 mt-2">
-                Sono l'agente AI che coordina tutto il team che ti seguirà in questo percorso. In ogni
-                fase ci sarà un'agente AI dedicata che ti supporterà e renderà tutto meno faticoso.
+                Sarò il tuo punto di riferimento durante tutto il percorso. Dietro Ciak hai a
+                disposizione un <strong className="text-white">vero team di specialisti</strong> che lavora al
+                tuo progetto: ognuno segue una parte precisa del lavoro, esattamente come in un'azienda.
+                Ogni fase è seguita dallo specialista più adatto, così hai sempre il supporto giusto
+                senza doverti chiedere quale sia il prossimo passo.
+              </p>
+              <p className="text-[15px] leading-relaxed text-slate-300 mt-2">
+                Il mio compito è tenere tutto sotto controllo, guidarti e assicurarmi che tu arrivi
+                fino alla pubblicazione della tua accademia.
               </p>
             </div>
           </div>
 
           {/* Video del fondatore */}
           <div className="mt-6">
+            <p className="text-[15px] font-semibold mb-1">Prima di iniziare…</p>
             <p className="text-sm text-slate-300 mb-3">
-              Prima di tutto, due parole dal fondatore. Vale qualche minuto: parti con le idee chiare.
+              C'è un breve messaggio di Claudio, il fondatore di Evolution PRO. Ti consiglio di
+              guardarlo: in pochi minuti capirai come lavoreremo insieme e perché questo metodo è
+              diverso da un semplice corso online.
             </p>
             <div className="relative w-full rounded-xl overflow-hidden border border-slate-700 bg-black" style={{ aspectRatio: "16 / 9" }}>
               <iframe
@@ -83,23 +93,10 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il 
           </div>
         </div>
 
-        {/* Blocco di sicurezza — voce di Stefania */}
-        <div className="mt-4 bg-white border border-yellow-200 border-l-4 border-l-yellow-400 rounded-r-xl p-5">
-          <p className="text-[15px] leading-relaxed text-slate-900 mb-2.5">
-            L'obiettivo è portare <strong>online la tua accademia in 21 giorni</strong>. Se segui
-            esattamente le nostre indicazioni, completare ogni passo sarà un gioco da ragazzi.
-          </p>
-          <p className="text-[15px] leading-relaxed text-slate-900">
-            Perché ne sono così certa? Perché è un percorso <strong>testato sul campo</strong>, che ha
-            già portato centinaia di professionisti partiti completamente da zero a risultati di vendita
-            importanti.
-          </p>
-        </div>
-
-        {/* Metodo EVO */}
+        {/* Metodo E.V.O. */}
         <div className="mt-6">
-          <h2 className="text-base font-semibold text-slate-900">Come funziona: il Metodo EVO</h2>
-          <p className="text-sm text-slate-500 mt-1 mb-3 leading-relaxed">Tre fasi, una alla volta. Al ritmo pensiamo noi.</p>
+          <h2 className="text-base font-semibold text-slate-900">Il Metodo E.V.O.</h2>
+          <p className="text-sm text-slate-500 mt-1 mb-3 leading-relaxed">Lavoreremo una fase alla volta. Ogni fase ha un obiettivo preciso.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {PHASES.map((p) => (
               <div key={p.n} className="bg-white border border-gray-200 rounded-xl p-4">
@@ -113,11 +110,11 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il 
           </div>
         </div>
 
-        {/* Team — foto grandi */}
+        {/* Il tuo team */}
         <div className="mt-6">
-          <h2 className="text-base font-semibold text-slate-900">Chi ti segue, fase per fase</h2>
+          <h2 className="text-base font-semibold text-slate-900">Il tuo team</h2>
           <p className="text-sm text-slate-500 mt-1 mb-3 leading-relaxed">
-            Un'agente AI dedicata per ogni parte del lavoro. Non sei mai sola.
+            Specialisti dedicati a ogni parte del percorso, ognuno potenziato dall'intelligenza artificiale.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
             {TEAM.map((m) => (
@@ -130,22 +127,32 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il 
                 />
                 <div className="px-4 py-3">
                   <div className="text-[15px] font-semibold text-slate-900">{m.name}</div>
-                  <div className="text-[13px] text-slate-500 mt-0.5">{m.role}</div>
+                  <div className="text-[13px] text-slate-500 mt-0.5 leading-snug">{m.role}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* CTA */}
-        <button
-          type="button"
-          onClick={onStart}
-          className="mt-7 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold rounded-xl py-4 text-base transition"
-        >
-          {ctaLabel}
-        </button>
-        <p className="text-center text-[13px] text-slate-400 mt-2.5">Puoi fermarti e riprendere quando vuoi</p>
+        {/* Sei pronto? */}
+        <div className="mt-6 bg-slate-900 text-white rounded-2xl p-6 text-center">
+          <h2 className="text-xl font-bold">Tutto pronto?</h2>
+          <p className="text-[15px] text-slate-300 mt-2 leading-relaxed">
+            Il prossimo passo è iniziare a costruire il tuo progetto.<br />
+            Una fase alla volta. Un obiettivo alla volta. Un risultato alla volta.
+          </p>
+          <button
+            type="button"
+            onClick={onStart}
+            className="mt-5 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold rounded-xl py-4 text-base transition"
+          >
+            {ctaLabel}
+          </button>
+          <p className="text-[13px] text-slate-400 mt-3">
+            Puoi interrompere il lavoro quando vuoi: Ciak salva automaticamente i tuoi progressi e
+            riprendi esattamente da dove avevi lasciato.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -12,9 +12,9 @@ export const PHASE_CONFIG = {
     order: 1,
     agentId: "VALENTINA",
     intro:
-      "Ciao {nome}, sono Valentina, l'agente AI di questa fase. Mettiamo a fuoco chi sei e a chi ti rivolgi: è la base su cui costruiremo tutta la tua accademia.",
+      "Ciao {nome}, sono Valentina, la tua specialista di brand e posizionamento. Mettiamo a fuoco chi sei e a chi ti rivolgi: è la base su cui costruiremo tutta la tua accademia.",
     body: [
-      "Sono l'agente AI che ti accompagna in questa prima fase. Mettiamo a fuoco la cosa che conta di più: chi sei e a chi ti rivolgi. È la base su cui costruiremo tutta la tua accademia.",
+      "Sono la tua specialista di brand e posizionamento. Mettiamo a fuoco la cosa che conta di più: chi sei e a chi ti rivolgi. È la base su cui costruiremo tutta la tua accademia.",
       "Non ti serve nessuna competenza tecnica. Io ti guido, una domanda alla volta. Tu ci metti la tua esperienza: al resto pensiamo noi.",
     ],
     motivation:
@@ -33,10 +33,10 @@ export const PHASE_CONFIG = {
     order: 2,
     agentId: "ANDREA",
     intro:
-      "Ciao {nome}, sono Andrea, l'agente AI di questa fase. Costruiamo la tua accademia e la portiamo online, pronta a vendere.",
+      "Ciao {nome}, sono Andrea. In questa fase trasformiamo il tuo progetto in qualcosa che il mercato può vedere, capire e comprare.",
     body: [
-      "Sono l'agente AI che ti accompagna in questa fase. Ora costruiamo la tua accademia e la portiamo online, pronta a vendere. Tu registri e ci metti la faccia: al montaggio, alle pagine e alla tecnica pensiamo noi.",
-      "Andiamo per passi semplici. Ti dico esattamente cosa fare, quando farlo e cosa puoi lasciare a noi.",
+      "In questa fase trasformiamo il tuo progetto in qualcosa che il mercato può vedere, capire e comprare. Tu ci metti esperienza, voce e volto. Noi ti aiutiamo a costruire masterclass, corso, funnel e lancio.",
+      "Qui non cerchiamo la perfezione: cerchiamo una prima versione reale da mettere online e validare.",
     ],
     motivation:
       "Qui il tuo progetto smette di essere un'idea e diventa qualcosa che le persone possono davvero comprare. È il passaggio che conta.",
@@ -54,9 +54,9 @@ export const PHASE_CONFIG = {
     order: 3,
     agentId: "MARCO",
     intro:
-      "Ciao {nome}, sono Marco, l'agente AI di questa fase. Sei online: il più è fatto. Adesso miglioriamo ciò che vende, un passo alla volta.",
+      "Ciao {nome}, sono Marco, il tuo specialista di strategia e crescita. Sei online: il più è fatto. Adesso miglioriamo ciò che vende, un passo alla volta.",
     body: [
-      "Sono l'agente AI che ti accompagna in questa fase. Sei online: il più è fatto. Adesso leggiamo i numeri veri e miglioriamo ciò che vende, un passo alla volta, fino a renderti il riferimento del tuo mercato.",
+      "Sono il tuo specialista di strategia e crescita. Sei online: il più è fatto. Adesso leggiamo i numeri veri e miglioriamo ciò che vende, un passo alla volta, fino a renderti il riferimento del tuo mercato.",
       "Non sei solo: ti dico io su cosa concentrarti questa settimana, senza disperdere energie.",
     ],
     motivation:
