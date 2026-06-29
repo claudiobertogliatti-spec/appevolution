@@ -40,9 +40,8 @@ export default function GoLive21Banner({ startDate }) {
             )}
           </div>
           <p className="text-sm text-white leading-relaxed mt-1">
-            Il <strong className="text-yellow-400">Metodo EVO</strong> ti porta online e pronto a
-            vendere in 21 giorni. Esamina → Valida → Ottimizza, una fase alla volta: al ritmo
-            pensiamo noi.
+            Segui il nostro <strong className="text-yellow-400">Metodo</strong> e saremo online in 21
+            giorni. <strong className="text-yellow-400">Prima lanciamo e prima incassiamo!</strong>
           </p>
           {dayInfo && (
             <div className="h-1.5 rounded-full overflow-hidden bg-white/15 mt-3">
