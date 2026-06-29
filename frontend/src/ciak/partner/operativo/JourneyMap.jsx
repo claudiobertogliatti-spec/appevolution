@@ -16,9 +16,9 @@ import {
  */
 const STEP_COPY = {
   "01-contratto": { title: "Il tuo contratto", desc: "Hai firmato. Si parte da qui." },
-  "02-discovery-video": { title: "Conosciamoci", desc: "Un breve video che ti spiega come funziona tutto." },
+  "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
   "burocrazia": { title: "I tuoi dati", desc: "I dati per la fatturazione. Li inserisci una volta sola." },
-  "03-brand-kit": { title: "Il tuo marchio", desc: "Logo, foto e colori del tuo marchio." },
+  "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
   "04-posizionamento": { title: "Il tuo posizionamento", desc: "Poche domande per mettere a fuoco il tuo messaggio." },
   "05-script-masterclass": { title: "Lo script della masterclass", desc: "Scriviamo insieme cosa dirai nella tua lezione gratuita." },
   "06-outline-lezioni": { title: "La scaletta delle lezioni", desc: "L'indice del tuo corso, lezione per lezione." },
