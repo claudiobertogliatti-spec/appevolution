@@ -1080,3 +1080,44 @@ Campi DB nuovi (su masterclass_factory): review_transcript, review_words, review
 
 ### Commit chiave (su main) e stato deploy
 Luca: 7112e43 (admin_luca + LucaChat + CabinaRegia), 3d0a5b9 (server.py reg), 6625253 (CLAUDE.md Luca), 2cb9a11 (avatar SVG). Revisione video: 1ab2322 (checkpoint), 9611959 (Fase B), endpoint review-data/review-approve, b76074a (MasterclassReview), 207ac20 (route), c226e19 (VideoReview entry), dd2b61a (cap 15min + catch-all). Backend in produzione: revision evolution-pro-backend-00401 (deploy da source DOPO git reset --hard origin/main).
+
+## Sessione 2026-06-30 — Fatture di cortesia (Back office · Valentina)
+
+Flusso per generare le **fatture delle vendite**. Scelte di Claudio: **PDF di cortesia**
+(NON fattura elettronica SDI — l'invio resta al commercialista), per tutte e 3 le fonti di
+vendita, intestate a **Evolution PRO LLC** e **SENZA IVA** (società di diritto USA/Delaware,
+priva di P.IVA italiana → reverse charge ove applicabile). NON è la P.IVA italiana di
+Bertogliatti: l'emittente è la LLC.
+
+### Dati emittente (default, sovrascrivibili dalla UI)
+Evolution PRO LLC · 8 The Green, Ste A, Dover, DE 19901, USA · EIN 30-1375330 · File Number
+2394173 (Delaware Division of Corporations) · legale rappr. Claudio Bertogliatti · sede
+operativa Torino · IBAN Revolut Bank UAB `LT94 3250 0974 4929 5781`. Fonte: `contratto_template_unpacked` + `routers/contract.py`.
+
+### Dove
+Admin Ciak → **Back office → Fatture** (`/admin/fatture`). Voce in sidebar `back-office`.
+
+### File
+- `backend/services/invoice_pdf.py` — costanti `EMITTENTE_DEFAULT` + `render_invoice_pdf(invoice, emittente)` (ReportLab, no IVA, nota reverse charge) + `upload_invoice_pdf_to_cloudinary()` best-effort.
+- `backend/routers/ciak_admin.py` — endpoint fattura appesi in fondo (stesso router già registrato, auth `require_ciak_admin`).
+- `frontend/src/ciak/admin/pages/Fatture.jsx` — pagina (tab Da fatturare / Emesse + fattura manuale + editor emittente).
+- `frontend/src/ciak/admin/CiakAdminApp.jsx` — import + voce NAV back-office + route `fatture`.
+
+### Endpoint (prefix `/api/admin/ciak`, auth admin)
+- `GET /invoices/sources` — vendite fatturabili dalle 3 fonti con `gia_fatturata` + blocco `cliente` precompilato. Fonti: **Ciak Blueprint €67** (`diagnostic_sessions` con `stripe_payment_completed` + `ciak_orphan_purchases`), **Partnership €2.790** (`proposte.pagamento_completato`), **Servizi extra** (`partner_servizi` stato=attivo, prezzo dal catalogo `SERVIZI_CATALOGO`).
+- `POST /invoices` — genera: numero progressivo, render PDF, salva. Idempotente per `source_key` (409 se già fatturata). Totale calcolato server-side dalle righe.
+- `GET /invoices` — registro (senza pdf_base64) + totale fatturato. `GET /invoices/{id}` dettaglio.
+- `GET /invoices/{id}/pdf` — stream PDF (dal base64 in DB).
+- `POST /invoices/{id}/cancel` — annulla (resta a registro, esce dai totali, libera la sorgente).
+- `GET|PUT /invoices/settings` — dati emittente (override su `ciak_invoice_settings`).
+
+### Collezioni
+- `ciak_invoices` — 1 doc/fattura: `id, numero, anno, data_emissione, fonte, source_key, partner_id, cliente{}, righe[], totale, valuta, stato(emessa|annullata), pdf_url(cloudinary|null), pdf_base64(durevole), created_at/by`.
+- `ciak_invoice_counters` — `{_id: anno, seq}`, `find_one_and_update $inc upsert` → numerazione atomica `<prefix><anno>/NNN` (es. `2026/001`).
+- `ciak_invoice_settings` — `{_id:"default", ...override emittente}`.
+
+### Note
+- PDF durevole in DB (base64) + backup Cloudinary → niente rischio disco effimero Cloud Run.
+- Numerazione progressiva per anno, anti-duplicato via `source_key` (`blueprint:<sid>`, `partnership:<token|partner_id>`, `extra:<servizio_id_doc>`).
+- Deploy via **connettore GitHub** (4 commit `7157552`, `59b92d5`, `aa0922b`, `f482463`), tutti verificati blob-sha byte-esatti. Base ricostruita da `origin/main` (working tree locale era 22 commit indietro).
+- TODO eventuale: estensione a fattura elettronica SDI (provider) se servirà — la struttura dati è già pronta.
