@@ -124,7 +124,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   return (
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {!allDone && (
+        {!allDone && !isBenvenuto && (
           <GoLive21Banner
             startDate={
               (state.steps?.find((s) => s.step_id === "01-contratto") || {}).completed_at ||
@@ -156,11 +156,13 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               </button>
             )}
 
-            <ProgressBar
-              macroPhases={state.macro_phases}
-              steps={state.steps}
-              currentStepId={stepToShow?.step_id}
-            />
+            {!isBenvenuto && (
+              <ProgressBar
+                macroPhases={state.macro_phases}
+                steps={state.steps}
+                currentStepId={stepToShow?.step_id}
+              />
+            )}
 
             {!allDone && stepToShow && !isBenvenuto && (
               <PhaseAgentHeader
