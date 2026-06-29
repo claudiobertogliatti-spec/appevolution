@@ -105,9 +105,9 @@ export default function Step11Calendario({ step, partnerId, onComplete, onSaveDr
   if (!cal) {
     return (
       <StepBase
-        eyebrow="Step 11 — Valida · Andrea"
-        title="Il tuo calendario di lancio (30 giorni)"
-        secondaryNote="Il piano parte dal tuo Posizionamento e dal corso. Per ogni giorno: cosa pubblicare, dove nasce, come farlo, e la call to action. Tu lo crei e lo pubblichi."
+        step={step}
+        title="Il tuo piano dei primi 30 giorni"
+        secondaryNote="Per ogni giorno: cosa pubblicare per farti conoscere. È già pronto: tu pubblichi, con calma."
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
