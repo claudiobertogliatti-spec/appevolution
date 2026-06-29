@@ -146,9 +146,9 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
   if (!outline) {
     return (
       <StepBase
-        eyebrow="Step 6 — Valida · Andrea"
+        step={step}
         title="La scaletta del tuo corso"
-        secondaryNote="La bozza parte dal tuo Posizionamento. Dopo è tutta tua: cambi titoli, sposti lezioni, aggiungi moduli."
+        secondaryNote="L’indice delle lezioni. Parto io da quello che mi hai detto: tu correggi, sposti e aggiungi."
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
