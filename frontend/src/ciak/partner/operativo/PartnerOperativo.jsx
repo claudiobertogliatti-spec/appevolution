@@ -77,6 +77,14 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   // Apre un singolo step solo quando clicca una card (viewingStepId).
   const inMap = !justCompleted && !allDone && !viewingStepId;
 
+  // La schermata di benvenuto a tutta larghezza (foto grande agente + copy +
+  // video del fondatore nella prima fase + chat) appare sul PRIMO step di ogni
+  // fase; sugli step successivi resta la barra agente compatta.
+  const macroOfStep = state.macro_phases?.find((mp) => mp.id === stepToShow?.macro_phase);
+  const isPhaseStart = !!(
+    stepToShow && macroOfStep && (macroOfStep.step_ids || [])[0] === stepToShow.step_id
+  );
+
   let StepComponent = null;
   if (justCompleted) {
     StepComponent = FinaleCelebrativa;
@@ -132,10 +140,18 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                 macroPhaseId={stepToShow.macro_phase}
                 partnerName={partnerName}
                 onAsk={() => setDrawerOpen(true)}
+                variant={isPhaseStart ? "full" : "compact"}
+                onStart={() => {
+                  if (typeof document !== "undefined") {
+                    document
+                      .getElementById("operativo-step")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
               />
             )}
 
-            <div className="mt-4">
+            <div className="mt-4" id="operativo-step">
               {StepComponent ? (
                 <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico step...</div>}>
                   <StepComponent
