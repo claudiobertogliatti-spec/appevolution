@@ -212,17 +212,16 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
     return (
       <StepBase
         step={step}
-        title="Il tuo marchio è arrivato al team"
+        title="Il tuo Brand è pronto"
         ctaDisabled={true}
         onCta={() => {}}
         secondaryNote=""
       >
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-          <div className="font-semibold text-slate-900 mb-1">✓ Brand kit generato</div>
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="font-semibold text-slate-900 mb-1">✓ Documento generato</div>
           <p className="text-sm text-slate-600">
-            Il team lo sta revisionando — di solito entro 24h.
-            Nel frattempo puoi proseguire con lo step successivo.
-            Lo trovi anche in <strong>I Miei File</strong>.
+            Abbiamo salvato il tuo Brand in <strong>I Miei File</strong>, nel tuo Workspace.
+            Puoi proseguire con lo step successivo o rifarlo quando vuoi.
           </p>
         </div>
       </StepBase>
