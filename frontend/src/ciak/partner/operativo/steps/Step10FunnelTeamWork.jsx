@@ -7,9 +7,9 @@ export default function Step10FunnelTeamWork({ step }) {
 
   return (
     <StepBase
-      eyebrow="Step 10 — Funnel team work"
-      title="Stiamo costruendo le pagine del tuo funnel"
-      secondaryNote="Antonella e il team Evolution stanno mettendo insieme le pagine su Systeme con i tuoi asset. Tempo stimato: 3-5 giorni lavorativi. Ti avvisiamo via email quando è pronto. Nel frattempo puoi tornare agli step 7 e 8 se non li hai chiusi."
+      step={step}
+      title="Stiamo costruendo le tue pagine"
+      secondaryNote="Tocca a noi adesso: stiamo mettendo insieme le tue pagine. Tempo stimato 3-5 giorni. Ti avvisiamo via email appena è pronto. Intanto puoi completare le registrazioni."
     >
       <div className="bg-slate-50 border border-gray-200 rounded-md p-8 text-center">
         <div className="text-5xl mb-3">⏳</div>

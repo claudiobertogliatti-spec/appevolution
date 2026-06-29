@@ -2,12 +2,10 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 
 const CHECKLIST = [
-  "Data di lancio fissata (giorno + ora)",
-  "Webinar live programmato (Zoom / WebinarJam / altro)",
-  "Email di invito al webinar pronta su Systeme",
-  "Pagine funnel pubblicate e testate",
-  "Stripe checkout testato con pagamento reale (poi rimborsato)",
-  "Pixel + analytics installati su tutte le pagine",
+  "I miei video (lezione gratuita e corso) sono pronti e approvati",
+  "Ho visto le mie pagine di vendita online",
+  "Ho fissato il giorno e l'ora della mia diretta di vendita",
+  "Sono pronto a pubblicare e a rispondere a chi mi scrive",
 ];
 
 export default function Step13Lancio({ step, onComplete, onSaveDraft }) {
@@ -23,13 +21,14 @@ export default function Step13Lancio({ step, onComplete, onSaveDraft }) {
 
   return (
     <StepBase
-      eyebrow="Step 13 — Lancio"
-      title="Ultima checklist prima del go-live"
-      ctaLabel="Lancio! 🚀"
+      step={step}
+      title="Pronti a partire"
+      ctaLabel="Si parte! 🚀"
       ctaDisabled={!allDone}
       onCta={() => onComplete({ checklist: checked, launched_at: new Date().toISOString() })}
-      secondaryNote="Quando spunti tutto e clicchi 'Lancio!', il tuo journey di setup è chiuso. Da lì in poi ci concentriamo sulle vendite."
+      secondaryNote="Alla parte tecnica (pagamenti, tracciamenti, invii) pensiamo noi. Quando confermi, il tuo percorso di costruzione è chiuso: da qui in poi ci concentriamo sulle vendite."
     >
+      <p className="text-sm text-slate-600 mb-3">Un ultimo sguardo insieme. Spunta quello che è a posto:</p>
       <ul className="space-y-1">
         {CHECKLIST.map((label, i) => (
           <li key={i}>
