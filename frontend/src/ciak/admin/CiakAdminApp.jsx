@@ -14,7 +14,7 @@
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
- *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
+ *  - Back office  (Valentina) → Pagamenti · Fatture · Date contratti · Servizi extra
  *
  * Le voci tecniche/di sistema (KB Matteo, Analisi Prompt, Automazione, Template
  * Email, Configurazione, chat Stefania) NON sono in sidebar: restano route
@@ -61,6 +61,7 @@ import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
+import { Fatture } from "./pages/Fatture";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -148,6 +149,7 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
+      { to: "/admin/fatture", label: "Fatture", desc: "Genera e scarica le fatture di cortesia" },
       { to: "/admin/date-contratti", label: "Date contratti", desc: "Scadenze e rinnovi contrattuali" },
       { to: "/admin/servizi-extra", label: "Servizi extra", desc: "Upsell e servizi aggiuntivi" },
     ],
@@ -534,6 +536,7 @@ export default function CiakAdminApp() {
 
         {/* ── Back office ── */}
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
+        <Route path="fatture" element={<Fatture onAuthExpired={handleLogout} />} />
         <Route path="date-contratti" element={<SectionStub />} />
         <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
 
