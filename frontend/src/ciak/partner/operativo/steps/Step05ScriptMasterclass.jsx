@@ -84,13 +84,13 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
     save({ ...mc, sezioni });
   };
 
-  // ─── Stato vuoto: genera ──────────────────────────────────────────────
+  // ─── Stato vuoto: genera ─────────────────────────────────────────
   if (!mc) {
     return (
       <StepBase
-        eyebrow="Step 5 — Valida · Andrea"
-        title="Lo script della tua masterclass (~30 min)"
-        secondaryNote="La masterclass è on-demand e gratuita: dà valore e porta chi guarda dentro il tuo funnel. Non vende. Andrea ti scrive lo script in 7 blocchi, pronto da registrare."
+        step={step}
+        title="La tua lezione gratuita: cosa dirai"
+        secondaryNote="La tua lezione gratuita: attira le persone e le avvicina a te. Ti preparo io la traccia, pronta da registrare: tu la leggi e la fai tua."
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
@@ -116,7 +116,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
     );
   }
 
-  // ─── Generato: editor ─────────────────────────────────────────────────
+  // ─── Generato: editor ────────────────────────────────────────
   const canComplete = (mc.titolo || "").trim().length > 0 && (mc.sezioni || []).length >= 5;
 
   return (
