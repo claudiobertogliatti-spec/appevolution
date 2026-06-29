@@ -174,9 +174,9 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
   if (!strat) {
     return (
       <StepBase
-        eyebrow="Step 12 — Valida · Andrea"
-        title="Il tuo webinar di vendita + il prezzo"
-        secondaryNote="Il webinar live è il tuo motore di vendita: uno al mese, vende il corso con una promo a scadenza. Andrea ti scrive lo script in 6 fasi e ti propone il prezzo."
+        step={step}
+        title="Il prezzo e la tua diretta di vendita"
+        secondaryNote="La diretta è il tuo motore di vendita. Ti preparo io la traccia e ti propongo il prezzo giusto: decidi tu."
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
