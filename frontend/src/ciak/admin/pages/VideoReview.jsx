@@ -279,6 +279,7 @@ export function VideoReview({ onAuthExpired }) {
   const inPipeline = videos.filter(v => PIPELINE_STATUSES.includes(v.status));
   const approved  = videos.filter(v => v.status === "approved");
   const errors    = videos.filter(v => v.status === "error" || v.status === "error_youtube");
+  const toReview  = videos.filter(v => v.status === "da_revisionare");
 
   const displayed = filter === "pending" ? pending : videos;
   const pendingCount = pending.length;
@@ -320,6 +321,38 @@ export function VideoReview({ onAuthExpired }) {
       </div>
 
       <div className="max-w-3xl space-y-8">
+
+        {/* DA REVISIONARE — taglio testo (stile Descript) */}
+        {toReview.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Scissors className="w-4 h-4" style={{ color: C.yellowDark }} />
+              <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.yellowDark }}>
+                Da revisionare — taglio testo ({toReview.length})
+              </span>
+            </div>
+            <div className="space-y-3">
+              {toReview.map((v, i) => (
+                <div key={`rev-${v.partner_id}-${i}`} className="rounded-xl p-4 flex items-center gap-4"
+                  style={{ background: "#FEF9E7", border: `1px solid #FDE68A` }}>
+                  <Scissors className="w-5 h-5 flex-shrink-0" style={{ color: C.yellowDark }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-black" style={{ color: C.text }}>{v.partner_name}</span>
+                    <span className="ml-2 text-xs" style={{ color: C.muted }}>
+                      {v.type === "masterclass" ? "Masterclass" : `Videocorso — Lezione ${v.lesson_id}`}
+                    </span>
+                    <div className="text-xs mt-0.5" style={{ color: C.muted }}>Trascrizione pronta — leggi e approva i tagli</div>
+                  </div>
+                  <a href={`/admin/revisione-video/${v.partner_id}`}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black transition-all hover:opacity-90 flex-shrink-0"
+                    style={{ background: C.text, color: C.yellow }}>
+                    <Scissors className="w-3.5 h-3.5" /> Apri revisione
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* IN ELABORAZIONE */}
         {inPipeline.length > 0 && (
