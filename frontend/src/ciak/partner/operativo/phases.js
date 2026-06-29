@@ -1,7 +1,7 @@
 import { AGENTS } from "./agents";
 
-// Video di benvenuto del fondatore (Claudio), già presente in Ciak (Step02).
-// Mostrato nella finestra d'avvio della prima fase (Esamina).
+// Video di benvenuto del fondatore (Claudio), già presente in Ciak.
+// Mostrato nella schermata di Benvenuto (Benvenuto.jsx).
 export const WELCOME_VIDEO_EMBED =
   "https://app.heygen.com/embeds/ac77fcddae7f43c8830acb24bd584106";
 
@@ -12,14 +12,14 @@ export const PHASE_CONFIG = {
     order: 1,
     agentId: "VALENTINA",
     intro:
-      "Ciao {nome}, sono Valentina. Mettiamo a fuoco chi sei e a chi ti rivolgi: è la base su cui costruiremo tutta la tua accademia.",
+      "Ciao {nome}, sono Valentina, l'agente AI di questa fase. Mettiamo a fuoco chi sei e a chi ti rivolgi: è la base su cui costruiremo tutta la tua accademia.",
     body: [
-      "Ti accompagno in questa prima fase. Mettiamo a fuoco la cosa che conta di più: chi sei e a chi ti rivolgi. È la base su cui costruiremo tutta la tua accademia.",
+      "Sono l'agente AI che ti accompagna in questa prima fase. Mettiamo a fuoco la cosa che conta di più: chi sei e a chi ti rivolgi. È la base su cui costruiremo tutta la tua accademia.",
       "Non ti serve nessuna competenza tecnica. Io ti guido, una domanda alla volta. Tu ci metti la tua esperienza: al resto pensiamo noi.",
     ],
     motivation:
       "Ogni progetto solido parte da fondamenta chiare. Alla fine di questa fase avrai un messaggio preciso e riconoscibile, tuo. Quando vuoi, cominciamo.",
-    chatHint: "Hai un dubbio? Parlami quando vuoi: ti rispondo io, qui in chat.",
+    chatHint: "Hai un dubbio? Chiedimi in tempo reale: ti rispondo io, qui in chat.",
     video: true,
     bullets: [
       { icon: "fileText", title: "I tuoi dati", desc: "Le informazioni per la fattura. Si fa una volta sola." },
@@ -33,14 +33,14 @@ export const PHASE_CONFIG = {
     order: 2,
     agentId: "ANDREA",
     intro:
-      "Ciao {nome}, sono Andrea. Costruiamo la tua accademia e la portiamo online, pronta a vendere.",
+      "Ciao {nome}, sono Andrea, l'agente AI di questa fase. Costruiamo la tua accademia e la portiamo online, pronta a vendere.",
     body: [
-      "Ora costruiamo la tua accademia e la portiamo online, pronta a vendere. Tu registri e ci metti la faccia: al montaggio, alle pagine e alla tecnica pensiamo noi.",
+      "Sono l'agente AI che ti accompagna in questa fase. Ora costruiamo la tua accademia e la portiamo online, pronta a vendere. Tu registri e ci metti la faccia: al montaggio, alle pagine e alla tecnica pensiamo noi.",
       "Andiamo per passi semplici. Ti dico esattamente cosa fare, quando farlo e cosa puoi lasciare a noi.",
     ],
     motivation:
       "Qui il tuo progetto smette di essere un'idea e diventa qualcosa che le persone possono davvero comprare. È il passaggio che conta.",
-    chatHint: "Hai un dubbio? Parlami quando vuoi: ti rispondo io, qui in chat.",
+    chatHint: "Hai un dubbio? Chiedimi in tempo reale: ti rispondo io, qui in chat.",
     video: false,
     bullets: [
       { icon: "video", title: "Masterclass e corso", desc: "Registri tu, al montaggio pensiamo noi." },
@@ -54,14 +54,14 @@ export const PHASE_CONFIG = {
     order: 3,
     agentId: "MARCO",
     intro:
-      "Ciao {nome}, sono Marco. Sei online: il più è fatto. Adesso miglioriamo ciò che vende, un passo alla volta.",
+      "Ciao {nome}, sono Marco, l'agente AI di questa fase. Sei online: il più è fatto. Adesso miglioriamo ciò che vende, un passo alla volta.",
     body: [
-      "Sei online: il più è fatto. Adesso leggiamo i numeri veri e miglioriamo ciò che vende, un passo alla volta, fino a renderti il riferimento del tuo mercato.",
+      "Sono l'agente AI che ti accompagna in questa fase. Sei online: il più è fatto. Adesso leggiamo i numeri veri e miglioriamo ciò che vende, un passo alla volta, fino a renderti il riferimento del tuo mercato.",
       "Non sei solo: ti dico io su cosa concentrarti questa settimana, senza disperdere energie.",
     ],
     motivation:
       "Le prime vendite sono un punto di partenza, non il traguardo. Da qui costruiamo la tua autorevolezza e una crescita che dura.",
-    chatHint: "Hai un dubbio? Parlami quando vuoi: ti rispondo io, qui in chat.",
+    chatHint: "Hai un dubbio? Chiedimi in tempo reale: ti rispondo io, qui in chat.",
     video: false,
     bullets: [
       { icon: "chart", title: "I tuoi numeri", desc: "Leggiamo cosa funziona e cosa no." },
