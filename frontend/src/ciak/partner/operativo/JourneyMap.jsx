@@ -17,7 +17,7 @@ import {
 const STEP_COPY = {
   "01-contratto": { title: "Il tuo contratto", desc: "Hai firmato. Si parte da qui." },
   "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
-  "burocrazia": { title: "I tuoi dati", desc: "I dati per la fatturazione. Li inserisci una volta sola." },
+  "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },
   "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
   "04-posizionamento": { title: "Il tuo posizionamento", desc: "Poche domande per mettere a fuoco il tuo messaggio." },
   "05-script-masterclass": { title: "Lo script della masterclass", desc: "Scriviamo insieme cosa dirai nella tua lezione gratuita." },
@@ -121,7 +121,12 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
     return "locked";
   }
 
-  const overallPct = state?.total_steps > 0 ? Math.round((state.completed_count / state.total_steps) * 100) : 0;
+  const visibleTotal = globalOrder.length;
+  const visibleDone = globalOrder.filter((sid) => {
+    const st = stepById(sid);
+    return st && statusOf(st) === "done";
+  }).length;
+  const overallPct = visibleTotal > 0 ? Math.round((visibleDone / visibleTotal) * 100) : 0;
 
   // ── Prossimo passo (mostrato in fondo) ──
   const currentStep = stepById(currentStepId);
@@ -141,7 +146,7 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
         <div className="h-2.5 bg-slate-100 rounded-full mt-3 overflow-hidden">
           <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
         </div>
-        <div className="text-xs text-slate-500 mt-2">{state?.completed_count || 0} di {state?.total_steps || 0} passi completati</div>
+        <div className="text-xs text-slate-500 mt-2">{visibleDone} di {visibleTotal} passi completati</div>
       </div>
 
       {/* Percorso in tessere compatte */}
@@ -212,7 +217,7 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
               <PhaseAvatar agent={currentAgent} size={52} />
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] font-semibold text-yellow-700">
-                  {currentPhaseLabel?.toUpperCase()}{currentNum ? ` · PASSO ${currentNum} DI ${state?.total_steps || ""}` : ""}{currentAgent ? ` · con ${currentAgent.name}` : ""}
+                  {currentPhaseLabel?.toUpperCase()}{currentNum ? ` · PASSO ${currentNum} DI ${visibleTotal}` : ""}{currentAgent ? ` · con ${currentAgent.name}` : ""}
                 </div>
                 <div className="text-lg font-bold text-slate-900 leading-tight mt-0.5">{currentCopy.title}</div>
                 {currentCopy.desc && <div className="text-[13px] text-slate-500 mt-0.5">{currentCopy.desc}</div>}
