@@ -1244,7 +1244,7 @@ async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
     AAI_BASE = "https://api.assemblyai.com/v2"
     headers = {"authorization": api_key, "content-type": "application/json"}
     import time as _t
-    _aai_deadline = _t.time() + 300  # hard 5 min cap on entire operation
+    _aai_deadline = _t.time() + 900  # hard 15 min cap (alzato da 5 a 15 per video lunghi)
 
     def _check_deadline(stage: str):
         if _t.time() > _aai_deadline:
@@ -1588,6 +1588,29 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         else:
             logger.info("[VIDEO-PIPE] AssemblyAI non config — upload video raw")
             shutil.copy(raw_path, final_path)
+        # SICUREZZA REVISIONE: in modalita revisione la pipeline non deve MAI
+        # pubblicare in automatico. Se siamo qui (trascrizione fallita o assente),
+        # il checkpoint principale non e scattato: fermati comunque a da_revisionare
+        # invece di tagliare/pubblicare il grezzo.
+        if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
+            await db.masterclass_factory.update_one(
+                {"partner_id": partner_id},
+                {"$set": {
+                    "video_pipeline_status": "da_revisionare",
+                    "video_raw_url": video_url,
+                    "video_raw_duration_s": int(raw_dur),
+                    "review_transcript": transcript or "",
+                    "review_words": words or [],
+                    "review_cut_segments": [],
+                    "review_filler_report": filler_report,
+                    "review_note": "Trascrizione non disponibile (timeout/errore): rivedi o ritrascrivi prima di montare.",
+                    "review_created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+            logger.info("[VIDEO-PIPE] Checkpoint catch-all: trascrizione mancante, fermo a da_revisionare (no auto-publish)")
+            return
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
