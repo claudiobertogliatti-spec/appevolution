@@ -21,7 +21,7 @@ export default function StepBase({
   secondaryNote,
 }) {
   const autoEyebrow = step
-    ? `${PHASE_LABEL[step.macro_phase] || ""} · Passo ${step.step_number} di 14`.trim()
+    ? (PHASE_LABEL[step.macro_phase] || "")
     : eyebrow;
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-7">
