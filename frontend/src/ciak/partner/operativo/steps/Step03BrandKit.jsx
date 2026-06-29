@@ -20,6 +20,17 @@ const PAROLE_CHIAVE_SLOTS = 5;
 const PAROLE_CHIAVE_MIN = 3;
 const PAROLE_EVITARE_SLOTS = 3;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
+const TONE_PAIRS = [
+  ["Molto formale", "Informale"],
+  ["Razionale", "Emotivo"],
+  ["Istituzionale", "Personale"],
+  ["Tecnico", "Accessibile"],
+  ["Calmo", "Energico"],
+  ["Prudente", "Audace"],
+];
+const EMOZIONI = ["Motivato", "Tranquillo", "Compreso", "Curioso", "Sicuro", "Ispirato", "Competente", "Fiducioso", "Stimolato ad agire"];
+const ESPRESSIONI_SLOTS = 3;
+const EMOZIONI_MAX = 5;
 
 export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraft }) {
   const initial = step?.data || {};
@@ -36,6 +47,15 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
     const src = initial.parole_evitare || [];
     return Array.from({ length: PAROLE_EVITARE_SLOTS }, (_, i) => src[i] || "");
   });
+  const [tonoScale, setTonoScale] = useState(() => {
+    const src = initial.tono_scale || [];
+    return Array.from({ length: TONE_PAIRS.length }, (_, i) => (typeof src[i] === "number" ? src[i] : 2));
+  });
+  const [espressioni, setEspressioni] = useState(() => {
+    const src = initial.espressioni || [];
+    return Array.from({ length: ESPRESSIONI_SLOTS }, (_, i) => src[i] || "");
+  });
+  const [emozioni, setEmozioni] = useState(initial.emozioni || []);
 
   const [busy, setBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -93,6 +113,22 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
     setList(next);
     update({ [key]: next });
   };
+  const updateTono = (i, v) => {
+    const next = [...tonoScale];
+    next[i] = v;
+    setTonoScale(next);
+    update({ tono_scale: next });
+  };
+  const toggleEmozione = (em) => {
+    setEmozioni((prev) => {
+      let next;
+      if (prev.includes(em)) next = prev.filter((x) => x !== em);
+      else if (prev.length >= EMOZIONI_MAX) next = prev;
+      else next = [...prev, em];
+      update({ emozioni: next });
+      return next;
+    });
+  };
 
   const handleUpload = async (kind, file) => {
     if (!file) return;
@@ -143,6 +179,9 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
         tone_of_voice: tone,
         parole_chiave: paroleChiave.filter((p) => (p || "").trim()),
         parole_evitare: paroleEvitare.filter((p) => (p || "").trim()),
+        tono_scale: tonoScale,
+        espressioni: espressioni.filter((p) => (p || "").trim()),
+        emozioni,
       };
       if (onSaveDraft) await onSaveDraft(payload);
       const res = await axios.post(`${API}/api/partner/brand-kit/finalize`, {
@@ -255,38 +294,80 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
 
       {/* VOCE */}
       <SectionHeader
-        title="La tua voce"
-        subtitle="Come parli e quali parole ti rendono riconoscibile."
+        title="La voce del tuo Brand"
+        subtitle="Il modo in cui le persone ti riconoscono prima ancora del tuo nome."
       />
+      <p className="text-sm text-slate-600 leading-relaxed -mt-2 mb-5">
+        Non pensare a "come dovrebbe parlare un professionista". Pensa a come parli quando spieghi
+        qualcosa a un cliente che ti ascolta con interesse.
+      </p>
 
-      <div className="mb-5">
+      <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-900 mb-1">
-          Tone of voice — come parla il tuo brand?
+          1. Come parla il tuo brand?
         </label>
         <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
-          Es: "Diretto e caldo. Parlo come un amico esperto, mai cattedratico. Uso esempi
-          concreti, evito il gergo da consulente."
+          Descrivilo in 5-10 righe. Pensa a: sei diretto o riflessivo? Insegni o ispiri?
+          Provocatorio o rassicurante? Usi esempi concreti? Fai domande? Sei tecnico o accessibile?
+        </p>
+        <p className="text-xs text-slate-400 mb-1.5 leading-relaxed">
+          Es: "Parlo in modo semplice e diretto. Preferisco esempi reali alla teoria. Niente parole
+          complicate: voglio che chiunque capisca subito. Mi rivolgo alle persone con rispetto ma
+          senza formalità, come in una consulenza uno a uno."
         </p>
         <textarea
           value={tone}
-          rows={3}
+          rows={5}
           disabled={submitting}
           onChange={(e) => {
             setTone(e.target.value);
             update({ tone_of_voice: e.target.value });
           }}
           className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-y disabled:bg-gray-50"
-          placeholder="Scrivi 1-2 frasi che descrivano come parla il tuo brand…"
+          placeholder="Scrivi qui, con parole tue…"
         />
         <CharCounter value={tone} min={TONE_MIN} />
       </div>
 
-      <div className="mb-5">
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-slate-900 mb-2">
+          2. Il tono della tua comunicazione
+        </label>
+        <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+          Per ogni coppia scegli dove ti riconosci di più.
+        </p>
+        <div className="space-y-3">
+          {TONE_PAIRS.map(([left, right], i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span className="text-xs text-slate-700 w-24 text-right flex-shrink-0">{left}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {[0, 1, 2, 3, 4].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => updateTono(i, v)}
+                    aria-label={`${left} verso ${right}: ${v + 1} di 5`}
+                    className={`w-5 h-5 rounded-full border transition ${
+                      tonoScale[i] === v
+                        ? "bg-yellow-400 border-yellow-500"
+                        : "bg-white border-slate-300 hover:border-yellow-400"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-slate-400 w-24 flex-shrink-0">{right}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-900 mb-1">
-          Parole chiave del tuo brand (almeno {PAROLE_CHIAVE_MIN})
+          3. Le parole che usi spesso (almeno {PAROLE_CHIAVE_MIN})
         </label>
         <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
-          Le parole che vuoi sentire sempre nei tuoi contenuti.
+          Le parole del tuo linguaggio quotidiano.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {paroleChiave.map((p, i) => (
@@ -310,12 +391,39 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
         </div>
       </div>
 
-      <div className="mb-3">
+      <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-900 mb-1">
-          Parole da evitare (opzionale)
+          4. Le espressioni che ti rappresentano
+        </label>
+        <p className="text-xs text-slate-500 mb-1 leading-relaxed">
+          Frasi che dici spesso in consulenze, video o corsi.
+        </p>
+        <p className="text-xs text-slate-400 mb-1.5 leading-relaxed">
+          Es: "Partiamo dalle basi." · "Facciamolo in modo pratico." · "La teoria da sola non basta."
+        </p>
+        <div className="space-y-2">
+          {espressioni.map((p, i) => (
+            <input
+              key={i}
+              type="text"
+              value={p}
+              disabled={submitting}
+              onChange={(e) =>
+                updateParola(espressioni, setEspressioni, "espressioni", i, e.target.value)
+              }
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 disabled:bg-gray-50"
+              placeholder={`Espressione ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-slate-900 mb-1">
+          5. Le parole da evitare
         </label>
         <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
-          Quelle che tradiscono il tuo brand. Lascia vuoto se non ne hai.
+          Quelle che non ti rappresentano: troppo aggressive, troppo tecniche o non coerenti col tuo stile.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {paroleEvitare.map((p, i) => (
@@ -332,6 +440,36 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
             />
           ))}
         </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-sm font-semibold text-slate-900 mb-1">
+          6. Come vuoi far sentire chi ti ascolta?
+        </label>
+        <p className="text-xs text-slate-500 mb-2 leading-relaxed">
+          Quando una persona legge un tuo contenuto o guarda un tuo video, come dovrebbe sentirsi? Scegli fino a {EMOZIONI_MAX}.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {EMOZIONI.map((em) => {
+            const sel = emozioni.includes(em);
+            return (
+              <button
+                key={em}
+                type="button"
+                disabled={submitting}
+                onClick={() => toggleEmozione(em)}
+                className={`text-sm rounded-full px-3 py-1.5 border transition ${
+                  sel
+                    ? "bg-yellow-100 border-yellow-300 text-yellow-800 font-medium"
+                    : "bg-white border-gray-200 text-slate-600 hover:border-yellow-400"
+                }`}
+              >
+                {em}
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-xs text-slate-400 mt-1.5">{emozioni.length}/{EMOZIONI_MAX} selezionate</div>
       </div>
 
       {busy && <p className="text-xs text-slate-500 mt-3">Upload in corso...</p>}
