@@ -13,6 +13,7 @@ const STEP_COMPONENTS = {
   "02-discovery-video":      lazy(() => import("./steps/Step02DiscoveryVideo")),
   "burocrazia":              lazy(() => import("./steps/StepBurocrazia")),
   "03-brand-kit":            lazy(() => import("./steps/Step03BrandKit")),
+  "la-tua-storia":           lazy(() => import("./steps/StepLaTuaStoria")),
   "04-posizionamento":       lazy(() => import("./steps/Step04Posizionamento")),
   "05-script-masterclass":   lazy(() => import("./steps/Step05ScriptMasterclass")),
   "06-outline-lezioni":      lazy(() => import("./steps/Step06OutlineLezioni")),
@@ -187,6 +188,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                     step={stepToShow}
                     partnerId={partnerId}
                     partnerName={partnerName}
+                    onAsk={() => setDrawerOpen(true)}
                     onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
                     onComplete={async (d) => {
                       if (!stepToShow) return;

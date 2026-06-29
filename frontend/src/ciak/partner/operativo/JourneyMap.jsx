@@ -3,7 +3,7 @@ import { getPhasePresentation } from "./phases";
 import {
   FileText, PlayCircle, Contact, Palette, Target, Mic, ListChecks,
   Video, Film, LayoutGrid, Hammer, CalendarDays, Tag, Rocket,
-  ArrowRight, Check, Lock,
+  BookOpen, ArrowRight, Check, Lock,
 } from "lucide-react";
 
 /**
@@ -19,6 +19,7 @@ const STEP_COPY = {
   "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
   "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },
   "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
+  "la-tua-storia": { title: "La tua storia", desc: "I momenti veri che rendono il tuo racconto credibile." },
   "04-posizionamento": { title: "Il tuo posizionamento", desc: "Poche domande per mettere a fuoco il tuo messaggio." },
   "05-script-masterclass": { title: "Lo script della masterclass", desc: "Scriviamo insieme cosa dirai nella tua lezione gratuita." },
   "06-outline-lezioni": { title: "La scaletta delle lezioni", desc: "L'indice del tuo corso, lezione per lezione." },
@@ -36,6 +37,7 @@ const STEP_ICON = {
   "02-discovery-video": PlayCircle,
   "burocrazia": Contact,
   "03-brand-kit": Palette,
+  "la-tua-storia": BookOpen,
   "04-posizionamento": Target,
   "05-script-masterclass": Mic,
   "06-outline-lezioni": ListChecks,

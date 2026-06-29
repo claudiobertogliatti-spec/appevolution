@@ -81,6 +81,7 @@ export const STEP_TO_AGENT = {
   "02-discovery-video":      "STEFANIA",
   "burocrazia":              "VALENTINA",
   "03-brand-kit":            "VALENTINA",
+  "la-tua-storia":           "VALENTINA",
   "04-posizionamento":       "VALENTINA",
   "05-script-masterclass":   "ANDREA",
   "06-outline-lezioni":      "ANDREA",
