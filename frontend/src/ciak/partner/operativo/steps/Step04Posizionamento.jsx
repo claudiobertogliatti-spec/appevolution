@@ -298,8 +298,8 @@ export default function Step04Posizionamento({ step, partnerId, onComplete, onSa
   if (done) {
     return (
       <StepBase
-        eyebrow="Step 4 — Posizionamento"
-        title="Documento inviato al team"
+        step={step}
+        title="Il tuo posizionamento è arrivato al team"
         ctaDisabled={true}
         onCta={() => {}}
         secondaryNote=""
