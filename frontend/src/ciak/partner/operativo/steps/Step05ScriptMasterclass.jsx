@@ -84,7 +84,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
     save({ ...mc, sezioni });
   };
 
-  // ─── Stato vuoto: genera ─────────────────────────────────────────
+  // ─── Stato vuoto: genera ──────────────────────────────────────────────
   if (!mc) {
     return (
       <StepBase
@@ -116,7 +116,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
     );
   }
 
-  // ─── Generato: editor ────────────────────────────────────────
+  // ─── Generato: editor ─────────────────────────────────────────────────
   const canComplete = (mc.titolo || "").trim().length > 0 && (mc.sezioni || []).length >= 5;
 
   return (
