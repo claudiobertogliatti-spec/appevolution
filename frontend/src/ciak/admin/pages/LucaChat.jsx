@@ -27,28 +27,20 @@ const WELCOME = {
 };
 
 function LucaAvatar({ size = 32 }) {
-  const [broken, setBroken] = useState(false);
-  const cls = "rounded-full flex-shrink-0 object-cover";
-  if (broken) {
-    return (
-      <div
-        className="flex items-center justify-center rounded-full flex-shrink-0 font-semibold bg-slate-900 text-yellow-400"
-        style={{ width: size, height: size, fontSize: size * 0.4 }}
-      >
-        L
-      </div>
-    );
-  }
+  // Avatar AD: monogramma brandizzato (antracite + oro), niente dipendenza da file binari.
   return (
-    <img
-      src="/agents/luca.jpg"
-      alt="Luca"
+    <svg
       width={size}
       height={size}
-      className={cls}
-      style={{ width: size, height: size }}
-      onError={() => setBroken(true)}
-    />
+      viewBox="0 0 100 100"
+      role="img"
+      aria-label="Luca"
+      className="rounded-full flex-shrink-0 block"
+    >
+      <circle cx="50" cy="50" r="50" fill="#1A1F24" />
+      <circle cx="50" cy="50" r="41" fill="none" stroke="#FFD24D" strokeOpacity="0.5" strokeWidth="2.5" />
+      <text x="50" y="55" textAnchor="middle" dominantBaseline="middle" fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="50" fill="#FFD24D">L</text>
+    </svg>
   );
 }
 
