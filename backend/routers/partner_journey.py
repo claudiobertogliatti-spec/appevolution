@@ -1581,6 +1581,62 @@ async def approve_masterclass_video(partner_id: str):
     return {"success": True, "message": "Video approvato"}
 
 
+@router.get("/masterclass/review-data/{partner_id}")
+async def get_masterclass_review_data(partner_id: str):
+    """Dati per la revisione testo (stile Descript): trascrizione, parole con tempi,
+    tagli proposti, e lo script del team per il confronto."""
+    await get_partner_or_404(partner_id)
+    doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Nessun dato masterclass")
+    return {
+        "success": True,
+        "pipeline_status": doc.get("video_pipeline_status"),
+        "transcript": doc.get("review_transcript", ""),
+        "words": doc.get("review_words", []),
+        "cut_segments": doc.get("review_cut_segments", []),
+        "filler_report": doc.get("review_filler_report"),
+        "script": doc.get("script_content") or doc.get("approved_script") or doc.get("full_script") or doc.get("script") or "",
+        "raw_duration_s": doc.get("video_raw_duration_s"),
+        "review_created_at": doc.get("review_created_at"),
+    }
+
+
+class ReviewApproveRequest(BaseModel):
+    partner_id: str
+    disabled_cut_ids: list = []
+
+
+@router.post("/masterclass/review-approve")
+async def approve_masterclass_review(req: ReviewApproveRequest, background_tasks: BackgroundTasks):
+    """Admin approva i tagli (eventualmente disattivandone alcuni) e avvia il montaggio (Fase B)."""
+    await get_partner_or_404(req.partner_id)
+    doc = await db.masterclass_factory.find_one({"partner_id": req.partner_id})
+    if not doc or doc.get("video_pipeline_status") != "da_revisionare":
+        raise HTTPException(status_code=400, detail="Nessuna revisione in attesa")
+    segs = doc.get("review_cut_segments", [])
+    disabled = set(req.disabled_cut_ids or [])
+    for s in segs:
+        s["enabled"] = s.get("id") not in disabled
+    enabled_count = sum(1 for s in segs if s.get("enabled"))
+    await db.masterclass_factory.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            "review_cut_segments": segs,
+            "review_approved_at": datetime.now(timezone.utc).isoformat(),
+            "video_pipeline_status": "montaggio",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    try:
+        from video_pipeline_task import apply_approved_cuts
+        apply_approved_cuts.delay(partner_id=req.partner_id, video_type="masterclass")
+    except Exception:
+        from video_pipeline_task import run_apply_background
+        background_tasks.add_task(run_apply_background, partner_id=req.partner_id, video_type="masterclass")
+    return {"success": True, "message": f"Montaggio avviato con {enabled_count} tagli mantenuti.", "enabled_cuts": enabled_count}
+
+
 @router.post("/masterclass/reset-pipeline")
 async def reset_masterclass_pipeline(partner_id: str):
     """Admin resetta una pipeline bloccata (stuck in downloading/cleaning/etc.)"""
