@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { CalendarDays, Loader2, Sparkles, Megaphone, Radio, ShoppingCart, ArrowRight } from "lucide-react";
 
 /**
- * Card "Calendario trimestrale" (fase Ottimizza) — il ritmo operativo.
- * Un piano da 90 giorni = 3 cicli mensili: 15gg vendita corso + 15gg riempimento webinar
- * (webinar live a fine mese). Genera dal motore backend services/quarterly_calendar.py
- * (AI tool-use + fallback deterministico). Riusa l'outline lezioni gia in profilo.
+ * Card "Calendario tra le live" (fase Ottimizza) — il ponte di nutrimento.
+ * Un piano da 90 giorni che tiene caldo il pubblico TRA una live e l'altra (la live e
+ * l'evento di vendita, gestito dalla card "Live ogni 2 mesi"). Genera dal motore backend
+ * services/quarterly_calendar.py (AI tool-use + fallback deterministico). Riusa l'outline
+ * lezioni gia in profilo.
  *
  * Backend (route #6): POST /api/partner-journey/calendario-trimestrale/{partnerId}
  *   -> { calendar: { months: [{ mese, blocchi: [{ fase, obiettivo, giorni: [...] }] }], source } }
@@ -113,10 +114,11 @@ export default function CalendarioTrimestrale({ partnerId }) {
   return (
     <div>
       <div className="mb-5">
-        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Calendario trimestrale</h2>
+        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Calendario tra le live</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Il tuo ritmo per i prossimi 90 giorni. Ogni mese: due settimane per vendere il corso, due
-          per riempire il webinar live di fine mese. Niente da inventare ogni giorno: c'è già scritto.
+          Il ritmo che nutre il pubblico tra una live e l'altra: cosa pubblicare ogni giorno per
+          tenere viva l'attenzione e portare valore, così alla prossima live arrivi con un pubblico
+          caldo. La live resta l'evento di vendita — qui costruisci il pubblico che ci verrà.
         </p>
       </div>
 
@@ -127,8 +129,8 @@ export default function CalendarioTrimestrale({ partnerId }) {
           </div>
           <p className="text-[15px] font-semibold text-slate-900 mb-1">Genera il tuo piano da 90 giorni</p>
           <p className="text-[13px] text-slate-500 leading-relaxed mb-4 max-w-md mx-auto">
-            Lo costruiamo sulle lezioni del tuo corso. Tre mesi di contenuti pronti, con il webinar
-            di vendita a fine di ogni mese.
+            Lo costruiamo sulle lezioni del tuo corso: contenuti pronti che nutrono il pubblico tra
+            una live e l'altra, così arrivi all'evento con persone già calde.
           </p>
           {error && <p className="text-[13px] text-red-500 mb-3">{error}</p>}
           <button
