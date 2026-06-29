@@ -172,8 +172,8 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
   if (done) {
     return (
       <StepBase
-        eyebrow="Step 3 — Brand kit"
-        title="Brand kit inviato al team"
+        step={step}
+        title="Il tuo marchio è arrivato al team"
         ctaDisabled={true}
         onCta={() => {}}
         secondaryNote=""
@@ -192,12 +192,12 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
 
   return (
     <StepBase
-      eyebrow="Step 3 — Brand kit"
-      title="Logo, foto, colori e la tua voce"
+      step={step}
+      title="Il tuo marchio: logo, foto e colori"
       ctaLabel={submitting ? "Sto generando il brand kit..." : "Genera Brand Kit"}
       ctaDisabled={!canComplete}
       onCta={finalize}
-      secondaryNote="Il team userà questi asset per costruire un funnel coerente col tuo brand."
+      secondaryNote="Carichi quello che hai; al resto pensiamo noi. Servono a dare al tuo progetto un’immagine coerente."
     >
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
