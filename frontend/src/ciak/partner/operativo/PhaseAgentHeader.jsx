@@ -68,8 +68,8 @@ function CompactHeader({ cfg, agent, onAsk }) {
             {cfg.label} · con {agent.name}
           </div>
           <p className="text-[15px] leading-relaxed text-slate-200 mt-1">
-            Sono {agent.name}, l'agente AI che ti supporta in questa fase. Chiedimi in tempo reale
-            quando vuoi: sono qui per renderti tutto più semplice.
+            Sono {agent.name}, del tuo team Ciak. Ti seguo io in questa fase: scrivimi quando vuoi,
+            ti rispondo in tempo reale.
           </p>
         </div>
       </div>
