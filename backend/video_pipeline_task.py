@@ -1846,3 +1846,139 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             pass
 
 # trigger rebuild
+
+
+# ===================================================================
+# FASE B - Applica i tagli APPROVATI dalla revisione testo (stile Descript)
+# Ricostruisce il video usando solo i segmenti confermati nella revisione admin,
+# poi carica su YouTube. NON ritrascrive: usa i dati salvati dal checkpoint.
+# Funzioni autonome - la pipeline principale resta intatta.
+# ===================================================================
+
+async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass", lesson_id: Optional[str] = None):
+    from motor.motor_asyncio import AsyncIOMotorClient
+    MONGO_URL = os.environ.get("MONGO_ATLAS_URL") or os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
+    DB_NAME = os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))
+    mongo = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000, socketTimeoutMS=60000, retryWrites=True)
+    db = mongo[DB_NAME]
+    job_id = uuid.uuid4().hex[:8]
+    tmp_dir = Path(f"/tmp/vpapply_{partner_id}_{job_id}")
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    raw_path = str(tmp_dir / "raw.mp4")
+    final_path = str(tmp_dir / "final.mp4")
+
+    async def _set(status, extra={}):
+        now = datetime.now(timezone.utc).isoformat()
+        await db.masterclass_factory.update_one(
+            {"partner_id": partner_id},
+            {"$set": {"video_pipeline_status": status, "updated_at": now, **extra}},
+            upsert=True,
+        )
+
+    try:
+        doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+        if not doc:
+            logger.error(f"[VIDEO-APPLY] Nessun doc masterclass per {partner_id}")
+            return
+        partner = await db.partners.find_one({"id": partner_id})
+        name = partner.get("name", partner_id) if partner else partner_id
+        video_url = doc.get("video_raw_url")
+        if not video_url:
+            await _set("error", {"video_pipeline_error": "video_raw_url mancante per il montaggio"})
+            return
+
+        segs = [s for s in (doc.get("review_cut_segments") or []) if s.get("enabled")]
+        segs.sort(key=lambda x: x.get("start", 0))
+        transcript = doc.get("review_transcript", "")
+        filler_report = doc.get("review_filler_report") or {"count": 0, "segments": [], "time_saved_s": 0}
+
+        await _set("downloading")
+        await download_video(video_url, raw_path)
+        raw_dur = get_video_duration(raw_path)
+
+        await _set("cutting_fillers")
+        _loop = asyncio.get_event_loop()
+        if segs:
+            await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, segs, raw_dur)
+        else:
+            shutil.copy(raw_path, final_path)
+        final_dur = get_video_duration(final_path)
+
+        await _set("uploading_youtube")
+        orig_name = doc.get("video_original_name")
+        if orig_name:
+            yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
+        else:
+            ts = datetime.now().strftime("%m/%Y")
+            yt_title = f"{name} - Masterclass {ts}"
+        youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
+        if not youtube_url:
+            await _set("error_youtube")
+            return
+
+        youtube_id = youtube_url.split("v=")[-1]
+        embed_url = f"https://www.youtube.com/embed/{youtube_id}"
+        systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
+
+        await db.masterclass_factory.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "video_pipeline_status": "ready_for_review",
+                "video_youtube_url": youtube_url,
+                "video_youtube_id": youtube_id,
+                "video_embed_url": embed_url,
+                "video_systeme_embed": systeme_embed,
+                "video_transcript": (transcript or "")[:5000],
+                "video_filler_report": filler_report,
+                "video_raw_duration_s": int(raw_dur),
+                "video_final_duration_s": int(final_dur),
+                "video_time_saved_s": int(raw_dur - final_dur),
+                "video_approved": False,
+                "video_reviewed": True,
+                "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+        try:
+            m, s = divmod(int(raw_dur - final_dur), 60)
+            await telegram(f"Video montato dopo revisione - {name} - {len(segs)} tagli - {youtube_url}")
+        except Exception:
+            pass
+        logger.info(f"[VIDEO-APPLY] DONE {name} - {youtube_url}")
+    except Exception as e:
+        logger.error(f"[VIDEO-APPLY] Error: {e}", exc_info=True)
+        try:
+            await _set("error", {"video_pipeline_error": str(e)[:500]})
+        except Exception:
+            pass
+    finally:
+        shutil.rmtree(str(tmp_dir), ignore_errors=True)
+        try:
+            mongo.close()
+        except Exception:
+            pass
+
+
+@celery_app.task(name="apply_approved_cuts", bind=True, acks_late=True, reject_on_worker_lost=True, max_retries=2, default_retry_delay=120, soft_time_limit=7200, time_limit=7500)
+def apply_approved_cuts(self, partner_id: str, video_type: str = "masterclass", lesson_id: Optional[str] = None):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_apply_approved_cuts(partner_id, video_type, lesson_id))
+    except Exception as exc:
+        logger.error(f"[VIDEO-APPLY] Task failed: {exc}", exc_info=True)
+        raise self.retry(exc=exc)
+    finally:
+        loop.close()
+
+
+def run_apply_background(partner_id: str, video_type: str = "masterclass", lesson_id: Optional[str] = None):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_apply_approved_cuts(partner_id, video_type, lesson_id))
+    except Exception as exc:
+        logger.error(f"[VIDEO-APPLY] Background failed: {exc}", exc_info=True)
+    finally:
+        loop.close()
