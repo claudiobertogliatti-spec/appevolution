@@ -14,11 +14,11 @@ export default function Step09FunnelAsset({ step, onComplete, onSaveDraft }) {
 
   return (
     <StepBase
-      eyebrow="Step 9 — Funnel asset"
-      title="Conferma brand + scrivi la promessa hero"
+      step={step}
+      title="Le pagine che venderanno il tuo corso"
       ctaDisabled={!canComplete}
       onCta={() => onComplete({ promessa_hero: promessa, sub_promessa: subPromessa, conferma_brand_kit: true })}
-      secondaryNote="Con questi dati Antonella costruisce le pagine del funnel su Systeme nei prossimi giorni lavorativi."
+      secondaryNote="Confermi il tuo marchio e scrivi la tua promessa principale. Con questo costruiamo noi le pagine, nei prossimi giorni."
     >
       <label className="block mb-4">
         <span className="block text-sm font-medium text-slate-900 mb-1.5">Promessa hero (1 frase forte)</span>
@@ -56,7 +56,7 @@ export default function Step09FunnelAsset({ step, onComplete, onSaveDraft }) {
           }}
           className="mt-1"
         />
-        <span>Confermo che il brand kit caricato allo step 3 (logo + foto + colori) è quello da usare per il funnel.</span>
+        <span>Confermo che il marchio caricato prima (logo, foto e colori) è quello da usare per le pagine.</span>
       </label>
     </StepBase>
   );

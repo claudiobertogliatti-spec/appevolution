@@ -77,13 +77,16 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   // Apre un singolo step solo quando clicca una card (viewingStepId).
   const inMap = !justCompleted && !allDone && !viewingStepId;
 
-  // La schermata di benvenuto a tutta larghezza (foto grande agente + copy +
-  // video del fondatore nella prima fase + chat) appare sul PRIMO step di ogni
-  // fase; sugli step successivi resta la barra agente compatta.
+  // Finestra di benvenuto a tutta larghezza (foto grande agente + copy + chat,
+  // con il video del fondatore in Esamina). Per Esamina vive sul Benvenuto
+  // (passo 2): il passo 1 "contratto" resta un caricamento pulito. Per le altre
+  // fasi vive sul primo step della fase.
   const macroOfStep = state.macro_phases?.find((mp) => mp.id === stepToShow?.macro_phase);
-  const isPhaseStart = !!(
-    stepToShow && macroOfStep && (macroOfStep.step_ids || [])[0] === stepToShow.step_id
-  );
+  const WELCOME_STEP_BY_PHASE = { esamina: "02-discovery-video" };
+  const welcomeStepId =
+    WELCOME_STEP_BY_PHASE[stepToShow?.macro_phase] || (macroOfStep?.step_ids || [])[0];
+  const showFullWelcome = !!(stepToShow && stepToShow.step_id === welcomeStepId);
+  const isBenvenuto = stepToShow?.step_id === "02-discovery-video";
 
   let StepComponent = null;
   if (justCompleted) {
@@ -135,49 +138,60 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               currentStepId={stepToShow?.step_id}
             />
 
-            {!allDone && stepToShow && stepToShow.step_id !== "02-discovery-video" && (
+            {!allDone && stepToShow && (
               <PhaseAgentHeader
                 macroPhaseId={stepToShow.macro_phase}
                 partnerName={partnerName}
                 onAsk={() => setDrawerOpen(true)}
-                variant={isPhaseStart ? "full" : "compact"}
-                onStart={() => {
-                  if (typeof document !== "undefined") {
-                    document
-                      .getElementById("operativo-step")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }}
+                variant={showFullWelcome ? "full" : "compact"}
+                onStart={
+                  isBenvenuto
+                    ? async () => {
+                        await completeStep("02-discovery-video", {
+                          watched_at: new Date().toISOString(),
+                        });
+                        setViewingStepId(null);
+                      }
+                    : () => {
+                        if (typeof document !== "undefined") {
+                          document
+                            .getElementById("operativo-step")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                      }
+                }
               />
             )}
 
-            <div className="mt-4" id="operativo-step">
-              {StepComponent ? (
-                <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico step...</div>}>
-                  <StepComponent
-                    step={stepToShow}
-                    partnerId={partnerId}
-                    partnerName={partnerName}
-                    onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
-                    onComplete={async (d) => {
-                      if (!stepToShow) return;
-                      await completeStep(stepToShow.step_id, d);
-                      setViewingStepId(null);
-                    }}
-                    onDismissCelebrazione={() => {
-                      if (typeof window !== "undefined") {
-                        sessionStorage.setItem(`celebrazione-vista-${partnerId}`, "1");
-                      }
-                      refresh();
-                    }}
-                  />
-                </Suspense>
-              ) : (
-                <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
-                  Step "{stepToShow?.step_id}" non ancora implementato.
-                </div>
-              )}
-            </div>
+            {!isBenvenuto && (
+              <div className="mt-4" id="operativo-step">
+                {StepComponent ? (
+                  <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico step...</div>}>
+                    <StepComponent
+                      step={stepToShow}
+                      partnerId={partnerId}
+                      partnerName={partnerName}
+                      onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
+                      onComplete={async (d) => {
+                        if (!stepToShow) return;
+                        await completeStep(stepToShow.step_id, d);
+                        setViewingStepId(null);
+                      }}
+                      onDismissCelebrazione={() => {
+                        if (typeof window !== "undefined") {
+                          sessionStorage.setItem(`celebrazione-vista-${partnerId}`, "1");
+                        }
+                        refresh();
+                      }}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
+                    Step "{stepToShow?.step_id}" non ancora implementato.
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

@@ -44,11 +44,11 @@ export default function Step01Contratto({ step, partnerId, onComplete, onSaveDra
 
   return (
     <StepBase
-      eyebrow="Step 1 — Contratto"
-      title="Carica contratto firmato + distinta di pagamento"
+      step={step}
+      title="Carica il contratto firmato e la ricevuta"
       ctaDisabled={!canComplete}
       onCta={() => onComplete({ contract_url: contractUrl, receipt_url: receiptUrl })}
-      secondaryNote="PDF, max 200 MB ciascuno. Li archiviamo noi."
+      secondaryNote="I due documenti che ufficializzano la partnership. Si caricano una volta sola e li conserviamo noi. (PDF, max 200 MB ciascuno.)"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FileSlot label="Contratto firmato" url={contractUrl} onPick={(f) => handle("contract", f)} accept="application/pdf" />
