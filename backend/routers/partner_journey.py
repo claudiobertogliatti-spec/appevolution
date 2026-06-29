@@ -5799,7 +5799,7 @@ class _OperativoCompleteBody(BaseModel):
 
 
 # Step che producono un documento/asset che l'admin deve approvare.
-_DOC_APPROVAL_STEPS = {"04-posizionamento", "03-brand-kit"}
+_DOC_APPROVAL_STEPS = set()  # Fase 1: nessuna approvazione team
 
 
 async def _notify_admin_partner_activity(
