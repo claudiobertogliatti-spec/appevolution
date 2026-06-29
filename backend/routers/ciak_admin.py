@@ -1195,3 +1195,418 @@ async def get_public_config():
     async for doc in db.ciak_site_config.find({"key": {"$in": list(result.keys())}}):
         result[doc["key"]] = doc.get("value", "")
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FATTURE (Back office · Valentina) — fatture di cortesia PDF, SENZA IVA.
+#
+# Evolution PRO LLC è società di diritto statunitense (Delaware): emette
+# fatture senza IVA (reverse charge ove applicabile). Questo NON è invio
+# elettronico allo SDI: è un PDF di cortesia numerato e archiviato.
+#
+# Sorgenti vendite fatturabili:
+#   - Ciak Blueprint €67  → diagnostic_sessions (stripe_payment_completed) + ciak_orphan_purchases
+#   - Partnership €2.790  → proposte (pagamento_completato)
+#   - Servizi extra       → partner_servizi (catalogo SERVIZI_CATALOGO)
+#
+# Collezioni:
+#   - ciak_invoices          (1 doc per fattura, include pdf_base64 durevole)
+#   - ciak_invoice_counters  (_id=anno, seq) — numerazione progressiva atomica
+#   - ciak_invoice_settings  (_id="default") — dati emittente override
+# ═══════════════════════════════════════════════════════════════════════════
+
+class InvoiceCliente(BaseModel):
+    nome: Optional[str] = ""
+    ragione_sociale: Optional[str] = ""
+    indirizzo: Optional[str] = ""
+    cap: Optional[str] = ""
+    citta: Optional[str] = ""
+    provincia: Optional[str] = ""
+    paese: Optional[str] = "Italia"
+    codice_fiscale: Optional[str] = ""
+    partita_iva: Optional[str] = ""
+    email: Optional[str] = ""
+    pec: Optional[str] = ""
+
+
+class InvoiceRiga(BaseModel):
+    descrizione: str
+    quantita: float = 1
+    prezzo_unitario: float = 0
+    importo: Optional[float] = None  # calcolato se assente: quantita * prezzo_unitario
+
+
+class InvoiceCreate(BaseModel):
+    cliente: InvoiceCliente
+    righe: list[InvoiceRiga] = Field(default_factory=list)
+    fonte: str = Field("manuale", description="blueprint_67 | partnership | servizio_extra | manuale")
+    source_key: Optional[str] = Field(None, description="Chiave univoca sorgente, per evitare doppie fatture")
+    data_emissione: Optional[str] = Field(None, description="ISO date; default oggi")
+    note: Optional[str] = None
+    valuta: str = "EUR"
+    partner_id: Optional[str] = None
+
+
+async def _invoice_settings_doc() -> dict:
+    """Dati emittente: default + override salvati in ciak_invoice_settings."""
+    from services.invoice_pdf import EMITTENTE_DEFAULT
+    base = dict(EMITTENTE_DEFAULT)
+    if db is not None:
+        doc = await db.ciak_invoice_settings.find_one({"_id": "default"})
+        if doc:
+            doc.pop("_id", None)
+            base.update({k: v for k, v in doc.items() if v not in (None, "")})
+    return base
+
+
+async def _next_invoice_number(anno: int, prefix: str = "") -> str:
+    """Numerazione progressiva atomica per anno: <prefix><anno>/NNN."""
+    from pymongo import ReturnDocument
+    doc = await db.ciak_invoice_counters.find_one_and_update(
+        {"_id": anno},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    seq = doc.get("seq", 1)
+    return f"{prefix}{anno}/{seq:03d}"
+
+
+def _cents_to_eur(c):
+    try:
+        return round(float(c or 0) / 100.0, 2)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+async def _partner_cliente(partner_id: str) -> dict:
+    """Costruisce il blocco cliente dai dati anagrafici/fiscali del partner."""
+    if db is None or not partner_id:
+        return {}
+    p = await db.partners.find_one({"id": partner_id})
+    if not p:
+        return {}
+    nome = p.get("name") or " ".join(x for x in [p.get("nome"), p.get("cognome")] if x)
+    return {
+        "nome": nome or "",
+        "ragione_sociale": p.get("nome_azienda") or p.get("ragione_sociale") or "",
+        "indirizzo": p.get("indirizzo") or "",
+        "cap": p.get("cap") or "",
+        "citta": p.get("citta") or "",
+        "provincia": p.get("provincia") or "",
+        "paese": p.get("paese") or "Italia",
+        "codice_fiscale": p.get("codice_fiscale") or "",
+        "partita_iva": p.get("partita_iva") or "",
+        "email": p.get("email") or "",
+        "pec": p.get("pec") or "",
+    }
+
+
+# ─── Settings emittente ─────────────────────────────────────────────────────
+
+@router.get("/invoices/settings")
+async def get_invoice_settings(admin=Depends(require_ciak_admin)):
+    """Dati emittente correnti (default Evolution PRO LLC + override salvati)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    return await _invoice_settings_doc()
+
+
+@router.put("/invoices/settings")
+async def set_invoice_settings(body: dict, admin=Depends(require_ciak_admin)):
+    """Salva override dei dati emittente (ragione sociale, IBAN, nota fiscale, prefisso numero, ...)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    allowed = {
+        "ragione_sociale", "indirizzo", "citta", "paese", "file_number", "ein",
+        "rappresentante", "sede_operativa", "email", "iban", "banca",
+        "intestatario_conto", "nota_fiscale", "valuta", "numero_prefix",
+    }
+    payload = {k: v for k, v in (body or {}).items() if k in allowed}
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    payload["updated_by"] = getattr(admin, "email", None) or getattr(admin, "user_id", None)
+    await db.ciak_invoice_settings.update_one(
+        {"_id": "default"}, {"$set": payload}, upsert=True
+    )
+    return await _invoice_settings_doc()
+
+
+# ─── Sorgenti fatturabili ──────────────────────────────────────────────────
+
+@router.get("/invoices/sources")
+async def invoice_sources(admin=Depends(require_ciak_admin)):
+    """
+    Vendite fatturabili dalle 3 fonti, con flag `gia_fatturata` (match su
+    source_key delle fatture già emesse e non annullate). Ogni voce include un
+    blocco `cliente` precompilato per la generazione con un click.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    # source_key già fatturati (fatture non annullate)
+    invoiced = set()
+    async for inv in db.ciak_invoices.find(
+        {"stato": {"$ne": "annullata"}, "source_key": {"$ne": None}},
+        {"source_key": 1, "numero": 1},
+    ):
+        invoiced.add(inv.get("source_key"))
+
+    sources = []
+
+    # ── Ciak Blueprint €67 — linked ──
+    async for d in db.diagnostic_sessions.find({"events.event": "stripe_payment_completed"}):
+        pay = [e for e in d.get("events", []) if e.get("event") == "stripe_payment_completed"]
+        ev = pay[-1] if pay else {}
+        meta = ev.get("metadata", {}) or {}
+        sid = meta.get("stripe_session_id") or d.get("session_token")
+        key = f"blueprint:{sid}"
+        importo = _cents_to_eur(meta.get("amount_total") or 6700)
+        sources.append({
+            "source_key": key, "fonte": "blueprint_67",
+            "fonte_label": "Ciak Blueprint €67",
+            "descrizione": "Ciak Blueprint — Analisi strategica",
+            "importo": importo, "data": ev.get("timestamp"),
+            "cliente": {"nome": d.get("user_name") or "", "email": d.get("user_email") or "", "paese": "Italia"},
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Ciak Blueprint €67 — orfani ──
+    async for o in db.ciak_orphan_purchases.find({}):
+        sid = o.get("stripe_session_id")
+        key = f"blueprint:{sid}"
+        sources.append({
+            "source_key": key, "fonte": "blueprint_67",
+            "fonte_label": "Ciak Blueprint €67 (orfano)",
+            "descrizione": "Ciak Blueprint — Analisi strategica",
+            "importo": _cents_to_eur(o.get("amount_total") or 6700), "data": o.get("created_at"),
+            "cliente": {"nome": "", "email": o.get("customer_email") or "", "paese": "Italia"},
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Partnership €2.790 ──
+    async for p in db.proposte.find({"pagamento_completato": True}):
+        cp = p.get("contract_params", {}) or {}
+        importo = float(cp.get("corrispettivo", 2790.0))
+        key = f"partnership:{p.get('token') or p.get('partner_id')}"
+        cliente = await _partner_cliente(p.get("partner_id"))
+        if not cliente.get("nome"):
+            cliente = {"nome": p.get("prospect_nome") or "", "email": p.get("prospect_email") or "", "paese": "Italia"}
+        sources.append({
+            "source_key": key, "fonte": "partnership",
+            "fonte_label": "Partnership Evolution",
+            "descrizione": "Partnership Evolution PRO — Creazione e lancio Accademia Digitale",
+            "importo": importo, "data": p.get("pagamento_completato_at"),
+            "partner_id": p.get("partner_id"),
+            "cliente": cliente,
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Servizi extra ──
+    try:
+        from routers.servizi_extra import SERVIZI_CATALOGO
+        catalog = {s["id"]: s for s in SERVIZI_CATALOGO}
+    except Exception:
+        catalog = {}
+    async for sv in db.partner_servizi.find({"stato": "attivo"}):
+        sid = sv.get("servizio_id")
+        cat = catalog.get(sid, {})
+        key = f"extra:{sv.get('id')}"
+        cliente = await _partner_cliente(sv.get("partner_id"))
+        sources.append({
+            "source_key": key, "fonte": "servizio_extra",
+            "fonte_label": "Servizio extra",
+            "descrizione": cat.get("nome") or f"Servizio extra ({sid})",
+            "importo": float(cat.get("prezzo") or 0), "data": sv.get("data_attivazione") or sv.get("created_at"),
+            "partner_id": sv.get("partner_id"),
+            "cliente": cliente,
+            "gia_fatturata": key in invoiced,
+        })
+
+    sources.sort(key=lambda s: s.get("data") or "", reverse=True)
+    da_fatturare = [s for s in sources if not s["gia_fatturata"]]
+    return {
+        "total": len(sources),
+        "da_fatturare": len(da_fatturare),
+        "items": sources,
+    }
+
+
+# ─── Lista fatture emesse ──────────────────────────────────────────────────
+
+@router.get("/invoices")
+async def list_invoices(
+    admin=Depends(require_ciak_admin),
+    anno: Optional[int] = Query(None),
+    stato: Optional[str] = Query(None, description="emessa | annullata"),
+    limit: int = Query(200, ge=1, le=1000),
+):
+    """Elenco fatture emesse (senza il PDF base64, per leggerezza)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    q: dict = {}
+    if anno:
+        q["anno"] = anno
+    if stato:
+        q["stato"] = stato
+    items = []
+    tot_eur = 0.0
+    async for inv in db.ciak_invoices.find(q, {"pdf_base64": 0}).sort("created_at", -1).limit(limit):
+        inv.pop("_id", None)
+        if inv.get("stato") != "annullata":
+            tot_eur += float(inv.get("totale") or 0)
+        items.append(inv)
+    return {"total": len(items), "totale_fatturato_euro": round(tot_eur, 2), "items": items}
+
+
+# ─── Crea fattura (da sorgente o manuale) ──────────────────────────────────
+
+@router.post("/invoices")
+async def create_invoice(body: InvoiceCreate, admin=Depends(require_ciak_admin)):
+    """
+    Genera una fattura di cortesia: assegna il numero progressivo, renderizza il
+    PDF (senza IVA) e lo archivia in ciak_invoices (PDF in base64, durevole).
+    Idempotente per source_key: se esiste già una fattura non annullata per
+    quella vendita → 409.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.invoice_pdf import render_invoice_pdf, upload_invoice_pdf_to_cloudinary
+    import uuid as _uuid
+    import base64 as _b64
+
+    # Anti-duplicato
+    if body.source_key:
+        existing = await db.ciak_invoices.find_one(
+            {"source_key": body.source_key, "stato": {"$ne": "annullata"}}
+        )
+        if existing:
+            raise HTTPException(409, f"Vendita già fatturata (n. {existing.get('numero')})")
+
+    # Righe + totale (calcolato lato server)
+    righe = []
+    totale = 0.0
+    for r in body.righe:
+        imp = r.importo if r.importo is not None else round(r.quantita * r.prezzo_unitario, 2)
+        righe.append({
+            "descrizione": r.descrizione,
+            "quantita": r.quantita,
+            "prezzo_unitario": r.prezzo_unitario,
+            "importo": round(imp, 2),
+        })
+        totale += imp
+    if not righe:
+        raise HTTPException(400, "Almeno una riga è obbligatoria")
+    totale = round(totale, 2)
+
+    settings = await _invoice_settings_doc()
+    now = datetime.now(timezone.utc)
+    data_em = body.data_emissione or now.date().isoformat()
+    try:
+        anno = int(data_em[:4])
+    except Exception:
+        anno = now.year
+    numero = await _next_invoice_number(anno, settings.get("numero_prefix", ""))
+
+    cliente = body.cliente.dict()
+    invoice_view = {
+        "numero": numero,
+        "data_emissione": data_em,
+        "valuta": body.valuta or "EUR",
+        "cliente": cliente,
+        "righe": righe,
+        "totale": totale,
+        "note": body.note,
+    }
+
+    # Render PDF
+    try:
+        pdf_bytes = render_invoice_pdf(invoice_view, settings)
+    except Exception as e:
+        logger.error(f"[INVOICE] Errore render PDF: {e}")
+        raise HTTPException(500, f"Errore generazione PDF: {e}")
+
+    cloud_url = upload_invoice_pdf_to_cloudinary(pdf_bytes, numero)
+
+    inv_id = str(_uuid.uuid4())
+    doc = {
+        "id": inv_id,
+        "numero": numero,
+        "anno": anno,
+        "data_emissione": data_em,
+        "fonte": body.fonte,
+        "source_key": body.source_key,
+        "partner_id": body.partner_id,
+        "cliente": cliente,
+        "righe": righe,
+        "totale": totale,
+        "valuta": body.valuta or "EUR",
+        "note": body.note,
+        "stato": "emessa",
+        "pdf_url": cloud_url,
+        "pdf_base64": _b64.b64encode(pdf_bytes).decode("ascii"),
+        "created_at": now.isoformat(),
+        "created_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+    }
+    await db.ciak_invoices.insert_one(doc)
+
+    out = dict(doc)
+    out.pop("_id", None)
+    out.pop("pdf_base64", None)
+    return out
+
+
+# ─── Dettaglio / PDF / annulla ─────────────────────────────────────────────
+
+@router.get("/invoices/{invoice_id}")
+async def get_invoice(invoice_id: str, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    inv = await db.ciak_invoices.find_one({"id": invoice_id}, {"pdf_base64": 0})
+    if not inv:
+        raise HTTPException(404, "Fattura non trovata")
+    inv.pop("_id", None)
+    return inv
+
+
+@router.get("/invoices/{invoice_id}/pdf")
+async def get_invoice_pdf(invoice_id: str, admin=Depends(require_ciak_admin)):
+    """Stream del PDF archiviato (dal base64 in DB — durevole)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    import base64 as _b64
+    from fastapi.responses import Response
+    inv = await db.ciak_invoices.find_one({"id": invoice_id})
+    if not inv:
+        raise HTTPException(404, "Fattura non trovata")
+    b64 = inv.get("pdf_base64")
+    if not b64:
+        # Fallback: rigenera al volo dai dati salvati
+        from services.invoice_pdf import render_invoice_pdf
+        settings = await _invoice_settings_doc()
+        pdf_bytes = render_invoice_pdf(inv, settings)
+    else:
+        pdf_bytes = _b64.b64decode(b64)
+    safe = (inv.get("numero") or "fattura").replace("/", "-")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="Fattura_{safe}.pdf"'},
+    )
+
+
+@router.post("/invoices/{invoice_id}/cancel")
+async def cancel_invoice(invoice_id: str, admin=Depends(require_ciak_admin)):
+    """Annulla una fattura (resta a registro, ma esce dai totali e libera la sorgente)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    res = await db.ciak_invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "stato": "annullata",
+            "annullata_at": datetime.now(timezone.utc).isoformat(),
+            "annullata_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+        }},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Fattura non trovata")
+    return {"ok": True, "id": invoice_id, "stato": "annullata"}
