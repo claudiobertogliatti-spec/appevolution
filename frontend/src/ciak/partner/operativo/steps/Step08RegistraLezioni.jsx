@@ -94,11 +94,11 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
 
   return (
     <StepBase
-      eyebrow="Step 8 — Lezioni"
-      title="Carica i video delle lezioni (uno alla volta)"
+      step={step}
+      title="Registra le lezioni del corso"
       ctaDisabled={videos.length === 0 || busy}
       onCta={() => onComplete({ videos })}
-      secondaryNote="MP4 o MOV, anche grezzi. Ci pensiamo noi al taglio e al render. Se la connessione cade, l'upload riprende da solo. Puoi tornare qui per aggiungere altre lezioni."
+      secondaryNote="Una lezione alla volta, con calma. Carichi il grezzo (MP4 o MOV) e montiamo noi. Puoi tornare quando vuoi per aggiungerne altre."
     >
       <label className={`block bg-slate-50 border-2 border-dashed border-slate-400 rounded-md p-8 text-center cursor-pointer hover:border-yellow-400 mb-4 transition ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input type="file" accept="video/*" className="hidden" disabled={busy} onChange={(e) => handle(e.target.files?.[0])} />

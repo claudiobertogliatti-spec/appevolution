@@ -80,11 +80,11 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
 
   return (
     <StepBase
-      eyebrow="Step 7 — Masterclass"
-      title="Carica il video grezzo della masterclass"
+      step={step}
+      title="Registra la tua lezione gratuita"
       ctaDisabled={!submitted || busy}
       onCta={() => onComplete({ video_submitted: true, filename: fileName })}
-      secondaryNote="MP4 o MOV, anche grezzo senza editing. Ci pensiamo noi al taglio e al render finale. Se la connessione cade, l'upload riprende da solo."
+      secondaryNote="Registra senza pensare al montaggio, anche col telefono. Carichi il file (MP4 o MOV) e al taglio e alla qualità pensiamo noi. Se la connessione cade, riprende da solo."
     >
       <label className={`block border-2 border-dashed rounded-md p-10 text-center cursor-pointer transition ${submitted ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"} ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input
