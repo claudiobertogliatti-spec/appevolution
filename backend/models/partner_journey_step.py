@@ -42,7 +42,7 @@ class PartnerJourneyStep(BaseModel):
 # Stefania resta voce narrante trasversale (non assegnata a una singola fase).
 # La fase "ottimizza" è post-lancio (subentra OperativoContinuo).
 MACRO_PHASES_DEFINITION: list[dict[str, Any]] = [
-    {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["01-contratto", "02-discovery-video", "burocrazia", "03-brand-kit", "04-posizionamento"]},
+    {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "01-contratto", "burocrazia", "03-brand-kit", "04-posizionamento"]},
     {"id": "valida",    "label": "Valida",    "tagline": "Andiamo online e testiamo il mercato", "icon": "🚀", "agent": "ANDREA",    "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-registra-masterclass", "08-registra-lezioni", "09-funnel-asset", "10-funnel-team-work", "11-calendario-30gg", "12-prezzo-webinar", "13-lancio"]},
     {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali",            "icon": "📈", "agent": "MARCO",     "step_ids": []},  # post-lancio, gestita da OperativoContinuo
 ]
@@ -59,8 +59,8 @@ _MACRO_BY_STEP = {sid: mp["id"] for mp in MACRO_PHASES_DEFINITION for sid in mp[
 # Gli slug mantengono il prefisso numerico storico (stabile per il registry frontend);
 # l'ordine reale è dato da step_number. "burocrazia" è lo step nuovo inserito al n.3.
 JOURNEY_STEPS_DEFINITION: list[dict[str, Any]] = [
-    {"step_id": "01-contratto",           "step_number": 1,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Contratto + distinta"},
-    {"step_id": "02-discovery-video",     "step_number": 2,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Benvenuto"},
+    {"step_id": "01-contratto",           "step_number": 2,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Contratto + distinta"},
+    {"step_id": "02-discovery-video",     "step_number": 1,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Benvenuto"},
     {"step_id": "burocrazia",             "step_number": 3,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "I tuoi dati"},
     {"step_id": "03-brand-kit",           "step_number": 4,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Brand kit"},
     {"step_id": "04-posizionamento",      "step_number": 5,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Posizionamento"},

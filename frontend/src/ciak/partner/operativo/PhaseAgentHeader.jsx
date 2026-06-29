@@ -8,14 +8,11 @@ import { getPhasePresentation, WELCOME_VIDEO_EMBED } from "./phases";
 /**
  * Header della fase EVO corrente.
  *
- * Due varianti:
+ * Due varianti, entrambe in stile "finestra grande" (coerenti col Benvenuto):
  *  - "full"    → schermata di benvenuto della fase (foto grande dell'agente,
- *                copy motivante, video del fondatore nella prima fase, chat live,
- *                e le card "cosa facciamo"). Mostrata sul PRIMO step della fase.
- *  - "compact" → barra agente snella, mostrata sugli step successivi.
- *
- * Stefania è la voce narrante trasversale; dentro ogni fase subentra lo
- * specialista (Esamina→Valentina, Valida→Andrea, Ottimizza→Marco).
+ *                copy motivante, video, chat live, card "cosa facciamo").
+ *  - "compact" → banner agente grande (foto, presentazione "agente AI" + chat
+ *                in tempo reale) mostrato in cima a ogni step.
  */
 const ICONS = {
   fileText: FileText, palette: Palette, target: Target,
@@ -25,11 +22,12 @@ const ICONS = {
 
 function Avatar({ agent, size = "sm" }) {
   const [broken, setBroken] = useState(false);
-  const dim = size === "lg" ? "w-28 h-28" : "w-12 h-12";
-  const ring = size === "lg" ? "ring-4 ring-yellow-400" : "";
+  const dim = size === "lg" ? "w-28 h-28" : size === "md" ? "w-16 h-16" : "w-12 h-12";
+  const ring = size === "lg" ? "ring-4 ring-yellow-400" : size === "md" ? "ring-2 ring-yellow-400" : "";
+  const txt = size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "";
   if (broken || !agent.avatar) {
     return (
-      <div className={`${dim} ${ring} rounded-full flex-shrink-0 bg-slate-800 text-yellow-400 flex items-center justify-center font-semibold ${size === "lg" ? "text-3xl" : ""}`}>
+      <div className={`${dim} ${ring} ${txt} rounded-full flex-shrink-0 bg-slate-800 text-yellow-400 flex items-center justify-center font-semibold`}>
         {agent.initial || agent.name?.[0] || "?"}
       </div>
     );
@@ -44,38 +42,38 @@ function Avatar({ agent, size = "sm" }) {
   );
 }
 
-function CompactHeader({ cfg, agent, intro, onAsk }) {
+function ChatBar({ agent, onAsk }) {
+  if (!onAsk) return null;
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-4 mt-3">
-      <div className="flex items-start gap-3">
-        <Avatar agent={agent} />
+    <button
+      type="button"
+      onClick={onAsk}
+      className="mt-4 w-full flex items-center gap-2.5 bg-white rounded-lg pl-3.5 pr-1.5 py-2 text-left transition hover:bg-slate-50"
+    >
+      <span className="flex-1 text-[15px] text-slate-400">Scrivi a {agent.name}...</span>
+      <span className="flex-shrink-0 w-9 h-9 rounded-md bg-slate-900 text-yellow-400 flex items-center justify-center">
+        <Send className="w-[18px] h-[18px]" />
+      </span>
+    </button>
+  );
+}
+
+function CompactHeader({ cfg, agent, onAsk }) {
+  return (
+    <div className="mt-3 bg-slate-900 text-white rounded-2xl p-5 sm:p-6">
+      <div className="flex items-center gap-4">
+        <Avatar agent={agent} size="md" />
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-slate-500 font-medium mb-0.5">
-            {agent.name} · {agent.role} <span className="text-slate-300">·</span>{" "}
-            <span className="text-slate-400">Fase {cfg.label}</span>
+          <div className="text-[11px] font-semibold text-yellow-400 tracking-widest uppercase">
+            {cfg.label} · con {agent.name}
           </div>
-          <p className="text-sm text-slate-900 leading-relaxed">{intro}</p>
-          {cfg.bullets?.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {cfg.bullets.map((b, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                  <span className="text-yellow-500 mt-0.5">•</span>
-                  <span>{typeof b === "string" ? b : b.title}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className="text-[15px] leading-relaxed text-slate-200 mt-1">
+            Sono {agent.name}, l'agente AI che ti supporta in questa fase. Chiedimi in tempo reale
+            quando vuoi: sono qui per renderti tutto più semplice.
+          </p>
         </div>
-        {onAsk && (
-          <button
-            type="button"
-            onClick={onAsk}
-            className="text-xs font-semibold text-slate-900 bg-yellow-400 hover:bg-yellow-500 px-3 py-2 rounded transition flex-shrink-0 whitespace-nowrap"
-          >
-            Chiedi a {agent.name} →
-          </button>
-        )}
       </div>
+      <ChatBar agent={agent} onAsk={onAsk} />
     </div>
   );
 }
@@ -143,18 +141,9 @@ function FullWelcome({ cfg, agent, nome, onAsk, onStart }) {
           <div className="border-t border-slate-700 mt-5 pt-4">
             <p className="text-sm text-slate-300 mb-2.5 flex items-center gap-2">
               <MessageCircle className="w-[18px] h-[18px] text-yellow-400 flex-shrink-0" />
-              {cfg.chatHint || "Hai un dubbio? Scrivimi quando vuoi."}
+              {cfg.chatHint || "Hai un dubbio? Chiedimi in tempo reale."}
             </p>
-            <button
-              type="button"
-              onClick={onAsk}
-              className="w-full flex items-center gap-2.5 bg-white rounded-lg pl-3.5 pr-1.5 py-1.5 text-left transition hover:bg-slate-50"
-            >
-              <span className="flex-1 text-[15px] text-slate-400">Scrivi a {agent.name}...</span>
-              <span className="flex-shrink-0 w-9 h-9 rounded-md bg-slate-900 text-yellow-400 flex items-center justify-center">
-                <Send className="w-[18px] h-[18px]" />
-              </span>
-            </button>
+            <ChatBar agent={agent} onAsk={onAsk} />
           </div>
         )}
       </div>
@@ -189,12 +178,9 @@ export default function PhaseAgentHeader({ macroPhaseId, partnerName, onAsk, var
   if (!cfg) return null;
 
   const nome = (partnerName || "").split(" ")[0] || "";
-  const intro = nome
-    ? cfg.intro.replace("{nome}", nome)
-    : cfg.intro.replace("Ciao {nome}, ", "Ciao! ").replace("{nome}", "");
 
   if (variant === "full") {
     return <FullWelcome cfg={cfg} agent={agent} nome={nome} onAsk={onAsk} onStart={onStart} />;
   }
-  return <CompactHeader cfg={cfg} agent={agent} intro={intro} onAsk={onAsk} />;
+  return <CompactHeader cfg={cfg} agent={agent} onAsk={onAsk} />;
 }
