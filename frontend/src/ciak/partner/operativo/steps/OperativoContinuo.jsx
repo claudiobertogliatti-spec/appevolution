@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { BarChart3, CalendarDays, Users, Rocket, ArrowRight, ChevronLeft } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Rocket, Radio, ArrowRight, ChevronLeft } from "lucide-react";
 import { F7Ottimizzazione } from "../../phases/F7Ottimizzazione";
 import AcceleraGrowth from "../ottimizza/AcceleraGrowth";
 import CommunityLista from "../ottimizza/CommunityLista";
 import CalendarioTrimestrale from "../ottimizza/CalendarioTrimestrale";
+import CicloLive8Settimane from "../ottimizza/CicloLive8Settimane";
 import MarcoNudge from "../ottimizza/MarcoNudge";
 
 /**
  * Hub fase Ottimizza (operativo continuo post-lancio).
  * NON tocca il journey model: vive solo qui, quando il partner ha completato il go-live.
- * Landing = striscia Marco (ritmo) + 4 card. Click su una card => vista in-place + back.
+ * Landing = striscia Marco (ritmo) + 5 card. Click su una card => vista in-place + back.
  *   dati       -> dashboard KPI vendite (F7Ottimizzazione)
- *   calendari  -> piano editoriale 90gg (CalendarioTrimestrale)
+ *   live       -> motore ricorrente: una live ogni 2 mesi (CicloLive8Settimane)
+ *   calendari  -> ponte di nutrimento tra una live e l'altra (CalendarioTrimestrale)
  *   community  -> lista-prima / community-dopo (CommunityLista)
  *   accelera   -> servizi extra data-triggered (AcceleraGrowth)
  */
@@ -24,10 +26,16 @@ const CARDS = [
     desc: "Visite, contatti, vendite. Cosa sta succedendo e dove intervenire.",
   },
   {
+    id: "live",
+    icon: Radio,
+    title: "Live ogni 2 mesi",
+    desc: "Il motore ricorrente: una live gratuita ogni 2 mesi, sei picchi di vendita l'anno.",
+  },
+  {
     id: "calendari",
     icon: CalendarDays,
-    title: "Calendario 90 giorni",
-    desc: "Il tuo ritmo: cosa pubblicare ogni giorno, webinar a fine mese.",
+    title: "Calendario tra le live",
+    desc: "Il ritmo che nutre il pubblico tra una live e l'altra. Cosa pubblicare ogni giorno.",
   },
   {
     id: "community",
@@ -113,6 +121,7 @@ export default function OperativoContinuo({ partnerId }) {
           >
             <ChevronLeft className="w-4 h-4" /> Ottimizza
           </button>
+          {view === "live" && <CicloLive8Settimane partnerId={partnerId} />}
           {view === "calendari" && <CalendarioTrimestrale partnerId={partnerId} />}
           {view === "community" && <CommunityLista onSupport={goSupport} />}
           {view === "accelera" && <AcceleraGrowth signals={signals} onSupport={goSupport} />}
