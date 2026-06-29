@@ -168,23 +168,6 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
             f"Risposte mancanti o troppo brevi: {', '.join(missing)}",
         )
 
-    # Idempotenza
-    existing = await _current_file(body.partner_id)
-    if existing:
-        if existing.get("status") == "under_review":
-            return {
-                "file_id": existing["file_id"],
-                "internal_url": existing.get("internal_url", ""),
-                "status": "under_review",
-                "approval_status": "pending_review",
-            }
-        if existing.get("status") == "approved":
-            raise HTTPException(
-                409,
-                "Documento già approvato; per modificarlo chiedi al team di riaprire lo step",
-            )
-        # status rejected → procedi, vecchio file viene marcato superseded sotto
-
     # Sintesi Brand Positioning Statement (De Veglia) — best-effort, non blocca:
     # build_* ricade da solo sul fallback deterministico e non solleva mai.
     statement = await build_brand_positioning_statement(answers)
@@ -219,7 +202,7 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
     # Marca vecchi rejected come superseded
     await db.files.update_many(
         {"partner_id": body.partner_id, "category": "posizionamento",
-         "status": "rejected", "superseded": {"$ne": True}},
+         "superseded": {"$ne": True}},
         {"$set": {"superseded": True}},
     )
 
@@ -235,7 +218,7 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
         "stored_name": filename,
         "internal_url": upload["url"],
         "public_id": upload["public_id"],
-        "status": "under_review",
+        "status": "approved",
         "step_ref": STEP_ID,
         "rejection_note": None,
         "approved_by": None,
@@ -253,7 +236,7 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
     await db.partner_journey_steps.update_one(
         {"partner_id": body.partner_id, "step_id": STEP_ID},
         {"$set": {
-            "approval_status": "pending_review",
+            "approval_status": "approved",
             "approval_file_id": file_id,
             "approval_note": None,
             "approval_resolved_at": None,
@@ -286,8 +269,8 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
     return {
         "file_id": file_id,
         "internal_url": file_doc["internal_url"],
-        "status": "under_review",
-        "approval_status": "pending_review",
+        "status": "approved",
+        "approval_status": "approved",
     }
 
 
