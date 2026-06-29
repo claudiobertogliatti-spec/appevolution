@@ -91,11 +91,11 @@ export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraf
 
   return (
     <StepBase
-      eyebrow="Step 3 — I tuoi dati"
-      title="Confermiamo i tuoi dati e completiamo quelli che mancano"
+      step={step}
+      title="I tuoi dati"
       ctaDisabled={!canComplete}
       onCta={() => onComplete(data)}
-      secondaryNote="Servono per il contratto, la fattura dei €2.790 e per intestare correttamente il tuo Progetto. Li archiviamo noi."
+      secondaryNote="Servono per la fattura e per intestare correttamente il tuo progetto. Si inseriscono una volta sola e li conserviamo noi."
     >
       <div className="space-y-6">
         {SECTIONS.map((sec) => (
