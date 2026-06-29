@@ -17003,6 +17003,8 @@ from routers.posizionamento_approval import (
 )
 app.include_router(posizionamento_approval_router)
 app.include_router(posizionamento_approval_admin_router)
+from routers.storia_approval import router as storia_approval_router
+app.include_router(storia_approval_router)
 
 # Brand Kit Approval Router (partner-side finalize; admin queue/approve/reject sono
 # condivisi col Posizionamento e già category-agnostic).
