@@ -108,7 +108,6 @@ export default function WorkspaceShell({
           <div className="flex gap-3 mb-5">
             <AgentAvatar agent={agent} />
             <div className="bg-slate-50 rounded-xl px-4 py-3 text-[14px] leading-relaxed text-slate-800">
-              <strong className="font-semibold">{agent?.name ? `Sono ${agent.name}.` : ""}</strong>{" "}
               {intro}
             </div>
           </div>
