@@ -79,22 +79,14 @@ async function mountCookieBanner() {
   }
 }
 
-function unmountCookieBanner() {
-  document.getElementById(STYLE_ID)?.remove();
-  document.getElementById(HTML_ID)?.remove();
-  document.getElementById(SCRIPT_ID)?.remove();
-  document.documentElement.removeAttribute(MOUNT_FLAG);
-}
-
 export function CookieBanner() {
   useEffect(() => {
     mountCookieBanner();
     return () => {
       // Non smonto al cleanup: lasciamo il banner attivo per tutta la sessione utente
-      // (evita re-flash quando React re-render). Smount solo se HMR.
-      if (process.env.NODE_ENV === "development") {
-        unmountCookieBanner();
-      }
+      // (evita re-flash quando React re-render). In development React StrictMode
+      // rimonta gli effetti: rimuovere e reiniettare lo script causerebbe la
+      // ridichiarazione dei const globali dentro cookie-banner.html.
     };
   }, []);
   return null;
