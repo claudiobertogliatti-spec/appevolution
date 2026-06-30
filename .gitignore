@@ -372,3 +372,5 @@ worker-config*.yaml
 *-config-backup.yaml
 gcloud-export-*.yaml
 .superpowers/
+.vercel
+.env*
