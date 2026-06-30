@@ -18,6 +18,7 @@ The `/ciak-blueprint` page uses the same premium visual language approved for th
   - Analisi di mercato specifica
   - Roadmap operativa personalizzata
 - The output panel should not include a redundant footer row; internal deliverable text should be large and easy to read.
+- `Cosa non è il Ciak Blueprint`: do not show the explanatory intro paragraph; keep the negative list aligned with the title column and place the yellow protocol summary below the title.
 - Keep mobile-first spacing and full-width CTA buttons on narrow screens.
 - Staggered cards, timeline markers, and a darker final decision CTA are acceptable when they preserve the locked copy and checkout behavior.
 
