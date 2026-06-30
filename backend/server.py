@@ -16916,6 +16916,11 @@ from routers.email_campaigns import router as email_campaigns_router, set_db as 
 set_email_campaigns_db(db)
 app.include_router(email_campaigns_router)
 
+# Workspace Valida — Fase 2 Metodo EVO, Workspace 1 Masterclass (CLAUDE.md 2026-06-30)
+from routers.workspace_valida import router as workspace_valida_router, set_db as set_workspace_valida_db
+set_workspace_valida_db(db)
+app.include_router(workspace_valida_router)
+
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
 from routers.proposta import (
     router as proposta_router,
