@@ -28,7 +28,15 @@ const STEP_COMPONENTS = {
 
 const FinaleCelebrativa = lazy(() => import("./steps/StepFinaleCelebrativa"));
 const OperativoContinuo = lazy(() => import("./steps/OperativoContinuo"));
+
+// Workspace della Fase Valida (nuova architettura a 5 Workspace). Pilota: WS1, WS2.
+// Aperti via deep-link: localStorage.ciak_partner_initial_step = "ws1-masterclass" | "ws2-corso".
 const Workspace1Masterclass = lazy(() => import("./Workspace1Masterclass"));
+const Workspace2Corso = lazy(() => import("./Workspace2Corso"));
+const WORKSPACE_COMPONENTS = {
+  "ws1-masterclass": Workspace1Masterclass,
+  "ws2-corso": Workspace2Corso,
+};
 
 /**
  * Container Operativo Stefania (Sub-progetto A — sostituisce home partner).
@@ -72,14 +80,14 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   }
   if (!state) return null;
 
-  // Deep-link al Workspace 1 (pilota nuova architettura Fase Valida a 5 Workspace).
-  // Attivabile da admin/area partner: localStorage.ciak_partner_initial_step = "ws1-masterclass".
-  if (viewingStepId === "ws1-masterclass") {
+  // Deep-link ai Workspace della Fase Valida (pilota nuova architettura a 5 Workspace).
+  const WorkspaceComp = viewingStepId ? WORKSPACE_COMPONENTS[viewingStepId] : null;
+  if (WorkspaceComp) {
     return (
       <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif]">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico il workspace…</div>}>
-            <Workspace1Masterclass partnerId={partnerId} onBack={() => setViewingStepId(null)} />
+            <WorkspaceComp partnerId={partnerId} onBack={() => setViewingStepId(null)} />
           </Suspense>
         </div>
       </div>
