@@ -8,7 +8,7 @@ Turn the public Ciak opt-in hero into the visual and messaging reference for the
 
 ## Direction
 
-Use the local video `Ciak_Spot.mp4` as a looping hero asset, with an N26-like clean product layout and Ciak colors.
+Use the local video `Ciak_Spot.mp4` as a looping full-bleed hero background, with an N26-like clean product layout and Ciak colors.
 
 The hero should communicate:
 
@@ -23,12 +23,19 @@ The existing page copy remains useful and should be reused in a tighter structur
 ## UX Requirements
 
 - Use a local MP4 in `frontend/public/ciak/`.
+- The video is the hero background, not a side card.
 - The video autoplays, loops, is inline, and starts muted.
 - Add a visible volume toggle button over the video.
+- Keep the primary title large and centered over the video.
+- The primary title uses Ciak deep blue (`slate-900`) over the video.
+- Do not show a hero subtitle below the title; keep the opt-in form as the immediate next element.
+- Under the hero form, show a premium dark-blue bordered/glowing explanatory box with the exact text `Scopri i 5 errori killer (e come evitarli) che bloccano la crescita di molti professionisti, prima di investire tempo e denaro nella direzione sbagliata.`, formatted as three visual lines.
+- Do not use the three small hero chips (`Analisi`, `Direzione`, `Crescita`) in the video hero.
 - Preserve the existing name/email capture behavior and validation.
 - Keep the CTA `Accedi alla masterclass`.
 - Use Ciak palette: white, `slate-900`, `yellow-400`, muted slate text.
 - The page should feel clean, premium, and product-led, closer to N26 than to a dense dashboard.
+- Below the hero, reuse the original page logic with stronger copy and cleaner graphics: problem, method, path, final CTA.
 
 ## Implementation Scope
 
@@ -42,4 +49,3 @@ The existing page copy remains useful and should be reused in a tighter structur
 - Run `npm run build` in `frontend`.
 - Confirm the build exits with code 0.
 - Existing unrelated React hook warnings are acceptable.
-

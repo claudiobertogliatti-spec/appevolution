@@ -108,6 +108,10 @@ celery_app.conf.update(
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
         },
+        'check-partner-journey-solleciti': {
+            'task': 'celery_tasks.check_partner_journey_solleciti',
+            'schedule': crontab(hour=9, minute=30),  # Ogni giorno 9:30 CET — solleciti percorso 21gg
+        },
         # ─────────────────────────────────────────────────────────────────
         # `daily-systeme-import` DISATTIVATO 2026-05-15.
         # Motivo: applicava tag generico `Lista_Fredda` indipendentemente dalla

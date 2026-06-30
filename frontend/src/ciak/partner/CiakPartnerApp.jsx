@@ -18,7 +18,7 @@ import { WorkspacePage } from "./sections/WorkspacePage";
 import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
-import { StefaniaChat } from "./sections/StefaniaChat";
+import { TeamSupportoPage } from "./sections/TeamSupportoPage";
 import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
@@ -156,17 +156,9 @@ function PartnerPicker({ onSelect, onLogout }) {
   );
 }
 
-// Pagina Supporto Team → StefaniaChat (riceve `partner`, non `partnerId`)
-function SupportPage({ partnerId }) {
-  return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Supporto Team</h1>
-      <p className="text-slate-500 mb-6">
-        Per dubbi rapidi scrivi a Stefania. Il tuo coordinatore ti segue lungo il percorso.
-      </p>
-      <StefaniaChat partner={{ id: partnerId }} />
-    </div>
-  );
+// Pagina Team di supporto → griglia membri del team con chat dedicata.
+function SupportPage({ partnerId, partnerName }) {
+  return <TeamSupportoPage partner={{ id: partnerId, name: partnerName }} />;
 }
 
 // AcceleraCrescitaPage instradata con :categoryId (acc-visibilita, acc-costanza, ...)
@@ -336,7 +328,7 @@ export default function CiakPartnerApp() {
         <Route path="workspace" element={<WorkspacePage partnerId={partnerId} />} />
         <Route path="workspace/:tab" element={<WorkspaceRoute partnerId={partnerId} />} />
         <Route path="mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
-        <Route path="supporto" element={<SupportPage partnerId={partnerId} />} />
+        <Route path="supporto" element={<SupportPage partnerId={partnerId} partnerName={status?.partner_name} />} />
         <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
         <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
         <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
