@@ -16921,6 +16921,11 @@ from routers.workspace_valida import router as workspace_valida_router, set_db a
 set_workspace_valida_db(db)
 app.include_router(workspace_valida_router)
 
+# Workspace Valida — Workspace 2 Corso (CLAUDE.md 2026-06-30)
+from routers.workspace_corso import router as workspace_corso_router, set_db as set_workspace_corso_db
+set_workspace_corso_db(db)
+app.include_router(workspace_corso_router)
+
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
 from routers.proposta import (
     router as proposta_router,
