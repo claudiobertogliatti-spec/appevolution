@@ -18,6 +18,7 @@ import {
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
   { to: "/partner/workspace", label: "Workspace", icon: LayoutGrid },
+  { to: "/partner/supporto", label: "Team di supporto", icon: MessageCircle, helper: "Chat con il referente giusto" },
 ];
 
 const ACCELERA_ITEMS = [
@@ -34,6 +35,14 @@ function linkClass({ isActive }) {
     isActive
       ? "bg-slate-800 text-yellow-400 font-medium"
       : "text-slate-300 hover:bg-slate-800/60"
+  }`;
+}
+
+function supportLinkClass({ isActive }) {
+  return `flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-sm transition border ${
+    isActive
+      ? "bg-yellow-400 text-slate-900 border-yellow-400 font-semibold"
+      : "bg-slate-800/40 text-slate-200 border-slate-700 hover:bg-slate-800"
   }`;
 }
 
@@ -70,9 +79,21 @@ export function PartnerSidebar({ user, onLogout }) {
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {MAIN_NAV.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
-            <item.icon className="w-4 h-4 flex-shrink-0" />
-            {item.label}
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={item.helper ? supportLinkClass : linkClass}
+          >
+            <item.icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span className="min-w-0">
+              <span className="block leading-tight">{item.label}</span>
+              {item.helper && (
+                <span className="block text-[11px] font-normal opacity-75 mt-0.5 leading-snug">
+                  {item.helper}
+                </span>
+              )}
+            </span>
           </NavLink>
         ))}
 
@@ -93,13 +114,6 @@ export function PartnerSidebar({ user, onLogout }) {
               I tre livelli
             </NavLink>
           </Collapsible>
-        </div>
-
-        <div className="pt-3 mt-2 border-t border-slate-800">
-          <NavLink to="/partner/supporto" className={linkClass}>
-            <MessageCircle className="w-4 h-4 flex-shrink-0" />
-            Supporto Team
-          </NavLink>
         </div>
       </nav>
 
