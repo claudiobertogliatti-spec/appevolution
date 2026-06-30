@@ -1,21 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Anchor, TrendingUp, Rocket, ArrowLeft, ArrowRight, Check, X,
-  Calendar, Users, Clock, ShieldCheck,
+  Calendar, Users, Clock, ShieldCheck, Lock,
 } from "lucide-react";
 
 /**
  * EVO-S — programma di continuità in abbonamento, riservato a chi ha completato
  * i 12 mesi del Protocollo EVO. Non è un rinnovo tecnico: è l'accesso al livello
  * successivo. 3 piani (Start / Grow / Scale), permanenza minima 6 mesi.
- * CTA "Attiva questo piano" → riusa il checkout Stripe esistente
- * (/api/growth-system-checkout) mappando i piani sui livelli foundation/growth/scale.
+ *
+ * Gating: GET /api/evo-booster/evo-s-eligibility/{partnerId} → se non sono passati
+ * 12 mesi, i piani restano visibili ma in sola lettura (CTA bloccata). Se il backend
+ * non risponde, la pagina resta sbloccata (non blocchiamo per un errore di rete).
+ * CTA "Attiva questo piano" → POST /api/evo-booster/evo-s-checkout (Stripe abbonamento).
  */
 
 const PLANS = [
   {
     id: "start",
-    checkoutLevel: "foundation",
     name: "EVO-S Start",
     price: 297,
     priceLabel: "297 € / mese",
@@ -54,7 +56,6 @@ const PLANS = [
   },
   {
     id: "grow",
-    checkoutLevel: "growth",
     name: "EVO-S Grow",
     price: 497,
     priceLabel: "497 € / mese",
@@ -94,7 +95,6 @@ const PLANS = [
   },
   {
     id: "scale",
-    checkoutLevel: "scale",
     name: "EVO-S Scale",
     price: 797,
     priceLabel: "797 € / mese",
@@ -198,7 +198,7 @@ function BulletList({ items, tone = "neutral" }) {
   );
 }
 
-function PlanDetail({ plan, partnerId, onBack }) {
+function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
   const [busy, setBusy] = useState(false);
   const [requested, setRequested] = useState(false);
   const Icon = plan.icon;
@@ -210,16 +210,12 @@ function PlanDetail({ plan, partnerId, onBack }) {
     }
     setBusy(true);
     try {
-      const res = await fetch(`/api/growth-system-checkout`, {
+      const res = await fetch(`/api/evo-booster/evo-s-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           partner_id: String(partnerId),
-          partner_name: "",
-          partner_email: "",
-          level: plan.checkoutLevel,
-          scenario: "",
-          origin_url: window.location.origin,
+          plan: plan.id,
         }),
       });
       const data = await res.json();
@@ -309,7 +305,18 @@ function PlanDetail({ plan, partnerId, onBack }) {
           <p className="text-[13px] text-slate-700 leading-relaxed">{plan.risultatoAtteso}</p>
         </div>
 
-        {requested ? (
+        {locked ? (
+          <div className="bg-slate-900 rounded-2xl p-5 flex items-start gap-3">
+            <Lock className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[15px] font-semibold text-white">Disponibile al termine dei 12 mesi</p>
+              <p className="text-[13px] text-slate-400 mt-1">
+                EVO-S si attiva quando hai completato il Protocollo EVO
+                {unlockInfo && unlockInfo.unlock_date ? ` (dal ${unlockInfo.unlock_date})` : ""}.
+              </p>
+            </div>
+          </div>
+        ) : requested ? (
           <div className="bg-slate-900 rounded-2xl p-5">
             <p className="text-[15px] font-semibold text-white">Richiesta registrata</p>
             <p className="text-[13px] text-slate-400 mt-1">
@@ -340,10 +347,34 @@ function PlanDetail({ plan, partnerId, onBack }) {
 
 export function EvoSPage({ partnerId }) {
   const [selectedId, setSelectedId] = useState(null);
+  const [elig, setElig] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!partnerId) {
+      setElig({ eligible: true });
+      return;
+    }
+    fetch(`/api/evo-booster/evo-s-eligibility/${partnerId}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((d) => { if (alive) setElig(d); })
+      .catch(() => { if (alive) setElig({ eligible: true }); });
+    return () => { alive = false; };
+  }, [partnerId]);
+
+  const locked = !!(elig && elig.eligible === false);
   const plan = selectedId ? PLANS.find((p) => p.id === selectedId) : null;
 
   if (plan) {
-    return <PlanDetail plan={plan} partnerId={partnerId} onBack={() => setSelectedId(null)} />;
+    return (
+      <PlanDetail
+        plan={plan}
+        partnerId={partnerId}
+        locked={locked}
+        unlockInfo={elig}
+        onBack={() => setSelectedId(null)}
+      />
+    );
   }
 
   return (
@@ -360,6 +391,18 @@ export function EvoSPage({ partnerId }) {
             affiancamento. Tutti i piani hanno permanenza minima di 6 mesi.
           </p>
         </div>
+
+        {locked && (
+          <div className="mb-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+            <p className="text-[14px] font-semibold text-slate-900">EVO-S si apre al termine dei 12 mesi</p>
+            <p className="text-[13px] text-slate-600 mt-0.5">
+              È il livello successivo, riservato a chi ha completato il Protocollo EVO.
+              {elig && elig.months_remaining ? ` Mancano circa ${elig.months_remaining} mesi` : ""}
+              {elig && elig.unlock_date ? ` · sblocco dal ${elig.unlock_date}` : ""}. Intanto puoi
+              vedere cosa include ogni piano.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map((p) => (
