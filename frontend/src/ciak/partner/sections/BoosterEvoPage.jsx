@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Check, X, Clock, Package, Tag, MessageCircle } from "lucide-react";
 import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
@@ -5,7 +6,9 @@ import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
 /**
  * Booster EVO — vetrina (stile e-commerce) dei servizi extra attivabili durante
  * i 12 mesi del Protocollo EVO. Vetrina con macro-card → click → pagina dettaglio
- * (/partner/booster-evo/:serviceId). CTA "Richiedi questo Booster" → team di supporto.
+ * (/partner/booster-evo/:serviceId). CTA "Richiedi questo Booster" registra la
+ * richiesta (POST /api/evo-booster/booster-request) e avvisa il team; se il
+ * backend non risponde, fallback al Team di supporto.
  */
 
 function BoosterCard({ item, onOpen }) {
@@ -86,8 +89,39 @@ function BulletList({ items, tone = "neutral" }) {
   );
 }
 
-function Dettaglio({ item, onBack, onRequest }) {
+function Dettaglio({ item, partnerId, onBack, onSupport }) {
   const Icon = item.icon;
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const request = async () => {
+    if (!partnerId) {
+      onSupport();
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/evo-booster/booster-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          partner_id: String(partnerId),
+          booster_id: item.id,
+          booster_name: item.name,
+        }),
+      });
+      if (res.ok) {
+        setDone(true);
+      } else {
+        onSupport();
+      }
+    } catch (e) {
+      onSupport();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-full bg-gray-50">
       <div className="max-w-2xl mx-auto p-6">
@@ -146,31 +180,41 @@ function Dettaglio({ item, onBack, onRequest }) {
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="text-[15px] font-semibold text-white">Ti interessa questo Booster?</p>
-            <p className="text-[13px] text-slate-400 mt-0.5">
-              Scrivi al team: ti prepariamo un preventivo su misura, senza impegno.
+        {done ? (
+          <div className="bg-slate-900 rounded-2xl p-5">
+            <p className="text-[15px] font-semibold text-white">Richiesta inviata</p>
+            <p className="text-[13px] text-slate-400 mt-1">
+              Il team ti contatta a breve con un preventivo su misura per «{item.name}».
             </p>
           </div>
-          <button
-            onClick={onRequest}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 transition flex-shrink-0"
-          >
-            <MessageCircle className="w-4 h-4" /> Richiedi questo Booster
-          </button>
-        </div>
+        ) : (
+          <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-[15px] font-semibold text-white">Ti interessa questo Booster?</p>
+              <p className="text-[13px] text-slate-400 mt-0.5">
+                Invii la richiesta al team: ti prepariamo un preventivo su misura, senza impegno.
+              </p>
+            </div>
+            <button
+              onClick={request}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 transition flex-shrink-0"
+            >
+              <MessageCircle className="w-4 h-4" /> {busy ? "Invio..." : "Richiedi questo Booster"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function BoosterEvoPage() {
+export function BoosterEvoPage({ partnerId }) {
   const navigate = useNavigate();
   const { serviceId } = useParams();
   const item = serviceId ? BOOSTER_CATALOG[serviceId] : null;
 
-  const goRequest = () => {
+  const goSupport = () => {
     navigate("/partner/supporto");
   };
 
@@ -191,7 +235,14 @@ export function BoosterEvoPage() {
   }
 
   if (item) {
-    return <Dettaglio item={item} onBack={() => navigate("/partner/booster-evo")} onRequest={goRequest} />;
+    return (
+      <Dettaglio
+        item={item}
+        partnerId={partnerId}
+        onBack={() => navigate("/partner/booster-evo")}
+        onSupport={goSupport}
+      />
+    );
   }
 
   return <Vetrina onOpen={(id) => navigate(`/partner/booster-evo/${id}`)} />;
