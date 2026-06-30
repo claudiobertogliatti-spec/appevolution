@@ -86,6 +86,54 @@ PROFESSION_GROUPS = {
         "label": "Agenti Immobiliari Indipendenti",
         "queries": ["agente immobiliare indipendente", "mediatore immobiliare"],
     },
+    "psicologia_psicoterapia": {
+        "label": "Psicologi / Psicoterapeuti",
+        "queries": ["psicologo", "psicoterapeuta", "studio di psicologia", "psicologo clinico"],
+    },
+    "counseling_coaching": {
+        "label": "Counselor / Life & Mental Coach",
+        "queries": ["counselor", "life coach", "mental coach", "coach"],
+    },
+    "assistenza_sociale_educativa": {
+        "label": "Assistenti Sociali / Educatori / Pedagogisti",
+        "queries": ["assistente sociale", "educatore professionale", "pedagogista"],
+    },
+    "logopedia_riabilitazione": {
+        "label": "Logopedisti / Psicomotricisti / Terapisti",
+        "queries": ["logopedista", "psicomotricista", "terapista occupazionale"],
+    },
+    "nutrizione_dietetica": {
+        "label": "Nutrizionisti / Dietisti",
+        "queries": ["nutrizionista", "dietista", "biologo nutrizionista", "dietologo"],
+    },
+    "benessere_corpo": {
+        "label": "Osteopati / Naturopati / Chiropratici",
+        "queries": ["osteopata", "naturopata", "chiropratico", "riflessologo"],
+    },
+    "fitness_movimento": {
+        "label": "Personal Trainer / Istruttori Yoga-Pilates",
+        "queries": ["personal trainer", "istruttore di yoga", "istruttore pilates", "preparatore atletico"],
+    },
+    "consulenza_aziendale": {
+        "label": "Consulenti Aziendali / Strategici",
+        "queries": ["consulente aziendale", "consulente di direzione", "business consultant"],
+    },
+    "marketing_comunicazione": {
+        "label": "Consulenti Marketing / Comunicazione",
+        "queries": ["consulente marketing", "social media manager", "consulente di comunicazione"],
+    },
+    "formazione_professionale": {
+        "label": "Formatori / Trainer Professionali",
+        "queries": ["formatore", "trainer aziendale", "centro di formazione professionale"],
+    },
+    "consulenza_finanziaria": {
+        "label": "Consulenti / Educatori Finanziari",
+        "queries": ["consulente finanziario", "educatore finanziario", "promotore finanziario"],
+    },
+    "risorse_umane_carriera": {
+        "label": "Consulenti HR / Career Coach",
+        "queries": ["consulente risorse umane", "career coach", "consulente di carriera"],
+    },
 }
 
 # Città italiane principali per ricerca Places
@@ -1550,6 +1598,7 @@ _PROFESSIONAL_PLACE_TYPES = {
     "lawyer", "accounting", "insurance_agency", "real_estate_agency",
     "physiotherapist", "dentist", "doctor", "health",
     "financial_institution", "finance", "establishment", "point_of_interest",
+    "psychologist", "gym", "spa", "health_and_beauty",
 }
 
 
