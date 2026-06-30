@@ -334,8 +334,8 @@ export default function CiakPartnerApp() {
         <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
         <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
         <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
-        <Route path="booster-evo" element={<BoosterEvoPage />} />
-        <Route path="booster-evo/:serviceId" element={<BoosterEvoPage />} />
+        <Route path="booster-evo" element={<BoosterEvoPage partnerId={partnerId} />} />
+        <Route path="booster-evo/:serviceId" element={<BoosterEvoPage partnerId={partnerId} />} />
         <Route path="evo-s" element={<EvoSPage partnerId={partnerId} />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
