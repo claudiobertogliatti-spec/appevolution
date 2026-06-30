@@ -202,7 +202,9 @@ export function CiakLanding() {
                 Il punto vero
               </p>
               <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-                Non ti manca presenza online. Ti manca una direzione leggibile.
+                <span className="block">Non ti manca </span>
+                <span className="block">presenza online, </span>
+                <span className="block">ti manca una direzione.</span>
               </h2>
             </div>
             <div className="space-y-4 text-slate-700 leading-relaxed text-base md:text-lg">
@@ -322,47 +324,49 @@ export function CiakLanding() {
       </section>
 
       {/* SCHERMATA 4 — CTA FINALE */}
-      <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4 leading-tight">
-            Prima di costruire, guarda la direzione.
-          </h2>
-          <p className="text-slate-300 mb-10 leading-relaxed">
-            Niente acquisti, niente impegno. Solo 30 minuti per leggere il tuo progetto con più
-            lucidità e capire da dove partire.
-          </p>
-          <div className="max-w-md mx-auto">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-              placeholder="Il tuo nome"
-              autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
-            />
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="La tua email"
-                autoComplete="email"
-                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
-              />
-              <button
-                onClick={captureEmail}
-                disabled={submitting}
-                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition whitespace-nowrap"
-              >
-                {submitting ? "..." : "Accedi alla masterclass"}
-              </button>
-            </div>
-            {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
-            <p className="text-xs text-slate-400 mt-3 opacity-80 leading-relaxed">
-              Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+      <section className="bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
+          <div className="rounded-2xl border border-yellow-300/85 bg-white px-4 py-10 shadow-[0_0_46px_rgba(250,204,21,0.28)] ring-1 ring-yellow-100 sm:px-8 md:px-12 md:py-14">
+            <h2 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
+              Prima di costruire, guarda la direzione.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+              Niente acquisti, niente impegno. Solo 30 minuti per leggere il tuo progetto con più
+              lucidità e capire da dove partire.
             </p>
+            <div className="mx-auto mt-9 max-w-xl">
+              <input
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                placeholder="Il tuo nome"
+                autoComplete="given-name"
+                className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                  placeholder="La tua email"
+                  autoComplete="email"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+                />
+                <button
+                  onClick={captureEmail}
+                  disabled={submitting}
+                  className="rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300 disabled:opacity-50 sm:whitespace-nowrap"
+                >
+                  {submitting ? "..." : "Accedi alla masterclass"}
+                </button>
+              </div>
+              {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+              </p>
+            </div>
           </div>
         </div>
       </section>

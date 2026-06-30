@@ -18,6 +18,9 @@ The public `ciak.io` opt-in hero is the new visual reference for future partner-
 - Under the hero form, use a premium dark-blue bordered/glowing box with the exact text `Scopri i 5 errori killer (e come evitarli) che bloccano la crescita di molti professionisti, prima di investire tempo e denaro nella direzione sbagliata.`, formatted as three visual lines.
 - The old three hero chips (`Analisi`, `Direzione`, `Crescita`) are removed.
 - Keep the best existing copy: strategic direction, structure before execution, masterclass and Checkpoint Strategico.
+- Problem-section headline: exact text `Non ti manca presenza online, ti manca una direzione.`, formatted as three visual lines.
+- Final CTA: keep the copy exactly as written, remove the full dark-blue background, and present it in a white section with a highlighted box, soft yellow border, and yellow glow.
+- Mobile: avoid horizontal overflow; cookie banner buttons stack full-width on narrow screens.
 - Below the hero, the page should explain: the real problem, the Ciak method, the three-level path, and a final opt-in CTA.
 
 ## Files

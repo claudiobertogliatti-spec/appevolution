@@ -36,6 +36,9 @@ The existing page copy remains useful and should be reused in a tighter structur
 - Use Ciak palette: white, `slate-900`, `yellow-400`, muted slate text.
 - The page should feel clean, premium, and product-led, closer to N26 than to a dense dashboard.
 - Below the hero, reuse the original page logic with stronger copy and cleaner graphics: problem, method, path, final CTA.
+- The problem-section headline must read exactly `Non ti manca presenza online, ti manca una direzione.` and be formatted as three visual lines.
+- The final CTA must keep its copy exactly as written, remove the full dark-blue background, and use a white page section with a highlighted box, soft yellow border, and yellow glow.
+- Mobile layout must not create horizontal overflow; the cookie banner actions stack full-width on narrow screens.
 
 ## Implementation Scope
 
