@@ -28,6 +28,7 @@ const STEP_COMPONENTS = {
 
 const FinaleCelebrativa = lazy(() => import("./steps/StepFinaleCelebrativa"));
 const OperativoContinuo = lazy(() => import("./steps/OperativoContinuo"));
+const Workspace1Masterclass = lazy(() => import("./Workspace1Masterclass"));
 
 /**
  * Container Operativo Stefania (Sub-progetto A — sostituisce home partner).
@@ -70,6 +71,20 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     );
   }
   if (!state) return null;
+
+  // Deep-link al Workspace 1 (pilota nuova architettura Fase Valida a 5 Workspace).
+  // Attivabile da admin/area partner: localStorage.ciak_partner_initial_step = "ws1-masterclass".
+  if (viewingStepId === "ws1-masterclass") {
+    return (
+      <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif]">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico il workspace…</div>}>
+            <Workspace1Masterclass partnerId={partnerId} onBack={() => setViewingStepId(null)} />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
 
   // Gate di benvenuto al primo accesso.
   if (!benvenutoSeen) {
