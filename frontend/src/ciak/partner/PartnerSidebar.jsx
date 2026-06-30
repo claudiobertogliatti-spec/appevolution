@@ -12,7 +12,7 @@ import { NavLink } from "react-router-dom";
 import {
   Home, LayoutGrid,
   Rocket, Layers, ChevronDown, ChevronRight,
-  MessageCircle,
+  MessageCircle, Zap, Crown,
 } from "lucide-react";
 
 const MAIN_NAV = [
@@ -94,6 +94,16 @@ export function PartnerSidebar({ user, onLogout }) {
               I tre livelli
             </NavLink>
           </Collapsible>
+
+          <NavLink to="/partner/booster-evo" className={linkClass}>
+            <Zap className="w-4 h-4 flex-shrink-0" />
+            Booster EVO
+          </NavLink>
+
+          <NavLink to="/partner/evo-s" className={linkClass}>
+            <Crown className="w-4 h-4 flex-shrink-0" />
+            EVO-S
+          </NavLink>
         </div>
       </nav>
 

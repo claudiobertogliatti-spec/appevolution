@@ -18,12 +18,14 @@ import { WorkspacePage } from "./sections/WorkspacePage";
 import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
+import { BoosterEvoPage } from "./sections/BoosterEvoPage";
+import { EvoSPage } from "./sections/EvoSPage";
 import { TeamSupportoPage } from "./sections/TeamSupportoPage";
 import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
 
-// ─── Login ───────────────────────────────────────────────────────────────
+// ─── Login ──────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -85,7 +87,7 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Selettore partner (vista admin) ─────────────────────────────────────
+// ─── Selettore partner (vista admin) ────────────────────────────
 
 function PartnerPicker({ onSelect, onLogout }) {
   const [partners, setPartners] = useState(null);
@@ -178,7 +180,7 @@ function WorkspaceRoute({ partnerId }) {
   return <WorkspacePage partnerId={partnerId} initialTab={tab} />;
 }
 
-// ─── Shell ───────────────────────────────────────────────────────────────
+// ─── Shell ────────────────────────────────────────────────
 
 function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
   return (
@@ -209,7 +211,7 @@ function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, on
   );
 }
 
-// ─── App ─────────────────────────────────────────────────────────────────
+// ─── App ──────────────────────────────────────────────────
 
 export default function CiakPartnerApp() {
   const [user, setUser] = useState(() => (getToken() ? getPartnerUser() : null));
@@ -332,6 +334,9 @@ export default function CiakPartnerApp() {
         <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
         <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
         <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
+        <Route path="booster-evo" element={<BoosterEvoPage />} />
+        <Route path="booster-evo/:serviceId" element={<BoosterEvoPage />} />
+        <Route path="evo-s" element={<EvoSPage partnerId={partnerId} />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>
