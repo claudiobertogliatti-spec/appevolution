@@ -4,20 +4,23 @@ Date: 2026-06-30
 
 ## Direction
 
-The public `/ciak-blueprint` page should feel like a premium product page aligned with the approved Ciak landing.
+The public `/ciak-blueprint` page should feel like a premium strategic-scan product page aligned with the approved Ciak landing, but more distinctive and memorable.
 
 ## Requirements
 
 - Do not change checkout logic, API payload, Stripe redirect, or button behavior.
 - Keep the existing strategic copy unless the user explicitly asks to change it.
-- Replace the dominant dark hero slab with a clean white hero.
+- Replace the dominant dark hero slab with a light strategic-scan hero using a subtle grid surface and a dark diagnostic output panel.
 - Use Ciak yellow as the main highlight through borders, glow, badges, and CTAs.
-- Use deep blue/slate as an authority accent, not as a full-page dominant background.
-- Hero includes a side box named `Cosa ricevi` with the three concrete deliverables:
+- Use deep blue/slate as an authority accent for diagnostic panels and decision CTAs, not as a full-page dominant background.
+- Hero includes a dark strategic output panel with the three concrete deliverables:
   - Sessione strategica 60 min
   - Analisi di mercato specifica
   - Roadmap operativa personalizzata
+- The output panel does not include a redundant footer row; its internal card text should be large and readable.
 - The price/value line remains visible near the primary CTA.
+- The hero title keeps the exact original text and is tuned to render as three visual lines on desktop.
+- The page may use staggered cards, timeline markers, and a darker final decision CTA to make the offer more visually distinctive.
 - Mobile layout stacks content cleanly, avoids horizontal overflow, and uses full-width CTAs where useful.
 
 ## Files
