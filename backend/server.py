@@ -16931,6 +16931,11 @@ from routers.workspace_corso import router as workspace_corso_router, set_db as 
 set_workspace_corso_db(db)
 app.include_router(workspace_corso_router)
 
+# Workspace 3 — Sistema di Vendita (Gaia)
+from routers.workspace_vendita import router as workspace_vendita_router, set_db as set_workspace_vendita_db
+set_workspace_vendita_db(db)
+app.include_router(workspace_vendita_router)
+
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
 from routers.proposta import (
     router as proposta_router,
