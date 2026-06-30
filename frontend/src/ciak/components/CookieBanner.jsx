@@ -34,7 +34,7 @@ async function mountCookieBanner() {
     // v2 = fix init (epInit chiamato anche se DOMContentLoaded già scattato).
     // Bumpare la query string se si modifica cookie-banner.html per bypassare
     // la cache aggressiva (force-cache) sui browser già visitati.
-    const res = await fetch("/ciak/cookie-banner.html?v=2", { cache: "force-cache" });
+    const res = await fetch("/ciak/cookie-banner.html?v=3", { cache: "force-cache" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const raw = await res.text();
 
