@@ -33,9 +33,11 @@ const OperativoContinuo = lazy(() => import("./steps/OperativoContinuo"));
 // Aperti via deep-link: localStorage.ciak_partner_initial_step = "ws1-masterclass" | "ws2-corso".
 const Workspace1Masterclass = lazy(() => import("./Workspace1Masterclass"));
 const Workspace2Corso = lazy(() => import("./Workspace2Corso"));
+const Workspace3SistemaVendita = lazy(() => import("./Workspace3SistemaVendita"));
 const WORKSPACE_COMPONENTS = {
   "ws1-masterclass": Workspace1Masterclass,
   "ws2-corso": Workspace2Corso,
+  "ws3-vendita": Workspace3SistemaVendita,
 };
 
 /**
