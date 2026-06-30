@@ -16888,6 +16888,11 @@ from routers.servizi_extra import router as servizi_extra_router, set_db as set_
 set_servizi_extra_db(db)
 app.include_router(servizi_extra_router)
 
+# EVO-S + Booster EVO Router
+from routers.evo_booster import router as evo_booster_router, set_db as set_evo_booster_db
+set_evo_booster_db(db)
+app.include_router(evo_booster_router)
+
 # Media Integrations Router (Parte B, C, D - Canva, Kling, HeyGen)
 from routers.media_integrations import router as media_router, set_db as set_media_db
 set_media_db(db)
