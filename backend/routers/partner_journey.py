@@ -5721,7 +5721,21 @@ async def get_operativo_state(partner_id: str):
         {"partner_id": partner_id},
         {"_id": 0},
     ).sort("step_number", 1)
-    steps = await steps_cursor.to_list(length=20)
+    steps = await steps_cursor.to_list(length=30)
+    # Auto-heal: inserisce gli step del modello mancanti per i partner gia seedati
+    # prima che lo step esistesse (es. la-tua-storia), per non lasciare buchi nella mappa.
+    _existing_ids = {s["step_id"] for s in steps}
+    _missing = [d for d in JOURNEY_STEPS_DEFINITION if d["step_id"] not in _existing_ids]
+    if _missing:
+        _now = datetime.utcnow()
+        await db.partner_journey_steps.insert_many([{
+            "partner_id": partner_id, "step_id": d["step_id"], "step_number": d["step_number"],
+            "fase_legacy": d.get("fase_legacy", "F1"), "status": "pending", "data": {},
+            "updated_at": _now,
+        } for d in _missing])
+        steps = await db.partner_journey_steps.find(
+            {"partner_id": partner_id}, {"_id": 0}
+        ).sort("step_number", 1).to_list(length=30)
 
     # Arricchisci ogni step con label + macro_phase da JOURNEY_STEPS_DEFINITION
     enrichment = {d["step_id"]: {"label": d["label"], "macro_phase": d["macro_phase"]} for d in JOURNEY_STEPS_DEFINITION}
