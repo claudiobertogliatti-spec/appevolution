@@ -54,19 +54,19 @@ export const PHASE_CONFIG = {
     order: 3,
     agentId: "MARCO",
     intro:
-      "Ciao {nome}, sono Marco, il tuo specialista di strategia e crescita. Sei online: il più è fatto. Adesso miglioriamo ciò che vende, un passo alla volta.",
+      "Ciao {nome}, sono Marco, il tuo specialista di strategia e crescita. Sei online: il più è fatto. Adesso trasformiamo il lancio in un sistema che vende in modo prevedibile.",
     body: [
-      "Sono il tuo specialista di strategia e crescita. Sei online: il più è fatto. Adesso leggiamo i numeri veri e miglioriamo ciò che vende, un passo alla volta, fino a renderti il riferimento del tuo mercato.",
-      "Non sei solo: ti dico io su cosa concentrarti questa settimana, senza disperdere energie.",
+      "Sono il tuo specialista di strategia e crescita. Sei online: ora leggiamo i numeri veri, miglioriamo ciò che converte e teniamo un ritmo che non si ferma — live, contenuti, funnel.",
+      "L'obiettivo è chiaro: entro sei mesi un sistema capace di generare vendite con continuità, sempre meno dipendente da te.",
     ],
     motivation:
-      "Le prime vendite sono un punto di partenza, non il traguardo. Da qui costruiamo la tua autorevolezza e una crescita che dura.",
+      "Le prime vendite sono il punto di partenza, non il traguardo. Da qui costruiamo un'accademia che vende anche quando non ci sei.",
     chatHint: "Hai un dubbio? Chiedimi in tempo reale: ti rispondo io, qui in chat.",
     video: false,
     bullets: [
-      { icon: "chart", title: "I tuoi numeri", desc: "Leggiamo cosa funziona e cosa no." },
-      { icon: "trophy", title: "La tua autorevolezza", desc: "Diventi un riferimento del tuo mercato." },
-      { icon: "users", title: "La tua community", desc: "Le persone che restano nel tempo." },
+      { icon: "chart", title: "Analizziamo il lancio", desc: "Leggiamo i numeri: cosa converte e cosa no." },
+      { icon: "rocket", title: "Un sistema che vende", desc: "Live, contenuti e funnel che lavorano insieme." },
+      { icon: "trophy", title: "Vendite con continuità", desc: "La meta: prevedibilità entro sei mesi." },
     ],
   },
 };

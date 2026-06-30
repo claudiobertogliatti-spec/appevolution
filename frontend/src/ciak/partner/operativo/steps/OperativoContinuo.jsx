@@ -1,53 +1,67 @@
 import React, { useState, useEffect } from "react";
-import { BarChart3, CalendarDays, Users, Rocket, Radio, ArrowRight, ChevronLeft } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Rocket, Radio, SlidersHorizontal, ArrowRight, ChevronLeft } from "lucide-react";
 import { F7Ottimizzazione } from "../../phases/F7Ottimizzazione";
 import AcceleraGrowth from "../ottimizza/AcceleraGrowth";
 import CommunityLista from "../ottimizza/CommunityLista";
 import CalendarioTrimestrale from "../ottimizza/CalendarioTrimestrale";
 import CicloLive8Settimane from "../ottimizza/CicloLive8Settimane";
+import SistemaVendita from "../ottimizza/SistemaVendita";
 import MarcoNudge from "../ottimizza/MarcoNudge";
 
 /**
- * Hub fase Ottimizza (operativo continuo post-lancio).
+ * Hub fase Ottimizza (operativo continuo post-lancio) — Protocollo EVO, Fase 3.
  * NON tocca il journey model: vive solo qui, quando il partner ha completato il go-live.
- * Landing = striscia Marco (ritmo) + 5 card. Click su una card => vista in-place + back.
- *   dati       -> dashboard KPI vendite (F7Ottimizzazione)
- *   live       -> motore ricorrente: una live ogni 2 mesi (CicloLive8Settimane)
- *   calendari  -> ponte di nutrimento tra una live e l'altra (CalendarioTrimestrale)
- *   community  -> lista-prima / community-dopo (CommunityLista)
- *   accelera   -> servizi extra data-triggered (AcceleraGrowth)
+ * Obiettivo dichiarato: entro 6 mesi un sistema che vende con continuita'.
+ * Landing = striscia Marco (ritmo) + 5 workspace numerati + card di supporto community.
+ *   dati       -> WS1 Analizziamo il Lancio (F7Ottimizzazione)
+ *   calendari  -> WS2 Calendario Editoriale Continuativo (CalendarioTrimestrale)
+ *   live       -> WS3 La Live Strategica, una live ogni 2 mesi (CicloLive8Settimane)
+ *   sistema    -> WS4 Ottimizziamo il Sistema di Vendita (SistemaVendita)
+ *   accelera   -> WS5 Verso le Vendite Automatiche (AcceleraGrowth)
+ *   community  -> supporto: lista-prima / community-dopo (CommunityLista)
  */
 
 const CARDS = [
   {
     id: "dati",
+    num: 1,
     icon: BarChart3,
-    title: "I tuoi dati",
-    desc: "Visite, contatti, vendite. Cosa sta succedendo e dove intervenire.",
-  },
-  {
-    id: "live",
-    icon: Radio,
-    title: "Live ogni 2 mesi",
-    desc: "Il motore ricorrente: una live gratuita ogni 2 mesi, sei picchi di vendita l'anno.",
+    title: "Analizziamo il Lancio",
+    desc: "Cosa è successo nei primi 30 giorni: traffico, contatti, vendite. Report, KPI e piano di miglioramento.",
   },
   {
     id: "calendari",
+    num: 2,
     icon: CalendarDays,
-    title: "Calendario tra le live",
-    desc: "Il ritmo che nutre il pubblico tra una live e l'altra. Cosa pubblicare ogni giorno.",
+    title: "Calendario Editoriale Continuativo",
+    desc: "Non più 30 giorni: un sistema. Reel, post, caroselli, newsletter e CTA per nutrire il pubblico.",
+  },
+  {
+    id: "live",
+    num: 3,
+    icon: Radio,
+    title: "La Live Strategica",
+    desc: "Ogni due mesi una diretta per vendere. Il team prepara tutto: tu vai live.",
+  },
+  {
+    id: "sistema",
+    num: 4,
+    icon: SlidersHorizontal,
+    title: "Ottimizziamo il Sistema di Vendita",
+    desc: "Ogni due mesi miglioriamo landing, sales page, email, checkout e conversioni.",
+  },
+  {
+    id: "accelera",
+    num: 5,
+    icon: Rocket,
+    title: "Verso le Vendite Automatiche",
+    desc: "La meta: un sistema che genera vendite con continuità, sempre meno dipendente da te.",
   },
   {
     id: "community",
     icon: Users,
     title: "Lista e community",
     desc: "Raccogli chi ti scrive. La community vera quando hai clienti.",
-  },
-  {
-    id: "accelera",
-    icon: Rocket,
-    title: "Accelera la crescita",
-    desc: "I servizi del team per far decollare l'accademia, al momento giusto.",
   },
 ];
 
@@ -62,7 +76,14 @@ function CardTile({ card, onOpen }) {
         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-900 group-hover:bg-slate-800 transition">
           <Icon className="w-5 h-5 text-yellow-400" />
         </div>
-        <p className="text-[15px] font-semibold text-slate-900 leading-tight">{card.title}</p>
+        <div className="min-w-0">
+          {card.num && (
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
+              Workspace {card.num}
+            </span>
+          )}
+          <p className="text-[15px] font-semibold text-slate-900 leading-tight">{card.title}</p>
+        </div>
       </div>
       <p className="text-[13px] text-slate-500 leading-relaxed mb-3">{card.desc}</p>
       <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-700 group-hover:text-slate-900">
@@ -123,6 +144,7 @@ export default function OperativoContinuo({ partnerId }) {
           </button>
           {view === "live" && <CicloLive8Settimane partnerId={partnerId} />}
           {view === "calendari" && <CalendarioTrimestrale partnerId={partnerId} />}
+          {view === "sistema" && <SistemaVendita signals={signals} onSupport={goSupport} />}
           {view === "community" && <CommunityLista onSupport={goSupport} />}
           {view === "accelera" && <AcceleraGrowth signals={signals} onSupport={goSupport} />}
         </div>
@@ -138,11 +160,11 @@ export default function OperativoContinuo({ partnerId }) {
             Ottimizza
           </span>
           <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">
-            La tua accademia è viva
+            La tua accademia è online
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Sei online. Adesso il lavoro è uno: far girare il volano. Risultati → contatti → webinar →
-            vendite → nuovi studenti. Un mese alla volta.
+            Adesso il lavoro più importante: migliorare ciò che funziona, correggere ciò che non funziona
+            e arrivare — entro sei mesi — a un sistema che genera vendite con continuità.
           </p>
         </div>
 
