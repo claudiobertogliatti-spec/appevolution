@@ -18,6 +18,7 @@ The public `/ciak-blueprint` page should feel like a premium strategic-scan prod
   - Analisi di mercato specifica
   - Roadmap operativa personalizzata
 - The output panel does not include a redundant footer row; its internal card text should be large and readable.
+- In the `Cosa non è il Ciak Blueprint` section, omit the explanatory intro paragraph, align the negative list with the left title, and place the yellow protocol summary box below the title.
 - The price/value line remains visible near the primary CTA.
 - The hero title keeps the exact original text and is tuned to render as three visual lines on desktop.
 - The page may use staggered cards, timeline markers, and a darker final decision CTA to make the offer more visually distinctive.

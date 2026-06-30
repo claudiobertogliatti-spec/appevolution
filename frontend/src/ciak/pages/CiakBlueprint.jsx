@@ -303,14 +303,13 @@ export function CiakBlueprint() {
               Cosa non è il Ciak Blueprint
             </h2>
             <div className="mt-8 hidden h-1.5 w-28 rounded-full bg-yellow-400 md:block" aria-hidden="true" />
+            <p className="mt-8 rounded-[1.5rem] border border-yellow-300/85 bg-yellow-50/55 p-6 text-base leading-relaxed text-slate-900 shadow-[0_0_40px_rgba(250,204,21,0.18)] md:text-lg">
+              Il Blueprint è un protocollo strategico guidato basato sui 4 livelli di maturità strategica
+              osservati nel lavoro con professionisti e consulenti. Restituisce una direzione, non un'esecuzione.
+            </p>
           </div>
           <div>
-            <p className="mb-8 text-base leading-relaxed text-slate-600 md:text-lg">
-              Per essere chiari fin dall'inizio, ecco cosa il Blueprint non è — perché la maggior parte
-              delle proposte simili lo sono, e questa è la differenza che ci interessa.
-            </p>
-
-            <ul className="mb-10 grid gap-3 text-base leading-relaxed text-slate-800">
+            <ul className="grid gap-3 text-base leading-relaxed text-slate-800">
               <li className="grid grid-cols-[auto_1fr] gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <span className="font-semibold text-yellow-600">—</span>
                 <span>Non è una call commerciale travestita da consulenza</span>
@@ -332,11 +331,6 @@ export function CiakBlueprint() {
                 <span>Non è una promessa di risultati economici garantiti</span>
               </li>
             </ul>
-
-            <p className="rounded-[1.5rem] border border-yellow-300/85 bg-yellow-50/55 p-6 text-base leading-relaxed text-slate-900 shadow-[0_0_40px_rgba(250,204,21,0.18)] md:text-lg">
-              Il Blueprint è un protocollo strategico guidato basato sui 4 livelli di maturità strategica
-              osservati nel lavoro con professionisti e consulenti. Restituisce una direzione, non un'esecuzione.
-            </p>
           </div>
         </div>
       </section>
