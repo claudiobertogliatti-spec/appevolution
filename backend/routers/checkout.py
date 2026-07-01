@@ -26,6 +26,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import uuid4
 
 import stripe
 from fastapi import APIRouter, HTTPException, Request, status
@@ -82,6 +83,74 @@ def _ensure_stripe_configured() -> None:
 
 def _frontend_url() -> str:
     return os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _customer_details(data: dict) -> tuple[str, str | None]:
+    customer_details = data.get("customer_details") or {}
+    email = (
+        data.get("customer_email")
+        or customer_details.get("email")
+        or ""
+    ).strip().lower()
+    name = (customer_details.get("name") or "").strip() or None
+    return email, name
+
+
+async def _create_cold_direct_diagnostic(data: dict, metadata: dict, customer_email: str, customer_name: str | None) -> dict:
+    now = _utc_now_iso()
+    stato_raw = metadata.get("stato")
+    try:
+        stato = int(stato_raw) if stato_raw is not None else 2
+    except (TypeError, ValueError):
+        stato = 2
+
+    diagnostic = {
+        "_id": str(uuid4()),
+        "session_token": str(uuid4()),
+        "user_email": customer_email,
+        "user_name": customer_name,
+        "created_at": now,
+        "completed_at": now,
+        "current_state": STATE_CLICKED_67,
+        "state_history": [{"state": STATE_CLICKED_67, "timestamp": now}],
+        "events": [],
+        "crm_tags": ["ciak_clicked_67"],
+        "responses": {},
+        "tracking": {
+            "source": "stripe_checkout",
+            "checkout_mode": "cold_direct",
+            "stripe_session_id": data.get("id"),
+        },
+        "scoring": {},
+        "stato": stato,
+        "diagnostic_origin": "stripe_checkout_cold_direct",
+        "stripe_session_id": data.get("id"),
+        "stripe_metadata": dict(metadata),
+    }
+    await db.diagnostic_sessions.insert_one(diagnostic)
+    return diagnostic
+
+
+async def _record_client_access_recovery(
+    *,
+    data: dict,
+    diagnostic: dict | None,
+    customer_email: str,
+    error: Exception,
+) -> None:
+    await db.ciak_client_access_recovery.insert_one({
+        "id": str(uuid4()),
+        "status": "pending",
+        "email": customer_email,
+        "checkout_session_id": data.get("id"),
+        "diagnostic_session_token": diagnostic.get("session_token") if diagnostic else None,
+        "error": str(error),
+        "created_at": _utc_now_iso(),
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -300,7 +369,7 @@ async def _handle_checkout_completed(data: dict) -> None:
     """Pagamento riuscito → transizione purchased_67."""
     metadata = data.get("metadata", {}) or {}
     session_token = metadata.get("diagnostic_session_token")
-    customer_email = data.get("customer_email") or data.get("customer_details", {}).get("email")
+    customer_email, customer_name = _customer_details(data)
 
     # Meta Conversions API — Purchase server-side.
     # event_id = Stripe checkout session id = stesso eventID del pixel browser
@@ -335,21 +404,29 @@ async def _handle_checkout_completed(data: dict) -> None:
         )
 
     if not diagnostic:
+        if customer_email:
+            diagnostic = await _create_cold_direct_diagnostic(
+                data,
+                metadata,
+                customer_email=customer_email,
+                customer_name=customer_name,
+            )
+        else:
         # Nessuna diagnostic session legata: registra una "vendita orfana"
         # da gestire manualmente lato admin
-        logger.warning(
-            "[CIAK_WEBHOOK] checkout.session.completed without diagnostic_session "
-            "(email=%s, stripe_id=%s)",
-            customer_email, data.get("id"),
-        )
-        await db.ciak_orphan_purchases.insert_one({
-            "stripe_session_id": data.get("id"),
-            "amount_total": data.get("amount_total"),
-            "customer_email": customer_email,
-            "metadata": metadata,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        return
+            logger.warning(
+                "[CIAK_WEBHOOK] checkout.session.completed without diagnostic_session "
+                "(email=%s, stripe_id=%s)",
+                customer_email, data.get("id"),
+            )
+            await db.ciak_orphan_purchases.insert_one({
+                "stripe_session_id": data.get("id"),
+                "amount_total": data.get("amount_total"),
+                "customer_email": customer_email,
+                "metadata": metadata,
+                "created_at": _utc_now_iso(),
+            })
+            return
 
     transition_to(
         diagnostic,
@@ -382,13 +459,22 @@ async def _handle_checkout_completed(data: dict) -> None:
             {"id": client["id"]},
             {
                 "$set": {
-                    "last_magic_link_created_at": datetime.now(timezone.utc).isoformat(),
+                    "last_magic_link_created_at": _utc_now_iso(),
                     "last_magic_login_url": magic_link,
                 }
             },
         )
     except Exception as exc:
         logger.error("[CIAK_WEBHOOK] client access creation failed: %s", exc)
+        try:
+            await _record_client_access_recovery(
+                data=data,
+                diagnostic=diagnostic,
+                customer_email=customer_email,
+                error=exc,
+            )
+        except Exception as recovery_exc:
+            logger.error("[CIAK_WEBHOOK] client access recovery enqueue failed: %s", recovery_exc)
 
     # Fire-and-forget Systeme.io tag emission per ciak_bought_67.
     # Triggera automation post-acquisto: email conferma + link Cal.com per booking.

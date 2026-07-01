@@ -54,6 +54,7 @@ class FakeDB:
         self.ciak_clients = FakeCollection()
         self.ciak_client_login_tokens = FakeCollection()
         self.ciak_orphan_purchases = FakeCollection()
+        self.ciak_client_access_recovery = FakeCollection()
 
 
 @pytest.mark.asyncio
@@ -66,8 +67,14 @@ async def test_handle_checkout_triggers_delivery(monkeypatch):
     class Coll:
         async def find_one(self, *a, **k): return diag
         async def replace_one(self, *a, **k): return None
+        async def insert_one(self, *a, **k): return None
+        async def update_one(self, *a, **k): return None
     class DB:
         diagnostic_sessions = Coll()
+        ciak_analisi = Coll()
+        ciak_clients = Coll()
+        ciak_client_login_tokens = Coll()
+        ciak_client_access_recovery = Coll()
     checkout.db = DB()
 
     monkeypatch.setattr(checkout, "transition_to", lambda *a, **k: None)
@@ -157,3 +164,97 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
     assert token_doc["client_id"] == client["id"]
     assert token_doc["email"] == "user@example.com"
     assert token_doc["used_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_handle_checkout_completed_cold_direct_creates_diagnostic_client_access_and_magic_token(monkeypatch):
+    fake_db = FakeDB()
+    checkout.db = fake_db
+
+    monkeypatch.setattr("services.ciak_analisi_delivery.set_db", lambda db: None)
+
+    import asyncio
+
+    def fake_create_task(coro):
+        coro.close()
+        return None
+
+    monkeypatch.setattr(asyncio, "create_task", fake_create_task)
+    monkeypatch.setattr("services.ciak_systeme.ciak_emit_event", lambda **k: _noop())
+    monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
+
+    await checkout._handle_checkout_completed(
+        {
+            "id": "cs_cold_direct_1",
+            "amount_total": 2700,
+            "currency": "eur",
+            "metadata": {"tipo": "ciak_blueprint", "stato": "2"},
+            "customer_email": "cold@example.com",
+            "customer_details": {"email": "cold@example.com", "name": "Cold Buyer"},
+        }
+    )
+
+    assert fake_db.ciak_orphan_purchases.docs == []
+    assert len(fake_db.diagnostic_sessions.docs) == 1
+    diagnostic = fake_db.diagnostic_sessions.docs[0]
+    assert diagnostic["user_email"] == "cold@example.com"
+    assert diagnostic["user_name"] == "Cold Buyer"
+    assert diagnostic["current_state"] == "purchased_67"
+    assert diagnostic["diagnostic_origin"] == "stripe_checkout_cold_direct"
+    assert diagnostic["stripe_session_id"] == "cs_cold_direct_1"
+    assert diagnostic["session_token"]
+    assert any(event["event"] == "stripe_payment_completed" for event in diagnostic["events"])
+
+    assert len(fake_db.ciak_clients.docs) == 1
+    client = fake_db.ciak_clients.docs[0]
+    assert client["email"] == "cold@example.com"
+    assert client["name"] == "Cold Buyer"
+    assert client["diagnostic_current_state"] == "purchased_67"
+    assert client["diagnostic_session_token"] == diagnostic["session_token"]
+
+    assert len(fake_db.ciak_client_login_tokens.docs) == 1
+    token_doc = fake_db.ciak_client_login_tokens.docs[0]
+    assert token_doc["client_id"] == client["id"]
+    assert token_doc["email"] == "cold@example.com"
+
+
+@pytest.mark.asyncio
+async def test_handle_checkout_completed_records_recovery_when_client_access_creation_fails(monkeypatch):
+    fake_db = FakeDB()
+    checkout.db = fake_db
+
+    monkeypatch.setattr("services.ciak_analisi_delivery.set_db", lambda db: None)
+
+    import asyncio
+
+    def fake_create_task(coro):
+        coro.close()
+        return None
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError("ciak unavailable")
+
+    monkeypatch.setattr(asyncio, "create_task", fake_create_task)
+    monkeypatch.setattr("services.ciak_systeme.ciak_emit_event", lambda **k: _noop())
+    monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
+    monkeypatch.setattr("services.ciak_client_accounts.ensure_client_for_blueprint", boom)
+
+    await checkout._handle_checkout_completed(
+        {
+            "id": "cs_cold_direct_fail",
+            "amount_total": 2700,
+            "currency": "eur",
+            "metadata": {"tipo": "ciak_blueprint", "stato": "2"},
+            "customer_email": "recover@example.com",
+            "customer_details": {"email": "recover@example.com", "name": "Recover Buyer"},
+        }
+    )
+
+    assert len(fake_db.ciak_client_access_recovery.docs) == 1
+    recovery = fake_db.ciak_client_access_recovery.docs[0]
+    assert recovery["email"] == "recover@example.com"
+    assert recovery["checkout_session_id"] == "cs_cold_direct_fail"
+    assert recovery["diagnostic_session_token"] == fake_db.diagnostic_sessions.docs[0]["session_token"]
+    assert recovery["error"] == "ciak unavailable"
+    assert recovery["status"] == "pending"
+    assert recovery["created_at"]
