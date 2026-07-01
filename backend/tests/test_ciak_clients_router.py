@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import types
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -369,14 +370,33 @@ def test_me_and_dashboard_accept_issued_client_token(monkeypatch, client_app, fa
     assert body["partner_area"]["status"] == "attiva"
 
 
-def test_offer_decision_updates_client(client_app, fake_db):
+def test_offer_decision_rejects_unauthenticated_callers(client_app):
     response = client_app.post(
         "/api/ciak/client/admin/offer-decision",
         json={
             "client_id": "client-1",
             "offer_decision": "partnership",
-            "admin_email": "admin@example.com",
         },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Autenticazione richiesta"
+
+
+def test_offer_decision_accepts_admin_jwt(monkeypatch, client_app, fake_db):
+    monkeypatch.setattr(
+        ciak_clients,
+        "decode_token",
+        lambda token: SimpleNamespace(role="admin", email="admin@example.com", user_id="admin-1"),
+    )
+
+    response = client_app.post(
+        "/api/ciak/client/admin/offer-decision",
+        json={
+            "client_id": "client-1",
+            "offer_decision": "partnership",
+        },
+        headers={"Authorization": "Bearer admin-token"},
     )
 
     assert response.status_code == 200
@@ -387,7 +407,18 @@ def test_offer_decision_updates_client(client_app, fake_db):
     assert client["offer_decided_at"]
 
 
-def test_activate_start_sets_access_credit_and_progress(client_app, fake_db):
+def test_activate_start_rejects_unauthenticated_callers(client_app):
+    response = client_app.post(
+        "/api/ciak/client/start/activate",
+        json={"client_id": "client-1"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Autenticazione richiesta"
+
+
+def test_activate_start_accepts_internal_key(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("INTERNAL_API_KEY", "internal-secret")
     fake_db.ciak_clients.docs[0]["access_level"] = "cliente_blueprint"
     fake_db.ciak_clients.docs[0]["start_credit_amount"] = 0
     fake_db.ciak_clients.docs[0]["start_progress"] = []
@@ -395,6 +426,7 @@ def test_activate_start_sets_access_credit_and_progress(client_app, fake_db):
     response = client_app.post(
         "/api/ciak/client/start/activate",
         json={"client_id": "client-1"},
+        headers={"X-Internal-Key": "internal-secret"},
     )
 
     assert response.status_code == 200

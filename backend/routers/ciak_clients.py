@@ -4,11 +4,12 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
+from auth import decode_token
 from services.ciak_client_accounts import (
     ACCESS_START,
     START_AMOUNT_CENTS,
@@ -27,7 +28,6 @@ CLIENT_JWT_SECRET = "ciak-client-local-secret"
 CLIENT_JWT_ALG = "HS256"
 CLIENT_JWT_DAYS = 30
 BLUEPRINT_PRICE_CENTS = 2700
-START_PRICE_CENTS = 49900
 PARTNERSHIP_PRICE_CENTS = 279000
 PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
 
@@ -134,6 +134,32 @@ async def require_client(
     if not client:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
     return client
+
+
+async def require_admin_or_internal(
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    internal_api_key = os.environ.get("INTERNAL_API_KEY")
+    if internal_api_key and x_internal_key == internal_api_key:
+        return {"auth_type": "internal", "actor": "internal"}
+
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Autenticazione richiesta")
+
+    token_data = decode_token(credentials.credentials)
+    if not token_data or token_data.role not in ("admin", "superadmin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Accesso riservato ad admin o sistema interno",
+        )
+
+    return {
+        "auth_type": "admin",
+        "actor": getattr(token_data, "email", None)
+        or getattr(token_data, "user_id", None)
+        or "admin",
+    }
 
 
 def _analysis_payload(analysis: dict[str, Any] | None, client: dict[str, Any]) -> dict[str, Any]:
@@ -279,7 +305,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 "label": "Blueprint",
             },
             "ciak_start": {
-                "amount_cents": START_PRICE_CENTS,
+                "amount_cents": START_AMOUNT_CENTS,
                 "currency": "eur",
                 "label": "Ciak Start",
                 "credit_guaranteed": True,
@@ -287,7 +313,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
             "partnership": {
                 **partnership_price,
                 "label": "Partnership",
-                "upgrade_from_start_cents": PARTNERSHIP_PRICE_CENTS - START_PRICE_CENTS,
+                "upgrade_from_start_cents": PARTNERSHIP_PRICE_CENTS - START_AMOUNT_CENTS,
             },
         },
         "partner_area": {
@@ -334,7 +360,10 @@ async def dashboard(client: dict[str, Any] = Depends(require_client)):
 
 
 @router.post("/admin/offer-decision")
-async def offer_decision(body: OfferDecisionRequest):
+async def offer_decision(
+    body: OfferDecisionRequest,
+    auth=Depends(require_admin_or_internal),
+):
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
     if body.offer_decision not in ("ciak_start", "partnership"):
@@ -345,7 +374,7 @@ async def offer_decision(body: OfferDecisionRequest):
         {
             "$set": {
                 "offer_decision": body.offer_decision,
-                "offer_decided_by": body.admin_email or "admin",
+                "offer_decided_by": body.admin_email or auth["actor"],
                 "offer_decided_at": _now_iso(),
             }
         },
@@ -356,7 +385,10 @@ async def offer_decision(body: OfferDecisionRequest):
 
 
 @router.post("/start/activate")
-async def activate_start(body: ClientIdRequest):
+async def activate_start(
+    body: ClientIdRequest,
+    _auth=Depends(require_admin_or_internal),
+):
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
 
