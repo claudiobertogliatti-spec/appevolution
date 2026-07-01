@@ -54,7 +54,7 @@ FAILED backend\tests\test_ciak_admin_clienti_ciak.py::test_clienti_ciak_respects
 ```
 
 commit SHA(s)
-- 9813219d96d79dc7df46edfb0fbd34d538abbfac
+- b569c7760a8677317aae37f50fc8183d7fe087ce
 
 concerns/questions
 - Il brief richiedeva anche una pagina frontend (`frontend/src/ciak/admin/pages/ClientiCiak.jsx` e routing in `CiakAdminApp.jsx`), ma il write set autorizzato per questo task consente modifiche solo in backend/tests/report. Ho quindi implementato esclusivamente l'hook backend admin e i test relativi.
