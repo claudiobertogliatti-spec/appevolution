@@ -26,3 +26,29 @@
 - concerns/questions:
   - The task brief still references `backend/routers/stripe_webhook.py`, `backend/services/ciak_analisi.py`, and historical `67` euro Blueprint language, while the current Ciak checkout flow lives in `backend/routers/checkout.py` and already uses the locked `27` euro Blueprint pricing. I implemented against the current production path and kept historical technical state names untouched.
   - The pytest command for `backend/tests/test_checkout_trigger.py` requires `MONGO_URL` to be set during import because `backend/routers/__init__.py` eagerly imports modules that validate that environment variable.
+
+## Fix Report
+
+- changed files:
+  - `backend/routers/checkout.py`
+  - `backend/tests/test_checkout_trigger.py`
+  - `.superpowers/sdd/task-3-report.md`
+- fix commit SHA:
+  - `a4b137f` `fix: recover cold direct ciak checkout access`
+- exact command/output:
+  - command: `$env:MONGO_URL='mongodb://localhost:27017'; py -m pytest backend/tests/test_checkout_trigger.py -q`
+    output:
+    ```text
+    ....                                                                     [100%]
+    4 passed in 5.24s
+    ```
+  - command: `$env:MONGO_URL='mongodb://localhost:27017'; py -m pytest backend/tests/test_ciak_client_accounts.py backend/tests/test_ciak_clients_router.py -q`
+    output:
+    ```text
+    .....................                                                    [100%]
+    21 passed in 1.48s
+    ```
+  - command: `py -m py_compile backend/routers/checkout.py backend/services/ciak_client_accounts.py`
+    output:
+    ```text
+    ```
