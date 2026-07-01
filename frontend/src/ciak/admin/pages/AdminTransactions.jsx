@@ -2,7 +2,7 @@
  * Ciak Admin — Transazioni.
  *
  * 2 tab:
- *  - Ciak Blueprint €67  → GET /api/admin/ciak/transactions
+ *  - Ciak Blueprint €27  → GET /api/admin/ciak/transactions
  *  - Partnership €2.790  → GET /api/admin/ciak/transactions-partnership
  */
 import { useEffect, useState } from "react";
@@ -27,7 +27,7 @@ function fmtDate(iso) {
   } catch { return iso; }
 }
 
-// ─── Tab 1: Blueprint €67 ─────────────────────────────────────────────────
+// ─── Tab 1: Blueprint €27 ─────────────────────────────────────────────────
 function BlueprintTable({ onAuthExpired }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -204,7 +204,7 @@ export function AdminTransactions({ onAuthExpired }) {
   return (
     <div className="p-10">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Transazioni</h1>
-      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint €67 e Partnership €2.790.</p>
+      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint €27 e Partnership €2.790.</p>
 
       <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
@@ -215,7 +215,7 @@ export function AdminTransactions({ onAuthExpired }) {
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          Ciak Blueprint €67
+          Ciak Blueprint €27
         </button>
         <button
           onClick={() => setTab("partnership")}

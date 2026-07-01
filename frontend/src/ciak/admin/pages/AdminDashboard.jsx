@@ -4,7 +4,7 @@
  * Design lockato con Claudio (14/5): panoramica "come sta andando" + alert
  * priorità in cima. Gerarchia netta, niente densità criptica.
  *  ① Banda alert priorità — solo gli alert attivi, cliccabili
- *  ② Funnel end-to-end — banda freddo → masterclass → €67 → €2.790 → partner,
+ *  ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.790 → partner,
  *     riquadri cliccabili (→ pagina di riferimento). "Freddo" = archivio congelato
  *     (bacino di partenza, non converte). Cuce numeri Systeme + Ciak.
  *  ③ Fatturato — 2 card
@@ -166,7 +166,7 @@ export function AdminDashboard({ onAuthExpired }) {
       cta: "Pipeline Blueprint", to: "/admin/pipeline-blueprint", urgent: false,
     });
 
-  // ② Funnel end-to-end — banda freddo → masterclass → €67 → €2.790 → partner.
+  // ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.790 → partner.
   // "Freddo" è l'archivio congelato (non converte: pct null, fuori dal calcolo),
   // serve solo a mostrare il bacino di partenza. Gli step centrali sono Ciak.
   const freddoTot = freddo?.totale || 0;
@@ -182,7 +182,7 @@ export function AdminDashboard({ onAuthExpired }) {
     { label: "Iscritti masterclass", value: iscritti, pct: null, to: "/admin/pipeline-prospect" },
     { label: "Checkpoint compilati", value: checkpoint, pct: conv(checkpoint, iscritti), to: "/admin/pipeline-prospect" },
     { label: "8 Domande completate", value: ottoDomande, pct: conv(ottoDomande, checkpoint), to: "/admin/pipeline-prospect" },
-    { label: "Acquisti €67", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
+    { label: "Acquisti €27", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
     { label: "Call fatte", value: callFatte, pct: conv(callFatte, acquisti), to: "/admin/pipeline-blueprint" },
     { label: "€2.790 firmati", value: firmati, pct: conv(firmati, callFatte), to: "/admin/pipeline-blueprint" },
     { label: "Partner attivi", value: partnerAttivi, pct: conv(partnerAttivi, firmati), to: "/admin/partner" },
@@ -224,7 +224,7 @@ export function AdminDashboard({ onAuthExpired }) {
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
-                Incassato €67
+                Incassato €27
               </p>
               <p className="text-3xl font-semibold text-yellow-600">
                 {euro(transactions.total_incassato_cent)}

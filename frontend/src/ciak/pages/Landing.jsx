@@ -321,7 +321,7 @@ export function CiakLanding() {
                 Livello 2
               </p>
               <h3 className="text-lg font-semibold text-white mb-3">
-                Ciak Blueprint <span className="text-slate-400 font-normal">— €67</span>
+                Ciak Blueprint <span className="text-slate-400 font-normal">— €27</span>
               </h3>
               <p className="text-sm text-slate-300 leading-relaxed">
                 Una sessione 1:1 con Claudio e una Roadmap Operativa personalizzata per trasformare

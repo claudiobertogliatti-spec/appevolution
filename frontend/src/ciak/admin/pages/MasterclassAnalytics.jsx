@@ -92,7 +92,7 @@ export function MasterclassAnalytics({ onAuthExpired }) {
     <div className="p-10">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Masterclass Analytics</h1>
       <p className="text-slate-500 mb-8">
-        Drill-down del funnel: opt-in → checkpoint → 8 domande → acquisto €67.
+        Drill-down del funnel: opt-in → checkpoint → 8 domande → acquisto €27.
       </p>
 
       {/* ① Funnel cumulativo */}
@@ -104,8 +104,8 @@ export function MasterclassAnalytics({ onAuthExpired }) {
         <FunnelStep label="Checkpoint compilato" value={f.checkpoint_done} pct={conv.optin_to_checkpoint} />
         <FunnelStep label="8 Domande avviate" value={f.diagnostic_started} pct={null} />
         <FunnelStep label="8 Domande completate" value={f.diagnostic_completed} pct={null} />
-        <FunnelStep label="Click checkout €67" value={f.clicked_67} pct={null} />
-        <FunnelStep label="Acquisto €67" value={f.purchased_67} pct={conv.diagnostic_to_purchase} isLast />
+        <FunnelStep label="Click checkout €27" value={f.clicked_67} pct={null} />
+        <FunnelStep label="Acquisto €27" value={f.purchased_67} pct={conv.diagnostic_to_purchase} isLast />
       </div>
       <p className="text-xs text-slate-400 mb-10">
         Conversione end-to-end opt-in → acquisto: <strong className="text-slate-700">{conv.optin_to_purchase}%</strong>

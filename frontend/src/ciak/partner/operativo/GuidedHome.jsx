@@ -62,7 +62,7 @@ export default function GuidedHome({
             <p className="text-sm font-semibold text-blue-700 mt-0.5">{agent.role}</p>
             <p className="text-sm text-slate-600 leading-relaxed mt-3">
               {nome ? `Ciao ${nome}, ` : ""}
-              oggi ti accompagno nel prossimo passo. Fai una cosa alla volta: il metodo è già ordinato per te.
+              oggi ti accompagno nel prossimo passo. Tu supervisioni le decisioni importanti; alla parte tecnica e operativa pensa il team Evolution.
             </p>
             <button
               onClick={onAsk}
@@ -123,7 +123,7 @@ export default function GuidedHome({
               <CheckCircle2 className="w-5 h-5 text-emerald-600 mb-3" />
               <p className="text-sm font-semibold text-slate-900">Metodo chiaro</p>
               <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                Esamina, Valida, Ottimizza: sai sempre in che fase sei.
+                Esamina, Valida, Ottimizza: sai sempre cosa stiamo costruendo e perché.
               </p>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
@@ -137,7 +137,7 @@ export default function GuidedHome({
               <Send className="w-5 h-5 text-sky-600 mb-3" />
               <p className="text-sm font-semibold text-slate-900">Supporto umano</p>
               <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                Il gruppo Telegram personale resta il canale caldo con il team.
+                Il gruppo Telegram personale resta il canale caldo con chi implementa il tuo progetto.
               </p>
             </div>
           </div>

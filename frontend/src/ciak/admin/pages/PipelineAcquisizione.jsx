@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Pipeline (Acquisizione).
  *
- * Accorpa in un'unica pagina le due viste dello STESSO funnel pre-€67:
+ * Accorpa in un'unica pagina le due viste dello STESSO funnel pre-€27:
  *  - Panoramica → i numeri aggregati (MasterclassAnalytics): funnel cumulativo,
  *    distribuzione 4 stati, open rate email, sorgenti, UTM, trend 30gg.
  *  - Contatti   → l'elenco riga-per-riga (PipelineList /pipeline-prospect):
@@ -55,7 +55,7 @@ export function PipelineAcquisizione({ onAuthExpired }) {
         <PipelineList
           endpoint="/pipeline-prospect"
           title="Pipeline"
-          subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
+          subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €27"
           mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
           onAuthExpired={onAuthExpired}
           deletable

@@ -17,8 +17,8 @@ import { LucaChat } from "./LucaChat";
 // punta alla pagina-reparto (landing con macro-finestre); Casi studio è una
 // pagina singola e linka direttamente.
 const REPARTI = [
-  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al €67", color: "#F59E0B", soft: "#FEF3C7", emoji: "🧲", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/acquisizione" },
-  { id: "vendite", nome: "Vendite", mandato: "Dal €67 alla firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/reparto/vendite" },
+  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al €27", color: "#F59E0B", soft: "#FEF3C7", emoji: "🧲", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/acquisizione" },
+  { id: "vendite", nome: "Vendite", mandato: "Dal €27 alla firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/reparto/vendite" },
   { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", resp: "Stefania", respAvatar: "/agents/stefania.jpg", team: "Stefania · Valentina · Andrea · Gaia · Marco · Matteo", to: "/admin/reparto/delivery" },
   { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per il funnel", color: "#EC4899", soft: "#FCE7F3", emoji: "⭐", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/casi-studio" },
   { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", resp: "Valentina", respAvatar: "/agents/valentina.jpg", to: "/admin/reparto/back-office" },

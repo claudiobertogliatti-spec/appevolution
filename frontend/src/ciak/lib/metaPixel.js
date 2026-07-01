@@ -103,12 +103,12 @@ export function trackPageView() {
   window.fbq("track", "PageView");
 }
 
-export function trackInitiateCheckout(value = 67, currency = "EUR") {
+export function trackInitiateCheckout(value = 27, currency = "EUR") {
   if (!isReady()) return;
   window.fbq("track", "InitiateCheckout", { value, currency });
 }
 
-export function trackPurchase(value = 67, currency = "EUR", eventId) {
+export function trackPurchase(value = 27, currency = "EUR", eventId) {
   if (!isReady()) return;
   const opts = eventId ? { eventID: eventId } : undefined;
   window.fbq("track", "Purchase", { value, currency }, opts);

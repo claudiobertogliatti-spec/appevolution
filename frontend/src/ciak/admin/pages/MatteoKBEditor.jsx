@@ -105,7 +105,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
     <div className="p-10 max-w-7xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">KB Matteo</h1>
       <p className="text-slate-500 mb-6">
-        System prompt dell'agente Matteo (genera i report 8 Domande Ciak Blueprint €67).
+        System prompt dell'agente Matteo (genera i report 8 Domande Ciak Blueprint €27).
         Le modifiche valgono immediatamente: ogni nuovo report nascerà dal prompt attivo.
       </p>
 

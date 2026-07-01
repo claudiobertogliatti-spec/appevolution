@@ -283,7 +283,7 @@ export function Oggi({ onAuthExpired }) {
         // KPI
         const analisiVendute = conPag;
         const conversioneTot = pct(conPag, tot);
-        const fatturatoStimato = analisiVendute * 67;
+        const fatturatoStimato = analisiVendute * 27;
 
         setData({
           bloccati,

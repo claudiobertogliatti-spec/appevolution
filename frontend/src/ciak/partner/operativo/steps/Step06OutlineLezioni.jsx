@@ -7,15 +7,15 @@ const DELIVERY = ["Video", "PDF", "Email", "Live"];
 
 /**
  * Step 6 — Outline lezioni (Valida, agente Andrea).
- * Andrea genera una bozza della scaletta dal Posizionamento; il partner la edita.
- * Rigenera tiene i moduli già toccati e riscrive solo quelli intatti.
+ * Andrea genera una bozza della scaletta dal Posizionamento; il partner la valida.
+ * Rigenera tiene i moduli già validati e aggiorna solo quelli intatti.
  */
 export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSaveDraft }) {
   const [outline, setOutline] = useState(step?.data?.outline || null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
 
-  // Tracciamento "toccato dall'utente" per la rigenerazione selettiva
+  // Tracciamento "validato dall'utente" per la rigenerazione selettiva
   const [editedModules, setEditedModules] = useState(() => new Set());
   const [editedCourse, setEditedCourse] = useState(false);
   const [editedBonus, setEditedBonus] = useState(false);
@@ -55,7 +55,7 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
     }
   };
 
-  // Rigenera: tiene ciò che il partner ha toccato, riscrive solo l'intatto
+  // Rigenera: tiene ciò che il partner ha validato, aggiorna solo l'intatto
   const rigenera = async () => {
     if (!outline) return genera();
     setGenerating(true);
@@ -148,7 +148,7 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
       <StepBase
         step={step}
         title="La scaletta del tuo corso"
-        secondaryNote="L’indice delle lezioni. Parto io da quello che mi hai detto: tu correggi, sposti e aggiungi."
+        secondaryNote="L'indice delle lezioni. Parto io da quello che mi hai detto: tu controlli direzione, ordine e completezza."
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
@@ -186,7 +186,7 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
         <div>
           <div className="text-xs text-slate-500 font-medium">Andrea · Fase Valida</div>
           <div className="text-sm leading-snug text-slate-900">
-            Ecco la bozza. Adesso è tua: cambia i titoli, riscrivi quello che non ti torna.
+            Ecco la bozza. Controlla che rispecchi il tuo metodo: se qualcosa non torna, segnalo qui e lo sistemiamo.
           </div>
         </div>
       </div>
@@ -354,7 +354,7 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
             disabled={generating}
             className="bg-white border-2 border-slate-200 text-slate-600 font-semibold text-[13.5px] px-4 py-2.5 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
           >
-            {generating ? "Rigenero…" : "↻ Rigenera (tengo ciò che hai cambiato)"}
+            {generating ? "Rigenero…" : "↻ Rigenera (tengo ciò che hai validato)"}
           </button>
           <button
             type="button"

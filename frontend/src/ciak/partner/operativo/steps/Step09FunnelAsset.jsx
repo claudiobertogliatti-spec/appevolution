@@ -18,10 +18,10 @@ export default function Step09FunnelAsset({ step, onComplete, onSaveDraft }) {
       title="Le pagine che venderanno il tuo corso"
       ctaDisabled={!canComplete}
       onCta={() => onComplete({ promessa_hero: promessa, sub_promessa: subPromessa, conferma_brand_kit: true })}
-      secondaryNote="Confermi il tuo marchio e scrivi la tua promessa principale. Con questo costruiamo noi le pagine, nei prossimi giorni."
+      secondaryNote="Qui non devi scrivere il copy definitivo. Confermi la direzione commerciale e il marchio: poi il team Evolution trasforma tutto in pagine, testi e funnel nel tuo subaccount Systeme.io."
     >
       <label className="block mb-4">
-        <span className="block text-sm font-medium text-slate-900 mb-1.5">Promessa hero (1 frase forte)</span>
+        <span className="block text-sm font-medium text-slate-900 mb-1.5">Direzione della promessa</span>
         <textarea
           rows={2}
           value={promessa}
@@ -29,12 +29,12 @@ export default function Step09FunnelAsset({ step, onComplete, onSaveDraft }) {
             setPromessa(e.target.value);
             update("promessa_hero", e.target.value);
           }}
-          placeholder="Esempio: Trasforma la tua professione in un modello digitale in 90 giorni — senza imparare a fare marketing."
+          placeholder="Esempio: Aiuto [target] a ottenere [risultato] senza [ostacolo principale]."
           className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-y"
         />
       </label>
       <label className="block mb-4">
-        <span className="block text-sm font-medium text-slate-900 mb-1.5">Sub-promessa (1-2 righe a supporto)</span>
+        <span className="block text-sm font-medium text-slate-900 mb-1.5">Contesto utile al team</span>
         <textarea
           rows={2}
           value={subPromessa}
@@ -42,7 +42,7 @@ export default function Step09FunnelAsset({ step, onComplete, onSaveDraft }) {
             setSubPromessa(e.target.value);
             update("sub_promessa", e.target.value);
           }}
-          placeholder="Esempio: Sistema chiavi in mano — masterclass, corso, funnel di vendita, calendario lancio. Il tutto pronto in 3 mesi."
+          placeholder="Scrivi cosa vuoi che il mercato capisca subito. Noi lo trasformiamo in copy di pagina."
           className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-y"
         />
       </label>

@@ -12,7 +12,7 @@ Differenze rispetto a routers/stripe_webhook.py:
     accetta anche "ciak_analisi" (legacy) per webhook re-inviati su vecchi ordini.
 
 Naming lockato 2026-05-12: il prodotto "Analisi Strategica 60/90 min" è stato
-unificato in un singolo prodotto "Ciak Blueprint" — €67 IVA inclusa. La durata
+unificato in un singolo prodotto "Ciak Blueprint" — €27 IVA inclusa. La durata
 90 min per Stato 4 resta una scelta operativa interna, non una differenziazione
 commerciale.
 
@@ -135,7 +135,7 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
                     "name": product_name,
                     "description": product_description,
                 },
-                "unit_amount": 6700,
+                "unit_amount": 2700,
             },
             "quantity": 1,
         }],

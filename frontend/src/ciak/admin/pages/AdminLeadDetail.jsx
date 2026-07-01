@@ -56,12 +56,12 @@ export function AdminLeadDetail({ onAuthExpired }) {
   }, [email, onAuthExpired]);
 
   async function markPaid() {
-    if (!window.confirm("Segnare l'analisi 67 EUR come PAGATA (manuale) per " + data.email + "?\n\nNon esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67).")) return;
+    if (!window.confirm("Segnare l'analisi 27 EUR come PAGATA (manuale) per " + data.email + "?\n\nNon esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67).")) return;
     setMarking(true);
     setMarkMsg(null);
     try {
       const r = await apiPost("/lead/mark-purchased", { email: data.email });
-      setMarkMsg(r.already_purchased ? "Era gia' segnato come acquistato." : "Fatto: 67 EUR segnati come pagati.");
+      setMarkMsg(r.already_purchased ? "Era gia' segnato come acquistato." : "Fatto: 27 EUR segnati come pagati.");
       const fresh = await apiGet("/lead", { email: data.email });
       setData(fresh);
     } catch (e) {
@@ -191,8 +191,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
         )}
       </Section>
 
-      {/* Analisi 67 EUR - segna pagamento manuale (ricrea acquisti offline) */}
-      <Section title="Analisi 67 EUR">
+      {/* Analisi 27 EUR - segna pagamento manuale (ricrea acquisti offline) */}
+      <Section title="Analisi 27 EUR">
         {(() => {
           const purchased = PURCHASED_STATES.includes(latest_diagnostic?.current_state);
           return (
@@ -207,7 +207,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
                   disabled={marking || diagnostics.length === 0}
                   className="mt-2 px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
                 >
-                  {marking ? "Registro..." : "Segna 67 EUR come pagato (manuale)"}
+                  {marking ? "Registro..." : "Segna 27 EUR come pagato (manuale)"}
                 </button>
               )}
               {!purchased && diagnostics.length === 0 && (

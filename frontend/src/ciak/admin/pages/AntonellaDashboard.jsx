@@ -3,7 +3,7 @@
  *
  * Versione della Dashboard tarata sui compiti di Antonella: contenuti, calendari
  * editoriali, campagne Meta Ads e approvazione materiali. NON mostra il funnel
- * vendite €67 → €2.790 (dominio Claudio). Antonella ha gli stessi pieni poteri
+ * vendite €27 → €2.790 (dominio Claudio). Antonella ha gli stessi pieni poteri
  * dell'admin: da qui raggiunge le sezioni dove crea/modifica/approva materiali
  * esattamente come Claudio.
  *

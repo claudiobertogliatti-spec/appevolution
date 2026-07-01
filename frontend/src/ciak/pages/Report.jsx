@@ -102,7 +102,7 @@ export function CiakReport() {
                 </p>
                 <p className="text-slate-400 text-xs leading-relaxed">
                   Il passaggio corretto ora è il{" "}
-                  <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_1" className="text-yellow-400 underline">Ciak Blueprint da €67</a>:
+                  <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_1" className="text-yellow-400 underline">Ciak Blueprint da €27</a>:
                   una sessione strategica con Claudio, analisi del tuo mercato e roadmap operativa
                   per partire con lucidità.
                 </p>
@@ -120,7 +120,7 @@ export function CiakReport() {
                   Richiedi il tuo Ciak Blueprint →
                 </a>
                 <p className="text-xs text-slate-400 mt-4 leading-relaxed">
-                  €67 IVA inclusa. Prima capisci dove andare, poi decidi se e come accelerare.
+                  €27 IVA inclusa. Prima capisci dove andare, poi decidi se e come accelerare.
                 </p>
               </>
             )}
@@ -133,7 +133,7 @@ export function CiakReport() {
                   attenzione, investimenti e prossime azioni.
                 </p>
                 <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_4" className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
-                  Richiedi il Blueprint prioritario €67 →
+                  Richiedi il Blueprint prioritario €27 →
                 </a>
                 <p className="text-xs text-slate-400 mt-4 leading-relaxed">
                   Sessione strategica di 60 minuti, analisi del mercato e roadmap operativa personalizzata.

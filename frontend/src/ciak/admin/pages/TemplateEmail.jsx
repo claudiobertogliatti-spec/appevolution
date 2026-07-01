@@ -275,7 +275,7 @@ export function TemplateEmail({ onAuthExpired }) {
       case "partnership":
         return "Partnership";
       case "analisi":
-        return "Analisi €67";
+        return "Analisi €27";
       default:
         return "Altro";
     }

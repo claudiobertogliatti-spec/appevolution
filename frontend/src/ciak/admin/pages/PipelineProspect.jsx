@@ -17,7 +17,7 @@ import { adminFetch } from "../api";
 const STEPS = [
   { key: "step_registrazione", label: "Registrazione", short: "Reg.", icon: User },
   { key: "step_questionario", label: "Questionario", short: "Quest.", icon: FileText },
-  { key: "step_pagamento_67", label: "€67", short: "€67", icon: CreditCard },
+  { key: "step_pagamento_67", label: "€27", short: "€27", icon: CreditCard },
   { key: "step_analisi_approvata", label: "Analisi", short: "Analisi", icon: Sparkles },
   { key: "step_call_completata", label: "Call", short: "Call", icon: Phone },
   { key: "step_proposta_inviata", label: "Proposta", short: "Proposta", icon: Send },
@@ -529,7 +529,7 @@ export function PipelineProspect({ onAuthExpired }) {
   const FILTRI = [
     { id: "tutti", label: "Tutti" },
     { id: "questionario", label: "Questionario ✓" },
-    { id: "pagato_67", label: "Pagato €67" },
+    { id: "pagato_67", label: "Pagato €27" },
     { id: "analisi", label: "Analisi pronta" },
     { id: "call", label: "Call completata" },
     { id: "proposta", label: "Proposta inviata" },
@@ -610,7 +610,7 @@ export function PipelineProspect({ onAuthExpired }) {
             cls: "bg-blue-50 border-blue-200 text-blue-500",
           },
           {
-            label: "Pagato €67",
+            label: "Pagato €27",
             value: stats.pagato_67,
             cls: "bg-yellow-50 border-yellow-200 text-yellow-600",
           },
