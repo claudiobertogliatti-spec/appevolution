@@ -164,6 +164,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
           <div className="mt-4">
             <GuidedHome
               state={state}
+              partnerId={partnerId}
               partnerName={partnerName}
               onOpenStep={(id) => {
                 setViewingStepId(id);

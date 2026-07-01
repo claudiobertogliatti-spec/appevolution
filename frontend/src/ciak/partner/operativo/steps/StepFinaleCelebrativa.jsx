@@ -1,11 +1,12 @@
 import React from "react";
+import { Award, BookOpen, Download } from "lucide-react";
 
 /**
  * Schermata celebrativa che appare la prima volta dopo che il partner
  * ha completato lo step 13. Persiste per 1 sessione (sessionStorage), poi
  * il container monta OperativoContinuo.
  */
-export default function StepFinaleCelebrativa({ onDismissCelebrazione }) {
+export default function StepFinaleCelebrativa({ partnerId, onDismissCelebrazione }) {
   return (
     <div className="bg-white border border-gray-200 rounded-md p-10 md:p-14 text-center">
       <div className="text-6xl mb-5">🎬</div>
@@ -28,6 +29,35 @@ export default function StepFinaleCelebrativa({ onDismissCelebrazione }) {
           È il lavoro dei prossimi mesi — e non lo fai da solo.
         </p>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto mt-6">
+        <a
+          href={`/api/partner-rewards/${partnerId}/certificate/golive`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
+        >
+          <Award className="w-4 h-4" />
+          Scarica attestato
+        </a>
+        <a
+          href={`/api/partner-rewards/${partnerId}/project-book`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
+        >
+          <BookOpen className="w-4 h-4" />
+          Libretto completo
+        </a>
+      </div>
+      <a
+        href={`/api/partner-rewards/${partnerId}/bonus/golive`}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-700"
+      >
+        <Download className="w-4 h-4" />
+        Scarica anche il Piano 90 Giorni
+      </a>
       <div className="border-t border-gray-200 pt-8 mt-10 max-w-md mx-auto">
         <p className="text-sm text-slate-900 italic">Grazie a te per la fiducia.</p>
         <p className="text-xs text-slate-500 mt-1">

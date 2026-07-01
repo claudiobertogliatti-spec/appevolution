@@ -29,9 +29,9 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
 const FASI = [
-  { num: 1, titolo: "Creazione Accademia", desc: "Struttura dei contenuti, scaletta delle lezioni, offerta formativa. Tu registri e noi orchestriamo l'intero sistema." },
-  { num: 2, titolo: "Lancio del Progetto", desc: "Apertura al mercato. Ads, traffico, prime vendite. Ottimizzazioni real-time." },
-  { num: 3, titolo: "Ottimizzazione del Servizio", desc: "Il sistema che trasforma traffico e contatti in richieste, appuntamenti e vendite." },
+  { num: 1, titolo: "Esamina", desc: "Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro, sostenibile e comprensibile." },
+  { num: 2, titolo: "Valida", desc: "Costruiamo gli asset essenziali: messaggio, contenuti, funnel, materiali di vendita e sistema per trasformare attenzione in richieste concrete." },
+  { num: 3, titolo: "Ottimizza", desc: "Lanciamo, leggiamo i dati e miglioriamo il sistema nel tempo. L'obiettivo è rendere la crescita più stabile, misurabile e replicabile." },
 ];
 
 const TEAM = [
@@ -226,17 +226,16 @@ export function CiakProposta() {
             Partnership Evolution PRO
           </p>
           <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
-            Dopo la sessione strategica, questa è la proposta per costruire l'ecosistema che ti rende il riferimento del tuo mercato.
+            La tua roadmap è pronta. Ora decidiamo se trasformarla in esecuzione.
           </h1>
           <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-3xl">
-            La Partnership è il passaggio in cui il team Evolution costruisce con te — fase per
-            fase — l'ecosistema di marketing che trasforma la tua competenza in autorevolezza
-            riconosciuta e in vendite costanti.
-            Non un corso da seguire da solo: un percorso strutturato, con un team dedicato, che ti
-            porta a possedere la tua posizione sul mercato.
+            Durante la sessione strategica abbiamo messo a fuoco dove sei oggi, cosa sta
+            rallentando la tua crescita digitale e quali priorità hanno senso per costruire un
+            sistema sostenibile. Il Blueprint ti ha dato chiarezza. La Partnership serve a
+            trasformare quella chiarezza in asset, contenuti, funnel, lancio e ottimizzazione.
           </p>
           <p className="mt-6 text-base md:text-lg font-medium text-yellow-400">
-            Online in 21 giorni. Il riferimento del tuo mercato in 12 mesi.
+            Non un corso da seguire da solo: un percorso guidato, con AI e team umano al tuo fianco.
           </p>
         </div>
       </section>
@@ -247,7 +246,11 @@ export function CiakProposta() {
           <div className="mx-auto max-w-4xl px-6 py-12">
             <div className="border-l-4 border-yellow-400 pl-6 py-2">
               <p className="text-lg font-medium text-slate-900 mb-4">
-                {proposta.prospect_nome}, durante la sessione strategica abbiamo identificato:
+                {proposta.prospect_nome}, questa proposta nasce dalla tua situazione reale, non da un pacchetto standard.
+              </p>
+              <p className="text-slate-600 mb-4 leading-relaxed">
+                Abbiamo analizzato il tuo posizionamento, le opportunità più immediate e i passaggi
+                necessari per rendere più chiara, autorevole e vendibile la tua presenza online.
               </p>
               {proposta.analisi_posizionamento && (
                 <p className="text-slate-700 mb-3 leading-relaxed">{proposta.analisi_posizionamento}</p>
@@ -268,7 +271,7 @@ export function CiakProposta() {
                   rel="noopener noreferrer"
                   className="inline-block mt-2 text-slate-900 font-medium underline hover:text-yellow-600 transition"
                 >
-                  Scarica l'analisi strategica completa
+                  Scarica analisi e roadmap strategica
                 </a>
               )}
             </div>
@@ -276,26 +279,28 @@ export function CiakProposta() {
         </section>
       )}
 
-      {/* COSA SUCCEDE ADESSO */}
+      {/* IL PUNTO DI DECISIONE */}
       <section className="bg-gray-50 border-t border-gray-100">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-8 leading-tight">
-            Cosa succede adesso
+            Il punto non è fare più marketing. È costruire un sistema che lavori con metodo.
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { num: "1", title: "Firma il contratto", desc: "Rivedi i termini e firma digitalmente in meno di due minuti." },
-              { num: "2", title: "Completa il pagamento", desc: "Carta o bonifico bancario — scegli tu." },
-              { num: "3", title: "Parte il percorso", desc: "Il team ti contatta entro 24 ore e inizia la Fase 1." },
-            ].map((c) => (
-              <div key={c.num} className="bg-white rounded-2xl p-6 border border-gray-200">
-                <div className="w-9 h-9 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center font-semibold mb-4">
-                  {c.num}
-                </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{c.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{c.desc}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <h3 className="font-semibold text-slate-900 mb-3">Puoi usare la roadmap in autonomia</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Hai già una direzione più chiara e puoi iniziare a lavorare sui prossimi passi.
+                Il limite, spesso, non è sapere cosa fare: è trovare tempo, metodo e competenze per
+                farlo con continuità.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 border border-yellow-300 shadow-[0_18px_45px_rgba(250,204,21,0.18)]">
+              <h3 className="font-semibold text-slate-900 mb-3">Oppure puoi farti accompagnare nell'esecuzione</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Con la Partnership, il team Evolution PRO trasforma la roadmap in lavoro concreto:
+                strategia, produzione, revisione, lancio e miglioramento continuo dentro Ciak.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -304,10 +309,10 @@ export function CiakProposta() {
       <section className="bg-white">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 leading-tight">
-            Il percorso — 3 fasi
+            Cosa succede se entri in Partnership
           </h2>
           <p className="text-slate-500 mb-10">
-            Dalla tua identità di autorità fino a un ecosistema di marketing che vende e ti posiziona sul mercato.
+            Lavoriamo insieme seguendo il Metodo EVO: prima esaminiamo la tua identità e il tuo mercato, poi validiamo offerta e comunicazione, infine ottimizziamo lancio, contenuti e conversioni.
           </p>
           <div className="relative">
             <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-gray-200" />
@@ -332,7 +337,9 @@ export function CiakProposta() {
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 leading-tight">
             Non un tutor. Un team.
           </h2>
-          <p className="text-slate-500 mb-8">Sei professionisti dedicati al percorso.</p>
+          <p className="text-slate-500 mb-8">
+            Dentro Ciak non resti solo davanti a una lista di cose da fare: hai agenti AI, supporto umano e persone specializzate nelle fasi chiave del percorso.
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {TEAM.map((t) => (
               <div key={t.nome} className="bg-white rounded-2xl p-5 border border-gray-200">
@@ -356,11 +363,11 @@ export function CiakProposta() {
               <p className="text-slate-400 text-sm mb-6">IVA inclusa</p>
               <div className="text-left space-y-3">
                 {[
-                  "Tutte le fasi: dal posizionamento all'ecosistema che vende",
-                  "Supporto diretto del team completo",
-                  "Accesso alla piattaforma Evolution PRO",
-                  "Strumenti AI inclusi",
-                  "Piano di continuità post-lancio",
+                  "Metodo EVO completo: Esamina, Valida, Ottimizza",
+                  "Roadmap trasformata in attività operative",
+                  "Supporto diretto del team Evolution PRO",
+                  "Agenti AI dedicati dentro Ciak",
+                  "Piano di lancio e continuità post-lancio",
                 ].map((v, i) => (
                   <div key={i} className="flex items-center gap-3 text-slate-200 text-sm">
                     <span className="text-yellow-400 flex-shrink-0">✓</span>
@@ -369,6 +376,33 @@ export function CiakProposta() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* COSA SUCCEDE ADESSO */}
+      <section className="bg-gray-50 border-t border-gray-100">
+        <div className="mx-auto max-w-4xl px-6 py-16">
+          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-3 leading-tight">
+            Cosa succede adesso
+          </h2>
+          <p className="text-slate-500 mb-8">
+            Leggi tutto con calma. Qui trovi contratto, roadmap e proposta operativa. Se qualcosa non ti è chiaro, usa la chat di supporto prima di firmare.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { num: "1", title: "Rivedi la proposta", desc: "Riparti dall'analisi fatta in call e dalla roadmap preparata per te." },
+              { num: "2", title: "Firma il contratto", desc: "Leggi i termini con calma e, se hai dubbi, scrivici in chat prima della firma." },
+              { num: "3", title: "Completa il pagamento", desc: "Dopo la firma scegli carta o bonifico. Il team ti contatta entro 24 ore." },
+            ].map((c) => (
+              <div key={c.num} className="bg-white rounded-2xl p-6 border border-gray-200">
+                <div className="w-9 h-9 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center font-semibold mb-4">
+                  {c.num}
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">{c.title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{c.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -384,7 +418,7 @@ export function CiakProposta() {
               Accetta la proposta e firma il contratto
             </button>
             <p className="text-slate-400 text-sm mt-3">
-              Dopo la firma scegli come pagare. Il team ti contatta entro 24 ore.
+              Se qualcosa non ti è chiaro, apri la chat di supporto prima di procedere.
             </p>
           </div>
         </section>

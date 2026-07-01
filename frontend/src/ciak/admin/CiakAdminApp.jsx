@@ -27,6 +27,17 @@
  */
 import { useState } from "react";
 import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
+import {
+  ArrowRight,
+  BarChart3,
+  BriefcaseBusiness,
+  ClipboardCheck,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  Users,
+} from "lucide-react";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
@@ -156,6 +167,15 @@ const NAV = [
   },
 ];
 
+const MACRO_ICONS = {
+  dashboard: LayoutDashboard,
+  acquisizione: Megaphone,
+  vendite: BarChart3,
+  delivery: Users,
+  "casi-studio": ClipboardCheck,
+  "back-office": CreditCard,
+};
+
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
   return macro.groups ? macro.groups.flatMap((g) => g.pages) : macro.pages || [];
@@ -212,12 +232,16 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
-          Ciak — Area Admin
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6 font-[Poppins,system-ui,sans-serif]">
+      <div className="w-full max-w-sm bg-white border border-yellow-300 rounded-xl shadow-[0_0_28px_rgba(250,204,21,0.18)] p-6">
+        <img src="/ciak/logo.webp" alt="Ciak.io" className="h-10 w-auto object-contain mb-5" />
+        <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
+          Area Admin
         </p>
-        <h1 className="text-2xl font-semibold text-white mb-8">Accedi</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Accedi</h1>
+        <p className="text-sm text-slate-500 mb-6">
+          Pannello operativo interno per funnel, partner e delivery.
+        </p>
         <div className="space-y-3">
           <input
             type="email"
@@ -225,7 +249,7 @@ function LoginScreen({ onLogin }) {
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="email@evolution-pro.it"
-            className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
+            className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-300"
           />
           <input
             type="password"
@@ -233,16 +257,16 @@ function LoginScreen({ onLogin }) {
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="Password"
-            className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
+            className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-300"
           />
           <button
             onClick={submit}
             disabled={busy}
-            className="w-full px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
+            className="w-full px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {busy ? "..." : "Entra"}
           </button>
-          {error && <p className="text-yellow-400 text-sm">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
         </div>
       </div>
     </div>
@@ -252,6 +276,7 @@ function LoginScreen({ onLogin }) {
 // ─── Sidebar a macro-voci (click → pagina-reparto, niente flyout) ────────
 
 function MacroItem({ macro, currentPath }) {
+  const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   // Macro "diretta" (link semplice).
   if (macro.to) {
     return (
@@ -259,19 +284,22 @@ function MacroItem({ macro, currentPath }) {
         to={macro.to}
         end={macro.end}
         className={({ isActive }) =>
-          `block px-3 py-3 rounded-lg transition ${
+          `flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
             isActive
-              ? "bg-slate-800 text-yellow-400 font-medium"
-              : "text-slate-200 hover:bg-slate-800/60"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
           }`
         }
       >
-        <span className="block text-base font-medium leading-tight">{macro.label}</span>
-        {macro.agente && (
-          <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
-            (Agente di Riferimento: {macro.agente})
-          </span>
-        )}
+        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <span className="min-w-0">
+          <span className="block leading-tight truncate">{macro.label}</span>
+          {macro.agente && (
+            <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
+              Agente: {macro.agente}
+            </span>
+          )}
+        </span>
       </NavLink>
     );
   }
@@ -284,18 +312,21 @@ function MacroItem({ macro, currentPath }) {
   return (
     <NavLink
       to={macroTarget(macro)}
-      className={`block px-3 py-3 rounded-lg transition ${
+      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
         isActive
-          ? "bg-slate-800 text-yellow-400 font-medium"
-          : "text-slate-200 hover:bg-slate-800/60"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
       }`}
     >
-      <span className="block text-base font-medium leading-tight">{macro.label}</span>
-      {macro.agente && (
-        <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
-          (Agente di Riferimento: {macro.agente})
-        </span>
-      )}
+      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <span className="min-w-0">
+        <span className="block leading-tight truncate">{macro.label}</span>
+        {macro.agente && (
+          <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
+            Agente: {macro.agente}
+          </span>
+        )}
+      </span>
     </NavLink>
   );
 }
@@ -311,26 +342,35 @@ function AdminShell({ user, onLogout, children }) {
   // sotto-pagina di una sezione con landing).
   const back = sectionLandingFor(pathname);
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
-        <div className="px-6 py-5 border-b border-slate-800">
-          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Ciak</p>
-          <p className="text-sm text-slate-400 mt-0.5">Area Admin</p>
+    <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
+      <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
+        <div className="h-full bg-white border border-yellow-300 rounded-xl shadow-[0_0_28px_rgba(250,204,21,0.18)] flex flex-col overflow-hidden">
+        <div className="px-5 py-5 border-b border-slate-100">
+          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
+          <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
+          <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
+            Cabina operativa per funnel, partner e Metodo EVO.
+          </p>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1.5">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+            Reparti
+          </p>
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
         </nav>
-        <div className="px-3 py-4 border-t border-slate-800">
-          <p className="px-3 text-sm text-slate-300">{user?.name}</p>
-          <p className="px-3 text-xs text-slate-500 mb-2 capitalize">{user?.admin_type}</p>
+        <div className="px-4 py-4 border-t border-slate-100">
+          <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
+          <p className="text-xs text-slate-500 mb-3 capitalize">{user?.admin_type}</p>
           <button
             onClick={onLogout}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800/60 transition"
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 transition"
           >
+            <LogOut className="w-4 h-4" />
             Esci
           </button>
+        </div>
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
@@ -338,7 +378,7 @@ function AdminShell({ user, onLogout, children }) {
           <div className="px-8 pt-6">
             <Link
               to={back.to}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-700 transition"
             >
               <span aria-hidden>←</span> Torna a {back.label}
             </Link>
@@ -354,13 +394,20 @@ function AdminShell({ user, onLogout, children }) {
 
 function RepartoLanding({ macro }) {
   const pages = macroPages(macro);
+  const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   return (
     <div className="p-10 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 leading-tight">{macro.label}</h1>
+      <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-blue-50 text-blue-700 mb-4">
+          <Icon className="w-5 h-5" />
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
+          Reparto admin
+        </p>
+        <h1 className="text-4xl font-semibold text-slate-900 leading-tight mt-1">{macro.label}</h1>
         {macro.agente && (
-          <p className="text-lg text-slate-500 mt-2">
-            Agente di Riferimento: <span className="font-medium text-slate-700">{macro.agente}</span>
+          <p className="text-base text-slate-500 mt-2">
+            Agente di riferimento: <span className="font-semibold text-slate-700">{macro.agente}</span>
           </p>
         )}
       </div>
@@ -370,16 +417,16 @@ function RepartoLanding({ macro }) {
             key={p.to}
             to={p.to}
             end={p.end}
-            className="group flex flex-col justify-between min-h-[150px] rounded-3xl border-2 border-slate-200 bg-white p-7 transition hover:border-yellow-400 hover:shadow-lg"
+            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
           >
             <div>
-              <span className="block text-2xl font-semibold text-slate-900 group-hover:text-yellow-600 transition">
+              <span className="block text-xl font-semibold text-slate-900 group-hover:text-blue-700 transition">
                 {p.label}
               </span>
               {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
             </div>
-            <span className="mt-6 inline-flex items-center gap-1 text-base font-medium text-slate-400 group-hover:text-yellow-600 transition">
-              Apri <span aria-hidden>→</span>
+            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 transition">
+              Apri <ArrowRight className="w-4 h-4" />
             </span>
           </NavLink>
         ))}
@@ -399,7 +446,7 @@ function SectionStub() {
   return (
     <div className="p-8 max-w-xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
-      <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5">
+      <div className="bg-white border border-yellow-300 rounded-xl p-5 shadow-[0_0_22px_rgba(250,204,21,0.12)]">
         <p className="text-sm text-slate-700">
           Questa sezione e' in preparazione. La struttura della sidebar e' pronta — il
           contenuto arriva nella prossima fase.
