@@ -35,15 +35,14 @@ import { PartnerSetupPassword } from "./pages/PartnerSetupPassword";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
+import CiakClientApp from "./client/CiakClientApp";
 import CiakPartnerApp from "./partner/CiakPartnerApp";
 // Side-effect: registra window.ciakEnableMarketing e (se il consenso marketing
 // è già presente) inizializza i Meta Pixel. Vedi lib/metaPixel.js.
 import "./lib/metaPixel";
 import { usePageTracking } from "./hooks/usePageTracking";
-// CiakClienteApp rimosso 2026-06-03 (consolidamento EVO/Ciak): duplicava il
-// flusso pubblico token-based di Ciak (/proposta/:token, /diagnostica/:token)
-// con login + porting Evolution. Su Ciak la strategia LOCKATA è magic-link
-// token-based; la cartella ciak/cliente/ è stata cancellata perché dead code.
+// Area cliente riattivata 2026-07-01 con sessione magic-link dedicata e
+// routing separato dall'area partner.
 
 /**
  * Tracker route SPA per Meta Pixel. Deve stare DENTRO <BrowserRouter> perché
@@ -99,15 +98,15 @@ export default function CiakApp() {
           {/* Area Admin Ciak (login proprio, role admin — Claudio + Antonella) */}
           <Route path="/admin/*" element={<CiakAdminApp />} />
 
+          {/* Area Cliente Ciak — accesso magic-link per Blueprint/Start/Partnership. */}
+          <Route path="/cliente/*" element={<CiakClientApp />} />
+
           {/* Setup password partner (magic link post-pagamento, NO auth required).
               Deve venire PRIMA del catch-all /partner/* per matchare prima. */}
           <Route path="/partner/setup-password" element={<PartnerSetupPassword />} />
 
           {/* Area Partner Ciak — Fase 2a migrazione (login proprio, role partner) */}
           <Route path="/partner/*" element={<CiakPartnerApp />} />
-
-          {/* Area /cliente/* DISATTIVATA 2026-05-15: duplicava il flusso
-              pubblico token-based (vedi import commentato sopra). */}
 
           <Route path="*" element={<CiakNotFound />} />
         </Routes>
