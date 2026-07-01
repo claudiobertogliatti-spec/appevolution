@@ -80,4 +80,4 @@ concerns/questions
     - `src/ciak/partner/sections/PartnerProfileHub.jsx`
   - Output generated successfully, including `build/index.ciak.html`.
 - Commit SHA:
-  - `34d806172bde0c7f38cf984ae91800d6f1fc9b3d`
+  - Frontend fix commit: `b938cfa8ce5457c5c23c124d5b09e918150a946a`
