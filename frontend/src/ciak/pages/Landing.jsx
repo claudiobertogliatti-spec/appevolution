@@ -206,8 +206,9 @@ export function CiakLanding() {
             </p>
             <p className="text-slate-300 leading-relaxed text-sm md:text-base max-w-4xl">
               Al termine della masterclass si sbloccano le <strong className="text-white">8 Domande
-              Ciak</strong>: un passaggio rapido che ti restituisce il tuo Stato Strategico Attuale
-              e ti aiuta a capire da dove ha senso partire prima di investire altro tempo o denaro.
+              Ciak</strong>: in pochi minuti capisci cosa oggi frena la tua crescita, quanto il tuo
+              progetto è pronto per vendere online e qual è il prossimo passo più intelligente da fare
+              prima di investire altro tempo o denaro.
             </p>
           </div>
         </div>
