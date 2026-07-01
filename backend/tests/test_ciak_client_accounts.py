@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from services.ciak_client_accounts import (
@@ -31,8 +33,8 @@ class FakeCollection:
             if all(doc.get(key) == value for key, value in query.items()):
                 for key, value in update.get("$set", {}).items():
                     doc[key] = value
-                return None
-        return None
+                return {"matched_count": 1, "modified_count": 1}
+        return {"matched_count": 0, "modified_count": 0}
 
     @staticmethod
     def _project(doc, projection):
@@ -48,6 +50,23 @@ class FakeDB:
         self.ciak_analisi = FakeCollection(ciak_analisi)
         self.ciak_clients = FakeCollection(ciak_clients)
         self.ciak_client_login_tokens = FakeCollection()
+
+
+class RacingTokenCollection(FakeCollection):
+    def __init__(self, docs=None, parties=2):
+        super().__init__(docs)
+        self._parties = parties
+        self._waiting = 0
+        self._release = asyncio.Event()
+
+    async def find_one(self, query, projection=None):
+        result = await super().find_one(query, projection)
+        if result and "token_hash" in query:
+            self._waiting += 1
+            if self._waiting >= self._parties:
+                self._release.set()
+            await self._release.wait()
+        return result
 
 
 def test_offer_for_score_routes_below_50_to_start():
@@ -192,3 +211,33 @@ async def test_verify_magic_login_token_leaves_token_unused_when_client_missing(
 
     stored = db.ciak_client_login_tokens.docs[0]
     assert stored["used_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_verify_magic_login_token_rejects_replay_after_first_use():
+    db = FakeDB(
+        ciak_clients=[
+            {
+                "id": "client-1",
+                "email": "user@example.com",
+                "name": "Client",
+                "access_level": "cliente_blueprint",
+            }
+        ]
+    )
+    db.ciak_client_login_tokens = RacingTokenCollection()
+    token_data = await create_magic_login_token(db, "client-1", "user@example.com")
+
+    results = await asyncio.gather(
+        verify_magic_login_token(db, token_data["token"]),
+        verify_magic_login_token(db, token_data["token"]),
+        return_exceptions=True,
+    )
+
+    successes = [result for result in results if isinstance(result, dict)]
+    failures = [result for result in results if isinstance(result, Exception)]
+
+    assert [result["id"] for result in successes] == ["client-1"]
+    assert len(failures) == 1
+    assert isinstance(failures[0], ValueError)
+    assert str(failures[0]) == "token non valido"

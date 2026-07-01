@@ -198,8 +198,13 @@ async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     client = await db.ciak_clients.find_one({"id": doc["client_id"]}, {"_id": 0})
     if not client:
         raise ValueError("cliente non trovato")
-    await db.ciak_client_login_tokens.update_one(
-        {"id": doc["id"]},
+    result = await db.ciak_client_login_tokens.update_one(
+        {"id": doc["id"], "used_at": None},
         {"$set": {"used_at": _now_iso()}},
     )
+    modified_count = getattr(result, "modified_count", None)
+    if modified_count is None and isinstance(result, dict):
+        modified_count = result.get("modified_count", 0)
+    if not modified_count:
+        raise ValueError("token non valido")
     return client
