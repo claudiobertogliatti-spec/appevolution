@@ -61,8 +61,22 @@ class FakeDb:
                     "email": "uno@example.com",
                     "name": "Cliente Uno",
                     "access_level": "cliente_blueprint",
+                    "blueprint_score": 42,
+                    "recommended_offer": "ciak_start",
                     "offer_decision": "ciak_start",
+                    "start_credit_amount": 0,
+                    "start_purchased_at": None,
+                    "start_progress": [],
+                    "analysis_status": "inviata",
+                    "created_at": "2026-05-30T09:00:00+00:00",
                     "updated_at": "2026-06-01T09:00:00+00:00",
+                    "session_token": "secret-token-1",
+                    "diagnostic_responses": [{"step": 1, "answer": "secret"}],
+                    "diagnostic_report": {"raw": "big report"},
+                    "diagnostic_tracking": {"events": ["hidden"]},
+                    "raw_analysis": {"large": True},
+                    "magic_token": "magic-1",
+                    "analysis_publicly_available": True,
                 },
                 {
                     "_id": "mongo-2",
@@ -70,8 +84,23 @@ class FakeDb:
                     "email": "due@example.com",
                     "name": "Cliente Due",
                     "access_level": "cliente_start",
+                    "blueprint_score": 75,
+                    "recommended_offer": "partnership",
                     "offer_decision": "partnership",
+                    "start_credit_amount": 279000,
+                    "start_purchased_at": "2026-06-20T12:00:00+00:00",
+                    "start_progress": [{"step": "done"}],
+                    "analysis_status": "inviata",
+                    "created_at": "2026-06-20T09:00:00+00:00",
                     "updated_at": "2026-07-01T10:00:00+00:00",
+                    "session_token": "secret-token-2",
+                    "diagnostic_responses": [{"step": 2, "answer": "secret"}],
+                    "diagnostic_report": {"raw": "bigger report"},
+                    "diagnostic_tracking": {"events": ["hidden", "again"]},
+                    "raw_analysis": {"large": True},
+                    "magic_token": "magic-2",
+                    "stato_cliente": "partner_attivo",
+                    "partnership_attiva": True,
                 },
                 {
                     "_id": "mongo-3",
@@ -79,8 +108,22 @@ class FakeDb:
                     "email": "tre@example.com",
                     "name": "Cliente Tre",
                     "access_level": "partner",
+                    "blueprint_score": 18,
+                    "recommended_offer": "partnership",
                     "offer_decision": "partnership",
+                    "start_credit_amount": None,
+                    "start_purchased_at": None,
+                    "start_progress": [],
+                    "analysis_status": "bozza",
+                    "created_at": "2026-05-01T08:00:00+00:00",
                     "updated_at": "2026-05-01T08:00:00+00:00",
+                    "session_token": "secret-token-3",
+                    "diagnostic_responses": [{"step": 3, "answer": "secret"}],
+                    "diagnostic_report": {"raw": "report"},
+                    "diagnostic_tracking": {"events": []},
+                    "raw_analysis": {"large": True},
+                    "magic_token": "magic-3",
+                    "stato_cliente": "partner_attivo",
                 },
             ]
         )
@@ -108,6 +151,13 @@ def test_clienti_ciak_lists_clients_sorted_by_updated_at(client_app):
     assert body["count"] == 3
     assert [item["id"] for item in body["items"]] == ["client-2", "client-1", "client-3"]
     assert all("_id" not in item for item in body["items"])
+    assert all("session_token" not in item for item in body["items"])
+    assert all("diagnostic_responses" not in item for item in body["items"])
+    assert all("diagnostic_report" not in item for item in body["items"])
+    assert all("diagnostic_tracking" not in item for item in body["items"])
+    assert all("raw_analysis" not in item for item in body["items"])
+    assert all("magic_token" not in item for item in body["items"])
+    assert all("analysis_publicly_available" not in item for item in body["items"])
 
 
 def test_clienti_ciak_respects_limit(client_app):
@@ -118,3 +168,4 @@ def test_clienti_ciak_respects_limit(client_app):
 
     assert body["count"] == 2
     assert [item["id"] for item in body["items"]] == ["client-2", "client-1"]
+    assert all("session_token" not in item for item in body["items"])

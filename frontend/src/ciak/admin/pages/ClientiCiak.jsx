@@ -176,7 +176,7 @@ export function ClientiCiak({ onAuthExpired }) {
             <thead className="bg-slate-50">
               <tr className="text-left">
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Cliente</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Score</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Punteggio</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Accesso</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Offerta</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Start</th>

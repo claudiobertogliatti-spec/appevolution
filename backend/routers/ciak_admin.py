@@ -97,6 +97,29 @@ def _lead_item(email: str, name: Optional[str], updated_at: Optional[str], reaso
     }
 
 
+_CLIENTI_CIAK_PUBLIC_FIELDS = {
+    "id",
+    "email",
+    "name",
+    "access_level",
+    "blueprint_score",
+    "recommended_offer",
+    "offer_decision",
+    "start_credit_amount",
+    "start_purchased_at",
+    "start_progress",
+    "analysis_status",
+    "created_at",
+    "updated_at",
+    "partnership_attiva",
+    "stato_cliente",
+}
+
+
+def _public_clienti_ciak_item(doc: dict) -> dict:
+    return {key: value for key, value in doc.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
+
+
 # Stati funnel "post-acquisto" (hanno pagato i €27)
 _PURCHASED_STATES = {
     "purchased_67", "call_booked", "call_done",
@@ -411,8 +434,9 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    cur = db.ciak_clients.find({}, {"_id": 0}).sort("updated_at", -1).limit(limit)
-    items = await cur.to_list(limit)
+    projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS}}
+    cur = db.ciak_clients.find({}, projection).sort("updated_at", -1).limit(limit)
+    items = [_public_clienti_ciak_item(item) for item in await cur.to_list(limit)]
     return {"items": items, "count": len(items)}
 
 
