@@ -1,5 +1,6 @@
 export function BlueprintPage({ dashboard }) {
-  const score = dashboard.diagnostic?.score ?? 0;
+  const score = dashboard.diagnostic?.score;
+  const hasScore = Number.isFinite(score);
   const analysis = dashboard.analysis || {};
   const roadmap = Array.isArray(analysis.roadmap) ? analysis.roadmap : [];
 
@@ -10,11 +11,15 @@ export function BlueprintPage({ dashboard }) {
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">La tua diagnosi iniziale</h1>
         <div className="mt-5 rounded-xl bg-slate-50 p-5">
           <p className="text-sm font-semibold text-slate-500">Punteggio readiness</p>
-          <p className="mt-1 text-4xl font-semibold text-slate-900">{score}/100</p>
+          <p className="mt-1 text-4xl font-semibold text-slate-900">
+            {hasScore ? `${score}/100` : "In preparazione"}
+          </p>
           <p className="mt-2 text-sm text-slate-600">
-            {score < 50
-              ? "Il passo consigliato e' Ciak Start: sistemiamo le fondazioni prima della partnership."
-              : "Il passo consigliato e' la Partnership completa."}
+            {hasScore
+              ? score < 50
+                ? "Il passo consigliato e' Ciak Start: sistemiamo le fondazioni prima della partnership."
+                : "Il passo consigliato e' la Partnership completa."
+              : "Stiamo preparando il punteggio per darti una lettura piu' precisa."}
           </p>
         </div>
       </section>

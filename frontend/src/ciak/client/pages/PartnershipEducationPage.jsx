@@ -6,7 +6,7 @@ const lessons = [
   "Cosa succede dentro la Partnership",
   "Cosa costruisce Evolution",
   "Cosa deve fornire il cliente",
-  "Perche' lavoriamo nel tuo Systeme.io",
+  "Perche' lavoriamo nel tuo spazio dedicato",
   "Come funziona il credito Start garantito",
 ];
 
