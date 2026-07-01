@@ -80,4 +80,16 @@ concerns/questions
     - `src/ciak/partner/sections/PartnerProfileHub.jsx`
   - Output generated successfully, including `build/index.ciak.html`.
 - Commit SHA:
-  - Frontend fix commit: `b938cfa8ce5457c5c23c124d5b09e918150a946a`
+- Frontend fix commit: `b938cfa8ce5457c5c23c124d5b09e918150a946a`
+
+## Fix Report
+- Changed files:
+  - `backend/routers/ciak_admin.py`
+  - `backend/tests/test_ciak_admin_clienti_ciak.py`
+  - `frontend/src/ciak/admin/pages/ClientiCiak.jsx`
+- Command summaries:
+  - `py -m pytest backend/tests/test_ciak_admin_clienti_ciak.py -q` -> `2 passed in 1.27s`
+  - `py -m pytest backend/tests/test_ciak_admin_clienti_ciak.py backend/tests/test_ciak_clients_router.py -q` -> `17 passed in 1.59s`
+  - `npm run build` in `frontend` -> exit 0; compiled with pre-existing `react-hooks/exhaustive-deps` warnings and generated `build/index.ciak.html`
+- Commit SHA:
+  - `0bfee7f` (`fix: trim ciak admin clienti payload`)
