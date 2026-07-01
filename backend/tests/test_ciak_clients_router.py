@@ -177,6 +177,25 @@ async def test_dashboard_keeps_start_clients_locked_without_activation(fake_db):
 
 
 @pytest.mark.asyncio
+async def test_dashboard_keeps_attivazione_partnership_locked(fake_db):
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(
+        {
+            "id": "client-1",
+            "email": "a@example.com",
+            "access_level": "cliente_start",
+            "session_token": "token-1",
+            "start_credit_amount": 49900,
+            "stato_cliente": "attivazione_partnership",
+            "partnership_attiva": False,
+        }
+    )
+
+    assert payload["partner_area"]["available"] is False
+    assert payload["partner_area"]["status"] == "in_attesa_attivazione"
+
+
+@pytest.mark.asyncio
 async def test_dashboard_pricing_keeps_start_credit_when_user_activation_overlays_partner_state(fake_db):
     ciak_clients.set_db(fake_db)
     fake_db.users.docs.append(

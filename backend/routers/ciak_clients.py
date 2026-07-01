@@ -23,7 +23,7 @@ CLIENT_JWT_DAYS = 30
 BLUEPRINT_PRICE_CENTS = 2700
 START_PRICE_CENTS = 49900
 PARTNERSHIP_PRICE_CENTS = 279000
-PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "attivazione_partnership", "convertito_partner"}
+PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
 
 
 def set_db(database) -> None:
