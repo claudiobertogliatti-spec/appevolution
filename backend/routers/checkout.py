@@ -369,6 +369,27 @@ async def _handle_checkout_completed(data: dict) -> None:
         diagnostic,
     )
 
+    try:
+        from services.ciak_client_accounts import (
+            create_magic_login_token,
+            ensure_client_for_blueprint,
+        )
+
+        client = await ensure_client_for_blueprint(db, diagnostic)
+        login = await create_magic_login_token(db, client["id"], client["email"])
+        magic_link = f"{os.environ.get('CIAK_BASE_URL', _frontend_url())}/cliente/accesso?token={login['token']}"
+        await db.ciak_clients.update_one(
+            {"id": client["id"]},
+            {
+                "$set": {
+                    "last_magic_link_created_at": datetime.now(timezone.utc).isoformat(),
+                    "last_magic_login_url": magic_link,
+                }
+            },
+        )
+    except Exception as exc:
+        logger.error("[CIAK_WEBHOOK] client access creation failed: %s", exc)
+
     # Fire-and-forget Systeme.io tag emission per ciak_bought_67.
     # Triggera automation post-acquisto: email conferma + link Cal.com per booking.
     import asyncio as _asyncio
