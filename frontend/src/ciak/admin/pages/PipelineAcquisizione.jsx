@@ -13,17 +13,19 @@
  * i link diretti.
  */
 import { useState } from "react";
-import { BarChart3, ListChecks } from "lucide-react";
+import { BarChart3, ListChecks, Target } from "lucide-react";
+import { AcquisizioneCommandCenter } from "./AcquisizioneCommandCenter";
 import { MasterclassAnalytics } from "./MasterclassAnalytics";
 import { PipelineList } from "./PipelineList";
 
 const TABS = [
+  { id: "oggi", label: "Da lavorare oggi", icon: Target },
   { id: "panoramica", label: "Panoramica", icon: BarChart3 },
   { id: "contatti", label: "Contatti", icon: ListChecks },
 ];
 
 export function PipelineAcquisizione({ onAuthExpired }) {
-  const [view, setView] = useState("panoramica");
+  const [view, setView] = useState("oggi");
 
   return (
     <div>
@@ -45,7 +47,9 @@ export function PipelineAcquisizione({ onAuthExpired }) {
         </div>
       </div>
 
-      {view === "panoramica" ? (
+      {view === "oggi" ? (
+        <AcquisizioneCommandCenter onAuthExpired={onAuthExpired} />
+      ) : view === "panoramica" ? (
         <MasterclassAnalytics onAuthExpired={onAuthExpired} />
       ) : (
         <PipelineList
