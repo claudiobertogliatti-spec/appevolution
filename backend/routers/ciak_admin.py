@@ -63,6 +63,40 @@ def _clean(doc: Optional[dict]) -> Optional[dict]:
     return doc
 
 
+def _email(value: Optional[str]) -> str:
+    return (value or "").strip().lower()
+
+
+def _event_ts(doc: dict, event_name: str) -> Optional[str]:
+    events = doc.get("events") or []
+    for event in reversed(events):
+        if event.get("event") == event_name:
+            return event.get("timestamp")
+    return None
+
+
+def _state_ts(doc: dict, state: str) -> Optional[str]:
+    history = doc.get("state_history") or []
+    for item in reversed(history):
+        if item.get("state") == state:
+            return item.get("timestamp")
+    return None
+
+
+def _month_start_iso() -> str:
+    now = datetime.now(timezone.utc)
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+
+def _lead_item(email: str, name: Optional[str], updated_at: Optional[str], reason: str) -> dict:
+    return {
+        "email": email,
+        "nome": name or email,
+        "updated_at": updated_at,
+        "reason": reason,
+    }
+
+
 # Stati funnel "post-acquisto" (hanno pagato i €67)
 _PURCHASED_STATES = {
     "purchased_67", "call_booked", "call_done",
@@ -409,6 +443,181 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
         "acquisti_orfani": orphan_purchases,
         "funnel_by_state": funnel,
         "distribuzione_stati": stati,
+    }
+
+
+@router.get("/acquisizione-command-center")
+async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
+    """
+    CRM operativo Acquisizione.
+
+    Traduce il funnel in numeri decisionali: quanto manca al target di 4
+    partnership/mese e quali contatti vanno lavorati adesso.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    month_start = _month_start_iso()
+    target_partnerships = 4
+
+    diagnostics_by_email: dict[str, dict] = {}
+    async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
+        em = _email(d.get("user_email"))
+        if em and em not in diagnostics_by_email:
+            diagnostics_by_email[em] = d
+
+    checkpoints_by_email: dict[str, dict] = {}
+    async for c in db.ciak_checkpoint_events.find({}).sort("created_at", -1):
+        em = _email(c.get("email"))
+        if em and em not in checkpoints_by_email:
+            checkpoints_by_email[em] = c
+
+    lead_names: dict[str, str] = {}
+    async for lead in db.ciak_leads.find({}, {"email": 1, "nome": 1}):
+        em = _email(lead.get("email"))
+        if em:
+            lead_names[em] = lead.get("nome") or em
+
+    def _name(em: str, doc: Optional[dict] = None) -> str:
+        if doc:
+            return doc.get("user_name") or doc.get("nome") or lead_names.get(em) or em
+        return lead_names.get(em) or em
+
+    blueprint_month = 0
+    call_booked_month = 0
+    call_done_month = 0
+    clicked_no_purchase = []
+    completed_no_purchase = []
+    purchased_no_call = []
+
+    for em, d in diagnostics_by_email.items():
+        state = d.get("current_state")
+        purchased_ts = _state_ts(d, "purchased_67") or _event_ts(d, "stripe_payment_completed")
+        call_booked_ts = _state_ts(d, "call_booked")
+        call_done_ts = _state_ts(d, "call_done")
+
+        if purchased_ts and purchased_ts >= month_start:
+            blueprint_month += 1
+        if call_booked_ts and call_booked_ts >= month_start:
+            call_booked_month += 1
+        if call_done_ts and call_done_ts >= month_start:
+            call_done_month += 1
+
+        if state == "clicked_67":
+            clicked_no_purchase.append(
+                _lead_item(
+                    em,
+                    _name(em, d),
+                    _state_ts(d, "clicked_67") or d.get("created_at"),
+                    "Ha cliccato il checkout del Blueprint ma non risulta pagamento.",
+                )
+            )
+        elif state in ("ciak_completed", "report_generated"):
+            completed_no_purchase.append(
+                _lead_item(
+                    em,
+                    _name(em, d),
+                    _state_ts(d, "report_generated") or d.get("created_at"),
+                    "Ha completato le 8 domande: va riportato al Blueprint da 67 euro.",
+                )
+            )
+        elif state == "purchased_67":
+            purchased_no_call.append(
+                _lead_item(
+                    em,
+                    _name(em, d),
+                    purchased_ts or d.get("created_at"),
+                    "Ha acquistato il Blueprint ma non ha ancora prenotato la call.",
+                )
+            )
+
+    checkpoint_no_diagnostic = []
+    for em, c in checkpoints_by_email.items():
+        if em not in diagnostics_by_email:
+            checkpoint_no_diagnostic.append(
+                _lead_item(
+                    em,
+                    _name(em),
+                    c.get("created_at"),
+                    "Ha fatto il Checkpoint: invitalo a completare le 8 domande.",
+                )
+            )
+
+    proposal_month = 0
+    paid_contract_month = 0
+    async for p in db.proposte.find({}):
+        status = p.get("stato")
+        proposal_ts = p.get("created_at") or p.get("inviata_at") or p.get("visto_at")
+        paid_ts = p.get("pagamento_completato_at") or p.get("pagato_at") or p.get("contratto_firmato_at")
+        if status in ("inviata", "vista", "accettata", "contratto_firmato") and proposal_ts and proposal_ts >= month_start:
+            proposal_month += 1
+        if p.get("pagamento_completato") and (not paid_ts or paid_ts >= month_start):
+            paid_contract_month += 1
+
+    partner_closed_emails = set()
+    async for p in db.partners.find(
+        {
+            "$or": [
+                {"contract_signed": True},
+                {"partnership_pagata": True},
+                {"stato": "attivo"},
+            ]
+        },
+        {"email": 1, "created_at": 1, "contract_signed_at": 1, "partnership_pagata_at": 1},
+    ):
+        created = p.get("partnership_pagata_at") or p.get("contract_signed_at") or p.get("created_at")
+        if created and created >= month_start:
+            em = _email(p.get("email"))
+            if em:
+                partner_closed_emails.add(em)
+
+    partnerships_month = max(paid_contract_month, len(partner_closed_emails))
+    gap = max(target_partnerships - partnerships_month, 0)
+
+    def _sort_limit(items: list[dict], limit: int = 8) -> list[dict]:
+        return sorted(items, key=lambda x: x.get("updated_at") or "", reverse=True)[:limit]
+
+    bottlenecks = []
+    if blueprint_month < max(target_partnerships * 3, 8):
+        bottlenecks.append({
+            "level": "warning",
+            "title": "Servono piu' Blueprint acquistati",
+            "message": "Per chiudere 4 partnership al mese, la pipeline deve generare abbastanza call qualificate. Spingi Stato 3-4 verso il Blueprint.",
+        })
+    if call_booked_month < target_partnerships * 2:
+        bottlenecks.append({
+            "level": "warning",
+            "title": "Call sotto ritmo",
+            "message": "Il collo di bottiglia non e' solo traffico: chi acquista il Blueprint deve arrivare velocemente alla call con Claudio.",
+        })
+    if clicked_no_purchase:
+        bottlenecks.append({
+            "level": "hot",
+            "title": "Checkout caldo non recuperato",
+            "message": "Ci sono lead che hanno cliccato il checkout ma non hanno pagato. Sono i recuperi piu' vicini al fatturato.",
+        })
+
+    return {
+        "target": {
+            "partnerships_monthly": target_partnerships,
+            "partnerships_closed": partnerships_month,
+            "gap": gap,
+            "month_start": month_start,
+        },
+        "funnel": {
+            "blueprint_purchased": blueprint_month,
+            "call_booked": call_booked_month,
+            "call_done": call_done_month,
+            "proposals_open": proposal_month,
+            "contracts_paid": paid_contract_month,
+        },
+        "priorities": {
+            "checkpoint_no_diagnostic": _sort_limit(checkpoint_no_diagnostic),
+            "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
+            "clicked_no_purchase": _sort_limit(clicked_no_purchase),
+            "purchased_no_call": _sort_limit(purchased_no_call),
+        },
+        "bottlenecks": bottlenecks,
     }
 
 

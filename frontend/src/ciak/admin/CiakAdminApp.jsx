@@ -52,6 +52,7 @@ import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
+import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
 import { VideoReview } from "./pages/VideoReview";
@@ -521,7 +522,7 @@ export default function CiakAdminApp() {
             />
           }
         />
-        <Route path="acq-campagne-ads" element={<SectionStub />} />
+        <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<SectionStub />} />
 
         {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
