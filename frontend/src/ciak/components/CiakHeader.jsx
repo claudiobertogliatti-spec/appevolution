@@ -12,7 +12,7 @@ export function CiakHeader({ variant = "default" }) {
           {/* "Masterclass" rimossa dal nav: ridondante con la CTA hero opt-in che porta
               alla stessa pagina. /masterclass resta come destinazione post-opt-in
               (e fallback gate per chi atterra via link diretto). */}
-          <Link to="/ciak-blueprint" className={isLight ? "hover:text-yellow-400" : "hover:text-slate-600"}>Ciak Blueprint</Link>
+          <a href="/ciak-blueprint" className={isLight ? "hover:text-yellow-400" : "hover:text-slate-600"}>Ciak Blueprint</a>
           <a
             href="https://www.evolution-pro.it"
             target="_blank"
