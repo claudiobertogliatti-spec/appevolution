@@ -1,8 +1,10 @@
 export function BlueprintPage({ dashboard }) {
-  const score = dashboard.diagnostic?.score;
+  const diagnostic = dashboard.diagnostic || {};
+  const score = diagnostic.score;
   const hasScore = Number.isFinite(score);
   const analysis = dashboard.analysis || {};
   const roadmap = Array.isArray(analysis.roadmap) ? analysis.roadmap : [];
+  const callState = diagnostic.state;
 
   return (
     <div className="space-y-5">
@@ -20,6 +22,29 @@ export function BlueprintPage({ dashboard }) {
                 ? "Il passo consigliato e' Ciak Start: sistemiamo le fondazioni prima della partnership."
                 : "Il passo consigliato e' la Partnership completa."
               : "Stiamo preparando il punteggio per darti una lettura piu' precisa."}
+          </p>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-semibold text-slate-900">Call strategica</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {callState === "call_done"
+              ? "La sessione e' stata completata. Qui restano analisi, roadmap e passo consigliato."
+              : callState === "call_booked"
+                ? "La sessione e' prenotata. Prima della call trovi qui analisi e materiali utili."
+                : "Completiamo prima analisi e prenotazione, poi qui si allinea tutto il percorso."}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-semibold text-slate-900">Decisione consigliata</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {diagnostic.recommended_offer === "ciak_start"
+              ? "Al momento il consiglio e' consolidare le fondazioni con Ciak Start."
+              : diagnostic.recommended_offer === "partnership"
+                ? "Al momento il consiglio e' la Partnership completa."
+                : "La decisione finale compare qui dopo la lettura completa del Blueprint."}
           </p>
         </div>
       </section>

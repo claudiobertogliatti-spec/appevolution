@@ -46,3 +46,20 @@ export async function clientGet(path) {
   if (!res.ok) throw new Error(`Errore ${res.status}`);
   return res.json();
 }
+
+export async function clientPost(path, body) {
+  const res = await fetch(`/api/ciak/client${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getClientToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearClientSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.json();
+}

@@ -1,5 +1,5 @@
 import {
-  ArrowRight, CalendarDays, CheckCircle2, LockKeyhole,
+  ArrowRight, CalendarDays, CheckCircle2, LockKeyhole, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -37,14 +37,25 @@ function nextAction(dashboard) {
   }
   return {
     title: "Prenota la sessione strategica",
-    body: "Il Blueprint serve a preparare una call concreta, con il passo giusto per te.",
+    body: "Il Blueprint serve a preparare una call concreta, non una vendita al buio.",
     to: "/cliente/blueprint",
   };
 }
 
+function statusLabel(state) {
+  if (state === "call_done") return "Completata";
+  if (state === "call_booked") return "Prenotata";
+  if (state) return "In preparazione";
+  return "Da prenotare";
+}
+
 export function ClientHome({ dashboard }) {
   const action = nextAction(dashboard);
-  const partnershipStatus = dashboard.partner_area?.status === "attiva" ? "attiva" : "non ancora attiva";
+  const diagnostic = dashboard.diagnostic || {};
+  const analysis = dashboard.analysis || {};
+  const roadmapCount = Array.isArray(analysis.roadmap) ? analysis.roadmap.length : 0;
+  const partnershipActive = dashboard.partner_area?.status === "attiva";
+  const startActive = dashboard.client?.access_level === "cliente_start";
 
   return (
     <div className="space-y-6">
@@ -61,22 +72,38 @@ export function ClientHome({ dashboard }) {
         </Link>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
           <p className="font-semibold text-slate-900">Blueprint</p>
-          <p className="mt-1 text-sm text-slate-500">Diagnosi, score e roadmap iniziale.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {analysis.status === "inviata"
+              ? `Analisi pronta${roadmapCount ? `, roadmap con ${roadmapCount} tappe.` : "."}`
+              : "Analisi e roadmap in preparazione."}
+          </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CalendarDays className="mb-3 h-5 w-5 text-blue-600" />
-          <p className="font-semibold text-slate-900">Ciak Start</p>
-          <p className="mt-1 text-sm text-slate-500">Fondazioni chiare prima del passo successivo.</p>
+          <p className="font-semibold text-slate-900">Call strategica</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {statusLabel(diagnostic.state)}
+            {diagnostic.state === "call_booked" ? ". Arriva qui tutto cio' che serve prima della sessione." : "."}
+          </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <LockKeyhole className="mb-3 h-5 w-5 text-yellow-600" />
-          <p className="font-semibold text-slate-900">Partnership</p>
+          <Sparkles className="mb-3 h-5 w-5 text-yellow-600" />
+          <p className="font-semibold text-slate-900">Ciak Start</p>
           <p className="mt-1 text-sm text-slate-500">
-            Stato area partner: {partnershipStatus}.
+            {startActive
+              ? "Area di lavoro attiva con servizi, avanzamento e credito sempre garantito."
+              : "Si apre quando il percorso consigliato e' Ciak Start."}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <LockKeyhole className="mb-3 h-5 w-5 text-slate-600" />
+          <p className="font-semibold text-slate-900">Area partner</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {partnershipActive ? "Attiva." : "Disponibile dopo attivazione."}
           </p>
         </div>
       </div>
