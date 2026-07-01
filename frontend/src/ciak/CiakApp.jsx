@@ -26,7 +26,6 @@ import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
 import { CiakCheckpoint } from "./pages/Checkpoint";
 import { CiakBlueprint } from "./pages/CiakBlueprint";
-import { CiakBlueprintLegacy } from "./pages/CiakBlueprintLegacy";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
@@ -74,7 +73,6 @@ export default function CiakApp() {
           <Route path="/checkpoint" element={<CiakCheckpoint />} />
 
           {/* LIV 3 — Ciak Blueprint (rename da /analisi 2026-05-12) */}
-          <Route path="/ciak-blueprint-old" element={<CiakBlueprintLegacy />} />
           <Route path="/ciak-blueprint" element={<CiakBlueprint />} />
           <Route path="/ciak-blueprint/grazie" element={<CiakGrazie />} />
 

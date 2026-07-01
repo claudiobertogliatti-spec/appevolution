@@ -640,8 +640,21 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
 
       {/* LEZIONI (ex "Videocorso") */}
       <JourneySection title="Lezioni — outline e URL" icon={BookOpen} color="#22C55E">
-        <JField label="Titolo corso" value={vc.course_data?.titolo_corso}
-          onChange={v => updateVc("course_data.titolo_corso", v)} placeholder="Titolo del corso" />
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Blueprint Accademia</div>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="Titolo corso" value={vc.course_data?.titolo_corso}
+            onChange={v => updateVc("course_data.titolo_corso", v)} placeholder="Titolo del corso" />
+          <JField label="Promessa del corso" value={vc.course_data?.promessa}
+            onChange={v => updateVc("course_data.promessa", v)} placeholder="Trasformazione promessa allo studente" />
+          <JField label="Numero lezioni previste" value={vc.course_data?.numero_lezioni}
+            onChange={v => updateVc("course_data.numero_lezioni", v)} placeholder="es. 8 lezioni + bonus" />
+          <JField label="URL area membri" value={vc.course_data?.members_area_url}
+            onChange={v => updateVc("course_data.members_area_url", v)} placeholder="https://..." />
+        </div>
+        <JField label="Outline moduli" value={vc.course_data?.outline_moduli}
+          onChange={v => updateVc("course_data.outline_moduli", v)} multiline placeholder={"Modulo 1 — Fondamenta\nModulo 2 — Metodo\nModulo 3 — Implementazione"} />
+        <JField label="Note produzione lezioni" value={vc.course_data?.production_notes}
+          onChange={v => updateVc("course_data.production_notes", v)} multiline placeholder="Stato registrazioni, blocchi, revisioni, priorita' per il team video..." />
         {lessons.length > 0 ? (
           <div className="space-y-3 mt-3">
             <div className="text-xs font-bold uppercase tracking-wide" style={{ color: "#9CA3AF" }}>URL YouTube per lezione</div>
@@ -676,14 +689,49 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
 
       {/* FUNNEL & URL */}
       <JourneySection title="Funnel & URL" icon={Link2} color="#EF4444">
-        <JField label="URL Funnel Live (Systeme)" value={fn.live_url}
-          onChange={v => setFn(p => ({ ...p, live_url: v }))} placeholder="https://xxx.systeme.io/funnel" />
-        <JField label="URL Funnel Light" value={fn.funnel_light_url}
-          onChange={v => setFn(p => ({ ...p, funnel_light_url: v }))} placeholder="https://xxx.systeme.io/funnel-light" />
-        <JField label="Tipo funnel" value={fn.funnel_type}
-          onChange={v => setFn(p => ({ ...p, funnel_type: v }))} placeholder="es. webinar, video_sales_letter" />
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Asset pubblici</div>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="URL Funnel Live (Systeme)" value={fn.live_url}
+            onChange={v => setFn(p => ({ ...p, live_url: v }))} placeholder="https://xxx.systeme.io/funnel" />
+          <JField label="URL Funnel Light" value={fn.funnel_light_url}
+            onChange={v => setFn(p => ({ ...p, funnel_light_url: v }))} placeholder="https://xxx.systeme.io/funnel-light" />
+          <JField label="URL Checkout" value={fn.checkout_url}
+            onChange={v => setFn(p => ({ ...p, checkout_url: v }))} placeholder="https://..." />
+          <JField label="URL Thank you / onboarding" value={fn.thank_you_url}
+            onChange={v => setFn(p => ({ ...p, thank_you_url: v }))} placeholder="https://..." />
+        </div>
+
+        <div className="text-xs font-bold uppercase tracking-wide mt-4 mb-2" style={{ color: "#9CA3AF" }}>Stato implementazione Systeme.io</div>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="Tipo funnel" value={fn.funnel_type}
+            onChange={v => setFn(p => ({ ...p, funnel_type: v }))} placeholder="es. masterclass, VSL, call funnel" />
+          <JField label="Stato funnel" value={fn.status}
+            onChange={v => setFn(p => ({ ...p, status: v }))} placeholder="bozza, in revisione, live, ottimizzazione" />
+          <JField label="Prezzo offerta" value={fn.offer_price}
+            onChange={v => setFn(p => ({ ...p, offer_price: v }))} placeholder="es. 997€, 1497€, call" />
+          <JField label="CTA principale" value={fn.cta_next_step}
+            onChange={v => setFn(p => ({ ...p, cta_next_step: v }))} placeholder="es. guarda masterclass, prenota call, acquista" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="Sequenza email" value={fn.email_sequence_status}
+            onChange={v => setFn(p => ({ ...p, email_sequence_status: v }))} placeholder="mancante, bozza, attiva, da ottimizzare" />
+          <JField label="Retargeting / ADV" value={fn.ads_status}
+            onChange={v => setFn(p => ({ ...p, ads_status: v }))} placeholder="non attivo, in test, attivo" />
+        </div>
+        <JField label="Note team e prossima azione" value={fn.next_action_notes}
+          onChange={v => setFn(p => ({ ...p, next_action_notes: v }))} multiline placeholder="Cosa manca lato Evolution per il go-live? Quale asset o collegamento va completato nel subaccount Systeme.io? Prossima azione del team." />
         <SaveBtn onClick={() => onSave("funnel", "partner_funnel", {
-          live_url: fn.live_url, funnel_light_url: fn.funnel_light_url, funnel_type: fn.funnel_type
+          live_url: fn.live_url,
+          funnel_light_url: fn.funnel_light_url,
+          checkout_url: fn.checkout_url,
+          thank_you_url: fn.thank_you_url,
+          funnel_type: fn.funnel_type,
+          status: fn.status,
+          offer_price: fn.offer_price,
+          cta_next_step: fn.cta_next_step,
+          email_sequence_status: fn.email_sequence_status,
+          ads_status: fn.ads_status,
+          next_action_notes: fn.next_action_notes
         })} saving={saving.funnel} saved={saved.funnel} />
       </JourneySection>
 

@@ -80,7 +80,7 @@ export function MetodoEvoPage({ partnerId }) {
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mt-2">Metodo EVO</h1>
           <p className="text-sm text-slate-600 leading-relaxed mt-3 max-w-2xl">
             Ciak ti accompagna una fase alla volta. Non devi capire tutto subito:
-            devi solo sapere dove sei, cosa stiamo costruendo e qual è il prossimo passo.
+            devi solo sapere dove sei, cosa stiamo costruendo, cosa devi supervisionare e qual è il prossimo passo.
           </p>
         </header>
 
@@ -122,7 +122,7 @@ export function MetodoEvoPage({ partnerId }) {
                 <h2 className="text-2xl font-semibold mt-2">Fase 2 · Valida</h2>
                 <p className="text-sm text-blue-50 leading-relaxed mt-3">
                   Qui il progetto smette di essere un'idea: costruiamo masterclass, corso,
-                  sistema di vendita e lancio per arrivare a un test reale.
+                  sistema di vendita e lancio per arrivare a un test reale. La parte tecnica vive nei tuoi spazi operativi, ma viene gestita dal team Evolution.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-2">

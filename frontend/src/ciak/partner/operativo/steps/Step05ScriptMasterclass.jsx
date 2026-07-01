@@ -5,9 +5,9 @@ import axios from "axios";
 
 /**
  * Step 5 — Script masterclass on-demand (~30 min) (Valida, agente Andrea).
- * Andrea genera lo script in 7 blocchi dal Posizionamento + outline; il partner lo edita.
+ * Andrea genera lo script in 7 blocchi dal Posizionamento + outline; il partner lo valida.
  * La masterclass è il motore di traffico TOF: dà valore e porta nel funnel (non vende).
- * Rigenera tiene i blocchi già toccati e riscrive solo l'intatto.
+ * Rigenera tiene i blocchi già validati e aggiorna solo l'intatto.
  */
 export default function Step05ScriptMasterclass({ step, partnerId, onComplete, onSaveDraft }) {
   const _saved = step?.data?.script;
@@ -129,7 +129,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
         <div>
           <div className="text-xs text-slate-500 font-medium">Andrea · Fase Valida</div>
           <div className="text-sm leading-snug text-slate-900">
-            Ecco lo script. Riscrivilo con le tue parole: deve suonare come parli tu.
+            Ecco lo script. Controlla che ti rappresenti: noi curiamo struttura e copy, tu lo porti con la tua voce.
           </div>
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
             disabled={generating}
             className="bg-white border-2 border-slate-200 text-slate-600 font-semibold text-[13.5px] px-4 py-2.5 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
           >
-            {generating ? "Rigenero…" : "↻ Rigenera (tengo ciò che hai cambiato)"}
+            {generating ? "Rigenero…" : "↻ Rigenera (tengo ciò che hai validato)"}
           </button>
           <button
             type="button"

@@ -194,14 +194,14 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
       label: busy === "script" ? "Andrea sta scrivendo lo script…" : "Genera lo script della masterclass",
       onClick: generateScript,
       disabled: busy === "script",
-      hint: "Dal tuo posizionamento, Andrea scrive lo script in 7 blocchi.",
+      hint: "Dal tuo posizionamento, Andrea prepara lo script in 7 blocchi. Tu validi direzione e tono.",
     };
   } else if (v.ready_for_review) {
     primary = {
       label: busy === "approve" ? "Approvo…" : "Approva il video — tutto ok!",
       onClick: approveVideo,
       disabled: busy === "approve",
-      hint: "Guarda il video qui sotto e approvalo se ti convince.",
+      hint: "Guarda il video qui sotto e approva il risultato finale se ti rappresenta.",
     };
   } else if (v.approved) {
     primary = { label: "Workspace completato ✓", onClick: onBack, disabled: false,

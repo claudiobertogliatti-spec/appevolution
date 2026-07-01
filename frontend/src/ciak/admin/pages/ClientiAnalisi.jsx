@@ -1,6 +1,6 @@
 /**
  * Ciak Admin — Clienti Analisi.
- * Gestione clienti che hanno acquistato l'Analisi Strategica (€67):
+ * Gestione clienti che hanno acquistato l'Analisi Strategica (€27):
  * questionario, generazione analisi AI, fissa call, conversione partner.
  */
 
@@ -171,7 +171,7 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
               <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-slate-400">Flag funnel</div>
               {[
                 ["questionario_compilato", "Questionario compilato"],
-                ["pagamento_analisi", "Pagamento analisi (€67)"],
+                ["pagamento_analisi", "Pagamento analisi (€27)"],
                 ["analisi_generata", "Analisi generata"],
               ].map(([key, label]) => (
                 <div key={key} className={`flex items-center justify-between p-3 rounded-xl border ${form[key] ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
@@ -642,7 +642,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                           </span>
                           {cliente.has_paid && (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
-                              €67
+                              €27
                             </span>
                           )}
                         </div>

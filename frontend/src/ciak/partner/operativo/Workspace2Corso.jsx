@@ -148,11 +148,11 @@ export default function Workspace2Corso({ partnerId, onBack }) {
   if (!state.has_course) {
     primary = { label: busy === "course" ? "Andrea sta costruendo il corso…" : "Genera la struttura del corso",
                 onClick: generateCourse, disabled: busy === "course",
-                hint: "Dalla masterclass e dal posizionamento, Andrea costruisce moduli e lezioni." };
+                hint: "Dalla masterclass e dal posizionamento, Andrea propone moduli e lezioni. Tu supervisioni la direzione." };
   } else if (!state.course_approved) {
     primary = { label: busy === "approve-course" ? "Approvo…" : "Approva la struttura del corso",
                 onClick: approveCourse, disabled: busy === "approve-course",
-                hint: "Controlla moduli e lezioni qui sotto, poi approva." };
+                hint: "Controlla che moduli e lezioni rispecchino il tuo metodo, poi approva." };
   } else if (!allRecorded) {
     primary = { label: "Carica le tue lezioni qui sotto", onClick: () => {}, disabled: true,
                 hint: `Registra e carica ogni lezione (${state.lessons_uploaded}/${state.lessons_planned || "?"}).` };

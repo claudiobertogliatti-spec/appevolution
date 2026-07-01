@@ -2,7 +2,7 @@
  * Ciak Admin — Fatture (Back office · Valentina).
  *
  * Genera fatture di cortesia PDF (Evolution PRO LLC, SENZA IVA) dalle vendite:
- *  - Ciak Blueprint €67   (diagnostic_sessions / orfani)
+ *  - Ciak Blueprint €27   (diagnostic_sessions / orfani)
  *  - Partnership €2.790    (proposte pagate)
  *  - Servizi extra         (partner_servizi)
  *
@@ -30,7 +30,7 @@ function fmtDate(iso) {
 }
 
 const FONTE_BADGE = {
-  blueprint_67: { label: "Blueprint €67", cls: "bg-blue-100 text-blue-700" },
+  blueprint_67: { label: "Blueprint €27", cls: "bg-blue-100 text-blue-700" },
   partnership: { label: "Partnership", cls: "bg-purple-100 text-purple-700" },
   servizio_extra: { label: "Servizio extra", cls: "bg-emerald-100 text-emerald-700" },
   manuale: { label: "Manuale", cls: "bg-slate-100 text-slate-600" },

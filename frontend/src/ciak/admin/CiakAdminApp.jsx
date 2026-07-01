@@ -36,6 +36,7 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  MessageCircle,
   Users,
 } from "lucide-react";
 import { getToken, getAdminUser, clearSession, login } from "./api";
@@ -94,7 +95,7 @@ const NAV = [
       { to: "/admin", label: "Cabina di Regia", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
     ],
   },
-  // ── ACQUISIZIONE · Andrea ── dal freddo al €67 ─────────────────────────
+  // ── ACQUISIZIONE · Andrea ── dal freddo al €27 ─────────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
@@ -105,12 +106,12 @@ const NAV = [
     pages: [
       { to: "/admin/lead-manager", label: "New Lead", desc: "Inserisci e lavora i nuovi contatti in entrata" },
       { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Database freddo da riscaldare con l'outreach" },
-      { to: "/admin/pipeline", label: "Pipeline", desc: "Funnel masterclass → €67: numeri (Panoramica) e contatti in un'unica vista" },
+      { to: "/admin/pipeline", label: "Pipeline", desc: "Funnel masterclass → €27: numeri (Panoramica) e contatti in un'unica vista" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Campagne pubblicitarie di acquisizione" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Piano contenuti organici per attrarre lead" },
     ],
   },
-  // ── VENDITE · Gaia ── dal €67 alla firma (stadi separati) ──────────────
+  // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
   {
     id: "vendite",
     label: "Vendite",
@@ -118,7 +119,7 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €67 — analisi acquistata" },
+      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
       { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
@@ -177,6 +178,12 @@ const MACRO_ICONS = {
   "casi-studio": ClipboardCheck,
   "back-office": CreditCard,
 };
+
+const ADMIN_TEAM_PREVIEW = [
+  { name: "Luca", role: "Regia" },
+  { name: "Andrea", role: "Acquisizione", avatar: "/agents/andrea.jpg" },
+  { name: "Stefania", role: "Delivery", avatar: "/agents/stefania.jpg" },
+];
 
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
@@ -334,6 +341,31 @@ function MacroItem({ macro, currentPath }) {
   );
 }
 
+function AdminAgentMini({ item }) {
+  return (
+    <Link
+      to="/admin/cabina-regia"
+      className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-blue-50 transition"
+    >
+      {item.avatar ? (
+        <img
+          src={item.avatar}
+          alt={item.name}
+          className="w-9 h-9 rounded-lg object-cover bg-slate-100"
+        />
+      ) : (
+        <span className="w-9 h-9 rounded-lg bg-slate-900 text-yellow-400 inline-flex items-center justify-center text-sm font-semibold">
+          {item.name.slice(0, 1)}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</p>
+        <p className="text-[10px] text-slate-500 truncate">{item.role}</p>
+      </div>
+    </Link>
+  );
+}
+
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
@@ -362,6 +394,31 @@ function AdminShell({ user, onLogout, children }) {
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                Team operativo
+              </p>
+              <MessageCircle className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="space-y-1">
+              {ADMIN_TEAM_PREVIEW.map((item) => (
+                <AdminAgentMini key={item.name} item={item} />
+              ))}
+            </div>
+            <Link
+              to="/admin/cabina-regia"
+              className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:text-blue-800"
+            >
+              Apri cabina <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
+            <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>
+            <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
+              Funnel, vendite, delivery, materiali e post-lancio in un'unica regia.
+            </p>
+          </div>
         </nav>
         <div className="px-4 py-4 border-t border-slate-100">
           <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
@@ -517,7 +574,7 @@ export default function CiakAdminApp() {
             <PipelineList
               endpoint="/pipeline-prospect"
               title="Pipeline Prospect"
-              subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
+              subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €27"
               mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
               onAuthExpired={handleLogout}
               deletable
@@ -534,7 +591,7 @@ export default function CiakAdminApp() {
             <PipelineList
               endpoint="/pipeline-blueprint"
               title="Ciak Blueprint"
-              subtitle="Ha pagato i €67 — analisi acquistata"
+              subtitle="Ha pagato i €27 — analisi acquistata"
               lockedStages={["acquistato"]}
               onAuthExpired={handleLogout}
             />

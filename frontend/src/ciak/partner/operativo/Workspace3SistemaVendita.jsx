@@ -107,13 +107,13 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
 
   let primary = null;
   if (!state.has_funnel) {
-    primary = { label: busy === "funnel" ? "Gaia sta costruendo il sistema…" : "Genera il sistema di vendita",
+    primary = { label: busy === "funnel" ? "Gaia sta preparando il sistema…" : "Prepara il sistema di vendita",
                 onClick: generateFunnel, disabled: busy === "funnel",
-                hint: "Dai tuoi contenuti, Gaia costruisce pagine, email e pagamento." };
+                hint: "Dai tuoi contenuti, Gaia prepara pagine, email e pagamento. Il team Evolution implementa nel tuo subaccount Systeme.io." };
   } else if (!state.published) {
-    primary = { label: busy === "publish" ? "Pubblico…" : "Pubblica il funnel online",
+    primary = { label: busy === "publish" ? "Invio al team…" : "Conferma per il go-live",
                 onClick: publishFunnel, disabled: busy === "publish",
-                hint: "Controlla le pagine qui sotto, poi pubblica: il team lo mette online su Systeme." };
+                hint: "Controlla la direzione qui sotto, poi conferma: il team lo mette online su Systeme.io." };
   } else {
     primary = { label: "Workspace completato ✓", onClick: onBack || (() => {}), disabled: false,
                 hint: "Il sistema di vendita è online. Passa al prossimo workspace." };

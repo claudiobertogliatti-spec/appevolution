@@ -9,7 +9,7 @@ export default function Step10FunnelTeamWork({ step }) {
     <StepBase
       step={step}
       title="Stiamo costruendo le tue pagine"
-      secondaryNote="Tocca a noi adesso: stiamo mettendo insieme le tue pagine. Tempo stimato 3-5 giorni. Ti avvisiamo via email appena è pronto. Intanto puoi completare le registrazioni."
+      secondaryNote="Tocca a noi adesso: costruiamo pagine, testi, collegamenti e automazioni nel tuo subaccount Systeme.io. Tu supervisioni il risultato finale, senza dover mettere mano alla parte tecnica."
     >
       <div className="bg-slate-50 border border-gray-200 rounded-md p-8 text-center">
         <div className="text-5xl mb-3">⏳</div>

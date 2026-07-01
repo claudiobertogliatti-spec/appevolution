@@ -173,7 +173,7 @@ function deorderQuestions(seed) {
  *  - source: tag sorgente per il backend (default "masterclass")
  *  - gateMode: se true, il componente è usato come gate PRE-masterclass:
  *      mostra un "Salta" sempre, e al termine delle 5 domande NON mostra il
- *      risultato/CTA €67 ma chiama onDone({stato}) per sbloccare il video.
+ *      risultato/CTA €27 ma chiama onDone({stato}) per sbloccare il video.
  *  - onDone: callback chiamata a fine domande o a skip (gateMode only).
  */
 export function CheckpointStrategico({ source = "masterclass", gateMode = false, onDone = null }) {
@@ -265,7 +265,7 @@ export function CheckpointStrategico({ source = "masterclass", gateMode = false,
       }),
     }).catch(() => null);
 
-    // Gate mode: niente schermata risultato/CTA €67 (siamo PRIMA del video).
+    // Gate mode: niente schermata risultato/CTA €27 (siamo PRIMA del video).
     // Sblocca la masterclass via callback.
     if (gateMode && onDone) {
       onDone({ stato: finalStato, completed: true });
@@ -451,7 +451,7 @@ export function CheckpointStrategico({ source = "masterclass", gateMode = false,
                 Scopri Ciak Blueprint
               </Link>
               <p className="text-xs text-slate-400 mt-6 leading-relaxed">
-                Sessione Strategica + Roadmap Operativa Personalizzata — €67 IVA
+                Sessione Strategica + Roadmap Operativa Personalizzata — €27 IVA
                 inclusa.
               </p>
             </div>

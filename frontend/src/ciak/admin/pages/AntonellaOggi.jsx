@@ -2,7 +2,7 @@
  * Ciak Admin — Oggi di Antonella (Comunicazione & Social).
  *
  * Coda di azioni quotidiane tarata sui compiti di Antonella, NON sul funnel
- * vendite €67 (niente clienti bloccati / call da fissare / conversion rate).
+ * vendite €27 (niente clienti bloccati / call da fissare / conversion rate).
  * Le azioni qui sono quelle che lei esegue con i pieni poteri admin, esattamente
  * come Claudio:
  *   1. Approvazioni materiali partner (stesso pannello dell'admin)

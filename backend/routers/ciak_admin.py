@@ -5,7 +5,7 @@ Endpoint admin-only per il pannello di gestione Ciak (ciak.io/admin). MVP:
   - GET  /api/admin/ciak/stats        → conteggi funnel per la dashboard
   - GET  /api/admin/ciak/leads        → lista leads (merge ciak_leads + diagnostic + checkpoint)
   - GET  /api/admin/ciak/lead         → dettaglio singolo lead (by email)
-  - GET  /api/admin/ciak/transactions → transazioni Stripe Ciak Blueprint €67
+  - GET  /api/admin/ciak/transactions → transazioni Stripe Ciak Blueprint €27
 
 Auth: riusa il role `admin` esistente (Claudio + Antonella). Niente nuovo role.
 Pattern auth identico a routers/admin_stefania.py (require_admin).
@@ -97,7 +97,7 @@ def _lead_item(email: str, name: Optional[str], updated_at: Optional[str], reaso
     }
 
 
-# Stati funnel "post-acquisto" (hanno pagato i €67)
+# Stati funnel "post-acquisto" (hanno pagato i €27)
 _PURCHASED_STATES = {
     "purchased_67", "call_booked", "call_done",
     "partner_approved", "partner_active",
@@ -327,11 +327,11 @@ async def ciak_delete_lead(
 
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
-# --- Mark EUR 67 paid (manuale) ---
+# --- Mark EUR 27 paid (manuale) ---
 
 class MarkPurchasedRequest(BaseModel):
-    email: str = Field(..., description="Email del lead da segnare come acquirente EUR 67")
-    amount_cent: int = Field(6700, ge=0, description="Importo in centesimi (default 6700 = EUR 67)")
+    email: str = Field(..., description="Email del lead da segnare come acquirente EUR 27")
+    amount_cent: int = Field(2700, ge=0, description="Importo in centesimi (default 2700 = EUR 27)")
     metodo: Optional[str] = Field("manuale", description="Metodo pagamento (manuale|bonifico|contanti|offline)")
     note: Optional[str] = Field(None, description="Nota interna facoltativa sul pagamento")
 
@@ -342,7 +342,7 @@ async def ciak_mark_lead_purchased(
     admin=Depends(require_ciak_admin),
 ):
     """
-    Segna MANUALMENTE l'acquisto dell'analisi EUR 67 per un lead, senza passare
+    Segna MANUALMENTE l'acquisto dell'analisi EUR 27 per un lead, senza passare
     da Stripe. Replica l'effetto del webhook checkout.session.completed:
     transizione diagnostic_session a purchased_67 + evento
     stripe_payment_completed (flag manual=True). Cosi' il lead compare in
@@ -518,7 +518,7 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
                     em,
                     _name(em, d),
                     _state_ts(d, "report_generated") or d.get("created_at"),
-                    "Ha completato le 8 domande: va riportato al Blueprint da 67 euro.",
+                    "Ha completato le 8 domande: va riportato al Blueprint da 27 euro.",
                 )
             )
         elif state == "purchased_67":
@@ -629,7 +629,7 @@ async def ciak_leads_list(
     q: Optional[str] = Query(None, description="Ricerca per email (substring)"),
     state: Optional[str] = Query(None, description="Filtra per current_state diagnostic"),
     stato: Optional[int] = Query(None, ge=1, le=4, description="Filtra per Stato finale 1-4"),
-    only_purchased: bool = Query(False, description="Solo chi ha acquistato i €67"),
+    only_purchased: bool = Query(False, description="Solo chi ha acquistato i €27"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -785,7 +785,7 @@ async def ciak_transactions(
     offset: int = Query(0, ge=0),
 ):
     """
-    Transazioni Ciak Blueprint €67. Due fonti:
+    Transazioni Ciak Blueprint €27. Due fonti:
       1. diagnostic_sessions con evento stripe_payment_completed (acquisti collegati)
       2. ciak_orphan_purchases (acquisti senza diagnostic session — da gestire a mano)
     """
@@ -848,13 +848,13 @@ async def ciak_transactions(
 
 # ─── Pipeline kanban (da memory: ciak_technical_spec.md, state machine 10 stati) ──
 
-# Pipeline Prospect — pre-acquisto €67. Colonne in ordine di funnel.
+# Pipeline Prospect — pre-acquisto €27. Colonne in ordine di funnel.
 _PROSPECT_COLUMNS = [
     ("iscritto", "Iscritto masterclass"),
     ("checkpoint", "Checkpoint compilato"),
     ("diagnostica", "8 Domande completate"),
     ("report", "Report Matteo"),
-    ("click_67", "Click checkout €67"),
+    ("click_67", "Click checkout €27"),
 ]
 _PROSPECT_RANK = {k: i for i, (k, _) in enumerate(_PROSPECT_COLUMNS)}
 _PROSPECT_STATE_TO_STAGE = {
@@ -865,7 +865,7 @@ _PROSPECT_STATE_TO_STAGE = {
     "clicked_67": "click_67",
 }
 
-# Pipeline Blueprint — post-acquisto €67. Colonne in ordine di funnel.
+# Pipeline Blueprint — post-acquisto €27. Colonne in ordine di funnel.
 _BLUEPRINT_COLUMNS = [
     ("acquistato", "Blueprint acquistato"),
     ("call_prenotata", "Call prenotata"),
@@ -902,7 +902,7 @@ def _columns_from_entries(entries: dict, columns_def: list) -> list:
 @router.get("/pipeline-prospect")
 async def pipeline_prospect(admin=Depends(require_ciak_admin)):
     """
-    Pipeline Prospect — funnel PRE-acquisto €67 in formato kanban.
+    Pipeline Prospect — funnel PRE-acquisto €27 in formato kanban.
     Unisce ciak_leads + ciak_checkpoint_events + diagnostic_sessions per email,
     calcola lo stadio più avanzato. Esclude chi ha già acquistato (→ Pipeline Blueprint).
     """
@@ -953,7 +953,7 @@ async def pipeline_prospect(admin=Depends(require_ciak_admin)):
 @router.get("/pipeline-blueprint")
 async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     """
-    Pipeline Blueprint — journey POST-acquisto €67 in formato kanban.
+    Pipeline Blueprint — journey POST-acquisto €27 in formato kanban.
     Fonte: diagnostic_sessions (state machine) + ciak_orphan_purchases.
     Arricchimento "in trattativa" / "contratto pagato" da `proposte` (best-effort, per email).
     I partner reali (contratto firmato / attivo) finiscono sempre in "contratto pagato",
@@ -1080,7 +1080,7 @@ async def ciak_transactions_partnership(
 async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
     """
     Vista analitica del funnel masterclass:
-      - Funnel: opt-in → checkpoint → 8 domande → click €67 → acquisto
+      - Funnel: opt-in → checkpoint → 8 domande → click €27 → acquisto
       - Distribuzione 4 stati (checkpoint + diagnostic)
       - Email checkpoint: sent / opened / open_rate per stato
       - Sorgenti opt-in (UTM source / source)
@@ -1414,7 +1414,7 @@ async def get_public_config():
 # elettronico allo SDI: è un PDF di cortesia numerato e archiviato.
 #
 # Sorgenti vendite fatturabili:
-#   - Ciak Blueprint €67  → diagnostic_sessions (stripe_payment_completed) + ciak_orphan_purchases
+#   - Ciak Blueprint €27  → diagnostic_sessions (stripe_payment_completed) + ciak_orphan_purchases
 #   - Partnership €2.790  → proposte (pagamento_completato)
 #   - Servizi extra       → partner_servizi (catalogo SERVIZI_CATALOGO)
 #
@@ -1562,32 +1562,32 @@ async def invoice_sources(admin=Depends(require_ciak_admin)):
 
     sources = []
 
-    # ── Ciak Blueprint €67 — linked ──
+    # ── Ciak Blueprint €27 — linked ──
     async for d in db.diagnostic_sessions.find({"events.event": "stripe_payment_completed"}):
         pay = [e for e in d.get("events", []) if e.get("event") == "stripe_payment_completed"]
         ev = pay[-1] if pay else {}
         meta = ev.get("metadata", {}) or {}
         sid = meta.get("stripe_session_id") or d.get("session_token")
         key = f"blueprint:{sid}"
-        importo = _cents_to_eur(meta.get("amount_total") or 6700)
+        importo = _cents_to_eur(meta.get("amount_total") or 2700)
         sources.append({
             "source_key": key, "fonte": "blueprint_67",
-            "fonte_label": "Ciak Blueprint €67",
+            "fonte_label": "Ciak Blueprint €27",
             "descrizione": "Ciak Blueprint — Analisi strategica",
             "importo": importo, "data": ev.get("timestamp"),
             "cliente": {"nome": d.get("user_name") or "", "email": d.get("user_email") or "", "paese": "Italia"},
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Ciak Blueprint €67 — orfani ──
+    # ── Ciak Blueprint €27 — orfani ──
     async for o in db.ciak_orphan_purchases.find({}):
         sid = o.get("stripe_session_id")
         key = f"blueprint:{sid}"
         sources.append({
             "source_key": key, "fonte": "blueprint_67",
-            "fonte_label": "Ciak Blueprint €67 (orfano)",
+            "fonte_label": "Ciak Blueprint €27 (orfano)",
             "descrizione": "Ciak Blueprint — Analisi strategica",
-            "importo": _cents_to_eur(o.get("amount_total") or 6700), "data": o.get("created_at"),
+            "importo": _cents_to_eur(o.get("amount_total") or 2700), "data": o.get("created_at"),
             "cliente": {"nome": "", "email": o.get("customer_email") or "", "paese": "Italia"},
             "gia_fatturata": key in invoiced,
         })
