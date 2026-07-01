@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from services.ciak_client_accounts import (
+    START_AMOUNT_CENTS,
     create_magic_login_token,
     default_start_progress,
     ensure_client_for_blueprint,
@@ -77,6 +78,10 @@ def test_offer_for_score_routes_below_50_to_start():
 def test_offer_for_score_routes_50_and_above_to_partnership():
     assert offer_for_score(50) == "partnership"
     assert offer_for_score(87) == "partnership"
+
+
+def test_start_credit_amount_constant_is_499_euro():
+    assert START_AMOUNT_CENTS == 49900
 
 
 def test_partnership_price_applies_guaranteed_start_credit():

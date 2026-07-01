@@ -1,5 +1,7 @@
 import importlib.util
 from pathlib import Path
+import sys
+import types
 
 import pytest
 from fastapi import FastAPI
@@ -56,6 +58,7 @@ class FakeDb:
                     "start_credit_amount": 49900,
                     "analysis_status": "inviata",
                     "analysis_title": "Analisi",
+                    "offer_decision": "ciak_start",
                 }
             ]
         )
@@ -76,6 +79,33 @@ class FakeDb:
         self.users = FakeCollection()
 
 
+class FakeCheckoutSession:
+    def __init__(self, session_id="sess_123", url="https://checkout.example/session"):
+        self.session_id = session_id
+        self.url = url
+
+
+class FakeStripeCheckout:
+    created_requests = []
+
+    def __init__(self, api_key: str, webhook_url: str = ""):
+        self.api_key = api_key
+        self.webhook_url = webhook_url
+
+    async def create_checkout_session(self, request):
+        self.__class__.created_requests.append(
+            {
+                "api_key": self.api_key,
+                "webhook_url": self.webhook_url,
+                "request": request,
+            }
+        )
+        return FakeCheckoutSession(
+            session_id=f"sess_{len(self.__class__.created_requests)}",
+            url=f"https://checkout.example/{len(self.__class__.created_requests)}",
+        )
+
+
 @pytest.fixture
 def fake_db():
     return FakeDb()
@@ -88,6 +118,28 @@ def client_app(fake_db):
     app.include_router(ciak_clients.router)
     with TestClient(app) as client:
         yield client
+
+
+@pytest.fixture(autouse=True)
+def fake_stripe_checkout_module(monkeypatch):
+    FakeStripeCheckout.created_requests = []
+    checkout_module = types.ModuleType("emergentintegrations.payments.stripe.checkout")
+
+    class CheckoutSessionRequest:
+        def __init__(self, amount, currency="eur", success_url="", cancel_url="", metadata=None):
+            self.amount = amount
+            self.currency = currency
+            self.success_url = success_url
+            self.cancel_url = cancel_url
+            self.metadata = metadata or {}
+
+    checkout_module.StripeCheckout = FakeStripeCheckout
+    checkout_module.CheckoutSessionRequest = CheckoutSessionRequest
+
+    monkeypatch.setitem(sys.modules, "emergentintegrations", types.ModuleType("emergentintegrations"))
+    monkeypatch.setitem(sys.modules, "emergentintegrations.payments", types.ModuleType("emergentintegrations.payments"))
+    monkeypatch.setitem(sys.modules, "emergentintegrations.payments.stripe", types.ModuleType("emergentintegrations.payments.stripe"))
+    monkeypatch.setitem(sys.modules, "emergentintegrations.payments.stripe.checkout", checkout_module)
 
 
 @pytest.mark.asyncio
@@ -315,3 +367,101 @@ def test_me_and_dashboard_accept_issued_client_token(monkeypatch, client_app, fa
     assert body["analysis"]["title"] == "Analisi"
     assert body["pricing"]["partnership"]["credit_amount_cents"] == 49900
     assert body["partner_area"]["status"] == "attiva"
+
+
+def test_offer_decision_updates_client(client_app, fake_db):
+    response = client_app.post(
+        "/api/ciak/client/admin/offer-decision",
+        json={
+            "client_id": "client-1",
+            "offer_decision": "partnership",
+            "admin_email": "admin@example.com",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+    client = fake_db.ciak_clients.docs[0]
+    assert client["offer_decision"] == "partnership"
+    assert client["offer_decided_by"] == "admin@example.com"
+    assert client["offer_decided_at"]
+
+
+def test_activate_start_sets_access_credit_and_progress(client_app, fake_db):
+    fake_db.ciak_clients.docs[0]["access_level"] = "cliente_blueprint"
+    fake_db.ciak_clients.docs[0]["start_credit_amount"] = 0
+    fake_db.ciak_clients.docs[0]["start_progress"] = []
+
+    response = client_app.post(
+        "/api/ciak/client/start/activate",
+        json={"client_id": "client-1"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "start_credit_amount": 49900}
+    client = fake_db.ciak_clients.docs[0]
+    assert client["access_level"] == "cliente_start"
+    assert client["start_credit_amount"] == 49900
+    assert client["start_purchased_at"]
+    assert client["start_progress"][0]["status"] == "todo"
+
+
+def test_start_checkout_creates_499_euro_session(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setenv("FRONTEND_URL", "https://frontend.example")
+
+    token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+    response = client_app.post(
+        "/api/ciak/client/start/checkout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["checkout_url"] == "https://checkout.example/1"
+    assert body["amount_cents"] == 49900
+    assert body["credit_amount_cents"] == 49900
+
+    request = FakeStripeCheckout.created_requests[0]["request"]
+    assert request.amount == 499.0
+    assert request.currency == "eur"
+    assert request.success_url == "https://frontend.example/cliente?checkout=start&payment=success"
+    assert request.cancel_url == "https://frontend.example/cliente?checkout=start&payment=cancel"
+    assert request.metadata == {
+        "tipo": "ciak_start",
+        "client_id": "client-1",
+        "email": "a@example.com",
+    }
+
+
+def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setenv("FRONTEND_URL", "https://frontend.example")
+
+    token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+    response = client_app.post(
+        "/api/ciak/client/partnership/checkout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["checkout_url"] == "https://checkout.example/1"
+    assert body["amount_cents"] == 229100
+    assert body["credit_amount_cents"] == 49900
+
+    request = FakeStripeCheckout.created_requests[0]["request"]
+    assert request.amount == 2291.0
+    assert request.currency == "eur"
+    assert request.success_url == "https://frontend.example/cliente?checkout=partnership&payment=success"
+    assert request.cancel_url == "https://frontend.example/cliente?checkout=partnership&payment=cancel"
+    assert request.metadata == {
+        "tipo": "partnership",
+        "client_id": "client-1",
+        "email": "a@example.com",
+        "full_amount_cents": 279000,
+        "credit_amount_cents": 49900,
+        "due_amount_cents": 229100,
+    }

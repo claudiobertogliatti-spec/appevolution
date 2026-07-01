@@ -9,7 +9,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
-from services.ciak_client_accounts import partnership_price_for_client, verify_magic_login_token
+from services.ciak_client_accounts import (
+    ACCESS_START,
+    START_AMOUNT_CENTS,
+    default_start_progress,
+    partnership_price_for_client,
+    verify_magic_login_token,
+)
 
 
 router = APIRouter(prefix="/api/ciak/client", tags=["ciak-client"])
@@ -35,6 +41,16 @@ class MagicLoginRequest(BaseModel):
     token: str = Field(..., min_length=8, max_length=512)
 
 
+class OfferDecisionRequest(BaseModel):
+    client_id: str
+    offer_decision: str
+    admin_email: str | None = None
+
+
+class ClientIdRequest(BaseModel):
+    client_id: str
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -48,6 +64,10 @@ def _jwt_secret() -> str:
     )
 
 
+def _frontend_url() -> str:
+    return os.environ.get("FRONTEND_URL", os.environ.get("FRONTEND_URL_PROD", "https://ciak.io"))
+
+
 def _create_client_jwt(client: dict[str, Any]) -> str:
     payload = {
         "sub": client["id"],
@@ -57,6 +77,37 @@ def _create_client_jwt(client: dict[str, Any]) -> str:
         "exp": datetime.now(timezone.utc) + timedelta(days=CLIENT_JWT_DAYS),
     }
     return jwt.encode(payload, _jwt_secret(), algorithm=CLIENT_JWT_ALG)
+
+
+def _ensure_stripe_configured() -> str:
+    api_key = os.environ.get("STRIPE_API_KEY") or os.environ.get("STRIPE_SECRET_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    return api_key
+
+
+async def _create_checkout_session(
+    *,
+    amount_cents: int,
+    success_url: str,
+    cancel_url: str,
+    metadata: dict[str, Any],
+):
+    api_key = _ensure_stripe_configured()
+    from emergentintegrations.payments.stripe.checkout import CheckoutSessionRequest, StripeCheckout
+
+    checkout = StripeCheckout(api_key=api_key)
+    session_request = CheckoutSessionRequest(
+        amount=amount_cents / 100,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata=metadata,
+    )
+    try:
+        return await checkout.create_checkout_session(session_request)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {exc}") from exc
 
 
 async def require_client(
@@ -280,3 +331,92 @@ async def me(client: dict[str, Any] = Depends(require_client)):
 @router.get("/dashboard")
 async def dashboard(client: dict[str, Any] = Depends(require_client)):
     return await _dashboard_for_client(client)
+
+
+@router.post("/admin/offer-decision")
+async def offer_decision(body: OfferDecisionRequest):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    if body.offer_decision not in ("ciak_start", "partnership"):
+        raise HTTPException(status_code=400, detail="offerta non valida")
+
+    res = await db.ciak_clients.update_one(
+        {"id": body.client_id},
+        {
+            "$set": {
+                "offer_decision": body.offer_decision,
+                "offer_decided_by": body.admin_email or "admin",
+                "offer_decided_at": _now_iso(),
+            }
+        },
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    return {"success": True}
+
+
+@router.post("/start/activate")
+async def activate_start(body: ClientIdRequest):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    res = await db.ciak_clients.update_one(
+        {"id": body.client_id},
+        {
+            "$set": {
+                "access_level": ACCESS_START,
+                "start_purchased_at": _now_iso(),
+                "start_credit_amount": START_AMOUNT_CENTS,
+                "start_progress": default_start_progress(),
+            }
+        },
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    return {"success": True, "start_credit_amount": START_AMOUNT_CENTS}
+
+
+@router.post("/start/checkout")
+async def start_checkout(client: dict[str, Any] = Depends(require_client)):
+    frontend = _frontend_url()
+    session = await _create_checkout_session(
+        amount_cents=START_AMOUNT_CENTS,
+        success_url=f"{frontend}/cliente?checkout=start&payment=success",
+        cancel_url=f"{frontend}/cliente?checkout=start&payment=cancel",
+        metadata={
+            "tipo": "ciak_start",
+            "client_id": client["id"],
+            "email": client["email"],
+        },
+    )
+    return {
+        "success": True,
+        "checkout_url": session.url,
+        "amount_cents": START_AMOUNT_CENTS,
+        "credit_amount_cents": START_AMOUNT_CENTS,
+    }
+
+
+@router.post("/partnership/checkout")
+async def partnership_checkout(client: dict[str, Any] = Depends(require_client)):
+    frontend = _frontend_url()
+    pricing = partnership_price_for_client(client)
+    session = await _create_checkout_session(
+        amount_cents=pricing["due_amount_cents"],
+        success_url=f"{frontend}/cliente?checkout=partnership&payment=success",
+        cancel_url=f"{frontend}/cliente?checkout=partnership&payment=cancel",
+        metadata={
+            "tipo": "partnership",
+            "client_id": client["id"],
+            "email": client["email"],
+            "full_amount_cents": pricing["full_amount_cents"],
+            "credit_amount_cents": pricing["credit_amount_cents"],
+            "due_amount_cents": pricing["due_amount_cents"],
+        },
+    )
+    return {
+        "success": True,
+        "checkout_url": session.url,
+        "amount_cents": pricing["due_amount_cents"],
+        "credit_amount_cents": pricing["credit_amount_cents"],
+    }
