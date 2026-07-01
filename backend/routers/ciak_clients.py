@@ -48,30 +48,6 @@ def _jwt_secret() -> str:
     )
 
 
-def _public_client(client: dict[str, Any]) -> dict[str, Any]:
-    allowed = {
-        "id",
-        "email",
-        "name",
-        "access_level",
-        "blueprint_score",
-        "recommended_offer",
-        "offer_decision",
-        "start_credit_amount",
-        "start_progress",
-        "analysis_status",
-        "analysis_title",
-        "analysis_generated_at",
-        "analysis_delivered_at",
-        "analysis_publicly_available",
-        "diagnostic_completed_at",
-        "diagnostic_current_state",
-        "created_at",
-        "updated_at",
-    }
-    return {key: value for key, value in client.items() if key in allowed and value is not None}
-
-
 def _create_client_jwt(client: dict[str, Any]) -> str:
     payload = {
         "sub": client["id"],
@@ -184,6 +160,38 @@ def _effective_client_snapshot(client: dict[str, Any], user: dict[str, Any] | No
     return effective
 
 
+def _effective_access_level(client: dict[str, Any], user: dict[str, Any] | None) -> str:
+    if user and _partner_area_available(_effective_client_snapshot(client, user)):
+        return "partner"
+    return client.get("access_level") or "cliente_blueprint"
+
+
+def _public_client(client: dict[str, Any], user: dict[str, Any] | None = None) -> dict[str, Any]:
+    public = {
+        "id",
+        "email",
+        "name",
+        "access_level",
+        "blueprint_score",
+        "recommended_offer",
+        "offer_decision",
+        "start_credit_amount",
+        "start_progress",
+        "analysis_status",
+        "analysis_title",
+        "analysis_generated_at",
+        "analysis_delivered_at",
+        "analysis_publicly_available",
+        "diagnostic_completed_at",
+        "diagnostic_current_state",
+        "created_at",
+        "updated_at",
+    }
+    payload = {key: value for key, value in client.items() if key in public and value is not None}
+    payload["access_level"] = _effective_access_level(client, user)
+    return payload
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
@@ -197,11 +205,11 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
 
     canonical_user = await _canonical_user_for_client(client)
     effective_client = _effective_client_snapshot(client, canonical_user)
-    partnership_price = partnership_price_for_client(effective_client)
+    partnership_price = partnership_price_for_client(client)
     is_partner = _partner_area_available(effective_client)
 
     return {
-        "client": _public_client(client),
+        "client": _public_client(client, canonical_user),
         "diagnostic": {
             "state": (session or {}).get("current_state") or client.get("diagnostic_current_state"),
             "score": client.get("blueprint_score"),
@@ -253,16 +261,20 @@ async def magic_login(body: MagicLoginRequest):
         client = await verify_magic_login_token(db, body.token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = dict(client)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
 
     return {
-        "token": _create_client_jwt(client),
-        "client": _public_client(client),
+        "token": _create_client_jwt(effective_client),
+        "client": _public_client(effective_client, canonical_user),
     }
 
 
 @router.get("/me")
 async def me(client: dict[str, Any] = Depends(require_client)):
-    return {"client": _public_client(client)}
+    canonical_user = await _canonical_user_for_client(client)
+    return {"client": _public_client(client, canonical_user)}
 
 
 @router.get("/dashboard")

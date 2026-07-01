@@ -155,6 +155,9 @@ async def test_dashboard_unlocks_partner_area_from_canonical_user_activation(fak
 
     assert payload["partner_area"]["available"] is True
     assert payload["partner_area"]["status"] == "attiva"
+    assert payload["client"]["access_level"] == "partner"
+    assert "partnership_attiva" not in payload["client"]
+    assert "stato_cliente" not in payload["client"]
 
 
 @pytest.mark.asyncio
@@ -244,7 +247,45 @@ def test_magic_login_returns_token_and_client(monkeypatch, client_app, fake_db):
     assert body["client"]["access_level"] == "cliente_start"
 
 
+def test_magic_login_returns_effective_access_level(monkeypatch, client_app, fake_db):
+    fake_db.users.docs.append(
+        {
+            "id": "user-1",
+            "email": "a@example.com",
+            "stato_cliente": "partner_attivo",
+            "partnership_attiva": True,
+        }
+    )
+
+    async def fake_verify_magic_login_token(db, token):
+        assert db is fake_db
+        assert token == "magic-token"
+        return fake_db.ciak_clients.docs[0]
+
+    monkeypatch.setattr(ciak_clients, "verify_magic_login_token", fake_verify_magic_login_token)
+
+    response = client_app.post(
+        "/api/ciak/client/auth/magic-login",
+        json={"token": "magic-token"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["client"]["access_level"] == "partner"
+    assert "partnership_attiva" not in body["client"]
+    assert "stato_cliente" not in body["client"]
+
+
 def test_me_and_dashboard_accept_issued_client_token(monkeypatch, client_app, fake_db):
+    fake_db.users.docs.append(
+        {
+            "id": "user-1",
+            "email": "a@example.com",
+            "stato_cliente": "partner_attivo",
+            "partnership_attiva": True,
+        }
+    )
+
     async def fake_verify_magic_login_token(db, token):
         assert db is fake_db
         assert token == "magic-token"
@@ -265,10 +306,12 @@ def test_me_and_dashboard_accept_issued_client_token(monkeypatch, client_app, fa
 
     assert me_response.status_code == 200
     assert me_response.json()["client"]["email"] == "a@example.com"
+    assert me_response.json()["client"]["access_level"] == "partner"
     assert "session_token" not in me_response.json()["client"]
 
     assert dashboard_response.status_code == 200
     body = dashboard_response.json()
+    assert body["client"]["access_level"] == "partner"
     assert body["analysis"]["title"] == "Analisi"
     assert body["pricing"]["partnership"]["credit_amount_cents"] == 49900
-    assert body["partner_area"]["status"] == "in_attesa_attivazione"
+    assert body["partner_area"]["status"] == "attiva"
