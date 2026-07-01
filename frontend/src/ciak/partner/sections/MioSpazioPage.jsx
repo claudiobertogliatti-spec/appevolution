@@ -33,7 +33,7 @@ export function MioSpazioPage({ partnerId }) {
         <div className="flex gap-2 mb-8">
           {[
             { id: "profilo", label: "Profilo", Icon: User },
-            { id: "file", label: "I Miei File", Icon: FolderOpen },
+            { id: "file", label: "Materiali", Icon: FolderOpen },
           ].map((t) => (
             <button
               key={t.id}

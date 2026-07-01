@@ -23,7 +23,7 @@ const TABS = [
   { id: "brand", label: "Brand Kit", Icon: Palette },
   { id: "positioning", label: "Posizionamento", Icon: Target },
   { id: "risultati", label: "Risultati", Icon: TrendingUp },
-  { id: "file", label: "I Miei File", Icon: FolderOpen },
+  { id: "file", label: "Materiali", Icon: FolderOpen },
 ];
 
 export function WorkspacePage({ partnerId, initialTab = "identity" }) {
@@ -33,9 +33,9 @@ export function WorkspacePage({ partnerId, initialTab = "identity" }) {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold mb-1 text-slate-900">Workspace</h1>
+        <h1 className="text-2xl font-semibold mb-1 text-slate-900">Materiali e profilo</h1>
         <p className="text-sm text-slate-500 mb-6">
-          Il tuo spazio: identità, brand kit, posizionamento, risultati e i tuoi file.
+          Qui trovi identità, brand kit, posizionamento, risultati e materiali del percorso.
         </p>
 
         {/* Tab pills */}

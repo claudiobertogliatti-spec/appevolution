@@ -37,7 +37,7 @@ function Photo({ src, alt, className, fallbackText }) {
   return <img src={src} alt={alt} onError={() => setBroken(true)} className={`${className} object-cover bg-slate-900`} />;
 }
 
-export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il percorso →" }) {
+export default function Benvenuto({ partnerName, onStart, ctaLabel = "Ho visto il video, inizia il percorso" }) {
   const nome = (partnerName || "").split(" ")[0] || "";
 
   return (
@@ -73,11 +73,10 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Inizia il 
 
           {/* Video del fondatore */}
           <div className="mt-6">
-            <p className="text-[15px] font-semibold mb-1">Prima di iniziare…</p>
+            <p className="text-[15px] font-semibold mb-1">Benvenuto nel Metodo EVO</p>
             <p className="text-sm text-slate-300 mb-3">
-              C'è un breve messaggio di Claudio, il fondatore di Evolution PRO. Ti consiglio di
-              guardarlo: in pochi minuti capirai come lavoreremo insieme e perché questo metodo è
-              diverso da un semplice corso online.
+              Prima di iniziare, Claudio ti spiega come funziona il percorso e cosa succede nelle
+              prossime settimane. Guardalo con calma: poi Ciak ti porterà al primo passo operativo.
             </p>
             <div className="relative w-full rounded-xl overflow-hidden border border-slate-700 bg-black" style={{ aspectRatio: "16 / 9" }}>
               <iframe

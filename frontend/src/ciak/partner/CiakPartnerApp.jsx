@@ -13,14 +13,17 @@ import {
   getToken, getPartnerUser, clearSession, login, apiGet, isAdminUser,
 } from "./api";
 import { PartnerSidebar } from "./PartnerSidebar";
-import { MioSpazioPage } from "./sections/MioSpazioPage";
 import { WorkspacePage } from "./sections/WorkspacePage";
+import { MaterialiPage } from "./sections/MaterialiPage";
+import { MetodoEvoPage } from "./sections/MetodoEvoPage";
 import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { BoosterEvoPage } from "./sections/BoosterEvoPage";
-import { EvoSPage } from "./sections/EvoSPage";
-import { TeamSupportoPage } from "./sections/TeamSupportoPage";
+import { ServiziExtraPage } from "./sections/ServiziExtraPage";
+import { ContinuaScalarePage } from "./sections/ContinuaScalarePage";
+import { TeamCiakPage } from "./sections/TeamCiakPage";
+import { TelegramSupportPage } from "./sections/TelegramSupportPage";
 import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
@@ -160,7 +163,7 @@ function PartnerPicker({ onSelect, onLogout }) {
 
 // Pagina Team di supporto → griglia membri del team con chat dedicata.
 function SupportPage({ partnerId, partnerName }) {
-  return <TeamSupportoPage partner={{ id: partnerId, name: partnerName }} />;
+  return <TeamCiakPage partner={{ id: partnerId, name: partnerName }} />;
 }
 
 // AcceleraCrescitaPage instradata con :categoryId (acc-visibilita, acc-costanza, ...)
@@ -261,6 +264,11 @@ export default function CiakPartnerApp() {
 
   // partnerId effettivo: per i partner è il proprio, per gli admin è quello selezionato
   const partnerId = admin ? viewPartner?.id : status?.partner_id;
+  const partnerContext = {
+    ...(admin ? viewPartner || {} : user || {}),
+    id: partnerId,
+    name: status?.partner_name || viewPartner?.name || user?.name,
+  };
 
   const loadStatus = useCallback(() => {
     if (!getToken()) return;
@@ -322,21 +330,40 @@ export default function CiakPartnerApp() {
             )
           }
         />
+        <Route
+          path="home"
+          element={
+            partnerId ? (
+              <PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />
+            ) : (
+              <Navigate to="/partner" replace />
+            )
+          }
+        />
 
         {/* Alias esplicito /partner/operativo (bookmark legacy → stessa home). */}
         <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />} />
 
-        {/* Sezioni principali della sidebar */}
-        <Route path="workspace" element={<WorkspacePage partnerId={partnerId} />} />
+        {/* Sezioni principali della nuova area partner */}
+        <Route path="metodo-evo" element={<MetodoEvoPage partnerId={partnerId} />} />
+        <Route path="materiali" element={<MaterialiPage partnerId={partnerId} />} />
+        <Route path="team-ciak" element={<TeamCiakPage partner={partnerContext} />} />
+        <Route path="telegram" element={<TelegramSupportPage partner={partnerContext} />} />
+        <Route path="servizi-extra" element={<ServiziExtraPage partnerId={partnerId} />} />
+        <Route path="servizi-extra/:serviceId" element={<ServiziExtraPage partnerId={partnerId} />} />
+        <Route path="continua-scalare" element={<ContinuaScalarePage partnerId={partnerId} />} />
+
+        {/* Compatibilità vecchi URL */}
+        <Route path="workspace" element={<Navigate to="/partner/materiali" replace />} />
         <Route path="workspace/:tab" element={<WorkspaceRoute partnerId={partnerId} />} />
-        <Route path="mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
+        <Route path="mio-spazio" element={<Navigate to="/partner/materiali" replace />} />
         <Route path="supporto" element={<SupportPage partnerId={partnerId} partnerName={status?.partner_name} />} />
         <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
         <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
         <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
-        <Route path="booster-evo" element={<BoosterEvoPage partnerId={partnerId} />} />
+        <Route path="booster-evo" element={<Navigate to="/partner/servizi-extra" replace />} />
         <Route path="booster-evo/:serviceId" element={<BoosterEvoPage partnerId={partnerId} />} />
-        <Route path="evo-s" element={<EvoSPage partnerId={partnerId} />} />
+        <Route path="evo-s" element={<Navigate to="/partner/continua-scalare" replace />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>

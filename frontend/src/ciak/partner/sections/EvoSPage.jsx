@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 /**
- * EVO-S — programma di continuità in abbonamento, riservato a chi ha completato
+ * Scala — programma di continuità in abbonamento, riservato a chi ha completato
  * i 12 mesi del Protocollo EVO. Non è un rinnovo tecnico: è l'accesso al livello
  * successivo. 3 piani (Start / Grow / Scale), permanenza minima 6 mesi.
  *
@@ -18,11 +18,11 @@ import {
 const PLANS = [
   {
     id: "start",
-    name: "EVO-S Start",
+    name: "Scala Start",
     price: 297,
     priceLabel: "297 € / mese",
     icon: Anchor,
-    beneficio: "Il tuo sistema resta seguito: niente cali di ritmo dopo il percorso.",
+    beneficio: "Il tuo sistema resta seguito anche dopo i 12 mesi.",
     perChi:
       "Per chi ha completato i 12 mesi e vuole mantenere vivo e aggiornato il sistema, senza tornare a fare tutto da solo.",
     obiettivo:
@@ -56,17 +56,17 @@ const PLANS = [
   },
   {
     id: "grow",
-    name: "EVO-S Grow",
+    name: "Scala Grow",
     price: 497,
     priceLabel: "497 € / mese",
     icon: TrendingUp,
     popular: true,
-    beneficio: "Più contenuti e ottimizzazione attiva per far salire i numeri.",
+    beneficio: "Più contenuti e ottimizzazione attiva per crescere con continuità.",
     perChi:
       "Per chi ha un sistema che già vende e vuole crescere con più contenuti, più ottimizzazione e una spinta strutturata.",
     obiettivo: "Aumentare contatti e vendite in modo graduale e misurabile.",
     comprende: [
-      "Tutto ciò che è incluso in EVO-S Start.",
+      "Tutto ciò che è incluso in Scala Start.",
       "Ottimizzazioni del funnel più frequenti (ogni due settimane).",
       "Un pacchetto di contenuti extra prodotti dal team.",
       "Supporto sulla strategia delle tue live.",
@@ -88,14 +88,14 @@ const PLANS = [
     nonComprende: [
       "Il budget pubblicitario.",
       "Gestione completa degli account social.",
-      "Creazione di nuovi prodotti complessi (vedi EVO-S Scale).",
+      "Creazione di nuovi prodotti complessi (vedi Scala Scale).",
     ],
     risultatoAtteso:
       "Una crescita graduale di contatti e vendite, costruita su contenuti e ottimizzazioni costanti. Nessun numero è garantito: dipende anche dal mercato e dalla tua esecuzione.",
   },
   {
     id: "scale",
-    name: "EVO-S Scale",
+    name: "Scala Scale",
     price: 797,
     priceLabel: "797 € / mese",
     icon: Rocket,
@@ -104,7 +104,7 @@ const PLANS = [
       "Per chi ha validato il modello e vuole spingere: ads, nuovi funnel, nuovi prodotti, più entrate.",
     obiettivo: "Scalare il business e diversificare le entrate, con il team al tuo fianco.",
     comprende: [
-      "Tutto ciò che è incluso in EVO-S Grow.",
+      "Tutto ciò che è incluso in Scala Grow.",
       "Gestione delle campagne ads (budget escluso).",
       "Progettazione di un nuovo prodotto o funnel.",
       "Affiancamento strategico continuativo.",
@@ -238,7 +238,7 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
           onClick={onBack}
           className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-5"
         >
-          <ArrowLeft className="w-4 h-4" /> EVO-S
+          <ArrowLeft className="w-4 h-4" /> Scala
         </button>
 
         <div className="flex items-center gap-3 mb-2">
@@ -311,7 +311,7 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
             <div>
               <p className="text-[15px] font-semibold text-white">Disponibile al termine dei 12 mesi</p>
               <p className="text-[13px] text-slate-400 mt-1">
-                EVO-S si attiva quando hai completato il Protocollo EVO
+                Scala si attiva quando hai completato il Protocollo EVO
                 {unlockInfo && unlockInfo.unlock_date ? ` (dal ${unlockInfo.unlock_date})` : ""}.
               </p>
             </div>
@@ -382,19 +382,19 @@ export function EvoSPage({ partnerId }) {
       <div className="max-w-5xl mx-auto p-6">
         <div className="mb-7">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-            Il livello successivo
+            Dopo i 12 mesi
           </span>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">EVO-S</h1>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">Continua a scalare</h1>
           <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-            Il programma di continuità per chi ha completato i 12 mesi del Protocollo EVO. Qui non
-            costruiamo più da zero: facciamo crescere ciò che hai già. Scegli il livello di
-            affiancamento. Tutti i piani hanno permanenza minima di 6 mesi.
+            Dopo il percorso non devi tornare a gestire tutto da solo. Scala è il servizio in
+            abbonamento che mantiene il sistema seguito, aggiornato e orientato alle vendite.
+            Tutti i piani hanno permanenza minima di 6 mesi.
           </p>
         </div>
 
         {locked && (
           <div className="mb-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-            <p className="text-[14px] font-semibold text-slate-900">EVO-S si apre al termine dei 12 mesi</p>
+            <p className="text-[14px] font-semibold text-slate-900">Scala si apre al termine dei 12 mesi</p>
             <p className="text-[13px] text-slate-600 mt-0.5">
               È il livello successivo, riservato a chi ha completato il Protocollo EVO.
               {elig && elig.months_remaining ? ` Mancano circa ${elig.months_remaining} mesi` : ""}

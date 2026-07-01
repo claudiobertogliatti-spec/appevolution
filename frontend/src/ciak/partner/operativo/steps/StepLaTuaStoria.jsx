@@ -60,7 +60,7 @@ export default function StepLaTuaStoria({ step, partnerId, partnerName, onComple
           <div className="font-semibold text-slate-900 mb-1">✓ Documento generato</div>
           <p className="text-sm text-slate-600">
             Da queste risposte abbiamo creato il documento della tua storia. Lo trovi in
-            <strong> I Miei File</strong>, nel tuo Workspace. Puoi sempre rivederlo o rifarlo.
+            <strong> Materiali</strong>. Puoi sempre rivederlo o rifarlo.
           </p>
         </div>
       </StepBase>

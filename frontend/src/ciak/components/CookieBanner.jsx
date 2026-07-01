@@ -89,13 +89,10 @@ function unmountCookieBanner() {
 export function CookieBanner() {
   useEffect(() => {
     mountCookieBanner();
-    return () => {
-      // Non smonto al cleanup: lasciamo il banner attivo per tutta la sessione utente
-      // (evita re-flash quando React re-render). Smount solo se HMR.
-      if (process.env.NODE_ENV === "development") {
-        unmountCookieBanner();
-      }
-    };
+    // Non smontiamo al cleanup: in React StrictMode dev l'effect viene eseguito
+    // due volte. Rimuovere e reiniettare lo script ridichiara le const globali
+    // del banner (es. EP_CONSENT_KEY) e manda in errore la pagina.
+    return undefined;
   }, []);
   return null;
 }
