@@ -22,7 +22,7 @@
     ```text
     ```
 - commit SHA(s):
-  - `09b6db6` feat: create ciak client access after blueprint
+  - `191f0e9` feat: create ciak client access after blueprint
 - concerns/questions:
   - The task brief still references `backend/routers/stripe_webhook.py`, `backend/services/ciak_analisi.py`, and historical `67` euro Blueprint language, while the current Ciak checkout flow lives in `backend/routers/checkout.py` and already uses the locked `27` euro Blueprint pricing. I implemented against the current production path and kept historical technical state names untouched.
   - The pytest command for `backend/tests/test_checkout_trigger.py` requires `MONGO_URL` to be set during import because `backend/routers/__init__.py` eagerly imports modules that validate that environment variable.
