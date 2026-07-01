@@ -46,6 +46,7 @@ import { AdminTransactions } from "./pages/AdminTransactions";
 import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
+import { ClientiCiak } from "./pages/ClientiCiak";
 import { PartnerHub } from "./pages/PartnerHub";
 import { Approvazioni } from "./pages/Approvazioni";
 import { Oggi } from "./pages/Oggi";
@@ -120,6 +121,7 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
+      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
       { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
@@ -597,6 +599,7 @@ export default function CiakAdminApp() {
             />
           }
         />
+        <Route path="clienti-ciak" element={<ClientiCiak onAuthExpired={handleLogout} />} />
         <Route
           path="vendite-call"
           element={
