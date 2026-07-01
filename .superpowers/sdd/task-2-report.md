@@ -22,6 +22,26 @@
     [exit 0, no output]
     ```
 - commit SHA(s):
-  - `8a17071`
+  - `aa70a48`
 - concerns/questions:
   - Nessuna al momento. Il router cliente espone solo dati sanitizzati e tiene l'area Partnership non disponibile finche' l'accesso resta `cliente_blueprint` o `cliente_start`.
+
+## Fix Report 2
+
+- changed files:
+  - `backend/routers/ciak_clients.py`
+  - `backend/services/ciak_client_accounts.py`
+  - `backend/tests/test_ciak_client_accounts.py`
+  - `backend/tests/test_ciak_clients_router.py`
+- exact command/output:
+  - `py -m pytest backend/tests/test_ciak_client_accounts.py backend/tests/test_ciak_clients_router.py -q`
+    ```text
+    ..................                                                       [100%]
+    18 passed in 0.81s
+    ```
+  - `py -m py_compile backend\routers\ciak_clients.py backend\services\ciak_client_accounts.py backend\server.py`
+    ```text
+    [exit 0, no output]
+    ```
+- commit SHA:
+  - `33a30a6`
