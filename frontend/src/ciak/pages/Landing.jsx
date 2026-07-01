@@ -141,8 +141,9 @@ export function CiakLanding() {
           <p className="mb-5 inline-flex items-center rounded-full border border-yellow-300/70 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-yellow-300 backdrop-blur">
             Ciak.io
           </p>
-          <h1 className="max-w-6xl text-5xl font-semibold leading-[1.04] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-6xl lg:text-6xl">
-            Il Sistema AI che progetta la tua crescita digitale.
+          <h1 className="max-w-6xl text-6xl font-semibold leading-[0.98] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-7xl lg:text-7xl">
+            <span className="block">Il sistema che progetta</span>
+            <span className="block">la tua crescita digitale</span>
           </h1>
 
           <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
