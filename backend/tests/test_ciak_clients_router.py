@@ -73,6 +73,7 @@ class FakeDb:
             [{"session_token": "token-1", "current_state": "call_done"}]
         )
         self.ciak_client_login_tokens = FakeCollection()
+        self.users = FakeCollection()
 
 
 @pytest.fixture
@@ -132,16 +133,23 @@ async def test_dashboard_retains_start_credit_for_promoted_partner(fake_db):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_unlocks_partner_area_from_canonical_activation_fields(fake_db):
+async def test_dashboard_unlocks_partner_area_from_canonical_user_activation(fake_db):
     ciak_clients.set_db(fake_db)
+    fake_db.users.docs.append(
+        {
+            "id": "user-1",
+            "email": "a@example.com",
+            "stato_cliente": "partner_attivo",
+            "partnership_attiva": True,
+        }
+    )
     payload = await ciak_clients._dashboard_for_client(
         {
             "id": "client-1",
             "email": "a@example.com",
-            "access_level": "cliente_blueprint",
+            "access_level": "cliente_start",
             "session_token": "token-1",
-            "stato_cliente": "partner_attivo",
-            "partnership_attiva": True,
+            "start_credit_amount": 49900,
         }
     )
 
@@ -166,6 +174,35 @@ async def test_dashboard_keeps_start_clients_locked_without_activation(fake_db):
 
     assert payload["partner_area"]["available"] is False
     assert payload["partner_area"]["status"] == "in_attesa_attivazione"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_pricing_keeps_start_credit_when_user_activation_overlays_partner_state(fake_db):
+    ciak_clients.set_db(fake_db)
+    fake_db.users.docs.append(
+        {
+            "id": "user-1",
+            "email": "a@example.com",
+            "stato_cliente": "partner_attivo",
+            "partnership_attiva": True,
+        }
+    )
+
+    payload = await ciak_clients._dashboard_for_client(
+        {
+            "id": "client-1",
+            "email": "a@example.com",
+            "access_level": "cliente_start",
+            "session_token": "token-1",
+            "start_credit_amount": 49900,
+            "recommended_offer": "ciak_start",
+        }
+    )
+
+    assert payload["partner_area"]["available"] is True
+    assert payload["start"]["credit_amount_cents"] == 49900
+    assert payload["pricing"]["partnership"]["credit_amount_cents"] == 49900
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 229100
 
 
 def test_magic_login_returns_token_and_client(monkeypatch, client_app, fake_db):

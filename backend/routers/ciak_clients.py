@@ -133,6 +133,57 @@ def _partner_area_available(client: dict[str, Any]) -> bool:
     return client.get("access_level") == "partner"
 
 
+def _user_lookup_queries(client: dict[str, Any]) -> list[dict[str, Any]]:
+    queries: list[dict[str, Any]] = []
+    seen: set[tuple[tuple[str, Any], ...]] = set()
+
+    def add_query(field: str, value: Any) -> None:
+        if value in (None, ""):
+            return
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                return
+            value = normalized.lower() if field == "email" else normalized
+        query = {field: value}
+        key = tuple(sorted(query.items()))
+        if key in seen:
+            return
+        seen.add(key)
+        queries.append(query)
+
+    add_query("email", client.get("email"))
+    add_query("id", client.get("user_id"))
+    add_query("id", client.get("linked_user_id"))
+    add_query("id", client.get("id"))
+    add_query("session_token", client.get("session_token"))
+    add_query("session_token", client.get("diagnostic_session_token"))
+    add_query("diagnostic_session_token", client.get("session_token"))
+    add_query("diagnostic_session_token", client.get("diagnostic_session_token"))
+    return queries
+
+
+async def _canonical_user_for_client(client: dict[str, Any]) -> dict[str, Any] | None:
+    users_collection = getattr(db, "users", None)
+    if db is None or users_collection is None:
+        return None
+    for query in _user_lookup_queries(client):
+        user = await users_collection.find_one(query, {"_id": 0})
+        if user:
+            return user
+    return None
+
+
+def _effective_client_snapshot(client: dict[str, Any], user: dict[str, Any] | None) -> dict[str, Any]:
+    effective = dict(client)
+    if not user:
+        return effective
+    for field in ("partnership_attiva", "stato_cliente"):
+        if user.get(field) is not None:
+            effective[field] = user[field]
+    return effective
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
@@ -144,8 +195,10 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         analysis = await db.ciak_analisi.find_one({"session_token": session_token}, {"_id": 0})
         session = await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0})
 
-    partnership_price = partnership_price_for_client(client)
-    is_partner = _partner_area_available(client)
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = _effective_client_snapshot(client, canonical_user)
+    partnership_price = partnership_price_for_client(effective_client)
+    is_partner = _partner_area_available(effective_client)
 
     return {
         "client": _public_client(client),
