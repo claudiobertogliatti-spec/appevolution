@@ -16996,6 +16996,11 @@ from routers.ciak_leads import router as ciak_leads_router, set_db as set_ciak_l
 set_ciak_leads_db(db)
 app.include_router(ciak_leads_router)
 
+# Ciak Client Router (magic login + area cliente blueprint/start/partnership)
+from routers.ciak_clients import router as ciak_clients_router, set_db as set_ciak_clients_db
+set_ciak_clients_db(db)
+app.include_router(ciak_clients_router)
+
 # Ciak Partner Rewards (Libretto di Progetto + attestati fase)
 from routers.partner_rewards import router as partner_rewards_router, set_db as set_partner_rewards_db
 set_partner_rewards_db(db)
