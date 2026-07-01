@@ -69,3 +69,27 @@
     ```
 - commit SHA:
   - `2646d49`
+
+## Fix Report 3
+
+- changed files:
+  - `backend/routers/ciak_clients.py`
+  - `backend/tests/test_ciak_clients_router.py`
+  - `.superpowers/sdd/task-2-report.md`
+- exact command/output:
+  - `py -m pytest backend/tests/test_ciak_clients_router.py -q`
+    ```text
+    ........                                                                 [100%]
+    8 passed in 3.07s
+    ```
+  - `py -m pytest backend/tests/test_ciak_client_accounts.py backend/tests/test_ciak_clients_router.py -q`
+    ```text
+    ....................                                                     [100%]
+    20 passed in 4.66s
+    ```
+  - `py -m py_compile backend\routers\ciak_clients.py backend\services\ciak_client_accounts.py backend\server.py`
+    ```text
+    [exit 0, no output]
+    ```
+- commit SHA:
+  - `87b2c46`
