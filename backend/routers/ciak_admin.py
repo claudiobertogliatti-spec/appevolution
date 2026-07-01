@@ -405,6 +405,17 @@ async def ciak_mark_lead_purchased(
     }
 
 
+@router.get("/clienti-ciak")
+async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
+    """Lista pipeline clienti Ciak per il pannello admin."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    cur = db.ciak_clients.find({}, {"_id": 0}).sort("updated_at", -1).limit(limit)
+    items = await cur.to_list(limit)
+    return {"items": items, "count": len(items)}
+
+
 @router.get("/stats")
 async def ciak_stats(admin=Depends(require_ciak_admin)):
     """Conteggi rapidi per la dashboard admin (header KPI + funnel)."""
