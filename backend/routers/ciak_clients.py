@@ -23,6 +23,7 @@ CLIENT_JWT_DAYS = 30
 BLUEPRINT_PRICE_CENTS = 2700
 START_PRICE_CENTS = 49900
 PARTNERSHIP_PRICE_CENTS = 279000
+PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "attivazione_partnership", "convertito_partner"}
 
 
 def set_db(database) -> None:
@@ -123,6 +124,15 @@ def _analysis_payload(analysis: dict[str, Any] | None, client: dict[str, Any]) -
     }
 
 
+def _partner_area_available(client: dict[str, Any]) -> bool:
+    if client.get("partnership_attiva") is True:
+        return True
+    stato_cliente = str(client.get("stato_cliente") or "").strip().lower()
+    if stato_cliente in PARTNER_AREA_ACTIVE_STATES:
+        return True
+    return client.get("access_level") == "partner"
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
@@ -135,8 +145,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         session = await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0})
 
     partnership_price = partnership_price_for_client(client)
-    access_level = client.get("access_level", "cliente_blueprint")
-    is_partner = access_level == "partner"
+    is_partner = _partner_area_available(client)
 
     return {
         "client": _public_client(client),
@@ -148,9 +157,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         },
         "analysis": _analysis_payload(analysis, client),
         "start": {
-            "credit_amount_cents": max(START_PRICE_CENTS, int(client.get("start_credit_amount") or 0))
-            if access_level == "cliente_start" or client.get("start_purchased_at")
-            else int(client.get("start_credit_amount") or 0),
+            "credit_amount_cents": partnership_price["credit_amount_cents"],
             "progress": client.get("start_progress") or [],
         },
         "pricing": {

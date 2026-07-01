@@ -90,11 +90,24 @@ def test_partnership_price_applies_guaranteed_start_credit():
     }
 
 
+def test_partnership_price_retains_start_credit_after_partner_promotion():
+    client = {"access_level": "partner", "start_credit_amount": 49900}
+    price = partnership_price_for_client(client)
+    assert price["credit_amount_cents"] == 49900
+    assert price["due_amount_cents"] == 229100
+
+
 def test_partnership_price_floors_start_credit_to_guaranteed_minimum():
     client = {"access_level": "cliente_start", "start_credit_amount": 1200}
     price = partnership_price_for_client(client)
     assert price["credit_amount_cents"] == 49900
     assert price["due_amount_cents"] == 229100
+
+
+def test_partnership_price_does_not_grant_credit_to_unrelated_partner():
+    price = partnership_price_for_client({"access_level": "partner"})
+    assert price["due_amount_cents"] == 279000
+    assert price["credit_amount_cents"] == 0
 
 
 def test_partnership_price_without_start_is_full_price():

@@ -34,11 +34,12 @@ def offer_for_score(score: int | float | None) -> str:
 
 
 def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
+    stored_credit = client.get("start_credit_amount")
     has_start_entitlement = (
         client.get("access_level") == ACCESS_START
         or client.get("start_purchased_at")
+        or (stored_credit not in (None, "", 0, "0"))
     )
-    stored_credit = client.get("start_credit_amount")
     if has_start_entitlement:
         try:
             credit = max(START_AMOUNT_CENTS, int(stored_credit or 0))
