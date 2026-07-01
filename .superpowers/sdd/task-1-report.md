@@ -75,3 +75,29 @@ Commit SHA:
 7c9a6e3
 ```
 
+## Fix Report 3
+
+Changed files:
+
+- `backend/services/ciak_client_accounts.py`
+- `backend/tests/test_ciak_client_accounts.py`
+
+Test command:
+
+```bash
+py -m pytest backend/tests/test_ciak_client_accounts.py -q
+```
+
+Test output:
+
+```text
+..........                                                               [100%]
+10 passed in 0.11s
+```
+
+Commit SHA:
+
+```text
+53bbb83
+```
+
