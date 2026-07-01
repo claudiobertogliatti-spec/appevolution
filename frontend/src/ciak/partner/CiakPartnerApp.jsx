@@ -8,7 +8,8 @@
  * Token in localStorage `ciak_partner_token` (isolato). Endpoint backend invariati.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink, useNavigate, useParams } from "react-router-dom";
+import { FolderOpen, Home, LogOut, Map, Send, Users } from "lucide-react";
 import {
   getToken, getPartnerUser, clearSession, login, apiGet, isAdminUser,
 } from "./api";
@@ -183,19 +184,70 @@ function WorkspaceRoute({ partnerId }) {
   return <WorkspacePage partnerId={partnerId} initialTab={tab} />;
 }
 
+const MOBILE_NAV = [
+  { to: "/partner", end: true, label: "Home", icon: Home },
+  { to: "/partner/metodo-evo", label: "Metodo", icon: Map },
+  { to: "/partner/materiali", label: "Materiali", icon: FolderOpen },
+  { to: "/partner/team-ciak", label: "Team", icon: Users },
+  { to: "/partner/telegram", label: "Telegram", icon: Send },
+];
+
+function mobileNavClass({ isActive }) {
+  return `flex flex-col items-center justify-center gap-1 min-w-0 px-1 py-2 text-[10px] font-semibold ${
+    isActive ? "text-blue-700" : "text-slate-500"
+  }`;
+}
+
+function MobileTopBar({ user, onLogout }) {
+  return (
+    <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+      <img src="/ciak/logo.webp" alt="Ciak.io" className="h-8 w-auto object-contain" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">Area Partner</p>
+        <p className="text-xs font-semibold text-slate-900 truncate">{user?.name || "Protocollo EVO"}</p>
+      </div>
+      <button
+        onClick={onLogout}
+        aria-label="Esci"
+        className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 inline-flex items-center justify-center"
+      >
+        <LogOut className="w-4 h-4" />
+      </button>
+    </header>
+  );
+}
+
+function MobileBottomNav() {
+  return (
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] safe-bottom">
+      <div className="grid grid-cols-5">
+        {MOBILE_NAV.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavClass}>
+            <item.icon className="w-5 h-5" />
+            <span className="truncate">{item.label}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 // ─── Shell ────────────────────────────────────────────────
 
 function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
-      <PartnerSidebar user={user} onLogout={onLogout} />
-      <main className="flex-1 overflow-auto">
+      <div className="hidden lg:block">
+        <PartnerSidebar user={user} onLogout={onLogout} />
+      </div>
+      <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+        <MobileTopBar user={user} onLogout={onLogout} />
         {adminViewLabel && (
-          <div className="bg-yellow-400 text-slate-900 text-sm px-6 py-2 flex items-center justify-between">
+          <div className="bg-yellow-400 text-slate-900 text-sm px-4 lg:px-6 py-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
             <span>
               <strong>Vista Admin</strong> — stai ispezionando: {adminViewLabel}
             </span>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button onClick={onChangePartner} className="font-semibold underline">
                 Cambia partner
               </button>
@@ -209,6 +261,7 @@ function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, on
           </div>
         )}
         {children}
+        <MobileBottomNav />
       </main>
     </div>
   );

@@ -28,6 +28,7 @@ export function CiakBlueprint() {
     // Stripe sulla sua pagina. Inviare "" farebbe fallire la validazione
     // EmailStr lato backend (422) → niente redirect al checkout.
     const email = localStorage.getItem("ciak_lead_email") || null;
+    const name = localStorage.getItem("ciak_lead_name") || null;
     try {
       const res = await fetch("/api/checkout/create-session", {
         method: "POST",
@@ -36,6 +37,7 @@ export function CiakBlueprint() {
           product: "ciak_blueprint",
           source: "ciak",
           email,
+          name,
           origin_url: window.location.origin,
         }),
       });
@@ -82,7 +84,7 @@ export function CiakBlueprint() {
           </button>
           {error && <p className="text-yellow-400 text-sm mt-3">{error}</p>}
           <p className="text-xs text-slate-400 mt-4 max-w-xl leading-relaxed">
-            Dopo il pagamento riceverai l'accesso alle 8 Domande Ciak e potrai prenotare la sessione strategica.
+            Dopo il pagamento potrai completare i passaggi operativi e prenotare la sessione strategica con Claudio.
           </p>
         </div>
       </section>

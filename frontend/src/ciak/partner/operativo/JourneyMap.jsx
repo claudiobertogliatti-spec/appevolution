@@ -181,7 +181,7 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
                 Questa parte si apre dopo che sei online: è il lavoro dei prossimi 12 mesi (autorevolezza, community, dati).
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
                 {stepIds.map((sid) => {
                   const step = stepById(sid);
                   if (!step) return null;

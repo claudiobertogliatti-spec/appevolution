@@ -3,9 +3,8 @@
  *
  * Flusso (riordinato 2026-05-27 con Claudio):
  *   STATO 1 — GATE FORM: nome + email + telefono OBBLIGATORI per sbloccare
- *   STATO 2 — CHECKPOINT 5 domande SKIPPABILE (statistiche su chi accede)
- *   STATO 3 — VIDEO masterclass (YouTube)
- *   STATO 4 — POST-VIDEO: CTA "Scopri da dove partire" → 8 Domande (/diagnostica)
+ *   STATO 2 — VIDEO masterclass (YouTube)
+ *   STATO 3 — POST-VIDEO: CTA "Scopri da dove partire" → 8 Domande (/diagnostica)
  *
  * Le 8 Domande Ciak (lead magnet approfondito che classifica → CTA €67) sono
  * ora DOPO la masterclass, non più dopo il pagamento.
@@ -16,7 +15,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
-import { CheckpointStrategico } from "../components/CheckpointStrategico";
 
 // Masterclass Ciak definitiva — video prodotto e approvato da Claudio (14/5/2026).
 const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
@@ -56,7 +54,7 @@ export function CiakMasterclass() {
   const [telefono, setTelefono] = useState(localStorage.getItem("ciak_lead_phone") || "");
   const [error, setError] = useState(null);
 
-  // phase: "form" | "checkpoint" | "video"
+  // phase: "form" | "video"
   const [phase, setPhase] = useState(hasGate() ? "video" : "form");
   // CTA 8 domande disponibile (a fine video o timer fallback)
   const [ctaAvailable, setCtaAvailable] = useState(false);
@@ -172,11 +170,6 @@ export function CiakMasterclass() {
     setEmail(e);
     setTelefono(tel);
     setError(null);
-    setPhase("checkpoint");
-  };
-
-  // Checkpoint completato o saltato → sblocca il video
-  const onCheckpointDone = () => {
     setPhase("video");
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -227,8 +220,7 @@ export function CiakMasterclass() {
               <div className="mt-3 mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
                 <p className="text-sm text-slate-800 leading-relaxed">
                   <strong className="text-slate-900">Inserisci dati reali.</strong> Subito dopo ti
-                  proponiamo un breve Checkpoint Strategico (puoi anche saltarlo) e poi accedi
-                  alla masterclass. Con dati finti non possiamo raggiungerti e il follow-up resta a metà.
+                  portiamo alla masterclass. Con dati finti non possiamo raggiungerti e il follow-up resta a metà.
                 </p>
               </div>
 
@@ -277,14 +269,7 @@ export function CiakMasterclass() {
         </section>
       )}
 
-      {/* STATO 2 — CHECKPOINT GATE (skippabile) */}
-      {phase === "checkpoint" && (
-        <div className="bg-slate-900 pt-8">
-          <CheckpointStrategico source="masterclass_gate" gateMode onDone={onCheckpointDone} />
-        </div>
-      )}
-
-      {/* STATO 3 — VIDEO + STATO 4 — CTA 8 DOMANDE */}
+      {/* STATO 2 — VIDEO + STATO 3 — CTA 8 DOMANDE */}
       {phase === "video" && (
         <>
           <section className="bg-slate-900 text-white">
@@ -293,8 +278,8 @@ export function CiakMasterclass() {
                 Masterclass Ciak
               </p>
               <p className="text-slate-300 mb-6 leading-relaxed max-w-3xl">
-                Quando avrai finito di guardare, ti proponiamo le 8 Domande Ciak per capire
-                da dove partire concretamente.
+                Quando avrai finito di guardare, ti proponiamo le 8 Domande Ciak: in pochi minuti
+                scopri il tuo stato attuale e capisci quale passo ha senso fare prima di investire.
               </p>
               <div className="bg-black rounded-2xl overflow-hidden aspect-video w-full">
                 {MASTERCLASS_YOUTUBE_ID === "REPLACE_ME" ? (
@@ -324,11 +309,11 @@ export function CiakMasterclass() {
                   Prossimo passo
                 </p>
                 <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
-                  Scopri da dove partire
+                  Scopri il tuo stato attuale
                 </h2>
                 <p className="text-slate-600 leading-relaxed mb-8 max-w-xl mx-auto">
-                  Rispondi alle 8 Domande Ciak (2-3 minuti). Ti restituiamo una lettura precisa
-                  del tuo stato e il prossimo passo concreto per la tua attività.
+                  Rispondi alle 8 Domande Ciak (2-3 minuti). Prima di pensare a strumenti,
+                  campagne o percorsi più grandi, capisci dove sei e da quale direzione partire.
                 </p>
                 <Link
                   to="/diagnostica"
@@ -345,7 +330,7 @@ export function CiakMasterclass() {
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-400 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] z-40">
               <div className="mx-auto max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-sm md:text-base text-slate-700 leading-snug">
-                  Hai visto abbastanza per capire da dove partire.
+                  Hai visto abbastanza: ora scopri il tuo stato attuale.
                 </p>
                 <Link
                   to="/diagnostica"

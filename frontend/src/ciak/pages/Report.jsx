@@ -95,40 +95,49 @@ export function CiakReport() {
           <div className="mt-12 p-6 md:p-8 rounded-2xl bg-slate-900 text-white">
             {stateCfg.cta === "secondary" && (
               <>
-                <h3 className="text-xl font-semibold mb-2">Prima di tutto: prenditi tempo.</h3>
+                <h3 className="text-xl font-semibold mb-2">Prima di tutto: non correre.</h3>
                 <p className="text-slate-300 text-sm mb-5">
-                  Hai bisogno di costruire qualche fondamenta in più prima di pensare a vendere online. Non c'è
-                  fretta — anzi, è meglio così.
+                  Il tuo stato attuale dice una cosa importante: prima di pensare a strumenti,
+                  campagne, agenzie o investimenti più grandi, serve capire esattamente dove andare.
                 </p>
-                <p className="text-slate-400 text-xs">
-                  Se vuoi confrontarti comunque su come iniziare,{" "}
-                  <a href="/analisi" className="text-yellow-400 underline">richiedi l'Analisi Strategica €67</a>.
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Il passaggio corretto ora è il{" "}
+                  <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_1" className="text-yellow-400 underline">Ciak Blueprint da €67</a>:
+                  una sessione strategica con Claudio, analisi del tuo mercato e roadmap operativa
+                  per partire con lucidità.
                 </p>
               </>
             )}
             {stateCfg.cta === "primary" && (
               <>
-                <h3 className="text-xl font-semibold mb-2">Il prossimo passo è chiaro.</h3>
+                <h3 className="text-xl font-semibold mb-2">Hai il tuo stato attuale. Ora serve una direzione.</h3>
                 <p className="text-slate-300 text-sm mb-5">
-                  Hai i fondamentali. Ora serve un'analisi strategica concreta: cosa fare nei prossimi 90 giorni e
-                  cosa evitare. Una call di 90 minuti con Claudio + PDF Analisi consegnato in 72 ore.
+                  Prima di fare qualsiasi investimento più grande, fermati un attimo. Il Blueprint
+                  serve proprio a questo: capire cosa fare nel tuo caso specifico, cosa evitare e
+                  quali priorità seguire nei prossimi mesi.
                 </p>
-                <a href="/analisi" className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
-                  Acquista l'Analisi Strategica €67 →
+                <a href={`/ciak-blueprint?utm_source=report&utm_campaign=stato_${report.stato}`} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
+                  Richiedi il tuo Ciak Blueprint →
                 </a>
+                <p className="text-xs text-slate-400 mt-4 leading-relaxed">
+                  €67 IVA inclusa. Prima capisci dove andare, poi decidi se e come accelerare.
+                </p>
               </>
             )}
             {stateCfg.cta === "priority" && (
               <>
-                <h3 className="text-xl font-semibold mb-2">Sei pronto. È il momento di accelerare.</h3>
+                <h3 className="text-xl font-semibold mb-2">Hai potenziale. Proprio per questo serve precisione.</h3>
                 <p className="text-slate-300 text-sm mb-5">
-                  Il tuo profilo è raro: hai competenza, esperienza, idea chiara e mercato verificato. Ti riserviamo
-                  un'Analisi Strategica prioritaria — 90 minuti dedicati con Claudio per uscirne con il piano operativo
-                  dei prossimi 90 giorni.
+                  Il tuo profilo mostra segnali interessanti, ma accelerare senza una roadmap rischia
+                  di disperdere energia e budget. Il Blueprint ti aiuta a capire dove concentrare
+                  attenzione, investimenti e prossime azioni.
                 </p>
-                <a href="/analisi" className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
-                  Accedi all'Analisi Strategica prioritaria €67 →
+                <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_4" className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
+                  Richiedi il Blueprint prioritario €67 →
                 </a>
+                <p className="text-xs text-slate-400 mt-4 leading-relaxed">
+                  Sessione strategica di 60 minuti, analisi del mercato e roadmap operativa personalizzata.
+                </p>
               </>
             )}
           </div>

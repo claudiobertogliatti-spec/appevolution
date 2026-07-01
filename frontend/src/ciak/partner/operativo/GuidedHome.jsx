@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import JourneyMap from "./JourneyMap";
 import { AGENTS, getAgentForStep } from "./agents";
 import { PHASE_CONFIG } from "./phases";
+import ProjectBookCard from "../rewards/ProjectBookCard";
 
 function firstName(name) {
   return (name || "").split(" ")[0] || "";
@@ -28,6 +29,7 @@ function phaseLabel(step) {
 
 export default function GuidedHome({
   state,
+  partnerId,
   partnerName,
   onOpenStep,
   onAsk,
@@ -45,7 +47,7 @@ export default function GuidedHome({
     <div className="space-y-6">
       <section className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-5">
         <div className="bg-white border border-yellow-200 rounded-xl overflow-hidden shadow-[0_0_26px_rgba(250,204,21,0.16)]">
-          <div className="aspect-[4/5] bg-slate-100">
+          <div className="aspect-[16/10] sm:aspect-[4/5] bg-slate-100">
             <img
               src={agent.avatar}
               alt={agent.name}
@@ -60,7 +62,7 @@ export default function GuidedHome({
             <p className="text-sm font-semibold text-blue-700 mt-0.5">{agent.role}</p>
             <p className="text-sm text-slate-600 leading-relaxed mt-3">
               {nome ? `Ciao ${nome}, ` : ""}
-              oggi ti accompagno nel prossimo passo. Fai una cosa alla volta: il metodo e gia ordinato per te.
+              oggi ti accompagno nel prossimo passo. Fai una cosa alla volta: il metodo è già ordinato per te.
             </p>
             <button
               onClick={onAsk}
@@ -79,12 +81,12 @@ export default function GuidedHome({
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   {phaseLabel(current)} · prossimo passo
                 </p>
-                <h2 className="text-3xl font-semibold text-slate-900 mt-1 leading-tight">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 mt-1 leading-tight">
                   {currentTitle}
                 </h2>
                 <p className="text-sm text-slate-600 leading-relaxed mt-3 max-w-2xl">
-                  Qui trovi solo l'azione piu importante adesso. Il resto rimane ordinato nel percorso,
-                  cosi non devi cercare tra chat, file e appunti.
+                  Qui trovi solo l'azione più importante adesso. Il resto rimane ordinato nel percorso,
+                  così non devi cercare tra chat, file e appunti.
                 </p>
               </div>
               <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 min-w-[150px]">
@@ -116,7 +118,7 @@ export default function GuidedHome({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white border border-slate-200 rounded-xl p-4">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 mb-3" />
               <p className="text-sm font-semibold text-slate-900">Metodo chiaro</p>
@@ -144,7 +146,7 @@ export default function GuidedHome({
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-blue-700 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-slate-900">Vuoi andare piu veloce?</p>
+                <p className="text-sm font-semibold text-slate-900">Vuoi andare più veloce?</p>
                 <p className="text-xs text-slate-600 leading-relaxed mt-1">
                   I servizi extra sono facoltativi: li usi solo quando vuoi accelerare una parte precisa.
                 </p>
@@ -160,6 +162,8 @@ export default function GuidedHome({
           </div>
         </div>
       </section>
+
+      <ProjectBookCard partnerId={partnerId} state={state} />
 
       <JourneyMap state={state} partnerName={partnerName} onOpenStep={onOpenStep} />
     </div>

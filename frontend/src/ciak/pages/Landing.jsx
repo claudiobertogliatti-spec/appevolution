@@ -22,6 +22,7 @@ export function CiakLanding() {
   const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [videoMuted, setVideoMuted] = useState(true);
@@ -41,6 +42,7 @@ export function CiakLanding() {
   const captureEmail = async () => {
     const n = nome.trim();
     const e = email.trim().toLowerCase();
+    const tel = telefono.trim();
     if (n.length < 2) {
       setError("Inserisci il tuo nome");
       return;
@@ -51,7 +53,12 @@ export function CiakLanding() {
     }
     const domain = e.split("@")[1];
     if (FAKE_DOMAINS.has(domain)) {
-      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero — il Checkpoint te lo mandiamo lì.");
+      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero: ti servirà per ricevere il follow-up corretto.");
+      return;
+    }
+    const digits = tel.replace(/[^\d]/g, "");
+    if (digits.length < 6) {
+      setError("Inserisci un numero di telefono valido");
       return;
     }
     setSubmitting(true);
@@ -64,6 +71,7 @@ export function CiakLanding() {
         body: JSON.stringify({
           email: e,
           nome: n,
+          telefono: tel,
           source: "landing_hero",
           utm_source: qs.get("utm_source"),
           utm_medium: qs.get("utm_medium"),
@@ -75,6 +83,7 @@ export function CiakLanding() {
       }).catch(() => null);
       localStorage.setItem("ciak_lead_email", e);
       localStorage.setItem("ciak_lead_name", n);
+      localStorage.setItem("ciak_lead_phone", tel);
       // Mantengo "ciak_lead_nome" per retrocompatibilità con eventuali letture
       // legacy. Ora la chiave canonica è "ciak_lead_name" (coerente con
       // Masterclass.jsx).
@@ -137,16 +146,16 @@ export function CiakLanding() {
           </h1>
 
           <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-              placeholder="Il tuo nome"
-              autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2 border border-gray-200"
-            />
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                placeholder="Il tuo nome"
+                autoComplete="given-name"
+                className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
+              />
               <input
                 type="email"
                 value={email}
@@ -154,6 +163,17 @@ export function CiakLanding() {
                 onKeyDown={(e) => e.key === "Enter" && captureEmail()}
                 placeholder="La tua email"
                 autoComplete="email"
+                className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
+              />
+            </div>
+            <div className="mt-2 flex flex-col sm:flex-row gap-2">
+              <input
+                type="tel"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                placeholder="Il tuo telefono"
+                autoComplete="tel"
                 className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
               />
               <button
@@ -166,7 +186,7 @@ export function CiakLanding() {
             </div>
             {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
             <p className="text-xs text-slate-500 mt-3 leading-relaxed text-center">
-              Inserisci nome ed email reali: il Checkpoint Strategico ti arriva lì.
+              Inserisci dati reali: dopo la masterclass ti guidiamo alle 8 Domande Ciak e al tuo stato attuale.
             </p>
           </div>
 
@@ -178,16 +198,15 @@ export function CiakLanding() {
             </p>
           </div>
 
-          {/* Come ricevi il bonus Checkpoint Strategico */}
+          {/* Come ricevi il bonus 8 Domande Ciak */}
           <div className="mt-8 max-w-4xl rounded-2xl border border-white/12 bg-slate-950/82 p-5 text-left text-white shadow-xl shadow-slate-950/20 backdrop-blur md:p-6">
             <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
-              Incluso — Bonus Checkpoint Strategico
+              Incluso — 8 Domande Ciak
             </p>
             <p className="text-slate-300 leading-relaxed text-sm md:text-base max-w-4xl">
-              Al termine della masterclass si sblocca il <strong className="text-white">Checkpoint
-              Strategico</strong>: 5 domande che ti restituiscono subito il tuo Stato Strategico
-              Attuale. Compare direttamente nella pagina della masterclass alla fine del video e
-              ricevi poi via email il riepilogo con il passaggio successivo coerente.
+              Al termine della masterclass si sbloccano le <strong className="text-white">8 Domande
+              Ciak</strong>: un passaggio rapido che ti restituisce il tuo Stato Strategico Attuale
+              e ti aiuta a capire da dove ha senso partire prima di investire altro tempo o denaro.
             </p>
           </div>
         </div>
@@ -252,7 +271,7 @@ export function CiakLanding() {
               {
                 num: "03",
                 title: "Decidi",
-                text: "Arrivi alla masterclass con un Checkpoint Strategico e un passaggio successivo coerente con la tua situazione.",
+                text: "Dopo la masterclass rispondi alle 8 Domande Ciak, scopri il tuo stato attuale e scegli il prossimo passo con lucidità.",
               },
             ].map((step) => (
               <div key={step.num} className="rounded-2xl border border-gray-200 bg-white p-6">
@@ -292,7 +311,7 @@ export function CiakLanding() {
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
                 30 minuti per vedere i 5 errori che bloccano la crescita digitale dei professionisti
-                e sbloccare il tuo Checkpoint Strategico.
+                e sbloccare le 8 Domande Ciak.
               </p>
             </div>
             <div className="bg-slate-900 rounded-2xl p-7 border border-slate-900 shadow-xl shadow-slate-900/15">
@@ -344,7 +363,7 @@ export function CiakLanding() {
                 autoComplete="given-name"
                 className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
               />
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <input
                   type="email"
                   value={email}
@@ -352,19 +371,30 @@ export function CiakLanding() {
                   onKeyDown={(e) => e.key === "Enter" && captureEmail()}
                   placeholder="La tua email"
                   autoComplete="email"
-                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
                 />
+                <input
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                  placeholder="Il tuo telefono"
+                  autoComplete="tel"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+                />
+              </div>
+              <div className="mt-2">
                 <button
                   onClick={captureEmail}
                   disabled={submitting}
-                  className="rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300 disabled:opacity-50 sm:whitespace-nowrap"
+                  className="w-full rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300 disabled:opacity-50"
                 >
                   {submitting ? "..." : "Accedi alla masterclass"}
                 </button>
               </div>
               {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
               <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+                Inserisci dati reali — dopo la masterclass ti guidiamo alle 8 Domande Ciak.
               </p>
             </div>
           </div>

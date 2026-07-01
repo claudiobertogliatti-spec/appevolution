@@ -224,12 +224,12 @@ export function PartnerFilesPage({ partner }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-6 sm:mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-4 bg-yellow-50 text-yellow-700 border border-yellow-200">
           <FolderOpen className="w-4 h-4" />
           Materiali
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">
+        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-2">
           Tutto quello che ti serve per proseguire
         </h1>
         <p className="text-sm text-slate-400 max-w-lg mx-auto">
@@ -258,13 +258,13 @@ export function PartnerFilesPage({ partner }) {
       </div>
 
       {/* Upload Section */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-yellow-500" />
           Carica nuovi materiali
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {/* Video Upload */}
           <div
             className="border-2 border-dashed border-red-200 rounded-xl p-4 text-center hover:border-red-400 cursor-pointer transition-colors bg-red-50/30"
