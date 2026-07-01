@@ -125,3 +125,12 @@ commit SHA(s)
 
 concerns/questions
 - Build passes, but existing unrelated ESLint hook dependency warnings remain in admin/partner areas.
+
+## Fix Report
+- Changed files:
+  - `frontend/src/ciak/client/pages/StartPage.jsx`
+- Build summary:
+  - `npm run build` from `frontend` completed successfully.
+  - Build emitted the same pre-existing ESLint hook dependency warnings in admin/partner pages; no new build errors.
+- Commit SHA:
+  - `84eedcebf38bdac6e272e1e7fc453e00ff07a2aa`
