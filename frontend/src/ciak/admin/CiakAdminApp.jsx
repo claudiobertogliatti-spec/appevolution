@@ -99,6 +99,7 @@ const NAV = [
     id: "acquisizione",
     label: "Acquisizione",
     agente: "Andrea",
+    to: "/admin/pipeline",
     landing: true,
     hideFor: ["antonella"],
     pages: [
@@ -205,7 +206,8 @@ function sectionLandingFor(pathname) {
   for (const macro of NAV) {
     if (!macro.landing) continue;
     if (macroPages(macro).some((p) => pageOwns(pathname, p))) {
-      return { to: `/admin/reparto/${macro.id}`, label: macro.label };
+      if (macro.to && pathname === macro.to) return null;
+      return { to: macro.to || `/admin/reparto/${macro.id}`, label: macro.label };
     }
   }
   return null;
