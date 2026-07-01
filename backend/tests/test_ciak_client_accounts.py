@@ -1,10 +1,53 @@
 import pytest
 
 from services.ciak_client_accounts import (
+    create_magic_login_token,
     default_start_progress,
+    ensure_client_for_blueprint,
     offer_for_score,
     partnership_price_for_client,
+    verify_magic_login_token,
 )
+
+pytestmark = pytest.mark.unit
+
+
+class FakeCollection:
+    def __init__(self, docs=None):
+        self.docs = [dict(doc) for doc in (docs or [])]
+
+    async def find_one(self, query, projection=None):
+        for doc in self.docs:
+            if all(doc.get(key) == value for key, value in query.items()):
+                return self._project(doc, projection)
+        return None
+
+    async def insert_one(self, doc):
+        self.docs.append(dict(doc))
+        return None
+
+    async def update_one(self, query, update):
+        for doc in self.docs:
+            if all(doc.get(key) == value for key, value in query.items()):
+                for key, value in update.get("$set", {}).items():
+                    doc[key] = value
+                return None
+        return None
+
+    @staticmethod
+    def _project(doc, projection):
+        data = dict(doc)
+        if projection and projection.get("_id") == 0:
+            data.pop("_id", None)
+        return data
+
+
+class FakeDB:
+    def __init__(self, diagnostic_sessions=None, ciak_analisi=None, ciak_clients=None):
+        self.diagnostic_sessions = FakeCollection(diagnostic_sessions)
+        self.ciak_analisi = FakeCollection(ciak_analisi)
+        self.ciak_clients = FakeCollection(ciak_clients)
+        self.ciak_client_login_tokens = FakeCollection()
 
 
 def test_offer_for_score_routes_below_50_to_start():
@@ -45,3 +88,100 @@ def test_default_start_progress_has_expected_services():
         "Calendario contenuti",
         "Revisione finale e readiness partnership",
     ]
+
+
+@pytest.mark.asyncio
+async def test_ensure_client_for_blueprint_uses_persisted_diagnostic_and_analysis_data():
+    db = FakeDB(
+        diagnostic_sessions=[
+            {
+                "session_token": "tok-1",
+                "user_email": "persisted@example.com",
+                "user_name": "Persisted Name",
+                "completed_at": "2026-06-30T10:00:00+00:00",
+                "current_state": "report_generated",
+                "responses": {"q1_competenza": "Video strategy"},
+                "report": {"headline": "Strong fit"},
+                "tracking": {"campaign": "summer"},
+                "scoring": {"score_percentuale": 72},
+            }
+        ],
+        ciak_analisi=[
+            {
+                "session_token": "tok-1",
+                "stato": "inviata",
+                "generated_at": "2026-06-30T11:00:00+00:00",
+                "bozza_inviata_at": "2026-06-30T12:00:00+00:00",
+                "analisi_definitiva": {"titolo": "Analisi Ciak"},
+                "script_call": {"secret": True},
+            }
+        ],
+    )
+
+    client = await ensure_client_for_blueprint(
+        db,
+        {
+            "session_token": "tok-1",
+            "user_email": "fallback@example.com",
+            "user_name": "Fallback Name",
+            "scoring": {"score_percentuale": 15},
+        },
+    )
+
+    assert client["email"] == "persisted@example.com"
+    assert client["name"] == "Persisted Name"
+    assert client["blueprint_score"] == 72
+    assert client["recommended_offer"] == "partnership"
+    assert client["diagnostic_current_state"] == "report_generated"
+    assert client["diagnostic_report"] == {"headline": "Strong fit"}
+    assert client["diagnostic_responses"] == {"q1_competenza": "Video strategy"}
+    assert client["diagnostic_tracking"] == {"campaign": "summer"}
+    assert client["analysis_status"] == "inviata"
+    assert client["analysis_title"] == "Analisi Ciak"
+    assert client["analysis_publicly_available"] is True
+    assert "script_call" not in client
+
+
+@pytest.mark.asyncio
+async def test_ensure_client_for_blueprint_updates_existing_client_by_email():
+    db = FakeDB(
+        diagnostic_sessions=[
+            {
+                "session_token": "tok-2",
+                "user_email": "client@example.com",
+                "user_name": "Updated Client",
+                "responses": {"q1_competenza": "Branding"},
+                "scoring": {"score_percentuale": 45},
+            }
+        ],
+        ciak_clients=[
+            {
+                "id": "client-1",
+                "email": "client@example.com",
+                "name": "Original Client",
+                "access_level": "cliente_blueprint",
+                "start_credit_amount": 0,
+                "created_at": "2026-06-01T09:00:00+00:00",
+            }
+        ],
+    )
+
+    client = await ensure_client_for_blueprint(db, {"session_token": "tok-2"})
+
+    assert client["id"] == "client-1"
+    assert len(db.ciak_clients.docs) == 1
+    assert client["name"] == "Updated Client"
+    assert client["diagnostic_responses"] == {"q1_competenza": "Branding"}
+    assert client["recommended_offer"] == "ciak_start"
+
+
+@pytest.mark.asyncio
+async def test_verify_magic_login_token_leaves_token_unused_when_client_missing():
+    db = FakeDB()
+    token_data = await create_magic_login_token(db, "missing-client", "user@example.com")
+
+    with pytest.raises(ValueError, match="cliente non trovato"):
+        await verify_magic_login_token(db, token_data["token"])
+
+    stored = db.ciak_client_login_tokens.docs[0]
+    assert stored["used_at"] is None

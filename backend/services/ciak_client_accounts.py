@@ -78,21 +78,74 @@ def _score_from_session(session: dict[str, Any]) -> int:
     return 0
 
 
+def _session_lookup_tokens(session: dict[str, Any]) -> list[str]:
+    tokens: list[str] = []
+    for key in ("session_token", "diagnostic_session_token", "token"):
+        value = (session.get(key) or "").strip()
+        if value and value not in tokens:
+            tokens.append(value)
+    return tokens
+
+
+async def _load_persisted_session(db, session: dict[str, Any]) -> dict[str, Any]:
+    for token in _session_lookup_tokens(session):
+        persisted = await db.diagnostic_sessions.find_one({"session_token": token})
+        if persisted:
+            return persisted
+    return {}
+
+
+def _merge_session_data(session: dict[str, Any], persisted: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(session)
+    for key, value in persisted.items():
+        if value is not None:
+            merged[key] = value
+    return merged
+
+
+def _analysis_snapshot(analysis: dict[str, Any] | None) -> dict[str, Any]:
+    if not analysis:
+        return {}
+    definitiva = analysis.get("analisi_definitiva") or {}
+    return {
+        "analysis_status": analysis.get("stato"),
+        "analysis_generated_at": analysis.get("generated_at"),
+        "analysis_delivered_at": analysis.get("bozza_inviata_at"),
+        "analysis_title": definitiva.get("titolo"),
+        "analysis_publicly_available": analysis.get("stato") == "inviata",
+        "analysis_session_token": analysis.get("session_token"),
+    }
+
+
 async def ensure_client_for_blueprint(db, session: dict[str, Any]) -> dict[str, Any]:
-    email = (session.get("user_email") or "").strip().lower()
+    persisted = await _load_persisted_session(db, session)
+    merged_session = _merge_session_data(session, persisted)
+    email = (merged_session.get("user_email") or "").strip().lower()
     if not email:
         raise ValueError("sessione senza email")
-    score = _score_from_session(session)
+    score = _score_from_session(merged_session)
+    session_token = (
+        merged_session.get("session_token")
+        or session.get("session_token")
+        or session.get("diagnostic_session_token")
+    )
+    analysis = await db.ciak_analisi.find_one({"session_token": session_token}) if session_token else None
     existing = await db.ciak_clients.find_one({"email": email})
     base_update = {
         "email": email,
-        "name": session.get("user_name"),
-        "session_token": session.get("session_token"),
-        "diagnostic_session_token": session.get("session_token"),
+        "name": merged_session.get("user_name"),
+        "session_token": session_token,
+        "diagnostic_session_token": session_token,
         "blueprint_score": score,
         "recommended_offer": offer_for_score(score),
         "blueprint_amount_cents": BLUEPRINT_AMOUNT_CENTS,
+        "diagnostic_completed_at": merged_session.get("completed_at"),
+        "diagnostic_current_state": merged_session.get("current_state"),
+        "diagnostic_responses": merged_session.get("responses") or {},
+        "diagnostic_report": merged_session.get("report"),
+        "diagnostic_tracking": merged_session.get("tracking") or {},
         "updated_at": _now_iso(),
+        **_analysis_snapshot(analysis),
     }
     if existing:
         await db.ciak_clients.update_one({"id": existing["id"]}, {"$set": base_update})
@@ -134,11 +187,11 @@ async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     expires_at = datetime.fromisoformat(doc["expires_at"].replace("Z", "+00:00"))
     if expires_at < datetime.now(timezone.utc):
         raise ValueError("token scaduto")
+    client = await db.ciak_clients.find_one({"id": doc["client_id"]}, {"_id": 0})
+    if not client:
+        raise ValueError("cliente non trovato")
     await db.ciak_client_login_tokens.update_one(
         {"id": doc["id"]},
         {"$set": {"used_at": _now_iso()}},
     )
-    client = await db.ciak_clients.find_one({"id": doc["client_id"]}, {"_id": 0})
-    if not client:
-        raise ValueError("cliente non trovato")
     return client
