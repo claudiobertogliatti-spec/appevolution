@@ -12,8 +12,9 @@
  *  3. Tre livelli, una sola direzione (Masterclass → Ciak Blueprint → Partnership)
  *  4. CTA finale
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Volume2, VolumeX } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
@@ -23,6 +24,8 @@ export function CiakLanding() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [videoMuted, setVideoMuted] = useState(true);
+  const videoRef = useRef(null);
 
   // Domini palesemente non-deliverable: Systeme.io li rifiuta con 422 e il
   // contatto non viene mai creato → nessuna sequenza email parte. Blocchiamo
@@ -83,23 +86,57 @@ export function CiakLanding() {
     }
   };
 
+  const toggleVideoAudio = () => {
+    setVideoMuted((current) => {
+      const next = !current;
+      if (videoRef.current) {
+        videoRef.current.muted = next;
+        if (!next) {
+          videoRef.current.play().catch(() => null);
+        }
+      }
+      return next;
+    });
+  };
+
   return (
     <>
       <CiakHeader />
 
       {/* SCHERMATA 1 — HERO */}
-      <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-4xl px-6 pt-20 pb-24">
-          <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
-            Trasformare una competenza professionale in un modello digitale sostenibile
-            richiede una direzione strategica, non solo presenza online.
-          </h1>
-          <p className="text-base md:text-lg text-slate-300 max-w-2xl mb-10 leading-relaxed">
-            Ciak aiuta consulenti e professionisti a capire quale direzione strategica
-            dare al proprio progetto digitale prima di investire in implementazione.
-          </p>
+      <section className="relative min-h-[calc(100vh-7rem)] overflow-hidden bg-slate-950 text-white">
+        <video
+          ref={videoRef}
+          src="/ciak/ciak-spot.mp4"
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          loop
+          muted={videoMuted}
+          playsInline
+          preload="metadata"
+          aria-label="Spot Ciak.io"
+        />
+        <div className="absolute inset-0 bg-slate-950/82" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.54)_0%,rgba(255,255,255,0.78)_38%,rgba(15,23,42,0.82)_100%)]" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.20),transparent_36%)]" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={toggleVideoAudio}
+          className="absolute right-5 top-5 z-20 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur hover:bg-yellow-400 transition"
+          aria-label={videoMuted ? "Attiva audio video" : "Disattiva audio video"}
+        >
+          {videoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
 
-          <div className="max-w-md">
+        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-7rem)] max-w-6xl flex-col items-center justify-center px-6 py-16 text-center">
+          <p className="mb-5 inline-flex items-center rounded-full border border-yellow-300/70 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-yellow-300 backdrop-blur">
+            Ciak.io
+          </p>
+          <h1 className="max-w-6xl text-5xl font-semibold leading-[1.04] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-6xl lg:text-6xl">
+            Il Sistema AI che progetta la tua crescita digitale.
+          </h1>
+
+          <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
             <input
               type="text"
               value={nome}
@@ -107,7 +144,7 @@ export function CiakLanding() {
               onKeyDown={(e) => e.key === "Enter" && captureEmail()}
               placeholder="Il tuo nome"
               autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
+              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2 border border-gray-200"
             />
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -117,52 +154,40 @@ export function CiakLanding() {
                 onKeyDown={(e) => e.key === "Enter" && captureEmail()}
                 placeholder="La tua email"
                 autoComplete="email"
-                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
+                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
               />
               <button
                 onClick={captureEmail}
                 disabled={submitting}
-                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
+                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition whitespace-nowrap"
               >
                 {submitting ? "..." : "Accedi alla masterclass"}
               </button>
             </div>
-            {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
-
-            {/* Disclaimer dati reali — il Checkpoint arriva via email, dati finti = flusso muto */}
-            <div className="mt-4 p-3 rounded-lg bg-slate-800/60 border border-yellow-400/30">
-              <p className="text-sm text-slate-200 leading-relaxed">
-                <strong className="text-yellow-400">Inserisci nome ed email reali.</strong> Alla fine
-                della masterclass ti arriva il Checkpoint Strategico con il tuo punteggio e lo stato
-                esatto della tua attività. Con dati finti non possiamo raggiungerti.
-              </p>
-            </div>
-
-            <p className="text-xs text-slate-400 mt-4 opacity-80 leading-relaxed">
-              30 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
+            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+            <p className="text-xs text-slate-500 mt-3 leading-relaxed text-center">
+              Inserisci nome ed email reali: il Checkpoint Strategico ti arriva lì.
             </p>
           </div>
 
-          {/* Cosa scoprirai nella masterclass */}
-          <div className="max-w-2xl mt-10 border-l-2 border-yellow-400 pl-5">
-            <p className="text-slate-300 leading-relaxed">
-              Nella masterclass di <strong className="text-white">30 minuti</strong> scoprirai i{" "}
-              <strong className="text-white">5 errori killer</strong> che bloccano la crescita di
-              ogni professionista — e, soprattutto, come evitarli.
+          <div className="mt-7 max-w-5xl rounded-2xl border border-[#0B2D6B]/85 bg-[#071A3D]/60 px-5 py-5 text-center text-white shadow-[0_0_46px_rgba(11,45,107,0.64)] ring-1 ring-blue-300/10 backdrop-blur md:px-8 md:py-6">
+            <p className="text-base font-medium leading-relaxed text-white/92 drop-shadow md:text-lg">
+              <span className="block md:whitespace-nowrap">Scopri i <strong className="text-yellow-300">5 errori killer</strong> (e come evitarli)</span>
+              <span className="block md:whitespace-nowrap">che bloccano la crescita di molti professionisti,</span>
+              <span className="block md:whitespace-nowrap">prima di investire tempo e denaro nella direzione sbagliata.</span>
             </p>
           </div>
 
           {/* Come ricevi il bonus Checkpoint Strategico */}
-          <div className="max-w-2xl mt-6 bg-slate-800/60 rounded-2xl p-6">
+          <div className="mt-8 max-w-4xl rounded-2xl border border-white/12 bg-slate-950/82 p-5 text-left text-white shadow-xl shadow-slate-950/20 backdrop-blur md:p-6">
             <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
               Incluso — Bonus Checkpoint Strategico
             </p>
-            <p className="text-slate-300 leading-relaxed text-sm md:text-base">
+            <p className="text-slate-300 leading-relaxed text-sm md:text-base max-w-4xl">
               Al termine della masterclass si sblocca il <strong className="text-white">Checkpoint
               Strategico</strong>: 5 domande che ti restituiscono subito il tuo Stato Strategico
-              Attuale. Compare direttamente nella pagina della masterclass alla fine del video —
-              ricevi poi via email il riepilogo del tuo punteggio e dello stato in cui si trova
-              la tua attività, con il passaggio successivo coerente. È gratuito e incluso per tutti.
+              Attuale. Compare direttamente nella pagina della masterclass alla fine del video e
+              ricevi poi via email il riepilogo con il passaggio successivo coerente.
             </p>
           </div>
         </div>
@@ -170,40 +195,95 @@ export function CiakLanding() {
 
       {/* SCHERMATA 2 — IL PROBLEMA REALE */}
       <section className="bg-white">
-        <div className="mx-auto max-w-3xl px-6 py-20">
-          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-8 leading-tight">
-            Il problema reale dei professionisti online
-          </h2>
-          <div className="space-y-5 text-slate-700 leading-relaxed text-base md:text-lg">
-            <p>
-              Negli ultimi anni abbiamo osservato la stessa situazione ripetersi continuamente:
-              professionisti competenti, riconosciuti nel proprio settore, che provano a portare
-              la loro competenza online e si trovano a investire tempo e denaro senza una direzione
-              strategica chiara.
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="grid gap-10 md:grid-cols-[0.85fr_1.15fr] md:items-start">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
+                Il punto vero
+              </p>
+              <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
+                <span className="block">Non ti manca </span>
+                <span className="block">presenza online, </span>
+                <span className="block">ti manca una direzione.</span>
+              </h2>
+            </div>
+            <div className="space-y-4 text-slate-700 leading-relaxed text-base md:text-lg">
+              <p>
+                Molti professionisti provano a portare online la propria competenza partendo da
+                contenuti, corsi, advertising o strumenti. Ma se manca una struttura, ogni scelta
+                diventa un tentativo isolato.
+              </p>
+              <p>
+                Si pubblica senza sapere a chi parlare. Si costruisce un'offerta senza validarla.
+                Si investe in traffico prima di chiarire perché un cliente dovrebbe scegliere te.
+              </p>
+              <p className="rounded-2xl border border-gray-200 bg-gray-50 p-5 font-medium text-slate-900">
+                Ciak nasce per leggere la situazione reale, individuare i punti deboli e trasformarli
+                in una direzione strategica concreta.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SCHERMATA 3 — COME FUNZIONA */}
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
+              Metodo Ciak
             </p>
-            <p>
-              Il risultato non è quasi mai un problema di esecuzione. È un problema di struttura.
-            </p>
-            <p>
-              Si costruiscono contenuti senza un'offerta definita. Si lanciano corsi senza una validazione
-              del mercato. Si paga per traffico senza prima aver chiarito a chi parlare e perché.
-            </p>
-            <p className="text-slate-900 font-medium">
-              Ciak nasce per affrontare questo problema con lucidità — non con promesse veloci,
-              ma attraverso una lettura strategica della situazione reale.
-            </p>
+            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
+              Prima diagnosi. Poi strategia. Solo dopo, implementazione.
+            </h2>
+          </div>
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                num: "01",
+                title: "Analizza",
+                text: "Leggiamo competenza, pubblico, offerta e stato del progetto per capire cosa sta bloccando la crescita.",
+              },
+              {
+                num: "02",
+                title: "Progetta",
+                text: "Il sistema AI traduce i dati in priorità: cosa chiarire, cosa evitare, quale direzione prendere.",
+              },
+              {
+                num: "03",
+                title: "Decidi",
+                text: "Arrivi alla masterclass con un Checkpoint Strategico e un passaggio successivo coerente con la tua situazione.",
+              },
+            ].map((step) => (
+              <div key={step.num} className="rounded-2xl border border-gray-200 bg-white p-6">
+                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-8">
+                  {step.num}
+                </p>
+                <h3 className="text-xl font-semibold text-slate-900 mb-3">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-slate-600">{step.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* SCHERMATA 3 — TRE LIVELLI */}
-      <section className="bg-gray-50 border-t border-gray-100">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-3 text-center leading-tight">
-            Tre livelli, una sola direzione: chiarezza
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
+              Il percorso
+            </p>
+            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
+              Parti dalla masterclass. Poi scegli con lucidità.
+            </h2>
+            <p className="mt-5 text-slate-600 leading-relaxed">
+              Ciak non ti spinge subito all'implementazione. Prima ti aiuta a leggere il progetto,
+              capire lo stato reale e decidere il prossimo passo.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5 mt-12">
+            <div className="bg-white rounded-2xl p-7 border border-gray-200 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
                 Livello 1
               </p>
@@ -211,25 +291,23 @@ export function CiakLanding() {
                 Masterclass gratuita
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                30 minuti di analisi diretta sui 5 errori più comuni che impediscono di
-                trasformare una competenza in un modello digitale sostenibile. A fine masterclass,
-                un Checkpoint Strategico restituisce il tuo Stato attuale.
+                30 minuti per vedere i 5 errori che bloccano la crescita digitale dei professionisti
+                e sbloccare il tuo Checkpoint Strategico.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+            <div className="bg-slate-900 rounded-2xl p-7 border border-slate-900 shadow-xl shadow-slate-900/15">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
                 Livello 2
               </p>
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Ciak Blueprint <span className="text-slate-500 font-normal">— €67</span>
+              <h3 className="text-lg font-semibold text-white mb-3">
+                Ciak Blueprint <span className="text-slate-400 font-normal">— €67</span>
               </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Una sessione strategica 1:1 con Claudio Bertogliatti e una Roadmap Operativa
-                personalizzata. Il momento in cui la situazione attuale viene letta con chiarezza
-                e trasformata in priorità operative concrete.
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Una sessione 1:1 con Claudio e una Roadmap Operativa personalizzata per trasformare
+                la diagnosi in priorità concrete.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+            <div className="bg-white rounded-2xl p-7 border border-gray-200 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
                 Livello 3
               </p>
@@ -237,8 +315,8 @@ export function CiakLanding() {
                 Partnership Evolution PRO
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Non è il punto di partenza: è il passaggio successivo per chi, dopo il Blueprint,
-                decide di implementare la strategia insieme al team Evolution.
+                Il passaggio per chi, dopo il Blueprint, decide di costruire e lanciare il progetto
+                insieme al team Evolution.
               </p>
             </div>
           </div>
@@ -246,47 +324,49 @@ export function CiakLanding() {
       </section>
 
       {/* SCHERMATA 4 — CTA FINALE */}
-      <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4 leading-tight">
-            Il primo passo è la masterclass
-          </h2>
-          <p className="text-slate-300 mb-10 leading-relaxed">
-            Niente acquisti, niente impegno. 30 minuti di lucidità professionale e un Checkpoint
-            Strategico per capire da dove partire.
-          </p>
-          <div className="max-w-md mx-auto">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-              placeholder="Il tuo nome"
-              autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
-            />
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="La tua email"
-                autoComplete="email"
-                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
-              />
-              <button
-                onClick={captureEmail}
-                disabled={submitting}
-                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
-              >
-                {submitting ? "..." : "Accedi alla masterclass"}
-              </button>
-            </div>
-            {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
-            <p className="text-xs text-slate-400 mt-3 opacity-80 leading-relaxed">
-              Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+      <section className="bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
+          <div className="rounded-2xl border border-yellow-300/85 bg-white px-4 py-10 shadow-[0_0_46px_rgba(250,204,21,0.28)] ring-1 ring-yellow-100 sm:px-8 md:px-12 md:py-14">
+            <h2 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
+              Prima di costruire, guarda la direzione.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+              Niente acquisti, niente impegno. Solo 30 minuti per leggere il tuo progetto con più
+              lucidità e capire da dove partire.
             </p>
+            <div className="mx-auto mt-9 max-w-xl">
+              <input
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                placeholder="Il tuo nome"
+                autoComplete="given-name"
+                className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                  placeholder="La tua email"
+                  autoComplete="email"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+                />
+                <button
+                  onClick={captureEmail}
+                  disabled={submitting}
+                  className="rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300 disabled:opacity-50 sm:whitespace-nowrap"
+                >
+                  {submitting ? "..." : "Accedi alla masterclass"}
+                </button>
+              </div>
+              {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+              </p>
+            </div>
           </div>
         </div>
       </section>

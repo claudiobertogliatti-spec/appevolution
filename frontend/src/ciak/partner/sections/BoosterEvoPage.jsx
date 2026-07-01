@@ -46,12 +46,13 @@ function Vetrina({ onOpen }) {
       <div className="max-w-5xl mx-auto p-6">
         <div className="mb-7">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-            Evolution One
+            Facoltativi, quando vuoi accelerare
           </span>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">Booster EVO</h1>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">Servizi extra</h1>
           <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-            Servizi extra facoltativi per accelerare o rifinire il tuo progetto durante i 12 mesi del
-            Protocollo EVO. Non sono obbligatori: li attivi solo quando ti servono davvero.
+            Il tuo percorso include già costruzione, lancio e accompagnamento. Se vuoi velocizzare
+            una parte precisa, puoi aggiungere supporti mirati: ads, video, copy, automazioni o
+            contenuti. Li attivi solo quando hanno senso per il tuo obiettivo.
           </p>
         </div>
 
@@ -129,7 +130,7 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
           onClick={onBack}
           className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-5"
         >
-          <ArrowLeft className="w-4 h-4" /> Booster EVO
+          <ArrowLeft className="w-4 h-4" /> Servizi extra
         </button>
 
         <div className="flex items-center gap-3 mb-2">
@@ -190,9 +191,9 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
         ) : (
           <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="text-[15px] font-semibold text-white">Ti interessa questo Booster?</p>
+              <p className="text-[15px] font-semibold text-white">Vuoi valutare questo supporto?</p>
               <p className="text-[13px] text-slate-400 mt-0.5">
-                Invii la richiesta al team: ti prepariamo un preventivo su misura, senza impegno.
+                Invia la richiesta al team: ti prepariamo una proposta su misura, senza impegno.
               </p>
             </div>
             <button
@@ -200,7 +201,7 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
               disabled={busy}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 transition flex-shrink-0"
             >
-              <MessageCircle className="w-4 h-4" /> {busy ? "Invio..." : "Richiedi questo Booster"}
+              <MessageCircle className="w-4 h-4" /> {busy ? "Invio..." : "Richiedi informazioni"}
             </button>
           </div>
         )}
@@ -209,13 +210,13 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
   );
 }
 
-export function BoosterEvoPage({ partnerId }) {
+export function BoosterEvoPage({ partnerId, basePath = "/partner/booster-evo" }) {
   const navigate = useNavigate();
   const { serviceId } = useParams();
   const item = serviceId ? BOOSTER_CATALOG[serviceId] : null;
 
   const goSupport = () => {
-    navigate("/partner/supporto");
+    navigate("/partner/team-ciak");
   };
 
   if (serviceId && !item) {
@@ -223,12 +224,12 @@ export function BoosterEvoPage({ partnerId }) {
       <div className="min-h-full bg-gray-50">
         <div className="max-w-2xl mx-auto p-6">
           <button
-            onClick={() => navigate("/partner/booster-evo")}
+            onClick={() => navigate(basePath)}
             className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-5"
           >
-            <ArrowLeft className="w-4 h-4" /> Booster EVO
+            <ArrowLeft className="w-4 h-4" /> Servizi extra
           </button>
-          <p className="text-slate-500">Booster non trovato.</p>
+          <p className="text-slate-500">Servizio non trovato.</p>
         </div>
       </div>
     );
@@ -239,13 +240,13 @@ export function BoosterEvoPage({ partnerId }) {
       <Dettaglio
         item={item}
         partnerId={partnerId}
-        onBack={() => navigate("/partner/booster-evo")}
+        onBack={() => navigate(basePath)}
         onSupport={goSupport}
       />
     );
   }
 
-  return <Vetrina onOpen={(id) => navigate(`/partner/booster-evo/${id}`)} />;
+  return <Vetrina onOpen={(id) => navigate(`${basePath}/${id}`)} />;
 }
 
 export default BoosterEvoPage;

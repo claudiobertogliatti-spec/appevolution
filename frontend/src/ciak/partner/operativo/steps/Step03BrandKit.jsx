@@ -220,7 +220,7 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="font-semibold text-slate-900 mb-1">✓ Documento generato</div>
           <p className="text-sm text-slate-600">
-            Abbiamo salvato il tuo Brand in <strong>I Miei File</strong>, nel tuo Workspace.
+            Abbiamo salvato il tuo Brand nei <strong>Materiali</strong> del percorso.
             Puoi proseguire con lo step successivo o rifarlo quando vuoi.
           </p>
         </div>

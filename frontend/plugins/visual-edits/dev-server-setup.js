@@ -941,6 +941,22 @@ function setupDevServer(config) {
       }
     });
 
+    middlewares.push({
+      name: "ciak-spa-fallback",
+      middleware: (req, res, next) => {
+        const acceptsHtml = (req.headers.accept || "").includes("text/html");
+        const isGet = req.method === "GET";
+        const isApi = req.path.startsWith("/api/") || req.path === "/ping" || req.path === "/edit-file";
+        const hasFileExtension = path.extname(req.path || "") !== "";
+
+        if (isGet && acceptsHtml && !isApi && !hasFileExtension) {
+          req.url = "/index.html";
+        }
+
+        next();
+      },
+    });
+
     return middlewares;
   };
   return config;

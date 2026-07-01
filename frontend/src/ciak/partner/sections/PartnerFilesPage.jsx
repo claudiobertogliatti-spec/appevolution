@@ -12,8 +12,9 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   FileText, Download, Upload, Shield, FolderOpen, FileVideo,
   FileCheck, Loader2, FileAudio, Image, Receipt,
-  Target, Mail, PenLine, Trash2, Eye, Pencil,
+  Target, Mail, PenLine, Trash2, Eye, Pencil, PlayCircle,
 } from "lucide-react";
+import { WELCOME_VIDEO_EMBED } from "../operativo/phases";
 
 // File category configuration — color = classe Tailwind
 const FILE_CATEGORIES = {
@@ -213,28 +214,54 @@ export function PartnerFilesPage({ partner }) {
     input.click();
   };
 
+  const phaseForCategory = (category) => {
+    if (["contratto_firmato", "onboarding", "distinta"].includes(category)) return "Onboarding";
+    if (["posizionamento", "script", "email"].includes(category)) return "Esamina";
+    if (["video", "audio", "image"].includes(category)) return "Valida";
+    return "Materiali";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-4 bg-yellow-50 text-yellow-700 border border-yellow-200">
           <FolderOpen className="w-4 h-4" />
-          I Miei File
+          Materiali
         </div>
         <h1 className="text-2xl font-semibold text-slate-900 mb-2">
-          Tutti i tuoi <span className="text-yellow-500">materiali</span>
+          Tutto quello che ti serve per proseguire
         </h1>
         <p className="text-sm text-slate-400 max-w-lg mx-auto">
-          Qui trovi tutti i file che hai caricato durante il percorso: script, posizionamento,
-          video, documenti e distinte di pagamento.
+          Qui trovi documenti, video e consegne del team senza dover cercare nelle chat.
+          I materiali importanti restano ordinati per fase del percorso.
         </p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-yellow-200 p-5 flex flex-col md:flex-row md:items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
+          <PlayCircle className="w-6 h-6 text-yellow-600" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-slate-900">Video di benvenuto</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            Rivedi quando vuoi il messaggio iniziale di Claudio sul Metodo EVO.
+          </p>
+        </div>
+        <button
+          onClick={() => window.open(WELCOME_VIDEO_EMBED, "_blank", "noopener")}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
+        >
+          <PlayCircle className="w-4 h-4" />
+          Rivedi il video
+        </button>
       </div>
 
       {/* Upload Section */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-yellow-500" />
-          Carica nuovi file
+          Carica nuovi materiali
         </h3>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -244,7 +271,7 @@ export function PartnerFilesPage({ partner }) {
             onClick={() => pickFile("video/*", "video")}
           >
             <FileVideo className="w-6 h-6 text-red-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Video</div>
+            <div className="font-semibold text-xs text-slate-900">Carica video</div>
             <div className="text-[10px] text-slate-400">MP4, MOV, AVI...</div>
           </div>
 
@@ -261,7 +288,7 @@ export function PartnerFilesPage({ partner }) {
               className="hidden"
             />
             <FileText className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Documenti PDF</div>
+            <div className="font-semibold text-xs text-slate-900">Carica documento</div>
             <div className="text-[10px] text-slate-400">PDF, DOCX, XLSX</div>
           </div>
 
@@ -271,7 +298,7 @@ export function PartnerFilesPage({ partner }) {
             onClick={() => pickFile("audio/*", "audio")}
           >
             <FileAudio className="w-6 h-6 text-slate-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Audio</div>
+            <div className="font-semibold text-xs text-slate-900">Carica audio</div>
             <div className="text-[10px] text-slate-400">MP3, WAV</div>
           </div>
 
@@ -281,7 +308,7 @@ export function PartnerFilesPage({ partner }) {
             onClick={() => pickFile("image/*", "image")}
           >
             <Image className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Immagini</div>
+            <div className="font-semibold text-xs text-slate-900">Carica immagine</div>
             <div className="text-[10px] text-slate-400">JPG, PNG</div>
           </div>
         </div>
@@ -334,7 +361,7 @@ export function PartnerFilesPage({ partner }) {
             <FolderOpen className="w-5 h-5 text-yellow-500" />
             <span className="font-semibold text-slate-900">
               {activeCategory === "all"
-                ? "Tutti i File"
+                ? "Tutti i materiali"
                 : FILE_CATEGORIES[activeCategory]?.label}
             </span>
             <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">
@@ -362,7 +389,7 @@ export function PartnerFilesPage({ partner }) {
                         f.document_type?.replace(/_/g, " ")}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {config.label} • {f.size_readable || "N/A"}
+                      {phaseForCategory(f.category)} • {config.label} • {f.size_readable || "N/A"}
                       {f.uploaded_at &&
                         ` • ${new Date(f.uploaded_at).toLocaleDateString("it-IT")}`}
                     </div>
@@ -420,13 +447,12 @@ export function PartnerFilesPage({ partner }) {
       {allFiles.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
           <FolderOpen className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg text-slate-900 mb-2">Nessun file caricato</h3>
+          <h3 className="font-semibold text-lg text-slate-900 mb-2">Qui troverai i materiali del percorso</h3>
           <p className="text-sm text-slate-400 mb-4">
-            Qui appariranno tutti i tuoi file: script, posizionamento, video, documenti e
-            distinte di pagamento.
+            Quando tu o il team caricate un documento importante, lo ritrovi qui in modo ordinato.
           </p>
           <p className="text-xs text-slate-400">
-            Usa i pulsanti sopra per caricare i tuoi primi file.
+            Puoi iniziare caricando un documento, un video, un audio o un'immagine.
           </p>
         </div>
       )}

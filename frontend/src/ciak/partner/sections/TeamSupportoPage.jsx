@@ -179,16 +179,18 @@ function TeamCard({ agent, onChat }) {
 // ─── Pagina ───────────────────────────────────────────────────────────────
 export function TeamSupportoPage({ partner }) {
   const [activeAgent, setActiveAgent] = useState(null);
-  const team = TEAM_ORDER.map((id) => AGENTS[id]).filter(Boolean);
+  const team = TEAM_ORDER.filter((id) => id !== "MATTEO").map((id) => AGENTS[id]).filter(Boolean);
 
   return (
     <div className="max-w-5xl mx-auto p-6 md:p-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-1">Il team di supporto</h1>
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-2">
+          Presenza continua
+        </p>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-1">Il team Ciak.io</h1>
         <p className="text-slate-500 max-w-2xl">
-          Non sei solo. Ogni persona qui sotto segue una parte precisa del tuo percorso.
-          Hai una domanda specifica? Apri la chat con la persona giusta — ti risponde
-          direttamente lei.
+          Ogni fase ha un riferimento chiaro. Scrivi all'agente giusto e mantieni ordinato
+          il lavoro dentro Ciak; per il supporto umano resta attivo il tuo gruppo Telegram personale.
         </p>
       </header>
 

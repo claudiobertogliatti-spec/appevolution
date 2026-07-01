@@ -4,8 +4,8 @@ import ProgressBar from "./ProgressBar";
 import PhaseAgentHeader from "./PhaseAgentHeader";
 import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
-import JourneyMap from "./JourneyMap";
 import Benvenuto from "./Benvenuto";
+import GuidedHome from "./GuidedHome";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
@@ -162,12 +162,21 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
 
         {inMap ? (
           <div className="mt-4">
-            <JourneyMap
+            <GuidedHome
               state={state}
               partnerName={partnerName}
               onOpenStep={(id) => {
                 setViewingStepId(id);
                 if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              onAsk={() => setDrawerOpen(true)}
+              onReplayWelcome={() => {
+                try {
+                  localStorage.removeItem(`ciak_benvenuto_seen_${partnerId}`);
+                } catch (e) {
+                  /* localStorage non disponibile: mostra comunque il benvenuto */
+                }
+                setBenvenutoSeen(false);
               }}
             />
           </div>

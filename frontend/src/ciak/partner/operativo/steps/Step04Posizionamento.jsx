@@ -43,7 +43,7 @@ export default function Step04Posizionamento({ step, partnerId, partnerName, onC
           <div className="font-semibold text-slate-900 mb-1">✓ Documento generato</div>
           <p className="text-sm text-slate-600">
             Da queste risposte abbiamo creato il documento del tuo posizionamento. Lo trovi in
-            <strong> I Miei File</strong>, nel tuo Workspace. È la base di offerta, messaggio,
+            <strong> Materiali</strong>. È la base di offerta, messaggio,
             pagine e funnel.
           </p>
         </div>

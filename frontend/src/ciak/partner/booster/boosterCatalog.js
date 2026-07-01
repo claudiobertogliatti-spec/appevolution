@@ -214,7 +214,7 @@ export const BOOSTER_CATALOG = {
     ],
     nonComprende: [
       "L'esecuzione operativa di ciò che viene deciso.",
-      "Percorsi di affiancamento continuativo (vedi EVO-S).",
+      "Percorsi di affiancamento continuativo (vedi Scala).",
     ],
     output: "Una direzione chiara e i prossimi passi messi nero su bianco.",
     tempi: "La call si fissa in base alle disponibilità.",

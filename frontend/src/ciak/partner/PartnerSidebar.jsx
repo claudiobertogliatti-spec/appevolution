@@ -1,121 +1,145 @@
-/**
- * Ciak Partner — Sidebar di navigazione (palette Ciak slate/yellow).
- *
- * Struttura:
- *  voci principali (Home, Workspace)
- *  + sezioni Evolution One collassabili (Accelera la crescita, Growth System).
- * Il webinar NON è qui: è dentro il processo di costruzione (fase Valida, step Prezzo + webinar).
- * Le fasi del journey si raggiungono dalla dashboard (sezione "A che punto sei").
- */
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  Home, LayoutGrid,
-  Rocket, Layers, ChevronDown, ChevronRight,
-  MessageCircle, Zap, Crown,
+  Home,
+  Map,
+  FolderOpen,
+  Users,
+  Send,
+  Sparkles,
+  TrendingUp,
+  LogOut,
+  MessageCircle,
+  ArrowRight,
 } from "lucide-react";
+import { AGENTS } from "./operativo/agents";
 
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
-  { to: "/partner/workspace", label: "Workspace", icon: LayoutGrid },
-  { to: "/partner/supporto", label: "Team di supporto", icon: MessageCircle },
+  { to: "/partner/metodo-evo", label: "Metodo EVO", icon: Map },
+  { to: "/partner/materiali", label: "Materiali", icon: FolderOpen },
+  { to: "/partner/team-ciak", label: "Il team Ciak.io", icon: Users },
+  { to: "/partner/telegram", label: "Gruppo Telegram", icon: Send },
 ];
 
-const ACCELERA_ITEMS = [
-  { to: "/partner/accelera/acc-visibilita", label: "Visibilità" },
-  { to: "/partner/accelera/acc-costanza", label: "Costanza" },
-  { to: "/partner/accelera/acc-spinta-vendite", label: "Spinta Vendite" },
-  { to: "/partner/accelera/acc-eventi-vendita", label: "Eventi Vendita" },
-  { to: "/partner/accelera/acc-prodotti-digitali", label: "Prodotti Digitali" },
-  { to: "/partner/accelera/acc-direzione", label: "Direzione" },
+const BUSINESS_NAV = [
+  { to: "/partner/servizi-extra", label: "Servizi extra", icon: Sparkles },
+  { to: "/partner/continua-scalare", label: "Continua a scalare", icon: TrendingUp },
 ];
 
-function linkClass({ isActive }) {
-  return `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition ${
+const TEAM_PREVIEW = [
+  { id: "STEFANIA", role: "Coordina" },
+  { id: "VALENTINA", role: "Esamina" },
+  { id: "ANDREA", role: "Valida" },
+];
+
+function navClass({ isActive }) {
+  return `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
     isActive
-      ? "bg-slate-800 text-yellow-400 font-medium"
-      : "text-slate-300 hover:bg-slate-800/60"
+      ? "bg-blue-600 text-white shadow-sm"
+      : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
   }`;
 }
 
-function subLinkClass({ isActive }) {
-  return `block px-3 py-1.5 rounded-lg text-sm transition ${
-    isActive ? "bg-slate-800 text-yellow-400 font-medium" : "text-slate-400 hover:bg-slate-800/60"
+function businessClass({ isActive }) {
+  return `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
+    isActive
+      ? "bg-blue-600 text-white"
+      : "bg-white text-slate-700 border border-slate-200 hover:border-blue-200 hover:text-blue-700"
   }`;
 }
 
-function Collapsible({ icon: Icon, label, children, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
+function AgentMini({ item }) {
+  const agent = AGENTS[item.id];
+  if (!agent) return null;
   return (
-    <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/60 transition"
-      >
-        <Icon className="w-4 h-4 flex-shrink-0 text-yellow-400" />
-        <span className="flex-1 text-left">{label}</span>
-        {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-      </button>
-      {open && <div className="ml-3 mt-1 mb-1 space-y-0.5 border-l border-slate-800 pl-3">{children}</div>}
-    </div>
+    <NavLink
+      to="/partner/team-ciak"
+      className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-blue-50 transition"
+    >
+      <img
+        src={agent.avatar}
+        alt={agent.name}
+        className="w-9 h-9 rounded-lg object-cover bg-slate-100"
+      />
+      <div className="min-w-0">
+        <p className="text-[12px] font-semibold text-slate-900 truncate">{agent.name}</p>
+        <p className="text-[10px] text-slate-500 truncate">{item.role}</p>
+      </div>
+    </NavLink>
   );
 }
 
 export function PartnerSidebar({ user, onLogout }) {
   return (
-    <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0 min-h-screen">
-      <div className="px-6 py-5 border-b border-slate-800">
-        <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Ciak</p>
-        <p className="text-sm text-slate-400 mt-0.5">Area Partner</p>
-      </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {MAIN_NAV.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
-            <item.icon className="w-4 h-4 flex-shrink-0" />
-            {item.label}
-          </NavLink>
-        ))}
-
-        <div className="pt-3 mt-2 border-t border-slate-800 space-y-1">
-          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-            Evolution One
+    <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
+      <div className="h-full bg-white border border-yellow-300 rounded-xl shadow-[0_0_28px_rgba(250,204,21,0.22)] flex flex-col overflow-hidden">
+        <div className="px-5 py-5 border-b border-slate-100">
+          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
+          <p className="text-xs font-semibold text-slate-500 mt-3">Protocollo EVO · 12 mesi</p>
+          <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
+            Hai un percorso completo: costruzione, lancio e accompagnamento.
           </p>
-          <Collapsible icon={Rocket} label="Accelera la crescita">
-            {ACCELERA_ITEMS.map((item) => (
-              <NavLink key={item.to} to={item.to} className={subLinkClass}>
-                {item.label}
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {MAIN_NAV.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                Il team Ciak.io
+              </p>
+              <MessageCircle className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="space-y-1">
+              {TEAM_PREVIEW.map((item) => (
+                <AgentMini key={item.id} item={item} />
+              ))}
+            </div>
+            <NavLink
+              to="/partner/team-ciak"
+              className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:text-blue-800"
+            >
+              Scrivi al team <ArrowRight className="w-3.5 h-3.5" />
+            </NavLink>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              Crescita
+            </p>
+            {BUSINESS_NAV.map((item) => (
+              <NavLink key={item.to} to={item.to} className={businessClass}>
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                <span>{item.label}</span>
               </NavLink>
             ))}
-          </Collapsible>
+          </div>
 
-          <Collapsible icon={Layers} label="Evolution Growth System">
-            <NavLink to="/partner/growth-system" className={subLinkClass}>
-              I tre livelli
-            </NavLink>
-          </Collapsible>
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
+            <p className="text-[13px] font-semibold text-slate-900">Vuoi accelerare?</p>
+            <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
+              I servizi extra servono quando vuoi andare più veloce su ads, video, copy o automazioni.
+            </p>
+          </div>
+        </nav>
 
-          <NavLink to="/partner/booster-evo" className={linkClass}>
-            <Zap className="w-4 h-4 flex-shrink-0" />
-            Booster EVO
-          </NavLink>
-
-          <NavLink to="/partner/evo-s" className={linkClass}>
-            <Crown className="w-4 h-4 flex-shrink-0" />
-            EVO-S
-          </NavLink>
+        <div className="px-4 py-4 border-t border-slate-100">
+          <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || "Partner"}</p>
+          <p className="text-xs text-slate-500 mb-3">Accompagnato da Evolution PRO</p>
+          <button
+            onClick={onLogout}
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Esci
+          </button>
         </div>
-      </nav>
-
-      <div className="px-3 py-4 border-t border-slate-800">
-        <p className="px-3 text-sm text-slate-300">{user?.name}</p>
-        <p className="px-3 text-xs text-slate-500 mb-2">Partner Evolution PRO</p>
-        <button
-          onClick={onLogout}
-          className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800/60 transition"
-        >
-          Esci
-        </button>
       </div>
     </aside>
   );
