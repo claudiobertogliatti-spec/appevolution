@@ -19,7 +19,7 @@ verification commands with exact output:
   - Exit 0, nessun output.
 
 commit SHA(s):
-- `f2b81be` - `fix: complete ciak client payment activation flow`
+- `4362903` - `fix: complete ciak client payment activation flow`
 
 concerns:
 - Nessuna preoccupazione aggiuntiva oltre ai vincoli gia' richiesti dal task.
