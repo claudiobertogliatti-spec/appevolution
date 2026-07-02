@@ -211,7 +211,7 @@ _PURCHASED_STATES = {
 @router.get("/partners")
 async def ciak_partners_list(
     admin=Depends(require_ciak_admin),
-    stato: Optional[str] = Query(None, description="Filtra per stato: attivo | quarantena | ex"),
+    stato: Optional[str] = Query(None, description="Filtra per stato: attivo | sospeso | quarantena | ex"),
     con_piano: bool = Query(False, description="Solo partner con un piano di pagamento rateale"),
 ):
     """
@@ -219,8 +219,9 @@ async def ciak_partners_list(
     e dalle pagine Quarantena/Ex Partner. Restituisce id + nome + fase + stato
     + piano_pagamento.
 
-    `stato` (campo `partner.stato`): "attivo" (default se assente) / "quarantena"
-    (pagamenti rateali sospesi) / "ex" (partnership conclusa/risolta).
+    `stato` (campo `partner.stato`): "attivo" (default se assente) / "sospeso"
+    (pausa operativa) / "quarantena" (blocco critico o pagamenti sospesi) /
+    "ex" (partnership conclusa/risolta).
 
     `piano_pagamento` (campo `partner.piano_pagamento`): presente solo per i
     partner su piano rateale tracciato — tipo "mensile" (vecchio contratto) o
@@ -259,7 +260,7 @@ async def ciak_partners_list(
 
 
 class PartnerStatoRequest(BaseModel):
-    stato: str = Field(..., description="attivo | quarantena | ex")
+    stato: str = Field(..., description="attivo | sospeso | quarantena | ex")
     motivo: Optional[str] = Field(None, description="Motivo uscita (es. 'Non rinnovato') — solo per stato=ex")
     data_fine: Optional[str] = Field(None, description="Data fine partnership ISO (es. '2026-06-03') — solo per stato=ex")
     # Quarantena: due nature distinte. "richiesta" = il partner ha chiesto di
@@ -278,14 +279,14 @@ async def ciak_set_partner_stato(
     admin=Depends(require_ciak_admin),
 ):
     """
-    Cambia lo stato di un partner: attivo / quarantena (pagamenti sospesi) / ex.
+    Cambia lo stato di un partner: attivo / sospeso / quarantena / ex.
     Flag manuale gestito dall'admin (non c'è un segnale automatico dei pagamenti
     rateali Klarna). Registra anche timestamp + chi ha fatto la modifica.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    if payload.stato not in ("attivo", "quarantena", "ex"):
-        raise HTTPException(400, "stato non valido (attivo | quarantena | ex)")
+    if payload.stato not in ("attivo", "sospeso", "quarantena", "ex"):
+        raise HTTPException(400, "stato non valido (attivo | sospeso | quarantena | ex)")
     updates = {
         "stato": payload.stato,
         "stato_updated_at": datetime.now(timezone.utc).isoformat(),

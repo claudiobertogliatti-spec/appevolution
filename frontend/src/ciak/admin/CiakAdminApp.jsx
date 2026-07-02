@@ -36,9 +36,10 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
-  MessageCircle,
   Users,
 } from "lucide-react";
+import { DepartmentRoomIntro } from "./components/DepartmentRoom";
+import { getDepartmentRoom } from "./departmentRooms";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
@@ -49,7 +50,6 @@ import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { ClientiCiak } from "./pages/ClientiCiak";
 import { PartnerHub } from "./pages/PartnerHub";
 import { Approvazioni } from "./pages/Approvazioni";
-import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
@@ -76,6 +76,14 @@ import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
+import {
+  AcquisizioneCalendarioHub,
+  CasiStudio,
+  DateContratti,
+  DeliveryLezioniHub,
+  DeliveryMasterclassHub,
+  TrattativeKoHub,
+} from "./pages/AdminOperationalHubs";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -90,18 +98,15 @@ const NAV = [
     id: "dashboard",
     label: "Dashboard",
     agente: "Luca",
-    landing: true,
-    pages: [
-      { to: "/admin/oggi", label: "Oggi", desc: "Cosa richiede la tua attenzione adesso" },
-      { to: "/admin", label: "Cabina di Regia", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
-    ],
+    to: "/admin",
+    end: true,
+    pages: [],
   },
   // ── ACQUISIZIONE · Andrea ── dal freddo al €27 ─────────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
     agente: "Andrea",
-    to: "/admin/pipeline",
     landing: true,
     hideFor: ["antonella"],
     pages: [
@@ -124,6 +129,7 @@ const NAV = [
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
+      { to: "/admin/vendite-trattativa", label: "In trattativa", desc: "Proposte inviate, viste o accettate" },
       { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
     ],
@@ -151,6 +157,7 @@ const NAV = [
     id: "casi-studio",
     label: "Casi studio",
     agente: "Andrea",
+    landing: true,
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: risultati dei partner per il funnel" },
@@ -180,12 +187,6 @@ const MACRO_ICONS = {
   "casi-studio": ClipboardCheck,
   "back-office": CreditCard,
 };
-
-const ADMIN_TEAM_PREVIEW = [
-  { name: "Luca", role: "Regia" },
-  { name: "Andrea", role: "Acquisizione", avatar: "/agents/andrea.jpg" },
-  { name: "Stefania", role: "Delivery", avatar: "/agents/stefania.jpg" },
-];
 
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
@@ -343,31 +344,6 @@ function MacroItem({ macro, currentPath }) {
   );
 }
 
-function AdminAgentMini({ item }) {
-  return (
-    <Link
-      to="/admin/cabina-regia"
-      className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-blue-50 transition"
-    >
-      {item.avatar ? (
-        <img
-          src={item.avatar}
-          alt={item.name}
-          className="w-9 h-9 rounded-lg object-cover bg-slate-100"
-        />
-      ) : (
-        <span className="w-9 h-9 rounded-lg bg-slate-900 text-yellow-400 inline-flex items-center justify-center text-sm font-semibold">
-          {item.name.slice(0, 1)}
-        </span>
-      )}
-      <div className="min-w-0">
-        <p className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</p>
-        <p className="text-[10px] text-slate-500 truncate">{item.role}</p>
-      </div>
-    </Link>
-  );
-}
-
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
@@ -396,25 +372,6 @@ function AdminShell({ user, onLogout, children }) {
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
-          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Team operativo
-              </p>
-              <MessageCircle className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="space-y-1">
-              {ADMIN_TEAM_PREVIEW.map((item) => (
-                <AdminAgentMini key={item.name} item={item} />
-              ))}
-            </div>
-            <Link
-              to="/admin/cabina-regia"
-              className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:text-blue-800"
-            >
-              Apri cabina <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
             <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>
             <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
@@ -454,11 +411,13 @@ function AdminShell({ user, onLogout, children }) {
 
 // ─── Pagina-reparto: grandi finestre cliccabili dei sotto-argomenti ──────
 
-function RepartoLanding({ macro }) {
+function RepartoLanding({ macro, onAuthExpired }) {
   const pages = macroPages(macro);
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
+  const room = getDepartmentRoom(macro.id);
   return (
     <div className="p-10 max-w-5xl mx-auto">
+      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} />
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-blue-50 text-blue-700 mb-4">
           <Icon className="w-5 h-5" />
@@ -552,13 +511,17 @@ export default function CiakAdminApp() {
 
         {/* ── Landing-reparto: grandi finestre cliccabili ── */}
         {NAV.filter((m) => m.landing).map((m) => (
-          <Route key={m.id} path={`reparto/${m.id}`} element={<RepartoLanding macro={m} />} />
+          <Route
+            key={m.id}
+            path={`reparto/${m.id}`}
+            element={<RepartoLanding macro={m} onAuthExpired={handleLogout} />}
+          />
         ))}
 
         {/* ── Dashboard ── */}
         <Route path="oggi" element={isAntonella
           ? <AntonellaOggi onAuthExpired={handleLogout} />
-          : <Oggi onAuthExpired={handleLogout} />} />
+          : <Navigate to="/admin" replace />} />
 
         {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
@@ -584,7 +547,7 @@ export default function CiakAdminApp() {
           }
         />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
-        <Route path="acq-calendario" element={<SectionStub />} />
+        <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
 
         {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
         <Route
@@ -613,6 +576,18 @@ export default function CiakAdminApp() {
           }
         />
         <Route
+          path="vendite-trattativa"
+          element={
+            <PipelineList
+              endpoint="/pipeline-blueprint"
+              title="In trattativa"
+              subtitle="Proposte inviate, viste, accettate o contratti firmati in attesa pagamento"
+              lockedStages={["in_trattativa"]}
+              onAuthExpired={handleLogout}
+            />
+          }
+        />
+        <Route
           path="analisi-da-validare"
           element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
         />
@@ -628,26 +603,26 @@ export default function CiakAdminApp() {
             />
           }
         />
-        <Route path="vendite-ko" element={<SectionStub />} />
+        <Route path="vendite-ko" element={<TrattativeKoHub />} />
 
         {/* ── Delivery ── */}
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
         <Route path="quarantena-partner" element={<QuarantenaPartner onAuthExpired={handleLogout} />} />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
         <Route path="documenti-partner" element={<PartnerDocumenti onAuthExpired={handleLogout} />} />
-        <Route path="delivery-masterclass" element={<SectionStub />} />
-        <Route path="delivery-lezioni" element={<SectionStub />} />
+        <Route path="delivery-masterclass" element={<DeliveryMasterclassHub />} />
+        <Route path="delivery-lezioni" element={<DeliveryLezioniHub />} />
         <Route path="calendario-editoriale" element={<CalendarioEditoriale onAuthExpired={handleLogout} />} />
         <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
 
         {/* ── Casi studio ── */}
-        <Route path="casi-studio" element={<SectionStub />} />
+        <Route path="casi-studio" element={<CasiStudio onAuthExpired={handleLogout} />} />
 
         {/* ── Back office ── */}
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
         <Route path="fatture" element={<Fatture onAuthExpired={handleLogout} />} />
-        <Route path="date-contratti" element={<SectionStub />} />
+        <Route path="date-contratti" element={<DateContratti onAuthExpired={handleLogout} />} />
         <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
 
         {/* ── Route nascoste (fuori sidebar, raggiungibili via URL) ── */}
@@ -662,7 +637,7 @@ export default function CiakAdminApp() {
         <Route path="video-pipeline" element={<VideoPipelineMonitor onAuthExpired={handleLogout} />} />
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
-        <Route path="cabina-regia" element={<CabinaRegia onAuthExpired={handleLogout} />} />
+        <Route path="cabina-regia" element={<Navigate to="/admin" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />

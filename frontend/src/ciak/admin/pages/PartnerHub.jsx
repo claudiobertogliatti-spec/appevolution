@@ -18,8 +18,16 @@ import { attoEvo } from "../evo";
 
 const STATO_BADGE = {
   attivo: "bg-emerald-100 text-emerald-700",
+  sospeso: "bg-amber-100 text-amber-700",
   quarantena: "bg-red-100 text-red-700",
   ex: "bg-gray-200 text-slate-500",
+};
+
+const STATO_LABEL = {
+  attivo: "Attivo",
+  sospeso: "In sospeso",
+  quarantena: "Quarantena",
+  ex: "Ex",
 };
 
 const ATTI = [
@@ -120,8 +128,8 @@ function PartnerCard({ p, onOpen }) {
 }
 
 function AttoView({ partners, onOpen }) {
-  // Solo i partner ATTIVI vivono sul percorso EVO. Quarantena ed ex restano
-  // nelle rispettive sezioni (Quarantena / Ex Partner), fuori dal kanban.
+  // Solo i partner ATTIVI vivono sul percorso EVO. Sospesi, quarantena ed ex
+  // restano fuori dal kanban operativo.
   const attivi = partners.filter((p) => (p.stato || "attivo") === "attivo");
   const fuoriCount = partners.length - attivi.length;
   // Partner senza fase = appena onboardato → inizio percorso (Esamina).
@@ -133,7 +141,7 @@ function AttoView({ partners, onOpen }) {
         {attivi.length} partner attivi sul percorso, raggruppati per atto del Metodo EVO.
         Clicca un partner per gestire i 14 step.
         {fuoriCount > 0 && (
-          <span className="text-slate-400"> · {fuoriCount} tra quarantena ed ex non mostrati.</span>
+          <span className="text-slate-400"> · {fuoriCount} tra sospesi, quarantena ed ex non mostrati.</span>
         )}
       </p>
 
@@ -180,7 +188,7 @@ function AttoView({ partners, onOpen }) {
 
 // ─── Vista "Tabella" ──────────────────────────────────────────────────────
 
-function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDelete }) {
+function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDelete, onStatusChange, statusUpdating }) {
   const filtered = statoFilter
     ? partners.filter((p) => (p.stato || "attivo") === statoFilter)
     : partners;
@@ -198,6 +206,7 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
         >
           <option value="">Tutti gli stati</option>
           <option value="attivo">Attivi ({counts.attivo})</option>
+          <option value="sospeso">In sospeso ({counts.sospeso})</option>
           <option value="quarantena">Quarantena ({counts.quarantena})</option>
           <option value="ex">Ex ({counts.ex})</option>
         </select>
@@ -266,13 +275,24 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                     </td>
                     <td className={`px-5 py-3 text-xs ${contr.cls}`}>{contr.text}</td>
                     <td className="px-5 py-3">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      <select
+                        value={stato}
+                        disabled={!!statusUpdating[p.id] || stato === "ex"}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => onStatusChange(p, e.target.value)}
+                        className={`max-w-[140px] rounded-full border-0 px-2 py-1 text-xs font-semibold outline-none disabled:opacity-60 ${
                           STATO_BADGE[stato] || STATO_BADGE.attivo
                         }`}
+                        title="Cambia stato partner"
                       >
-                        {stato}
-                      </span>
+                        <option value="attivo">Attivo</option>
+                        <option value="sospeso">In sospeso</option>
+                        <option value="quarantena">Quarantena</option>
+                        <option value="ex" disabled>Ex</option>
+                      </select>
+                      {stato === "ex" && (
+                        <div className="mt-1 text-[10px] text-slate-400">{STATO_LABEL.ex}</div>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
@@ -321,6 +341,7 @@ export function PartnerHub({ onAuthExpired }) {
   const [statoFilter, setStatoFilter] = useState("");
   const [detailPartner, setDetailPartner] = useState(null);
   const [detailTab, setDetailTab] = useState("profilo");
+  const [statusUpdating, setStatusUpdating] = useState({});
 
   const load = useCallback(() => {
     setPartners(null);
@@ -364,11 +385,67 @@ export function PartnerHub({ onAuthExpired }) {
     }
   };
 
+  const changePartnerStatus = async (p, nextStato) => {
+    const current = p.stato || "attivo";
+    if (nextStato === current) return;
+    if (!p.id) {
+      window.alert("Partner senza ID: impossibile aggiornare lo stato.");
+      return;
+    }
+
+    const body = { stato: nextStato };
+    if (nextStato === "quarantena") {
+      body.quarantena_tipo = "richiesta";
+      body.quarantena_motivo = "Spostato manualmente da Delivery";
+      body.data_inizio = new Date().toISOString().slice(0, 10);
+    }
+
+    try {
+      setStatusUpdating((prev) => ({ ...prev, [p.id]: true }));
+      const res = await adminFetch(`/api/admin/ciak/partner/${p.id}/stato`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Errore aggiornamento stato");
+      }
+      setPartners((prev) =>
+        (prev || []).map((item) =>
+          item.id === p.id
+            ? {
+                ...item,
+                stato: nextStato,
+                ...(nextStato === "quarantena"
+                  ? {
+                      quarantena_tipo: body.quarantena_tipo,
+                      quarantena_motivo: body.quarantena_motivo,
+                      quarantena_data_inizio: body.data_inizio,
+                    }
+                  : {}),
+              }
+            : item
+        )
+      );
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else window.alert("Errore nel cambio stato: " + e.message);
+    } finally {
+      setStatusUpdating((prev) => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+    }
+  };
+
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!partners) return <div className="p-8 text-slate-400">Caricamento…</div>;
 
   const counts = {
     attivo: partners.filter((p) => (p.stato || "attivo") === "attivo").length,
+    sospeso: partners.filter((p) => p.stato === "sospeso").length,
     quarantena: partners.filter((p) => p.stato === "quarantena").length,
     ex: partners.filter((p) => p.stato === "ex").length,
   };
@@ -416,6 +493,8 @@ export function PartnerHub({ onAuthExpired }) {
             counts={counts}
             onOpen={openPartner}
             onDelete={deletePartner}
+            onStatusChange={changePartnerStatus}
+            statusUpdating={statusUpdating}
           />
         )}
       </div>

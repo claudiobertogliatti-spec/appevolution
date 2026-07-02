@@ -1,17 +1,16 @@
 /**
  * Ciak Admin — Oggi (portato da OggiDashboard del back-office Evolution).
- * Cruscotto operativo: azioni prioritarie, task agenti in attesa del tuo OK,
- * colli di bottiglia, pipeline, clienti bloccati, sistema AI, KPI, alert.
+ * Pagina decisionale quotidiana: briefing di Luca, azioni che aspettano Claudio,
+ * recuperi immediati, colli di bottiglia e pipeline essenziale.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRight, TrendingDown, TrendingUp,
-  CheckCircle, DollarSign, ChevronRight,
+  AlertTriangle, ArrowRight, CheckCircle, ChevronRight, Clock,
+  ClipboardCheck, KeyRound, Target, Video, WalletCards,
 } from "lucide-react";
 import { adminFetch } from "../api";
 import ApprovazioniMaterialiPanel from "../components/ApprovazioniMaterialiPanel";
-import EmailCampaignsBlock from "../components/EmailCampaignsBlock";
 import { ApprovalsQueue } from "../components/ApprovalsQueue";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -25,6 +24,10 @@ function daysSince(isoDate) {
 function pct(num, den) {
   if (!den) return 0;
   return Math.round((num / den) * 100);
+}
+
+function countList(list) {
+  return Array.isArray(list) ? list.length : 0;
 }
 
 // Mappa le destinazioni di navigazione del vecchio onNavigate a route Ciak
@@ -71,7 +74,7 @@ function Block({ title, children, action, onAction, accent }) {
   );
 }
 
-function ActionCard({ count, label, sublabel, urgency, onClick }) {
+function ActionCard({ count, label, sublabel, urgency, onClick, icon: Icon = ArrowRight }) {
   const styles = {
     high: {
       wrap: "bg-red-50 border-red-200",
@@ -102,8 +105,39 @@ function ActionCard({ count, label, sublabel, urgency, onClick }) {
         <div className="font-semibold text-sm text-slate-900">{label}</div>
         <div className="text-xs mt-0.5 text-slate-400">{sublabel}</div>
       </div>
-      <ArrowRight className="w-4 h-4 flex-shrink-0 text-slate-400" />
+      <Icon className="w-4 h-4 flex-shrink-0 text-slate-400" />
     </button>
+  );
+}
+
+function BriefingTile({ title, value, copy, tone = "slate" }) {
+  const tones = {
+    slate: "bg-slate-50 border-slate-200 text-slate-700",
+    green: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    red: "bg-rose-50 border-rose-200 text-rose-700",
+  };
+  return (
+    <div className={`rounded-xl border p-4 ${tones[tone] || tones.slate}`}>
+      <div className="text-xs font-semibold uppercase tracking-widest opacity-70">{title}</div>
+      <div className="text-2xl font-bold mt-2">{value}</div>
+      <p className="text-xs mt-2 leading-relaxed opacity-80">{copy}</p>
+    </div>
+  );
+}
+
+function PriorityList({ title, items, empty, renderItem }) {
+  return (
+    <Block title={title}>
+      {items.length === 0 ? (
+        <div className="flex items-center gap-2 py-2 text-emerald-500">
+          <CheckCircle className="w-4 h-4" />
+          <span className="text-sm font-semibold">{empty}</span>
+        </div>
+      ) : (
+        <div className="space-y-2">{items.slice(0, 5).map(renderItem)}</div>
+      )}
+    </Block>
   );
 }
 
@@ -172,7 +206,7 @@ export function Oggi({ onAuthExpired }) {
           "/api/admin/stats",
           "/api/admin/approvazioni/count",
           "/api/alerts",
-          "/api/agents",
+          "/api/admin/ciak/acquisizione-command-center",
         ];
         const results = await Promise.allSettled(
           paths.map((p) => adminFetch(p).then((r) => r.json()))
@@ -187,7 +221,7 @@ export function Oggi({ onAuthExpired }) {
           return;
         }
 
-        const [clientiRes, statsRes, approvRes, alertsRes, agentsRes] = results;
+        const [clientiRes, statsRes, approvRes, alertsRes, acqRes] = results;
 
         const clienti =
           clientiRes.status === "fulfilled" ? clientiRes.value?.clienti || [] : [];
@@ -196,9 +230,8 @@ export function Oggi({ onAuthExpired }) {
         const stats = statsRes.status === "fulfilled" ? statsRes.value : {};
         const approv = approvRes.status === "fulfilled" ? approvRes.value : {};
         const alertsRaw = alertsRes.status === "fulfilled" ? alertsRes.value : [];
-        const agentsRaw = agentsRes.status === "fulfilled" ? agentsRes.value : [];
+        const acq = acqRes.status === "fulfilled" ? acqRes.value || {} : {};
         const alerts = Array.isArray(alertsRaw) ? alertsRaw : [];
-        const agents = Array.isArray(agentsRaw) ? agentsRaw : [];
 
         // Clienti bloccati: fermo da > 3 giorni senza avanzare
         const bloccati = clienti
@@ -292,7 +325,7 @@ export function Oggi({ onAuthExpired }) {
           pipeline,
           approv,
           alerts,
-          agents: agents.filter((a) => a.status !== "inactive"),
+          acq,
           stats,
           kpi: { analisiVendute, conversioneTot, fatturatoStimato },
           callDaFissare: cStats.call_da_fissare || 0,
@@ -365,11 +398,20 @@ export function Oggi({ onAuthExpired }) {
     pipeline,
     approv,
     alerts,
-    agents,
+    acq,
     kpi,
     callDaFissare,
     partnerBloccati,
   } = data;
+
+  const clickedNoPurchase = Array.isArray(acq?.priorities?.clicked_no_purchase) ? acq.priorities.clicked_no_purchase : [];
+  const purchasedNoCall = Array.isArray(acq?.priorities?.purchased_no_call) ? acq.priorities.purchased_no_call : [];
+  const diagnosticNoPurchase = Array.isArray(acq?.priorities?.diagnostic_no_purchase) ? acq.priorities.diagnostic_no_purchase : [];
+  const bottlenecks = Array.isArray(acq?.bottlenecks) ? acq.bottlenecks : [];
+  const approvalTotal = (approv?.total || 0) + materialiPending;
+  const decisionsTotal = approvalTotal + videoPending + setupPending + callDaFissare + partnerBloccati;
+  const moneyRecovery = countList(clickedNoPurchase) + countList(purchasedNoCall) + countList(diagnosticNoPurchase);
+  const dayStatus = decisionsTotal > 0 ? "Serve Claudio" : "Giornata pulita";
 
   const STATO_LABEL = {
     REGISTRATO: "Registrato",
@@ -384,21 +426,57 @@ export function Oggi({ onAuthExpired }) {
   };
 
   return (
-    <div className="p-10">
-      <div className="space-y-5 max-w-5xl">
+    <div className="p-6 md:p-10">
+      <div className="space-y-5 max-w-6xl">
+        <div className="mb-2">
+          <div className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Dashboard · Luca</div>
+          <h1 className="text-3xl font-bold text-slate-900 mt-1">Oggi</h1>
+          <p className="text-sm text-slate-500 mt-2 max-w-2xl">
+            La giornata vista per decisioni: cosa sbloccare, cosa recuperare e quale reparto richiede attenzione prima di tutto.
+          </p>
+        </div>
+
+        <Block title="Report di inizio giornata" accent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <BriefingTile
+              title="Analisi numeri"
+              value={decisionsTotal}
+              copy="Azioni che possono bloccare vendite, delivery o back office se non vengono chiuse oggi."
+              tone={decisionsTotal > 0 ? "amber" : "green"}
+            />
+            <BriefingTile
+              title="Funziona"
+              value={kpi.analisiVendute}
+              copy={`Analisi vendute con conversione totale al ${kpi.conversioneTot}%. Tieni caldo chi ha già mostrato intenzione.`}
+              tone="green"
+            />
+            <BriefingTile
+              title="Non funziona"
+              value={moneyRecovery}
+              copy="Persone da recuperare tra checkout, call mancante e diagnostica senza acquisto."
+              tone={moneyRecovery > 0 ? "red" : "green"}
+            />
+            <BriefingTile
+              title="Priorità Luca"
+              value={dayStatus}
+              copy={decisionsTotal > 0 ? "Chiudi prima gli OK: ogni reparto deve sapere cosa può fare senza aspettarti." : "Controllo veloce e poi focus su vendita e partner attivi."}
+              tone={decisionsTotal > 0 ? "amber" : "green"}
+            />
+          </div>
+        </Block>
+
         {/* ── 1. AZIONI PRIORITARIE ── */}
         <Block title="Azioni prioritarie" accent>
           <div className="space-y-3">
             <ActionCard
-              count={(approv?.total || 0) + materialiPending}
+              count={approvalTotal}
               label="Approvazioni in attesa"
               sublabel={`${approv?.analisi_da_approvare || 0} analisi · ${
                 approv?.bonifici_in_attesa || 0
               } bonifici · ${materialiPending} materiali`}
-              urgency={
-                (approv?.total || 0) + materialiPending > 0 ? "high" : "ok"
-              }
+              urgency={approvalTotal > 0 ? "high" : "ok"}
               onClick={() => setShowApprovPanel(true)}
+              icon={ClipboardCheck}
             />
             {videoPending > 0 && (
               <ActionCard
@@ -407,6 +485,7 @@ export function Oggi({ onAuthExpired }) {
                 sublabel="Masterclass e lezioni pronte per la revisione"
                 urgency="high"
                 onClick={() => go("video-review")}
+                icon={Video}
               />
             )}
             {setupPending > 0 && (
@@ -416,6 +495,7 @@ export function Oggi({ onAuthExpired }) {
                 sublabel="Partner che hanno pagato ma non sono ancora entrati"
                 urgency="high"
                 onClick={() => go("partner-setup-pending")}
+                icon={KeyRound}
               />
             )}
             <ActionCard
@@ -424,6 +504,7 @@ export function Oggi({ onAuthExpired }) {
               sublabel="Clienti che hanno pagato e aspettano la call"
               urgency={callDaFissare > 0 ? "medium" : "ok"}
               onClick={() => go("clienti-analisi")}
+              icon={Clock}
             />
             <ActionCard
               count={partnerBloccati}
@@ -431,12 +512,49 @@ export function Oggi({ onAuthExpired }) {
               sublabel="Richiedono intervento diretto"
               urgency={partnerBloccati > 0 ? "high" : "ok"}
               onClick={() => go("partner-bloccati")}
+              icon={AlertTriangle}
             />
           </div>
         </Block>
 
         {/* ── Cosa aspetta il tuo OK (task agenti) ── */}
         <ApprovalsQueue onAuthExpired={onAuthExpired} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <PriorityList
+            title="Recuperi soldi — prima chiamata utile"
+            items={[...clickedNoPurchase, ...purchasedNoCall, ...diagnosticNoPurchase]}
+            empty="Nessun recupero urgente sul funnel."
+            renderItem={(item, i) => (
+              <button key={`${item.email || item.id || i}`} onClick={() => go("clienti-analisi")} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-left hover:border-yellow-300 transition">
+                <div className="flex items-center gap-3">
+                  <WalletCards className="w-5 h-5 text-yellow-600" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-900 truncate">{item.nome || item.name || item.email || "Contatto da recuperare"}</div>
+                    <div className="text-xs text-slate-400 truncate">{item.reason || item.status || "Intento caldo: serve follow-up diretto"}</div>
+                  </div>
+                </div>
+              </button>
+            )}
+          />
+
+          <PriorityList
+            title="Accorgimenti — collo di bottiglia reale"
+            items={bottlenecks}
+            empty="Nessun collo di bottiglia critico rilevato."
+            renderItem={(item, i) => (
+              <div key={`${item.label || i}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start gap-3">
+                  <Target className="w-5 h-5 text-rose-500 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">{item.label || item.name || "Punto da migliorare"}</div>
+                    <div className="text-xs text-slate-400 mt-1">{item.action || item.solution || item.description || "Controlla messaggio, offerta e follow-up prima di aumentare traffico."}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+        </div>
 
         {/* ── 2. COLLI DI BOTTIGLIA ── */}
         <Block
@@ -521,72 +639,6 @@ export function Oggi({ onAuthExpired }) {
             </div>
           )}
         </Block>
-
-        {/* ── 5 + 6. SISTEMA AI + KPI (affiancati) ── */}
-        <div className="grid grid-cols-2 gap-5">
-          {/* Sistema AI */}
-          <Block title="Sistema AI — agenti attivi" action="Hub" onAction={() => go("agenti")}>
-            {agents.length === 0 ? (
-              <div className="text-sm text-slate-400">Nessun agente attivo</div>
-            ) : (
-              <div className="space-y-2">
-                {agents.slice(0, 5).map((a) => (
-                  <div key={a.id} className="flex items-center gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        a.status === "active" ? "bg-emerald-500" : "bg-slate-400"
-                      }`}
-                    />
-                    <span className="text-sm font-semibold flex-1 truncate text-slate-900">
-                      {a.name || a.id}
-                    </span>
-                    <span className="text-xs text-slate-400">{a.role || ""}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Block>
-
-          {/* KPI */}
-          <Block title="KPI essenziali">
-            <div className="space-y-3">
-              {[
-                {
-                  label: "Analisi vendute",
-                  val: kpi.analisiVendute,
-                  icon: TrendingUp,
-                  iconCls: "text-blue-500",
-                },
-                {
-                  label: "Conversione tot.",
-                  val: `${kpi.conversioneTot}%`,
-                  icon: TrendingDown,
-                  iconCls: "text-yellow-600",
-                },
-                {
-                  label: "Fatturato stimato",
-                  val: `€${kpi.fatturatoStimato.toLocaleString("it-IT")}`,
-                  icon: DollarSign,
-                  iconCls: "text-emerald-500",
-                },
-              ].map((k) => (
-                <div
-                  key={k.label}
-                  className="flex items-center gap-3 py-2 border-b border-gray-200"
-                >
-                  <k.icon className={`w-4 h-4 flex-shrink-0 ${k.iconCls}`} />
-                  <span className="flex-1 text-sm text-slate-600">{k.label}</span>
-                  <span className="font-mono font-semibold text-base text-slate-900">
-                    {k.val}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Block>
-        </div>
-
-        {/* ── Campagne email ── */}
-        <EmailCampaignsBlock />
 
         {/* ── 7. ALERT (compatto) ── */}
         {alerts.length > 0 && (

@@ -109,7 +109,7 @@ const WELCOME = {
     "Ciao Claudio. Sono operativa. Dimmi cosa ti serve o scrivi **Briefing** per il riepilogo operativo di oggi.",
 };
 
-export function StefaniaAdmin({ onAuthExpired }) {
+export function StefaniaAdmin({ onAuthExpired, compact = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -222,14 +222,14 @@ export function StefaniaAdmin({ onAuthExpired }) {
 
   if (historyLoading) {
     return (
-      <div className="p-8 h-screen flex items-center justify-center bg-gray-50">
+      <div className={`${compact ? "h-[360px]" : "p-8 h-screen"} flex items-center justify-center bg-gray-50`}>
         <Loader2 className="w-6 h-6 animate-spin text-yellow-500" />
       </div>
     );
   }
 
   return (
-    <div className="p-8 h-screen flex flex-col bg-gray-50">
+    <div className={`${compact ? "h-[360px]" : "p-8 h-screen"} flex flex-col bg-gray-50`}>
       <div className="flex flex-col flex-1 min-h-0 bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0 bg-white border-b border-gray-200">
@@ -273,7 +273,7 @@ export function StefaniaAdmin({ onAuthExpired }) {
         </div>
 
         {/* Quick chips */}
-        {messages.length <= 2 && (
+        {!compact && messages.length <= 2 && (
           <div className="flex flex-wrap gap-2 px-6 pb-3 flex-shrink-0 border-t border-gray-200">
             <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Azioni rapide

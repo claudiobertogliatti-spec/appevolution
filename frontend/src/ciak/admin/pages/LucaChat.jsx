@@ -124,7 +124,7 @@ function MessageBubble({ msg, adminInitials }) {
   );
 }
 
-export function LucaChat({ onAuthExpired }) {
+export function LucaChat({ onAuthExpired, compact = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -208,7 +208,7 @@ export function LucaChat({ onAuthExpired }) {
   };
 
   return (
-    <div className="flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden" style={{ height: 580 }}>
+    <div className="flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: compact ? 360 : 580 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0 bg-white border-b border-gray-200">
         <div className="flex items-center gap-3">
@@ -257,7 +257,7 @@ export function LucaChat({ onAuthExpired }) {
       </div>
 
       {/* Quick chips */}
-      {!historyLoading && messages.length <= 2 && (
+      {!compact && !historyLoading && messages.length <= 2 && (
         <div className="flex flex-wrap gap-2 px-5 pb-3 flex-shrink-0 border-t border-gray-200">
           <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
             Azioni rapide
