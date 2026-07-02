@@ -39,14 +39,16 @@ function AccessPage() {
 }
 
 function ProtectedClient() {
+  const token = getClientToken();
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!token) return;
     clientGet("/dashboard").then(setDashboard).catch((e) => setError(e.message));
-  }, []);
+  }, [token]);
 
-  if (!getClientToken()) return <Navigate to="/cliente/accesso" replace />;
+  if (!token) return <Navigate to="/cliente/accesso" replace />;
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!dashboard) return <div className="p-8 text-slate-400">Caricamento percorso...</div>;
 
