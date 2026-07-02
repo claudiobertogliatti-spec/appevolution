@@ -133,13 +133,28 @@ const PLANS = [
   },
 ];
 
+const CONTINUITY_POINTS = [
+  {
+    title: "Il sistema non si spegne",
+    text: "Funnel, contenuti, live e lista restano seguiti anche dopo la fase di costruzione.",
+  },
+  {
+    title: "Le decisioni partono dai numeri",
+    text: "Ogni mese guardiamo cosa sta funzionando e dove intervenire prima di disperdere energie.",
+  },
+  {
+    title: "Cresci senza ricominciare da zero",
+    text: "Scala parte da cio' che hai gia' costruito e lo rende piu' stabile, chiaro e vendibile.",
+  },
+];
+
 function PlanCard({ plan, onOpen }) {
   const Icon = plan.icon;
   return (
     <button
       onClick={() => onOpen(plan.id)}
-      className={`text-left bg-white rounded-2xl p-5 flex flex-col transition hover:shadow-md ${
-        plan.popular ? "border-2 border-yellow-300 shadow-lg shadow-yellow-400/10" : "border border-gray-200 hover:border-slate-300"
+      className={`text-left bg-white rounded-xl p-5 flex flex-col transition hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
+        plan.popular ? "border-2 border-yellow-300 shadow-[0_0_24px_rgba(250,204,21,0.12)]" : "border border-gray-200 hover:border-yellow-300"
       }`}
     >
       {plan.popular && (
@@ -153,24 +168,35 @@ function PlanCard({ plan, onOpen }) {
         </div>
         <p className="text-[16px] font-semibold text-slate-900 leading-tight">{plan.name}</p>
       </div>
-      <p className="text-2xl font-semibold text-slate-900 mb-0.5">{plan.priceLabel}</p>
-      <p className="text-[12px] text-slate-400 mb-3">Permanenza minima 6 mesi</p>
-      <p className="text-[13px] text-slate-600 leading-relaxed mb-3">{plan.beneficio}</p>
+      <p className="text-[13px] text-slate-600 leading-relaxed mb-4">{plan.beneficio}</p>
+      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 mb-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Quando ha senso</p>
+        <p className="text-[13px] text-slate-700 leading-snug mt-1">{plan.perChi}</p>
+      </div>
       <p className="text-[12px] text-slate-500 mb-3">
-        <span className="font-semibold text-slate-700">Per chi è:</span> {plan.perChi}
+        <span className="font-semibold text-slate-700">Investimento:</span> {plan.priceLabel} · minimo 6 mesi
       </p>
       <ul className="space-y-1.5 mb-4 flex-1">
-        {plan.comprende.slice(0, 5).map((t, i) => (
+        {plan.comprende.slice(0, 4).map((t, i) => (
           <li key={i} className="flex items-start gap-2 text-[13px] text-slate-700 leading-snug">
             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600" />
             <span>{t}</span>
           </li>
         ))}
       </ul>
-      <span className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 group-hover:bg-slate-800 transition">
-        Scopri il piano <ArrowRight className="w-4 h-4" />
+      <span className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-slate-900 text-yellow-300 hover:bg-slate-800 transition">
+        Capisci se fa per te <ArrowRight className="w-4 h-4" />
       </span>
     </button>
+  );
+}
+
+function ContinuityPoint({ point }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-900">{point.title}</p>
+      <p className="text-[13px] leading-relaxed text-slate-600 mt-1">{point.text}</p>
+    </div>
   );
 }
 
@@ -379,21 +405,49 @@ export function EvoSPage({ partnerId }) {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="mb-7">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-            Dopo i 12 mesi
-          </span>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight mt-1">Continua a scalare</h1>
-          <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-            Dopo il percorso non devi tornare a gestire tutto da solo. Scala è il servizio in
-            abbonamento che mantiene il sistema seguito, aggiornato e orientato alle vendite.
-            Tutti i piani hanno permanenza minima di 6 mesi.
-          </p>
-        </div>
+      <div className="max-w-6xl mx-auto p-6">
+        <section className="overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-[0_0_24px_rgba(250,204,21,0.12)] mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.92fr]">
+            <div className="p-6 sm:p-8">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
+                Dopo i 12 mesi
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight mt-2">
+                Hai costruito il sistema. Ora va mantenuto, ottimizzato e fatto crescere.
+              </h1>
+              <p className="text-[15px] text-slate-600 leading-relaxed mt-4 max-w-2xl">
+                Continua a scalare non e' un semplice rinnovo tecnico: e' il livello di continuita'
+                per non lasciare fermo cio' che hai costruito. Il team resta al tuo fianco per leggere
+                i numeri, aggiornare le leve giuste e trasformare il percorso in una crescita piu'
+                ordinata.
+              </p>
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">La scelta non e' “comprare un piano”.</p>
+                <p className="text-[13px] text-slate-600 leading-relaxed mt-1">
+                  E' decidere quanto supporto vuoi mantenere dopo il lancio: controllo leggero, crescita
+                  costante o spinta completa.
+                </p>
+              </div>
+            </div>
+            <div className="relative min-h-[280px]">
+              <img
+                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1100&q=80"
+                alt="Dashboard di crescita e analisi dati"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-white/92 backdrop-blur border border-white p-4">
+                <p className="text-sm font-semibold text-slate-900">Dopo il lancio contano i dati.</p>
+                <p className="text-[13px] leading-relaxed text-slate-600 mt-1">
+                  Scala serve a non procedere a sensazione quando il sistema inizia a muoversi.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {locked && (
-          <div className="mb-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+          <div className="mb-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
             <p className="text-[14px] font-semibold text-slate-900">Scala si apre al termine dei 12 mesi</p>
             <p className="text-[13px] text-slate-600 mt-0.5">
               È il livello successivo, riservato a chi ha completato il Protocollo EVO.
@@ -404,6 +458,55 @@ export function EvoSPage({ partnerId }) {
           </div>
         )}
 
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          {CONTINUITY_POINTS.map((point) => (
+            <ContinuityPoint key={point.title} point={point} />
+          ))}
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <p className="text-[13px] font-semibold uppercase tracking-widest text-slate-400">
+              Se ti fermi
+            </p>
+            <ul className="mt-3 space-y-2">
+              {[
+                "Il sistema resta online, ma rischia di perdere ritmo.",
+                "Le ottimizzazioni dipendono solo da te.",
+                "Contenuti, live e funnel possono diventare discontinui.",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
+                  <X className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border border-yellow-200 bg-white p-5 shadow-[0_0_18px_rgba(250,204,21,0.10)]">
+            <p className="text-[13px] font-semibold uppercase tracking-widest text-yellow-600">
+              Se continui a scalare
+            </p>
+            <ul className="mt-3 space-y-2">
+              {[
+                "Mantieni un team che guarda numeri, contenuti e vendite.",
+                "Scegli il livello di supporto piu' adatto alla fase.",
+                "Trasformi il lavoro dei 12 mesi in una crescita piu' ordinata.",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                  <Check className="w-4 h-4 mt-0.5 text-emerald-600 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
+            Scegli il livello di continuita'
+          </p>
+          <h2 className="text-2xl font-semibold text-slate-900 mt-1">Tre modi per restare seguito</h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map((p) => (
             <PlanCard key={p.id} plan={p} onOpen={setSelectedId} />

@@ -70,13 +70,6 @@ export function PartnerSidebar({ user, onLogout }) {
               </NavLink>
             ))}
           </div>
-
-          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
-            <p className="text-[13px] font-semibold text-slate-900">Vuoi accelerare?</p>
-            <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
-              I servizi extra servono quando vuoi andare più veloce su ads, video, copy o automazioni.
-            </p>
-          </div>
         </nav>
 
         <div className="px-4 py-4 border-t border-slate-100">
