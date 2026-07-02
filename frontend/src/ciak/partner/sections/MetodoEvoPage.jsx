@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, ClipboardCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardCheck, Clock3, Rocket, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
@@ -154,6 +154,44 @@ export function MetodoEvoPage({ partnerId }) {
             devi sapere dove sei, cosa stiamo costruendo, cosa serve da te e qual e' il prossimo passo.
           </p>
         </header>
+
+        <section className="mb-5 rounded-xl border border-yellow-200 bg-yellow-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-yellow-700 shadow-sm">
+                <Rocket className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">
+                  Ritmo operativo
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-900">
+                  Se applicato correttamente, il Metodo EVO puo' portarti online in 21 giorni
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">
+                  Rispettiamo i tempi di tutti: il percorso funziona quando il ritmo e' sostenibile
+                  per te e per il team. Allo stesso tempo, andare online in 3/4 settimane significa
+                  iniziare prima a raccogliere dati, feedback e incassi.
+                </p>
+                <p className="mt-2 max-w-3xl text-sm font-semibold leading-relaxed text-slate-900">
+                  Piu' tempo lasciamo alla fase Ottimizza, piu' spazio abbiamo per migliorare il sistema,
+                  vendere il videocorso in modo sempre piu' automatico e rientrare reciprocamente
+                  dell'investimento sostenuto per il progetto.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-yellow-200 bg-white p-4 lg:w-64">
+              <div className="flex items-center gap-2 text-yellow-700">
+                <Clock3 className="h-4 w-4" />
+                <p className="text-xs font-semibold uppercase tracking-widest">Obiettivo</p>
+              </div>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">21 giorni</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                Online prima, ottimizzazione piu' lunga, maggiori possibilita' di recupero investimento.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section className="mb-5 rounded-xl border border-yellow-200 bg-white p-5 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
