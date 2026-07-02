@@ -3,7 +3,7 @@ import { ArrowRight, LockKeyhole, PlayCircle } from "lucide-react";
 import { clientPost } from "../api";
 
 function euro(cents) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format((cents || 0) / 100);
+  return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
 const lessons = [

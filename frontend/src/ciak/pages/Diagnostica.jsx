@@ -1,9 +1,9 @@
 /**
- * Ciak.io /diagnostica — 8 Domande Ciak (lead magnet PRE-pagamento €67)
+ * Ciak.io /diagnostica — 8 Domande Ciak (lead magnet PRE-acquisto Blueprint €27)
  *
  * Flusso (deciso 2026-05-27 con Claudio):
  *   Masterclass → CTA "Scopri da dove partire" → /diagnostica
- *   → 8 domande → Matteo classifica stato 1-4 → /report/{token} → CTA €67
+ *   → 8 domande → Matteo classifica stato 1-4 → /report/{token} → CTA €27
  *
  * Email: riusata dal gate masterclass (localStorage ciak_lead_email/name).
  * Se assente (ingresso diretto), mini-form email prima della domanda 1.

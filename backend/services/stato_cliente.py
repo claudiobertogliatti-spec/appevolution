@@ -91,7 +91,7 @@ STATO_LABEL_ADMIN: dict[str, str] = {
     StatiCliente.INTRO_QUESTIONARIO:           "Ha visto l'intro",
     StatiCliente.QUESTIONARIO_IN_COMPILAZIONE: "Questionario in compilazione",
     StatiCliente.QUESTIONARIO_COMPLETATO:      "Questionario completato",
-    StatiCliente.IN_ATTESA_PAGAMENTO_ANALISI:  "In attesa pagamento €67",
+    StatiCliente.IN_ATTESA_PAGAMENTO_ANALISI:  "In attesa pagamento Blueprint €27",
     StatiCliente.ANALISI_ATTIVATA:             "Analisi attivata",
     StatiCliente.IN_ATTESA_CALL:               "In attesa di call",
     StatiCliente.CALL_PRENOTATA:               "Call prenotata",
@@ -183,7 +183,7 @@ def calcola_stato(
         stato = StatiCliente.IN_ATTESA_CALL
 
     elif c.get("pagamento_analisi") or user.get("pagamento_analisi"):
-        # Pagato €67, analisi non ancora generata
+        # Pagato Blueprint, analisi non ancora generata
         stato = StatiCliente.ANALISI_ATTIVATA
 
     elif c.get("questionario_compilato") or user.get("questionario_completed") or user.get("mini_quiz_completed"):

@@ -1,7 +1,7 @@
 """
 Consegna post-acquisto della BOZZA analisi (Plan B).
 Orchestratore idempotente: genera (Plan A) → render PDF (estetica Canva) →
-upload Cloudinary → email transazionale con allegato. Emesso in background dal webhook €67.
+upload Cloudinary → email transazionale con allegato. Emesso in background dal webhook Blueprint.
 """
 import logging
 import os
@@ -111,7 +111,7 @@ def _send_email_link(*, to: str, nome: str, subject: str, link: str) -> tuple[bo
 
 async def processa_acquisto(session_token: str, email: str, nome: Optional[str]) -> dict:
     """
-    Background post-€67: genera (idempotente) + invia bozza PDF una sola volta.
+    Background post-Blueprint: genera (idempotente) + invia bozza PDF una sola volta.
     Non solleva: logga e ritorna lo stato (non deve mai rompere il webhook).
     """
     if db is None:

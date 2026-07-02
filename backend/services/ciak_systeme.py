@@ -18,8 +18,8 @@ Tag emessi (spec ciak_technical_spec.md §4):
   segment_<x>               da Q1 (classificato da Matteo)
   digital_level_<x>         da Q7 (diretto)
   obiettivo_<x>             da Q8 (opzionale)
-  ciak_clicked_67           click CTA Analisi €67
-  ciak_bought_67            pagamento Stripe €67 confermato
+  ciak_clicked_67           click CTA Blueprint confermato (tag legacy)
+  ciak_bought_67            pagamento Stripe Blueprint confermato (tag legacy)
   ciak_call_booked          call Cal.com prenotata
   ciak_call_done            call effettuata
   ciak_partner_approved     idoneo per partnership

@@ -6,7 +6,7 @@
  *   STATO 2 — VIDEO masterclass (YouTube)
  *   STATO 3 — POST-VIDEO: CTA "Scopri da dove partire" → 8 Domande (/diagnostica)
  *
- * Le 8 Domande Ciak (lead magnet approfondito che classifica → CTA €67) sono
+ * Le 8 Domande Ciak (lead magnet approfondito che classifica → CTA €27) sono
  * ora DOPO la masterclass, non più dopo il pagamento.
  *
  * Copy hero lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.

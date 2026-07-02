@@ -108,7 +108,7 @@ OUTPUT: SOLO JSON valido:
   "chiusura": "1 frase che rimanda alla call"
 }"""
 
-_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per convertire un cliente €67 in partner €2.790. Basati sull'analisi definitiva e sullo stato del cliente.
+_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per convertire un cliente Blueprint €27 o Start €499 in partner €2.790. Basati sull'analisi definitiva e sullo stato del cliente.
 
 """ + _VINCOLI_STILE + """
 
