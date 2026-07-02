@@ -40,19 +40,21 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
   return (
     <section className={`bg-white border border-yellow-200 rounded-xl shadow-[0_0_24px_rgba(250,204,21,0.14)] overflow-hidden ${compact ? "" : "mt-5"}`}>
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr]">
-        <div className="bg-slate-900 text-white p-5 flex flex-col justify-between min-h-[210px]">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-yellow-400/15 px-3 py-1 text-xs font-semibold text-yellow-300">
-              <BookOpen className="w-3.5 h-3.5" />
-              Libretto Ciak
+        <div className="bg-gradient-to-br from-yellow-300 via-yellow-100 to-yellow-400 p-px min-h-[210px]">
+          <div className="h-full bg-slate-50 text-slate-900 p-5 flex flex-col justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-white px-3 py-1 text-xs font-semibold text-yellow-700">
+                <BookOpen className="w-3.5 h-3.5" />
+                Libretto Ciak
+              </div>
+              <h3 className="text-xl font-semibold leading-tight mt-4">{projectName}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                La dispensa professionale del progetto che stiamo costruendo insieme.
+              </p>
             </div>
-            <h3 className="text-xl font-semibold leading-tight mt-4">{projectName}</h3>
-            <p className="text-xs text-slate-300 leading-relaxed mt-2">
-              La dispensa professionale del progetto che stiamo costruendo insieme.
-            </p>
-          </div>
-          <div className="mt-5 h-2 rounded-full bg-white/15 overflow-hidden">
-            <div className="h-full bg-yellow-400" style={{ width: `${Math.round((unlockedCount / phases.length) * 100)}%` }} />
+            <div className="mt-5 h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div className="h-full bg-yellow-400" style={{ width: `${Math.round((unlockedCount / phases.length) * 100)}%` }} />
+            </div>
           </div>
         </div>
 
