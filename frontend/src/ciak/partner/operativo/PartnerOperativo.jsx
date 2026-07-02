@@ -48,11 +48,11 @@ const WORKSPACE_COMPONENTS = {
 export default function PartnerOperativo({ partnerId, partnerName }) {
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // Benvenuto al primo accesso: mostrato una volta sola (flag in localStorage),
-  // prima della mappa. Resta ri-apribile come passo "Conosciamoci".
+  // La home guidata e' la prima schermata reale del partner.
+  // Il benvenuto resta ri-apribile dal pulsante "Rivedi il video di benvenuto".
   const [benvenutoSeen, setBenvenutoSeen] = useState(() => {
     if (typeof window === "undefined") return true;
-    return !!localStorage.getItem(`ciak_benvenuto_seen_${partnerId}`);
+    return true;
   });
   // se !== null: si apre direttamente quello step (modifica step già done, o
   // deep-link "Vai allo step" dalla scheda admin via localStorage).

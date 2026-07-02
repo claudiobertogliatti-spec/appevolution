@@ -9,7 +9,7 @@ import {
 import { Link } from "react-router-dom";
 import JourneyMap from "./JourneyMap";
 import { AGENTS, getAgentForStep } from "./agents";
-import { PHASE_CONFIG } from "./phases";
+import { PHASE_CONFIG, WELCOME_VIDEO_EMBED } from "./phases";
 import ProjectBookCard from "../rewards/ProjectBookCard";
 
 function firstName(name) {
@@ -113,8 +113,35 @@ export default function GuidedHome({
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:text-blue-700 transition"
               >
                 <PlayCircle className="w-4 h-4" />
-                Rivedi il video di benvenuto
+                Apri introduzione completa
               </button>
+            </div>
+          </div>
+
+          <div className="bg-white border border-yellow-200 rounded-xl overflow-hidden shadow-[0_0_24px_rgba(250,204,21,0.12)]">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
+              <div className="relative bg-slate-950" style={{ aspectRatio: "16 / 9" }}>
+                <iframe
+                  src={WELCOME_VIDEO_EMBED}
+                  title="Video di benvenuto di Claudio"
+                  className="absolute inset-0 w-full h-full"
+                  frameBorder="0"
+                  allow="encrypted-media; fullscreen"
+                  allowFullScreen
+                />
+              </div>
+              <div className="p-5 flex flex-col justify-center">
+                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
+                  Prima di iniziare
+                </p>
+                <h3 className="text-xl font-semibold text-slate-900 mt-1">
+                  Guarda il messaggio di benvenuto
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed mt-3">
+                  Claudio ti spiega come funziona il percorso, cosa succede nelle prossime settimane
+                  e come usare Ciak senza perderti tra strumenti, file e chat.
+                </p>
+              </div>
             </div>
           </div>
 
