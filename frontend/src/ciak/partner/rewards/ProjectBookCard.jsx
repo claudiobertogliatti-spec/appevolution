@@ -45,7 +45,7 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-white px-3 py-1 text-xs font-semibold text-yellow-700">
                 <BookOpen className="w-3.5 h-3.5" />
-                Libretto Ciak
+                Dispensa pratica
               </div>
               <h3 className="text-xl font-semibold leading-tight mt-4">{projectName}</h3>
               <p className="text-xs text-slate-600 leading-relaxed mt-2">
@@ -64,9 +64,9 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
                 Premio di percorso
               </p>
-              <h3 className="text-xl font-semibold text-slate-900 mt-1">Il tuo Libretto di Progetto</h3>
+              <h3 className="text-xl font-semibold text-slate-900 mt-1">La tua dispensa pratica</h3>
               <p className="text-sm text-slate-600 leading-relaxed mt-2 max-w-xl">
-                Lo vedi gia adesso, poi si arricchisce fase dopo fase con posizionamento,
+                La vedi gia adesso, poi si arricchisce fase dopo fase con posizionamento,
                 masterclass, corso, funnel, calendario e live.
               </p>
             </div>
@@ -77,7 +77,7 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
-              Scarica libretto
+              Scarica dispensa
             </a>
           </div>
 
@@ -99,7 +99,7 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               </p>
               <p className="text-xs text-slate-600 leading-relaxed mt-1">
                 {nextReward?.unlocked
-                  ? "Ora il libretto continua ad aggiornarsi con dati, live e ottimizzazioni."
+                  ? "Ora la dispensa continua ad aggiornarsi con dati, live e ottimizzazioni."
                   : `Completa la fase ${nextReward?.label} per sbloccare attestato e bonus: ${nextReward?.bonusTitle}.`}
               </p>
             </div>

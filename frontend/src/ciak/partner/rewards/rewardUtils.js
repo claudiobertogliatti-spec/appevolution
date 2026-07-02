@@ -25,8 +25,8 @@ const PHASES = [
   },
   {
     id: "golive",
-    label: "Go Live",
-    title: "Il modello digitale e online",
+    label: "Ottimizza",
+    title: "Primi dati e piano post-lancio",
     bonusTitle: "Piano 90 Giorni per Crescere",
     stepIds: ["13-lancio"],
   },

@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Circle, PlayCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardCheck, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
@@ -6,58 +6,133 @@ import { AGENTS } from "../operativo/agents";
 import { buildRewardPhases } from "../rewards/rewardUtils";
 import PhaseRewardCard from "../rewards/PhaseRewardCard";
 
-const ESAMINA_STEPS = [
-  "Raccogliamo le informazioni essenziali",
-  "Mettiamo ordine nel tuo brand",
-  "Raccontiamo la tua storia professionale",
-  "Definiamo il posizionamento",
-  "Prepariamo il messaggio della masterclass",
+const PHASES = [
+  {
+    id: "esamina",
+    label: "Esamina",
+    headline: "Capire cosa vendere, a chi e con quale messaggio.",
+    agentId: "VALENTINA",
+    agentRole: "Brand, identita' e posizionamento",
+    partner: [
+      "Ci racconti la tua storia",
+      "Rispondi alle domande chiave",
+      "Validiamo target, promessa e direzione",
+    ],
+    team: [
+      "Riordina brand e posizionamento",
+      "Trasforma le tue idee in una direzione chiara",
+      "Prepara la base per masterclass e offerta",
+    ],
+    output: [
+      "Posizionamento chiaro",
+      "Messaggio centrale",
+      "Brand kit essenziale",
+      "Prima struttura del progetto",
+    ],
+  },
+  {
+    id: "valida",
+    label: "Valida",
+    headline: "Trasformare l'idea in qualcosa che il mercato puo' capire e comprare.",
+    agentId: "ANDREA",
+    agentRole: "Video, contenuti e architettura del corso",
+    partner: [
+      "Registri i contenuti guidato dal team",
+      "Dai feedback sui materiali",
+      "Confermi le decisioni principali",
+    ],
+    team: [
+      "Scrive e struttura la masterclass",
+      "Organizza il videocorso",
+      "Costruisce funnel, pagine e sistema di vendita",
+      "Prepara il lancio",
+    ],
+    output: [
+      "Masterclass pronta",
+      "Videocorso strutturato",
+      "Funnel operativo",
+      "Primo test reale sul mercato",
+    ],
+  },
+  {
+    id: "ottimizza",
+    label: "Ottimizza",
+    headline: "Usare i dati per rendere il sistema piu' forte nel tempo.",
+    agentId: "MARCO",
+    agentRole: "Lancio, dati e crescita post-lancio",
+    partner: [
+      "Guardi cosa succede dopo il lancio",
+      "Porti feedback da clienti e contatti",
+      "Decidi con noi cosa migliorare",
+    ],
+    team: [
+      "Legge numeri e comportamento del funnel",
+      "Propone correzioni concrete",
+      "Migliora messaggi, contenuti e prossime campagne",
+    ],
+    output: [
+      "Sistema piu' chiaro",
+      "Comunicazione piu' efficace",
+      "Prossime azioni ordinate",
+      "Base per continuare a crescere",
+    ],
+  },
 ];
 
-const VALIDA_STEPS = [
-  "Creiamo la tua masterclass",
-  "Organizziamo il tuo corso",
-  "Costruiamo il sistema di vendita",
-  "Prepariamo il lancio",
-  "Andiamo online con un test reale",
-];
-
-function AgentStrip({ agentId, label }) {
+function AgentBadge({ agentId, role }) {
   const agent = AGENTS[agentId];
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white border border-slate-200 p-3">
-      <img src={agent.avatar} alt={agent.name} className="w-12 h-12 rounded-lg object-cover" />
-      <div>
+    <div className="flex items-center gap-3 rounded-xl border border-yellow-200 bg-white p-3">
+      <img src={agent.avatar} alt={agent.name} className="h-14 w-14 rounded-lg object-cover bg-slate-100" />
+      <div className="min-w-0">
         <p className="text-sm font-semibold text-slate-900">{agent.name}</p>
-        <p className="text-xs text-slate-500">{label || agent.role}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{role}</p>
       </div>
     </div>
   );
 }
 
-function StepList({ items, active }) {
+function MiniList({ title, items }) {
   return (
-    <div className="space-y-2">
-      {items.map((item, index) => {
-        const done = active > index;
-        const current = active === index;
-        return (
-          <div
-            key={item}
-            className={`flex items-start gap-3 rounded-lg border p-3 ${
-              current ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
-            }`}
-          >
-            {done ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5" />
-            ) : (
-              <Circle className={`w-4 h-4 mt-0.5 ${current ? "text-blue-600" : "text-slate-300"}`} />
-            )}
-            <p className="text-sm text-slate-700">{item}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{title}</p>
+      <div className="mt-3 space-y-2">
+        {items.map((item) => (
+          <div key={item} className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <p className="text-sm leading-relaxed text-slate-700">{item}</p>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
+  );
+}
+
+function PhaseCard({ phase, index, current }) {
+  return (
+    <section
+      className={`rounded-xl border bg-white p-5 ${
+        current ? "border-yellow-300 shadow-[0_0_24px_rgba(250,204,21,0.16)]" : "border-slate-200"
+      }`}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">
+            <span>{index + 1}</span>
+            {phase.label}
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-900">{phase.label}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{phase.headline}</p>
+        </div>
+        <AgentBadge agentId={phase.agentId} role={phase.agentRole} />
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <MiniList title="Cosa fai tu" items={phase.partner} />
+        <MiniList title="Cosa fa il team Ciak" items={phase.team} />
+        <MiniList title="Cosa ottieni" items={phase.output} />
+      </div>
+    </section>
   );
 }
 
@@ -65,134 +140,88 @@ export function MetodoEvoPage({ partnerId }) {
   const { state } = useJourneyState(partnerId);
   const rewardPhases = useMemo(() => buildRewardPhases(state, partnerId), [state, partnerId]);
   const currentPhase = state?.current_step?.macro_phase;
-  const currentIndex = Math.max(
-    0,
-    state?.steps?.filter((s) => s.macro_phase === currentPhase).findIndex((s) => s.step_id === state?.current_step?.step_id) || 0
-  );
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <header className="mb-7">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        <header className="mb-6 rounded-xl border border-yellow-200 bg-white p-6 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
             Il percorso che stai seguendo
           </p>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mt-2">Metodo EVO</h1>
-          <p className="text-sm text-slate-600 leading-relaxed mt-3 max-w-2xl">
-            Ciak ti accompagna una fase alla volta. Non devi capire tutto subito:
-            devi solo sapere dove sei, cosa stiamo costruendo, cosa devi supervisionare e qual è il prossimo passo.
+          <h1 className="mt-2 text-3xl font-semibold text-slate-900">Metodo EVO</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">
+            Il Metodo EVO trasforma la tua competenza in un sistema di vendita. Non devi capire tutto subito:
+            devi sapere dove sei, cosa stiamo costruendo, cosa serve da te e qual e' il prossimo passo.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-5">
-          <section className="bg-white border border-yellow-200 rounded-xl p-5 shadow-[0_0_22px_rgba(250,204,21,0.12)]">
-            <div className="flex items-center gap-3 mb-4">
-              <PlayCircle className="w-6 h-6 text-yellow-600" />
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Onboarding</h2>
-                <p className="text-sm text-slate-500">Stefania ti accoglie, Claudio ti mostra la rotta.</p>
-              </div>
-            </div>
-            <AgentStrip agentId="STEFANIA" label="Coordinatrice del percorso" />
-            <p className="text-sm text-slate-600 leading-relaxed mt-4">
-              Prepariamo il terreno e ti mostriamo come lavoreremo insieme. Il video di benvenuto
-              resta sempre disponibile nei Materiali.
-            </p>
-          </section>
-
-          <section className="bg-white border border-slate-200 rounded-xl p-5">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Fase 1 · Esamina</h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Valentina ti aiuta a mettere a fuoco identità, mercato e messaggio.
-                </p>
-              </div>
-              <AgentStrip agentId="VALENTINA" label="Brand e posizionamento" />
-            </div>
-            <StepList items={ESAMINA_STEPS} active={currentPhase === "esamina" ? currentIndex : -1} />
-          </section>
-
-          <section className="lg:col-span-2 bg-blue-600 rounded-xl p-5 text-white">
-            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-blue-100">
-                  Il cuore del progetto
-                </p>
-                <h2 className="text-2xl font-semibold mt-2">Fase 2 · Valida</h2>
-                <p className="text-sm text-blue-50 leading-relaxed mt-3">
-                  Qui il progetto smette di essere un'idea: costruiamo masterclass, corso,
-                  sistema di vendita e lancio per arrivare a un test reale. La parte tecnica vive nei tuoi spazi operativi, ma viene gestita dal team Evolution.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                {VALIDA_STEPS.map((step, index) => (
-                  <div key={step} className="rounded-lg bg-white/10 border border-white/20 p-3">
-                    <p className="text-[11px] font-semibold text-blue-100">Step {index + 1}</p>
-                    <p className="text-sm font-semibold mt-1">{step}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white border border-slate-200 rounded-xl p-5">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Fase 3 · Ottimizza</h2>
-                <p className="text-sm text-slate-600 leading-relaxed mt-2">
-                  Dopo il lancio leggiamo i numeri veri, correggiamo ciò che serve e rendiamo il sistema
-                  più stabile nel tempo.
-                </p>
-              </div>
-              <AgentStrip agentId="MARCO" label="Lancio e post-lancio" />
-            </div>
-          </section>
-
-          <section className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between">
+        <section className="mb-5 rounded-xl border border-yellow-200 bg-white p-5 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Il prossimo passo è in Home</h2>
-              <p className="text-sm text-slate-600 leading-relaxed mt-2">
-                Questa pagina ti orienta. Per lavorare, torna alla Home: lì trovi solo l'azione da fare adesso.
+              <div className="flex items-center gap-2 text-yellow-600">
+                <Sparkles className="h-5 w-5" />
+                <p className="text-xs font-semibold uppercase tracking-widest">Attestati e dispensa pratica</p>
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900">Ogni fase lascia qualcosa di concreto</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+                Completando le fasi sblocchi attestati, risorse bonus e una dispensa pratica che raccoglie
+                la direzione del progetto, i materiali chiave e le decisioni prese insieme.
               </p>
+            </div>
+            <a
+              href={`/api/partner-rewards/${partnerId}/project-book`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Scarica dispensa
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            {rewardPhases.map((phase) => (
+              <PhaseRewardCard key={phase.id} phase={phase} />
+            ))}
+          </div>
+        </section>
+
+        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {PHASES.map((phase, index) => (
+            <div key={phase.id} className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Fase {index + 1}</p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-900">{phase.label}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{phase.headline}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {PHASES.map((phase, index) => (
+            <PhaseCard key={phase.id} phase={phase} index={index} current={currentPhase === phase.id} />
+          ))}
+        </div>
+
+        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              <ClipboardCheck className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Questa pagina e' la mappa</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+                  Quando vuoi capire il percorso, torna qui. Quando vuoi sapere cosa fare adesso,
+                  vai in Home: li' trovi solo il prossimo passo operativo.
+                </p>
+              </div>
             </div>
             <Link
               to="/partner"
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               Vai alla Home
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="h-4 w-4" />
             </Link>
-          </section>
-
-          <section className="lg:col-span-2 bg-white border border-yellow-200 rounded-xl p-5 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-                  Premi da sbloccare
-                </p>
-                <h2 className="text-xl font-semibold text-slate-900 mt-1">Attestati e Libretto di Progetto</h2>
-                <p className="text-sm text-slate-600 leading-relaxed mt-2 max-w-2xl">
-                  Ogni fase completata sblocca un attestato, una risorsa bonus e aggiorna il tuo Libretto di Progetto Ciak.
-                </p>
-              </div>
-              <a
-                href={`/api/partner-rewards/${partnerId}/project-book`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
-              >
-                Scarica libretto
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {rewardPhases.map((phase) => (
-                <PhaseRewardCard key={phase.id} phase={phase} />
-              ))}
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );
