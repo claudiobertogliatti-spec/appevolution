@@ -14,6 +14,10 @@ Ciak e' la cabina di regia. Systeme.io e' lo spazio tecnico operativo personale 
 - Sessione strategica: consulenza, non vendita frontale.
 - Fondazioni: 499 euro per chi ha punteggio sotto 50.
 - Partnership completa: 2.790 euro + 10% sulle vendite per i primi 12 mesi.
+- Area Cliente Ciak: percorso separato dalla Partner Area per utenti Blueprint e Ciak Start.
+- Accessi: cliente_blueprint, cliente_start, partner.
+- Ciak Start resta cliente, non partner.
+- Credito Start garantito: chi acquista Start a 499 euro paga 2.291 euro se passa alla Partnership completa.
 
 Il 10% si spiega cosi':
 
@@ -112,4 +116,3 @@ Ogni deploy deve riportare:
 - Backend Cloud Run;
 - route verificate;
 - cosa resta fuori.
-
