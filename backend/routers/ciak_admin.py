@@ -20,7 +20,7 @@ Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
 memory/ciak_technical_spec.md (state machine, scoring).
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -81,6 +81,25 @@ def _state_ts(doc: dict, state: str) -> Optional[str]:
         if item.get("state") == state:
             return item.get("timestamp")
     return None
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_iso(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _week_start(d: Optional[datetime] = None) -> str:
+    current = d or datetime.now(timezone.utc)
+    start = current - timedelta(days=current.weekday())
+    return start.date().isoformat()
 
 
 def _month_start_iso() -> str:
@@ -1510,6 +1529,297 @@ async def partner_setup_pending(
         "consumed": len(items) - pending_count,
         "items": items,
     }
+
+
+# ─── Collaboratori: Antonella ore effettive + task Stefania ───────────────
+
+ANTONELLA_RATE = 25.0
+ANTONELLA_WEEKLY_TARGET_MIN = 4 * 60
+ANTONELLA_WEEKLY_MAX_MIN = 5 * 60
+
+
+class AntonellaTaskCreate(BaseModel):
+    title: str
+    description: str = ""
+    priority: str = "medium"
+    estimated_minutes: int = Field(60, ge=15, le=300)
+    category: str = "contenuti"
+    created_by_agent: str = "stefania"
+
+
+class AntonellaTaskNote(BaseModel):
+    note: Optional[str] = ""
+
+
+class AntonellaTaskApproval(BaseModel):
+    approved_minutes: Optional[int] = Field(None, ge=0, le=600)
+    note: Optional[str] = ""
+
+
+def _antonella_projection() -> dict:
+    return {
+        "_id": 0,
+        "task_id": 1,
+        "task_type": 1,
+        "priority": 1,
+        "status": 1,
+        "created_by_agent": 1,
+        "assigned_to": 1,
+        "title": 1,
+        "description": 1,
+        "context": 1,
+        "resolution_notes": 1,
+        "resolved_by": 1,
+        "created_at": 1,
+        "updated_at": 1,
+        "resolved_at": 1,
+        "due_date": 1,
+        "time_entries": 1,
+        "active_timer_started_at": 1,
+        "actual_minutes": 1,
+        "estimated_minutes": 1,
+        "approved_minutes": 1,
+        "approved_amount": 1,
+        "approved_at": 1,
+        "approved_by": 1,
+        "approval_note": 1,
+        "work_category": 1,
+        "week_start": 1,
+        "hourly_rate": 1,
+    }
+
+
+def _task_minutes(task: dict) -> int:
+    total = int(task.get("actual_minutes") or 0)
+    active = _parse_iso(task.get("active_timer_started_at"))
+    if active:
+        total += max(0, int((datetime.now(timezone.utc) - active).total_seconds() // 60))
+    return total
+
+
+def _clean_antonella_task(task: dict) -> dict:
+    task = _clean(task) or {}
+    actual = _task_minutes(task)
+    approved = int(task.get("approved_minutes") or 0)
+    estimated = int(task.get("estimated_minutes") or task.get("context", {}).get("estimated_minutes") or 60)
+    task["actual_minutes"] = actual
+    task["estimated_minutes"] = estimated
+    task["approved_minutes"] = approved
+    task["approved_amount"] = round((approved / 60) * float(task.get("hourly_rate") or ANTONELLA_RATE), 2)
+    task["is_timer_running"] = bool(task.get("active_timer_started_at"))
+    task["work_category"] = task.get("work_category") or task.get("context", {}).get("category") or "contenuti"
+    return task
+
+
+async def _ensure_antonella_weekly_tasks() -> None:
+    """Crea task base settimanali se Stefania non ha ancora popolato la settimana."""
+    if db is None:
+        return
+    week = _week_start()
+    existing = await db.agent_tasks.count_documents({
+        "assigned_to": "antonella",
+        "week_start": week,
+        "context.source": "antonella_weekly_auto",
+    })
+    if existing:
+        return
+
+    templates = [
+        ("Piano contenuti partner della settimana", "Controlla il calendario editoriale dei partner attivi e prepara le priorita contenuti della settimana.", 90, "contenuti", "high"),
+        ("Revisione materiali in attesa", "Controlla materiali caricati dai partner e segnala cosa approvare, correggere o richiedere.", 60, "materiali", "high"),
+        ("Casi studio e prove sociali", "Cerca risultati, screenshot o testimonianze trasformabili in contenuti o proof per vendite.", 60, "casi_studio", "medium"),
+        ("Controllo campagne e KPI social", "Verifica alert campagne, CPL, lead e anomalie; proponi una correzione se serve.", 60, "campagne", "medium"),
+    ]
+    now = _now_iso()
+    docs = []
+    for title, description, minutes, category, priority in templates:
+        import uuid
+        task_id = f"ant_{uuid.uuid4().hex[:12]}"
+        docs.append({
+            "task_id": task_id,
+            "task_type": "custom",
+            "priority": priority,
+            "status": "open",
+            "created_by_agent": "stefania",
+            "assigned_to": "antonella",
+            "title": title,
+            "description": description,
+            "entity_type": "collaborator",
+            "entity_id": "antonella",
+            "entity_name": "Antonella",
+            "context": {"source": "antonella_weekly_auto", "category": category, "estimated_minutes": minutes},
+            "work_category": category,
+            "estimated_minutes": minutes,
+            "actual_minutes": 0,
+            "approved_minutes": 0,
+            "hourly_rate": ANTONELLA_RATE,
+            "time_entries": [],
+            "active_timer_started_at": None,
+            "week_start": week,
+            "resolution_notes": None,
+            "resolved_by": None,
+            "created_at": now,
+            "updated_at": now,
+            "due_date": (datetime.now(timezone.utc) + timedelta(days=6)).date().isoformat(),
+            "resolved_at": None,
+            "escalated_at": None,
+        })
+    if docs:
+        await db.agent_tasks.insert_many(docs)
+
+
+@router.get("/collaboratori/antonella")
+async def antonella_work_summary(
+    admin=Depends(require_ciak_admin),
+    month: Optional[str] = Query(None, description="YYYY-MM, default mese corrente"),
+):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _ensure_antonella_weekly_tasks()
+    current_month = month or datetime.now(timezone.utc).strftime("%Y-%m")
+    week = _week_start()
+    query = {"assigned_to": "antonella"}
+    tasks = [
+        _clean_antonella_task(t)
+        async for t in db.agent_tasks.find(query, _antonella_projection()).sort("created_at", -1).limit(200)
+    ]
+    week_tasks = [t for t in tasks if t.get("week_start") == week and t.get("status") != "resolved"]
+    month_tasks = [t for t in tasks if str(t.get("created_at") or "").startswith(current_month)]
+    approved_minutes = sum(int(t.get("approved_minutes") or 0) for t in month_tasks)
+    actual_minutes = sum(int(t.get("actual_minutes") or 0) for t in month_tasks)
+    return {
+        "collaborator": {
+            "id": "antonella",
+            "name": "Antonella",
+            "role": "Social media manager",
+            "agent": "Stefania",
+            "hourly_rate": ANTONELLA_RATE,
+            "weekly_target_minutes": ANTONELLA_WEEKLY_TARGET_MIN,
+            "weekly_max_minutes": ANTONELLA_WEEKLY_MAX_MIN,
+            "payment_model": "ore_effettive_approvate",
+        },
+        "week_start": week,
+        "month": current_month,
+        "summary": {
+            "week_estimated_minutes_open": sum(int(t.get("estimated_minutes") or 0) for t in week_tasks),
+            "month_actual_minutes": actual_minutes,
+            "month_approved_minutes": approved_minutes,
+            "month_amount_due": round((approved_minutes / 60) * ANTONELLA_RATE, 2),
+            "pending_approval_count": len([t for t in month_tasks if t.get("status") == "completed" and not t.get("approved_at")]),
+        },
+        "tasks": tasks,
+    }
+
+
+@router.post("/collaboratori/antonella/tasks")
+async def create_antonella_task(req: AntonellaTaskCreate, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    import uuid
+    now = _now_iso()
+    task_id = f"ant_{uuid.uuid4().hex[:12]}"
+    doc = {
+        "task_id": task_id,
+        "task_type": "custom",
+        "priority": req.priority if req.priority in ("low", "medium", "high", "critical") else "medium",
+        "status": "open",
+        "created_by_agent": req.created_by_agent or "stefania",
+        "assigned_to": "antonella",
+        "title": req.title,
+        "description": req.description,
+        "entity_type": "collaborator",
+        "entity_id": "antonella",
+        "entity_name": "Antonella",
+        "context": {"source": "manual", "category": req.category, "estimated_minutes": req.estimated_minutes},
+        "work_category": req.category,
+        "estimated_minutes": req.estimated_minutes,
+        "actual_minutes": 0,
+        "approved_minutes": 0,
+        "hourly_rate": ANTONELLA_RATE,
+        "time_entries": [],
+        "active_timer_started_at": None,
+        "week_start": _week_start(),
+        "created_at": now,
+        "updated_at": now,
+        "due_date": None,
+        "resolved_at": None,
+        "resolution_notes": None,
+        "resolved_by": None,
+    }
+    await db.agent_tasks.insert_one(doc)
+    return {"ok": True, "task": _clean_antonella_task(doc)}
+
+
+@router.post("/collaboratori/antonella/tasks/{task_id}/start")
+async def start_antonella_task(task_id: str, admin=Depends(require_ciak_admin)):
+    task = await db.agent_tasks.find_one({"task_id": task_id, "assigned_to": "antonella"})
+    if not task:
+        raise HTTPException(404, "Task non trovato")
+    if task.get("active_timer_started_at"):
+        return {"ok": True, "task": _clean_antonella_task(task)}
+    now = _now_iso()
+    await db.agent_tasks.update_one({"task_id": task_id}, {"$set": {"status": "in_progress", "active_timer_started_at": now, "updated_at": now}})
+    task.update({"status": "in_progress", "active_timer_started_at": now, "updated_at": now})
+    return {"ok": True, "task": _clean_antonella_task(task)}
+
+
+@router.post("/collaboratori/antonella/tasks/{task_id}/stop")
+async def stop_antonella_task(task_id: str, admin=Depends(require_ciak_admin)):
+    task = await db.agent_tasks.find_one({"task_id": task_id, "assigned_to": "antonella"})
+    if not task:
+        raise HTTPException(404, "Task non trovato")
+    start = _parse_iso(task.get("active_timer_started_at"))
+    if not start:
+        return {"ok": True, "task": _clean_antonella_task(task)}
+    now_dt = datetime.now(timezone.utc)
+    minutes = max(1, int((now_dt - start).total_seconds() // 60))
+    entry = {"start": task.get("active_timer_started_at"), "stop": now_dt.isoformat(), "minutes": minutes}
+    actual = int(task.get("actual_minutes") or 0) + minutes
+    await db.agent_tasks.update_one(
+        {"task_id": task_id},
+        {"$set": {"actual_minutes": actual, "active_timer_started_at": None, "updated_at": now_dt.isoformat()}, "$push": {"time_entries": entry}},
+    )
+    task.update({"actual_minutes": actual, "active_timer_started_at": None, "updated_at": now_dt.isoformat()})
+    task.setdefault("time_entries", []).append(entry)
+    return {"ok": True, "task": _clean_antonella_task(task)}
+
+
+@router.post("/collaboratori/antonella/tasks/{task_id}/complete")
+async def complete_antonella_task(task_id: str, req: AntonellaTaskNote, admin=Depends(require_ciak_admin)):
+    await stop_antonella_task(task_id, admin)
+    now = _now_iso()
+    await db.agent_tasks.update_one(
+        {"task_id": task_id, "assigned_to": "antonella"},
+        {"$set": {"status": "completed", "resolution_notes": req.note or "", "updated_at": now}},
+    )
+    return {"ok": True, "task_id": task_id}
+
+
+@router.post("/collaboratori/antonella/tasks/{task_id}/approve")
+async def approve_antonella_task(task_id: str, req: AntonellaTaskApproval, admin=Depends(require_ciak_admin)):
+    task = await db.agent_tasks.find_one({"task_id": task_id, "assigned_to": "antonella"})
+    if not task:
+        raise HTTPException(404, "Task non trovato")
+    actual = _task_minutes(task)
+    approved = req.approved_minutes if req.approved_minutes is not None else actual
+    amount = round((approved / 60) * ANTONELLA_RATE, 2)
+    now = _now_iso()
+    await db.agent_tasks.update_one(
+        {"task_id": task_id},
+        {"$set": {
+            "status": "resolved",
+            "actual_minutes": actual,
+            "active_timer_started_at": None,
+            "approved_minutes": approved,
+            "approved_amount": amount,
+            "approved_at": now,
+            "approved_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+            "approval_note": req.note or "",
+            "resolved_at": now,
+            "updated_at": now,
+        }},
+    )
+    return {"ok": True, "task_id": task_id, "approved_minutes": approved, "approved_amount": amount}
 
 
 # Endpoint PUBBLICO per il frontend (no auth — solo letture pubbliche selezionate)

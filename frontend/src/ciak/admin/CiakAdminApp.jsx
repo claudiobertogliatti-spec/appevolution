@@ -76,6 +76,7 @@ import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
+import { Collaboratori } from "./pages/Collaboratori";
 import {
   AcquisizioneCalendarioHub,
   CasiStudio,
@@ -173,6 +174,7 @@ const NAV = [
     pages: [
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
       { to: "/admin/fatture", label: "Fatture", desc: "Genera e scarica le fatture di cortesia" },
+      { to: "/admin/collaboratori", label: "Collaboratori", desc: "Ore approvate, accordi mensili e pagamenti operativi" },
       { to: "/admin/date-contratti", label: "Date contratti", desc: "Scadenze e rinnovi contrattuali" },
       { to: "/admin/servizi-extra", label: "Servizi extra", desc: "Upsell e servizi aggiuntivi" },
     ],
@@ -622,6 +624,7 @@ export default function CiakAdminApp() {
         {/* ── Back office ── */}
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
         <Route path="fatture" element={<Fatture onAuthExpired={handleLogout} />} />
+        <Route path="collaboratori" element={<Collaboratori onAuthExpired={handleLogout} />} />
         <Route path="date-contratti" element={<DateContratti onAuthExpired={handleLogout} />} />
         <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
 

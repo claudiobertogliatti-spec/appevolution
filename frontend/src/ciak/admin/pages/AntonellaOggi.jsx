@@ -18,10 +18,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, ChevronRight, FileCheck, Video, Target,
-  DollarSign, Users, BarChart3, AlertTriangle, CalendarDays,
+  DollarSign, Users, BarChart3, AlertTriangle, CalendarDays, Play, Square, CheckCircle2, Clock,
 } from "lucide-react";
-import { adminFetch } from "../api";
+import { apiGet, apiPost, adminFetch } from "../api";
 import ApprovazioniMaterialiPanel from "../components/ApprovazioniMaterialiPanel";
+import { StefaniaAdmin } from "./StefaniaAdmin";
 
 function num(v) {
   return typeof v === "number" ? v : 0;
@@ -71,11 +72,65 @@ function ActionCard({ count, label, sublabel, urgency, icon: Icon, onClick }) {
   );
 }
 
+function minutesLabel(minutes) {
+  const n = Number(minutes || 0);
+  const h = Math.floor(n / 60);
+  const m = n % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+function WorkTaskCard({ task, onStart, onStop, onComplete }) {
+  const running = task.is_timer_running;
+  const done = task.status === "completed" || task.status === "resolved";
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+              {task.work_category || "contenuti"}
+            </span>
+            <span className="text-[11px] text-slate-400">Stima {minutesLabel(task.estimated_minutes)}</span>
+          </div>
+          <h3 className="mt-2 text-sm font-semibold text-slate-900">{task.title}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">{task.description}</p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <div className="text-lg font-semibold text-slate-900">{minutesLabel(task.actual_minutes)}</div>
+          <div className="text-[10px] uppercase tracking-wide text-slate-400">effettive</div>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {!done && !running && (
+          <button onClick={() => onStart(task)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400">
+            <Play className="h-3.5 w-3.5" /> Inizia
+          </button>
+        )}
+        {!done && running && (
+          <button onClick={() => onStop(task)} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-700">
+            <Square className="h-3.5 w-3.5" /> Ferma timer
+          </button>
+        )}
+        {!done && (
+          <button onClick={() => onComplete(task)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+            <CheckCircle2 className="h-3.5 w-3.5" /> Completa
+          </button>
+        )}
+        {task.status === "completed" && <span className="text-xs font-semibold text-yellow-700">In attesa approvazione ore</span>}
+        {task.status === "resolved" && <span className="text-xs font-semibold text-emerald-700">Ore approvate</span>}
+      </div>
+    </div>
+  );
+}
+
 // ── Componente ──────────────────────────────────────────────────────────────
 
 export function AntonellaOggi({ onAuthExpired }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [work, setWork] = useState(null);
   const [showApprovPanel, setShowApprovPanel] = useState(false);
   const [materiali, setMateriali] = useState(0);
 
@@ -97,6 +152,8 @@ export function AntonellaOggi({ onAuthExpired }) {
     const adsAlerts = Array.isArray(val(3)) ? val(3) : [];
     setMateriali(num(queue.total));
     setData({ video, ads, adsAlerts });
+    const workData = await apiGet("/collaboratori/antonella");
+    setWork(workData);
   };
 
   useEffect(() => {
@@ -127,6 +184,16 @@ export function AntonellaOggi({ onAuthExpired }) {
 
   const { video, ads, adsAlerts } = data;
   const ov = ads?.overview || {};
+  const activeTasks = (work?.tasks || []).filter((t) => ["open", "in_progress", "completed"].includes(t.status));
+
+  const refreshWork = async () => setWork(await apiGet("/collaboratori/antonella"));
+  const startTask = async (task) => { await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/start`); await refreshWork(); };
+  const stopTask = async (task) => { await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/stop`); await refreshWork(); };
+  const completeTask = async (task) => {
+    const note = window.prompt("Nota finale sul lavoro svolto?", "") || "";
+    await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/complete`, { note });
+    await refreshWork();
+  };
 
   return (
     <div className="p-10">
@@ -135,6 +202,38 @@ export function AntonellaOggi({ onAuthExpired }) {
           <h1 className="text-2xl font-semibold text-slate-900">Oggi</h1>
           <p className="text-slate-500 mt-0.5">Le tue azioni di oggi su contenuti, materiali e campagne.</p>
         </div>
+
+        <Block title="Agente di riferimento — Stefania">
+          <StefaniaAdmin onAuthExpired={onAuthExpired} compact />
+        </Block>
+
+        <Block title="Task assegnati da Stefania" accent>
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Budget settimanale</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">4-5h</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Stima aperta</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{minutesLabel(work?.summary?.week_estimated_minutes_open)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Da approvare</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{work?.summary?.pending_approval_count || 0}</p>
+            </div>
+          </div>
+          {activeTasks.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+              <Clock className="h-4 w-4" /> Nessun task operativo aperto.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeTasks.slice(0, 8).map((task) => (
+                <WorkTaskCard key={task.task_id} task={task} onStart={startTask} onStop={stopTask} onComplete={completeTask} />
+              ))}
+            </div>
+          )}
+        </Block>
 
         {/* ── 1. AZIONI PRIORITARIE ── */}
         <Block title="Azioni prioritarie" accent>

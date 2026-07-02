@@ -46,6 +46,32 @@ Delivery deve permettere il cambio rapido stato partner dalla tabella operativa:
 attivo, in sospeso, quarantena. Lo stato "ex" resta gestito dalla sezione
 dedicata per evitare cambi accidentali.
 
+## Gestione Antonella
+
+Antonella e' social media manager/collaboratrice operativa. Viene pagata a ore
+effettive, non a forfait, cosi Claudio puo controllare lavoro svolto e costo
+senza andare a fiducia.
+
+Accordo operativo:
+
+- tariffa: 25 EUR/ora;
+- carico desiderato: 4-5 ore a settimana;
+- agente di riferimento: Stefania;
+- Luca puo dare direttive strategiche, ma Stefania deve tradurle in task
+  operativi adatti al ruolo di Antonella.
+
+Il sistema deve:
+
+- assegnare automaticamente ogni settimana task coerenti con il ruolo
+  (contenuti, materiali, casi studio, campagne, calendario editoriale);
+- stimare il tempo di ogni task;
+- permettere ad Antonella di avviare/fermare il timer e completare il task con
+  nota finale;
+- mandare le ore completate in approvazione a Claudio;
+- conteggiare nel back office solo le ore approvate;
+- mostrare riepilogo mensile con ore approvate, importo maturato e task svolti;
+- usare questi dati come base per accordi mensili, fatture o note pagamento.
+
 Struttura funzionale originale da preservare:
 
 1. agente AI responsabile del reparto, con foto e chat contestuale;
