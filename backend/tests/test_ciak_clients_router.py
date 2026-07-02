@@ -301,12 +301,14 @@ def test_magic_login_returns_token_and_client(monkeypatch, client_app, fake_db):
     assert body["client"]["access_level"] == "cliente_start"
 
 
-def test_magic_login_fails_closed_without_jwt_secret(monkeypatch, client_app, fake_db):
+def test_magic_login_fails_closed_without_jwt_secret_without_burning_magic_token(monkeypatch, client_app, fake_db):
     monkeypatch.delenv("JWT_SECRET", raising=False)
     monkeypatch.delenv("SECRET_KEY", raising=False)
     monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+    called = {"verify_magic_login_token": False}
 
     async def fake_verify_magic_login_token(db, token):
+        called["verify_magic_login_token"] = True
         assert db is fake_db
         assert token == "magic-token"
         return fake_db.ciak_clients.docs[0]
@@ -320,6 +322,7 @@ def test_magic_login_fails_closed_without_jwt_secret(monkeypatch, client_app, fa
 
     assert response.status_code == 500
     assert response.json()["detail"] == "JWT cliente non configurato"
+    assert called["verify_magic_login_token"] is False
 
 
 def test_magic_login_returns_effective_access_level(monkeypatch, client_app, fake_db):

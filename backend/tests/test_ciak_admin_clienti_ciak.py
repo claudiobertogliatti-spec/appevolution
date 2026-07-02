@@ -197,4 +197,6 @@ def test_clienti_ciak_overlays_partner_state_from_canonical_user(client_app):
     items = {item["id"]: item for item in response.json()["items"]}
 
     assert items["client-1"]["access_level"] == "partner"
+    assert items["client-1"]["partnership_attiva"] is True
+    assert items["client-1"]["stato_cliente"] == "partner_attivo"
     assert items["client-1"]["start_credit_amount"] == 0

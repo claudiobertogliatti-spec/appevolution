@@ -123,6 +123,7 @@ async def _noop(): return None
 @pytest.mark.asyncio
 async def test_handle_checkout_completed_creates_client_access_and_magic_token(monkeypatch):
     fake_db = FakeDB()
+    captured = {"tasks": [], "field_calls": [], "event_calls": []}
     fake_db.diagnostic_sessions.docs.append(
         {
             "_id": 1,
@@ -148,11 +149,20 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
     import asyncio
 
     def fake_create_task(coro):
-        coro.close()
+        captured["tasks"].append(coro)
         return None
 
+    async def fake_set_contact_fields(**kwargs):
+        captured["field_calls"].append(kwargs)
+        return True
+
+    async def fake_emit_event(**kwargs):
+        captured["event_calls"].append(kwargs)
+        return True
+
     monkeypatch.setattr(asyncio, "create_task", fake_create_task)
-    monkeypatch.setattr("services.ciak_systeme.ciak_emit_event", lambda **k: _noop())
+    monkeypatch.setattr("services.ciak_systeme.ciak_emit_event", fake_emit_event)
+    monkeypatch.setattr("services.ciak_systeme.ciak_set_contact_fields", fake_set_contact_fields)
     monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
 
     await checkout._handle_checkout_completed(
@@ -164,6 +174,7 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
             "customer_email": "user@example.com",
         }
     )
+    await asyncio.gather(*captured["tasks"])
 
     assert len(fake_db.ciak_clients.docs) == 1
     client = fake_db.ciak_clients.docs[0]
@@ -178,6 +189,20 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
     assert token_doc["client_id"] == client["id"]
     assert token_doc["email"] == "user@example.com"
     assert token_doc["used_at"] is None
+    assert client["last_magic_login_url"].startswith("https://ciak.io/cliente/accesso?token=")
+
+    assert captured["field_calls"] == [
+        {
+            "email": "user@example.com",
+            "fields": {"client_access_url": client["last_magic_login_url"]},
+            "first_name": "User Demo",
+        }
+    ]
+    assert any(
+        call["event_name"] == "ciak_client_access_ready"
+        and call["metadata"]["client_access_url"] == client["last_magic_login_url"]
+        for call in captured["event_calls"]
+    )
 
 
 @pytest.mark.asyncio

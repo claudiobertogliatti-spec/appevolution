@@ -175,19 +175,24 @@ def _partner_area_available(doc: dict) -> bool:
 
 
 def _effective_clienti_ciak_access_level(client: dict, user: Optional[dict]) -> Optional[str]:
+    return _effective_clienti_ciak_snapshot(client, user).get("access_level")
+
+
+def _effective_clienti_ciak_snapshot(client: dict, user: Optional[dict]) -> dict:
+    effective = dict(client)
     if user:
-        effective = dict(client)
         for field in ("partnership_attiva", "stato_cliente"):
             if user.get(field) is not None:
                 effective[field] = user[field]
-        if _partner_area_available(effective):
-            return "partner"
-    return client.get("access_level")
+    if _partner_area_available(effective):
+        effective["access_level"] = "partner"
+    return effective
 
 
 def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
-    payload = {key: value for key, value in doc.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
-    payload["access_level"] = _effective_clienti_ciak_access_level(doc, user)
+    effective = _effective_clienti_ciak_snapshot(doc, user)
+    payload = {key: value for key, value in effective.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
+    payload["access_level"] = effective.get("access_level")
     return payload
 
 

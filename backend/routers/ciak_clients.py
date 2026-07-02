@@ -389,6 +389,11 @@ async def magic_login(body: MagicLoginRequest):
         raise HTTPException(status_code=503, detail="Database non configurato")
 
     try:
+        _jwt_secret()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    try:
         client = await verify_magic_login_token(db, body.token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))

@@ -89,6 +89,41 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _deliver_client_access_link(
+    *,
+    email: str,
+    name: str | None,
+    magic_link: str,
+    expires_at: str,
+) -> None:
+    if not email:
+        return
+
+    from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields
+
+    try:
+        await ciak_set_contact_fields(
+            email=email,
+            fields={"client_access_url": magic_link},
+            first_name=name,
+        )
+    except Exception as exc:  # noqa: BLE001 - best effort per webhook
+        logger.warning("[CIAK_WEBHOOK] Systeme client access field failed for %s: %s", email, exc)
+
+    try:
+        await ciak_emit_event(
+            email=email,
+            event_name="ciak_client_access_ready",
+            first_name=name,
+            metadata={
+                "client_access_url": magic_link,
+                "expires_at": expires_at,
+            },
+        )
+    except Exception as exc:  # noqa: BLE001 - best effort per webhook
+        logger.warning("[CIAK_WEBHOOK] Systeme client access event failed for %s: %s", email, exc)
+
+
 def _customer_details(data: dict) -> tuple[str, str | None]:
     customer_details = data.get("customer_details") or {}
     email = (
@@ -464,6 +499,17 @@ async def _handle_checkout_completed(data: dict) -> None:
                 }
             },
         )
+        if client.get("email"):
+            import asyncio as _asyncio
+
+            _asyncio.create_task(
+                _deliver_client_access_link(
+                    email=client["email"],
+                    name=diagnostic.get("user_name") or client.get("name"),
+                    magic_link=magic_link,
+                    expires_at=login["expires_at"],
+                )
+            )
     except Exception as exc:
         logger.error("[CIAK_WEBHOOK] client access creation failed: %s", exc)
         try:
