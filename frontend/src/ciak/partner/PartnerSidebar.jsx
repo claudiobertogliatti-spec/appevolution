@@ -8,10 +8,7 @@ import {
   Sparkles,
   TrendingUp,
   LogOut,
-  MessageCircle,
-  ArrowRight,
 } from "lucide-react";
-import { AGENTS } from "./operativo/agents";
 
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
@@ -24,12 +21,6 @@ const MAIN_NAV = [
 const BUSINESS_NAV = [
   { to: "/partner/servizi-extra", label: "Servizi extra", icon: Sparkles },
   { to: "/partner/continua-scalare", label: "Continua a scalare", icon: TrendingUp },
-];
-
-const TEAM_PREVIEW = [
-  { id: "STEFANIA", role: "Coordina" },
-  { id: "VALENTINA", role: "Esamina" },
-  { id: "ANDREA", role: "Valida" },
 ];
 
 function navClass({ isActive }) {
@@ -46,27 +37,6 @@ function businessClass({ isActive }) {
       ? "bg-blue-600 text-white"
       : "bg-white text-slate-700 border border-slate-200 hover:border-blue-200 hover:text-blue-700"
   }`;
-}
-
-function AgentMini({ item }) {
-  const agent = AGENTS[item.id];
-  if (!agent) return null;
-  return (
-    <NavLink
-      to="/partner/team-ciak"
-      className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-blue-50 transition"
-    >
-      <img
-        src={agent.avatar}
-        alt={agent.name}
-        className="w-9 h-9 rounded-lg object-cover bg-slate-100"
-      />
-      <div className="min-w-0">
-        <p className="text-[12px] font-semibold text-slate-900 truncate">{agent.name}</p>
-        <p className="text-[10px] text-slate-500 truncate">{item.role}</p>
-      </div>
-    </NavLink>
-  );
 }
 
 export function PartnerSidebar({ user, onLogout }) {
@@ -88,26 +58,6 @@ export function PartnerSidebar({ user, onLogout }) {
               <span>{item.label}</span>
             </NavLink>
           ))}
-
-          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Il team Ciak.io
-              </p>
-              <MessageCircle className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="space-y-1">
-              {TEAM_PREVIEW.map((item) => (
-                <AgentMini key={item.id} item={item} />
-              ))}
-            </div>
-            <NavLink
-              to="/partner/team-ciak"
-              className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:text-blue-800"
-            >
-              Scrivi al team <ArrowRight className="w-3.5 h-3.5" />
-            </NavLink>
-          </div>
 
           <div className="mt-5 space-y-2">
             <p className="px-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
