@@ -200,3 +200,14 @@ def test_clienti_ciak_overlays_partner_state_from_canonical_user(client_app):
     assert items["client-1"]["partnership_attiva"] is True
     assert items["client-1"]["stato_cliente"] == "partner_attivo"
     assert items["client-1"]["start_credit_amount"] == 0
+
+
+def test_clienti_ciak_omits_stale_partner_flags_without_canonical_user(client_app):
+    response = client_app.get("/api/admin/ciak/clienti-ciak")
+
+    assert response.status_code == 200
+    items = {item["id"]: item for item in response.json()["items"]}
+
+    assert items["client-2"]["access_level"] == "cliente_start"
+    assert "partnership_attiva" not in items["client-2"]
+    assert "stato_cliente" not in items["client-2"]
