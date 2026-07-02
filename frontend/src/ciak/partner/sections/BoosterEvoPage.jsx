@@ -8,7 +8,8 @@ import {
   Clock,
   Package,
   Tag,
-  MessageCircle,
+  Calendar,
+  Loader2,
   Gauge,
   ShieldCheck,
   Target,
@@ -20,11 +21,18 @@ import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
  * Booster EVO — vetrina (stile e-commerce) dei servizi extra attivabili durante
  * i 12 mesi del Protocollo EVO. Vetrina con macro-card → click → pagina dettaglio
  * (/partner/booster-evo/:serviceId). CTA "Richiedi questo Booster" registra la
- * richiesta (POST /api/evo-booster/booster-request) e avvisa il team; se il
- * backend non risponde, fallback al Team di supporto.
+ * acquisto diretto via Stripe e prenotazione calendario post-pagamento.
  */
 
+const BOOKING_URL = "https://calendly.com/evolution-pro/strategia";
+
 const SERVICE_VISUALS = {
+  "avatar-videocorso": {
+    image:
+      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=900&q=80",
+    group: "Qualita' percepita",
+    promise: "Avatar AI e videocorso breve per trasformare il tuo metodo in lezioni scalabili.",
+  },
   "video-premium": {
     image:
       "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=900&q=80",
@@ -65,7 +73,13 @@ const SERVICE_VISUALS = {
     image:
       "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80",
     group: "Sbloccare decisioni",
-    promise: "Uscire da una fase confusa con priorita' e prossime mosse chiare.",
+    promise: "Strategia con Claudio per offerta, prezzo, lancio e direzione business.",
+  },
+  "consulenza-antonella": {
+    image:
+      "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=900&q=80",
+    group: "Sbloccare decisioni",
+    promise: "Contenuti, reel, caroselli e calendario con una guida operativa dedicata.",
   },
   "setup-tecnico-extra": {
     image:
@@ -96,7 +110,7 @@ const GROUPS = [
   {
     title: "Voglio vendere meglio",
     subtitle: "Per rendere messaggi, email e pagine piu' forti nel momento della decisione.",
-    ids: ["copywriting-premium", "email-marketing-extra", "sessione-strategica"],
+    ids: ["copywriting-premium", "email-marketing-extra", "sessione-strategica", "consulenza-antonella"],
   },
   {
     title: "Voglio delegare cio' che mi rallenta",
@@ -106,7 +120,7 @@ const GROUPS = [
   {
     title: "Voglio alzare la qualita' percepita",
     subtitle: "Per presentarti meglio quando immagine, video e autorevolezza contano di piu'.",
-    ids: ["video-premium", "shooting-fotografico"],
+    ids: ["avatar-videocorso", "video-premium", "shooting-fotografico"],
   },
 ];
 
@@ -146,9 +160,12 @@ function BoosterCard({ item, onOpen }) {
           <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Ideale se</p>
           <p className="text-[13px] text-slate-700 leading-snug mt-1">{item.idealePer}</p>
         </div>
-        <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-slate-800 group-hover:text-yellow-700">
-          Scopri come funziona <ArrowRight className="w-4 h-4" />
-        </span>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span className="text-[15px] font-semibold text-slate-900">{item.prezzo}</span>
+          <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-800 group-hover:text-yellow-700">
+            Scopri <ArrowRight className="w-4 h-4" />
+          </span>
+        </div>
       </div>
     </button>
   );
@@ -298,8 +315,13 @@ function BulletList({ items, tone = "neutral" }) {
 function Dettaglio({ item, partnerId, onBack, onSupport }) {
   const Icon = item.icon;
   const visual = SERVICE_VISUALS[item.id];
+  const [selectedPackageIdx, setSelectedPackageIdx] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const selectedPackage = item.packages?.[selectedPackageIdx] || null;
+  const checkoutServiceId = selectedPackage?.checkoutServiceId || item.checkoutServiceId;
+  const checkoutPrice = selectedPackage?.price || null;
+  const bookingUrl = `${BOOKING_URL}?utm_source=ciak_partner&utm_medium=servizi_extra&utm_campaign=${encodeURIComponent(item.id)}`;
 
   const request = async () => {
     if (!partnerId) {
@@ -308,15 +330,56 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
     }
     setBusy(true);
     try {
-      const res = await fetch(`/api/evo-booster/booster-request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          partner_id: String(partnerId),
-          booster_id: item.id,
-          booster_name: item.name,
-        }),
-      });
+      const successUrl = bookingUrl;
+      const cancelUrl = `${window.location.origin}/partner/servizi-extra/${item.id}`;
+      let res;
+
+      if (item.consultantId) {
+        res = await fetch(`/api/consulenza-checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_type: "consulenza_marketing",
+            consultant_id: item.consultantId,
+            partner_id: String(partnerId),
+            partner_name: "Partner Ciak",
+            partner_email: "",
+            origin_url: window.location.origin,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            price: checkoutPrice || 0,
+            package_label: selectedPackage?.label || item.name,
+            project_focus: item.name,
+          }),
+        });
+      } else if (checkoutServiceId) {
+        res = await fetch(`/api/servizi-extra/${checkoutServiceId}/acquista`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            partner_id: String(partnerId),
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+          }),
+        });
+      } else {
+        res = await fetch(`/api/evo-booster/booster-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            partner_id: String(partnerId),
+            booster_id: item.id,
+            booster_name: item.name,
+          }),
+        });
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+
       if (res.ok) {
         setDone(true);
       } else {
@@ -378,6 +441,34 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
           <BulletList items={item.nonComprende} tone="no" />
         </Section>
 
+        {item.packages && (
+          <Section title="Scegli il pacchetto">
+            <div className="space-y-2">
+              {item.packages.map((pkg, index) => (
+                <button
+                  key={pkg.label}
+                  onClick={() => setSelectedPackageIdx(index)}
+                  className={`w-full rounded-xl border p-4 text-left transition ${
+                    selectedPackageIdx === index
+                      ? "border-yellow-300 bg-yellow-50 shadow-[0_0_18px_rgba(250,204,21,0.12)]"
+                      : "border-slate-200 bg-white hover:border-yellow-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{pkg.label}</p>
+                      {pkg.perSession && (
+                        <p className="text-xs text-slate-500 mt-0.5">circa {pkg.perSession} € / sessione</p>
+                      )}
+                    </div>
+                    <p className="text-lg font-semibold text-slate-900">{pkg.price} €</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-1.5 text-slate-400 mb-1">
@@ -398,31 +489,36 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
               <Tag className="w-3.5 h-3.5" />
               <span className="text-[11px] font-semibold uppercase tracking-widest">Investimento</span>
             </div>
-            <p className="text-[13px] text-slate-700 leading-snug">{item.investimento}</p>
+            <p className="text-[13px] text-slate-700 leading-snug">
+              {selectedPackage ? `${selectedPackage.price} € · ${selectedPackage.label}` : item.investimento}
+            </p>
           </div>
         </div>
 
         {done ? (
           <div className="bg-slate-900 rounded-2xl p-5">
-            <p className="text-[15px] font-semibold text-white">Richiesta inviata</p>
+            <p className="text-[15px] font-semibold text-white">Richiesta registrata</p>
             <p className="text-[13px] text-slate-400 mt-1">
-              Il team ti contatta a breve con un preventivo su misura per «{item.name}».
+              Se il pagamento non si e' aperto, il team ti contatta per completare l'acquisto e fissare la prima data utile.
             </p>
           </div>
         ) : (
           <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="text-[15px] font-semibold text-white">Vuoi valutare questo supporto?</p>
+              <p className="text-[15px] font-semibold text-white">
+                {selectedPackage ? `${selectedPackage.price} € · ${selectedPackage.label}` : item.investimento}
+              </p>
               <p className="text-[13px] text-slate-400 mt-0.5">
-                Invia la richiesta al team: ti prepariamo una proposta su misura, senza impegno.
+                Paghi con Stripe e subito dopo blocchi la prima data utile in calendario.
               </p>
             </div>
             <button
               onClick={request}
-              disabled={busy}
+              disabled={busy || (!checkoutServiceId && !item.consultantId)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 transition flex-shrink-0"
             >
-              <MessageCircle className="w-4 h-4" /> {busy ? "Invio..." : "Richiedi informazioni"}
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+              {busy ? "Apro il pagamento..." : "Acquista e prenota"}
             </button>
           </div>
         )}

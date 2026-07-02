@@ -15227,6 +15227,8 @@ class AvatarPaymentRequest(BaseModel):
     partner_name: str
     partner_email: Optional[str] = None
     origin_url: str
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
     lesson_details: Optional[str] = None
 
 @api_router.get("/avatar-packages")
@@ -15250,8 +15252,8 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
     # Build dynamic URLs from frontend origin
-    success_url = f"{data.origin_url}/avatar-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{data.origin_url}/avatar-payment-cancel"
+    success_url = data.success_url or f"{data.origin_url}/avatar-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = data.cancel_url or f"{data.origin_url}/avatar-payment-cancel"
     
     # Initialize Stripe checkout
     host_url = str(request.base_url).rstrip('/')
@@ -15410,6 +15412,8 @@ class ConsulenzaPaymentRequest(BaseModel):
     partner_name: str
     partner_email: str = ""
     origin_url: str
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
     preferred_date: str = ""
     project_focus: str = ""
     price: int = 147
@@ -15428,8 +15432,8 @@ async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRe
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
-    success_url = f"{data.origin_url}/consulenza-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{data.origin_url}/consulenza-payment-cancel"
+    success_url = data.success_url or f"{data.origin_url}/consulenza-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = data.cancel_url or f"{data.origin_url}/consulenza-payment-cancel"
     
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"

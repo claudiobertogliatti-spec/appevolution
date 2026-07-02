@@ -1,6 +1,6 @@
 import {
   Video, Camera, Megaphone, PenLine, Sparkles,
-  Bot, Compass, Wrench, Mail, Magnet,
+  Bot, Compass, Wrench, Mail, Magnet, UserRound, Clapperboard,
 } from "lucide-react";
 
 /**
@@ -19,7 +19,9 @@ export const BOOSTER_CATALOG = {
     icon: Video,
     beneficio: "Video curati a livello professionale, oltre l'editing standard del percorso.",
     idealePer: "Chi vuole una qualità video superiore per masterclass, lezioni o promo.",
-    prezzo: "Su preventivo",
+    prezzo: "590 €",
+    investimento: "590 € una tantum",
+    checkoutServiceId: "video-premium",
     aCosaServe:
       "Alza la qualità dei tuoi video oltre il montaggio incluso nel Protocollo: ritmo, grafiche, color e audio curati nei dettagli.",
     quandoTiServe: [
@@ -39,8 +41,39 @@ export const BOOSTER_CATALOG = {
       "Pubblicazione e advertising.",
     ],
     output: "Un video finito, pronto da pubblicare, nel formato che ti serve.",
-    tempi: "Variabili in base a durata e complessità: te li confermiamo nel preventivo.",
-    investimento: "Su preventivo",
+    tempi: "Briefing dopo il pagamento, poi consegna in base alla durata del video.",
+  },
+
+  "avatar-videocorso": {
+    id: "avatar-videocorso",
+    name: "Avatar + Videocorso",
+    icon: Clapperboard,
+    beneficio: "Creiamo il tuo avatar AI e un videocorso breve pronto da caricare in piattaforma.",
+    idealePer: "Chi vuole scalare la formazione senza registrare ogni lezione da zero.",
+    prezzo: "1.490 €",
+    investimento: "1.490 € una tantum",
+    checkoutServiceId: "avatar-video-corso",
+    aCosaServe:
+      "Trasforma il tuo metodo in lezioni video professionali usando un avatar AI coerente con volto, voce e stile del tuo brand.",
+    quandoTiServe: [
+      "Vuoi costruire o completare un videocorso senza registrare tutto di persona.",
+      "Hai bisogno di lezioni chiare, ordinate e uniformi nella qualità.",
+      "Vuoi un asset formativo che rimane nel tempo e può essere riutilizzato.",
+    ],
+    comprende: [
+      "Setup avatar AI con volto, voce e stile.",
+      "Struttura del videocorso breve.",
+      "Produzione fino a 5 lezioni con avatar.",
+      "Script operativo e revisione inclusa.",
+      "Call iniziale dopo il pagamento per bloccare direzione e calendario.",
+    ],
+    nonComprende: [
+      "Produzione di un corso lungo oltre 5 lezioni senza accordo aggiuntivo.",
+      "Gestione advertising o lancio commerciale.",
+      "Licenze esterne non incluse nel pacchetto.",
+    ],
+    output: "Avatar impostato e videocorso breve pronto da caricare.",
+    tempi: "Prima call prenotata dopo il pagamento; tempi produzione definiti in call.",
   },
 
   "shooting-fotografico": {
@@ -49,7 +82,9 @@ export const BOOSTER_CATALOG = {
     icon: Camera,
     beneficio: "Un servizio fotografico professionale coerente con il tuo brand.",
     idealePer: "Chi ha bisogno di foto sue di qualità per sito, social e funnel.",
-    prezzo: "Su preventivo",
+    prezzo: "490 €",
+    investimento: "490 € una tantum",
+    checkoutServiceId: "shooting-fotografico",
     aCosaServe:
       "Ottieni un set di foto professionali, coerenti con il tuo posizionamento, da usare ovunque: pagine, social, materiali.",
     quandoTiServe: [
@@ -68,8 +103,7 @@ export const BOOSTER_CATALOG = {
       "Contenuti video (vedi Video Premium).",
     ],
     output: "Una galleria di foto professionali pronte all'uso.",
-    tempi: "Da concordare: dipendono da location e disponibilità.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento per definire data, location e scaletta.",
   },
 
   "campagne-adv": {
@@ -78,7 +112,9 @@ export const BOOSTER_CATALOG = {
     icon: Megaphone,
     beneficio: "Pubblicità a pagamento gestita dal team per portarti traffico qualificato.",
     idealePer: "Chi ha il funnel pronto e vuole più persone giuste, subito.",
-    prezzo: "Su preventivo (gestione) + budget ads a parte",
+    prezzo: "348 € / mese + budget ads",
+    investimento: "348 € / mese + budget ads a tuo carico",
+    checkoutServiceId: "gestione-campagne",
     aCosaServe:
       "Metti budget pubblicitario sul tuo funnel e lascialo gestire al team, perché porti contatti e vendite, non solo click.",
     quandoTiServe: [
@@ -98,8 +134,7 @@ export const BOOSTER_CATALOG = {
       "Garanzia di un numero preciso di vendite.",
     ],
     output: "Campagne attive e gestite, con un report chiaro su spesa e risultati.",
-    tempi: "Setup in pochi giorni; la gestione è continuativa.",
-    investimento: "Su preventivo (gestione) + budget ads a tuo carico",
+    tempi: "Prima call dopo il pagamento, setup in pochi giorni; gestione continuativa.",
   },
 
   "copywriting-premium": {
@@ -108,7 +143,9 @@ export const BOOSTER_CATALOG = {
     icon: PenLine,
     beneficio: "Testi di vendita scritti da un copywriter, pensati per convertire.",
     idealePer: "Chi vuole pagine ed email che convincono, senza scriverle da solo.",
-    prezzo: "Su preventivo",
+    prezzo: "497 €",
+    investimento: "497 € una tantum",
+    checkoutServiceId: "copywriting-premium",
     aCosaServe:
       "Affidi al team i testi del tuo funnel (landing, pagina di vendita, email), scritti per vendere e non solo per informare.",
     quandoTiServe: [
@@ -128,38 +165,40 @@ export const BOOSTER_CATALOG = {
       "Strategia di posizionamento (già inclusa nel Protocollo).",
     ],
     output: "I testi pronti da inserire nelle tue pagine e nelle tue email.",
-    tempi: "In base al numero di pagine: confermati nel preventivo.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento, poi consegna in base ai materiali da scrivere.",
   },
 
   "contenuti-social-extra": {
     id: "contenuti-social-extra",
-    name: "Contenuti Social Extra",
+    name: "Creazione contenuti Reel, Post e Caroselli",
     icon: Sparkles,
-    beneficio: "Contenuti social prodotti per te, oltre il piano editoriale standard.",
+    beneficio: "Contenuti social prodotti per te: reel, post e caroselli pronti da pubblicare.",
     idealePer: "Chi vuole pubblicare di più senza produrre tutto da solo.",
-    prezzo: "Su preventivo",
+    prezzo: "497 €",
+    investimento: "497 € una tantum",
+    checkoutServiceId: "contenuti-reel-post-caroselli",
     aCosaServe:
-      "Il team produce contenuti social aggiuntivi (reel, post, caroselli) così mantieni costanza senza fermarti.",
+      "Il team produce un pacchetto di reel, post e caroselli seguendo il tuo calendario editoriale e il tuo posizionamento.",
     quandoTiServe: [
       "Hai il calendario ma non riesci a produrre tutto.",
       "Vuoi aumentare la frequenza di pubblicazione.",
       "Vuoi contenuti più curati graficamente.",
     ],
     comprende: [
-      "Un pacchetto di contenuti extra (reel, post, caroselli).",
+      "4 reel brevi.",
+      "4 post grafici.",
+      "4 caroselli.",
       "Grafiche coerenti con il tuo brand.",
       "Testi e didascalie pronti.",
-      "Adattamento ai formati dei canali.",
+      "Call di allineamento dopo il pagamento.",
     ],
     nonComprende: [
       "Gestione e pubblicazione quotidiana degli account.",
       "Risposte a commenti e messaggi.",
       "Advertising (vedi Campagne ADV).",
     ],
-    output: "Un pacchetto di contenuti pronti da pubblicare.",
-    tempi: "In base al numero di contenuti richiesti.",
-    investimento: "Su preventivo",
+    output: "12 contenuti social pronti da pubblicare.",
+    tempi: "Prima call dopo il pagamento, poi calendario di consegna concordato.",
   },
 
   "automazioni-ai": {
@@ -168,7 +207,9 @@ export const BOOSTER_CATALOG = {
     icon: Bot,
     beneficio: "Automazioni e strumenti AI che lavorano al posto tuo sulle attività ripetitive.",
     idealePer: "Chi perde tempo in attività che si possono automatizzare.",
-    prezzo: "Su preventivo",
+    prezzo: "690 €",
+    investimento: "690 € una tantum",
+    checkoutServiceId: "automazioni-ai",
     aCosaServe:
       "Mettiamo in piedi automazioni (email, lead, follow-up, AI) che gestiscono per te le attività ripetitive del tuo sistema.",
     quandoTiServe: [
@@ -188,37 +229,78 @@ export const BOOSTER_CATALOG = {
       "Creazione di contenuti (vedi Booster dedicati).",
     ],
     output: "Automazioni attive e funzionanti, documentate.",
-    tempi: "In base alla complessità: confermati nel preventivo.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento, poi setup in base alla complessità.",
   },
 
   "sessione-strategica": {
     id: "sessione-strategica",
-    name: "Sessione Strategica 1:1",
-    icon: Compass,
-    beneficio: "Una sessione individuale per sbloccare una decisione o una fase.",
-    idealePer: "Chi è fermo su una scelta e vuole una direzione chiara.",
-    prezzo: "Su preventivo",
+    name: "Consulenza strategica con Claudio",
+    icon: UserRound,
+    beneficio: "Sessioni individuali con Claudio per offerta, prezzo, lancio e direzione business.",
+    idealePer: "Chi deve prendere decisioni strategiche e vuole una rotta chiara.",
+    prezzo: "Da 299 €",
+    investimento: "1 sessione 299 € · 3 sessioni 699 €",
+    consultantId: "claudio",
+    packages: [
+      { label: "1 sessione", price: 299, checkoutServiceId: "consulenza-claudio-1" },
+      { label: "3 sessioni", price: 699, checkoutServiceId: "consulenza-claudio-3", perSession: 233 },
+    ],
     aCosaServe:
-      "Ti confronti 1:1 con il team su una decisione concreta (offerta, prezzo, lancio, priorità) e ne esci con un piano d'azione.",
+      "Ti confronti 1:1 con Claudio su offerta, posizionamento, prezzo, lancio o priorità strategiche e ne esci con un piano d'azione.",
     quandoTiServe: [
       "Sei bloccato e non sai quale mossa fare.",
       "Devi decidere prezzo, offerta o struttura del lancio.",
       "Vuoi un parere esterno prima di un passo importante.",
     ],
     comprende: [
-      "Una call individuale dedicata.",
+      "Una sessione individuale dedicata.",
       "Analisi della tua situazione specifica.",
       "Un piano d'azione concreto e prioritizzato.",
       "Una sintesi scritta dei punti decisi.",
+      "Calendario per bloccare la prima data utile dopo il pagamento.",
     ],
     nonComprende: [
       "L'esecuzione operativa di ciò che viene deciso.",
-      "Percorsi di affiancamento continuativo (vedi Scala).",
+      "Esecuzione operativa delle attività decise.",
+      "Percorsi di affiancamento continuativo (vedi Ciak Continuità).",
     ],
     output: "Una direzione chiara e i prossimi passi messi nero su bianco.",
-    tempi: "La call si fissa in base alle disponibilità.",
-    investimento: "Su preventivo",
+    tempi: "Dopo il pagamento apri il calendario e blocchi la prima data utile.",
+  },
+
+  "consulenza-antonella": {
+    id: "consulenza-antonella",
+    name: "Consulenza contenuti con Antonella",
+    icon: Compass,
+    beneficio: "Sessioni individuali con Antonella per contenuti, reel, caroselli e calendario editoriale.",
+    idealePer: "Chi vuole pubblicare meglio, con più costanza e meno confusione.",
+    prezzo: "Da 179 €",
+    investimento: "1 sessione 179 € · 3 sessioni 399 €",
+    consultantId: "antonella",
+    packages: [
+      { label: "1 sessione", price: 179, checkoutServiceId: "consulenza-antonella-1" },
+      { label: "3 sessioni", price: 399, checkoutServiceId: "consulenza-antonella-3", perSession: 133 },
+    ],
+    aCosaServe:
+      "Ti aiuta a trasformare idee e calendario in contenuti pratici: reel, post, caroselli, tono di voce e ritmo editoriale.",
+    quandoTiServe: [
+      "Hai il calendario ma non riesci a trasformarlo in contenuti concreti.",
+      "Vuoi migliorare reel, post e caroselli senza perdere settimane.",
+      "Ti serve una guida operativa per pubblicare con più costanza.",
+    ],
+    comprende: [
+      "Sessione individuale dedicata.",
+      "Revisione calendario e contenuti.",
+      "Idee pratiche per reel, post e caroselli.",
+      "Azioni prioritarie da applicare subito.",
+      "Calendario per bloccare la prima data utile dopo il pagamento.",
+    ],
+    nonComprende: [
+      "Produzione dei contenuti al posto tuo (vedi Creazione contenuti).",
+      "Gestione quotidiana dei social.",
+    ],
+    output: "Una direzione operativa chiara per pubblicare meglio.",
+    tempi: "Dopo il pagamento apri il calendario e blocchi la prima data utile.",
   },
 
   "setup-tecnico-extra": {
@@ -227,7 +309,9 @@ export const BOOSTER_CATALOG = {
     icon: Wrench,
     beneficio: "Configurazioni tecniche extra che non vuoi gestire da solo.",
     idealePer: "Chi ha bisogni tecnici specifici fuori dal setup standard.",
-    prezzo: "Su preventivo",
+    prezzo: "390 €",
+    investimento: "390 € una tantum",
+    checkoutServiceId: "setup-tecnico-extra",
     aCosaServe:
       "Il team esegue per te configurazioni tecniche aggiuntive: domini, integrazioni, pagamenti, strumenti particolari.",
     quandoTiServe: [
@@ -247,8 +331,7 @@ export const BOOSTER_CATALOG = {
       "Manutenzione continuativa (salvo accordo).",
     ],
     output: "La configurazione tecnica pronta e funzionante.",
-    tempi: "In base all'intervento richiesto.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento, poi intervento in base alla configurazione.",
   },
 
   "email-marketing-extra": {
@@ -257,7 +340,9 @@ export const BOOSTER_CATALOG = {
     icon: Mail,
     beneficio: "Creazione e gestione di email oltre le sequenze standard.",
     idealePer: "Chi vuole sfruttare davvero la propria lista contatti.",
-    prezzo: "Su preventivo",
+    prezzo: "390 €",
+    investimento: "390 € una tantum",
+    checkoutServiceId: "email-marketing-extra",
     aCosaServe:
       "Il team crea e gestisce email aggiuntive (newsletter, sequenze, promozioni) per vendere alla tua lista nel tempo.",
     quandoTiServe: [
@@ -277,8 +362,7 @@ export const BOOSTER_CATALOG = {
       "Generazione di nuovi contatti (vedi Lead Magnet o Campagne ADV).",
     ],
     output: "Email pronte e/o gestite, con report sui risultati.",
-    tempi: "In base al volume richiesto.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento, poi consegna in base al volume richiesto.",
   },
 
   "lead-magnet-extra": {
@@ -287,7 +371,9 @@ export const BOOSTER_CATALOG = {
     icon: Magnet,
     beneficio: "Un nuovo strumento gratuito per attirare contatti qualificati.",
     idealePer: "Chi vuole far crescere la lista con un'offerta gratuita efficace.",
-    prezzo: "Su preventivo",
+    prezzo: "490 €",
+    investimento: "490 € una tantum",
+    checkoutServiceId: "lead-magnet-extra",
     aCosaServe:
       "Creiamo un lead magnet (guida, checklist, mini-corso, webinar) che attira nel tuo funnel i contatti giusti.",
     quandoTiServe: [
@@ -306,12 +392,12 @@ export const BOOSTER_CATALOG = {
       "Sequenze email avanzate (vedi Email Marketing Extra).",
     ],
     output: "Un lead magnet pronto, collegato al tuo sistema di raccolta contatti.",
-    tempi: "In base al tipo di lead magnet.",
-    investimento: "Su preventivo",
+    tempi: "Prima call dopo il pagamento, poi produzione in base al formato scelto.",
   },
 };
 
 export const BOOSTER_ORDER = [
+  "avatar-videocorso",
   "video-premium",
   "shooting-fotografico",
   "campagne-adv",
@@ -319,6 +405,7 @@ export const BOOSTER_ORDER = [
   "contenuti-social-extra",
   "automazioni-ai",
   "sessione-strategica",
+  "consulenza-antonella",
   "setup-tecnico-extra",
   "email-marketing-extra",
   "lead-magnet-extra",

@@ -21,6 +21,19 @@ EXPECTED_NEW_SERVIZI = {
     "ebook-corso": (497, "una_tantum"),
     "audiobook": (697, "una_tantum"),
     "audiolezioni": (397, "una_tantum"),
+    "avatar-video-corso": (1490, "una_tantum"),
+    "video-premium": (590, "una_tantum"),
+    "shooting-fotografico": (490, "una_tantum"),
+    "contenuti-reel-post-caroselli": (497, "una_tantum"),
+    "copywriting-premium": (497, "una_tantum"),
+    "automazioni-ai": (690, "una_tantum"),
+    "setup-tecnico-extra": (390, "una_tantum"),
+    "email-marketing-extra": (390, "una_tantum"),
+    "lead-magnet-extra": (490, "una_tantum"),
+    "consulenza-claudio-1": (299, "una_tantum"),
+    "consulenza-claudio-3": (699, "una_tantum"),
+    "consulenza-antonella-1": (179, "una_tantum"),
+    "consulenza-antonella-3": (399, "una_tantum"),
 }
 
 
@@ -41,6 +54,6 @@ def test_nuovo_servizio_presente_con_prezzo_e_tipo_corretti(servizio_id, expecte
     assert isinstance(s["features"], list) and len(s["features"]) >= 3, f"{servizio_id} senza features sufficienti"
 
 
-def test_catalogo_totale_12_servizi():
-    # 2 calendario + 10 nuovi
-    assert len(SERVIZI_CATALOGO) == 12
+def test_catalogo_totale_25_servizi():
+    # 2 calendario + 10 Evolution One + 13 servizi/pacchetti extra Ciak
+    assert len(SERVIZI_CATALOGO) == 25

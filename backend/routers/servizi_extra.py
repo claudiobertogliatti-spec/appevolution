@@ -40,6 +40,19 @@ STRIPE_PRICE_LIVE_PROMO_12 = os.environ.get('STRIPE_PRICE_LIVE_PROMO_12', 'price
 STRIPE_PRICE_EBOOK_CORSO = os.environ.get('STRIPE_PRICE_EBOOK_CORSO', 'price_TODO_ebook_corso')
 STRIPE_PRICE_AUDIOBOOK = os.environ.get('STRIPE_PRICE_AUDIOBOOK', 'price_TODO_audiobook')
 STRIPE_PRICE_AUDIOLEZIONI = os.environ.get('STRIPE_PRICE_AUDIOLEZIONI', 'price_TODO_audiolezioni')
+STRIPE_PRICE_AVATAR_VIDEO_CORSO = os.environ.get('STRIPE_PRICE_AVATAR_VIDEO_CORSO', 'price_TODO_avatar_video_corso')
+STRIPE_PRICE_CONTENUTI_SOCIAL = os.environ.get('STRIPE_PRICE_CONTENUTI_SOCIAL', 'price_TODO_contenuti_social')
+STRIPE_PRICE_CONSULENZA_CLAUDIO_1 = os.environ.get('STRIPE_PRICE_CONSULENZA_CLAUDIO_1', 'price_TODO_consulenza_claudio_1')
+STRIPE_PRICE_CONSULENZA_CLAUDIO_3 = os.environ.get('STRIPE_PRICE_CONSULENZA_CLAUDIO_3', 'price_TODO_consulenza_claudio_3')
+STRIPE_PRICE_CONSULENZA_ANTONELLA_1 = os.environ.get('STRIPE_PRICE_CONSULENZA_ANTONELLA_1', 'price_TODO_consulenza_antonella_1')
+STRIPE_PRICE_CONSULENZA_ANTONELLA_3 = os.environ.get('STRIPE_PRICE_CONSULENZA_ANTONELLA_3', 'price_TODO_consulenza_antonella_3')
+STRIPE_PRICE_VIDEO_PREMIUM = os.environ.get('STRIPE_PRICE_VIDEO_PREMIUM', 'price_TODO_video_premium')
+STRIPE_PRICE_SHOOTING_FOTOGRAFICO = os.environ.get('STRIPE_PRICE_SHOOTING_FOTOGRAFICO', 'price_TODO_shooting_fotografico')
+STRIPE_PRICE_COPYWRITING_PREMIUM = os.environ.get('STRIPE_PRICE_COPYWRITING_PREMIUM', 'price_TODO_copywriting_premium')
+STRIPE_PRICE_AUTOMAZIONI_AI = os.environ.get('STRIPE_PRICE_AUTOMAZIONI_AI', 'price_TODO_automazioni_ai')
+STRIPE_PRICE_SETUP_TECNICO_EXTRA = os.environ.get('STRIPE_PRICE_SETUP_TECNICO_EXTRA', 'price_TODO_setup_tecnico_extra')
+STRIPE_PRICE_EMAIL_MARKETING_EXTRA = os.environ.get('STRIPE_PRICE_EMAIL_MARKETING_EXTRA', 'price_TODO_email_marketing_extra')
+STRIPE_PRICE_LEAD_MAGNET_EXTRA = os.environ.get('STRIPE_PRICE_LEAD_MAGNET_EXTRA', 'price_TODO_lead_magnet_extra')
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS
@@ -257,6 +270,203 @@ SERVIZI_CATALOGO = [
         "stripe_price_id": STRIPE_PRICE_AUDIOLEZIONI,
         "attivo": True,
     },
+    {
+        "id": "avatar-video-corso",
+        "nome": "Avatar + Videocorso",
+        "descrizione": "Creazione del tuo avatar AI e produzione di un videocorso breve con lezioni pronte.",
+        "features": [
+            "Setup avatar AI con volto, voce e stile del partner",
+            "Struttura del videocorso breve",
+            "Produzione fino a 5 lezioni con avatar",
+            "Script operativo e revisione inclusa",
+            "Call iniziale di briefing dopo il pagamento",
+        ],
+        "prezzo": 1490,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_AVATAR_VIDEO_CORSO,
+        "attivo": True,
+    },
+    {
+        "id": "video-premium",
+        "nome": "Video Premium",
+        "descrizione": "Montaggio e rifinitura professionale di un video strategico.",
+        "features": [
+            "Montaggio avanzato",
+            "Grafiche e titoli brandizzati",
+            "Color correction e pulizia audio",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 590,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_VIDEO_PREMIUM,
+        "attivo": True,
+    },
+    {
+        "id": "shooting-fotografico",
+        "nome": "Shooting Fotografico",
+        "descrizione": "Servizio fotografico professionale per sito, social e funnel.",
+        "features": [
+            "Sessione fotografica",
+            "Selezione e post-produzione scatti",
+            "Formati per sito, social e funnel",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 490,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_SHOOTING_FOTOGRAFICO,
+        "attivo": True,
+    },
+    {
+        "id": "contenuti-reel-post-caroselli",
+        "nome": "Creazione contenuti Reel, Post e Caroselli",
+        "descrizione": "Pacchetto mensile di contenuti social pronti da pubblicare, coerenti con calendario e brand.",
+        "features": [
+            "4 reel brevi",
+            "4 post grafici",
+            "4 caroselli",
+            "Copy, hook e CTA inclusi",
+            "Call di allineamento dopo il pagamento",
+        ],
+        "prezzo": 497,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_CONTENUTI_SOCIAL,
+        "attivo": True,
+    },
+    {
+        "id": "copywriting-premium",
+        "nome": "Copywriting Premium",
+        "descrizione": "Testi di vendita per pagine, email e funnel.",
+        "features": [
+            "Copy landing o pagina vendita",
+            "Titoli e CTA ottimizzati",
+            "Sequenza email essenziale",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 497,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_COPYWRITING_PREMIUM,
+        "attivo": True,
+    },
+    {
+        "id": "automazioni-ai",
+        "nome": "Automazioni AI",
+        "descrizione": "Automazioni e strumenti AI per follow-up, lead e attività ripetitive.",
+        "features": [
+            "Analisi processo da automatizzare",
+            "Setup automazioni",
+            "Test funzionamento",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 690,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_AUTOMAZIONI_AI,
+        "attivo": True,
+    },
+    {
+        "id": "setup-tecnico-extra",
+        "nome": "Setup Tecnico Extra",
+        "descrizione": "Configurazioni tecniche extra fuori dallo standard del percorso.",
+        "features": [
+            "Analisi configurazione",
+            "Setup tecnico",
+            "Test funzionamento",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 390,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_SETUP_TECNICO_EXTRA,
+        "attivo": True,
+    },
+    {
+        "id": "email-marketing-extra",
+        "nome": "Email Marketing Extra",
+        "descrizione": "Sequenze email, newsletter o promozioni extra.",
+        "features": [
+            "Scrittura email",
+            "Impostazione sequenza",
+            "Segmentazione base",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 390,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_EMAIL_MARKETING_EXTRA,
+        "attivo": True,
+    },
+    {
+        "id": "lead-magnet-extra",
+        "nome": "Lead Magnet Extra",
+        "descrizione": "Lead magnet pronto per attirare contatti qualificati.",
+        "features": [
+            "Ideazione lead magnet",
+            "Creazione contenuto e grafica",
+            "Pagina iscrizione e email consegna",
+            "Call operativa dopo il pagamento",
+        ],
+        "prezzo": 490,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_LEAD_MAGNET_EXTRA,
+        "attivo": True,
+    },
+    {
+        "id": "consulenza-claudio-1",
+        "nome": "Consulenza strategica Claudio — 1 sessione",
+        "descrizione": "Una sessione strategica individuale con Claudio su offerta, prezzo, lancio e direzione business.",
+        "features": [
+            "1 sessione strategica 1:1",
+            "Analisi di offerta, posizionamento e lancio",
+            "Piano d'azione prioritizzato",
+            "Prenotazione calendario dopo il pagamento",
+        ],
+        "prezzo": 299,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_CONSULENZA_CLAUDIO_1,
+        "attivo": True,
+    },
+    {
+        "id": "consulenza-claudio-3",
+        "nome": "Consulenza strategica Claudio — 3 sessioni",
+        "descrizione": "Tre sessioni strategiche con Claudio per seguire decisioni, lancio e ottimizzazione.",
+        "features": [
+            "3 sessioni strategiche 1:1",
+            "Supporto su offerta, pricing e lancio",
+            "Priorita' operative tra una sessione e l'altra",
+            "Prenotazione prima data dopo il pagamento",
+        ],
+        "prezzo": 699,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_CONSULENZA_CLAUDIO_3,
+        "attivo": True,
+    },
+    {
+        "id": "consulenza-antonella-1",
+        "nome": "Consulenza contenuti Antonella — 1 sessione",
+        "descrizione": "Una sessione individuale con Antonella su contenuti, reel, caroselli e calendario editoriale.",
+        "features": [
+            "1 sessione contenuti 1:1",
+            "Revisione calendario editoriale",
+            "Idee reel, post e caroselli",
+            "Prenotazione calendario dopo il pagamento",
+        ],
+        "prezzo": 179,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_CONSULENZA_ANTONELLA_1,
+        "attivo": True,
+    },
+    {
+        "id": "consulenza-antonella-3",
+        "nome": "Consulenza contenuti Antonella — 3 sessioni",
+        "descrizione": "Tre sessioni con Antonella per dare ritmo, continuita' e qualita' ai contenuti.",
+        "features": [
+            "3 sessioni contenuti 1:1",
+            "Supporto su piano editoriale e pubblicazione",
+            "Ottimizzazione di reel, post e caroselli",
+            "Prenotazione prima data dopo il pagamento",
+        ],
+        "prezzo": 399,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_CONSULENZA_ANTONELLA_3,
+        "attivo": True,
+    },
 ]
 
 
@@ -316,12 +526,26 @@ async def acquista_servizio(
     
     try:
         # Crea sessione Stripe Checkout
+        line_item = {"quantity": 1}
+        stripe_price_id = servizio.get("stripe_price_id") or ""
+        if stripe_price_id.startswith("price_TODO"):
+            price_data = {
+                "currency": "eur",
+                "unit_amount": int(servizio["prezzo"] * 100),
+                "product_data": {
+                    "name": servizio["nome"],
+                    "description": servizio["descrizione"],
+                },
+            }
+            if servizio["tipo"] == "abbonamento_mensile":
+                price_data["recurring"] = {"interval": "month"}
+            line_item["price_data"] = price_data
+        else:
+            line_item["price"] = stripe_price_id
+
         checkout_params = {
             "payment_method_types": ["card"],
-            "line_items": [{
-                "price": servizio["stripe_price_id"],
-                "quantity": 1
-            }],
+            "line_items": [line_item],
             "success_url": success_url,
             "cancel_url": cancel_url,
             "metadata": {
