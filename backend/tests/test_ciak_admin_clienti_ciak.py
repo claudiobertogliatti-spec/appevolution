@@ -39,6 +39,15 @@ class FakeCollection:
     def __init__(self, docs=None):
         self.docs = [dict(doc) for doc in (docs or [])]
 
+    async def find_one(self, query, projection=None):
+        for doc in self.docs:
+            if all(doc.get(key) == value for key, value in query.items()):
+                row = dict(doc)
+                if projection and projection.get("_id") == 0:
+                    row.pop("_id", None)
+                return row
+        return None
+
     def find(self, query=None, projection=None):
         query = query or {}
         items = []
@@ -127,6 +136,16 @@ class FakeDb:
                 },
             ]
         )
+        self.users = FakeCollection(
+            [
+                {
+                    "id": "user-1",
+                    "email": "uno@example.com",
+                    "partnership_attiva": True,
+                    "stato_cliente": "partner_attivo",
+                }
+            ]
+        )
 
 
 @pytest.fixture
@@ -169,3 +188,13 @@ def test_clienti_ciak_respects_limit(client_app):
     assert body["count"] == 2
     assert [item["id"] for item in body["items"]] == ["client-2", "client-1"]
     assert all("session_token" not in item for item in body["items"])
+
+
+def test_clienti_ciak_overlays_partner_state_from_canonical_user(client_app):
+    response = client_app.get("/api/admin/ciak/clienti-ciak")
+
+    assert response.status_code == 200
+    items = {item["id"]: item for item in response.json()["items"]}
+
+    assert items["client-1"]["access_level"] == "partner"
+    assert items["client-1"]["start_credit_amount"] == 0

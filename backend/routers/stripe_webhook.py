@@ -19,9 +19,18 @@ from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 
+from services.ciak_client_accounts import (
+    ACCESS_PARTNER,
+    ACCESS_START,
+    START_AMOUNT_CENTS,
+    default_start_progress,
+    has_start_entitlement,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
+CLIENT_PARTNER_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -107,9 +116,24 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
         logger.warning(f"[STRIPE_WEBHOOK] Checkout not paid: {payment_status}")
         return
     
-    if tipo == 'analisi_strategica':
+    if tipo == 'ciak_start':
+        client_id = metadata.get('client_id')
+        if client_id:
+            await process_ciak_start_payment(db, client_id, session_id)
+        else:
+            logger.warning(f"[STRIPE_WEBHOOK] Missing client_id for ciak_start session {session_id}")
+    elif tipo == 'analisi_strategica':
         await process_analisi_payment(db, user_id, session_id, background_tasks)
     elif tipo == 'partnership':
+        client_id = metadata.get('client_id')
+        if client_id:
+            await process_ciak_client_partnership_payment(
+                db,
+                client_id,
+                session_id,
+                background_tasks,
+                metadata,
+            )
         # Check if this is a proposta-based payment (has token in metadata)
         token = metadata.get('token')
         if token:
@@ -146,6 +170,236 @@ async def handle_payment_succeeded(db, payment_intent, background_tasks: Backgro
     
     if user_id and tipo == 'analisi_strategica':
         await process_analisi_payment(db, user_id, pi_id, background_tasks)
+
+
+def _iso_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _client_user_lookup_queries(client: dict) -> list[dict]:
+    queries = []
+    seen = set()
+
+    def add(field: str, value) -> None:
+        if value in (None, ""):
+            return
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return
+            if field == "email":
+                value = value.lower()
+        query = {field: value}
+        key = tuple(sorted(query.items()))
+        if key in seen:
+            return
+        seen.add(key)
+        queries.append(query)
+
+    add("email", client.get("email"))
+    add("id", client.get("user_id"))
+    add("id", client.get("linked_user_id"))
+    add("id", client.get("id"))
+    add("session_token", client.get("session_token"))
+    add("session_token", client.get("diagnostic_session_token"))
+    add("diagnostic_session_token", client.get("session_token"))
+    add("diagnostic_session_token", client.get("diagnostic_session_token"))
+    return queries
+
+
+async def _canonical_user_for_client(db, client: dict) -> dict | None:
+    users_collection = getattr(db, "users", None)
+    if users_collection is None:
+        return None
+    for query in _client_user_lookup_queries(client):
+        user = await users_collection.find_one(query, {"_id": 0})
+        if user:
+            return user
+    return None
+
+
+def _client_partner_active(doc: dict) -> bool:
+    if doc.get("partnership_attiva") is True:
+        return True
+    stato_cliente = str(doc.get("stato_cliente") or "").strip().lower()
+    if stato_cliente in CLIENT_PARTNER_ACTIVE_STATES:
+        return True
+    return doc.get("access_level") == ACCESS_PARTNER
+
+
+def _append_payment_event(events: list[dict] | None, event_name: str, reference_id: str, extra: dict | None = None) -> list[dict]:
+    updated = [dict(item) for item in (events or [])]
+    if any(item.get("event") == event_name and item.get("reference_id") == reference_id for item in updated):
+        return updated
+    updated.append(
+        {
+            "event": event_name,
+            "timestamp": _iso_now(),
+            "reference_id": reference_id,
+            **(extra or {}),
+        }
+    )
+    return updated
+
+
+async def _record_checkout_payment(db, *, session_id: str, tipo: str, amount_cents: int, email: str, client_id: str | None = None, user_id: str | None = None) -> None:
+    now = _iso_now()
+    payment_transactions = getattr(db, "payment_transactions", None)
+    if payment_transactions is not None:
+        await payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {
+                "event_type": "checkout.session.completed",
+                "session_id": session_id,
+                "payment_status": "paid",
+                "client_id": client_id,
+                "user_id": user_id,
+                "email": email,
+                "tipo": tipo,
+                "amount_cents": amount_cents,
+                "received_at": now,
+                "updated_at": now,
+            }},
+            upsert=True,
+        )
+
+    payments = getattr(db, "payments", None)
+    if payments is not None:
+        await payments.update_one(
+            {"session_id": session_id},
+            {"$set": {
+                "session_id": session_id,
+                "client_id": client_id,
+                "user_id": user_id,
+                "email": email,
+                "tipo": tipo,
+                "type": tipo,
+                "amount": amount_cents / 100.0,
+                "currency": "eur",
+                "status": "completed",
+                "payment_confirmed_via": "stripe_webhook",
+                "created_at": now,
+            }},
+            upsert=True,
+        )
+
+
+async def process_ciak_start_payment(db, client_id: str, reference_id: str) -> None:
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        logger.error(f"[STRIPE_WEBHOOK] Ciak client not found for Start payment: {client_id}")
+        return
+
+    now = _iso_now()
+    updates = {
+        "access_level": ACCESS_START,
+        "start_purchased_at": client.get("start_purchased_at") or now,
+        "start_credit_amount": START_AMOUNT_CENTS,
+        "start_progress": client.get("start_progress") or default_start_progress(),
+        "updated_at": now,
+        "last_checkout_session_id": reference_id,
+        "last_checkout_completed_at": now,
+    }
+    events = _append_payment_event(
+        client.get("events"),
+        "ciak_start_payment_completed",
+        reference_id,
+        {"amount_cents": START_AMOUNT_CENTS},
+    )
+    await db.ciak_clients.update_one(
+        {"id": client_id},
+        {"$set": {**updates, "events": events}},
+    )
+    await _record_checkout_payment(
+        db,
+        session_id=reference_id,
+        tipo="ciak_start",
+        amount_cents=START_AMOUNT_CENTS,
+        email=client.get("email", ""),
+        client_id=client_id,
+    )
+
+
+async def process_ciak_client_partnership_payment(db, client_id: str, reference_id: str, background_tasks: BackgroundTasks, metadata: dict) -> None:
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        logger.error(f"[STRIPE_WEBHOOK] Ciak client not found for partnership payment: {client_id}")
+        return
+
+    user = await _canonical_user_for_client(db, client)
+    now = _iso_now()
+    credit_amount = 0
+    try:
+        credit_amount = int(metadata.get("credit_amount_cents") or 0)
+    except (TypeError, ValueError):
+        credit_amount = 0
+    if has_start_entitlement(client):
+        credit_amount = max(START_AMOUNT_CENTS, credit_amount)
+
+    updates = {
+        "access_level": ACCESS_PARTNER,
+        "partnership_attiva": True,
+        "stato_cliente": "partner_attivo",
+        "partnership_purchased_at": client.get("partnership_purchased_at") or now,
+        "updated_at": now,
+        "last_checkout_session_id": reference_id,
+        "last_checkout_completed_at": now,
+    }
+    if credit_amount:
+        updates["start_credit_amount"] = credit_amount
+    if has_start_entitlement(client) and not client.get("start_progress"):
+        updates["start_progress"] = default_start_progress()
+
+    events = _append_payment_event(
+        client.get("events"),
+        "partnership_payment_completed",
+        reference_id,
+        {"amount_cents": int(metadata.get("due_amount_cents") or 0)},
+    )
+    await db.ciak_clients.update_one(
+        {"id": client_id},
+        {"$set": {**updates, "events": events}},
+    )
+
+    user_id = None
+    if user:
+        user_id = user.get("id")
+        user_updates = {
+            "partnership_attiva": True,
+            "stato_cliente": "partner_attivo",
+            "pagamento_partnership_verificato": True,
+            "pagamento_verificato": True,
+            "data_pagamento_partnership": now,
+            "partnership_payment_status": "paid",
+            "updated_at": now,
+        }
+        if credit_amount:
+            user_updates["start_credit_amount"] = credit_amount
+        await db.users.update_one({"id": user_id}, {"$set": user_updates})
+
+        pagamenti_partnership = getattr(db, "pagamenti_partnership", None)
+        if pagamenti_partnership is not None:
+            await pagamenti_partnership.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "completato": True,
+                    "pagato_at": now,
+                    "stripe_session_id": reference_id,
+                }},
+                upsert=True,
+            )
+
+        background_tasks.add_task(send_partnership_welcome_email, user_id)
+
+    await _record_checkout_payment(
+        db,
+        session_id=reference_id,
+        tipo="partnership",
+        amount_cents=int(metadata.get("due_amount_cents") or 0),
+        email=client.get("email", ""),
+        client_id=client_id,
+        user_id=user_id,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

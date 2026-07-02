@@ -1,5 +1,6 @@
 import pytest
 from routers import checkout
+from routers import stripe_webhook
 
 pytestmark = pytest.mark.unit
 
@@ -55,6 +56,19 @@ class FakeDB:
         self.ciak_client_login_tokens = FakeCollection()
         self.ciak_orphan_purchases = FakeCollection()
         self.ciak_client_access_recovery = FakeCollection()
+        self.users = FakeCollection()
+        self.partners = FakeCollection()
+        self.payment_transactions = FakeCollection()
+        self.payments = FakeCollection()
+        self.pagamenti_partnership = FakeCollection()
+
+
+class FakeBackgroundTasks:
+    def __init__(self):
+        self.calls = []
+
+    def add_task(self, func, *args, **kwargs):
+        self.calls.append((func, args, kwargs))
 
 
 @pytest.mark.asyncio
@@ -258,3 +272,106 @@ async def test_handle_checkout_completed_records_recovery_when_client_access_cre
     assert recovery["error"] == "ciak unavailable"
     assert recovery["status"] == "pending"
     assert recovery["created_at"]
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_checkout_completed_activates_ciak_start():
+    fake_db = FakeDB()
+    fake_db.ciak_clients.docs.append(
+        {
+            "id": "client-1",
+            "email": "start@example.com",
+            "access_level": "cliente_blueprint",
+            "recommended_offer": "ciak_start",
+            "offer_decision": "ciak_start",
+            "start_credit_amount": 0,
+            "start_progress": [],
+            "events": [],
+        }
+    )
+    tasks = FakeBackgroundTasks()
+
+    await stripe_webhook.handle_checkout_completed(
+        fake_db,
+        {
+            "id": "cs_start_1",
+            "payment_status": "paid",
+            "metadata": {
+                "tipo": "ciak_start",
+                "client_id": "client-1",
+            },
+        },
+        tasks,
+    )
+
+    client = fake_db.ciak_clients.docs[0]
+    assert client["access_level"] == "cliente_start"
+    assert client["start_credit_amount"] == 49900
+    assert client["start_purchased_at"]
+    assert client["start_progress"][0]["status"] == "todo"
+    assert any(event["event"] == "ciak_start_payment_completed" for event in client["events"])
+    assert fake_db.payment_transactions.docs[0]["tipo"] == "ciak_start"
+    assert fake_db.payments.docs[0]["amount"] == 499.0
+    assert tasks.calls == []
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_checkout_completed_activates_client_partnership_without_losing_start_credit():
+    fake_db = FakeDB()
+    fake_db.ciak_clients.docs.append(
+        {
+            "id": "client-1",
+            "email": "partner@example.com",
+            "access_level": "cliente_start",
+            "recommended_offer": "partnership",
+            "offer_decision": "partnership",
+            "start_credit_amount": 49900,
+            "start_purchased_at": "2026-07-01T10:00:00+00:00",
+            "start_progress": [{"id": "start_1", "status": "done"}],
+            "events": [],
+        }
+    )
+    fake_db.users.docs.append(
+        {
+            "id": "user-1",
+            "email": "partner@example.com",
+            "partnership_attiva": False,
+            "stato_cliente": "attivazione_partnership",
+        }
+    )
+    tasks = FakeBackgroundTasks()
+
+    await stripe_webhook.handle_checkout_completed(
+        fake_db,
+        {
+            "id": "cs_partner_1",
+            "payment_status": "paid",
+            "metadata": {
+                "tipo": "partnership",
+                "client_id": "client-1",
+                "full_amount_cents": 279000,
+                "credit_amount_cents": 49900,
+                "due_amount_cents": 229100,
+            },
+        },
+        tasks,
+    )
+
+    client = fake_db.ciak_clients.docs[0]
+    assert client["access_level"] == "partner"
+    assert client["partnership_attiva"] is True
+    assert client["stato_cliente"] == "partner_attivo"
+    assert client["start_credit_amount"] == 49900
+    assert client["start_purchased_at"] == "2026-07-01T10:00:00+00:00"
+    assert any(event["event"] == "partnership_payment_completed" for event in client["events"])
+
+    user = fake_db.users.docs[0]
+    assert user["partnership_attiva"] is True
+    assert user["stato_cliente"] == "partner_attivo"
+    assert user["data_pagamento_partnership"]
+    assert fake_db.pagamenti_partnership.docs[0]["user_id"] == "user-1"
+    assert fake_db.payment_transactions.docs[0]["amount_cents"] == 229100
+    assert fake_db.payments.docs[0]["amount"] == 2291.0
+    assert len(tasks.calls) == 1
+    assert tasks.calls[0][0] is stripe_webhook.send_partnership_welcome_email
+    assert tasks.calls[0][1] == ("user-1",)

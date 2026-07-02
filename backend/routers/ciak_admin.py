@@ -116,8 +116,79 @@ _CLIENTI_CIAK_PUBLIC_FIELDS = {
 }
 
 
-def _public_clienti_ciak_item(doc: dict) -> dict:
-    return {key: value for key, value in doc.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
+_PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
+
+
+def _client_user_lookup_queries(client: dict) -> list[dict]:
+    queries = []
+    seen = set()
+
+    def add(field: str, value) -> None:
+        if value in (None, ""):
+            return
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return
+            if field == "email":
+                value = value.lower()
+        query = {field: value}
+        key = tuple(sorted(query.items()))
+        if key in seen:
+            return
+        seen.add(key)
+        queries.append(query)
+
+    add("email", doc_value(client, "email"))
+    add("id", doc_value(client, "user_id"))
+    add("id", doc_value(client, "linked_user_id"))
+    add("id", doc_value(client, "id"))
+    add("session_token", doc_value(client, "session_token"))
+    add("session_token", doc_value(client, "diagnostic_session_token"))
+    add("diagnostic_session_token", doc_value(client, "session_token"))
+    add("diagnostic_session_token", doc_value(client, "diagnostic_session_token"))
+    return queries
+
+
+def doc_value(doc: dict, key: str):
+    return doc.get(key)
+
+
+async def _canonical_user_for_client(client: dict) -> Optional[dict]:
+    users_collection = getattr(db, "users", None)
+    if db is None or users_collection is None:
+        return None
+    for query in _client_user_lookup_queries(client):
+        user = await users_collection.find_one(query, {"_id": 0})
+        if user:
+            return user
+    return None
+
+
+def _partner_area_available(doc: dict) -> bool:
+    if doc.get("partnership_attiva") is True:
+        return True
+    stato_cliente = str(doc.get("stato_cliente") or "").strip().lower()
+    if stato_cliente in _PARTNER_AREA_ACTIVE_STATES:
+        return True
+    return doc.get("access_level") == "partner"
+
+
+def _effective_clienti_ciak_access_level(client: dict, user: Optional[dict]) -> Optional[str]:
+    if user:
+        effective = dict(client)
+        for field in ("partnership_attiva", "stato_cliente"):
+            if user.get(field) is not None:
+                effective[field] = user[field]
+        if _partner_area_available(effective):
+            return "partner"
+    return client.get("access_level")
+
+
+def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
+    payload = {key: value for key, value in doc.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
+    payload["access_level"] = _effective_clienti_ciak_access_level(doc, user)
+    return payload
 
 
 # Stati funnel "post-acquisto" (hanno pagato i €27)
@@ -436,7 +507,11 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
 
     projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS}}
     cur = db.ciak_clients.find({}, projection).sort("updated_at", -1).limit(limit)
-    items = [_public_clienti_ciak_item(item) for item in await cur.to_list(limit)]
+    docs = await cur.to_list(limit)
+    items = []
+    for item in docs:
+        user = await _canonical_user_for_client(item)
+        items.append(_public_clienti_ciak_item(item, user))
     return {"items": items, "count": len(items)}
 
 

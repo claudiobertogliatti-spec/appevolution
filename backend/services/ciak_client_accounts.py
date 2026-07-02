@@ -33,14 +33,18 @@ def offer_for_score(score: int | float | None) -> str:
     return OFFER_START if value < 50 else OFFER_PARTNERSHIP
 
 
-def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
+def has_start_entitlement(client: dict[str, Any]) -> bool:
     stored_credit = client.get("start_credit_amount")
-    has_start_entitlement = (
+    return bool(
         client.get("access_level") == ACCESS_START
         or client.get("start_purchased_at")
         or (stored_credit not in (None, "", 0, "0"))
     )
-    if has_start_entitlement:
+
+
+def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
+    stored_credit = client.get("start_credit_amount")
+    if has_start_entitlement(client):
         try:
             credit = max(START_AMOUNT_CENTS, int(stored_credit or 0))
         except (TypeError, ValueError):

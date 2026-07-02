@@ -11,9 +11,14 @@ from pydantic import BaseModel, Field
 
 from auth import decode_token
 from services.ciak_client_accounts import (
+    ACCESS_BLUEPRINT,
+    ACCESS_PARTNER,
     ACCESS_START,
+    OFFER_PARTNERSHIP,
+    OFFER_START,
     START_AMOUNT_CENTS,
     default_start_progress,
+    has_start_entitlement,
     partnership_price_for_client,
     verify_magic_login_token,
 )
@@ -24,12 +29,21 @@ security = HTTPBearer(auto_error=False)
 
 db = None
 
-CLIENT_JWT_SECRET = "ciak-client-local-secret"
 CLIENT_JWT_ALG = "HS256"
 CLIENT_JWT_DAYS = 30
 BLUEPRINT_PRICE_CENTS = 2700
 PARTNERSHIP_PRICE_CENTS = 279000
 PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
+START_EXPLICIT_OFFER_FLAGS = (
+    "start_offer_enabled",
+    "allow_start_checkout",
+    "force_start_offer",
+)
+PARTNERSHIP_EXPLICIT_OFFER_FLAGS = (
+    "partnership_offer_enabled",
+    "allow_partnership_checkout",
+    "force_partnership_offer",
+)
 
 
 def set_db(database) -> None:
@@ -56,12 +70,14 @@ def _now_iso() -> str:
 
 
 def _jwt_secret() -> str:
-    return (
+    secret = (
         os.environ.get("JWT_SECRET")
         or os.environ.get("SECRET_KEY")
         or os.environ.get("JWT_SECRET_KEY")
-        or CLIENT_JWT_SECRET
     )
+    if not secret:
+        raise RuntimeError("JWT cliente non configurato")
+    return secret
 
 
 def _frontend_url() -> str:
@@ -120,6 +136,8 @@ async def require_client(
 
     try:
         payload = jwt.decode(credentials.credentials, _jwt_secret(), algorithms=[CLIENT_JWT_ALG])
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
     except JWTError:
         raise HTTPException(status_code=401, detail="Token non valido")
 
@@ -183,7 +201,42 @@ def _partner_area_available(client: dict[str, Any]) -> bool:
     stato_cliente = str(client.get("stato_cliente") or "").strip().lower()
     if stato_cliente in PARTNER_AREA_ACTIVE_STATES:
         return True
-    return client.get("access_level") == "partner"
+    return client.get("access_level") == ACCESS_PARTNER
+
+
+def _has_explicit_offer_flag(client: dict[str, Any], flags: tuple[str, ...]) -> bool:
+    return any(client.get(flag) is True for flag in flags)
+
+
+def _ensure_start_checkout_allowed(client: dict[str, Any]) -> None:
+    if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
+        raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
+    if client.get("access_level") == ACCESS_START or has_start_entitlement(client):
+        raise HTTPException(status_code=409, detail="Ciak Start risulta gia' attivo su questo account.")
+    if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
+        raise HTTPException(status_code=403, detail="Ciak Start non e' disponibile per questo account.")
+    if (
+        client.get("offer_decision") != OFFER_START
+        and client.get("recommended_offer") != OFFER_START
+        and not _has_explicit_offer_flag(client, START_EXPLICIT_OFFER_FLAGS)
+    ):
+        raise HTTPException(status_code=403, detail="Ciak Start e' disponibile solo quando e' l'offerta consigliata.")
+
+
+def _ensure_partnership_checkout_allowed(client: dict[str, Any]) -> None:
+    if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
+        raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
+    if (
+        client.get("offer_decision") == OFFER_PARTNERSHIP
+        or client.get("recommended_offer") == OFFER_PARTNERSHIP
+        or _has_explicit_offer_flag(client, PARTNERSHIP_EXPLICIT_OFFER_FLAGS)
+        or has_start_entitlement(client)
+    ):
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="La Partnership si attiva solo dopo la call e la decisione dedicata.",
+    )
 
 
 def _user_lookup_queries(client: dict[str, Any]) -> list[dict[str, Any]]:
@@ -282,7 +335,8 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
 
     canonical_user = await _canonical_user_for_client(client)
     effective_client = _effective_client_snapshot(client, canonical_user)
-    partnership_price = partnership_price_for_client(client)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
+    partnership_price = partnership_price_for_client(effective_client)
     is_partner = _partner_area_available(effective_client)
 
     return {
@@ -296,7 +350,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         "analysis": _analysis_payload(analysis, client),
         "start": {
             "credit_amount_cents": partnership_price["credit_amount_cents"],
-            "progress": client.get("start_progress") or [],
+            "progress": effective_client.get("start_progress") or [],
         },
         "pricing": {
             "blueprint": {
@@ -342,10 +396,12 @@ async def magic_login(body: MagicLoginRequest):
     effective_client = dict(client)
     effective_client["access_level"] = _effective_access_level(client, canonical_user)
 
-    return {
-        "token": _create_client_jwt(effective_client),
-        "client": _public_client(effective_client, canonical_user),
-    }
+    try:
+        token = _create_client_jwt(effective_client)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {"token": token, "client": _public_client(effective_client, canonical_user)}
 
 
 @router.get("/me")
@@ -410,6 +466,10 @@ async def activate_start(
 
 @router.post("/start/checkout")
 async def start_checkout(client: dict[str, Any] = Depends(require_client)):
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = _effective_client_snapshot(client, canonical_user)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
+    _ensure_start_checkout_allowed(effective_client)
     frontend = _frontend_url()
     session = await _create_checkout_session(
         amount_cents=START_AMOUNT_CENTS,
@@ -431,8 +491,12 @@ async def start_checkout(client: dict[str, Any] = Depends(require_client)):
 
 @router.post("/partnership/checkout")
 async def partnership_checkout(client: dict[str, Any] = Depends(require_client)):
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = _effective_client_snapshot(client, canonical_user)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
+    _ensure_partnership_checkout_allowed(effective_client)
     frontend = _frontend_url()
-    pricing = partnership_price_for_client(client)
+    pricing = partnership_price_for_client(effective_client)
     session = await _create_checkout_session(
         amount_cents=pricing["due_amount_cents"],
         success_url=f"{frontend}/cliente?checkout=partnership&payment=success",
