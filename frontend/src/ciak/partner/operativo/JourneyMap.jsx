@@ -156,7 +156,7 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
         const { agent } = getPhasePresentation(mp.id);
         const isDone = mp.status === "done";
         const isCurrent = mp.id === currentMacroId;
-        let tag = mp.id === "ottimizza" ? "Dopo il go-live" : "Più avanti";
+        let tag = mp.id === "ottimizza" ? "Dal lancio al mese 12" : "Più avanti";
         if (isDone) tag = "Completata";
         else if (isCurrent) tag = "In corso";
 
@@ -177,8 +177,34 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
             </div>
 
             {isOttimizzaTeaser ? (
-              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 text-[12.5px] text-slate-500">
-                Questa parte si apre dopo che sei online: è il lavoro dei prossimi 12 mesi (autorevolezza, community, dati).
+              <div className="bg-white border border-yellow-200 rounded-xl p-4 shadow-[0_0_20px_rgba(250,204,21,0.10)]">
+                <p className="text-[13px] font-semibold text-slate-900">
+                  La fase Ottimizza inizia dopo il lancio e prosegue fino al 12° mese dall'attivazione.
+                </p>
+                <p className="text-[12.5px] text-slate-600 leading-relaxed mt-2">
+                  Prima andiamo online, prima iniziamo a leggere dati reali e generare incassi. Per questo il
+                  ritmo nella collaborazione conta: ogni settimana guadagnata anticipa test, correzioni e vendite.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4">
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                    <p className="text-[12px] font-semibold text-slate-900">Calendario 90 giorni</p>
+                    <p className="text-[11.5px] text-slate-500 leading-snug mt-1">
+                      Nutriamo il pubblico tra una live e l'altra con contenuti ordinati.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                    <p className="text-[12px] font-semibold text-slate-900">Live ogni 60 giorni</p>
+                    <p className="text-[11.5px] text-slate-500 leading-snug mt-1">
+                      Creiamo picchi ricorrenti di attenzione, fiducia e vendita.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
+                    <p className="text-[12px] font-semibold text-slate-900">Obiettivo mese 6</p>
+                    <p className="text-[11.5px] text-slate-600 leading-snug mt-1">
+                      Portare il videocorso a vendere in modo sempre più automatico.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">

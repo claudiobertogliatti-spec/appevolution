@@ -88,6 +88,10 @@ export default function GuidedHome({
                   Qui trovi solo l'azione più importante adesso. Il resto rimane ordinato nel percorso,
                   così non devi cercare tra chat, file e appunti.
                 </p>
+                <p className="text-sm font-semibold text-slate-900 leading-relaxed mt-3 max-w-2xl">
+                  Prima andiamo online, prima iniziamo a raccogliere dati e incassi: il ritmo nella
+                  collaborazione è una leva fondamentale del risultato.
+                </p>
               </div>
               <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 min-w-[150px]">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
