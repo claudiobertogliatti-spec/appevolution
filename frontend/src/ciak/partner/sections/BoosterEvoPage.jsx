@@ -224,9 +224,9 @@ function Vetrina({ onOpen }) {
                 className="absolute inset-0 h-full w-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
-              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-white/92 backdrop-blur border border-white p-4">
-                <p className="text-sm font-semibold text-slate-900">Non sono obblighi: sono leve.</p>
-                <p className="text-[13px] leading-relaxed text-slate-600 mt-1">
+              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-slate-950/55 backdrop-blur border border-white/80 p-4">
+                <p className="text-sm font-bold text-white">Non sono obblighi: sono leve.</p>
+                <p className="text-[13px] leading-relaxed text-white font-semibold mt-1">
                   Si attivano solo quando aiutano davvero il tuo obiettivo del momento.
                 </p>
               </div>

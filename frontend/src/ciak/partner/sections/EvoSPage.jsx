@@ -18,7 +18,7 @@ import {
 const PLANS = [
   {
     id: "start",
-    name: "Scala Start",
+    name: "Ciak Continuità",
     price: 297,
     priceLabel: "297 € / mese",
     icon: Anchor,
@@ -56,7 +56,7 @@ const PLANS = [
   },
   {
     id: "grow",
-    name: "Scala Grow",
+    name: "Ciak Crescita",
     price: 497,
     priceLabel: "497 € / mese",
     icon: TrendingUp,
@@ -66,7 +66,7 @@ const PLANS = [
       "Per chi ha un sistema che già vende e vuole crescere con più contenuti, più ottimizzazione e una spinta strutturata.",
     obiettivo: "Aumentare contatti e vendite in modo graduale e misurabile.",
     comprende: [
-      "Tutto ciò che è incluso in Scala Start.",
+      "Tutto ciò che è incluso in Ciak Continuità.",
       "Ottimizzazioni del funnel più frequenti (ogni due settimane).",
       "Un pacchetto di contenuti extra prodotti dal team.",
       "Supporto sulla strategia delle tue live.",
@@ -88,14 +88,14 @@ const PLANS = [
     nonComprende: [
       "Il budget pubblicitario.",
       "Gestione completa degli account social.",
-      "Creazione di nuovi prodotti complessi (vedi Scala Scale).",
+      "Creazione di nuovi prodotti complessi (vedi Ciak Espansione).",
     ],
     risultatoAtteso:
       "Una crescita graduale di contatti e vendite, costruita su contenuti e ottimizzazioni costanti. Nessun numero è garantito: dipende anche dal mercato e dalla tua esecuzione.",
   },
   {
     id: "scale",
-    name: "Scala Scale",
+    name: "Ciak Espansione",
     price: 797,
     priceLabel: "797 € / mese",
     icon: Rocket,
@@ -104,7 +104,7 @@ const PLANS = [
       "Per chi ha validato il modello e vuole spingere: ads, nuovi funnel, nuovi prodotti, più entrate.",
     obiettivo: "Scalare il business e diversificare le entrate, con il team al tuo fianco.",
     comprende: [
-      "Tutto ciò che è incluso in Scala Grow.",
+      "Tutto ciò che è incluso in Ciak Crescita.",
       "Gestione delle campagne ads (budget escluso).",
       "Progettazione di un nuovo prodotto o funnel.",
       "Affiancamento strategico continuativo.",
@@ -436,9 +436,9 @@ export function EvoSPage({ partnerId }) {
                 className="absolute inset-0 h-full w-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-white/92 backdrop-blur border border-white p-4">
-                <p className="text-sm font-semibold text-slate-900">Dopo il lancio contano i dati.</p>
-                <p className="text-[13px] leading-relaxed text-slate-600 mt-1">
+              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-slate-950/55 backdrop-blur border border-white/80 p-4">
+                <p className="text-sm font-bold text-white">Dopo il lancio contano i dati.</p>
+                <p className="text-[13px] leading-relaxed text-white font-semibold mt-1">
                   Scala serve a non procedere a sensazione quando il sistema inizia a muoversi.
                 </p>
               </div>
