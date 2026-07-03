@@ -1794,10 +1794,56 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         youtube_url = upload_to_youtube_sync(youtube_source_path, yt_title, name)
 
         if not youtube_url:
-            await set_status("error_youtube")
+            review_url = None
+            review_blob = None
+            try:
+                review_kind = "masterclass" if video_type == "masterclass" else f"videocorso/{lesson_id or 'lesson'}"
+                review_blob = f"rendered/{partner_id}/{review_kind}/{uuid.uuid4().hex}.mp4"
+                review_url = _gcs_upload_public(youtube_source_path, review_blob, "video/mp4")
+                logger.warning(f"[VIDEO-PIPE] YouTube fallito, salvo review GCS: {review_url}")
+            except Exception as gcs_err:
+                logger.error(f"[VIDEO-PIPE] Fallback review GCS fallito: {gcs_err}", exc_info=True)
+
+            fallback_data = {
+                "video_raw_url": video_url,
+                "video_review_url": review_url,
+                "video_gcs_review_url": review_url,
+                "video_gcs_review_blob": review_blob,
+                "video_transcript": transcript[:5000],
+                "video_filler_report": filler_report,
+                "video_smart_edit_report": smart_edit_report,
+                "video_raw_duration_s": int(raw_dur),
+                "video_final_duration_s": int(final_dur),
+                "video_time_saved_s": int(total_saved),
+                "video_remotion_rendered": remotion_rendered,
+                "video_approved": False,
+                "video_pipeline_error": "YouTube upload fallito: credenziali OAuth da rinnovare",
+                "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            fallback_status = "ready_for_review_gcs" if review_url else "error_youtube"
+            if video_type == "masterclass":
+                await db.masterclass_factory.update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {"video_pipeline_status": fallback_status, **fallback_data}},
+                    upsert=True
+                )
+            else:
+                lk = f"lessons.{lesson_id}"
+                await db.partner_videocorso.update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {
+                        f"{lk}.pipeline_status": fallback_status,
+                        f"{lk}.status": fallback_status,
+                        **{f"{lk}.{k}": v for k, v in fallback_data.items()},
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            if not review_url:
+                await set_status("error_youtube")
             await telegram(
                 f"⚠️ <b>YouTube upload fallito</b>\n👤 {name} — {label}\n"
                 f"✅ Video pulito ma non su YouTube. Controllare credenziali."
+                + (f"\n🎬 Review temporanea: {review_url}" if review_url else "")
             )
             return
 
