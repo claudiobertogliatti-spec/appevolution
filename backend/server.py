@@ -9379,6 +9379,8 @@ async def mark_notification_read(notification_id: str):
 @api_router.get("/admin/video-review")
 async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Lista tutti i video partner pronti per review (ready_for_review) o approvati."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
     token_data = decode_token(credentials.credentials)
     user = await db.users.find_one({"id": token_data.user_id})
     if not user or user.get("role") != "admin":
@@ -9457,6 +9459,8 @@ async def approve_video_review(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Admin approva un video (masterclass o lezione videocorso)."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
     token_data = decode_token(credentials.credentials)
     user = await db.users.find_one({"id": token_data.user_id})
     if not user or user.get("role") != "admin":
