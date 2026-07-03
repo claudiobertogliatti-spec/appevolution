@@ -139,6 +139,38 @@ async def download_from_gcs(gcs_url: str, dest_path: str) -> int:
     return size
 
 
+async def download_gdrive_with_adc(file_id: str, dest_path: str) -> int:
+    """Scarica da Google Drive usando le credenziali Cloud Run/ADC.
+
+    Questo copre i file condivisi con il service account del backend, senza
+    richiedere link pubblici e senza passare da gdown.
+    """
+    try:
+        import google.auth
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaIoBaseDownload
+    except ImportError as e:
+        raise RuntimeError(f"Google Drive API non disponibile nel container: {e}")
+
+    scopes = ["https://www.googleapis.com/auth/drive.readonly"]
+    credentials, _ = google.auth.default(scopes=scopes)
+
+    def _download_sync() -> int:
+        service = build("drive", "v3", credentials=credentials, cache_discovery=False)
+        request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
+        with open(dest_path, "wb") as fh:
+            downloader = MediaIoBaseDownload(fh, request, chunksize=8 * 1024 * 1024)
+            done = False
+            while not done:
+                _status, done = downloader.next_chunk()
+        return os.path.getsize(dest_path)
+
+    loop = asyncio.get_event_loop()
+    size = await loop.run_in_executor(None, _download_sync)
+    logger.info(f"[VIDEO-PIPE] Google Drive ADC download completo: {size/1e6:.1f}MB")
+    return size
+
+
 async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     """Scarica video da URL (Google Drive o qualsiasi link diretto).
     Usa gdown per Google Drive (gestisce auth e virus-scan page in modo affidabile).
@@ -154,6 +186,12 @@ async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     # ── Google Drive → gdown Python API (gestisce auth e virus-scan page) ──
     if file_id:
         logger.info(f"[VIDEO-PIPE] Google Drive file_id={file_id} — uso gdown Python API")
+        try:
+            logger.info("[VIDEO-PIPE] Provo download Google Drive autenticato via ADC")
+            return await download_gdrive_with_adc(file_id, dest_path)
+        except Exception as adc_err:
+            logger.warning(f"[VIDEO-PIPE] Download Drive ADC fallito, fallback gdown: {adc_err}")
+
         # Installa gdown a runtime se non presente nel container (layer cache)
         try:
             import gdown as _gdown
