@@ -25,6 +25,8 @@ const C = {
   purple: "#8B5CF6",
 };
 
+const REVIEW_STATUSES = ["ready_for_review", "ready_for_review_gcs"];
+
 function fmtDur(s) {
   if (!s) return "—";
   const m = Math.floor(s / 60), sec = s % 60;
@@ -34,6 +36,7 @@ function fmtDur(s) {
 function StatusBadge({ status }) {
   const map = {
     ready_for_review: { label: "Da approvare", bg: "#FEF9E7", color: C.yellowDark },
+    ready_for_review_gcs: { label: "Da approvare", bg: "#FEF9E7", color: C.yellowDark },
     approved: { label: "Approvato", bg: C.greenDim, color: "#166534" },
     error_youtube: { label: "Errore YouTube", bg: C.redDim, color: C.red },
   };
@@ -173,6 +176,13 @@ function VideoCard({ video, onApprove, onAuthExpired }) {
             <Play className="w-3.5 h-3.5" /> Guarda su YouTube
           </a>
         )}
+        {video.review_url && (
+          <a href={video.review_url} target="_blank" rel="noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+            style={{ background: C.greenDim, color: "#166534", border: `1px solid #BBF7D0` }}>
+            <Play className="w-3.5 h-3.5" /> Guarda video review
+          </a>
+        )}
         {video.youtube_playlist_url && (
           <a href={video.youtube_playlist_url} target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80"
@@ -186,7 +196,7 @@ function VideoCard({ video, onApprove, onAuthExpired }) {
         {video.youtube_url && (
           <CopyButton text={video.youtube_url} label="Copia URL YouTube" />
         )}
-        {!video.approved && video.status === "ready_for_review" && (
+        {!video.approved && REVIEW_STATUSES.includes(video.status) && (
           <button onClick={handleApprove} disabled={approving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black transition-all hover:scale-105 disabled:opacity-50 ml-auto"
             style={{ background: C.green, color: "white" }}>
@@ -275,7 +285,7 @@ export function VideoReview({ onAuthExpired }) {
     uploading_youtube: "Upload YouTube",
   };
 
-  const pending   = videos.filter(v => v.status === "ready_for_review");
+  const pending   = videos.filter(v => REVIEW_STATUSES.includes(v.status));
   const inPipeline = videos.filter(v => PIPELINE_STATUSES.includes(v.status));
   const approved  = videos.filter(v => v.status === "approved");
   const errors    = videos.filter(v => v.status === "error" || v.status === "error_youtube");
