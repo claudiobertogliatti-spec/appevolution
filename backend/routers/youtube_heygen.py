@@ -4,16 +4,79 @@ YouTube × HeyGen Script Generation Router
 Genera script ottimizzati per HeyGen in 3 formati: YouTube Long, Short, LinkedIn Video
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
 import logging
 import json
+import base64
 
 router = APIRouter(prefix="/youtube-heygen", tags=["YouTube HeyGen"])
+security = HTTPBearer(auto_error=False)
 
 logger = logging.getLogger(__name__)
+
+
+async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    from auth import decode_token
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data or data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return data
+
+
+YOUTUBE_SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube",
+]
+YOUTUBE_REDIRECT_URI = os.environ.get("YOUTUBE_OAUTH_REDIRECT_URI", "http://localhost")
+
+
+def _credential_json(creds) -> str:
+    return json.dumps({
+        "token": creds.token,
+        "refresh_token": creds.refresh_token,
+        "token_uri": creds.token_uri,
+        "client_id": creds.client_id,
+        "client_secret": creds.client_secret,
+        "scopes": list(creds.scopes) if creds.scopes else None,
+    })
+
+
+async def _persist_youtube_credentials_secret(creds) -> dict:
+    """Salva il token anche in Secret Manager, così sopravvive ai deploy."""
+    project_id = (
+        os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or os.environ.get("GCP_PROJECT")
+        or os.environ.get("PROJECT_ID")
+        or "gen-lang-client-0744698012"
+    )
+    secret_id = os.environ.get("YOUTUBE_USER_CREDENTIALS_SECRET", "youtube-user-credentials")
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=30) as client:
+            token_resp = await client.get(
+                "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+                headers={"Metadata-Flavor": "Google"},
+            )
+            token_resp.raise_for_status()
+            access_token = token_resp.json()["access_token"]
+            payload = base64.b64encode(_credential_json(creds).encode("utf-8")).decode("ascii")
+            secret_resp = await client.post(
+                f"https://secretmanager.googleapis.com/v1/projects/{project_id}/secrets/{secret_id}:addVersion",
+                headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+                json={"payload": {"data": payload}},
+            )
+            secret_resp.raise_for_status()
+            data = secret_resp.json()
+            return {"ok": True, "secret": secret_id, "version": data.get("name")}
+    except Exception as e:
+        logger.warning(f"[YOUTUBE] Secret Manager persist failed: {e}")
+        return {"ok": False, "secret": secret_id, "error": str(e)}
 
 # System prompt per Evolution PRO content
 EVOLUTION_PRO_SYSTEM = """Sei il content strategist e copywriter senior di Evolution PRO.
@@ -198,7 +261,7 @@ Includi tutti i 28 video totali."""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/youtube/auth-status")
-async def youtube_auth_status():
+async def youtube_auth_status(_: Any = Depends(require_admin)):
     """Verifica stato autenticazione YouTube"""
     import pickle
     from pathlib import Path
@@ -274,10 +337,8 @@ async def youtube_auth_status():
         }
 
 
-from fastapi import UploadFile, File
-
 @router.post("/youtube/upload-client-secret")
-async def upload_youtube_client_secret(file: UploadFile = File(...)):
+async def upload_youtube_client_secret(file: UploadFile = File(...), _: Any = Depends(require_admin)):
     """
     Carica il file client_secret.json per l'autenticazione OAuth YouTube.
     
@@ -333,7 +394,7 @@ async def upload_youtube_client_secret(file: UploadFile = File(...)):
 
 
 @router.get("/youtube/get-auth-url")
-async def get_youtube_auth_url():
+async def get_youtube_auth_url(_: Any = Depends(require_admin)):
     """Genera URL per autorizzazione OAuth YouTube"""
     import json
     from pathlib import Path
@@ -346,15 +407,10 @@ async def get_youtube_auth_url():
     with open(client_path, 'r') as f:
         client_config = json.load(f)
     
-    SCOPES = [
-        'https://www.googleapis.com/auth/youtube.upload',
-        'https://www.googleapis.com/auth/youtube'
-    ]
-    
     flow = InstalledAppFlow.from_client_config(
         client_config,
-        SCOPES,
-        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+        YOUTUBE_SCOPES,
+        redirect_uri=YOUTUBE_REDIRECT_URI
     )
     
     auth_url, _ = flow.authorization_url(
@@ -365,27 +421,30 @@ async def get_youtube_auth_url():
     
     return {
         "auth_url": auth_url,
+        "redirect_uri": YOUTUBE_REDIRECT_URI,
         "instructions": [
             "1. Apri il link auth_url nel browser",
             "2. Accedi con l'account Google del canale YouTube",
             "3. Autorizza l'applicazione",
-            "4. Copia il codice di autorizzazione",
-            "5. Invialo a POST /youtube/complete-auth"
+            "4. Google proverà ad aprire localhost: copia l'URL completo dalla barra indirizzi",
+            "5. Invia il parametro code o l'URL completo a POST /youtube/complete-auth"
         ]
     }
 
 
 class CompleteAuthRequest(BaseModel):
-    auth_code: str
+    auth_code: Optional[str] = None
+    redirect_url: Optional[str] = None
 
 
 @router.post("/youtube/complete-auth")
-async def complete_youtube_auth(request: CompleteAuthRequest):
+async def complete_youtube_auth(request: CompleteAuthRequest, _: Any = Depends(require_admin)):
     """Completa il flow OAuth con il codice di autorizzazione"""
     import json
-    import pickle
     from pathlib import Path
+    from urllib.parse import parse_qs, urlparse
     from google_auth_oauthlib.flow import InstalledAppFlow
+    from services.secure_credentials import save_credentials
     
     client_path = Path("/app/storage/client_secret.json")
     creds_path = Path("/app/storage/youtube_credentials.pickle")
@@ -396,24 +455,24 @@ async def complete_youtube_auth(request: CompleteAuthRequest):
     with open(client_path, 'r') as f:
         client_config = json.load(f)
     
-    SCOPES = [
-        'https://www.googleapis.com/auth/youtube.upload',
-        'https://www.googleapis.com/auth/youtube'
-    ]
-    
     try:
+        auth_code = request.auth_code
+        if not auth_code and request.redirect_url:
+            auth_code = (parse_qs(urlparse(request.redirect_url).query).get("code") or [None])[0]
+        if not auth_code:
+            raise HTTPException(status_code=400, detail="auth_code o redirect_url obbligatorio")
+
         flow = InstalledAppFlow.from_client_config(
             client_config,
-            SCOPES,
-            redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+            YOUTUBE_SCOPES,
+            redirect_uri=YOUTUBE_REDIRECT_URI
         )
         
-        flow.fetch_token(code=request.auth_code)
+        flow.fetch_token(code=auth_code)
         creds = flow.credentials
         
-        # Salva credenziali
-        with open(creds_path, 'wb') as f:
-            pickle.dump(creds, f)
+        save_credentials(creds, str(creds_path))
+        secret_result = await _persist_youtube_credentials_secret(creds)
         
         logger.info("YouTube OAuth completato con successo")
         
@@ -421,9 +480,11 @@ async def complete_youtube_auth(request: CompleteAuthRequest):
             "success": True,
             "message": "YouTube connesso con successo!",
             "valid": creds.valid,
-            "expiry": str(creds.expiry)
+            "expiry": str(creds.expiry),
+            "secret_manager": secret_result
         }
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"YouTube OAuth error: {e}")
         raise HTTPException(status_code=400, detail=f"Errore autorizzazione: {e}")
