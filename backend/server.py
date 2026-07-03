@@ -9388,7 +9388,10 @@ async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depe
 
     # Masterclass videos — tutti gli stati (inclusi in elaborazione)
     masterclass_docs = await db.masterclass_factory.find(
-        {"video_pipeline_status": {"$exists": True, "$ne": None}},
+        {
+            "video_pipeline_status": {"$exists": True, "$ne": None},
+            "video_review_hidden": {"$ne": True},
+        },
         {"_id": 0}
     ).sort("video_submitted_at", -1).to_list(200)
 
@@ -9425,6 +9428,8 @@ async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depe
     for doc in videocorso_docs:
         lessons = doc.get("lessons", {})
         for lesson_id, lesson in lessons.items():
+            if lesson.get("video_review_hidden") is True:
+                continue
             if lesson.get("pipeline_status") and lesson.get("pipeline_status") is not None:
                 partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "youtube_playlist_url": 1})
                 result.append({
@@ -9565,6 +9570,98 @@ async def approve_video_review(
         await _upsert_approved_video_material(partner_id, "videocorso", lesson_id, lesson, now)
 
     return {"success": True, "partner_id": partner_id, "approved_at": now}
+
+
+@api_router.delete("/admin/video-review/{partner_id}")
+async def delete_video_review_item(
+    partner_id: str,
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Nasconde una card dalla Video Review senza cancellare asset approvati/materiali."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    video_type = body.get("type", "masterclass")
+    lesson_id = body.get("lesson_id")
+    now = datetime.now(timezone.utc).isoformat()
+
+    if video_type == "masterclass":
+        result = await db.masterclass_factory.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "video_review_hidden": True,
+                "video_review_hidden_at": now,
+                "video_review_hidden_by": user.get("email", "admin"),
+                "updated_at": now,
+            }},
+        )
+    else:
+        if not lesson_id:
+            raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
+        lk = f"lessons.{lesson_id}"
+        result = await db.partner_videocorso.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                f"{lk}.video_review_hidden": True,
+                f"{lk}.video_review_hidden_at": now,
+                f"{lk}.video_review_hidden_by": user.get("email", "admin"),
+                "updated_at": now,
+            }},
+        )
+
+    return {"success": True, "partner_id": partner_id, "lesson_id": lesson_id, "modified": result.modified_count}
+
+
+@api_router.post("/admin/video-review/cleanup-errors")
+async def cleanup_video_review_errors(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Nasconde dalla review tutte le card in errore tecnico."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    now = datetime.now(timezone.utc).isoformat()
+    by = user.get("email", "admin")
+    master = await db.masterclass_factory.update_many(
+        {
+            "video_review_hidden": {"$ne": True},
+            "video_pipeline_status": {"$in": ["error", "error_youtube"]},
+        },
+        {"$set": {
+            "video_review_hidden": True,
+            "video_review_hidden_at": now,
+            "video_review_hidden_by": by,
+            "updated_at": now,
+        }},
+    )
+
+    lessons_hidden = 0
+    cursor = db.partner_videocorso.find({"lessons": {"$exists": True}}, {"_id": 0, "partner_id": 1, "lessons": 1})
+    async for doc in cursor:
+        sets = {"updated_at": now}
+        for lesson_id, lesson in (doc.get("lessons") or {}).items():
+            status = lesson.get("pipeline_status") or lesson.get("status")
+            if lesson.get("video_review_hidden") is not True and status in ("error", "error_youtube"):
+                prefix = f"lessons.{lesson_id}"
+                sets[f"{prefix}.video_review_hidden"] = True
+                sets[f"{prefix}.video_review_hidden_at"] = now
+                sets[f"{prefix}.video_review_hidden_by"] = by
+                lessons_hidden += 1
+        if len(sets) > 1:
+            await db.partner_videocorso.update_one({"partner_id": doc.get("partner_id")}, {"$set": sets})
+
+    return {
+        "success": True,
+        "hidden": {"masterclass": master.modified_count, "lessons": lessons_hidden},
+        "hidden_at": now,
+    }
 
 
 @api_router.post("/admin/promote-partner")

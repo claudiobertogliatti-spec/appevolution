@@ -11,7 +11,7 @@
 import { useState, useEffect } from "react";
 import {
   Play, Check, Copy, ChevronDown, ChevronUp,
-  Clock, Scissors, Loader2, AlertTriangle, CheckCircle, List
+  Clock, Scissors, Loader2, AlertTriangle, CheckCircle, List, Trash2
 } from "lucide-react";
 import { adminFetch } from "../api";
 
@@ -97,9 +97,10 @@ function SmartEditLog({ report }) {
   );
 }
 
-function VideoCard({ video, onApprove, onAuthExpired }) {
+function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
   const [expanded, setExpanded] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleApprove = async () => {
     setApproving(true);
@@ -119,6 +120,29 @@ function VideoCard({ video, onApprove, onAuthExpired }) {
       else console.error("Approve error:", e);
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const ok = window.confirm("Eliminare questa card dalla Video Review?");
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      const res = await adminFetch(
+        `/api/admin/video-review/${video.partner_id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: video.type, lesson_id: video.lesson_id }),
+        }
+      );
+      if (!res.ok) throw new Error("Delete error");
+      onDelete(video);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else console.error("Delete error:", e);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -196,6 +220,12 @@ function VideoCard({ video, onApprove, onAuthExpired }) {
         {video.youtube_url && (
           <CopyButton text={video.youtube_url} label="Copia URL YouTube" />
         )}
+        <button onClick={handleDelete} disabled={deleting || approving}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80 disabled:opacity-50"
+          style={{ background: C.redDim, color: C.red, border: `1px solid #FECACA` }}>
+          {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          {deleting ? "Elimino..." : "Elimina"}
+        </button>
         {!video.approved && REVIEW_STATUSES.includes(video.status) && (
           <button onClick={handleApprove} disabled={approving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black transition-all hover:scale-105 disabled:opacity-50 ml-auto"
@@ -249,6 +279,7 @@ export function VideoReview({ onAuthExpired }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending"); // pending | all
+  const [cleaningErrors, setCleaningErrors] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -273,6 +304,28 @@ export function VideoReview({ onAuthExpired }) {
         ? { ...v, status: "approved", approved: true }
         : v
     ));
+  };
+
+  const handleDelete = (deletedVideo) => {
+    setVideos(prev => prev.filter(v =>
+      !(v.partner_id === deletedVideo.partner_id && v.type === deletedVideo.type && v.lesson_id === deletedVideo.lesson_id)
+    ));
+  };
+
+  const cleanupErrors = async () => {
+    const ok = window.confirm("Eliminare dalla Video Review tutte le card in errore?");
+    if (!ok) return;
+    setCleaningErrors(true);
+    try {
+      const res = await adminFetch(`/api/admin/video-review/cleanup-errors`, { method: "POST" });
+      if (!res.ok) throw new Error("Cleanup error");
+      setVideos(prev => prev.filter(v => !(v.status === "error" || v.status === "error_youtube")));
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else console.error("Cleanup error:", e);
+    } finally {
+      setCleaningErrors(false);
+    }
   };
 
   const PIPELINE_STATUSES = ["queued", "downloading", "cleaning", "transcribing", "cutting_fillers", "uploading_youtube"];
@@ -313,6 +366,15 @@ export function VideoReview({ onAuthExpired }) {
             {inPipeline.length > 0 && ` · ${inPipeline.length} in elaborazione`}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        {errors.length > 0 && (
+          <button onClick={cleanupErrors} disabled={cleaningErrors}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all hover:opacity-80 disabled:opacity-50"
+            style={{ background: C.redDim, color: C.red, border: `1px solid #FECACA` }}>
+            {cleaningErrors ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Pulisci errori ({errors.length})
+          </button>
+        )}
         <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
           {[
             { id: "pending", label: `Da approvare (${pendingCount})` },
@@ -327,6 +389,7 @@ export function VideoReview({ onAuthExpired }) {
               {tab.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -408,7 +471,7 @@ export function VideoReview({ onAuthExpired }) {
             <div className="space-y-4">
               {(filter === "pending" ? displayed : pending).map((v, i) => (
                 <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
-                  video={v} onApprove={handleApprove} onAuthExpired={onAuthExpired} />
+                  video={v} onApprove={handleApprove} onDelete={handleDelete} onAuthExpired={onAuthExpired} />
               ))}
             </div>
           </div>
@@ -426,7 +489,7 @@ export function VideoReview({ onAuthExpired }) {
             <div className="space-y-4">
               {approved.map((v, i) => (
                 <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
-                  video={v} onApprove={handleApprove} onAuthExpired={onAuthExpired} />
+                  video={v} onApprove={handleApprove} onDelete={handleDelete} onAuthExpired={onAuthExpired} />
               ))}
             </div>
           </div>
@@ -444,7 +507,7 @@ export function VideoReview({ onAuthExpired }) {
             <div className="space-y-4">
               {errors.map((v, i) => (
                 <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
-                  video={v} onApprove={handleApprove} onAuthExpired={onAuthExpired} />
+                  video={v} onApprove={handleApprove} onDelete={handleDelete} onAuthExpired={onAuthExpired} />
               ))}
             </div>
           </div>
