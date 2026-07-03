@@ -851,6 +851,42 @@ def _cut_filler_segments_copy_fallback(input_path: str, output_path: str, keep: 
     return True
 
 
+def apply_audio_delay(input_path: str, output_path: str, delay_ms: int) -> bool:
+    """Ritarda l'audio mantenendo il video invariato.
+
+    Usato solo quando una lezione ha un offset verificato in revisione umana
+    (`audio_delay_ms`). Valori <= 0 lasciano il file invariato.
+    """
+    delay_ms = int(delay_ms or 0)
+    if delay_ms <= 0:
+        shutil.copy(input_path, output_path)
+        return True
+
+    delay_arg = f"{delay_ms}|{delay_ms}"
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-map", "0:v:0", "-map", "0:a:0",
+        "-c:v", "copy",
+        "-af", f"adelay={delay_arg}",
+        "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart", "-shortest",
+        output_path,
+    ]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    except subprocess.TimeoutExpired:
+        logger.warning(f"[VIDEO-PIPE] audio delay timeout ({delay_ms}ms) — proseguo senza offset")
+        shutil.copy(input_path, output_path)
+        return False
+
+    if r.returncode != 0 or not Path(output_path).exists() or Path(output_path).stat().st_size < 1024:
+        logger.warning(f"[VIDEO-PIPE] audio delay fallito rc={r.returncode}: {r.stderr[-400:]} — proseguo senza offset")
+        shutil.copy(input_path, output_path)
+        return False
+
+    return True
+
+
 # ═══════════════════════════════════════════════════════════════════
 # HELPERS: YOUTUBE UPLOAD (sync, per Celery)
 # ═══════════════════════════════════════════════════════════════════
@@ -1656,6 +1692,30 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             )
             logger.info("[VIDEO-PIPE] Checkpoint catch-all: trascrizione mancante, fermo a da_revisionare (no auto-publish)")
             return
+
+        audio_delay_ms = 0
+        audio_delay_applied = False
+        if video_type == "videocorso" and lesson_id:
+            try:
+                _vcdoc_delay = await db.partner_videocorso.find_one({"partner_id": partner_id})
+                _lesson_delay = ((_vcdoc_delay or {}).get("lessons") or {}).get(lesson_id, {})
+                audio_delay_ms = int(
+                    _lesson_delay.get("audio_delay_ms")
+                    or (_vcdoc_delay or {}).get("default_audio_delay_ms")
+                    or 0
+                )
+            except Exception as _delay_err:
+                logger.warning(f"[VIDEO-PIPE] lettura audio_delay_ms fallita: {_delay_err}")
+                audio_delay_ms = 0
+
+        if audio_delay_ms > 0:
+            delayed_path = str(tmp_dir / "final_audio_delay.mp4")
+            await set_status("syncing_audio")
+            audio_delay_applied = await _loop.run_in_executor(None, apply_audio_delay, final_path, delayed_path, audio_delay_ms)
+            if Path(delayed_path).exists():
+                shutil.move(delayed_path, final_path)
+            logger.info(f"[VIDEO-PIPE] audio_delay_ms={audio_delay_ms}, applied={audio_delay_applied}")
+
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
@@ -1823,6 +1883,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 "video_final_duration_s": int(final_dur),
                 "video_time_saved_s": int(total_saved),
                 "video_remotion_rendered": remotion_rendered,
+                "audio_delay_ms": audio_delay_ms,
+                "audio_delay_applied": audio_delay_applied,
                 "video_approved": False,
                 "video_pipeline_error": "YouTube upload fallito: credenziali OAuth da rinnovare",
                 "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
@@ -1878,6 +1940,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             "video_final_duration_s": int(final_dur),
             "video_time_saved_s": int(total_saved),
             "video_remotion_rendered": remotion_rendered,
+            "audio_delay_ms": audio_delay_ms,
+            "audio_delay_applied": audio_delay_applied,
             "video_approved": False,
             "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
         }
