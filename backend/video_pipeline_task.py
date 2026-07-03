@@ -760,8 +760,14 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
     # — select/aselect causavano desync audio/video accumulato.
     parts = []
     for i, s in enumerate(keep):
-        parts.append(f"[0:v]trim={s['start']:.3f}:{s['end']:.3f},setpts=PTS-STARTPTS[v{i}]")
-        parts.append(f"[0:a]atrim={s['start']:.3f}:{s['end']:.3f},asetpts=PTS-STARTPTS[a{i}]")
+        parts.append(
+            f"[0:v]trim={s['start']:.3f}:{s['end']:.3f},"
+            f"setpts=PTS-STARTPTS,fps=25,format=yuv420p[v{i}]"
+        )
+        parts.append(
+            f"[0:a]atrim={s['start']:.3f}:{s['end']:.3f},"
+            f"asetpts=PTS-STARTPTS,aresample=async=1:first_pts=0[a{i}]"
+        )
     streams = "".join(f"[v{i}][a{i}]" for i in range(len(keep)))
     parts.append(f"{streams}concat=n={len(keep)}:v=1:a=1[outv][outa]")
     filter_complex = ";".join(parts)
@@ -775,9 +781,10 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
         "-filter_complex", filter_complex,
         "-map", "[outv]", "-map", "[outa]",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+        "-r", "25", "-vsync", "cfr",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
-        "-movflags", "+faststart",
+        "-movflags", "+faststart", "-shortest",
         output_path,
     ]
     logger.info(f"[VIDEO-PIPE] cut single-pass trim+concat: {len(keep)} keep-ranges, output ~{output_dur:.0f}s, timeout {timeout_s}s")
