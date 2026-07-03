@@ -146,11 +146,12 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
     n_planned = len(planned)
     uploaded = []
     for lid, l in lessons.items():
+        lesson_status = l.get("pipeline_status") or l.get("status") or ""
         uploaded.append({
             "lesson_id": lid,
             "title": l.get("title") or l.get("original_name") or lid,
-            "pipeline_status": l.get("pipeline_status") or l.get("status") or "",
-            "ready_for_review": (l.get("pipeline_status") or l.get("status")) in ("ready_for_review", "approved"),
+            "pipeline_status": lesson_status,
+            "ready_for_review": lesson_status in ("ready_for_review", "ready_for_review_gcs", "approved"),
             "approved": bool(l.get("video_approved")) or (l.get("status") == "approved"),
             "embed_url": l.get("video_embed_url") or "",
         })

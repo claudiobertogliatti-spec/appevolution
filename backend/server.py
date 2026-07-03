@@ -9452,6 +9452,73 @@ async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depe
     return {"success": True, "videos": result, "total": len(result)}
 
 
+async def _upsert_approved_video_material(
+    partner_id: str,
+    video_type: str,
+    lesson_id: Optional[str],
+    video_doc: dict,
+    now: str,
+):
+    """Rende visibile il video approvato nella sezione Materiali del partner."""
+    partner = await db.partners.find_one(
+        _partner_id_query(partner_id),
+        {"_id": 0, "id": 1, "name": 1},
+    )
+    canonical_id = str((partner or {}).get("id", partner_id))
+    partner_name = (partner or {}).get("name") or canonical_id
+    title = (
+        video_doc.get("title")
+        or video_doc.get("video_original_name")
+        or ("Masterclass" if video_type == "masterclass" else f"Lezione {lesson_id}")
+    )
+    if str(title).lower().endswith((".mp4", ".mov", ".webm", ".mkv")):
+        original_name = str(title)
+    else:
+        prefix = "Masterclass" if video_type == "masterclass" else "Videocorso"
+        original_name = f"{prefix} - {title}.mp4"
+
+    review_url = video_doc.get("video_review_url") or video_doc.get("video_gcs_review_url")
+    youtube_url = video_doc.get("video_youtube_url")
+    review_status = video_doc.get("pipeline_status") or video_doc.get("video_pipeline_status") or video_doc.get("status")
+    if review_status == "ready_for_review_gcs":
+        approved_url = review_url or youtube_url or video_doc.get("video_embed_url")
+    else:
+        approved_url = youtube_url or review_url or video_doc.get("video_embed_url")
+    if not approved_url:
+        return
+
+    stable_part = "masterclass" if video_type == "masterclass" else (lesson_id or "lesson")
+    file_id = f"approved-video-{canonical_id}-{stable_part}"
+    record = {
+        "id": str(uuid.uuid4()),
+        "file_id": file_id,
+        "partner_id": canonical_id,
+        "original_name": original_name,
+        "stored_name": original_name,
+        "file_type": "video",
+        "category": "video",
+        "internal_url": approved_url,
+        "youtube_url": youtube_url,
+        "embed_url": video_doc.get("video_embed_url"),
+        "review_url": review_url,
+        "lesson_id": lesson_id,
+        "video_type": video_type,
+        "partner_name": partner_name,
+        "status": "approved",
+        "source": "video_review",
+        "size": int(video_doc.get("video_file_size") or 0),
+        "uploaded_at": now,
+        "verified_at": now,
+        "verified_by": "admin",
+        "updated_at": now,
+    }
+    await db.files.update_one(
+        {"file_id": file_id},
+        {"$set": record, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+
+
 @api_router.post("/admin/video-review/{partner_id}/approve")
 async def approve_video_review(
     partner_id: str,
@@ -9471,23 +9538,31 @@ async def approve_video_review(
     now = datetime.now(timezone.utc).isoformat()
 
     if video_type == "masterclass":
+        doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
         await db.masterclass_factory.update_one(
             {"partner_id": partner_id},
             {"$set": {"video_pipeline_status": "approved", "video_approved": True, "approved_at": now}}
         )
+        await _upsert_approved_video_material(partner_id, "masterclass", None, doc, now)
     else:
         if not lesson_id:
             raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
+        vc_doc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        lesson = ((vc_doc.get("lessons") or {}).get(lesson_id) or {})
         lk = f"lessons.{lesson_id}"
         await db.partner_videocorso.update_one(
             {"partner_id": partner_id},
             {"$set": {
                 f"{lk}.pipeline_status": "approved",
+                f"{lk}.status": "approved",
+                f"{lk}.editing_status": "approved",
                 f"{lk}.video_approved": True,
                 f"{lk}.approved_at": now,
+                f"{lk}.video_pipeline_error": None,
                 "updated_at": now
             }}
         )
+        await _upsert_approved_video_material(partner_id, "videocorso", lesson_id, lesson, now)
 
     return {"success": True, "partner_id": partner_id, "approved_at": now}
 
