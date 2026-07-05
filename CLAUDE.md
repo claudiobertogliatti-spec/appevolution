@@ -1,5 +1,9 @@
 # Evolution PRO — Istruzioni permanenti per Claude Code
 
+## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
+
+Il prodotto 'Ciak Blueprint' costa **27€ IVA inclusa** (checkout.py `unit_amount: 2700`, lockato 2026-05-12). Ogni riferimento a '67€', '6700', stato `purchased_67`/`clicked_67`, tag `ciak_bought_67`/`ciak_clicked_67` è **nomenclatura legacy mai rinominata**, NON il prezzo. Non propagare '67€' come prezzo corrente. (Fix default mark-purchased 6700→2700 applicato 2026-07-05.)
+
 ## Preferenze di comunicazione
 
 - **Lingua**: Parla sempre in italiano con Claudio, in ogni risposta.
