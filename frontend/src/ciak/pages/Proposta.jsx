@@ -29,9 +29,9 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
 const FASI = [
-  { num: 1, titolo: "Esamina", desc: "Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro, sostenibile e comprensibile." },
-  { num: 2, titolo: "Valida", desc: "Costruiamo gli asset essenziali: messaggio, contenuti, funnel, materiali di vendita e sistema per trasformare attenzione in richieste concrete." },
-  { num: 3, titolo: "Ottimizza", desc: "Lanciamo, leggiamo i dati e miglioriamo il sistema nel tempo. L'obiettivo è rendere la crescita più stabile, misurabile e replicabile." },
+  { num: 1, titolo: "Esamina", desc: "Settimana 1. Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro." },
+  { num: 2, titolo: "Valida", desc: "Settimane 2-4. Costruiamo masterclass, corso, sistema di vendita e checkout dentro Systeme.io, con l'obiettivo di andare online." },
+  { num: 3, titolo: "Ottimizza", desc: "Dal mese 2 al mese 12. Lanciamo, leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita entro il mese 6." },
 ];
 
 const TEAM = [
@@ -226,16 +226,17 @@ export function CiakProposta() {
             Partnership Evolution PRO
           </p>
           <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
-            La tua roadmap è pronta. Ora decidiamo se trasformarla in esecuzione.
+            La tua roadmap è pronta. Ora decidiamo se trasformarla in un'accademia digitale online.
           </h1>
           <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-3xl">
             Durante la sessione strategica abbiamo messo a fuoco dove sei oggi, cosa sta
-            rallentando la tua crescita digitale e quali priorità hanno senso per costruire un
-            sistema sostenibile. Il Blueprint ti ha dato chiarezza. La Partnership serve a
-            trasformare quella chiarezza in asset, contenuti, funnel, lancio e ottimizzazione.
+            rallentando la tua crescita digitale e quali priorità hanno senso per trasformare
+            le tue competenze in un prodotto vendibile. Il Blueprint ti ha dato chiarezza.
+            La Partnership serve a trasformare quella chiarezza in brand, masterclass,
+            corso, sistema di vendita, lancio e ottimizzazione.
           </p>
           <p className="mt-6 text-base md:text-lg font-medium text-yellow-400">
-            Non un corso da seguire da solo: un percorso guidato, con AI e team umano al tuo fianco.
+            Online in 3/4 settimane su Systeme.io. Poi 12 mesi di accompagnamento con AI e team umano.
           </p>
         </div>
       </section>
@@ -250,7 +251,7 @@ export function CiakProposta() {
               </p>
               <p className="text-slate-600 mb-4 leading-relaxed">
                 Abbiamo analizzato il tuo posizionamento, le opportunità più immediate e i passaggi
-                necessari per rendere più chiara, autorevole e vendibile la tua presenza online.
+                necessari per rendere più chiara, autorevole e vendibile la tua accademia digitale.
               </p>
               {proposta.analisi_posizionamento && (
                 <p className="text-slate-700 mb-3 leading-relaxed">{proposta.analisi_posizionamento}</p>
@@ -283,7 +284,7 @@ export function CiakProposta() {
       <section className="bg-gray-50 border-t border-gray-100">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-8 leading-tight">
-            Il punto non è fare più marketing. È costruire un sistema che lavori con metodo.
+            Il punto non è fare più marketing. È costruire un asset che resta tuo.
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
@@ -295,10 +296,11 @@ export function CiakProposta() {
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 border border-yellow-300 shadow-[0_18px_45px_rgba(250,204,21,0.18)]">
-              <h3 className="font-semibold text-slate-900 mb-3">Oppure puoi farti accompagnare nell'esecuzione</h3>
+              <h3 className="font-semibold text-slate-900 mb-3">Oppure puoi costruire il sistema con noi</h3>
               <p className="text-slate-600 text-sm leading-relaxed">
                 Con la Partnership, il team Evolution PRO trasforma la roadmap in lavoro concreto:
-                strategia, produzione, revisione, lancio e miglioramento continuo dentro Ciak.
+                strategia, produzione, revisione, lancio e miglioramento continuo. Il prodotto
+                finito vive dentro Systeme.io e resta tuo.
               </p>
             </div>
           </div>
@@ -312,7 +314,9 @@ export function CiakProposta() {
             Cosa succede se entri in Partnership
           </h2>
           <p className="text-slate-500 mb-10">
-            Lavoriamo insieme seguendo il Metodo EVO: prima esaminiamo la tua identità e il tuo mercato, poi validiamo offerta e comunicazione, infine ottimizziamo lancio, contenuti e conversioni.
+            Lavoriamo insieme seguendo il Metodo EVO: prima esaminiamo identità e mercato, poi
+            validiamo l'accademia andando online, infine ottimizziamo lancio, contenuti e conversioni
+            fino al dodicesimo mese.
           </p>
           <div className="relative">
             <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-gray-200" />
@@ -327,6 +331,26 @@ export function CiakProposta() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SYSTEME.IO — PROPRIETA DELL'ASSET */}
+      <section className="bg-white border-t border-gray-100">
+        <div className="mx-auto max-w-4xl px-6 py-16">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8">
+            <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-3">
+              Il prodotto resta tuo
+            </p>
+            <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
+              Costruiamo dentro Systeme.io, non dentro una gabbia.
+            </h2>
+            <p className="text-slate-600 leading-relaxed">
+              Corso, pagine, email, checkout e automazioni vengono costruiti dentro Systeme.io.
+              Alla fine della Partnership l'accademia resta al 100% tua. Se vuoi continuare con noi,
+              hai le soluzioni post partnership. Se vuoi gestirla da solo, puoi farlo direttamente
+              da Systeme.io.
+            </p>
           </div>
         </div>
       </section>
@@ -364,10 +388,12 @@ export function CiakProposta() {
               <div className="text-left space-y-3">
                 {[
                   "Metodo EVO completo: Esamina, Valida, Ottimizza",
-                  "Roadmap trasformata in attività operative",
+                  "Online in 3/4 settimane con asset essenziali",
+                  "Accademia costruita dentro Systeme.io e tua al 100%",
+                  "12 mesi di accompagnamento post firma",
                   "Supporto diretto del team Evolution PRO",
                   "Agenti AI dedicati dentro Ciak",
-                  "Piano di lancio e continuità post-lancio",
+                  "Piano di lancio, metriche e ottimizzazione",
                 ].map((v, i) => (
                   <div key={i} className="flex items-center gap-3 text-slate-200 text-sm">
                     <span className="text-yellow-400 flex-shrink-0">✓</span>

@@ -1,7 +1,7 @@
 /**
  * Ciak.io Home `/` — Landing top-funnel.
  *
- * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
+ * Copy aggiornato 2026-07-09. Riferimento: docs/strategy/metodo-evo-operating-system.md.
  *
  * Obiettivo unico: CTA verso Masterclass Gratuita (LIV 2). No upsell, no
  * scarcity, no countdown. Tono: lucido, diretto, pragmatico — mai motivazionale.
@@ -9,7 +9,7 @@
  * 4 schermate:
  *  1. Hero + CTA Masterclass
  *  2. Il problema reale
- *  3. Tre livelli, una sola direzione (Masterclass → Ciak Blueprint → Partnership)
+ *  3. Tre livelli, una sola direzione (Masterclass -> Ciak Blueprint -> Partnership)
  *  4. CTA finale
  */
 import { useRef, useState } from "react";
@@ -142,9 +142,13 @@ export function CiakLanding() {
             Ciak.io
           </p>
           <h1 className="max-w-6xl text-6xl font-semibold leading-[0.98] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-7xl lg:text-7xl">
-            <span className="block">Il sistema che progetta</span>
-            <span className="block">la tua crescita digitale</span>
+            <span className="block">Da competenza professionale</span>
+            <span className="block">ad accademia digitale</span>
           </h1>
+          <p className="mt-6 max-w-4xl text-lg font-medium leading-relaxed text-slate-900 drop-shadow-[0_1px_18px_rgba(255,255,255,0.78)] md:text-2xl">
+            Il Metodo EVO ti porta online in 3/4 settimane con un sistema costruito dentro Systeme.io.
+            Poi ti accompagna per 12 mesi a cercare i primi risultati di vendita.
+          </p>
 
           <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
             <div className="grid gap-2 sm:grid-cols-2">
@@ -194,7 +198,7 @@ export function CiakLanding() {
           <div className="mt-7 max-w-5xl rounded-2xl border border-[#0B2D6B]/85 bg-[#071A3D]/60 px-5 py-5 text-center text-white shadow-[0_0_46px_rgba(11,45,107,0.64)] ring-1 ring-blue-300/10 backdrop-blur md:px-8 md:py-6">
             <p className="text-base font-medium leading-relaxed text-white/92 drop-shadow md:text-lg">
               <span className="block md:whitespace-nowrap">Scopri i <strong className="text-yellow-300">5 errori killer</strong> (e come evitarli)</span>
-              <span className="block md:whitespace-nowrap">che bloccano la crescita di molti professionisti,</span>
+              <span className="block md:whitespace-nowrap">che bloccano molti professionisti prima di andare online,</span>
               <span className="block md:whitespace-nowrap">prima di investire tempo e denaro nella direzione sbagliata.</span>
             </p>
           </div>
@@ -207,7 +211,7 @@ export function CiakLanding() {
             <p className="text-slate-300 leading-relaxed text-sm md:text-base max-w-4xl">
               Al termine della masterclass si sbloccano le <strong className="text-white">8 Domande
               Ciak</strong>: in pochi minuti capisci cosa oggi frena la tua crescita, quanto il tuo
-              progetto è pronto per vendere online e qual è il prossimo passo più intelligente da fare
+              progetto è pronto per diventare un'accademia digitale e qual è il prossimo passo più intelligente da fare
               prima di investire altro tempo o denaro.
             </p>
           </div>
@@ -224,8 +228,8 @@ export function CiakLanding() {
               </p>
               <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
                 <span className="block">Non ti manca </span>
-                <span className="block">presenza online, </span>
-                <span className="block">ti manca una direzione.</span>
+                <span className="block">un altro strumento. </span>
+                <span className="block">Ti manca un sistema.</span>
               </h2>
             </div>
             <div className="space-y-4 text-slate-700 leading-relaxed text-base md:text-lg">
@@ -239,8 +243,8 @@ export function CiakLanding() {
                 Si investe in traffico prima di chiarire perché un cliente dovrebbe scegliere te.
               </p>
               <p className="rounded-2xl border border-gray-200 bg-gray-50 p-5 font-medium text-slate-900">
-                Ciak nasce per leggere la situazione reale, individuare i punti deboli e trasformarli
-                in una direzione strategica concreta.
+                Ciak nasce per trasformare competenze professionali reali in accademie digitali
+                vendibili: brand, videocorso, pagine, email, checkout e lancio.
               </p>
             </div>
           </div>
@@ -252,28 +256,28 @@ export function CiakLanding() {
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
-              Metodo Ciak
+              Metodo EVO
             </p>
             <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-              Prima diagnosi. Poi strategia. Solo dopo, implementazione.
+              Esamina. Valida. Ottimizza.
             </h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {[
               {
                 num: "01",
-                title: "Analizza",
-                text: "Leggiamo competenza, pubblico, offerta e stato del progetto per capire cosa sta bloccando la crescita.",
+                title: "Esamina",
+                text: "In una settimana mettiamo ordine in competenza, pubblico, posizionamento, offerta e priorità.",
               },
               {
                 num: "02",
-                title: "Progetta",
-                text: "Il sistema AI traduce i dati in priorità: cosa chiarire, cosa evitare, quale direzione prendere.",
+                title: "Valida",
+                text: "In 3/4 settimane costruiamo gli asset essenziali e portiamo online il sistema dentro Systeme.io.",
               },
               {
                 num: "03",
-                title: "Decidi",
-                text: "Dopo la masterclass rispondi alle 8 Domande Ciak, scopri il tuo stato attuale e scegli il prossimo passo con lucidità.",
+                title: "Ottimizza",
+                text: "Dal mese 2 al mese 12 leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita.",
               },
             ].map((step) => (
               <div key={step.num} className="rounded-2xl border border-gray-200 bg-white p-6">
@@ -296,11 +300,11 @@ export function CiakLanding() {
               Il percorso
             </p>
             <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-              Parti dalla masterclass. Poi scegli con lucidità.
+              Parti dalla masterclass. Poi scegli se costruire il tuo sistema.
             </h2>
             <p className="mt-5 text-slate-600 leading-relaxed">
               Ciak non ti spinge subito all'implementazione. Prima ti aiuta a leggere il progetto,
-              capire lo stato reale e decidere il prossimo passo.
+              capire lo stato reale e decidere se ha senso costruire la tua accademia digitale.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 mt-12">
@@ -312,7 +316,7 @@ export function CiakLanding() {
                 Masterclass gratuita
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                30 minuti per vedere i 5 errori che bloccano la crescita digitale dei professionisti
+                30 minuti per vedere i 5 errori che bloccano i professionisti prima di portare online le proprie competenze
                 e sbloccare le 8 Domande Ciak.
               </p>
             </div>
@@ -336,8 +340,8 @@ export function CiakLanding() {
                 Partnership Evolution PRO
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Il passaggio per chi, dopo il Blueprint, decide di costruire e lanciare il progetto
-                insieme al team Evolution.
+                Il passaggio per chi, dopo il Blueprint, decide di costruire e lanciare la propria
+                accademia digitale con il Metodo EVO.
               </p>
             </div>
           </div>
@@ -349,7 +353,7 @@ export function CiakLanding() {
         <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
           <div className="rounded-2xl border border-yellow-300/85 bg-white px-4 py-10 shadow-[0_0_46px_rgba(250,204,21,0.28)] ring-1 ring-yellow-100 sm:px-8 md:px-12 md:py-14">
             <h2 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
-              Prima di costruire, guarda la direzione.
+              Prima di costruire, guarda se il tuo progetto puo diventare un'accademia digitale.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
               Niente acquisti, niente impegno. Solo 30 minuti per leggere il tuo progetto con più
