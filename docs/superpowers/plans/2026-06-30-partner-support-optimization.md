@@ -96,4 +96,3 @@ Run: `git add <the four task files> && git commit -m "feat: optimize partner sup
 - [ ] **Step 3: Push**
 
 Run: `git push origin chore/consolidate-evo-ciak`
-

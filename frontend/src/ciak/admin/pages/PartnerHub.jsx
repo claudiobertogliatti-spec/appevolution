@@ -345,7 +345,7 @@ export function PartnerHub({ onAuthExpired }) {
 
   const load = useCallback(() => {
     setPartners(null);
-    apiGet("/partners")
+    apiGet("/partners", { include_profile: true })
       .then((d) => setPartners(d.items || []))
       .catch((e) => {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();

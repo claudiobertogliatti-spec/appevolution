@@ -232,6 +232,7 @@ async def ciak_partners_list(
     admin=Depends(require_ciak_admin),
     stato: Optional[str] = Query(None, description="Filtra per stato: attivo | sospeso | quarantena | ex"),
     con_piano: bool = Query(False, description="Solo partner con un piano di pagamento rateale"),
+    include_profile: bool = Query(False, description="Include dati reali aggregati da partner_hub, brand kit e percorso"),
 ):
     """
     Lista partner — usata dal selettore "vista admin" dell'area partner Ciak
@@ -249,21 +250,34 @@ async def ciak_partners_list(
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
+    query = {}
+    if stato == "attivo":
+        # I partner storici non hanno sempre `stato`: assenza/null vale attivo.
+        query = {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}
+    elif stato:
+        query = {"stato": stato}
+
     partners = []
-    async for p in db.partners.find({}).sort("name", 1):
+    async for p in db.partners.find(query).sort("name", 1):
         st = p.get("stato") or "attivo"
         piano = p.get("piano_pagamento")
-        if stato and st != stato:
-            continue
         if con_piano and not piano:
             continue
-        partners.append({
+        item = {
             "id": p.get("id"),
-            "name": p.get("name"),
+            "name": p.get("name") or p.get("nome"),
             "email": p.get("email"),
             "phase": p.get("phase"),
             "niche": p.get("niche") or p.get("nicchia"),
             "revenue": p.get("revenue"),
+            "phone": p.get("phone") or p.get("telefono"),
+            "website": p.get("website") or p.get("social_website"),
+            "instagram": p.get("instagram") or p.get("social_instagram"),
+            "linkedin": p.get("linkedin") or p.get("social_linkedin"),
+            "youtube": p.get("youtube") or p.get("social_youtube"),
+            "systeme_subdomain": p.get("systeme_subdomain"),
+            "youtube_playlist_id": p.get("youtube_playlist_id") or p.get("yt_playlist_id"),
+            "kpi_manual": p.get("kpi_manual"),
             "contract_signed": bool(p.get("contract_signed")),
             "contract": p.get("contract"),  # data contratto (string) o struttura
             "stato": st,
@@ -274,7 +288,62 @@ async def ciak_partners_list(
             "quarantena_motivo": p.get("quarantena_motivo"),
             "quarantena_data_inizio": p.get("quarantena_data_inizio"),
             "quarantena_ripresa_prevista": p.get("quarantena_ripresa_prevista"),
-        })
+        }
+        partners.append(item)
+
+    if include_profile and partners:
+        partner_ids = [p["id"] for p in partners if p.get("id")]
+
+        hub_by_partner = {}
+        async for h in db.partner_hub.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            hub_by_partner[h.get("partner_id")] = h
+
+        brand_by_partner = {}
+        async for b in db.partner_brand_kits.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            brand_by_partner[b.get("partner_id")] = b
+
+        journey_by_partner = {}
+        async for s in db.partner_journey_steps.find(
+            {"partner_id": {"$in": partner_ids}, "step_id": {"$in": ["03-brand-kit", "burocrazia"]}},
+            {"_id": 0, "partner_id": 1, "step_id": 1, "data": 1},
+        ):
+            journey_by_partner.setdefault(s.get("partner_id"), {})[s.get("step_id")] = s.get("data") or {}
+
+        for item in partners:
+            pid = item.get("id")
+            hub = hub_by_partner.get(pid) or {}
+            brand = brand_by_partner.get(pid) or {}
+            journey = journey_by_partner.get(pid) or {}
+            buro = journey.get("burocrazia") or {}
+            brand_step = journey.get("03-brand-kit") or {}
+
+            full_name = f"{buro.get('nome', '')} {buro.get('cognome', '')}".strip()
+            item["name"] = item.get("name") or hub.get("name") or full_name
+            item["email"] = item.get("email") or hub.get("email") or buro.get("email")
+            item["phone"] = item.get("phone") or hub.get("phone") or buro.get("telefono")
+            item["city"] = hub.get("city") or buro.get("comune")
+            item["bio"] = hub.get("bio")
+            item["website"] = item.get("website") or hub.get("website") or buro.get("sito_web")
+            item["instagram"] = item.get("instagram") or hub.get("instagram") or buro.get("instagram")
+            item["linkedin"] = item.get("linkedin") or hub.get("linkedin") or buro.get("linkedin")
+            item["youtube"] = item.get("youtube") or hub.get("youtube") or buro.get("youtube")
+            item["whoYouAre"] = hub.get("whoYouAre")
+            item["targetAudience"] = hub.get("targetAudience")
+            item["problem"] = hub.get("problem")
+            item["solution"] = hub.get("solution")
+            item["pitch"] = hub.get("pitch")
+            item["differentiator"] = hub.get("differentiator")
+            item["offerName"] = hub.get("offerName")
+            item["offerPrice"] = hub.get("offerPrice")
+            item["logo"] = hub.get("logo") or brand.get("logo") or brand_step.get("logo_url")
+            item["primaryColor"] = hub.get("primaryColor") or brand.get("primary_color")
+            item["accentColor"] = hub.get("accentColor") or brand.get("accent_color")
+            item["toneOfVoice"] = hub.get("toneOfVoice") or brand_step.get("tone_of_voice")
+
+            keywords = hub.get("keywords")
+            if not keywords and isinstance(brand_step.get("parole_chiave"), list):
+                keywords = ", ".join([k for k in brand_step["parole_chiave"] if k])
+            item["keywords"] = keywords
     return {"total": len(partners), "items": partners}
 
 

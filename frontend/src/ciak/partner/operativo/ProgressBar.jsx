@@ -21,7 +21,7 @@ export default function ProgressBar({ macroPhases, steps, currentStepId }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-4">
+    <div className="bg-white border border-[#e8e0cd] rounded-md p-4 shadow-sm">
       {/* 3 fasi del Metodo EVO */}
       <div className="flex items-stretch gap-2">
         {macroPhases.map((mp) => {
@@ -29,12 +29,12 @@ export default function ProgressBar({ macroPhases, steps, currentStepId }) {
           const isDone = mp.status === "done";
           const isPending = mp.status === "pending";
 
-          let segBg = "bg-gray-100 text-slate-400";
+          let segBg = "bg-[#f7f5ef] text-slate-400";
           let segBorder = "border-transparent";
           if (isDone) {
             segBg = "bg-slate-900 text-white";
           } else if (isCurrent) {
-            segBg = "bg-yellow-400 text-slate-900";
+            segBg = "bg-[#ffd24d] text-slate-900";
             segBorder = "border-yellow-300";
           }
 
@@ -43,7 +43,7 @@ export default function ProgressBar({ macroPhases, steps, currentStepId }) {
           return (
             <div
               key={mp.id}
-              className={`flex-1 rounded-md px-3 py-2 border-2 ${segBg} ${segBorder} transition`}
+              className={`flex-1 rounded-md px-3 py-2 border ${segBg} ${segBorder} transition`}
               title={`${mp.label}${showProgress ? ` — ${mp.completed_count}/${mp.total_count}` : ""} — ${mp.tagline}`}
             >
               <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function ProgressBar({ macroPhases, steps, currentStepId }) {
 
       {/* Riga contesto: fase corrente + passo + step label + tagline */}
       {currentMacro && currentStep && (
-        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs flex-wrap">
+        <div className="mt-3 pt-3 border-t border-[#f0eadc] flex items-center gap-2 text-xs flex-wrap">
           <span className="text-slate-500 font-medium">
             {currentMacro.label}
             {currentMacro.total_count > 0 && `: passo ${stepIndexInMacro} di ${currentMacro.total_count}`}
