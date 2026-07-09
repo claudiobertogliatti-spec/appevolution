@@ -111,11 +111,11 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/lead-manager", label: "New Lead", desc: "Inserisci e lavora i nuovi contatti in entrata" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Database freddo da riscaldare con l'outreach" },
-      { to: "/admin/pipeline", label: "Pipeline", desc: "Funnel masterclass → €27: numeri (Panoramica) e contatti in un'unica vista" },
-      { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Campagne pubblicitarie di acquisizione" },
-      { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Piano contenuti organici per attrarre lead" },
+      { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
+      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi" },
+      { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
+      { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
+      { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
   // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
@@ -377,7 +377,7 @@ function AdminShell({ user, onLogout, children }) {
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
             <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>
             <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
-              Funnel, vendite, delivery, materiali e post-lancio in un'unica regia.
+              Acquisizione, vendite, delivery, materiali e post-lancio in un'unica regia.
             </p>
           </div>
         </nav>

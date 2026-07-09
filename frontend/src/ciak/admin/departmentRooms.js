@@ -56,7 +56,25 @@ export const DEPARTMENT_ROOMS = {
       solution: "Spingi il canale che produce Blueprint, recupera chi ha completato le 8 Domande, correggi l'hook piu' debole.",
       note: "Niente vanity metrics: like e visualizzazioni contano solo se muovono la pipeline.",
     },
-    priorities: ["Scegli contenuto del giorno", "Recupera lead caldi", "Correggi messaggio o fonte debole"],
+    priorities: [
+      "20 nuovi contatti mirati",
+      "Recuperi Blueprint e call",
+      "Contenuto Claudio con CTA Ciak",
+    ],
+    prompts: [
+      {
+        label: "Priorita' del giorno",
+        prompt: "Luca, dimmi quali contatti lavorare oggi per Acquisizione Evolution.",
+      },
+      {
+        label: "Recuperi caldi",
+        prompt: "Luca, trova chi ha cliccato checkout, completato le 8 Domande o acquistato Blueprint senza call.",
+      },
+      {
+        label: "Contenuto acquisizione",
+        prompt: "Andrea, prepara un contenuto Claudio che porti professionisti reali verso Ciak Blueprint.",
+      },
+    ],
   },
   vendite: {
     id: "vendite",
