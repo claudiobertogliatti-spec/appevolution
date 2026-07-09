@@ -30,8 +30,8 @@ import { CiakFooter } from "../components/CiakFooter";
 
 const FASI = [
   { num: 1, titolo: "Esamina", desc: "Settimana 1. Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro." },
-  { num: 2, titolo: "Valida", desc: "Settimane 2-4. Costruiamo masterclass, corso, sistema di vendita e checkout dentro Systeme.io, con l'obiettivo di andare online." },
-  { num: 3, titolo: "Ottimizza", desc: "Dal mese 2 al mese 12. Lanciamo, leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita entro il mese 6." },
+  { num: 2, titolo: "Valida", desc: "In 3/4 settimane costruiamo gli asset essenziali e portiamo online il sistema." },
+  { num: 3, titolo: "Ottimizza", desc: "Quello che altri promettono, noi lo applichiamo: fino al 12° mese leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita." },
 ];
 
 const TEAM = [

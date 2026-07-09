@@ -279,12 +279,12 @@ export function CiakLanding() {
               {
                 num: "02",
                 title: "Valida",
-                text: "In 3/4 settimane costruiamo gli asset essenziali e portiamo online il sistema dentro Systeme.io.",
+                text: "In 3/4 settimane costruiamo gli asset essenziali e portiamo online il sistema.",
               },
               {
                 num: "03",
                 title: "Ottimizza",
-                text: "Dal mese 2 al mese 12 leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita.",
+                text: "Quello che altri promettono, noi lo applichiamo: fino al 12° mese leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita.",
               },
             ].map((step) => (
               <div key={step.num} className="rounded-2xl border border-gray-200 bg-white p-6">
