@@ -6,9 +6,13 @@ import {
   CalendarClock,
   CheckCircle2,
   CreditCard,
+  Database,
   FileSignature,
+  Flame,
   ListChecks,
+  MapPin,
   PhoneCall,
+  Route,
   ShieldCheck,
   Target,
   TrendingUp,
@@ -133,6 +137,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const routine = data.routine || {};
   const channels = data.channels || {};
   const partnerSalesEngine = data.partner_sales_engine || {};
+  const discoveryEngine = data.discovery_engine || {};
   const targetMinimum = target.minimum_monthly || 3;
   const targetOptimal = target.optimal_monthly || target.partnerships_monthly || 4;
 
@@ -166,6 +171,24 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
         <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
         <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="flex items-center gap-2">
+          <Route className="w-5 h-5 text-emerald-600" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Ponte operativo</p>
+            <h2 className="text-xl font-semibold text-slate-900">Ciak Discovery -> Systeme Evolution</h2>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
+          <KpiCard icon={Database} label="Scoperti" value={discoveryEngine.new_leads_total || 0} hint="Lead in discovery_leads." tone="slate" />
+          <KpiCard icon={Flame} label="Hot" value={discoveryEngine.hot_leads_total || 0} hint="Score almeno 75." tone="yellow" />
+          <KpiCard icon={MapPin} label="Google Places" value={discoveryEngine.google_places_total || 0} hint="Professionisti offline trovati." tone="green" />
+          <KpiCard icon={ListChecks} label="Coda Systeme" value={discoveryEngine.queued_systeme_pending || 0} hint="Source ammesse, pronte import." tone="blue" />
+          <KpiCard icon={CheckCircle2} label="Importati" value={discoveryEngine.queued_systeme_imported || 0} hint="Gia' entrati in Systeme." tone="green" />
+          <KpiCard icon={AlertTriangle} label="Bloccati" value={discoveryEngine.lista_fredda_pending_blocked || 0} hint="Lista fredda esclusa da policy." tone="slate" />
+        </div>
       </div>
 
       {data.bottlenecks?.length > 0 && (
