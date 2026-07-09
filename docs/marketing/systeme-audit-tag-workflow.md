@@ -128,13 +128,19 @@ Trigger: utente completa le 5 domande del Checkpoint.
 
 ## §7 — Cold outreach (Google Places + Lista Fredda)
 
+> Stato aggiornato 2026-07-09: con Acquisizione Evolution la lista fredda 13k
+> resta congelata per email massive, drip e sequenze cold non personalizzate.
+> Uso ammesso solo per custom audience Meta, analisi segmenti e studio mercato.
+> Qualsiasi riattivazione richiede nuova strategia approvata e flag esplicito
+> `ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true`.
+
 ### Tag emessi via `celery_tasks.daily_systeme_import`
-Beat schedule attualmente **COMMENTATO** (sessione 15/5 — Claudio: "restare calmi"). Da riattivare quando le 2 campagne sono pronte.
+Beat schedule **DISATTIVATO**. Non riattivare per la lista fredda 13k senza nuova strategia approvata.
 
 | Tag | Trigger | Tipo | Workflow Systeme |
 |---|---|---|---|
 | `ciak_cold_outreach_places` | Import giornaliero contatti `source=google_places` | 🟢 | **Campagna A — Places** (4 email cadenza T+0/T+3/T+7/T+14). Copy in `docs/marketing/email-cold-outreach-ciak.md`. Tono: primo contatto onesto. Exit on tag: `ciak_optin_masterclass`. |
-| `ciak_cold_outreach_legacy` | Import giornaliero contatti `source=lista_fredda` | 🟢 | **Campagna B — Legacy** (5 email T+0/T+4/T+9/T+16/T+25). Copy stesso file. Riattivazione, anteprima contenuto masterclass. Exit on tag: `ciak_optin_masterclass`. |
+| `ciak_cold_outreach_legacy` | Congelato per `source=lista_fredda` | 🔴 | Non usare per email massive/drip/sequenze cold non personalizzate. Lista fredda ammessa solo per custom audience Meta, analisi segmenti e studio mercato. |
 | `ciak_cold_outreach_other` | Import contatti con source diverso | ⚪ | Fallback. Decidi tu: workflow generico o nessuno. |
 
 ⚠️ **Tag legacy `Lista_Fredda`** (id 1936026, hardcoded): non più applicato dal backend dal 15/5 (sessione cold outreach STOP). Se vedi contatti con questo tag, sono pre-15/5. Lascialo: serve per filtri storici.
@@ -148,7 +154,7 @@ Beat schedule attualmente **COMMENTATO** (sessione 15/5 — Claudio: "restare ca
 - [ ] **`ciak_checkpoint_stato_1/2/3/4`** → 4 workflow email Stato (in setup ora via Cowork)
 - [ ] **`ciak_bought_67`** → sequenza 3 email post-acquisto, exit `ciak_call_booked`
 - [ ] **`ciak_cold_outreach_places`** → campagna A 4 email
-- [ ] **`ciak_cold_outreach_legacy`** → campagna B 5 email
+- [ ] **NON attivare `ciak_cold_outreach_legacy`** → lista fredda 13k congelata per Acquisizione Evolution
 
 ### Workflow OPZIONALI ma consigliati (🟡)
 - [ ] `ciak_completed` → "Report pronto, prenota la call"

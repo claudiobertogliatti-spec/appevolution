@@ -16,6 +16,11 @@ import os
 import logging
 import asyncio
 
+from acquisition_policy import (
+    get_lista_fredda_freeze_message,
+    is_lista_fredda_systeme_import_allowed,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/systeme", tags=["systeme-contacts"])
@@ -376,6 +381,9 @@ async def import_bulk_from_mongodb(request: SystemeBulkImportRequest, background
     L'operazione viene eseguita in background per non bloccare la richiesta.
     I contatti vengono processati in batch da 50 (default) per rispettare i rate limit.
     """
+    if not is_lista_fredda_systeme_import_allowed():
+        raise HTTPException(status_code=423, detail=get_lista_fredda_freeze_message())
+
     if not SYSTEME_API_KEY:
         raise HTTPException(status_code=500, detail="SYSTEME_API_KEY non configurata")
     
@@ -432,6 +440,25 @@ async def process_bulk_import_job(job_id: str, tag_id: int, batch_size: int):
     Background task che processa l'import bulk dalla lista fredda.
     Lavora in batch per rispettare i rate limit di Systeme.io.
     """
+    if not is_lista_fredda_systeme_import_allowed():
+        message = get_lista_fredda_freeze_message()
+        logger.warning(f"[SYSTEME] Bulk import job blocked: {message}")
+        try:
+            bg_client = AsyncIOMotorClient(mongo_url)
+            bg_db = bg_client[db_name]
+            await bg_db.systeme_bulk_jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {
+                    "status": "blocked",
+                    "error": message,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+            bg_client.close()
+        except Exception as e:
+            logger.warning(f"[SYSTEME] Bulk import block status update failed: {e}")
+        return
+
     logger.info(f"[SYSTEME] Processing bulk import job: {job_id}")
     
     progress = {

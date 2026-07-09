@@ -1,8 +1,18 @@
-# Campagna B — Riattivazione Rete (VERSIONE ATTIVA APPROVATA)
+# Campagna B — Riattivazione Rete (ARCHIVIO CONGELATO)
 
-**Approvata da Claudio: 2026-06-26.** Sostituisce la sezione "CAMPAGNA B — Cold
-Outreach Legacy" di `email-cold-outreach-ciak.md` (quella vecchia apriva con
-"hai lasciato i tuoi dati", non vero per questa lista).
+**Stato aggiornato 2026-07-09.** Con Acquisizione Evolution questa campagna non
+va attivata sulla lista fredda 13k.
+
+Regola operativa: niente email massive, drip o sequenze cold non
+personalizzate sulla lista fredda. Uso ammesso solo per custom audience Meta,
+analisi segmenti e studio mercato.
+
+Il copy resta in archivio storico. Qualsiasi riattivazione richiede nuova
+strategia approvata, flag esplicito `ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true` e
+revisione dedicata di canale, copy e reputazione mittente.
+
+**Versione precedente:** approvata da Claudio il 2026-06-26. Sostituiva la
+sezione "CAMPAGNA B — Cold Outreach Legacy" di `email-cold-outreach-ciak.md`.
 
 ## Contesto lista
 Target = rubrica personale di lavoro di Claudio (export Google Contatti, ~14.6k
@@ -17,13 +27,16 @@ Non sono lead della masterclass: sono persone che **conoscono Claudio** dai suoi
 non "hai lasciato i dati".
 
 ## Configurazione Systeme
+
+Questa configurazione e' sospesa. Non attivarla per Acquisizione Evolution.
+
 - **Trigger**: tag `ciak_cold_outreach_legacy` aggiunto al contatto.
 - **Mittente (tutte e 5)**: `Evolution PRO - Claudio Bertogliatti` — molti
   riconoscono il nome, è la leva dell'apertura.
 - **Reply-To**: `info@evolution-pro.it`.
 - **Cadenza**: 5 mail, **ogni 3 giorni** → T+0 / +3 / +6 / +9 / +12.
-- **Throttle ingresso**: job `daily_systeme_import` a 300/giorno (tag applicato
-  in Systeme per i contatti della coda `systeme_daily_queue`).
+- **Throttle ingresso storico**: job `daily_systeme_import` a 300/giorno.
+  Stato attuale: disattivato e bloccato di default per la lista fredda 13k.
 - **Regola d'uscita**: quando viene aggiunto `ciak_optin_masterclass`, annullare
   l'iscrizione alla campagna (chi converte non riceve più i solleciti).
 - **CTA unica**: `https://www.ciak.io/masterclass`.

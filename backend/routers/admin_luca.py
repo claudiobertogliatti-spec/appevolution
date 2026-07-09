@@ -271,10 +271,10 @@ async def build_luca_context() -> str:
     except Exception as e:
         logger.warning(f"[admin_luca] journey steps: {e}")
 
-    # --- VENDITE + ACQUISIZIONE (Gaia / Andrea): lead e pipeline ---
+    # --- VENDITE + ACQUISIZIONE (Gaia / Luca): lead e pipeline ---
     try:
         lines.append("")
-        lines.append("== ACQUISIZIONE (Andrea) + VENDITE (Gaia) ==")
+        lines.append("== ACQUISIZIONE (Luca) + VENDITE (Gaia) ==")
         leads_tot = await db.ciak_leads.count_documents({})
         lines.append(f"Lead Ciak totali: {leads_tot}")
         try:

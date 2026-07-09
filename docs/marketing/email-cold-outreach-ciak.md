@@ -338,10 +338,10 @@ Per ogni campagna:
 1. Crea **Automation** "Da zero"
 2. Trigger: "Quando un tag è aggiunto" →
    - Campagna A: `ciak_cold_outreach_places`
-   - Campagna B: `ciak_cold_outreach_legacy`
+   - Campagna B: `ciak_cold_outreach_legacy` solo se riabilitata con nuova strategia approvata
 3. Aggiungi gli step "Invia email" con i delay:
    - **Campagna A** (4 email): T+0 / T+3 gg / T+7 gg / T+14 gg
-   - **Campagna B** (5 email): T+0 / T+4 gg / T+9 gg / T+16 gg / T+25 gg
+   - **Campagna B** (congelata): non attivare sulla lista fredda 13k per Acquisizione Evolution
 4. Per ogni step, copia oggetto + body dal file
 5. Mittente: Claudio Bertogliatti / claudio@ciak.io
 6. Aggiungi un **exit condition** prima di ogni email:
@@ -351,30 +351,31 @@ Per ogni campagna:
 
 ---
 
-## Riattivare il job `daily-systeme-import`
+## Policy Acquisizione Evolution — job congelato
 
-**Daily limit lockato: 500 contatti/giorno** (15/5/2026 — scelta Claudio
-"restare calmi" sulla lista 13k per preservare reputazione mittente Google).
+Dal 2026-07-09 il job `daily-systeme-import` non va riattivato per la lista
+fredda 13k.
 
-Dopo aver attivato entrambe le campagne A e B su Systeme:
+Regola operativa: niente email massive, drip o sequenze cold non
+personalizzate sulla lista fredda. Uso ammesso solo per custom audience Meta,
+analisi segmenti e studio mercato.
 
-1. `backend/celery_app.py` → de-commentare le righe `'daily-systeme-import': ...`
-   (kwarg `daily_limit: 500` già impostato)
-2. Redeploy worker Celery (`gcloud run deploy evolution-pro-worker ...`)
-3. Il giorno successivo alle 09:00 il job riprende, con i nuovi tag separati
-4. Verifica logs: dovresti vedere `tag_applied: ciak_cold_outreach_places` (o legacy)
-   nei documenti `systeme_daily_queue`
+Qualsiasi riattivazione richiede:
+
+1. nuova strategia approvata;
+2. flag esplicito `ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true`;
+3. revisione dedicata di copy, canale e reputazione mittente.
 
 ### Esaurimento lista a 500/giorno
 
 | Source | Stima totale | Giorni a esaurire | Note |
 |--------|-------------|--------------------|------|
-| `lista_fredda` legacy 13k | ~13.000 | ~26 giorni lavorativi | Campagna B 5 email × 13k = 65k email totali in ~7 settimane |
+| `lista_fredda` legacy 13k | ~13.000 | congelata | Nessuna sequenza email massiva. Solo custom audience Meta, analisi segmenti e studio mercato. |
 | `google_places` ongoing | continuo (scraping) | mai, finché lo scraper gira | Campagna A 4 email × N/giorno |
 
 Con `daily_limit: 500` la priorità nel job è google_places PRIMA, poi
-lista_fredda. Se Google Places produce 200/giorno di lead nuovi, restano
-300 slot per lista_fredda → ~43 giorni per esaurire tutti i 13k. Tempi
+lista_fredda. La lista fredda non consuma slot Systeme per Acquisizione
+Evolution: resta archivio congelato salvo nuova strategia approvata. Tempi
 realistici, niente picchi anomali per Google.
 
 ---
