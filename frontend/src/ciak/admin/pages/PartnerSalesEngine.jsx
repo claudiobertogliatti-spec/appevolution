@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   BarChart3,
+  CalendarClock,
   CheckCircle2,
   ExternalLink,
   Gauge,
@@ -26,6 +26,14 @@ const FONTE = {
   manuale: "Manuale",
   legacy_revenue: "Revenue storico",
   nessuna: "Nessuna",
+};
+
+const ADS_TONE = {
+  no_ads: "bg-slate-100 text-slate-500",
+  ask_budget: "bg-amber-50 text-amber-700",
+  retargeting: "bg-blue-50 text-blue-700",
+  test: "bg-yellow-50 text-yellow-700",
+  scaling: "bg-emerald-50 text-emerald-700",
 };
 
 function fmtNum(n) {
@@ -93,6 +101,10 @@ function firstUrl(systeme) {
   return systeme?.funnel_url || systeme?.sales_page_url || systeme?.checkout_url || null;
 }
 
+function fmtBudget(n) {
+  return n === null || n === undefined ? "budget da chiedere" : `${fmtEur(n)}/mese`;
+}
+
 export function PartnerSalesEngine({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -114,6 +126,10 @@ export function PartnerSalesEngine({ onAuthExpired }) {
     if (filter === "vendite") return list.filter((i) => i.status === "prime_vendite");
     if (filter === "attivi") return list.filter((i) => i.status === "attivo");
     if (filter === "alta") return list.filter((i) => i.alignment?.priorita === "alta");
+    if (filter === "ottimizza") return list.filter((i) => !i.ottimizza?.calendar_90_ready || !i.ottimizza?.live_60_ready);
+    if (filter === "budget") return list.filter((i) => i.ads_plan?.level === "ask_budget");
+    if (filter === "ads") return list.filter((i) => ["retargeting", "test", "scaling"].includes(i.ads_plan?.level));
+    if (filter === "continuita") return list.filter((i) => i.continuity?.due);
     return list;
   }, [data, filter]);
 
@@ -127,6 +143,10 @@ export function PartnerSalesEngine({ onAuthExpired }) {
     { id: "systeme", label: `Setup Systeme (${c.missing_systeme || 0})` },
     { id: "kpi", label: `KPI mancanti (${c.missing_kpi || 0})` },
     { id: "vendite", label: `Prime vendite (${c.no_sales || 0})` },
+    { id: "ottimizza", label: `Ritmo Ottimizza (${c.optimize_rhythm_missing || 0})` },
+    { id: "budget", label: `Budget ads (${c.ads_budget_missing || 0})` },
+    { id: "ads", label: `Ads pronte (${c.ads_ready || 0})` },
+    { id: "continuita", label: `Continuità (${c.continuity_due || 0})` },
     { id: "attivi", label: `Attivi (${c.ready || 0})` },
   ];
 
@@ -152,7 +172,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
         <Kpi icon={LinkIcon} label="Senza Systeme" value={c.missing_systeme || 0} tone={c.missing_systeme ? "rose" : "slate"} />
         <Kpi icon={BarChart3} label="Senza KPI" value={c.missing_kpi || 0} tone={c.missing_kpi ? "yellow" : "slate"} />
         <Kpi icon={ShoppingCart} label="Senza vendite" value={c.no_sales || 0} tone={c.no_sales ? "blue" : "slate"} />
-        <Kpi icon={AlertTriangle} label="Alta priorità" value={c.high_priority || 0} tone={c.high_priority ? "rose" : "slate"} />
+        <Kpi icon={CalendarClock} label="Ritmo 90/60" value={c.optimize_rhythm_missing || 0} tone={c.optimize_rhythm_missing ? "yellow" : "slate"} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -180,6 +200,9 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                 <th className="px-4 py-3 font-semibold">Checklist</th>
                 <th className="px-4 py-3 font-semibold">Systeme</th>
                 <th className="px-4 py-3 font-semibold">KPI</th>
+                <th className="px-4 py-3 font-semibold">Ottimizza</th>
+                <th className="px-4 py-3 font-semibold">Ads</th>
+                <th className="px-4 py-3 font-semibold">Leva</th>
                 <th className="px-4 py-3 font-semibold">Chi</th>
                 <th className="px-4 py-3 font-semibold">Prossima azione</th>
               </tr>
@@ -236,6 +259,41 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                       </div>
                     </td>
                     <td className="px-4 py-3">
+                      <div className="text-xs space-y-1">
+                        <p className={i.ottimizza?.calendar_90_ready ? "text-emerald-700" : "text-amber-700"}>
+                          {i.ottimizza?.calendar_90_ready ? "90gg ok" : "90gg manca"}
+                        </p>
+                        <p className={i.ottimizza?.live_60_ready ? "text-emerald-700" : "text-amber-700"}>
+                          {i.ottimizza?.live_60_ready ? "Live 60 ok" : "Live 60 manca"}
+                        </p>
+                        {i.ottimizza?.settimane_alla_live != null && (
+                          <p className="text-slate-400">Live tra {i.ottimizza.settimane_alla_live} sett.</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${ADS_TONE[i.ads_plan?.level] || "bg-slate-100 text-slate-500"}`}>
+                        {i.ads_plan?.label || "—"}
+                      </span>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-[160px] leading-snug">
+                        {fmtBudget(i.ads_plan?.budget_monthly)}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-1 max-w-[180px] leading-snug">
+                        {i.ads_plan?.next_action}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-700 max-w-[160px] leading-snug">
+                        {i.accelerator?.label}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-[180px] leading-snug">
+                        {i.accelerator?.reason}
+                      </p>
+                      {i.continuity?.due && (
+                        <p className="text-[11px] text-emerald-700 mt-1 font-semibold">Valuta Ciak Continuità</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">
                         {i.owner || "Team"}
                       </span>
@@ -251,7 +309,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
               })}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nessun partner in questo filtro.</td>
+                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400">Nessun partner in questo filtro.</td>
                 </tr>
               )}
             </tbody>
@@ -266,8 +324,8 @@ export function PartnerSalesEngine({ onAuthExpired }) {
             <p className="font-semibold">Regola operativa</p>
           </div>
           <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-            Prima installiamo la macchina minima: offerta, masterclass, videocorso, funnel Systeme e KPI.
-            Solo dopo ha senso parlare di ottimizzazione, contenuti ricorrenti o campagne.
+            Prima organico e validazione. Poi retargeting leggero. Poi test acquisizione. Poi scaling.
+            Le ads entrano solo quando asset, KPI e budget sostenibile sono chiari.
           </p>
         </div>
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
@@ -276,8 +334,8 @@ export function PartnerSalesEngine({ onAuthExpired }) {
             <p className="font-semibold text-slate-900">Uso per Luca</p>
           </div>
           <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-            Lavora dall'alto verso il basso: Systeme mancante, KPI mancanti, prime vendite.
-            Quando la realtà è diversa dalla stima, correggi da Audit Delivery con il pannello Regia.
+            In Ottimizza controlla tre cose: calendario 90 giorni, live ogni 60 giorni, dati reali.
+            Se manca il budget ads, la domanda da fare è: quanto puoi investire ogni mese per 90 giorni?
           </p>
         </div>
       </div>

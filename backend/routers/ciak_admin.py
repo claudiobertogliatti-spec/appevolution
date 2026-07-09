@@ -2728,6 +2728,7 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
     partner_ids = [i.get("id") for i in audit_items if i.get("id")]
 
     partners_by, funnel_by = {}, {}
+    ott_by, calendar_by, live_by = {}, {}, {}
     async for p in db.partners.find(
         {"id": {"$in": partner_ids}},
         {
@@ -2743,12 +2744,23 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
             "kpi_manual": 1,
             "systeme_course_id": 1,
             "systeme_account_email": 1,
+            "data_pagamento_partnership": 1,
+            "conversion_date": 1,
+            "ads_budget_monthly": 1,
+            "budget_ads_monthly": 1,
+            "budget_ads": 1,
         },
     ):
         partners_by[p.get("id")] = p
 
     async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
         funnel_by[f.get("partner_id")] = f
+    async for o in db.partner_ottimizzazione.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        ott_by[o.get("partner_id")] = o
+    async for cdoc in db.partner_quarterly_calendar.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        calendar_by[cdoc.get("partner_id")] = cdoc
+    async for ldoc in db.partner_live_cycle.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        live_by[ldoc.get("partner_id")] = ldoc
 
     def _num(v):
         try:
@@ -2764,6 +2776,96 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
             "missing": None if ok else missing,
         }
 
+    def _weeks_to(value) -> Optional[int]:
+        dt = _parse_iso(value)
+        if not dt:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        delta = dt - datetime.now(timezone.utc)
+        if delta.total_seconds() <= 0:
+            return 0
+        return max(0, int(delta.days // 7))
+
+    def _months_since(value) -> Optional[int]:
+        dt = _parse_iso(value)
+        if not dt:
+            return None
+        now = datetime.now(timezone.utc)
+        return max(0, (now.year - dt.year) * 12 + (now.month - dt.month))
+
+    def _budget_ads(partner: dict, kpi_manual: dict) -> Optional[float]:
+        for key in ("ads_budget_monthly", "budget_ads_monthly", "budget_ads", "ads_budget", "budget_pubblicita"):
+            val = partner.get(key) if key in partner else kpi_manual.get(key)
+            if val not in (None, ""):
+                return _num(val)
+        return None
+
+    def _ads_plan(*, funnel_url: str | None, flags: dict, budget: Optional[float], contatti: float, vendite: float, revenue: float) -> dict:
+        question = "Quanto puoi investire in pubblicità ogni mese per 90 giorni, senza mettere a rischio la tua serenità economica?"
+        if not funnel_url or not flags.get("kpi"):
+            return {
+                "level": "no_ads",
+                "label": "No ads",
+                "budget_monthly": budget,
+                "recommended_budget": "0€ finché asset e KPI non sono pronti",
+                "risk": "Spendere ora confonde i dati e brucia budget.",
+                "next_action": "Prima completa funnel, tracking e KPI base.",
+                "question": question,
+            }
+        if budget is None or budget <= 0:
+            return {
+                "level": "ask_budget",
+                "label": "Chiedere budget",
+                "budget_monthly": None,
+                "recommended_budget": "Definire budget sostenibile su 90 giorni",
+                "risk": "Senza budget dichiarato non possiamo scegliere una strategia ads seria.",
+                "next_action": "Chiedere al partner il budget mensile sostenibile per 90 giorni.",
+                "question": question,
+            }
+        if vendite > 0 or revenue > 0:
+            return {
+                "level": "scaling" if budget >= 600 else "retargeting",
+                "label": "Scaling controllato" if budget >= 600 else "Retargeting leggero",
+                "budget_monthly": budget,
+                "recommended_budget": "Aumentare gradualmente solo su creatività/funnel che convertono" if budget >= 600 else "5-10€/giorno su retargeting",
+                "risk": "Scalare troppo presto sporca ciò che già funziona.",
+                "next_action": "Partire da retargeting e aumentare budget solo se CPL/conversione reggono.",
+                "question": question,
+            }
+        if contatti > 0 and budget >= 300:
+            return {
+                "level": "test",
+                "label": "Test acquisizione",
+                "budget_monthly": budget,
+                "recommended_budget": "300-600€/mese per 90 giorni",
+                "risk": "Il test va spento se i numeri non reggono entro 2-3 settimane.",
+                "next_action": "Testare 2-3 angoli creativi con budget limitato e controllo settimanale.",
+                "question": question,
+            }
+        return {
+            "level": "retargeting",
+            "label": "Retargeting leggero",
+            "budget_monthly": budget,
+            "recommended_budget": "5-10€/giorno",
+            "risk": "Traffico freddo prematuro: meglio scaldare chi ha già interagito.",
+            "next_action": "Spingere masterclass/live solo su viewer, visitatori ed engagement.",
+            "question": question,
+        }
+
+    def _accelerator(status: str, ads_plan: dict, calendar_ready: bool, live_ready: bool, flags: dict) -> dict:
+        if status == "setup_systeme":
+            return {"type": "extra", "service_id": "setup-tecnico-extra", "label": "Setup tecnico extra", "reason": "Serve chiudere funnel, checkout e collegamenti prima di vendere."}
+        if not calendar_ready:
+            return {"type": "extra", "service_id": "calendario-pro", "label": "Calendario Editoriale PRO", "reason": "Manca il ritmo contenuti dei prossimi 90 giorni."}
+        if not live_ready:
+            return {"type": "extra", "service_id": "live-promo-3", "label": "Live Promo — 3 eventi", "reason": "Serve il primo ciclo live ogni 60 giorni per riattivare pubblico e lista."}
+        if ads_plan.get("level") in ("test", "scaling"):
+            return {"type": "extra", "service_id": "gestione-campagne", "label": "Gestione Campagne", "reason": "Il partner ha budget e asset: le ads vanno gestite con controllo settimanale."}
+        if flags.get("kpi") and not flags.get("vendite"):
+            return {"type": "extra", "service_id": "copywriting-premium", "label": "Copywriting premium", "reason": "Ci sono dati ma vendite basse/zero: offerta e pagina vanno corrette."}
+        return {"type": "internal", "service_id": None, "label": "Azione interna Team Ciak", "reason": "Per ora basta esecuzione interna: lettura dati, contenuti e follow-up."}
+
     items = []
     counters = {
         "ready": 0,
@@ -2771,12 +2873,19 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
         "missing_kpi": 0,
         "no_sales": 0,
         "high_priority": 0,
+        "optimize_rhythm_missing": 0,
+        "ads_budget_missing": 0,
+        "ads_ready": 0,
+        "continuity_due": 0,
     }
 
     for row in audit_items:
         pid = row.get("id")
         partner = partners_by.get(pid) or {}
         funnel = funnel_by.get(pid) or {}
+        ott = ott_by.get(pid) or {}
+        calendar = calendar_by.get(pid) or {}
+        live = live_by.get(pid) or {}
         flags = row.get("asset_flags") or {}
 
         kpi_manual = partner.get("kpi_manual") if isinstance(partner.get("kpi_manual"), dict) else {}
@@ -2786,11 +2895,16 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
         conversione = _num(kpi_manual.get("conversione"))
         revenue = _num(partner.get("revenue") or partner.get("fatturato"))
         kpi_fonte = "manuale" if any([visite, contatti, vendite, conversione]) else ("legacy_revenue" if revenue else "nessuna")
+        ads_budget = _budget_ads(partner, kpi_manual)
 
         funnel_url = row.get("funnel_url") or funnel.get("funnel_systeme_url") or funnel.get("funnel_url")
         checkout_url = funnel.get("checkout_url") or funnel.get("checkout_systeme_url")
         sales_page_url = funnel.get("vendita_url") or funnel.get("sales_page_url")
         course_id = partner.get("systeme_course_id") or funnel.get("systeme_course_id")
+        calendar_ready = bool(calendar.get("calendar"))
+        live_ready = bool(live.get("cycle"))
+        prossima_live_at = live.get("prossima_live_at")
+        weeks_to_live = _weeks_to(prossima_live_at)
 
         setup = [
             _setup_item("offerta", "Offerta 4/4", row.get("offerta") == "completa", "Completa nome, prezzo, contenuto e garanzia."),
@@ -2819,6 +2933,19 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
             status = "in_costruzione"
             next_action = row.get("next_action")
 
+        ads = _ads_plan(
+            funnel_url=funnel_url,
+            flags=flags,
+            budget=ads_budget,
+            contatti=contatti,
+            vendite=vendite,
+            revenue=revenue,
+        )
+        accelerator = _accelerator(status, ads, calendar_ready, live_ready, flags)
+        activation_date = partner.get("data_pagamento_partnership") or partner.get("conversion_date")
+        month_in_partnership = _months_since(activation_date)
+        continuity_due = month_in_partnership is not None and month_in_partnership >= 10
+
         if status == "attivo":
             counters["ready"] += 1
         if not funnel_url:
@@ -2829,6 +2956,14 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
             counters["no_sales"] += 1
         if row.get("priorita") == "alta" or row.get("blocked") or row.get("stale"):
             counters["high_priority"] += 1
+        if not (calendar_ready and live_ready):
+            counters["optimize_rhythm_missing"] += 1
+        if ads.get("level") == "ask_budget":
+            counters["ads_budget_missing"] += 1
+        if ads.get("level") in ("retargeting", "test", "scaling"):
+            counters["ads_ready"] += 1
+        if continuity_due:
+            counters["continuity_due"] += 1
 
         items.append({
             "id": pid,
@@ -2857,6 +2992,26 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
                 "conversione": conversione,
                 "revenue": revenue,
                 "fonte": kpi_fonte,
+            },
+            "ottimizza": {
+                "calendar_90_ready": calendar_ready,
+                "calendar_generated_at": calendar.get("generated_at"),
+                "live_60_ready": live_ready,
+                "live_generated_at": live.get("generated_at"),
+                "prossima_live_at": prossima_live_at,
+                "settimane_alla_live": weeks_to_live,
+                "protocollo_settimana": ott.get("protocollo_settimana"),
+                "protocollo_updated_at": ott.get("protocollo_updated_at"),
+                "giorni_da_ultima_azione": None,
+                "ritmo_label": "Calendario 90gg + live 60gg pronti" if calendar_ready and live_ready else "Ritmo Ottimizza da impostare",
+            },
+            "ads_plan": ads,
+            "accelerator": accelerator,
+            "continuity": {
+                "month_in_partnership": month_in_partnership,
+                "due": continuity_due,
+                "label": "Ciak Continuità" if continuity_due else "Non ancora",
+                "reason": "Preparare proposta post partnership: il sistema resta del partner, il team può restare a supporto." if continuity_due else "Si valuta verso mese 10-12.",
             },
             "alignment": {
                 "priorita": row.get("priorita"),
