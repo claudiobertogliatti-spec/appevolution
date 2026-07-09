@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
-import { apiGet } from "../api";
+import { CheckCircle2, RefreshCw, Sparkles, Target } from "lucide-react";
+import { adminFetch, apiGet } from "../api";
 
 const ACCESS_LABELS = {
   cliente_blueprint: "Blueprint",
@@ -92,6 +92,8 @@ export function ClientiCiak({ onAuthExpired }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [decisionLoading, setDecisionLoading] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   const loadItems = useCallback(async ({ silent = false } = {}) => {
     if (silent) setRefreshing(true);
@@ -114,6 +116,33 @@ export function ClientiCiak({ onAuthExpired }) {
     loadItems();
   }, [loadItems]);
 
+  const decideOffer = useCallback(async (clientId, offer) => {
+    if (!clientId || decisionLoading) return;
+    setDecisionLoading(`${clientId}:${offer}`);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await adminFetch("/api/ciak/client/admin/offer-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: clientId, offer_decision: offer }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 160)}` : ""}`);
+      }
+      setItems((prev) => prev.map((item) => (
+        item.id === clientId ? { ...item, offer_decision: offer, offer_decided_at: new Date().toISOString() } : item
+      )));
+      setNotice(`Offerta aggiornata: ${formatOffer(offer)}.`);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setError(e.message || "Errore aggiornamento offerta");
+    } finally {
+      setDecisionLoading(null);
+    }
+  }, [decisionLoading, onAuthExpired]);
+
   const rows = useMemo(
     () =>
       items.map((item, index) => {
@@ -123,11 +152,14 @@ export function ClientiCiak({ onAuthExpired }) {
         const updatedAt = formatDate(item.updated_at);
         return {
           key: item.id || item.email || `clienti-ciak-${index}`,
+          id: item.id,
           name: item.name || [item.nome, item.cognome].filter(Boolean).join(" ") || "Senza nome",
           email: item.email || "-",
           score,
           accessLevel: item.access_level,
           recommendation,
+          recommendedOffer: item.recommended_offer,
+          offerDecision: item.offer_decision,
           startCredit: formatCurrency(item.start_credit_amount),
           startStatus: startStatus ? START_STATUS_LABELS[startStatus] || startStatus : null,
           analysisStatus: item.analysis_status || null,
@@ -169,6 +201,12 @@ export function ClientiCiak({ onAuthExpired }) {
           Errore caricamento: {error}
         </div>
       ) : null}
+      {notice ? (
+        <div className="mt-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <CheckCircle2 className="h-4 w-4" />
+          {notice}
+        </div>
+      ) : null}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
@@ -181,6 +219,7 @@ export function ClientiCiak({ onAuthExpired }) {
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Offerta</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Start</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Aggiornato</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Decisione</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -196,11 +235,12 @@ export function ClientiCiak({ onAuthExpired }) {
                     <td className="px-4 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
                     <td className="px-4 py-4"><div className="h-4 w-32 rounded bg-slate-100" /></td>
                     <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
+                    <td className="px-4 py-4"><div className="h-8 w-40 rounded bg-slate-100" /></td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
                     Nessun cliente Ciak disponibile.
                   </td>
                 </tr>
@@ -220,6 +260,13 @@ export function ClientiCiak({ onAuthExpired }) {
                     <td className="px-4 py-4">
                       <div className="text-sm font-medium text-slate-800">{formatOffer(row.recommendation)}</div>
                       <div className="mt-1 text-xs text-slate-500">
+                        {row.offerDecision
+                          ? "Decisione Claudio/Luca"
+                          : row.recommendedOffer
+                            ? "Suggerita dal Blueprint"
+                            : "Da decidere"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
                         {row.analysisStatus ? `Analisi: ${row.analysisStatus}` : "Analisi: -"}
                       </div>
                     </td>
@@ -230,6 +277,41 @@ export function ClientiCiak({ onAuthExpired }) {
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-500">{row.updatedAt || "-"}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex min-w-[12rem] flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => decideOffer(row.id, "ciak_start")}
+                          disabled={!row.id || row.accessLevel === "partner" || decisionLoading !== null}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                            row.offerDecision === "ciak_start"
+                              ? "border-blue-200 bg-blue-50 text-blue-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                          }`}
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          {decisionLoading === `${row.id}:ciak_start` ? "Salvo..." : "Start"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => decideOffer(row.id, "partnership")}
+                          disabled={!row.id || row.accessLevel === "partner" || decisionLoading !== null}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                            row.offerDecision === "partnership"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
+                          }`}
+                        >
+                          <Target className="h-3.5 w-3.5" />
+                          {decisionLoading === `${row.id}:partnership` ? "Salvo..." : "Partnership"}
+                        </button>
+                      </div>
+                      {row.accessLevel === "partner" ? (
+                        <p className="mt-2 text-xs text-slate-400">Gia' partner.</p>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
