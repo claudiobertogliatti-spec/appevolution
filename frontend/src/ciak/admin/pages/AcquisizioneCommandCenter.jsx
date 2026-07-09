@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   CreditCard,
   FileSignature,
+  ListChecks,
   PhoneCall,
+  ShieldCheck,
   Target,
   TrendingUp,
   Users,
@@ -46,6 +48,23 @@ function KpiCard({ icon: Icon, label, value, hint, tone = "blue" }) {
         </div>
       </div>
       {hint && <p className="text-xs text-slate-500 mt-3 leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
+function InfoPanel({ icon: Icon, title, children, tone = "blue" }) {
+  const tones = {
+    blue: "border-blue-200 bg-blue-50 text-blue-700",
+    yellow: "border-yellow-300 bg-yellow-50 text-yellow-700",
+    slate: "border-slate-200 bg-white text-slate-700",
+  };
+  return (
+    <div className={`rounded-xl border p-4 ${tones[tone]}`}>
+      <div className="flex items-center gap-2">
+        <Icon className="w-4 h-4" />
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      </div>
+      <div className="text-sm text-slate-600 mt-3 leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -111,6 +130,11 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const target = data.target || {};
   const funnel = data.funnel || {};
   const priorities = data.priorities || {};
+  const routine = data.routine || {};
+  const channels = data.channels || {};
+  const partnerSalesEngine = data.partner_sales_engine || {};
+  const targetMinimum = target.minimum_monthly || 3;
+  const targetOptimal = target.optimal_monthly || target.partnerships_monthly || 4;
 
   return (
     <div className="p-8 space-y-6">
@@ -119,25 +143,25 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">CRM Acquisizione</p>
             <h1 className="text-3xl font-semibold text-slate-900 mt-1">
-              Obiettivo: 4 partnership al mese
+              Acquisizione Evolution
             </h1>
             <p className="text-sm text-slate-500 mt-2 max-w-2xl leading-relaxed">
-              Questa vista collega traffico, Blueprint, call e contratti. Ogni giorno deve dirti quali contatti lavorare per avvicinarti al target.
+              Progetto pilota madre: minimo {targetMinimum}, ottimale {targetOptimal} ingressi Metodo EVO al mese. Luca coordina contatti, recuperi e report giornaliero.
             </p>
           </div>
           <div className="rounded-xl bg-slate-900 text-white px-5 py-4 min-w-[210px]">
             <p className="text-xs uppercase tracking-widest text-yellow-400 font-semibold">Gap mese</p>
             <p className="text-4xl font-semibold mt-1">{target.gap || 0}</p>
             <p className="text-xs text-slate-300 mt-1">
-              {target.partnerships_closed || 0}/{target.partnerships_monthly || 4} partnership chiuse
+              {target.partnerships_closed || 0}/{targetOptimal} ingressi Metodo EVO
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
-        <KpiCard icon={Target} label="Target" value={target.partnerships_monthly || 4} hint="Partnership mensili da raggiungere." tone="yellow" />
-        <KpiCard icon={CheckCircle2} label="Chiuse" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
+        <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
+        <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
         <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
         <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
         <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
@@ -157,6 +181,32 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           ))}
         </div>
       )}
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
+          <p>
+            {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
+          </p>
+          <div className="mt-3 space-y-2">
+            {(routine.today || []).map((item) => (
+              <div key={item.id} className="rounded-lg bg-white/70 border border-white px-3 py-2">
+                <p className="font-semibold text-slate-900">{item.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{item.owner} · {item.metric}</p>
+              </div>
+            ))}
+          </div>
+        </InfoPanel>
+        <InfoPanel icon={ShieldCheck} title="Canali ammessi" tone="blue">
+          <ul className="space-y-1">
+            {(channels.allowed || []).map((item) => <li key={item}>- {item}</li>)}
+          </ul>
+        </InfoPanel>
+        <InfoPanel icon={AlertTriangle} title="Da non fare ora" tone="slate">
+          <ul className="space-y-1">
+            {(channels.blocked || []).map((item) => <li key={item}>- {item}</li>)}
+          </ul>
+        </InfoPanel>
+      </div>
 
       <div className="flex items-center justify-between">
         <div>
@@ -199,13 +249,31 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         />
       </div>
 
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
+        <h2 className="text-xl font-semibold text-slate-900 mt-1">Motore Vendite Partner</h2>
+        <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+          {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
+        </p>
+        <div className="grid md:grid-cols-2 gap-4 mt-4">
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+            <p className="text-sm font-semibold text-slate-900">Resta stabile</p>
+            <p className="text-sm text-slate-500 mt-1">{(partnerSalesEngine.stable_parts || []).join(" · ")}</p>
+          </div>
+          <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
+            <p className="text-sm font-semibold text-slate-900">Si adatta</p>
+            <p className="text-sm text-slate-600 mt-1">{(partnerSalesEngine.adapted_parts || []).join(" · ")}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-slate-900 rounded-xl p-5 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-3">
           <Users className="w-5 h-5 text-yellow-400 mt-0.5" />
           <div>
             <p className="font-semibold">Regola operativa</p>
             <p className="text-sm text-slate-300 mt-1">
-              Prima lavori i checkout caldi, poi chi ha completato le 8 domande, poi chi ha fatto solo il Checkpoint.
+              Prima lavori recuperi caldi e Blueprint, poi alimenti ogni giorno la pipeline con 20 nuovi contatti mirati.
             </p>
           </div>
         </div>
