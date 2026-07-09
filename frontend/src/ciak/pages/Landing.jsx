@@ -287,12 +287,15 @@ export function CiakLanding() {
                 text: "Quello che altri promettono, noi lo applichiamo: fino al 12° mese leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita.",
               },
             ].map((step) => (
-              <div key={step.num} className="rounded-2xl border border-gray-200 bg-white p-6">
-                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-8">
+              <div
+                key={step.num}
+                className="rounded-2xl border border-yellow-300 bg-yellow-50 p-6 shadow-[0_18px_42px_rgba(250,204,21,0.16)]"
+              >
+                <p className="mb-8 inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-yellow-300">
                   {step.num}
                 </p>
                 <h3 className="text-xl font-semibold text-slate-900 mb-3">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-slate-600">{step.text}</p>
+                <p className="text-sm leading-relaxed text-slate-700">{step.text}</p>
               </div>
             ))}
           </div>
