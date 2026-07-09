@@ -76,13 +76,13 @@ export function CiakBlueprint() {
                 Protocollo strategico guidato
               </p>
               <p className="text-base leading-relaxed text-slate-600 md:text-xl">
-                Una sessione strategica di 60 minuti, un'analisi di mercato specifica sul tuo settore
-                e una roadmap operativa personalizzata: capisci cosa fare nel tuo caso prima di
-                investire in implementazione.
+                Prima rispondi alle 8 Domande Ciak. Noi analizziamo posizionamento, mercato,
+                offerta e prontezza operativa. Poi fissi 60 minuti con Claudio e arrivi alla
+                call con una base gia' chiara.
               </p>
               <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                 <p className="text-sm font-medium leading-relaxed text-slate-700">
-                  Sessione Strategica 60 min + Analisi di Mercato Specifica + Roadmap Operativa Personalizzata
+                  Alla fine hai una roadmap chiara: cosa sistemare, cosa costruire e se ha senso entrare nel Metodo EVO.
                 </p>
               </div>
             </div>
@@ -102,7 +102,7 @@ export function CiakBlueprint() {
               </button>
               {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
               <p className="mt-4 text-xs leading-relaxed text-slate-400">
-                Dopo il pagamento riceverai l'accesso alle 8 Domande Ciak e potrai prenotare la sessione strategica.
+                Dopo il pagamento riceverai l'accesso alle 8 Domande Ciak. Dopo l'analisi potrai fissare la sessione strategica.
               </p>
             </div>
           </div>
@@ -220,10 +220,10 @@ export function CiakBlueprint() {
                 Come si svolge
               </h2>
               <p className="max-w-3xl text-base leading-relaxed text-slate-600 md:text-lg">
-                Il Blueprint si compone di quattro fasi strutturate. Non e' una call generica: e' un processo
-                guidato che inizia prima della sessione e si conclude con un documento di direzione strategica.
-                L'offerta e' composta da tre elementi concreti: la sessione strategica di 60 minuti,
-                un'analisi di mercato specifica sul tuo settore e una roadmap operativa personalizzata.
+                Il Blueprint si compone di quattro fasi strutturate. Non parte dalla call: prima compili
+                le 8 Domande Ciak, poi analizziamo il tuo caso, poi fissi i 60 minuti con Claudio.
+                La sessione arriva dopo una lettura preliminare di posizionamento, mercato, offerta
+                e prontezza operativa.
               </p>
             </div>
 
