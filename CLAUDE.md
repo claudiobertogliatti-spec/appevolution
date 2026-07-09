@@ -1125,3 +1125,14 @@ Admin Ciak → **Back office → Fatture** (`/admin/fatture`). Voce in sidebar `
 - Numerazione progressiva per anno, anti-duplicato via `source_key` (`blueprint:<sid>`, `partnership:<token|partner_id>`, `extra:<servizio_id_doc>`).
 - Deploy via **connettore GitHub** (4 commit `7157552`, `59b92d5`, `aa0922b`, `f482463`), tutti verificati blob-sha byte-esatti. Base ricostruita da `origin/main` (working tree locale era 22 commit indietro).
 - TODO eventuale: estensione a fattura elettronica SDI (provider) se servirà — la struttura dati è già pronta.
+
+## Strumento contenuti — Swipeeza (AI Carousel Maker) — archiviato 2026-07-09
+
+**Cosa è**: `swipeeza.com` — generatore AI di caroselli social (Instagram/LinkedIn/X). Punti forti = **velocità + qualità grafica** (motore GPT-Image-2, testo nelle slide leggibile). Il cuore del tool è la **knowledge base del brand in markdown**: la carichi una volta, l'AI la usa come "bibbia" a ogni generazione. Flusso: carichi KB → scrivi un topic in una frase → ottieni ZIP con 7 slide (1:1 o 4:5) + Story 9:16 + caption platform-aware + 3-5 hook alternativi. Funzioni: rigenerazione slide-per-slide, **multi-brand** (brand separati con KB/palette/font propri), 3 livelli qualità (Standard ~30-40 crediti / Enhanced 60-80 / Studio 120-180). **Limite**: fa slide+caption, NON pubblica né schedula (output → scheduler abituale). Prezzi: Free 200 cr 1 brand · Starter €29 (1 brand) · **Pro €79 (4.500 cr, 3 brand)** = fascia giusta per gestire i 2 brand Ciak · Studio €179 (10 brand).
+
+**Stato**: Claudio NON lo sta ancora usando (me lo ha fatto conoscere). Materiale pronto per accensione futura in **`docs/marketing/swipeeza/`**:
+- `KB-evolution-pro-ciak.md` — knowledge base brand #1 (Ciak/Evolution PRO) da caricare su Swipeeza.
+- `KB-metodo-evo.md` — knowledge base brand #2 (Metodo EVO™: Esamina·Valida·Ottimizza).
+- `guida-operativa-e-topic-pack.md` — analisi tool + setup consigliato + **30 topic Instagram pronti** (15 per brand, mappati sui 5 pillars / 3 fasi EVO).
+
+Le due KB sono costruite sulla documentazione reale (voice-lock `docs/marketing/claudio_voice_style.md`, pillars/glossario tradotto `linee-guida-social-v5.md`, palette antracite `#1A1F24` + giallo `#FFD24D` + crema `#F5F3EE`, font Manrope, modello EVO 70/30 €2.790+10%). Contengono glossario che forza la traduzione dei termini tecnici (nicchia/funnel/posizionamento) e checklist anti-fuffa applicata a ogni slide. Canale ottimizzato: **Instagram** (feed 4:5 + Story 9:16). Quando Claudio vorrà accenderlo: entrare nel dashboard con Claude in Chrome (login richiesto), caricare le 2 KB come brand separati, generare i primi caroselli di prova e affinare le KB sull'output reale.
