@@ -665,7 +665,12 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
         raise HTTPException(503, "Database non configurato")
 
     month_start = _month_start_iso()
-    target_partnerships = 4
+    target_minimum = 3
+    target_optimal = 4
+    target_partnerships = target_optimal
+    daily_new_contacts = 20
+    weekly_new_contacts = 100
+    monthly_new_contacts = 400
 
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
@@ -804,12 +809,87 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
             "message": "Ci sono lead che hanno cliccato il checkout ma non hanno pagato. Sono i recuperi piu' vicini al fatturato.",
         })
 
+    luca_routine = [
+        {
+            "id": "new_contacts",
+            "title": "Seleziona e lavora 20 nuovi contatti mirati",
+            "owner": "Luca + Valentina",
+            "metric": f"{daily_new_contacts} contatti/giorno",
+            "priority": "alta",
+        },
+        {
+            "id": "hot_recoveries",
+            "title": "Recupera checkout cliccati e Blueprint non pagati",
+            "owner": "Luca + Marco",
+            "metric": f"{len(clicked_no_purchase)} recuperi caldi",
+            "priority": "critica" if clicked_no_purchase else "normale",
+        },
+        {
+            "id": "diagnostic_recoveries",
+            "title": "Porta chi ha completato le 8 Domande verso il Blueprint",
+            "owner": "Luca + Andrea",
+            "metric": f"{len(completed_no_purchase)} diagnosi da convertire",
+            "priority": "alta" if completed_no_purchase else "normale",
+        },
+        {
+            "id": "call_recoveries",
+            "title": "Fai prenotare la call a chi ha acquistato il Blueprint",
+            "owner": "Luca + Gaia",
+            "metric": f"{len(purchased_no_call)} Blueprint senza call",
+            "priority": "alta" if purchased_no_call else "normale",
+        },
+        {
+            "id": "evening_report",
+            "title": "Report serale a Claudio, Claude e Codex",
+            "owner": "Luca",
+            "metric": "priorita', blocchi, numeri del giorno",
+            "priority": "normale",
+        },
+    ]
+
+    channels = {
+        "allowed": [
+            "rete calda, WhatsApp, referral ed ex clienti",
+            "LinkedIn organico con DM mirati",
+            "contenuti Claudio con CTA verso Ciak Blueprint",
+            "custom audience Meta dalla lista fredda",
+        ],
+        "blocked": [
+            "email massive sulla lista fredda 13k",
+            "drip email cold non personalizzate",
+            "sequenze automatiche prima di validare messaggi e call",
+        ],
+    }
+
+    partner_sales_engine = {
+        "summary": "Acquisizione Evolution e' il progetto pilota madre. Il Motore Vendite Partner duplica lo stesso sistema adattandolo a target, promessa, contenuti, offerta e dati del partner.",
+        "stable_parts": [
+            "metodo",
+            "struttura del percorso",
+            "disciplina sui follow-up",
+            "lettura dei dati",
+            "ciclo Esamina, Valida, Ottimizza",
+        ],
+        "adapted_parts": [
+            "target",
+            "promessa",
+            "linguaggio",
+            "canale principale",
+            "offerta",
+            "script di vendita",
+            "KPI specifici",
+        ],
+    }
+
     return {
         "target": {
+            "minimum_monthly": target_minimum,
+            "optimal_monthly": target_optimal,
             "partnerships_monthly": target_partnerships,
             "partnerships_closed": partnerships_month,
             "gap": gap,
             "month_start": month_start,
+            "target_label": "minimo 3, ottimale 4 ingressi Metodo EVO/mese",
         },
         "funnel": {
             "blueprint_purchased": blueprint_month,
@@ -825,6 +905,14 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
             "purchased_no_call": _sort_limit(purchased_no_call),
         },
         "bottlenecks": bottlenecks,
+        "routine": {
+            "daily_new_contacts": daily_new_contacts,
+            "weekly_new_contacts": weekly_new_contacts,
+            "monthly_new_contacts": monthly_new_contacts,
+            "today": luca_routine,
+        },
+        "channels": channels,
+        "partner_sales_engine": partner_sales_engine,
     }
 
 
