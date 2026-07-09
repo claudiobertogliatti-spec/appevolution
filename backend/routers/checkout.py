@@ -219,12 +219,21 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
         "Roadmap Operativa personalizzata consegnata entro 72 ore."
     )
 
+    linked_session_token = payload.session_token
+    if not linked_session_token and payload.email:
+        diagnostic_by_email = await db.diagnostic_sessions.find_one(
+            {"user_email": str(payload.email).strip().lower()},
+            sort=[("created_at", -1)],
+        )
+        if diagnostic_by_email:
+            linked_session_token = diagnostic_by_email.get("session_token")
+
     metadata: dict = {
         "tipo": "ciak_blueprint",
         "stato": str(payload.stato),
     }
-    if payload.session_token:
-        metadata["diagnostic_session_token"] = payload.session_token
+    if linked_session_token:
+        metadata["diagnostic_session_token"] = linked_session_token
 
     frontend = _frontend_url()
     success_url = f"{frontend}/ciak-blueprint/grazie?session_id={{CHECKOUT_SESSION_ID}}"
@@ -260,9 +269,9 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
         raise HTTPException(502, f"Stripe error: {e}") from e
 
     # Aggiorna lo stato del lead se collegato
-    if payload.session_token:
+    if linked_session_token:
         diagnostic = await db.diagnostic_sessions.find_one(
-            {"session_token": payload.session_token}
+            {"session_token": linked_session_token}
         )
         if diagnostic:
             current = diagnostic.get("current_state")
@@ -273,7 +282,7 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
                 "stripe_session_id": stripe_session.id,
             })
             await db.diagnostic_sessions.replace_one(
-                {"session_token": payload.session_token},
+                {"session_token": linked_session_token},
                 diagnostic,
             )
 

@@ -28,6 +28,11 @@ export function CiakBlueprint() {
     // Stripe sulla sua pagina. Inviare "" farebbe fallire la validazione
     // EmailStr lato backend (422) -> niente redirect al checkout.
     const email = localStorage.getItem("ciak_lead_email") || null;
+    const params = new URLSearchParams(window.location.search);
+    const sessionToken =
+      params.get("session_token") ||
+      localStorage.getItem("ciak_diagnostic_session_token") ||
+      null;
     try {
       const res = await fetch("/api/checkout/create-session", {
         method: "POST",
@@ -36,6 +41,7 @@ export function CiakBlueprint() {
           product: "ciak_blueprint",
           source: "ciak",
           email,
+          session_token: sessionToken,
           origin_url: window.location.origin,
         }),
       });
@@ -102,7 +108,7 @@ export function CiakBlueprint() {
               </button>
               {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
               <p className="mt-4 text-xs leading-relaxed text-slate-400">
-                Dopo il pagamento riceverai l'accesso alle 8 Domande Ciak. Dopo l'analisi potrai fissare la sessione strategica.
+                Se arrivi dalle 8 Domande Ciak, useremo quelle risposte come base dell'analisi. Dopo il pagamento potrai fissare la sessione strategica.
               </p>
             </div>
           </div>

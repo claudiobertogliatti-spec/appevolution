@@ -1,6 +1,7 @@
 import pytest
 from routers import checkout
 from routers import stripe_webhook
+from routers.checkout import CreateSessionRequest
 
 pytestmark = pytest.mark.unit
 
@@ -118,6 +119,52 @@ async def test_handle_checkout_triggers_delivery(monkeypatch):
 
 
 async def _noop(): return None
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_session_links_latest_diagnostic_by_email(monkeypatch):
+    fake_db = FakeDB()
+    fake_db.diagnostic_sessions.docs.append(
+        {
+            "_id": 1,
+            "session_token": "tok-email",
+            "user_email": "lead@example.com",
+            "created_at": "2026-07-01T10:00:00+00:00",
+            "current_state": "report_generated",
+            "state_history": [],
+            "events": [],
+        }
+    )
+    checkout.db = fake_db
+
+    captured = {}
+
+    class FakeStripeSession:
+        id = "cs_email_link"
+        url = "https://checkout.example/email-link"
+
+    def fake_create(**kwargs):
+        captured["kwargs"] = kwargs
+        return FakeStripeSession()
+
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setattr(checkout.stripe.checkout.Session, "create", fake_create)
+
+    response = await checkout.create_checkout_session(
+        CreateSessionRequest(
+            product="ciak_blueprint",
+            source="ciak",
+            email="lead@example.com",
+            origin_url="https://ciak.io",
+        ),
+        request=None,
+    )
+
+    assert response.checkout_url == "https://checkout.example/email-link"
+    assert captured["kwargs"]["metadata"]["diagnostic_session_token"] == "tok-email"
+    diagnostic = fake_db.diagnostic_sessions.docs[0]
+    assert diagnostic["current_state"] == "clicked_67"
+    assert any(event["event"] == "stripe_session_created" for event in diagnostic["events"])
 
 
 @pytest.mark.asyncio

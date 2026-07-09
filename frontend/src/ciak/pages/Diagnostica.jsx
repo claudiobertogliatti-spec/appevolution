@@ -163,6 +163,11 @@ export function CiakDiagnostica() {
       const data = await res.json();
       if (!data.session_token) throw new Error("Sessione non valida");
       setSessionToken(data.session_token);
+      try {
+        localStorage.setItem("ciak_diagnostic_session_token", data.session_token);
+      } catch {
+        /* ignore */
+      }
       setPhase("questions");
     } catch (e) {
       setError(e.message);
@@ -257,6 +262,11 @@ export function CiakDiagnostica() {
       }
       const data = await res.json();
       const token = data.session_token || sessionToken;
+      try {
+        localStorage.setItem("ciak_diagnostic_session_token", token);
+      } catch {
+        /* ignore */
+      }
       navigate(`/report/${token}`);
     } catch (e) {
       setError(e.message);

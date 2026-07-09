@@ -63,6 +63,7 @@ export function CiakReport() {
   }
 
   const stateCfg = STATE_CONFIG[report.stato] || STATE_CONFIG[2];
+  const blueprintUrl = `/ciak-blueprint?utm_source=report&utm_campaign=stato_${report.stato}&session_token=${encodeURIComponent(token)}`;
 
   return (
     <>
@@ -102,7 +103,7 @@ export function CiakReport() {
                 </p>
                 <p className="text-slate-400 text-xs leading-relaxed">
                   Il passaggio corretto ora è il{" "}
-                  <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_1" className="text-yellow-400 underline">Ciak Blueprint da €27</a>:
+                  <a href={blueprintUrl} className="text-yellow-400 underline">Ciak Blueprint da €27</a>:
                   una sessione strategica con Claudio, analisi del tuo mercato e roadmap operativa
                   per partire con lucidità.
                 </p>
@@ -116,7 +117,7 @@ export function CiakReport() {
                   serve proprio a questo: capire cosa fare nel tuo caso specifico, cosa evitare e
                   quali priorità seguire nei prossimi mesi.
                 </p>
-                <a href={`/ciak-blueprint?utm_source=report&utm_campaign=stato_${report.stato}`} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
+                <a href={blueprintUrl} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
                   Richiedi il tuo Ciak Blueprint →
                 </a>
                 <p className="text-xs text-slate-400 mt-4 leading-relaxed">
@@ -132,7 +133,7 @@ export function CiakReport() {
                   di disperdere energia e budget. Il Blueprint ti aiuta a capire dove concentrare
                   attenzione, investimenti e prossime azioni.
                 </p>
-                <a href="/ciak-blueprint?utm_source=report&utm_campaign=stato_4" className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
+                <a href={blueprintUrl} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
                   Richiedi il Blueprint prioritario €27 →
                 </a>
                 <p className="text-xs text-slate-400 mt-4 leading-relaxed">

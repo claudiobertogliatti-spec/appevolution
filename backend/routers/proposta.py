@@ -764,7 +764,7 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # 1) Verifica sessione Stripe (opzionale — fallback sicuro)
+    # 1) Verifica sessione Stripe: senza conferma "paid" non attiviamo mai il partner.
     stripe_verified = False
     try:
         stripe_key = os.environ.get('STRIPE_API_KEY')
@@ -774,9 +774,7 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
             session = stripe.checkout.Session.retrieve(body.session_id)
             stripe_verified = session.payment_status == "paid"
     except Exception as e:
-        logger.warning(f"[PROPOSTA] Stripe verification fallback: {e}")
-        # Anche se la verifica fallisce, procediamo (il webhook gestirà)
-        stripe_verified = True  # Trust the redirect
+        logger.warning(f"[PROPOSTA] Stripe verification failed: {e}")
 
     if not stripe_verified:
         # Se Stripe dice esplicitamente che non è pagato, non confermiamo
