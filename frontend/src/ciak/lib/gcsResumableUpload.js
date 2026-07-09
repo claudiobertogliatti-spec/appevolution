@@ -22,6 +22,7 @@
  *     onStatus: (msg) => ...,          // messaggi umani ("Riconnessione...", ...)
  *   });
  */
+import { authHeaders } from "../partner/api";
 
 const CHUNK_SIZE = 32 * 1024 * 1024; // 32 MiB — multiplo di 256 KiB
 const MAX_ATTEMPTS = 10;             // tentativi consecutivi falliti prima di arrendersi
@@ -116,7 +117,7 @@ function queryCommittedOffset(uploadUrl, fileSize) {
 async function createSession(api, sessionBody) {
   const res = await fetch(`${api}/api/partner-journey/video/request-upload-session`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(sessionBody),
   });
   if (!res.ok) throw new Error(`Sessione upload fallita (HTTP ${res.status})`);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import StepBase from "./StepBase";
+import { authHeaders } from "../../api";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -8,6 +9,7 @@ async function uploadFile(file, partnerId) {
   fd.append("file", file);
   const r = await fetch(`${API}/api/partner-journey/operativo/upload/${partnerId}`, {
     method: "POST",
+    headers: authHeaders(),
     body: fd,
   });
   if (!r.ok) throw new Error(`Upload fallito: ${r.status}`);

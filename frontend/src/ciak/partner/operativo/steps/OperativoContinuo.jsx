@@ -7,6 +7,7 @@ import CalendarioTrimestrale from "../ottimizza/CalendarioTrimestrale";
 import CicloLive8Settimane from "../ottimizza/CicloLive8Settimane";
 import SistemaVendita from "../ottimizza/SistemaVendita";
 import MarcoNudge from "../ottimizza/MarcoNudge";
+import { authHeaders } from "../../api";
 
 /**
  * Hub fase Ottimizza (operativo continuo post-lancio) — Protocollo EVO, Fase 3.
@@ -102,7 +103,9 @@ export default function OperativoContinuo({ partnerId }) {
     const load = async () => {
       if (!partnerId) return;
       try {
-        const res = await fetch(`/api/partner-journey/ottimizzazione/${partnerId}`);
+        const res = await fetch(`/api/partner-journey/ottimizzazione/${partnerId}`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!alive) return;

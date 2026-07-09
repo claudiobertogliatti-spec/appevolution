@@ -10,6 +10,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { authHeaders } from "../api";
 import {
   ArrowRight, Check, TrendingUp, BarChart3,
   AlertTriangle, ChevronRight, Target, Shield, Rocket,
@@ -400,7 +401,7 @@ export function GrowthSystemPage({ partnerId }) {
   // Carica livello esistente
   useEffect(() => {
     if (!partnerId) return;
-    fetch(`/api/partner-journey/growth-level/${partnerId}`)
+    fetch(`/api/partner-journey/growth-level/${partnerId}`, { headers: authHeaders() })
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {
@@ -430,7 +431,7 @@ export function GrowthSystemPage({ partnerId }) {
       // 1. Salva la scelta nel DB
       await fetch(`/api/partner-journey/growth-level/choose`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           partner_id: String(partnerId),
           scenario: selectedScenario,

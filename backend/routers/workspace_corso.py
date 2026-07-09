@@ -23,12 +23,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner-journey/workspace", tags=["workspace-valida"])
+security = HTTPBearer(auto_error=False)
 
 db = None
 
@@ -223,14 +225,27 @@ class _Req(BaseModel):
 
 
 @router.get("/{partner_id}/corso")
-async def get_workspace_corso(partner_id: str):
+async def get_workspace_corso(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     if db is None:
         raise HTTPException(503, "DB non inizializzato")
     return await _build_state(partner_id)
 
 
 @router.post("/{partner_id}/corso/generate/{task_id}")
-async def generate_corso_task(partner_id: str, task_id: str):
+async def generate_corso_task(
+    partner_id: str,
+    task_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     if db is None:
         raise HTTPException(503, "DB non inizializzato")
     if task_id not in GEN_TASKS:

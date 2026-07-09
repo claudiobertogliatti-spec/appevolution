@@ -3,7 +3,8 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ import json
 from pathlib import Path
 
 router = APIRouter(prefix="/api/partner-journey", tags=["partner-journey"])
+security = HTTPBearer(auto_error=False)
 
 # Database reference (set from main server)
 db = None
@@ -21,6 +23,52 @@ db = None
 def set_db(database):
     global db
     db = database
+
+
+async def require_partner_or_admin_for_partner(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials,
+):
+    """Autorizza letture/scritture partner-facing su un singolo partner.
+
+    Admin/superadmin possono supervisionare ogni partner. Un partner puo'
+    accedere solo al proprio partner_id risolto dal record users.
+    """
+    from auth import decode_token
+
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    if token_data.role in ("admin", "superadmin"):
+        return token_data
+
+    if token_data.role != "partner":
+        raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
+
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0, "partner_id": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    user_partner_id = str(user.get("partner_id") or "")
+    if user_partner_id != str(partner_id):
+        raise HTTPException(status_code=403, detail="Partner non autorizzato")
+
+    return token_data
+
+
+async def require_admin_token(credentials: HTTPAuthorizationCredentials):
+    from auth import decode_token
+
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data or token_data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return token_data
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODELS
@@ -966,21 +1014,31 @@ async def approve_positioning(partner_id: str):
 # altrimenti FastAPI matcha tutto come partner_id
 
 @router.get("/masterclass/genera")
-async def generate_masterclass_script_get(partner_id: str):
+async def generate_masterclass_script_get(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Alias GET per generare script masterclass (retrocompatibilità con il brief)"""
     request = MasterclassGenerateRequest(partner_id=partner_id)
-    return await generate_masterclass_script(request)
+    return await generate_masterclass_script(request, credentials)
 
 
 @router.post("/masterclass/genera")
-async def generate_masterclass_script_post(request: MasterclassGenerateRequest):
+async def generate_masterclass_script_post(
+    request: MasterclassGenerateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """POST per generare script masterclass"""
-    return await generate_masterclass_script(request)
+    return await generate_masterclass_script(request, credentials)
 
 
 @router.get("/masterclass/{partner_id}")
-async def get_masterclass(partner_id: str):
+async def get_masterclass(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera i dati della masterclass del partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     masterclass = await db.partner_masterclass.find_one(
@@ -997,8 +1055,12 @@ async def get_masterclass(partner_id: str):
     }
 
 @router.post("/masterclass/save-blocks")
-async def save_masterclass_blocks(request: MasterclassSaveRequest):
+async def save_masterclass_blocks(
+    request: MasterclassSaveRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva i blocchi dello script della masterclass"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     blocks_data = {block.block_id: {"title": block.title, "content": block.content} for block in request.blocks}
@@ -1024,8 +1086,12 @@ async def save_masterclass_blocks(request: MasterclassSaveRequest):
 
 
 @router.post("/masterclass/generate-script")
-async def generate_masterclass_script(request: MasterclassGenerateRequest):
+async def generate_masterclass_script(
+    request: MasterclassGenerateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera lo script completo della masterclass usando AI"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Recupera posizionamento
@@ -1115,8 +1181,12 @@ Rispondi in formato JSON:
         raise HTTPException(status_code=500, detail=f"Errore generazione script: {str(e)}")
 
 @router.post("/masterclass/approve-script")
-async def approve_masterclass_script(partner_id: str):
+async def approve_masterclass_script(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva lo script della masterclass"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     await db.partner_masterclass.update_one(
@@ -1132,9 +1202,11 @@ async def approve_masterclass_script(partner_id: str):
 @router.post("/masterclass/upload-video")
 async def upload_masterclass_video(
     file: UploadFile = File(...),
-    partner_id: str = Form(...)
+    partner_id: str = Form(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Carica il video della masterclass"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Directory upload
@@ -1181,8 +1253,12 @@ async def upload_masterclass_video(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/videocorso/{partner_id}")
-async def get_videocorso(partner_id: str):
+async def get_videocorso(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera lo stato del videocorso del partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Recupera struttura corso da posizionamento
@@ -1214,9 +1290,11 @@ async def upload_videocorso_lesson(
     file: UploadFile = File(...),
     partner_id: str = Form(...),
     module_id: str = Form(...),
-    lesson_id: str = Form(...)
+    lesson_id: str = Form(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Carica un video di una lezione del corso"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Directory upload
@@ -1265,8 +1343,13 @@ async def upload_videocorso_lesson(
     }
 
 @router.post("/videocorso/approve-lesson")
-async def approve_videocorso_lesson(partner_id: str, lesson_id: str):
+async def approve_videocorso_lesson(
+    partner_id: str,
+    lesson_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva una lezione del videocorso (admin)"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     lesson_key = f"lessons.{lesson_id}.status"
@@ -1308,8 +1391,12 @@ async def approve_videocorso_lesson(partner_id: str, lesson_id: str):
     return {"success": True, "message": f"Lezione {lesson_id} approvata e pubblicata su Systeme.io"}
 
 @router.post("/videocorso/complete")
-async def complete_videocorso(partner_id: str):
+async def complete_videocorso(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Marca il videocorso come completato"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     await db.partner_videocorso.update_one(
@@ -1346,8 +1433,13 @@ class VideoLinkRequest(BaseModel):
 
 
 @router.post("/masterclass/submit-video-link")
-async def submit_masterclass_video_link(req: VideoLinkRequest, background_tasks: BackgroundTasks):
+async def submit_masterclass_video_link(
+    req: VideoLinkRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Partner invia link Drive/WeTransfer del video masterclass grezzo"""
+    await require_partner_or_admin_for_partner(req.partner_id, credentials)
     await get_partner_or_404(req.partner_id)
 
     await db.masterclass_factory.update_one(
@@ -1393,11 +1485,15 @@ class SetLessonYoutubeUrlRequest(BaseModel):
 
 
 @router.post("/videocorso/set-lesson-youtube-url")
-async def set_lesson_youtube_url(req: SetLessonYoutubeUrlRequest):
+async def set_lesson_youtube_url(
+    req: SetLessonYoutubeUrlRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin imposta manualmente l'URL YouTube di una lezione del videocorso
     (bypass pipeline, usato dopo editing manuale del video).
     Aggiunge il video alla playlist partner e imposta status=ready_for_review.
     """
+    await require_admin_token(credentials)
     import asyncio
     partner = await get_partner_or_404(req.partner_id)
 
@@ -1450,8 +1546,13 @@ async def set_lesson_youtube_url(req: SetLessonYoutubeUrlRequest):
 
 
 @router.post("/videocorso/submit-video-link")
-async def submit_videocorso_video_link(req: VideoLinkRequest, background_tasks: BackgroundTasks):
+async def submit_videocorso_video_link(
+    req: VideoLinkRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Partner invia link Drive/WeTransfer per una lezione del videocorso"""
+    await require_partner_or_admin_for_partner(req.partner_id, credentials)
     if not req.lesson_id:
         raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
     await get_partner_or_404(req.partner_id)
@@ -1491,8 +1592,12 @@ async def submit_videocorso_video_link(req: VideoLinkRequest, background_tasks: 
 
 
 @router.get("/masterclass/video-status/{partner_id}")
-async def get_masterclass_video_status(partner_id: str):
+async def get_masterclass_video_status(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Stato pipeline video masterclass"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
     if not doc:
@@ -1522,8 +1627,12 @@ async def get_masterclass_video_status(partner_id: str):
 
 
 @router.post("/masterclass/approve-video")
-async def approve_masterclass_video(partner_id: str):
+async def approve_masterclass_video(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin approva il video masterclass pulito"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
     if not doc or doc.get("video_pipeline_status") != "ready_for_review":
@@ -1582,9 +1691,13 @@ async def approve_masterclass_video(partner_id: str):
 
 
 @router.get("/masterclass/review-data/{partner_id}")
-async def get_masterclass_review_data(partner_id: str):
+async def get_masterclass_review_data(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Dati per la revisione testo (stile Descript): trascrizione, parole con tempi,
     tagli proposti, e lo script del team per il confronto."""
+    await require_admin_token(credentials)
     await get_partner_or_404(partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
     if not doc:
@@ -1608,8 +1721,13 @@ class ReviewApproveRequest(BaseModel):
 
 
 @router.post("/masterclass/review-approve")
-async def approve_masterclass_review(req: ReviewApproveRequest, background_tasks: BackgroundTasks):
+async def approve_masterclass_review(
+    req: ReviewApproveRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin approva i tagli (eventualmente disattivandone alcuni) e avvia il montaggio (Fase B)."""
+    await require_admin_token(credentials)
     await get_partner_or_404(req.partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": req.partner_id})
     if not doc or doc.get("video_pipeline_status") != "da_revisionare":
@@ -1638,8 +1756,12 @@ async def approve_masterclass_review(req: ReviewApproveRequest, background_tasks
 
 
 @router.post("/masterclass/reset-pipeline")
-async def reset_masterclass_pipeline(partner_id: str):
+async def reset_masterclass_pipeline(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin resetta una pipeline bloccata (stuck in downloading/cleaning/etc.)"""
+    await require_admin_token(credentials)
     await get_partner_or_404(partner_id)
     await db.masterclass_factory.update_one(
         {"partner_id": partner_id},
@@ -1653,7 +1775,11 @@ async def reset_masterclass_pipeline(partner_id: str):
 
 
 @router.post("/masterclass/reject-video")
-async def reject_masterclass_video(partner_id: str, reason: Optional[str] = None):
+async def reject_masterclass_video(
+    partner_id: str,
+    reason: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin rigetta il video editato (qualità non accettabile) e ri-triggera la pipeline.
 
     Pulisce i campi YouTube/embed cosicché la nuova esecuzione parta pulita,
@@ -1663,6 +1789,7 @@ async def reject_masterclass_video(partner_id: str, reason: Optional[str] = None
     Risponde con il task_id Celery e l'ID YouTube vecchio (utile per cancellazione manuale
     su YouTube se l'admin vuole rimuovere l'unlisted obsoleto).
     """
+    await require_admin_token(credentials)
     partner = await get_partner_or_404(partner_id)
 
     mc = await db.masterclass_factory.find_one({"partner_id": partner_id})
@@ -1744,9 +1871,13 @@ class SetYoutubeUrlRequest(BaseModel):
 
 
 @router.post("/masterclass/set-youtube-url")
-async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
+async def set_masterclass_youtube_url(
+    req: SetYoutubeUrlRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin imposta manualmente l'URL YouTube della masterclass (bypass pipeline automatica).
     Crea automaticamente la playlist partner su YouTube se non esiste e aggiunge il video."""
+    await require_admin_token(credentials)
     import asyncio
     partner = await get_partner_or_404(req.partner_id)
 
@@ -1821,8 +1952,13 @@ async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
 
 
 @router.post("/videocorso/approve-video")
-async def approve_videocorso_video(partner_id: str, lesson_id: str):
+async def approve_videocorso_video(
+    partner_id: str,
+    lesson_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin approva il video di una lezione del videocorso"""
+    await require_admin_token(credentials)
     await get_partner_or_404(partner_id)
 
     lk = f"lessons.{lesson_id}"
@@ -1873,8 +2009,12 @@ async def approve_videocorso_video(partner_id: str, lesson_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/videocorso/save-inputs")
-async def save_videocorso_inputs(request: VideocorsoInputs):
+async def save_videocorso_inputs(
+    request: VideocorsoInputs,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva le preferenze del partner per la generazione del videocorso"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     await db.partner_videocorso.update_one(
@@ -1901,8 +2041,12 @@ async def save_videocorso_inputs(request: VideocorsoInputs):
 
 
 @router.post("/videocorso/generate-course")
-async def generate_videocorso_ai(request: VideocorsoInputs):
+async def generate_videocorso_ai(
+    request: VideocorsoInputs,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera la struttura completa del videocorso usando AI, basandosi su posizionamento e masterclass"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     # Leggi dati posizionamento
@@ -2047,8 +2191,12 @@ class VideocorsoUpdateRequest(BaseModel):
     course_data: Dict[str, Any]
 
 @router.post("/videocorso/update-course")
-async def update_videocorso_course(request: VideocorsoUpdateRequest):
+async def update_videocorso_course(
+    request: VideocorsoUpdateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Aggiorna la struttura del videocorso (modifica manuale moduli/lezioni)"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     await db.partner_videocorso.update_one(
@@ -2066,8 +2214,12 @@ async def update_videocorso_course(request: VideocorsoUpdateRequest):
     }
 
 @router.post("/videocorso/approve-course")
-async def approve_videocorso_ai(partner_id: str):
+async def approve_videocorso_ai(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva la struttura del videocorso generata e completa la fase"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
 
     videocorso = await db.partner_videocorso.find_one(
@@ -2109,8 +2261,12 @@ async def approve_videocorso_ai(partner_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/funnel/{partner_id}")
-async def get_funnel(partner_id: str):
+async def get_funnel(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera lo stato del funnel del partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -2129,11 +2285,15 @@ async def get_funnel(partner_id: str):
     }
 
 @router.post("/funnel/generate")
-async def generate_funnel(request: FunnelGenerateRequest):
+async def generate_funnel(
+    request: FunnelGenerateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Genera l'Academy Blueprint completo: landing page, email sequence, area studenti.
     Usa dati da posizionamento, masterclass e videocorso.
     """
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     # Recupera posizionamento
@@ -2365,8 +2525,12 @@ REGOLE:
         raise HTTPException(status_code=500, detail=f"Errore generazione blueprint: {str(e)}")
 
 @router.post("/funnel/approve-blueprint")
-async def approve_funnel_blueprint(partner_id: str):
+async def approve_funnel_blueprint(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva il blueprint dell'academy e completa la fase funnel"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
 
     funnel = await db.partner_funnel.find_one(
@@ -2402,11 +2566,15 @@ async def approve_funnel_blueprint(partner_id: str):
     }
 
 @router.post("/funnel/publish")
-async def publish_funnel(request: FunnelPublishRequest):
+async def publish_funnel(
+    request: FunnelPublishRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Pubblica il funnel su Systeme.io tramite OpenClaw
     Invia un task a Telegram per l'automazione locale
     """
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -3054,7 +3222,10 @@ class SalvaProtocolloRequest(BaseModel):
 
 
 @router.get("/ottimizzazione/{partner_id}")
-async def get_ottimizzazione(partner_id: str):
+async def get_ottimizzazione(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Recupera tutti i dati della fase Ottimizzazione:
     - KPI da Systeme.io
@@ -3063,6 +3234,7 @@ async def get_ottimizzazione(partner_id: str):
     - Dati caso studio
     - Stato partnership (scadenza)
     """
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Recupera dati ottimizzazione salvati
@@ -3267,8 +3439,12 @@ async def get_partner_kpi_from_systeme(partner_id: str, partner: dict) -> dict:
 
 
 @router.post("/ottimizzazione/genera-report")
-async def genera_report_ai(request: GeneraReportRequest):
+async def genera_report_ai(
+    request: GeneraReportRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera un report AI analizzando i dati dell'Accademia"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Recupera KPI
@@ -3369,8 +3545,12 @@ Rispondi SOLO con il JSON, senza altro testo."""
 
 
 @router.post("/ottimizzazione/salva-azioni")
-async def salva_azioni(request: SalvaAzioniRequest):
+async def salva_azioni(
+    request: SalvaAzioniRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva lo stato delle azioni consigliate"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
 
     azioni_dict = [a.dict() for a in request.azioni]
@@ -3400,8 +3580,12 @@ async def salva_azioni(request: SalvaAzioniRequest):
 
 
 @router.post("/ottimizzazione/salva-protocollo")
-async def salva_protocollo(request: SalvaProtocolloRequest):
+async def salva_protocollo(
+    request: SalvaProtocolloRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva la checklist settimanale del Protocollo Vendite"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
 
     await db.partner_ottimizzazione.update_one(
@@ -3421,8 +3605,12 @@ async def salva_protocollo(request: SalvaProtocolloRequest):
 
 
 @router.post("/ottimizzazione/crea-caso-studio")
-async def crea_caso_studio(request: CreaCasoStudioRequest):
+async def crea_caso_studio(
+    request: CreaCasoStudioRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Crea il caso studio Evolution PRO per il partner"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Verifica requisiti (10 studenti o €1000)
@@ -3505,13 +3693,17 @@ async def get_caso_studio(caso_studio_id: str):
 
 
 @router.post("/ottimizzazione/caso-studio/genera")
-async def genera_caso_studio(request: GeneraCasoStudioRequest):
+async def genera_caso_studio(
+    request: GeneraCasoStudioRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Case-study engine: impacchetta il risultato di UNO studente in voce Ciak.
 
     Input = risultato grezzo (raccolto via Survey Systeme o inserito dal team). Output =
     caso studio strutturato (headline/prima/dopo/racconto/citazione/prova/cta) salvato come
     bozza, pronto per webinar/contenuti/pagina vendite. Non blocca mai (fallback deterministico).
     """
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     posizionamento = await db.partner_posizionamento.find_one(
@@ -5013,8 +5205,12 @@ PERCORSO_VELOCE_PHASES = [
 
 
 @router.post("/percorso-veloce/activate")
-async def activate_percorso_veloce(request: PercorsoVeloceActivateRequest):
+async def activate_percorso_veloce(
+    request: PercorsoVeloceActivateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Attiva il Percorso Veloce per un partner"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     await db.percorso_veloce.update_one(
@@ -5036,8 +5232,12 @@ async def activate_percorso_veloce(request: PercorsoVeloceActivateRequest):
 
 
 @router.get("/percorso-veloce/{partner_id}")
-async def get_percorso_veloce(partner_id: str):
+async def get_percorso_veloce(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera stato del Percorso Veloce"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
 
     record = await db.percorso_veloce.find_one(
@@ -5102,8 +5302,12 @@ async def get_percorso_veloce(partner_id: str):
 
 
 @router.post("/percorso-veloce/save-checklist")
-async def save_percorso_veloce_checklist(request: PercorsoVeloceChecklistRequest):
+async def save_percorso_veloce_checklist(
+    request: PercorsoVeloceChecklistRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva checklist giornaliera del Percorso Veloce"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
 
     await db.percorso_veloce.update_one(
@@ -5430,16 +5634,24 @@ class GrowthLevelRequest(BaseModel):
     level: str  # foundation, growth, scale
 
 @router.get("/growth-level/{partner_id}")
-async def get_growth_level(partner_id: str):
+async def get_growth_level(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Restituisce il livello di crescita scelto dal partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     doc = await db.growth_levels.find_one(
         {"partner_id": str(partner_id)}, {"_id": 0}
     )
     return {"success": True, "data": doc}
 
 @router.post("/growth-level/choose")
-async def choose_growth_level(req: GrowthLevelRequest):
+async def choose_growth_level(
+    req: GrowthLevelRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva la scelta del livello di crescita del partner"""
+    await require_partner_or_admin_for_partner(req.partner_id, credentials)
     valid_levels = ["foundation", "growth", "scale"]
     if req.level not in valid_levels:
         raise HTTPException(status_code=400, detail=f"Livello non valido. Valori: {', '.join(valid_levels)}")
@@ -5517,7 +5729,11 @@ class VideoUploadConfirmRequest(BaseModel):
 
 
 @router.post("/video/request-upload-session")
-async def request_video_upload_session(req: VideoUploadSessionRequest, request: Request):
+async def request_video_upload_session(
+    req: VideoUploadSessionRequest,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Crea una sessione GCS Resumable Upload e ritorna l'URL di upload diretto.
     Il browser caricherà il file direttamente su GCS (max size illimitato, progress tracking nativo).
@@ -5528,6 +5744,7 @@ async def request_video_upload_session(req: VideoUploadSessionRequest, request: 
     NON ciak.io), altrimenti la PUT diretta del browser è bloccata ("Failed to fetch"). Per
     questo leggiamo l'header Origin della richiesta invece di un valore fisso.
     """
+    await require_partner_or_admin_for_partner(req.partner_id, credentials)
     try:
         from google.cloud import storage as gcs_storage
     except ImportError:
@@ -5588,11 +5805,16 @@ async def request_video_upload_session(req: VideoUploadSessionRequest, request: 
 
 
 @router.post("/video/confirm-upload")
-async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks: BackgroundTasks):
+async def confirm_video_upload(
+    req: VideoUploadConfirmRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Il browser ha completato l'upload su GCS.
     Questo endpoint aggiorna il DB con il path GCS e avvia la pipeline Celery.
     """
+    await require_partner_or_admin_for_partner(req.partner_id, credentials)
     now = datetime.now(timezone.utc).isoformat()
     gcs_path = req.gcs_path
 
@@ -5693,11 +5915,15 @@ async def _project_legacy_phase(partner_id: str):
 
 
 @router.get("/operativo/state/{partner_id}")
-async def get_operativo_state(partner_id: str):
+async def get_operativo_state(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Ritorna stato completo journey del partner.
     Se è la prima visita (no step in DB), seeda automaticamente i 13 step
     con step 1 in_progress.
     """
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     existing = await db.partner_journey_steps.count_documents({"partner_id": partner_id})
     if existing == 0:
         # Seed phase-aware: un partner ESISTENTE (F1-F7) che entra per la prima
@@ -5858,10 +6084,21 @@ async def _notify_admin_partner_activity(
 
 
 @router.post("/operativo/complete/{partner_id}/{step_id}")
-async def complete_operativo_step(partner_id: str, step_id: str, body: _OperativoCompleteBody):
+async def complete_operativo_step(
+    partner_id: str,
+    step_id: str,
+    body: _OperativoCompleteBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Marca lo step done + avanza il prossimo a in_progress.
     Merge del payload `data` con quello esistente (autosave drafts non si perdono).
     """
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    return await _complete_operativo_step_unchecked(partner_id, step_id, body)
+
+
+async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body: _OperativoCompleteBody):
+    """Logica interna di completamento step, usata anche dai ponti PDF/asset."""
     now = datetime.utcnow()
 
     current = await db.partner_journey_steps.find_one(
@@ -5979,9 +6216,15 @@ async def complete_operativo_step(partner_id: str, step_id: str, body: _Operativ
 
 
 @router.post("/operativo/save-draft/{partner_id}/{step_id}")
-async def save_draft_operativo_step(partner_id: str, step_id: str, body: _OperativoCompleteBody):
+async def save_draft_operativo_step(
+    partner_id: str,
+    step_id: str,
+    body: _OperativoCompleteBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva bozza dati step in_progress. Merge col data esistente.
     NON cambia lo status (resta in_progress). Usato per autosave debounced dal frontend."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     now = datetime.utcnow()
     current = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": step_id}
@@ -6007,13 +6250,17 @@ _JOURNEY_STATUSES = {"pending", "in_progress", "done", "skipped", "blocked"}
 
 @router.post("/operativo/admin/set-status/{partner_id}/{step_id}")
 async def admin_set_operativo_step_status(
-    partner_id: str, step_id: str, body: _OperativoAdminStatusBody
+    partner_id: str,
+    step_id: str,
+    body: _OperativoAdminStatusBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Admin imposta lo stato di uno step a un valore arbitrario, SENZA
     l'auto-avanzamento di /operativo/complete. Serve a riaprire, saltare o
     forzare manualmente uno step dalla scheda partner (vista macro-fasi + 14 step).
     Allinea started_at/completed_at e partner.journey_current_step di conseguenza.
     """
+    await require_admin_token(credentials)
     if body.status not in _JOURNEY_STATUSES:
         raise HTTPException(400, f"Stato non valido: {body.status}")
 
@@ -6052,10 +6299,14 @@ async def admin_set_operativo_step_status(
 
 
 @router.get("/operativo/stefania-context/{partner_id}")
-async def get_stefania_context(partner_id: str):
+async def get_stefania_context(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Ritorna contesto strutturato per Stefania su questo partner.
     Usato sia dal frontend (per mostrare il briefing) sia dal backend
     in _build_context() del router stefania_chat."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     from datetime import timedelta, timezone as _tz
 
     steps_cursor = db.partner_journey_steps.find(
@@ -6136,9 +6387,11 @@ async def upload_operativo_file(
     partner_id: str,
     file: UploadFile = File(...),
     notify: bool = Query(True, description="False quando carica l'admin: evita l'alert 'il partner ha caricato un materiale'"),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Upload generico per gli step components Operativo (logo, foto, video, PDF).
     Ritorna URL Cloudinary. Fallback locale se Cloudinary non configurato."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     content = await file.read()
     MAX_SIZE = 200 * 1024 * 1024  # 200 MB (video grezzi possono essere grandi)
     if len(content) > MAX_SIZE:

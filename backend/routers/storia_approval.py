@@ -18,7 +18,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -27,6 +28,7 @@ from services.storia_pdf_renderer import genera_storia_pdf
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/storia", tags=["partner-storia"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -84,7 +86,7 @@ def _filename(partner_id: str) -> str:
 
 async def _complete_step(partner_id: str, data: dict) -> None:
     from routers.partner_journey import (
-        complete_operativo_step as _impl,
+        _complete_operativo_step_unchecked as _impl,
         _OperativoCompleteBody,
     )
     await _impl(partner_id, STEP_ID, _OperativoCompleteBody(data=data))
@@ -98,7 +100,13 @@ async def _current_file(partner_id: str) -> Optional[dict]:
 
 
 @router.post("/finalize")
-async def finalize_storia(body: FinalizeBody) -> dict:
+async def finalize_storia(
+    body: FinalizeBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     partner = await db.partners.find_one({"id": body.partner_id}, {"_id": 0, "name": 1})
     if not partner:
         raise HTTPException(404, "Partner non trovato")
@@ -159,7 +167,13 @@ async def finalize_storia(body: FinalizeBody) -> dict:
 
 
 @router.get("/document/{partner_id}")
-async def get_document(partner_id: str) -> Optional[dict]:
+async def get_document(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> Optional[dict]:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     f = await _current_file(partner_id)
     if not f:
         return None

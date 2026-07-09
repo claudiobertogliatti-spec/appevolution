@@ -3,6 +3,7 @@ import WorkspaceShell from "./WorkspaceShell";
 import { API } from "../../../utils/api-config";
 import { uploadVideoResumable } from "../../lib/gcsResumableUpload";
 import { AGENTS } from "./agents";
+import { authHeaders } from "../api";
 
 /**
  * WORKSPACE 1 — "Creiamo la tua Masterclass" (Fase Valida, agente Andrea).
@@ -32,7 +33,9 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/masterclass`);
+      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/masterclass`, {
+        headers: authHeaders(),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setState(await r.json());
       setErr(null);
@@ -52,7 +55,7 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
     try {
       const r = await fetch(`${API}/api/partner-journey/masterclass/generate-script`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) {
@@ -74,7 +77,7 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
     try {
       const r = await fetch(
         `${API}/api/partner-journey/workspace/${partnerId}/masterclass/generate/${taskId}`,
-        { method: "POST", headers: { "Content-Type": "application/json" },
+        { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ partner_id: partnerId }) }
       );
       if (!r.ok) {
@@ -95,12 +98,14 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
   const openScript = async () => {
     setScriptOpen(true);
     try {
-      const r = await fetch(`${API}/api/partner-journey/masterclass/${partnerId}`);
+      const r = await fetch(`${API}/api/partner-journey/masterclass/${partnerId}`, {
+        headers: authHeaders(),
+      });
       if (r.ok) setScriptData(await r.json());
     } catch { /* noop */ }
     try {
       await fetch(`${API}/api/partner-journey/workspace/${partnerId}/masterclass/mark-read`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       load();
@@ -128,7 +133,7 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
         onStatus: setStatusMsg,
       });
       const conf = await fetch(`${API}/api/partner-journey/video/confirm-upload`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId, video_type: "masterclass", gcs_path }),
       });
       if (!conf.ok) throw new Error(`Conferma fallita (HTTP ${conf.status})`);
@@ -149,7 +154,7 @@ export default function Workspace1Masterclass({ partnerId, onBack }) {
     try {
       const r = await fetch(
         `${API}/api/partner-journey/masterclass/approve-video?partner_id=${encodeURIComponent(partnerId)}`,
-        { method: "POST" }
+        { method: "POST", headers: authHeaders() }
       );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       await load();

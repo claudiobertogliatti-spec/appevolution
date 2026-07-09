@@ -16,7 +16,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -26,6 +27,7 @@ from services.brand_kit_storage import upload_brand_kit_pdf
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/brand-kit", tags=["partner-brand-kit"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -44,7 +46,7 @@ async def _complete_journey_step(partner_id: str, step_id: str, data: dict) -> N
     """Stessa logica di complete_operativo_step: mark done, notifica admin
     requires_approval, advance. Import lazy per evitare coupling al load time."""
     from routers.partner_journey import (
-        complete_operativo_step as _impl,
+        _complete_operativo_step_unchecked as _impl,
         _OperativoCompleteBody,
     )
     await _impl(partner_id, step_id, _OperativoCompleteBody(data=data))
@@ -111,7 +113,13 @@ def _validate_payload(data: dict) -> list[str]:
 
 
 @router.post("/finalize")
-async def finalize_brand_kit(body: FinalizeBody) -> dict:
+async def finalize_brand_kit(
+    body: FinalizeBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     partner = await _get_partner_or_404(body.partner_id)
     step = await _get_step_or_400(body.partner_id)
 
@@ -216,7 +224,13 @@ async def finalize_brand_kit(body: FinalizeBody) -> dict:
 
 
 @router.get("/document/{partner_id}")
-async def get_document_metadata(partner_id: str) -> Optional[dict]:
+async def get_document_metadata(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> Optional[dict]:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     f = await _current_file(partner_id)
     if not f:
         return None

@@ -15,7 +15,8 @@ from __future__ import annotations
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -29,6 +30,7 @@ from services.webinar_deck import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/webinar", tags=["partner-webinar"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -58,13 +60,19 @@ async def _step_data(partner_id: str, step_id: str) -> dict:
 
 
 @router.post("/generate")
-async def generate_webinar(body: GenerateBody) -> dict:
+async def generate_webinar(
+    body: GenerateBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Genera lo script del webinar + il prezzo dal Posizionamento + outline.
 
     Richiede che il Posizionamento sia almeno compilato. L'outline è opzionale:
     se c'è, prezzo e bonus attingono al corso. In caso di AI giù, ritorna comunque
     uno scheletro utile.
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     pos = await _step_data(body.partner_id, POSIZIONAMENTO_STEP_ID)
     answers = pos.get("answers") or {}
     if not (answers.get("metodo_nome") or answers.get("nicchia") or answers.get("promessa")):
@@ -78,9 +86,15 @@ async def generate_webinar(body: GenerateBody) -> dict:
 
 
 @router.post("/deck")
-async def generate_deck(body: GenerateBody) -> dict:
+async def generate_deck(
+    body: GenerateBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Genera il DECK del webinar slide-per-slide dal Posizionamento + outline +
     strategia gia' approvata (Step12). Coerente con lo script, non riparte da zero."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     pos = await _step_data(body.partner_id, POSIZIONAMENTO_STEP_ID)
     answers = pos.get("answers") or {}
     if not (answers.get("metodo_nome") or answers.get("nicchia") or answers.get("promessa")):
@@ -95,10 +109,16 @@ async def generate_deck(body: GenerateBody) -> dict:
 
 
 @router.post("/deck/export")
-async def export_deck(body: ExportDeckBody) -> dict:
+async def export_deck(
+    body: ExportDeckBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Esporta il deck su Gamma (servizio EXTRA). Se non c'è GAMMA_API_KEY ritorna
     il markdown pronto da incollare in Gamma. Il deck può arrivare dal client
     (modifiche del partner) o, se assente, viene rigenerato."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     deck = body.deck
     if not isinstance(deck, dict) or not (deck.get("slides")):
         pos = await _step_data(body.partner_id, POSIZIONAMENTO_STEP_ID)

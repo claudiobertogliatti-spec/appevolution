@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
+import { authHeaders } from "../../api";
 
 /**
  * Step 5 — Script masterclass on-demand (~30 min) (Valida, agente Andrea).
@@ -24,9 +25,11 @@ export default function Step05ScriptMasterclass({ step, partnerId, onComplete, o
   };
 
   const callGenerate = async () => {
-    const res = await axios.post(`${API}/api/partner/masterclass/generate`, {
-      partner_id: partnerId,
-    });
+    const res = await axios.post(
+      `${API}/api/partner/masterclass/generate`,
+      { partner_id: partnerId },
+      { headers: authHeaders() }
+    );
     return res.data;
   };
 

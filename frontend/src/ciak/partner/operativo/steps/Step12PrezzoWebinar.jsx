@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
+import { authHeaders } from "../../api";
 
 /**
  * Step 12 — Webinar live + prezzo del corso (Valida, agente Andrea).
@@ -41,7 +42,11 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
     setDeckError(null);
     setExportRes(null);
     try {
-      const res = await axios.post(`${API}/api/partner/webinar/deck`, { partner_id: partnerId });
+      const res = await axios.post(
+        `${API}/api/partner/webinar/deck`,
+        { partner_id: partnerId },
+        { headers: authHeaders() }
+      );
       saveDeck(res.data);
     } catch (e) {
       if (e?.response?.status === 400) {
@@ -80,10 +85,11 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
     setDeckError(null);
     setExportRes(null);
     try {
-      const res = await axios.post(`${API}/api/partner/webinar/deck/export`, {
-        partner_id: partnerId,
-        deck,
-      });
+      const res = await axios.post(
+        `${API}/api/partner/webinar/deck/export`,
+        { partner_id: partnerId, deck },
+        { headers: authHeaders() }
+      );
       setExportRes(res.data);
       if (res.data?.mode === "gamma" && res.data?.generation_id) {
         pollGamma(res.data.generation_id);
@@ -96,9 +102,11 @@ export default function Step12PrezzoWebinar({ step, partnerId, onComplete, onSav
   };
 
   const callGenerate = async () => {
-    const res = await axios.post(`${API}/api/partner/webinar/generate`, {
-      partner_id: partnerId,
-    });
+    const res = await axios.post(
+      `${API}/api/partner/webinar/generate`,
+      { partner_id: partnerId },
+      { headers: authHeaders() }
+    );
     return res.data;
   };
 

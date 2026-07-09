@@ -23,7 +23,8 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from services.quarterly_calendar import build_quarterly_calendar
@@ -32,6 +33,7 @@ from services.live_cycle import build_live_cycle
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner-journey", tags=["partner-quarterly-calendar"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -51,8 +53,14 @@ async def _step_data(partner_id: str, step_id: str) -> dict:
 
 
 @router.get("/calendario-trimestrale/{partner_id}")
-async def get_quarterly_calendar(partner_id: str) -> dict:
+async def get_quarterly_calendar(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Ritorna il piano trimestrale salvato, o calendar=null se non ancora generato."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     doc = await db.partner_quarterly_calendar.find_one(
         {"partner_id": partner_id}, {"_id": 0}
     )
@@ -63,12 +71,18 @@ async def get_quarterly_calendar(partner_id: str) -> dict:
 
 
 @router.post("/calendario-trimestrale/{partner_id}")
-async def generate_quarterly_calendar(partner_id: str) -> dict:
+async def generate_quarterly_calendar(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Genera il piano da 90 giorni dal Posizionamento + outline, lo salva e lo ritorna.
 
     Richiede che il Posizionamento sia almeno compilato (serve materiale per i temi).
     L'outline e opzionale: se c'e, i temi ruotano sui titoli delle lezioni. AI giu => scheletro.
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     pos = await _step_data(partner_id, POSIZIONAMENTO_STEP_ID)
     answers = pos.get("answers") or {}
     if not (answers.get("metodo_nome") or answers.get("nicchia") or answers.get("promessa")):
@@ -115,8 +129,14 @@ def _settimane_alla_live(prossima_live_at: str | None) -> int | None:
 
 
 @router.get("/ciclo-live/{partner_id}")
-async def get_live_cycle(partner_id: str) -> dict:
+async def get_live_cycle(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Ritorna il ciclo live salvato (o cycle=null) + la prossima live e le settimane mancanti."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     doc = await db.partner_live_cycle.find_one({"partner_id": partner_id}, {"_id": 0})
     prossima = (doc or {}).get("prossima_live_at")
     return {
@@ -128,12 +148,18 @@ async def get_live_cycle(partner_id: str) -> dict:
 
 
 @router.post("/ciclo-live/{partner_id}")
-async def generate_live_cycle(partner_id: str) -> dict:
+async def generate_live_cycle(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Genera il ciclo live da 8 settimane dal Posizionamento + outline, lo salva e lo ritorna.
 
     Richiede che il Posizionamento sia almeno compilato. Se non c'e ancora una data live
     fissata, ne propone una di default a 8 settimane da oggi (il partner puo cambiarla).
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     pos = await _step_data(partner_id, POSIZIONAMENTO_STEP_ID)
     answers = pos.get("answers") or {}
     if not (answers.get("metodo_nome") or answers.get("nicchia") or answers.get("promessa")):
@@ -168,8 +194,15 @@ async def generate_live_cycle(partner_id: str) -> dict:
 
 
 @router.post("/ciclo-live/{partner_id}/data-live")
-async def set_live_date(partner_id: str, payload: dict = Body(...)) -> dict:
+async def set_live_date(
+    partner_id: str,
+    payload: dict = Body(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Fissa/aggiorna la data della prossima live (ISO date/datetime nel campo 'data')."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     raw = (payload or {}).get("data")
     if not raw:
         raise HTTPException(400, "Manca la data della live.")

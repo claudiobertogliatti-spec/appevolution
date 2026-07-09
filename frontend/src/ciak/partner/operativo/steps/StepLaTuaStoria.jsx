@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import StepBase from "./StepBase";
 import Questionario from "../Questionario";
 import { STORIA_QUESTIONS } from "../questionari/storiaQuestions";
+import { authHeaders } from "../../api";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -22,7 +23,7 @@ export default function StepLaTuaStoria({ step, partnerId, partnerName, onComple
 
   useEffect(() => {
     if (!partnerId) return;
-    fetch(`${API}/api/partner/storia/document/${partnerId}`)
+    fetch(`${API}/api/partner/storia/document/${partnerId}`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setDoc(d))
       .catch(() => {});
@@ -35,7 +36,7 @@ export default function StepLaTuaStoria({ step, partnerId, partnerName, onComple
       if (onSaveDraft) await onSaveDraft({ answers });
       const r = await fetch(`${API}/api/partner/storia/finalize`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) {

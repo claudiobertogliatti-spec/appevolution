@@ -27,12 +27,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner-journey/workspace", tags=["workspace-valida"])
+security = HTTPBearer(auto_error=False)
 
 # Database reference (set from server.py, stesso pattern degli altri router)
 db = None
@@ -340,20 +342,33 @@ class GenerateTaskRequest(BaseModel):
 
 
 @router.get("/{partner_id}/masterclass")
-async def get_workspace_masterclass(partner_id: str):
+async def get_workspace_masterclass(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Stato aggregato del Workspace 1."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     if db is None:
         raise HTTPException(503, "DB non inizializzato")
     return await _build_state(partner_id)
 
 
 @router.post("/{partner_id}/masterclass/generate/{task_id}")
-async def generate_task(partner_id: str, task_id: str):
+async def generate_task(
+    partner_id: str,
+    task_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Genera una task AI dedicata (storyboard | slide_spec | regia | checklist).
     Lo 'script' NON passa di qui: il frontend usa l'endpoint collaudato
     /api/partner-journey/masterclass/generate-script.
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     if db is None:
         raise HTTPException(503, "DB non inizializzato")
     if task_id not in GEN_TASKS:
@@ -399,8 +414,14 @@ async def generate_task(partner_id: str, task_id: str):
 
 
 @router.post("/{partner_id}/masterclass/mark-read")
-async def mark_script_read(partner_id: str):
+async def mark_script_read(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Segna come fatta la task partner 'Leggere lo script'."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     if db is None:
         raise HTTPException(503, "DB non inizializzato")
     await db.masterclass_factory.update_one(

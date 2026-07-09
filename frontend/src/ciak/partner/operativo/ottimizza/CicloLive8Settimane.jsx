@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Radio, Loader2, Sparkles, Megaphone, Flame, CheckCircle2, CalendarClock, ArrowRight } from "lucide-react";
+import { authHeaders } from "../../api";
 
 /**
  * Card "Live ogni 2 mesi" (fase Ottimizza) — il motore ricorrente.
@@ -70,7 +71,9 @@ export default function CicloLive8Settimane({ partnerId }) {
     const load = async () => {
       if (!partnerId) return;
       try {
-        const res = await fetch(`/api/partner-journey/ciclo-live/${partnerId}`);
+        const res = await fetch(`/api/partner-journey/ciclo-live/${partnerId}`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!alive) return;
@@ -91,7 +94,10 @@ export default function CicloLive8Settimane({ partnerId }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/partner-journey/ciclo-live/${partnerId}`, { method: "POST" });
+      const res = await fetch(`/api/partner-journey/ciclo-live/${partnerId}`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
       if (!res.ok) {
         if (res.status === 400) {
           const body = await res.json().catch(() => ({}));
@@ -117,7 +123,7 @@ export default function CicloLive8Settimane({ partnerId }) {
     try {
       const res = await fetch(`/api/partner-journey/ciclo-live/${partnerId}/data-live`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ data: value }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

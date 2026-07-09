@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { CalendarDays, Loader2, Sparkles, Megaphone, Radio, ShoppingCart, ArrowRight } from "lucide-react";
+import { authHeaders } from "../../api";
 
 /**
  * Card "Calendario tra le live" (fase Ottimizza) — il ponte di nutrimento.
@@ -80,7 +81,9 @@ export default function CalendarioTrimestrale({ partnerId }) {
     const load = async () => {
       if (!partnerId) return;
       try {
-        const res = await fetch(`/api/partner-journey/calendario-trimestrale/${partnerId}`);
+        const res = await fetch(`/api/partner-journey/calendario-trimestrale/${partnerId}`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (alive && data.calendar) setCalendar(data.calendar);
@@ -100,6 +103,7 @@ export default function CalendarioTrimestrale({ partnerId }) {
     try {
       const res = await fetch(`/api/partner-journey/calendario-trimestrale/${partnerId}`, {
         method: "POST",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();

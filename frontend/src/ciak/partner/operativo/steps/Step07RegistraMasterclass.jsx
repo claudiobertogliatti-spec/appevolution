@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { uploadVideoResumable } from "../../../lib/gcsResumableUpload";
+import { authHeaders } from "../../api";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -52,7 +53,7 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
       // 3. Conferma → avvia la pipeline
       const confRes = await fetch(`${API}/api/partner-journey/video/confirm-upload`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           partner_id: partnerId,
           video_type: "masterclass",

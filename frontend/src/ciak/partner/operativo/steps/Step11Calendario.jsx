@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
+import { authHeaders } from "../../api";
 
 const FORMATI = ["Reel", "Carosello", "Post", "Storie"];
 const CTA_OPTIONS = [
@@ -40,9 +41,11 @@ export default function Step11Calendario({ step, partnerId, onComplete, onSaveDr
   };
 
   const callGenerate = async () => {
-    const res = await axios.post(`${API}/api/partner/calendar/generate`, {
-      partner_id: partnerId,
-    });
+    const res = await axios.post(
+      `${API}/api/partner/calendar/generate`,
+      { partner_id: partnerId },
+      { headers: authHeaders() }
+    );
     return res.data;
   };
 

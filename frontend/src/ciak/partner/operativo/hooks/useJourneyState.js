@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { authFetch } from "../../api";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -11,7 +12,7 @@ export function useJourneyState(partnerId) {
     if (!partnerId) return;
     try {
       setLoading(true);
-      const r = await fetch(`${API}/api/partner-journey/operativo/state/${partnerId}`);
+      const r = await authFetch(`${API}/api/partner-journey/operativo/state/${partnerId}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       setState(data);
@@ -26,7 +27,7 @@ export function useJourneyState(partnerId) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const completeStep = useCallback(async (stepId, data) => {
-    const r = await fetch(
+    const r = await authFetch(
       `${API}/api/partner-journey/operativo/complete/${partnerId}/${stepId}`,
       {
         method: "POST",
@@ -40,7 +41,7 @@ export function useJourneyState(partnerId) {
   }, [partnerId, refresh]);
 
   const saveDraft = useCallback(async (stepId, data) => {
-    const r = await fetch(
+    const r = await authFetch(
       `${API}/api/partner-journey/operativo/save-draft/${partnerId}/${stepId}`,
       {
         method: "POST",

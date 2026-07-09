@@ -31,6 +31,24 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+export function authHeaders(extra = {}) {
+  const token = getToken();
+  return {
+    ...extra,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+export async function authFetch(path, options = {}) {
+  const headers = authHeaders(options.headers || {});
+  const res = await fetch(path, { ...options, headers });
+  if (res.status === 401 || res.status === 403) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  return res;
+}
+
 /** Login partner via /api/auth/login. Ritorna { ok, error?, user? }. */
 export async function login(email, password) {
   try {
@@ -70,8 +88,7 @@ export function isAdminUser(user) {
 
 /** GET autenticato. Lancia "AUTH_EXPIRED" su 401/403. */
 export async function apiGet(path) {
-  const token = getToken();
-  const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await authFetch(path);
   if (res.status === 401 || res.status === 403) {
     clearSession();
     throw new Error("AUTH_EXPIRED");

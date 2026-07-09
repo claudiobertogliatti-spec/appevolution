@@ -20,7 +20,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/posizionamento", tags=["partner-posizionamento"])
 admin_router = APIRouter(prefix="/api/admin/approvazioni", tags=["admin-approvazioni"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -77,7 +79,7 @@ async def _complete_journey_step(partner_id: str, step_id: str, data: dict) -> N
     Import lazy per evitare hard-coupling fra router al load time
     (e per facilitare patching nei test futuri)."""
     from routers.partner_journey import (
-        complete_operativo_step as _impl,
+        _complete_operativo_step_unchecked as _impl,
         _OperativoCompleteBody,
     )
     await _impl(partner_id, step_id, _OperativoCompleteBody(data=data))
@@ -153,7 +155,13 @@ async def _compute_prefill_from_ciak(partner_id: str) -> dict:
 
 
 @router.post("/finalize")
-async def finalize_posizionamento(body: FinalizeBody) -> dict:
+async def finalize_posizionamento(
+    body: FinalizeBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     partner = await _get_partner_or_404(body.partner_id)
     step = await _get_step_or_400(body.partner_id)
 
@@ -275,7 +283,13 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
 
 
 @router.get("/document/{partner_id}")
-async def get_document_metadata(partner_id: str) -> Optional[dict]:
+async def get_document_metadata(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> Optional[dict]:
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     f = await _current_file(partner_id)
     if not f:
         return None
@@ -289,12 +303,18 @@ async def get_document_metadata(partner_id: str) -> Optional[dict]:
 
 
 @router.get("/prefill/{partner_id}")
-async def get_prefill(partner_id: str) -> dict:
+async def get_prefill(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Ritorna pre-fill suggerito per Step04 dalle risposte Ciak gate.
 
     Il frontend chiama questo SOLO se step.data.answers è vuoto.
     Ritorna {nicchia?, promessa?} — solo i campi con dati Ciak disponibili.
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     return await _compute_prefill_from_ciak(partner_id)
 
 

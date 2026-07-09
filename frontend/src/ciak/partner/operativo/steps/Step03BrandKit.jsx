@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
+import { authHeaders } from "../../api";
 
 async function uploadFile(file, partnerId) {
   const fd = new FormData();
   fd.append("file", file);
   const r = await fetch(`${API}/api/partner-journey/operativo/upload/${partnerId}`, {
     method: "POST",
+    headers: authHeaders(),
     body: fd,
   });
   if (!r.ok) throw new Error(`Upload fallito: ${r.status}`);
@@ -68,7 +70,7 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
   useEffect(() => {
     if (!partnerId) return;
     axios
-      .get(`${API}/api/partner/brand-kit/document/${partnerId}`)
+      .get(`${API}/api/partner/brand-kit/document/${partnerId}`, { headers: authHeaders() })
       .then((r) => setDoc(r.data || null))
       .catch(() => {});
   }, [partnerId]);
@@ -184,9 +186,11 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
         emozioni,
       };
       if (onSaveDraft) await onSaveDraft(payload);
-      const res = await axios.post(`${API}/api/partner/brand-kit/finalize`, {
-        partner_id: partnerId,
-      });
+      const res = await axios.post(
+        `${API}/api/partner/brand-kit/finalize`,
+        { partner_id: partnerId },
+        { headers: authHeaders() }
+      );
       setDone(true);
       setDoc({
         file_id: res.data.file_id,

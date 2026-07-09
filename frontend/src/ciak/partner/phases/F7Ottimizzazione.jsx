@@ -6,6 +6,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { authHeaders } from "../api";
 import {
   Eye, Users, DollarSign, TrendingUp, TrendingDown, CheckCircle2, Loader2,
   ArrowUp, ArrowDown, Minus, AlertTriangle, Zap, ArrowRight, Activity,
@@ -464,7 +465,9 @@ export function F7Ottimizzazione({ partnerId }) {
         return;
       }
       try {
-        const res = await fetch(`/api/partner-journey/ottimizzazione/${partnerId}`);
+        const res = await fetch(`/api/partner-journey/ottimizzazione/${partnerId}`, {
+          headers: authHeaders(),
+        });
         if (res.ok) {
           const data = await res.json();
           setKpiData(data.kpi || EMPTY_KPI);

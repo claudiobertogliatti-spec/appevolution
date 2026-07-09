@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
+import { authHeaders } from "../../api";
 
 const DELIVERY = ["Video", "PDF", "Email", "Live"];
 
@@ -27,9 +28,11 @@ export default function Step06OutlineLezioni({ step, partnerId, onComplete, onSa
   };
 
   const callGenerate = async () => {
-    const res = await axios.post(`${API}/api/partner/outline/generate`, {
-      partner_id: partnerId,
-    });
+    const res = await axios.post(
+      `${API}/api/partner/outline/generate`,
+      { partner_id: partnerId },
+      { headers: authHeaders() }
+    );
     return res.data;
   };
 

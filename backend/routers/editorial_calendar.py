@@ -15,7 +15,8 @@ from __future__ import annotations
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -24,6 +25,7 @@ from services.editorial_calendar import build_editorial_calendar
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/calendar", tags=["partner-calendar"])
+security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")
 db_name = os.environ.get("DB_NAME", "evolution_pro")
@@ -47,13 +49,19 @@ async def _step_data(partner_id: str, step_id: str) -> dict:
 
 
 @router.post("/generate")
-async def generate_calendar(body: GenerateBody) -> dict:
+async def generate_calendar(
+    body: GenerateBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
     """Genera il calendario editoriale dei 30 giorni dal Posizionamento + outline.
 
     Richiede che il Posizionamento sia almeno compilato (serve materiale per i temi).
     L'outline è opzionale: se c'è, i temi attingono ai titoli delle lezioni. In caso
     di AI giù, ritorna comunque uno scheletro utile.
     """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(body.partner_id, credentials)
+
     pos = await _step_data(body.partner_id, POSIZIONAMENTO_STEP_ID)
     answers = pos.get("answers") or {}
     if not (answers.get("metodo_nome") or answers.get("nicchia") or answers.get("promessa")):

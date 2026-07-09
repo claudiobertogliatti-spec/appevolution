@@ -4,6 +4,7 @@ import Questionario from "../Questionario";
 import { POSIZIONAMENTO_QUESTIONS } from "../questionari/posizionamentoQuestions";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
+import { authHeaders } from "../../api";
 
 /**
  * Step "Il tuo posizionamento" (Esamina, Valentina).
@@ -25,7 +26,11 @@ export default function Step04Posizionamento({ step, partnerId, partnerName, onC
     setError(null);
     try {
       if (onSaveDraft) await onSaveDraft({ answers });
-      const r = await axios.post(`${API}/api/partner/posizionamento/finalize`, { partner_id: partnerId });
+      const r = await axios.post(
+        `${API}/api/partner/posizionamento/finalize`,
+        { partner_id: partnerId },
+        { headers: authHeaders() }
+      );
       setDone(true);
       if (onComplete) onComplete({ answers, approval_status: r.data?.approval_status });
     } catch (e) {

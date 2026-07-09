@@ -3,6 +3,7 @@ import WorkspaceShell from "./WorkspaceShell";
 import { API } from "../../../utils/api-config";
 import { uploadVideoResumable } from "../../lib/gcsResumableUpload";
 import { AGENTS } from "./agents";
+import { authHeaders } from "../api";
 
 /**
  * WORKSPACE 2 — "Organizziamo il tuo Corso" (Fase Valida, agente Andrea).
@@ -28,7 +29,9 @@ export default function Workspace2Corso({ partnerId, onBack }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/corso`);
+      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/corso`, {
+        headers: authHeaders(),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setState(await r.json());
       setErr(null);
@@ -46,7 +49,7 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/videocorso/generate-course`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId, durata: "medio", include_bonus: true, contenuti_pronti: false }),
       });
       if (!r.ok) {
@@ -61,7 +64,10 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     setBusy("approve-course");
     setErr(null);
     try {
-      const r = await fetch(`${API}/api/partner-journey/videocorso/approve-course?partner_id=${encodeURIComponent(partnerId)}`, { method: "POST" });
+      const r = await fetch(`${API}/api/partner-journey/videocorso/approve-course?partner_id=${encodeURIComponent(partnerId)}`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       await load();
     } catch (e) { setErr(String(e.message || e)); } finally { setBusy(null); }
@@ -72,7 +78,7 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/corso/generate/${taskId}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) {
@@ -109,7 +115,7 @@ export default function Workspace2Corso({ partnerId, onBack }) {
         file, onProgress: setProgress, onStatus: setStatusMsg,
       });
       const conf = await fetch(`${API}/api/partner-journey/video/confirm-upload`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId, video_type: "videocorso", lesson_id: lessonId, lesson_title: lessonTitle, gcs_path }),
       });
       if (!conf.ok) throw new Error(`Conferma fallita (HTTP ${conf.status})`);
@@ -122,7 +128,10 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     setBusy(`approve-${lessonId}`);
     setErr(null);
     try {
-      const r = await fetch(`${API}/api/partner-journey/videocorso/approve-lesson?partner_id=${encodeURIComponent(partnerId)}&lesson_id=${encodeURIComponent(lessonId)}`, { method: "POST" });
+      const r = await fetch(`${API}/api/partner-journey/videocorso/approve-lesson?partner_id=${encodeURIComponent(partnerId)}&lesson_id=${encodeURIComponent(lessonId)}`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       await load();
     } catch (e) { setErr(String(e.message || e)); } finally { setBusy(null); }

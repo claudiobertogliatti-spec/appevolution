@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import WorkspaceShell from "./WorkspaceShell";
 import { API } from "../../../utils/api-config";
 import { AGENTS } from "./agents";
+import { authHeaders } from "../api";
 
 /**
  * WORKSPACE 3 — "Costruiamo il Sistema di Vendita" (Fase Valida, agente Gaia).
@@ -23,7 +24,9 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/vendita`);
+      const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/vendita`, {
+        headers: authHeaders(),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setState(await r.json());
       setErr(null);
@@ -40,7 +43,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
     setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/funnel/generate`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) {
@@ -56,7 +59,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
     setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/funnel/publish`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -69,7 +72,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
     setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/workspace/${partnerId}/vendita/generate/${taskId}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       if (!r.ok) {

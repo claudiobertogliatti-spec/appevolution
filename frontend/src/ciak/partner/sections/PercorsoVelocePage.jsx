@@ -10,6 +10,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { authHeaders } from "../api";
 import {
   Zap, CheckCircle2, Circle, Loader2, ArrowRight,
   Target, Video, Layers, Megaphone, Radio,
@@ -340,7 +341,9 @@ export function PercorsoVelocePage({ partnerId }) {
       return;
     }
     try {
-      const res = await fetch(`/api/partner-journey/percorso-veloce/${partnerId}`);
+      const res = await fetch(`/api/partner-journey/percorso-veloce/${partnerId}`, {
+        headers: authHeaders(),
+      });
       const resData = await res.json();
       setData(resData);
       if (resData.active && resData.today_tasks) {
@@ -369,7 +372,7 @@ export function PercorsoVelocePage({ partnerId }) {
     try {
       await fetch(`/api/partner-journey/percorso-veloce/activate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ partner_id: partnerId }),
       });
       await load();
@@ -389,7 +392,7 @@ export function PercorsoVelocePage({ partnerId }) {
       try {
         await fetch(`/api/partner-journey/percorso-veloce/save-checklist`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             partner_id: partnerId,
             day: data.current_day,
