@@ -83,6 +83,7 @@ Proprieta': account Systeme Evolution.
 
 Ingressi:
 
+- lead nuovi trovati da Ciak Discovery Engine;
 - liste gia' analizzate;
 - Meta custom audience;
 - retargeting;
@@ -93,7 +94,9 @@ Ingressi:
 Flusso:
 
 ```text
-Lista / pubblico / traffico
+Ciak Discovery / lista / pubblico / traffico
+-> qualificazione e scoring
+-> coda Systeme quando ammessa dalla policy
 -> contenuto o campagna
 -> Ciak Blueprint
 -> risposta alle domande
@@ -101,6 +104,47 @@ Lista / pubblico / traffico
 -> proposta Metodo EVO
 -> firma contratto
 ```
+
+### Ciak Discovery Come Primo Stadio
+
+Ciak possiede gia' un sistema di scoperta lead:
+
+```text
+Google Places / altri canali discovery
+-> discovery_leads
+-> scoring professionista offline
+-> lead HOT se score alto
+-> systeme_daily_queue se email presente e source ammessa
+-> Systeme Evolution
+```
+
+Questo significa che Systeme non e' il luogo dove nascono tutti i lead.
+
+Systeme e' il motore commerciale/statistico che riceve i lead quando sono pronti per essere tracciati, taggati, lavorati o inseriti in un workflow.
+
+Ciak resta il cervello di acquisizione:
+
+- trova lead nuovi;
+- li arricchisce;
+- li qualifica;
+- li assegna a Luca/Marco/Claudio;
+- decide se e come mandarli a Systeme;
+- legge i dati di ritorno per migliorare priorita' e azioni.
+
+La coda tecnica gia' esistente e':
+
+```text
+discovery_leads
+-> systeme_daily_queue
+-> daily_systeme_import
+-> Systeme.io
+```
+
+Policy attuale:
+
+- `google_places` e' ammesso nella coda Systeme;
+- `lista_fredda` resta esclusa salvo flag esplicito `ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true`;
+- la lista fredda non deve diventare sorgente di email massive o sequenze cold non personalizzate.
 
 Tag Evolution:
 
@@ -354,13 +398,16 @@ Non si costruisce il sistema del partner dentro l'account Systeme di Evolution, 
 
 Ordine consigliato:
 
-1. creare tag e custom field Evolution in Systeme;
-2. importare i segmenti Evolution con tag corretti e blocco `EVO_NO_EMAIL_COLD` dove necessario;
-3. creare le prime custom audience Meta;
-4. collegare Blueprint, call e proposta a tag Systeme;
-5. mostrare in Ciak una dashboard Motore Vendite Evolution;
-6. trasformare la stessa struttura in checklist installabile per il Motore Vendite Partner;
-7. aggiungere in Ciak la vista partner con stato setup Systeme, KPI e prossima azione.
+1. mappare in Ciak i KPI del Discovery Engine: lead nuovi, HOT, accodati a Systeme, importati, falliti;
+2. rendere visibile nel Command Center il ponte `discovery_leads -> systeme_daily_queue -> Systeme`;
+3. creare tag e custom field Evolution in Systeme;
+4. collegare `daily_systeme_import` ai tag Evolution corretti per source e priorita';
+5. importare o usare i segmenti Evolution con blocco `EVO_NO_EMAIL_COLD` dove necessario;
+6. creare le prime custom audience Meta;
+7. collegare Blueprint, call e proposta a tag Systeme;
+8. mostrare in Ciak una dashboard Motore Vendite Evolution;
+9. trasformare la stessa struttura in checklist installabile per il Motore Vendite Partner;
+10. aggiungere in Ciak la vista partner con stato setup Systeme, KPI e prossima azione.
 
 ## Criteri Di Successo
 
