@@ -20,7 +20,7 @@ Per ogni tag elencato nelle sezioni 1-7 sotto:
 1. **Esiste il tag?** Vai su Systeme → Contacts → Tags. Cerca il nome esatto (case-sensitive, underscore). Se non c'è, **non crearlo a mano** — verrà creato automaticamente al primo evento backend (`find_or_create_tag_id`).
 2. **C'è il workflow corretto?** Se 🟢 o 🟡, deve esistere un workflow "Quando contatto riceve tag X → invia email Y / wait Z giorni / invia email Y2 / ecc."
 3. **Stato workflow attivo?** Toggle verde nella lista Automations → Workflows.
-4. **No workflow obsoleti?** Se vedi workflow vecchi che si triggerano sugli stessi tag (es. workflow legacy del periodo app.evolution-pro.it), disattivali per evitare doppi invii.
+4. **No workflow obsoleti?** Se vedi workflow vecchi che si triggerano sugli stessi tag (es. workflow legacy del vecchio dominio dismesso), disattivali per evitare doppi invii.
 
 ---
 
@@ -101,7 +101,7 @@ Trigger: utente completa le 5 domande del Checkpoint.
 | `ciak_call_cancelled` | Cal.com `BOOKING_CANCELLED` | 🟡 | Opzionale ma utile: email "Hai cancellato — vuoi riprogrammare? Ecco il calendario [link]" + exit on tag `ciak_call_booked`. |
 | `ciak_call_done` | Cal.com `MEETING_ENDED` (durata > soglia minima) | 🟡 | Opzionale: email "Grazie per la call — riceverai la Roadmap entro 48h" + tono di attesa documento. |
 
-⚠️ **PREREQUISITO**: Cal.com webhook deve essere configurato (Settings → Webhooks → URL `https://app.evolution-pro.it/api/booking/webhook`, eventi BOOKING_CREATED/RESCHEDULED/CANCELLED/MEETING_ENDED). Senza, questi tag non vengono mai applicati.
+⚠️ **PREREQUISITO**: Cal.com webhook deve essere configurato (Settings → Webhooks → URL `https://www.ciak.io/api/booking/webhook`, eventi BOOKING_CREATED/RESCHEDULED/CANCELLED/MEETING_ENDED). Senza, questi tag non vengono mai applicati.
 
 ---
 
