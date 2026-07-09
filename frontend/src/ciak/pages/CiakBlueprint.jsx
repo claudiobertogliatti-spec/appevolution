@@ -156,7 +156,56 @@ export function CiakBlueprint() {
         </div>
       </section>
 
-      {/* SEZIONE 2 - QUANDO IL BLUEPRINT SERVE DAVVERO */}
+      {/* SEZIONE 2 - LE 3 DOMANDE DECISIVE */}
+      <section className="bg-white border-t border-slate-100">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20">
+          <div className="grid gap-8 md:grid-cols-[0.85fr_1.15fr] md:items-start">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-yellow-600">
+                Le 3 domande decisive
+              </p>
+              <h2 className="text-3xl font-semibold leading-tight text-slate-900 md:text-5xl">
+                Il Blueprint serve a non costruire a caso.
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+                Prima di investire in pagine, video, traffico o automazioni, devi rispondere a tre domande.
+                Se sono deboli, il progetto rischia di partire gia' storto.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              {[
+                {
+                  num: "01",
+                  q: "La tua competenza puo' diventare un'Accademia Digitale?",
+                  a: "Non tutte le competenze si trasformano allo stesso modo. Il Blueprint legge formato, promessa, metodo e livello di trasferibilita'.",
+                },
+                {
+                  num: "02",
+                  q: "Il mercato e' pronto a comprarla?",
+                  a: "Analizziamo domanda, urgenza del problema, concorrenza e spazio di posizionamento prima di parlare di implementazione.",
+                },
+                {
+                  num: "03",
+                  q: "Qual e' il percorso piu' veloce per andare online senza costruire a caso?",
+                  a: "La roadmap mette in ordine cosa sistemare, cosa costruire prima e se ha senso proseguire verso il Metodo EVO.",
+                },
+              ].map((item) => (
+                <div key={item.num} className="grid gap-4 rounded-2xl border border-yellow-300 bg-yellow-50 p-5 shadow-[0_18px_42px_rgba(250,204,21,0.14)] md:grid-cols-[auto_1fr]">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-yellow-300">
+                    {item.num}
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-semibold leading-snug text-slate-900">{item.q}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-700">{item.a}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEZIONE 3 - QUANDO IL BLUEPRINT SERVE DAVVERO */}
       <section className="bg-white border-t border-slate-100">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
           <div className="grid gap-8 md:grid-cols-[0.82fr_1.18fr] md:items-end">
