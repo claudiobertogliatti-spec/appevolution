@@ -10,6 +10,12 @@ from datetime import datetime, timezone, timedelta
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 
+from acquisition_policy import (
+    get_allowed_systeme_sources,
+    get_systeme_daily_queue_match,
+    is_lista_fredda_systeme_import_allowed,
+)
+
 logger = logging.getLogger(__name__)
 
 # MongoDB connection - create fresh per task to avoid event loop issues
@@ -1891,7 +1897,7 @@ def import_lista_fredda_systeme(self, tag_id: int = 1934404, batch_size: int = 5
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DAILY SYSTEME IMPORT — 300 contatti/giorno (google_places + lista_fredda)
+# DAILY SYSTEME IMPORT — 300 contatti/giorno (google_places + altre source abilitate)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @shared_task(bind=True, max_retries=1, default_retry_delay=600)
@@ -1902,11 +1908,11 @@ def daily_systeme_import(self, daily_limit: int = 300):
 
     Priorità di prelievo:
       1. source=google_places (lead nuovi, intento più alto)
-      2. source=lista_fredda   (lista fredda 13k)
+      2. altre source abilitate manualmente
 
     Per ogni contatto:
       - Crea il contatto su Systeme (se non esiste)
-      - Assegna tag Lista_Fredda (id: 1936026) → scatta regola R1 → campagna 4 email
+      - Assegna il tag Systeme coerente con la source
       - Aggiorna status nel documento (imported / failed)
 
     Invia riepilogo Telegram al termine.
@@ -1921,6 +1927,9 @@ def daily_systeme_import(self, daily_limit: int = 300):
             client_mongo, db = get_db()
             SYSTEME_API_KEY = os.environ.get("SYSTEME_API_KEY", "")
             SYSTEME_BASE_URL = "https://api.systeme.io/api"
+            lista_fredda_allowed = is_lista_fredda_systeme_import_allowed()
+            preferred_sources = get_allowed_systeme_sources()
+            queue_match = get_systeme_daily_queue_match()
 
             # Tag DEDICATI per source (lock 15/5/2026 — vedi memory ciak migration).
             # Risolti dinamicamente da nome → tag_id via Systeme API (find or create),
@@ -1978,9 +1987,9 @@ def daily_systeme_import(self, daily_limit: int = 300):
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
             # --- Preleva i contatti dalla coda con priorità ---
-            # Prima google_places, poi lista_fredda, max daily_limit totali
+            # Prima google_places, poi le altre source consentite dalla policy attiva.
             pipeline = [
-                {"$match": {"status": "pending"}},
+                {"$match": queue_match},
                 {"$addFields": {"_priority": {
                     "$switch": {
                         "branches": [
@@ -1993,10 +2002,17 @@ def daily_systeme_import(self, daily_limit: int = 300):
                 {"$limit": daily_limit},
             ]
             contacts = await db.systeme_daily_queue.aggregate(pipeline).to_list(length=daily_limit)
+            excluded_sources = [] if lista_fredda_allowed else ["lista_fredda"]
 
             if not contacts:
                 logger.info("[DAILY_SYSTEME] Nessun contatto in coda")
-                return {"success": True, "processed": 0, "message": "Coda vuota"}
+                return {
+                    "success": True,
+                    "processed": 0,
+                    "message": "Coda vuota per le source abilitate",
+                    "allowed_sources": preferred_sources + ["other"],
+                    "excluded_sources": excluded_sources,
+                }
 
             stats = {"total": len(contacts), "created": 0, "existing": 0, "tagged": 0, "failed": 0}
             sources = {"google_places": 0, "lista_fredda": 0, "other": 0}
@@ -2101,11 +2117,20 @@ def daily_systeme_import(self, daily_limit: int = 300):
                 "date": today,
                 "stats": stats,
                 "sources": sources,
+                "policy": {
+                    "allowed_sources": preferred_sources + ["other"],
+                    "excluded_sources": excluded_sources,
+                },
                 "executed_at": datetime.now(timezone.utc).isoformat(),
             })
 
             # Pending rimasti
-            pending_left = await db.systeme_daily_queue.count_documents({"status": "pending"})
+            pending_left = await db.systeme_daily_queue.count_documents(queue_match)
+            pending_lista_fredda = 0
+            if not lista_fredda_allowed:
+                pending_lista_fredda = await db.systeme_daily_queue.count_documents(
+                    {"status": "pending", "source": "lista_fredda"}
+                )
 
             # Notifica Telegram
             await send_telegram_notification(
@@ -2113,12 +2138,22 @@ def daily_systeme_import(self, daily_limit: int = 300):
                 f"✅ Importati: {stats['created'] + stats['existing']} ({stats['created']} nuovi, {stats['existing']} esistenti)\n"
                 f"🏷️ Taggati: {stats['tagged']}\n"
                 f"❌ Falliti: {stats['failed']}\n"
-                f"📊 Fonti: {sources.get('google_places', 0)} Places + {sources.get('lista_fredda', 0)} lista fredda\n"
+                f"📊 Fonti: {sources.get('google_places', 0)} Places + {sources.get('other', 0)} altre source\n"
+                f"🧊 Lista fredda: {'abilitata con flag esplicito' if lista_fredda_allowed else 'esclusa da policy Acquisizione Evolution'}\n"
                 f"⏳ In coda: {pending_left}"
+                f"{'' if lista_fredda_allowed else f' (+ {pending_lista_fredda} lista fredda congelati)'}"
             )
 
             logger.info(f"[DAILY_SYSTEME] Completato: {stats}")
-            return {"success": True, "stats": stats, "sources": sources, "pending_left": pending_left}
+            return {
+                "success": True,
+                "stats": stats,
+                "sources": sources,
+                "pending_left": pending_left,
+                "pending_lista_fredda": pending_lista_fredda,
+                "allowed_sources": preferred_sources + ["other"],
+                "excluded_sources": excluded_sources,
+            }
 
         return run_async(_run())
 

@@ -18,7 +18,7 @@ import { getDepartmentRoom } from "../departmentRooms";
 // punta alla pagina-reparto (landing con macro-finestre); Casi studio è una
 // pagina singola e linka direttamente.
 const REPARTI = [
-  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", tone: "amber", icon: Megaphone, resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/acquisizione" },
+  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", tone: "amber", icon: Megaphone, resp: "Luca", respAvatar: "/agents/luca.jpg", to: "/admin/reparto/acquisizione" },
   { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", tone: "emerald", icon: BarChart3, resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/reparto/vendite" },
   { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", tone: "violet", icon: Users, resp: "Stefania", respAvatar: "/agents/stefania.jpg", team: "Stefania · Valentina · Andrea · Gaia · Marco · Matteo", to: "/admin/reparto/delivery" },
   { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per vendere meglio", tone: "rose", icon: ClipboardCheck, resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/casi-studio" },

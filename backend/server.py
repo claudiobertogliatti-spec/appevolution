@@ -25,6 +25,10 @@ import uuid
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 from services.ciak_llm import LlmChat, UserMessage
+from acquisition_policy import (
+    get_lista_fredda_freeze_message,
+    is_lista_fredda_systeme_import_allowed,
+)
 try:
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 except ImportError:
@@ -16345,6 +16349,8 @@ async def load_lista_fredda_to_queue(credentials: HTTPAuthorizationCredentials =
     One-shot: salta chi è già presente o già importato.
     """
     user = await verify_admin(credentials)
+    if not is_lista_fredda_systeme_import_allowed():
+        raise HTTPException(status_code=423, detail=get_lista_fredda_freeze_message())
     total = await db.lista_fredda.count_documents({})
     if total == 0:
         raise HTTPException(status_code=404, detail="lista_fredda vuota — importa prima il CSV")
@@ -16429,7 +16435,15 @@ async def trigger_daily_systeme_import(
     try:
         from celery_tasks import daily_systeme_import
         result = daily_systeme_import.delay(daily_limit=daily_limit)
-        return {"success": True, "task_id": result.id, "message": f"Import avviato — {daily_limit} contatti max"}
+        freeze_note = (
+            " Lista fredda 13k esclusa salvo flag esplicito "
+            "`ALLOW_LISTA_FREDDA_SYSTEME_IMPORT` e nuova strategia approvata."
+        )
+        return {
+            "success": True,
+            "task_id": result.id,
+            "message": f"Import avviato — {daily_limit} contatti max.{freeze_note}",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore avvio task: {e}")
 

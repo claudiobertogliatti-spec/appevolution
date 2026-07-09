@@ -93,13 +93,13 @@ export function AcquisizioneCalendarioHub() {
     <OperationalHub
       eyebrow="Acquisizione"
       title="Calendario Editoriale"
-      subtitle="Regia contenuti per alimentare il funnel: contenuti organici, campagne, lista fredda e contatti in movimento."
+      subtitle="Regia contenuti e traffico per Acquisizione Evolution: organico, paid, nuovi lead e archivio lista fredda congelato."
       icon={CalendarDays}
       cards={[
         { to: "/admin/acq-campagne-ads", title: "Campagne Ads", desc: "Creativita, hook e traffico paid.", icon: Megaphone },
-        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Database contatti e priorita outreach.", icon: Users },
+        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users },
         { to: "/admin/lead-manager", title: "New Lead", desc: "Inserimento e lavorazione nuovi contatti.", icon: ClipboardCheck },
-        { to: "/admin/pipeline", title: "Pipeline acquisizione", desc: "Masterclass, checkpoint, 8 Domande e checkout EUR 27.", icon: TrendingUp },
+        { to: "/admin/pipeline", title: "Acquisizione Evolution", desc: "Blueprint, call, recuperi e checkpoint del progetto pilota madre.", icon: TrendingUp },
         { to: "/admin/template-email", title: "Template Email", desc: "Copy email modificabile senza deploy.", icon: FileText },
       ]}
     />

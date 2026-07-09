@@ -10,7 +10,7 @@
  * Ogni sotto-pagina mostra in cima un tasto "← Torna a [Sezione]" che riporta
  * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
- *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
+ *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
@@ -103,11 +103,11 @@ const NAV = [
     end: true,
     pages: [],
   },
-  // ── ACQUISIZIONE · Andrea ── dal freddo al €27 ─────────────────────────
+  // ── ACQUISIZIONE · Luca ── dal freddo al €27 ───────────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
-    agente: "Andrea",
+    agente: "Luca",
     landing: true,
     hideFor: ["antonella"],
     pages: [

@@ -113,32 +113,15 @@ celery_app.conf.update(
             'schedule': crontab(hour=9, minute=30),  # Ogni giorno 9:30 CET — solleciti percorso 21gg
         },
         # ─────────────────────────────────────────────────────────────────
-        # `daily-systeme-import` DISATTIVATO 2026-05-15.
-        # Motivo: applicava tag generico `Lista_Fredda` indipendentemente dalla
-        # source, facendo entrare anche i lead Google Places (intento alto, mai
-        # contattati) nella campagna di riattivazione Evolution PRO — semantica
-        # sbagliata + copy non-Ciak.
+        # `daily-systeme-import` DISATTIVATO dal 2026-07-09.
+        # Acquisizione Evolution congela la lista fredda 13k per email massive,
+        # drip e sequenze cold non personalizzate. Usi consentiti: custom
+        # audience Meta, analisi segmenti e studio mercato.
         #
-        # Riattivare DOPO aver:
-        #   1. Creato 2 campagne separate su Systeme:
-        #      - trigger `ciak_cold_outreach_places` → primo contatto (4 email)
-        #      - trigger `ciak_cold_outreach_legacy` → riattivazione (4 email)
-        #   2. Modificato daily_systeme_import per applicare tag in base a source
-        #      (vedi commit in arrivo, già pronto nel codice).
-        #   3. Verificato copy email in voice Ciak (docs/marketing/email-cold-outreach-ciak.md)
-        # Daily limit lockato a 500 (15/5/2026, scelta Claudio "restare calmi"
-        # sulla lista 13k per non bruciare reputazione mittente Google).
-        # `daily-systeme-import` RIATTIVATO 2026-06-26: campagna Systeme
-        # "Cold Outreach Legacy (B)" creata (trigger ciak_cold_outreach_legacy),
-        # copy in voce, mittente info@evolution-pro.it. Limite 300/giorno (scelta
-        # Claudio) per preservare reputazione mittente. Idle finche' la coda
-        # systeme_daily_queue non viene popolata (POST /admin/systeme-queue/load-lista-fredda)
-        # e il flusso non viene attivato su Systeme.
-        'daily-systeme-import': {
-            'task': 'celery_tasks.daily_systeme_import',
-            'schedule': crontab(hour=9, minute=0),
-            'kwargs': {'daily_limit': 300},
-        },
+        # Eventuali import Systeme vanno riabilitati solo con:
+        #   1. flag esplicito `ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true`
+        #   2. nuova strategia approvata
+        #   3. revisione dedicata del copy e del canale
     },
 )
 
