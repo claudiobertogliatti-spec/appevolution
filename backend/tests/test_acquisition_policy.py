@@ -1,11 +1,17 @@
 import sys
+import os
 from pathlib import Path
 
 import pytest
+from fastapi import BackgroundTasks, HTTPException
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BACKEND_DIR))
+sys.path.insert(0, str(BACKEND_DIR / "routers"))
+os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017/test")
 
 import acquisition_policy
+import systeme_contacts
 
 
 pytestmark = pytest.mark.unit
@@ -43,3 +49,35 @@ def test_lista_fredda_freeze_message_blocks_cold_sequences():
 
     assert "drip" in message
     assert "sequenze cold" in message
+
+
+@pytest.mark.asyncio
+async def test_legacy_systeme_bulk_endpoint_is_blocked_by_default(monkeypatch):
+    monkeypatch.setattr(systeme_contacts, "SYSTEME_API_KEY", "fake-key")
+
+    with pytest.raises(HTTPException) as exc:
+        await systeme_contacts.import_bulk_from_mongodb(
+            systeme_contacts.SystemeBulkImportRequest(),
+            BackgroundTasks(),
+        )
+
+    assert exc.value.status_code == 423
+    assert "Lista fredda 13k congelata" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_legacy_systeme_bulk_background_job_is_blocked_by_default(monkeypatch):
+    touched_db = False
+
+    class ExplodingClient:
+        def __init__(self, *args, **kwargs):
+            nonlocal touched_db
+            touched_db = True
+            raise AssertionError("MongoDB should not be touched while lista fredda is frozen")
+
+    monkeypatch.setattr(systeme_contacts, "AsyncIOMotorClient", ExplodingClient)
+
+    result = await systeme_contacts.process_bulk_import_job("job-1", 1934404, 50)
+
+    assert result is None
+    assert touched_db is False
