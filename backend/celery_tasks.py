@@ -12,6 +12,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from acquisition_policy import (
     get_allowed_systeme_sources,
+    get_lista_fredda_freeze_message,
     get_systeme_daily_queue_match,
     is_lista_fredda_systeme_import_allowed,
 )
@@ -1737,15 +1738,21 @@ def trigger_single_lead_outreach(self, lead_id: str):
 @shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def import_lista_fredda_systeme(self, tag_id: int = 1934404, batch_size: int = 50):
     """
-    Job Celery per import bulk della lista fredda su Systeme.io.
+    Job Celery legacy per import bulk della lista fredda su Systeme.io.
     
     - Legge i contatti dalla collection MongoDB `lista_fredda`
     - Li importa in batch su Systeme.io (rispettando rate limit)
     - Assegna il tag Lista_Fredda (id: 1934404) a ogni contatto
     
-    Può essere schedulato via Celery Beat o triggerato manualmente.
+    Bloccato di default da Acquisizione Evolution: la lista fredda 13k non
+    puo' alimentare email massive, drip o sequenze cold non personalizzate.
     """
     try:
+        if not is_lista_fredda_systeme_import_allowed():
+            message = get_lista_fredda_freeze_message()
+            logger.warning(f"[CELERY] import_lista_fredda_systeme blocked: {message}")
+            return {"success": False, "blocked": True, "message": message}
+
         logger.info(f"[CELERY] Starting import_lista_fredda_systeme (tag: {tag_id}, batch: {batch_size})")
         
         async def _import():

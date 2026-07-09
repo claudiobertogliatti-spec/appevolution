@@ -36,3 +36,10 @@ def test_lista_fredda_freeze_message_explains_allowed_uses():
     assert "custom audience" in message
     assert "analisi" in message
     assert "email massive" in message
+
+
+def test_lista_fredda_freeze_message_blocks_cold_sequences():
+    message = acquisition_policy.get_lista_fredda_freeze_message()
+
+    assert "drip" in message
+    assert "sequenze cold" in message
