@@ -26,6 +26,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Local Codex/CAPI worktrees
+.capi-wt/
+
 # Secrets
 *.pem
 *.key
