@@ -1,7 +1,9 @@
 # Messaggi outreach pronti — voce Claudio (locked 2026-06-26)
 
-Tutti derivati dal messaggio canonico in `claudio_voice_style.md`.
-Sostituire `{nome}`. CTA unica: `www.ciak.io`. Niente emoji, niente CAPS.
+Tutti derivati dal messaggio canonico in `claudio_voice_style.md` e riallineati ad Acquisizione Evolution.
+Sostituire `{nome}`. CTA primaria: `www.ciak.io`. Niente emoji, niente CAPS.
+
+Regola: questi messaggi servono per outreach manuale assistito da AI. Non usare la lista fredda 13k per email massive o drip automatici.
 
 ---
 
@@ -9,9 +11,9 @@ Sostituire `{nome}`. CTA unica: `www.ciak.io`. Niente emoji, niente CAPS.
 
 ```
 Ciao {nome}, ti scrivo direttamente perché cerco professionisti con
-competenze reali e ho notato il tuo profilo. Da 7 anni aiuto chi ha una
-competenza vera a costruirci sopra un modello digitale che funziona.
-Vorrei mandarti una cosa utile, niente vendita. Claudio
+competenze reali e ho notato il tuo profilo. Sto lavorando al Metodo EVO:
+porta online un'Accademia Digitale in 3/4 settimane e la ottimizza per 12
+mesi. Vorrei mandarti una cosa utile, niente vendita. Claudio
 ```
 
 ## 2. LinkedIn — primo messaggio (dopo collegamento / InMail)
@@ -19,42 +21,48 @@ Vorrei mandarti una cosa utile, niente vendita. Claudio
 ```
 Ciao {nome},
 
-ti scrivo direttamente perché sono alla ricerca di professionisti con
-competenze reali e ho notato il tuo profilo.
+ti scrivo direttamente perché sto cercando professionisti con competenze
+reali e ho notato il tuo profilo.
 
-Sono Claudio Bertogliatti, lavoro da 22 anni nella vendita, €6M di
-fatturato generato, oltre 25.000 trattative. Negli ultimi 7 anni mi sono
-concentrato sul marketing digitale: trasformare una competenza
-professionale reale in un modello online che funziona davvero.
+Sono Claudio Bertogliatti: 22 anni nella vendita, oltre 25.000 trattative
+e piu' di 6 milioni di euro generati.
 
-Non ti sto proponendo un corso o i servizi di un'agenzia. Voglio darti una
-direzione strategica chiara, prima di investire in implementazione.
+Con Evolution/Ciak oggi lavoro su una cosa precisa: trasformare competenze
+professionali vere in Accademie Digitali vendibili, senza lasciare il
+professionista da solo davanti a piattaforme, funnel e corsi generici.
 
-Ho pubblicato una masterclass gratuita di 30 minuti sui 5 errori più
-comuni che vedo fare a chi ha competenza vera ma fatica a costruire un
-modello digitale sostenibile. La guardi qui: www.ciak.io
+Non e' una piattaforma corsi. Non e' un funnel builder. Non e' un'agenzia
+marketing. E' il Metodo EVO: in 3/4 settimane costruiamo gli asset
+essenziali e portiamo online il sistema; poi per 12 mesi leggiamo i dati,
+correggiamo e puntiamo ai primi risultati di vendita.
 
-Se non ti interessa, ignora pure: non è mia intenzione costringerti.
+Il primo passo e' capire se la direzione ha senso. Qui trovi Ciak e il
+Blueprint: www.ciak.io
+
+Se non e' il momento, nessun problema.
 
 Claudio
 ```
 
 ---
 
-## 3. WhatsApp — rete calda (più colloquiale, niente firma email)
+## 3. WhatsApp — rete calda (piu' colloquiale, niente firma email)
 
 ```
 Ciao {nome}, ti scrivo io di persona.
 
-Sto cercando professionisti con competenze vere e ho pensato a te. In
-breve: da 7 anni aiuto chi ha una competenza solida a costruirci sopra un
-modello digitale che funziona davvero. Niente corso, niente agenzia —
-prima la direzione strategica, poi l'implementazione.
+Sto cercando professionisti con competenze vere e ho pensato a te.
 
-Ho appena messo online una masterclass gratuita di 30 minuti sui 5 errori
-più comuni. Te la lascio qui: www.ciak.io
+Con Evolution/Ciak stiamo portando online accademie digitali professionali
+con il Metodo EVO: prima capiamo direzione, mercato e offerta; poi in 3/4
+settimane costruiamo gli asset essenziali; poi ottimizziamo per 12 mesi.
 
-Se non fa per te nessun problema, ci tenevo solo a girartela.
+Non e' un corso per creare corsi e non e' un'agenzia marketing. E' un
+sistema operativo guidato.
+
+Ti lascio Ciak qui: www.ciak.io
+
+Se non fa per te nessun problema, ci tenevo solo a girartelo.
 ```
 
 ## 4. WhatsApp — richiesta referral ai partner attuali
@@ -62,9 +70,14 @@ Se non fa per te nessun problema, ci tenevo solo a girartela.
 ```
 Ciao {nome}, una domanda veloce.
 
-Sto allargando il gruppo di professionisti con cui lavoro su Evolution.
-Conosci 1-2 colleghi con una competenza vera che potrebbero trovarsi bene
-come ti ci sei trovato/a tu? Se sì, mi basta il contatto: ci penso io,
+Sto costruendo Acquisizione Evolution, il progetto pilota con cui
+applichiamo su di noi il Metodo EVO prima di duplicarlo sui partner.
+
+Conosci 1-2 professionisti con una competenza vera che potrebbero
+trasformarla in un'Accademia Digitale, ma oggi sono fermi tra contenuti,
+funnel, piattaforme e poca chiarezza commerciale?
+
+Se si', mi basta il contatto o una presentazione semplice. Ci penso io,
 senza nessun impegno per loro.
 
 Grazie, Claudio
@@ -72,22 +85,46 @@ Grazie, Claudio
 
 ---
 
-## 5. Email cold — nota
+## 5. Email cold — nota operativa
 
-Le 9 email cold (Campagna A Places + Campagna B Legacy 13k) sono in
-`email-cold-outreach-ciak.md`. Vanno **riallineate a questa voce** prima di
-riattivare il job `daily-systeme-import`. La A1 attuale è già vicina; le
-differenze da applicare a tutte: apertura "ho notato il tuo profilo / cerco
-professionisti", credenziali condensate in una riga, CTA `www.ciak.io`.
+Le 9 email cold in `email-cold-outreach-ciak.md` restano archivio storico.
+Non riattivare il job `daily-systeme-import` e non usare la lista fredda
+13k per sequenze email massive.
 
-## 6. Follow-up Silvia Arcari (unico inbound vero)
+Uso ammesso della lista fredda:
+- custom audience Meta;
+- analisi segmenti;
+- studio del mercato.
+
+## 6. Routine Luca — messaggio di report serale
+
+```
+Report Acquisizione Evolution — oggi
+
+Nuovi contatti lavorati: X/20
+Risposte ricevute: X
+Conversazioni qualificate: X
+8 Domande completate: X
+Blueprint acquistati: X
+Call fissate: X
+
+Priorita' domani:
+1. ...
+2. ...
+3. ...
+
+Blocco principale:
+...
+```
+
+## 7. Follow-up Silvia Arcari (unico inbound vero)
 
 ```
 Ciao Silvia,
 
 ho visto che ti sei registrata su Ciak. Volevo solo assicurarmi che tu
-abbia visto la masterclass gratuita di 30 minuti — è lì che spiego i 5
-errori più comuni e trovi il Checkpoint per capire a che punto sei.
+abbia visto la masterclass gratuita di 30 minuti — e' li' che spiego i 5
+errori piu' comuni e trovi il Checkpoint per capire a che punto sei.
 
 La trovi qui: www.ciak.io
 
