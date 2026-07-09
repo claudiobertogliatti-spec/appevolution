@@ -454,8 +454,12 @@ class FunnelLightRequest(BaseModel):
 
 
 @router.get("/funnel-light/{partner_id}")
-async def get_funnel_light(partner_id: str):
+async def get_funnel_light(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera il funnel light generato per il partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
 
     record = await db.funnel_light.find_one(
@@ -469,8 +473,12 @@ async def get_funnel_light(partner_id: str):
 
 
 @router.post("/funnel-light/generate")
-async def generate_funnel_light(request: FunnelLightRequest):
+async def generate_funnel_light(
+    request: FunnelLightRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera il funnel light dai dati del posizionamento"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     # Recupera posizionamento
@@ -571,8 +579,12 @@ NOTA: Controlla anche la cartella spam se non vedi l'email."""
 
 
 @router.post("/funnel-light/publish")
-async def publish_funnel_light(request: FunnelLightRequest):
+async def publish_funnel_light(
+    request: FunnelLightRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Pubblica il funnel light — lo rende attivo"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     funnel = await db.funnel_light.find_one(
@@ -665,14 +677,20 @@ class FunnelDistributionUpdateRequest(BaseModel):
 
 
 @router.get("/funnel-distribution/templates")
-async def get_funnel_templates():
+async def get_funnel_templates(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Lista dei funnel master disponibili con share link"""
+    await require_admin_token(credentials)
     return {"success": True, "templates": FUNNEL_TEMPLATES}
 
 
 @router.get("/funnel-distribution/all-pending")
-async def get_all_pending_distributions():
+async def get_all_pending_distributions(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Lista tutte le distribuzioni non ancora consegnate (vista team)"""
+    await require_admin_token(credentials)
     distributions = await db.funnel_distributions.find(
         {"status": {"$ne": "consegnato"}}, {"_id": 0}
     ).sort("assigned_at", -1).to_list(100)
@@ -713,8 +731,12 @@ async def get_all_pending_distributions():
 
 
 @router.get("/funnel-distribution/{partner_id}")
-async def get_funnel_distributions(partner_id: str):
+async def get_funnel_distributions(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera tutte le distribuzioni funnel per un partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
 
     distributions = await db.funnel_distributions.find(
@@ -725,8 +747,12 @@ async def get_funnel_distributions(partner_id: str):
 
 
 @router.post("/funnel-distribution/assign")
-async def assign_funnel_distribution(request: FunnelDistributionRequest):
+async def assign_funnel_distribution(
+    request: FunnelDistributionRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Assegna un template funnel a un partner (avvia distribuzione)"""
+    await require_admin_token(credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     template = next((t for t in FUNNEL_TEMPLATES if t["id"] == request.template_id), None)
@@ -771,8 +797,12 @@ async def assign_funnel_distribution(request: FunnelDistributionRequest):
 
 
 @router.post("/funnel-distribution/update-status")
-async def update_funnel_distribution(request: FunnelDistributionUpdateRequest):
+async def update_funnel_distribution(
+    request: FunnelDistributionUpdateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Aggiorna lo stato di una distribuzione funnel"""
+    await require_admin_token(credentials)
     await get_partner_or_404(request.partner_id)
 
     update_data = {
@@ -4283,8 +4313,12 @@ class FunnelApproveLegalRequest(BaseModel):
 
 
 @router.get("/funnel-complete/{partner_id}")
-async def get_funnel_complete(partner_id: str):
+async def get_funnel_complete(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera tutti i dati del funnel per la pagina completa"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -4311,8 +4345,12 @@ async def get_funnel_complete(partner_id: str):
 
 
 @router.post("/funnel/approve-page")
-async def approve_funnel_page(request: FunnelApprovePagesRequest):
+async def approve_funnel_page(
+    request: FunnelApprovePagesRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva una singola pagina del funnel"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
     
     await db.partner_funnel.update_one(
@@ -4331,8 +4369,12 @@ async def approve_funnel_page(request: FunnelApprovePagesRequest):
 
 
 @router.post("/funnel/approve-content")
-async def approve_funnel_content(request: FunnelApproveContentRequest):
+async def approve_funnel_content(
+    request: FunnelApproveContentRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva tutti i contenuti del funnel"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
     
     await db.partner_funnel.update_one(
@@ -4351,8 +4393,12 @@ async def approve_funnel_content(request: FunnelApproveContentRequest):
 
 
 @router.post("/funnel/save-domain")
-async def save_funnel_domain(request: FunnelSaveDomainRequest):
+async def save_funnel_domain(
+    request: FunnelSaveDomainRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva la configurazione del dominio"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     domain_data = {
@@ -4386,8 +4432,12 @@ async def save_funnel_domain(request: FunnelSaveDomainRequest):
 
 
 @router.post("/funnel/verify-domain")
-async def verify_funnel_domain(request: FunnelVerifyDomainRequest):
+async def verify_funnel_domain(
+    request: FunnelVerifyDomainRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Verifica la configurazione DNS del dominio"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -4435,8 +4485,12 @@ async def verify_funnel_domain(request: FunnelVerifyDomainRequest):
 
 
 @router.post("/funnel/generate-legal")
-async def generate_funnel_legal(request: FunnelGenerateLegalRequest):
+async def generate_funnel_legal(
+    request: FunnelGenerateLegalRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera tutte le pagine legali usando i dati del partner"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -4627,8 +4681,12 @@ Per domande: {email}"""
 
 
 @router.post("/funnel/approve-legal")
-async def approve_funnel_legal(request: FunnelApproveLegalRequest):
+async def approve_funnel_legal(
+    request: FunnelApproveLegalRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva una singola pagina legale"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     await get_partner_or_404(request.partner_id)
     
     await db.partner_funnel.update_one(
