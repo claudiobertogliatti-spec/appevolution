@@ -192,7 +192,7 @@ export function DeliveryAudit({ onAuthExpired }) {
       const has = Object.keys(ov).some(
         (k) => k.startsWith("alignment_") && !["alignment_updated_at", "alignment_updated_by"].includes(k)
       );
-      const priorita = ov.alignment_priority || (i.blocked || i.stale || i.incoerenza ? "alta" : "media");
+      const priorita = ov.alignment_priority || i.priorita || (i.blocked || i.stale || i.incoerenza ? "alta" : "media");
       return {
         ...i,
         owner_auto: i.owner,
@@ -359,6 +359,9 @@ export function DeliveryAudit({ onAuthExpired }) {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm text-slate-600 max-w-[240px] leading-snug">{i.next_action}</p>
+                    {i.stato_reale && (
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-[240px] leading-snug">{i.stato_reale}</p>
+                    )}
                     {i.nota_regia && <p className="text-[11px] text-violet-500 mt-1 max-w-[240px] leading-snug">“{i.nota_regia}”</p>}
                   </td>
                   <td className="px-4 py-3">

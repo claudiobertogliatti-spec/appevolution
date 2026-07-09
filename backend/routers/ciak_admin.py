@@ -2458,6 +2458,7 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         raise HTTPException(503, "Database non configurato")
 
     from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+    from services.partner_alignment import estimate_alignment
 
     STEP_META = {
         d["step_id"]: {
@@ -2493,6 +2494,20 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
 
     def _filled(v):
         return bool((v or "").strip()) if isinstance(v, str) else bool(v)
+
+    def _step_done(steps, step_id: str) -> bool:
+        return any(
+            s.get("step_id") == step_id
+            and s.get("status") in ("completed", "done", "approved")
+            for s in steps
+        )
+
+    def _owner_from_alignment(responsabile: str | None) -> str:
+        if responsabile == "Agente Ciak":
+            return "Team"
+        if responsabile in ("Claudio", "Luca", "Partner", "Team", "Team/Claudio"):
+            return responsabile
+        return "Team"
 
     # Partner attivi (stato "attivo" o assente).
     partners = []
@@ -2541,7 +2556,6 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
             current = steps[-1]
         cur_id = current.get("step_id") if current else None
         cur_meta = STEP_META.get(cur_id or "", {})
-        macro = "ottimizza" if is_live else (cur_meta.get("macro_phase") or "esamina")
 
         # Offerta (4 campi).
         offer_fields = [hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes"), hub.get("offerGuarantee")]
@@ -2551,6 +2565,18 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         # Posizionamento (6 campi).
         pos_fields = [hub.get("whoYouAre"), hub.get("targetAudience"), hub.get("problem"), hub.get("solution"), hub.get("pitch"), hub.get("differentiator")]
         pos_filled = sum(1 for x in pos_fields if _filled(x))
+
+        # Brand / dati base. Se lo step 03 e' completato, consideriamo il brand
+        # pronto anche quando il dettaglio non e' normalizzato in partner_hub.
+        brand_fields = [
+            hub.get("logo"),
+            hub.get("primaryColor"),
+            hub.get("accentColor"),
+            hub.get("toneOfVoice"),
+            hub.get("keywords"),
+        ]
+        brand_ok = _step_done(steps, "03-brand-kit") or any(_filled(x) for x in brand_fields)
+        dati_base_ok = bool(p.get("name") or hub.get("name")) and bool(p.get("email") or hub.get("email"))
 
         # Masterclass.
         mc_script = bool((mc.get("dyf_status") in ("pronto", "approvato")) or mc.get("full_script") or mc.get("script"))
@@ -2572,6 +2598,16 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         funnel_url = funnel.get("funnel_systeme_url") or funnel.get("funnel_url")
         funnel_ok = bool(funnel_url)
 
+        # KPI/vendite: segnali leggeri gia' presenti sul documento partner.
+        # L'endpoint deve restare veloce: non interroga Systeme live.
+        kpi_manual = p.get("kpi_manual") if isinstance(p.get("kpi_manual"), dict) else {}
+        visite = float(kpi_manual.get("visite") or 0)
+        contatti = float(kpi_manual.get("contatti") or 0)
+        vendite = float(kpi_manual.get("vendite") or 0)
+        revenue = float(p.get("revenue") or p.get("fatturato") or 0)
+        kpi_ok = bool(visite > 0 or contatti > 0 or vendite > 0 or revenue > 0)
+        vendite_ok = bool(vendite > 0 or revenue > 0)
+
         # Fermo / stale.
         cur_updated = _iso(current.get("updated_at")) if current else None
         stale = False
@@ -2586,11 +2622,22 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         approval = current.get("approval_status") if current else None
         blocked = bool(current and current.get("status") == "blocked") or (approval == "pending_review")
 
-        # Incoerenza fase↔dati: fase vendita/lancio (F5-F7) ma asset base incompleti.
-        incoerenza = None
-        if not is_live and phase_legacy >= "F5":
-            if not mc_video or pos_filled < 6 or offerta == "mancante":
-                incoerenza = "Fase avanzata ma asset base incompleti"
+        alignment = estimate_alignment({
+            "stato": p.get("stato") or "attivo",
+            "phase": phase_legacy,
+            "posizionamento_ok": pos_filled >= 6,
+            "brand_ok": brand_ok,
+            "dati_base_ok": dati_base_ok,
+            "script_masterclass_ok": mc_script,
+            "video_masterclass_ok": mc_video,
+            "videocorso_ok": n_lessons > 0 and n_lessons_ready > 0,
+            "funnel_ok": funnel_ok,
+            "kpi_ok": kpi_ok,
+            "vendite_ok": vendite_ok,
+        })
+
+        macro = (alignment.get("atto_evo") or ("Ottimizza" if is_live else cur_meta.get("macro_phase") or "Esamina")).lower()
+        incoerenza = "Fase avanzata ma asset base incompleti" if alignment.get("incoerenza") else None
 
         # Chi deve muoversi.
         if approval == "pending_review":
@@ -2598,21 +2645,13 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         elif cur_id in PARTNER_ACTION_STEPS:
             owner = "Partner"
         else:
-            owner = "Team"
+            owner = _owner_from_alignment(alignment.get("responsabile"))
 
-        # Prossima azione (prioritizza i gap sistematici).
-        if offerta != "completa":
-            next_action = "Completare l'offerta: nome, prezzo, cosa include, garanzia"
-        elif n_lessons == 0 and not is_live:
-            next_action = "Avviare le lezioni del videocorso"
-        elif not funnel_ok and not is_live:
-            next_action = "Costruire il funnel nel Systeme del partner"
-        elif is_live:
-            next_action = "Fase Ottimizza: calendario 90gg, live 60gg, lettura dati"
-        elif current:
-            next_action = f"Step in corso: {cur_meta.get('label', cur_id)}"
-        else:
-            next_action = "Percorso completato"
+        # Prossima azione: usa la stima deterministica, ma mantiene la priorita'
+        # Claudio quando c'e' un'approvazione esplicita in sospeso.
+        next_action = alignment.get("prossimo_step")
+        if approval == "pending_review":
+            next_action = f"Serve OK su: {cur_meta.get('label', cur_id)}"
 
         if offerta != "completa":
             counters["offerta_mancante"] += 1
@@ -2651,6 +2690,13 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
             "incoerenza": incoerenza,
             "owner": owner,
             "next_action": next_action,
+            "priorita": alignment.get("priorita"),
+            "stato_reale": alignment.get("stato_reale"),
+            "rischio": alignment.get("rischio"),
+            "asset_flags": alignment.get("asset_flags"),
+            "asset_mancanti": alignment.get("asset_mancanti"),
+            "asset_presenti": alignment.get("asset_presenti"),
+            "alignment": alignment,
         })
 
     return {
