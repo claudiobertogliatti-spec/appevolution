@@ -624,7 +624,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
           <div className={`flex items-center justify-between p-3 rounded-xl border ${form.only_with_website ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
             <div>
               <div className="text-sm font-semibold text-slate-900">Solo con sito web</div>
-              <div className="text-[11px] text-slate-400">Tiene solo chi ha un sito → email reperibile per la Lista Fredda</div>
+              <div className="text-[11px] text-slate-400">Tiene solo chi ha un sito: email reperibile per coda Systeme ammessa dalla policy</div>
             </div>
             <button onClick={() => setForm(p => ({ ...p, only_with_website: !p.only_with_website }))}
               className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.only_with_website ? "bg-emerald-600" : "bg-gray-300"}`}>
@@ -766,7 +766,7 @@ export function LeadManager({ onAuthExpired }) {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
-      <p className="text-slate-500 mb-6">Discovery Leads — import, edit, filtri.</p>
+      <p className="text-slate-500 mb-6">Discovery Leads — scraping, scoring e promozione controllata nel Motore Vendite Evolution.</p>
 
       {/* Header / toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -908,7 +908,7 @@ export function LeadManager({ onAuthExpired }) {
                         </a>
                       )}
 <button onClick={() => handleApprove(lead)} disabled={approvingId === lead.id}
-                        title="Approva → Lista Fredda"
+                        title="Approva nel Motore Vendite Evolution"
                         className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                         {approvingId === lead.id
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
