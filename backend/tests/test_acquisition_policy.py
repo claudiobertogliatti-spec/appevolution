@@ -32,6 +32,11 @@ def test_discovery_engine_contract_documents_allowed_sources():
     assert "lista_fredda" not in allowed
 
 
+def test_systeme_daily_queue_match_excludes_lista_fredda_without_flag():
+    match = acquisition_policy.get_systeme_daily_queue_match({})
+    assert match == {"status": "pending", "source": {"$ne": "lista_fredda"}}
+
+
 @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
 def test_lista_fredda_systeme_import_can_be_enabled_only_with_explicit_flag(value):
     env = {acquisition_policy.ALLOW_LISTA_FREDDA_SYSTEME_IMPORT_ENV: value}

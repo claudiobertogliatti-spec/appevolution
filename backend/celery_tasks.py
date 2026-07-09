@@ -1938,21 +1938,14 @@ def daily_systeme_import(self, daily_limit: int = 300):
             preferred_sources = get_allowed_systeme_sources()
             queue_match = get_systeme_daily_queue_match()
 
-            # Tag DEDICATI per source (lock 15/5/2026 — vedi memory ciak migration).
-            # Risolti dinamicamente da nome → tag_id via Systeme API (find or create),
-            # così non dipendiamo da ID hardcoded.
-            #
-            # Trigger Systeme:
-            #   - ciak_cold_outreach_places → campagna 4 email PRIMO CONTATTO
-            #     (lead Google Places, mai contattato, intent alto)
-            #   - ciak_cold_outreach_legacy → campagna 4 email RIATTIVAZIONE
-            #     (lista fredda 13k Evolution, contatti vecchi)
-            #   - ciak_cold_outreach_other → fallback per source sconosciute
+            # Tag Evolution per il Motore Vendite Evolution.
+            # google_places e' ammesso dalla policy; lista_fredda resta esclusa
+            # salvo flag esplicito ALLOW_LISTA_FREDDA_SYSTEME_IMPORT=true.
             TAG_NAMES_BY_SOURCE = {
-                "google_places": "ciak_cold_outreach_places",
-                "lista_fredda":  "ciak_cold_outreach_legacy",
+                "google_places": "EVO_DISCOVERY_GOOGLE_PLACES",
+                "lista_fredda":  "EVO_LISTA_FREDDA_META",
             }
-            DEFAULT_TAG_NAME = "ciak_cold_outreach_other"
+            DEFAULT_TAG_NAME = "EVO_DISCOVERY_OTHER"
             tag_id_cache: dict[str, int] = {}
 
             if not SYSTEME_API_KEY:
