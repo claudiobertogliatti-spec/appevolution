@@ -14,6 +14,14 @@ Formula breve:
 
 > Da competenza professionale a accademia digitale online in 3/4 settimane, costruita dentro Systeme.io e accompagnata per 12 mesi fino ai primi risultati di vendita.
 
+Formula pubblica principale:
+
+> Il Metodo EVO ti porta online in 3/4 settimane con un sistema collaudato, supportandoti per 12 mesi fino ai primi risultati di vendita.
+
+Categoria pubblica:
+
+> Esamina. Valida. Ottimizza. Non una piattaforma corsi. Non un funnel builder. Non un'agenzia marketing. Non un corso per creare corsi. Il sistema operativo per accademie digitali professionali.
+
 ## 2. Cosa vendiamo davvero
 
 Non vendiamo un corso.

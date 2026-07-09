@@ -146,8 +146,8 @@ export function CiakLanding() {
             <span className="block">ad accademia digitale</span>
           </h1>
           <p className="mt-6 max-w-4xl text-lg font-medium leading-relaxed text-slate-900 drop-shadow-[0_1px_18px_rgba(255,255,255,0.78)] md:text-2xl">
-            Il Metodo EVO ti porta online in 3/4 settimane con un sistema costruito dentro Systeme.io.
-            Poi ti accompagna per 12 mesi a cercare i primi risultati di vendita.
+            Il Metodo EVO ti porta online in 3/4 settimane con un sistema collaudato,
+            supportandoti per 12 mesi fino ai primi risultati di vendita.
           </p>
 
           <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
@@ -261,6 +261,13 @@ export function CiakLanding() {
             <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
               Esamina. Valida. Ottimizza.
             </h2>
+            <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-600 md:text-lg">
+              Non una piattaforma corsi. Non un funnel builder. Non un'agenzia marketing.
+              Non un corso per creare corsi.
+            </p>
+            <p className="mt-3 max-w-3xl text-xl font-semibold leading-snug text-slate-900 md:text-2xl">
+              Il sistema operativo per accademie digitali professionali.
+            </p>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {[

@@ -236,7 +236,12 @@ export function CiakProposta() {
             corso, sistema di vendita, lancio e ottimizzazione.
           </p>
           <p className="mt-6 text-base md:text-lg font-medium text-yellow-400">
-            Online in 3/4 settimane su Systeme.io. Poi 12 mesi di accompagnamento con AI e team umano.
+            Il Metodo EVO ti porta online in 3/4 settimane con un sistema collaudato,
+            supportandoti per 12 mesi fino ai primi risultati di vendita.
+          </p>
+          <p className="mt-5 max-w-3xl text-sm leading-relaxed text-slate-400 md:text-base">
+            Non una piattaforma corsi. Non un funnel builder. Non un'agenzia marketing.
+            Il sistema operativo per accademie digitali professionali.
           </p>
         </div>
       </section>
