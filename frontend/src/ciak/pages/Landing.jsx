@@ -10,7 +10,8 @@
  *  1. Hero + CTA Masterclass
  *  2. Il problema reale
  *  3. Tre livelli, una sola direzione (Masterclass -> Ciak Blueprint -> Partnership)
- *  4. CTA finale
+ *  4. FAQ
+ *  5. CTA finale
  */
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -358,7 +359,54 @@ export function CiakLanding() {
         </div>
       </section>
 
-      {/* SCHERMATA 4 — CTA FINALE */}
+      {/* SCHERMATA 4 — FAQ */}
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
+              Domande frequenti
+            </p>
+            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
+              Prima di costruire, chiarisci i dubbi giusti.
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {[
+              {
+                q: "Ciak e' una piattaforma corsi?",
+                a: "No. Ciak e' il sistema operativo che guida il Metodo EVO: diagnosi, task, agenti AI, team umano, materiali, avanzamento e metriche.",
+              },
+              {
+                q: "Devo gia' avere un corso pronto?",
+                a: "No. Partiamo dalla tua competenza. Prima analizziamo mercato, posizionamento e offerta, poi decidiamo cosa costruire.",
+              },
+              {
+                q: "Cosa succede dopo la masterclass gratuita?",
+                a: "Rispondi alle 8 Domande Ciak. Se il progetto ha senso, puoi richiedere il Ciak Blueprint: diagnosi, analisi e roadmap.",
+              },
+              {
+                q: "Il Metodo EVO promette vendite garantite?",
+                a: "No. Promette un processo: andare online in 3/4 settimane, leggere i dati e correggere il sistema fino al 12° mese.",
+              },
+              {
+                q: "Che differenza c'e' rispetto a un'agenzia?",
+                a: "Un'agenzia consegna pezzi. Il Metodo EVO coordina direzione, produzione, lancio e ottimizzazione dentro un percorso unico.",
+              },
+              {
+                q: "Il progetto resta mio?",
+                a: "Si'. L'accademia digitale, i contenuti, le pagine, le email e il checkout restano asset del professionista.",
+              },
+            ].map((item) => (
+              <div key={item.q} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900">{item.q}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SCHERMATA 5 — CTA FINALE */}
       <section className="bg-white">
         <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
           <div className="rounded-2xl border border-yellow-300/85 bg-white px-4 py-10 shadow-[0_0_46px_rgba(250,204,21,0.28)] ring-1 ring-yellow-100 sm:px-8 md:px-12 md:py-14">
