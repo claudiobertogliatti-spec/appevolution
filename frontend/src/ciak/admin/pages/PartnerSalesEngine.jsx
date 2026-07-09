@@ -12,7 +12,7 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { apiGet } from "../api";
+import { adminFetch, apiGet } from "../api";
 
 const STATUS = {
   setup_systeme: { label: "Setup Systeme", tone: "bg-rose-50 text-rose-700 border-rose-200" },
@@ -109,6 +109,8 @@ export function PartnerSalesEngine({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("tutti");
+  const [budgetDrafts, setBudgetDrafts] = useState({});
+  const [savingBudget, setSavingBudget] = useState(null);
 
   useEffect(() => {
     apiGet("/partner-sales-engine")
@@ -118,6 +120,49 @@ export function PartnerSalesEngine({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [onAuthExpired]);
+
+  useEffect(() => {
+    if (!data?.items) return;
+    setBudgetDrafts((prev) => {
+      const next = { ...prev };
+      data.items.forEach((item) => {
+        if (next[item.id] === undefined) {
+          next[item.id] = item.ads_plan?.budget_monthly ?? "";
+        }
+      });
+      return next;
+    });
+  }, [data]);
+
+  async function saveBudget(item) {
+    const raw = budgetDrafts[item.id];
+    const value = raw === "" || raw === null || raw === undefined ? null : Number(raw);
+    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      setError("Inserisci un budget ads valido, oppure lascia vuoto.");
+      return;
+    }
+    setSavingBudget(item.id);
+    setError(null);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${item.id}/ads-budget`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ budget_ads_monthly: value }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 160)}` : ""}`);
+      }
+      const fresh = await apiGet("/partner-sales-engine");
+      setData(fresh);
+      setBudgetDrafts((prev) => ({ ...prev, [item.id]: value ?? "" }));
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setError(e.message);
+    } finally {
+      setSavingBudget(null);
+    }
+  }
 
   const items = useMemo(() => {
     const list = data?.items || [];
@@ -278,6 +323,26 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                       <p className="text-[11px] text-slate-400 mt-1 max-w-[160px] leading-snug">
                         {fmtBudget(i.ads_plan?.budget_monthly)}
                       </p>
+                      <div className="mt-2 flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="50"
+                          value={budgetDrafts[i.id] ?? ""}
+                          onChange={(e) => setBudgetDrafts((prev) => ({ ...prev, [i.id]: e.target.value }))}
+                          className="w-20 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-yellow-400"
+                          aria-label={`Budget ads mensile ${i.name}`}
+                          placeholder="€"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveBudget(i)}
+                          disabled={savingBudget === i.id}
+                          className="rounded-md bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                        >
+                          {savingBudget === i.id ? "..." : "Salva"}
+                        </button>
+                      </div>
                       <p className="text-[11px] text-slate-500 mt-1 max-w-[180px] leading-snug">
                         {i.ads_plan?.next_action}
                       </p>

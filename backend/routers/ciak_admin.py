@@ -3044,6 +3044,64 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
     }
 
 
+class PartnerAdsBudgetBody(BaseModel):
+    budget_ads_monthly: Optional[float] = Field(None, ge=0, description="Budget ads mensile sostenibile per 90 giorni")
+    note: Optional[str] = Field(None, description="Nota interna sul budget ads")
+
+
+@router.patch("/partner/{partner_id}/ads-budget")
+async def set_partner_ads_budget(
+    partner_id: str,
+    body: PartnerAdsBudgetBody,
+    admin=Depends(require_ciak_admin),
+):
+    """Salva il budget ads mensile del partner per il Motore Vendite Partner."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "id": 1})
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+
+    now = datetime.now(timezone.utc).isoformat()
+    admin_id = (
+        getattr(admin, "email", None)
+        or getattr(admin, "user_id", None)
+        or getattr(admin, "id", None)
+        or "admin"
+    )
+
+    set_fields = {
+        "ads_budget_updated_at": now,
+        "ads_budget_updated_by": str(admin_id),
+    }
+    unset_fields = {}
+
+    if body.budget_ads_monthly is None:
+        unset_fields["budget_ads_monthly"] = ""
+    else:
+        set_fields["budget_ads_monthly"] = float(body.budget_ads_monthly)
+
+    if body.note is not None:
+        note = body.note.strip()
+        if note:
+            set_fields["ads_budget_note"] = note
+        else:
+            unset_fields["ads_budget_note"] = ""
+
+    update = {"$set": set_fields}
+    if unset_fields:
+        update["$unset"] = unset_fields
+
+    await db.partners.update_one({"id": partner_id}, update)
+    return {
+        "ok": True,
+        "partner_id": partner_id,
+        "budget_ads_monthly": None if body.budget_ads_monthly is None else float(body.budget_ads_monthly),
+        "updated_at": now,
+    }
+
+
 # ─── Partner Alignment — override manuali (innesto sul Delivery Audit) ───────
 # Layer NON invasivo: il GET /delivery-audit resta invariato. Questi due endpoint
 # leggono/scrivono le correzioni manuali (campi alignment_*) sul documento

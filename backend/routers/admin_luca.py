@@ -489,12 +489,28 @@ async def luca_daily_report(token_data=Depends(require_admin)):
     partners = []
     async for p in db.partners.find(
         {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]},
-        {"_id": 0, "id": 1, "name": 1, "phase": 1},
+        {
+            "_id": 0,
+            "id": 1,
+            "name": 1,
+            "phase": 1,
+            "revenue": 1,
+            "fatturato": 1,
+            "kpi_manual": 1,
+            "data_pagamento_partnership": 1,
+            "conversion_date": 1,
+            "ads_budget_monthly": 1,
+            "budget_ads_monthly": 1,
+            "budget_ads": 1,
+            "ads_budget": 1,
+            "budget_pubblicita": 1,
+        },
     ):
         partners.append(p)
     partner_ids = [p.get("id") for p in partners if p.get("id")]
 
     hub_by, vc_by, funnel_by = {}, {}, {}
+    calendar_by, live_by = {}, {}
     steps_by: dict = {}
     async for h in db.partner_hub.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
         hub_by[h.get("partner_id")] = h
@@ -502,19 +518,57 @@ async def luca_daily_report(token_data=Depends(require_admin)):
         vc_by[v.get("partner_id")] = v
     async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0, "partner_id": 1, "funnel_systeme_url": 1, "funnel_url": 1}):
         funnel_by[f.get("partner_id")] = f
+    async for cdoc in db.partner_quarterly_calendar.find({"partner_id": {"$in": partner_ids}}, {"_id": 0, "partner_id": 1, "calendar": 1}):
+        calendar_by[cdoc.get("partner_id")] = cdoc
+    async for ldoc in db.partner_live_cycle.find({"partner_id": {"$in": partner_ids}}, {"_id": 0, "partner_id": 1, "cycle": 1}):
+        live_by[ldoc.get("partner_id")] = ldoc
     async for s in db.partner_journey_steps.find(
         {"partner_id": {"$in": partner_ids}, "status": "in_progress"}, {"_id": 0}
     ):
         steps_by[s.get("partner_id")] = s
 
+    def _num(v) -> float:
+        try:
+            return float(v or 0)
+        except Exception:
+            return 0.0
+
+    def _parse_dt(value):
+        if not value:
+            return None
+        try:
+            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:
+            return None
+
+    def _months_since(value):
+        dt = _parse_dt(value)
+        if not dt:
+            return None
+        return max(0, (now.year - dt.year) * 12 + (now.month - dt.month))
+
+    def _budget_ads(partner: dict, kpi_manual: dict):
+        for key in ("ads_budget_monthly", "budget_ads_monthly", "budget_ads", "ads_budget", "budget_pubblicita"):
+            val = partner.get(key) if partner.get(key) not in (None, "") else kpi_manual.get(key)
+            if val not in (None, ""):
+                return _num(val)
+        return None
+
     offerta_mancante, videocorso_zero, funnel_mancante, fermi, serve_ok = 0, 0, 0, 0, 0
     fermi_nomi, serve_ok_nomi = [], []
+    ritmo_mancante_nomi, budget_ads_nomi, ads_pronte_nomi, continuita_nomi = [], [], [], []
     for p in partners:
         pid = p.get("id")
+        name = p.get("name") or pid
         hub = hub_by.get(pid) or {}
         vc = vc_by.get(pid) or {}
         funnel = funnel_by.get(pid) or {}
         cur = steps_by.get(pid)
+        calendar = calendar_by.get(pid) or {}
+        live = live_by.get(pid) or {}
 
         offer = [hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes"), hub.get("offerGuarantee")]
         if sum(1 for x in offer if (x or "").strip()) < 4:
@@ -539,10 +593,40 @@ async def luca_daily_report(token_data=Depends(require_admin)):
                 stale = False
         if blocked or stale:
             fermi += 1
-            fermi_nomi.append(p.get("name") or pid)
+            fermi_nomi.append(name)
         if approval == "pending_review":
             serve_ok += 1
-            serve_ok_nomi.append(p.get("name") or pid)
+            serve_ok_nomi.append(name)
+
+        kpi_manual = p.get("kpi_manual") if isinstance(p.get("kpi_manual"), dict) else {}
+        contatti = _num(kpi_manual.get("contatti"))
+        vendite = _num(kpi_manual.get("vendite"))
+        revenue = _num(p.get("revenue") or p.get("fatturato"))
+        kpi_present = bool(
+            _num(kpi_manual.get("visite"))
+            or contatti
+            or vendite
+            or _num(kpi_manual.get("conversione"))
+            or revenue
+        )
+        funnel_url = funnel.get("funnel_systeme_url") or funnel.get("funnel_url")
+        budget = _budget_ads(p, kpi_manual)
+
+        if not (bool(calendar.get("calendar")) and bool(live.get("cycle"))):
+            ritmo_mancante_nomi.append(name)
+        if funnel_url and kpi_present:
+            if budget is None or budget <= 0:
+                budget_ads_nomi.append(name)
+            elif vendite > 0 or revenue > 0:
+                ads_pronte_nomi.append(f"{name} ({'scaling' if budget >= 600 else 'retargeting'})")
+            elif contatti > 0 and budget >= 300:
+                ads_pronte_nomi.append(f"{name} (test)")
+            else:
+                ads_pronte_nomi.append(f"{name} (retargeting)")
+
+        month_in_partnership = _months_since(p.get("data_pagamento_partnership") or p.get("conversion_date"))
+        if month_in_partnership is not None and month_in_partnership >= 10:
+            continuita_nomi.append(name)
 
     md = (
         f"# Report Evolution — {now.strftime('%d/%m/%Y')}\n\n"
@@ -552,7 +636,12 @@ async def luca_daily_report(token_data=Depends(require_admin)):
         f"## Delivery ({len(partners)} partner attivi)\n"
         f"- Fermi/bloccati: {fermi}" + (f" ({', '.join(fermi_nomi[:6])})" if fermi_nomi else "") + "\n"
         f"- Aspettano un OK: {serve_ok}" + (f" ({', '.join(serve_ok_nomi[:6])})" if serve_ok_nomi else "") + "\n"
-        f"- Offerta incompleta: {offerta_mancante} · Videocorso 0 lezioni: {videocorso_zero} · Funnel Systeme mancante: {funnel_mancante}\n"
+        f"- Offerta incompleta: {offerta_mancante} · Videocorso 0 lezioni: {videocorso_zero} · Funnel Systeme mancante: {funnel_mancante}\n\n"
+        f"## Motore Vendite Partner\n"
+        f"- Ritmo Ottimizza da impostare: {len(ritmo_mancante_nomi)}" + (f" ({', '.join(ritmo_mancante_nomi[:6])})" if ritmo_mancante_nomi else "") + "\n"
+        f"- Budget ads da chiedere: {len(budget_ads_nomi)}" + (f" ({', '.join(budget_ads_nomi[:6])})" if budget_ads_nomi else "") + "\n"
+        f"- Partner pronti per ads leggere/test/scaling: {len(ads_pronte_nomi)}" + (f" ({', '.join(ads_pronte_nomi[:6])})" if ads_pronte_nomi else "") + "\n"
+        f"- Continuità post partnership da valutare: {len(continuita_nomi)}" + (f" ({', '.join(continuita_nomi[:6])})" if continuita_nomi else "") + "\n"
     )
 
     return {
@@ -574,6 +663,16 @@ async def luca_daily_report(token_data=Depends(require_admin)):
             "offerta_mancante": offerta_mancante,
             "videocorso_zero": videocorso_zero,
             "funnel_mancante": funnel_mancante,
+        },
+        "partner_sales_engine": {
+            "ritmo_mancante": len(ritmo_mancante_nomi),
+            "ritmo_mancante_nomi": ritmo_mancante_nomi,
+            "budget_ads_da_chiedere": len(budget_ads_nomi),
+            "budget_ads_nomi": budget_ads_nomi,
+            "ads_pronte": len(ads_pronte_nomi),
+            "ads_pronte_nomi": ads_pronte_nomi,
+            "continuita_da_valutare": len(continuita_nomi),
+            "continuita_nomi": continuita_nomi,
         },
         "markdown": md,
     }
