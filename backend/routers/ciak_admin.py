@@ -2707,6 +2707,188 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
     }
 
 
+# ─── Motore Vendite Partner (vista setup + KPI per singolo partner) ────────
+
+@router.get("/partner-sales-engine")
+async def partner_sales_engine(admin=Depends(require_ciak_admin)):
+    """
+    Motore Vendite Partner — vista duplicabile per capire se ogni partner ha la
+    macchina vendite installata: offerta, masterclass, videocorso, funnel
+    Systeme, KPI e prime vendite.
+
+    Riusa Delivery Audit come fonte dello stato reale EVO e aggiunge dati
+    commerciali leggeri gia' presenti nel DB. Non interroga Systeme live: la
+    pagina deve restare veloce e onesta sui dati disponibili.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    audit = await delivery_audit(admin)
+    audit_items = audit.get("items") or []
+    partner_ids = [i.get("id") for i in audit_items if i.get("id")]
+
+    partners_by, funnel_by = {}, {}
+    async for p in db.partners.find(
+        {"id": {"$in": partner_ids}},
+        {
+            "_id": 0,
+            "id": 1,
+            "name": 1,
+            "email": 1,
+            "phase": 1,
+            "niche": 1,
+            "nicchia": 1,
+            "revenue": 1,
+            "fatturato": 1,
+            "kpi_manual": 1,
+            "systeme_course_id": 1,
+            "systeme_account_email": 1,
+        },
+    ):
+        partners_by[p.get("id")] = p
+
+    async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        funnel_by[f.get("partner_id")] = f
+
+    def _num(v):
+        try:
+            return float(v or 0)
+        except Exception:
+            return 0.0
+
+    def _setup_item(key: str, label: str, ok: bool, missing: str) -> dict:
+        return {
+            "key": key,
+            "label": label,
+            "ok": bool(ok),
+            "missing": None if ok else missing,
+        }
+
+    items = []
+    counters = {
+        "ready": 0,
+        "missing_systeme": 0,
+        "missing_kpi": 0,
+        "no_sales": 0,
+        "high_priority": 0,
+    }
+
+    for row in audit_items:
+        pid = row.get("id")
+        partner = partners_by.get(pid) or {}
+        funnel = funnel_by.get(pid) or {}
+        flags = row.get("asset_flags") or {}
+
+        kpi_manual = partner.get("kpi_manual") if isinstance(partner.get("kpi_manual"), dict) else {}
+        visite = _num(kpi_manual.get("visite"))
+        contatti = _num(kpi_manual.get("contatti"))
+        vendite = _num(kpi_manual.get("vendite"))
+        conversione = _num(kpi_manual.get("conversione"))
+        revenue = _num(partner.get("revenue") or partner.get("fatturato"))
+        kpi_fonte = "manuale" if any([visite, contatti, vendite, conversione]) else ("legacy_revenue" if revenue else "nessuna")
+
+        funnel_url = row.get("funnel_url") or funnel.get("funnel_systeme_url") or funnel.get("funnel_url")
+        checkout_url = funnel.get("checkout_url") or funnel.get("checkout_systeme_url")
+        sales_page_url = funnel.get("vendita_url") or funnel.get("sales_page_url")
+        course_id = partner.get("systeme_course_id") or funnel.get("systeme_course_id")
+
+        setup = [
+            _setup_item("offerta", "Offerta 4/4", row.get("offerta") == "completa", "Completa nome, prezzo, contenuto e garanzia."),
+            _setup_item("masterclass", "Masterclass", row.get("masterclass_video"), "Completa script/video masterclass."),
+            _setup_item("videocorso", "Videocorso", (row.get("videocorso_lessons_ready") or 0) > 0, "Carica e approva almeno le prime lezioni."),
+            _setup_item("funnel_systeme", "Funnel Systeme", bool(funnel_url), "Costruisci o collega il funnel Systeme del partner."),
+            _setup_item("kpi", "KPI", bool(flags.get("kpi")), "Inserisci visite, contatti e vendite dal dettaglio partner."),
+            _setup_item("vendite", "Prime vendite", bool(flags.get("vendite")), "Analizza offerta/funnel e lavora sulle prime vendite."),
+        ]
+        completed = sum(1 for s in setup if s["ok"])
+        total = len(setup)
+
+        if completed == total:
+            status = "attivo"
+            next_action = "Mantieni ritmo Ottimizza: KPI, contenuti, live ogni 60 giorni."
+        elif not funnel_url:
+            status = "setup_systeme"
+            next_action = "Installa o collega il funnel Systeme del partner."
+        elif not flags.get("kpi"):
+            status = "dati_mancanti"
+            next_action = "Inserisci KPI iniziali: visite, contatti, vendite e conversione."
+        elif not flags.get("vendite"):
+            status = "prime_vendite"
+            next_action = "Lavora il prossimo ciclo di vendita: contenuti, live, follow-up e offerta."
+        else:
+            status = "in_costruzione"
+            next_action = row.get("next_action")
+
+        if status == "attivo":
+            counters["ready"] += 1
+        if not funnel_url:
+            counters["missing_systeme"] += 1
+        if not flags.get("kpi"):
+            counters["missing_kpi"] += 1
+        if not flags.get("vendite"):
+            counters["no_sales"] += 1
+        if row.get("priorita") == "alta" or row.get("blocked") or row.get("stale"):
+            counters["high_priority"] += 1
+
+        items.append({
+            "id": pid,
+            "name": row.get("name") or partner.get("name") or pid,
+            "niche": row.get("niche") or partner.get("niche") or partner.get("nicchia"),
+            "phase": row.get("phase"),
+            "macro_phase": row.get("macro_phase"),
+            "macro_label": row.get("macro_label"),
+            "status": status,
+            "setup_completed": completed,
+            "setup_total": total,
+            "setup_percent": round((completed / total) * 100) if total else 0,
+            "setup": setup,
+            "systeme": {
+                "account_email": partner.get("systeme_account_email"),
+                "course_id": course_id,
+                "funnel_url": funnel_url,
+                "sales_page_url": sales_page_url,
+                "checkout_url": checkout_url,
+                "thankyou_url": funnel.get("thankyou_url"),
+            },
+            "kpi": {
+                "visite": visite,
+                "contatti": contatti,
+                "vendite": vendite,
+                "conversione": conversione,
+                "revenue": revenue,
+                "fonte": kpi_fonte,
+            },
+            "alignment": {
+                "priorita": row.get("priorita"),
+                "stato_reale": row.get("stato_reale"),
+                "rischio": row.get("rischio"),
+                "owner": row.get("owner"),
+                "blocked": row.get("blocked"),
+                "stale": row.get("stale"),
+            },
+            "next_action": next_action,
+            "owner": row.get("owner"),
+        })
+
+    def _rank(item):
+        status_rank = {
+            "setup_systeme": 0,
+            "dati_mancanti": 1,
+            "prime_vendite": 2,
+            "in_costruzione": 3,
+            "attivo": 4,
+        }
+        priority_penalty = 0 if item["alignment"].get("priorita") == "alta" else 1
+        return (priority_penalty, status_rank.get(item.get("status"), 9), -item.get("setup_percent", 0))
+
+    return {
+        "total": len(items),
+        "generated_at": audit.get("generated_at") or _now_iso(),
+        "counters": counters,
+        "items": sorted(items, key=_rank),
+    }
+
+
 # ─── Partner Alignment — override manuali (innesto sul Delivery Audit) ───────
 # Layer NON invasivo: il GET /delivery-audit resta invariato. Questi due endpoint
 # leggono/scrivono le correzioni manuali (campi alignment_*) sul documento
