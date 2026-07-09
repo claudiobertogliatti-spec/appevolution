@@ -120,5 +120,5 @@ Perché lo fa. Il resto viene dopo.
 ## Note d'uso
 
 - **Alterna volto reale e avatar**: rendi con l'avatar i reel 9-20 tranne 1-2 a settimana che giri davvero col telefono (consigliati: 15 "ho detto no" e 19 "non è un corso" — le storie e il manifesto rendono meglio col tuo viso vero).
-- **CTA**: quelli con "www.ciak.io" sono diretti; per i reel senza link diretto (11, 13, 14, 17, 18, 20) usa la comment-to-DM: chiudi con *"Commenta CIAK e ti mando lo schema"* e collega il lead magnet.
+- **CTA**: quelli con "www.ciak.io" sono diretti; per i reel senza link diretto (11, 13, 14, 17, 18, 20) chiudi con *"Commenta CIAK e ti mando lo schema"* → DM col link alla **pagina opt-in Systeme** che consegna il PDF (per Ciak la distribuzione dei lead magnet è sempre su Systeme, non altri tool).
 - **Aneddoti**: dove c'è "[Claudio reale]" o una storia (reel 15, 18), sostituisci con un episodio vero tuo — è ciò che nessun avatar di nessun competitor può inventare.
