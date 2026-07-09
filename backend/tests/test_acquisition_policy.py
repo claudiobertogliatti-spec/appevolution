@@ -26,6 +26,12 @@ def test_lista_fredda_systeme_import_is_disabled_by_default():
     }
 
 
+def test_discovery_engine_contract_documents_allowed_sources():
+    allowed = acquisition_policy.get_allowed_systeme_sources({})
+    assert allowed == ["google_places"]
+    assert "lista_fredda" not in allowed
+
+
 @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
 def test_lista_fredda_systeme_import_can_be_enabled_only_with_explicit_flag(value):
     env = {acquisition_policy.ALLOW_LISTA_FREDDA_SYSTEME_IMPORT_ENV: value}

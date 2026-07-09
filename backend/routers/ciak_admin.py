@@ -672,6 +672,19 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
     weekly_new_contacts = 100
     monthly_new_contacts = 400
 
+    discovery_total = await db.discovery_leads.count_documents({})
+    discovery_hot = await db.discovery_leads.count_documents({"score_total": {"$gte": 75}})
+    discovery_google_places = await db.discovery_leads.count_documents({"source": "google_places"})
+    queue_pending = await db.systeme_daily_queue.count_documents({"status": "pending", "source": {"$ne": "lista_fredda"}})
+    queue_imported = await db.systeme_daily_queue.count_documents({"status": "imported"})
+    queue_failed = await db.systeme_daily_queue.count_documents({"status": "failed"})
+    lista_fredda_pending_blocked = await db.systeme_daily_queue.count_documents({"status": "pending", "source": "lista_fredda"})
+    last_systeme_import = await db.celery_job_logs.find_one(
+        {"job": "daily_systeme_import"},
+        {"_id": 0},
+        sort=[("executed_at", -1)],
+    )
+
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
         em = _email(d.get("user_email"))
@@ -913,6 +926,16 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
         },
         "channels": channels,
         "partner_sales_engine": partner_sales_engine,
+        "discovery_engine": {
+            "new_leads_total": discovery_total,
+            "hot_leads_total": discovery_hot,
+            "google_places_total": discovery_google_places,
+            "queued_systeme_pending": queue_pending,
+            "queued_systeme_imported": queue_imported,
+            "queued_systeme_failed": queue_failed,
+            "lista_fredda_pending_blocked": lista_fredda_pending_blocked,
+            "last_import": last_systeme_import,
+        },
     }
 
 
