@@ -58,7 +58,7 @@ I contenuti tecnici ("come costruire un funnel", "marketing skills") restano a 2
 
 ### Da prendere (struttura, non tono)
 
-1. **Value ladder a 3 gradini con application-gate + scarcity reale** ("max 4/mese"). Ciak ha già €67 blueprint + €2.790 partnership; il pattern di ancoraggio prezzo e form senza carta è solido.
+1. **Value ladder a 3 gradini con application-gate + scarcity reale** ("max 4/mese"). Ciak ha già il funnel `8 Domande -> Blueprint 27€ -> call -> Start 499€ oppure Partnership 2.790€`; il pattern di ancoraggio prezzo e form senza carta è solido.
 2. **Naming del metodo**: lui ha 3 sistemi con nome proprietario. Ciak ha "Metodo EVO" — rafforzare la nomenclatura proprietaria va nella direzione giusta.
 3. **Topic virali validati**: i suoi unici successi sono contenuti *trasversali* (paura di vendere, "ti faccio sapere", parlare in pubblico). Prova concreta che gli hook dei contenuti Ciak (Andrea/Marco) devono essere **larghi e relatable**, non tecnici. → vedi mappatura §6.
 4. **Format reel-hook** (testo overlay bold + faccia espressiva nel primo frame): replicabile e adattabile al brand kit antracite `#1A1F24` / giallo `#FFD24D`.

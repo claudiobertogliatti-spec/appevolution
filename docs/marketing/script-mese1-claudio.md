@@ -24,7 +24,7 @@ Ho venduto per 22 anni e adesso costruisco l'offerta di consulenti e coach al po
 [B-ROLL: Claudio reale]
 Il nome altisonante serve a farti sembrare complicato qualcosa di semplice, così sembra valere di più.
 A te non serve un acronimo. Ti serve un'offerta chiara e qualcuno che la venda.
-Se vuoi la sostanza senza la scenografia: www.ciak.io.
+Se vuoi la sostanza senza la scenografia: richiedi il Blueprint da 27 euro su ciak.io.
 
 ### Reel 11 — Linea B · P3 · "Nicchia"
 **[HOOK-TEXT: La nicchia non ti chiude le porte. Te le apre.]**
@@ -42,7 +42,7 @@ Uno: **Esaminiamo** — capiamo cosa vendi davvero e a chi.
 Due: **Validiamo** — costruiamo l'offerta e la testiamo sul mercato vero, non sulla carta.
 Tre: **Ottimizziamo** — sistemiamo quello che converte e spegniamo quello che no.
 Il partner non tocca un funnel. Lo facciamo noi. Lui fa il suo lavoro.
-Se vuoi vedere com'è: www.ciak.io.
+Se vuoi vedere com'è: fai le 8 Domande Ciak e parti da lì.
 
 ### Reel 13 — Linea A · P2 · "Costa troppo"
 **[HOOK-TEXT: "Costa troppo" non parla di soldi.]**
@@ -79,7 +79,7 @@ Prova adesso: dì cosa fai in una frase. Se ci metti trenta secondi e tre "cioè
 [B-ROLL: testo "Aiuto le aziende a… cioè… in pratica…"]
 Il cliente non compra ciò che non capisce in fretta. La confusione non vende, la chiarezza sì.
 Non è che fai troppo poco. È che lo dici troppo complicato.
-Una frase, un risultato, un destinatario. Se non ce l'hai, partiamo da lì: www.ciak.io.
+Una frase, un risultato, un destinatario. Se non ce l'hai, partiamo da lì: richiedi il Blueprint da 27 euro.
 
 ### Reel 17 — Linea B · P1 · "Non devi essere ovunque"
 **[HOOK-TEXT: Non devi essere su tutti i social.]**
@@ -105,7 +105,7 @@ Un corso ti insegna a fare il marketing e poi ti lascia solo. Un'agenzia ti fa i
 [B-ROLL: schermate piattaforma]
 Ciak costruisce e lancia la tua offerta — corso, funnel, tutto — e poi resta tua. Fatta con l'AI e con le persone.
 Tu fai il tuo lavoro, la macchina la mettiamo noi.
-Se sei bravo nel tuo mestiere e stanco di fare anche il marketer: www.ciak.io.
+Se sei bravo nel tuo mestiere e stanco di fare anche il marketer: fai le 8 Domande Ciak e capiamo da dove partire.
 
 ### Reel 20 — Linea B · P5 · "Ti paghi poco perché pensi valga poco"
 **[HOOK-TEXT: Ti paghi poco perché pensi di valere poco.]**
@@ -120,5 +120,5 @@ Perché lo fa. Il resto viene dopo.
 ## Note d'uso
 
 - **Alterna volto reale e avatar**: rendi con l'avatar i reel 9-20 tranne 1-2 a settimana che giri davvero col telefono (consigliati: 15 "ho detto no" e 19 "non è un corso" — le storie e il manifesto rendono meglio col tuo viso vero).
-- **CTA**: quelli con "www.ciak.io" sono diretti; per i reel senza link diretto (11, 13, 14, 17, 18, 20) chiudi con *"Commenta CIAK e ti mando lo schema"* → DM col link alla **pagina opt-in Systeme** che consegna il PDF (per Ciak la distribuzione dei lead magnet è sempre su Systeme, non altri tool).
+- **CTA**: per i reel più caldi usa "Richiedi il Blueprint da 27 euro" o "Fai le 8 Domande Ciak"; per i reel senza link diretto (11, 13, 14, 17, 18, 20) chiudi con *"Commenta CIAK e ti mando lo schema"* → DM col link alla **pagina opt-in Systeme** che consegna il PDF (per Ciak la distribuzione dei lead magnet è sempre su Systeme, non altri tool).
 - **Aneddoti**: dove c'è "[Claudio reale]" o una storia (reel 15, 18), sostituisci con un episodio vero tuo — è ciò che nessun avatar di nessun competitor può inventare.

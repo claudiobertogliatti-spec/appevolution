@@ -99,7 +99,7 @@
 
 2. **La reach NON è il prerequisito per vendere high-ticket**: Ait (5,6K), Tampieri (3,7K), Santiloni (530), Giordani (~0 su IG) vendono comunque con funnel + vendita umana. Chi ha reach enorme (Cavina 203K, Pittaluga 165K) la usa per alimentare un funnel a call. → Conferma la strategia Ciak: **contano funnel + closing (Claudio) + outreach caldo**, non la viralità.
 
-3. **Funnel quasi identico ovunque**: lead magnet gratuito (PDF / masterclass / libro / challenge) → webinar o call/application → high-ticket. Ciak ha già €67 blueprint → partnership €2.790; il gradino **"masterclass/webinar gratuito → call"** è validato da tutti (Cavina, Avenali, Tampieri, Pittaluga).
+3. **Funnel quasi identico ovunque**: lead magnet gratuito (PDF / masterclass / libro / challenge) → webinar o call/application → high-ticket. Ciak ha già `8 Domande -> Blueprint 27€ -> call -> Start 499€ oppure Partnership 2.790€`; il gradino **"asset gratuito/diagnosi → call"** è validato da tutti (Cavina, Avenali, Tampieri, Pittaluga).
 
 4. **Comment-to-DM (Manychat)** come lead magnet organico: Gianlucontent e Avenali. Mappa direttamente su **Gaia** (DM automation, già nel backlog).
 
@@ -112,7 +112,7 @@
 ## Feedback strategico per Ciak
 
 **Da prendere (validato dai competitor):**
-- **Gateway a bassa barriera** prima dell'high-ticket: masterclass/webinar gratuito → call (universale), oppure un evento/bootcamp low-ticket alla Tampieri. Ciak ha il blueprint €67; rafforzare lo step "masterclass gratuita → call di direzione strategica".
+- **Gateway a bassa barriera** prima dell'high-ticket: masterclass/webinar gratuito → call (universale), oppure un evento/bootcamp low-ticket alla Tampieri. Ciak ha il Blueprint 27€; rafforzare lo step "8 Domande → Blueprint → call di direzione strategica".
 - **Case study per-nicchia con numeri** come prova sociale (Avenali, Giordani, Ait, Vignali). Costruire una libreria di risultati per verticale.
 - **Comment-to-DM + lead magnet PDF** come motore organico a budget zero (Gianlucontent, Avenali, Baileni) → Gaia.
 - **Verticalizzazione "specialista"** (Baileni nicchia queen, Santiloni CopyFit) → rafforza il motore di posizionamento di Valentina (De Veglia).
@@ -154,7 +154,7 @@
 ## Mappatura per agente Ciak
 
 - **Andrea (contenuti/reel)**: swipe file 30 ganci + format "gli errori che vedo fare" + obiezione di vendita + tesi contrarian. Priorità a hook **trasversali** (vendere, prezzo, obiezioni, tempo), non tecnici.
-- **Gaia (funnel/tecnica)**: comment-to-DM Manychat, lead magnet PDF, funnel masterclass→call.
+- **Gaia (funnel/tecnica)**: comment-to-DM Manychat, lead magnet PDF, funnel PDF/masterclass → 8 Domande → Blueprint → call.
 - **Marco (lancio/vendita)**: value ladder (Pittaluga), gateway low-ticket→high-ticket (Tampieri), team setter/closer (Cavina, Avenali), garanzia anti-rischio.
 - **Valentina (posizionamento)**: nicchia-specialista (Baileni, Santiloni), angolo contrarian, proof con numeri hard (Ait, Vignali).
 - **Matteo (blueprint/scoring)**: benchmark offerte/prezzi del mercato (da €27 di prompt-pack a €2.400 di corso a high-ticket a candidatura).

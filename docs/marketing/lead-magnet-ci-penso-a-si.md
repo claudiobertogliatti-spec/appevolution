@@ -1,7 +1,7 @@
 # Lead magnet — "Da 'ci penso' a 'sì'"
 
 > Sorgente testuale del lead magnet PDF collegato alla CTA "commenta CIAK".
-> Voice: anti-fuffa, frasi brevi, credibilità di Claudio (22 anni, €6M, 25.000 trattative). PDF brandizzato in `lead-magnet-ci-penso-a-si.pdf` (script di generazione: `scripts/genera_lead_magnet.py`).
+> Voice: anti-fuffa, frasi brevi, credibilità di Claudio (22 anni, €6M, 25.000 trattative). PDF brandizzato in `docs/marketing/lead-magnet-ci-penso-a-si.pdf` (script di generazione: `scripts/genera_lead_magnet.py`).
 
 ## Titolo
 **Da "ci penso" a "sì"** — Lo schema in 5 mosse per far decidere il cliente subito (senza inseguirlo)
@@ -41,4 +41,7 @@ Non "fammi sapere". Una domanda che porta a una risposta vera, adesso.
 
 ## Chiusura / CTA
 Se hai una competenza forte ma odi vendere — o semplicemente non vuoi farlo tu — è esattamente il lavoro che facciamo noi. Non ti insegniamo il marketing: costruiamo e lanciamo la tua offerta al posto tuo. Zero fuffa.
-👉 www.ciak.io — Claudio
+
+Prossimo passo: fai le 8 Domande Ciak o richiedi il Blueprint da 27€.
+
+— Claudio

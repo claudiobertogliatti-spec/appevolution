@@ -99,11 +99,24 @@ Con HeyGen togli l'attrito delle riprese → puoi **batchare**. Una sola session
 2. **2-6s — TENSIONE.** Nomini il problema/la frase-fatta che stai per smontare. Crei la crepa.
 3. **6-22s — SOSTANZA.** 1 sola idea. Max 3 micro-punti. Frasi brevi. Almeno **1 numero o esempio concreto** (una trattativa, un caso, una cifra).
 4. **22-30s — GIRO DI BOA.** La verità/riformulazione: "il vero problema non è X, è Y".
-5. **CTA finale — UNA sola.** Soft: *"Commenta CIAK e ti mando [risorsa]"* → DM col link alla **pagina opt-in Systeme** che consegna il PDF. Oppure diretta: *"Se vuoi che lo costruiamo noi, www.ciak.io"*. Mai due CTA.
+5. **CTA finale — UNA sola.** Scegli una delle CTA canoniche qui sotto. Mai due CTA nello stesso contenuto.
 
 **Caption:** 1 riga gancio + 2-3 righe di valore + 1 CTA. Pochi hashtag (3-5 mirati). Firma `— Claudio` quando è un contenuto-opinione.
 
 **Regole di voce (dal voice-lock):** frasi brevi, italiano semplice, zero esclamativi a raffica, zero "income/libertà/mindset", nessuna promessa di reddito, chiusura che restituisce libertà ("se non ti serve, ignora pure").
+
+---
+
+## 6b. CTA canoniche
+
+| CTA | Quando usarla | Destinazione |
+|---|---|---|
+| **Commenta CIAK** | Reel su vendita, obiezioni, prezzo, frasi da usare | DM con link alla pagina opt-in Systeme del lead magnet |
+| **Fai le 8 Domande Ciak** | Contenuti diagnostici: "non sai da dove partire", "stai costruendo nel vuoto" | `/diagnostica` |
+| **Richiedi il Blueprint da 27€** | Contenuti più caldi: offerta, Metodo EVO, casi, dietro le quinte | `/ciak-blueprint` |
+| **Entra nel Metodo EVO** | Solo post-call/proposta, o contenuti manifesto molto qualificanti | proposta/contatto diretto gestito da Claudio |
+
+`www.ciak.io` resta CTA di brand per contenuti manifesto. Nei contenuti operativi si usa una CTA tracciabile.
 
 ---
 
@@ -139,7 +152,7 @@ Con HeyGen togli l'attrito delle riprese → puoi **batchare**. Una sola session
 25. "Non ti serve un altro attestato. Ti serve un'offerta che la gente capisca in 5 secondi."
 26. "Se dici 'aiuto le persone a stare meglio', nessuno ti pagherà bene. Ecco perché."
 27. "Il pacchetto da 3 mesi si vende meglio della singola seduta. E costa meno stress a te."
-28. "Hai paura di sembrare 'commerciale'. È esattamente quello che ti tiene povera."
+28. "Hai paura di sembrare 'commerciale'. È esattamente quello che ti fa restare sottopagata."
 29. "La nicchia non ti chiude le porte. Te le apre. Contro-intuitivo, lo so."
 30. "Non devi essere ovunque. Devi essere chiara in un posto solo."
 31. "Il coaching non si vende con la passione. Si vende con la chiarezza."
@@ -182,7 +195,7 @@ I primi 8 script (settimane 1-2) e i successivi 12 (settimane 3-4) sono in `docs
 ## 10. Caroselli — struttura + set pronto
 
 **Struttura standard (7 slide, brand kit antracite/giallo/Manrope):**
-Slide 1 = hook (una frase, testo grande) · 2 = il problema · 3-5 = i punti/passi (uno per slide) · 6 = la sintesi/verità · 7 = CTA (www.ciak.io o "commenta CIAK").
+Slide 1 = hook (una frase, testo grande) · 2 = il problema · 3-5 = i punti/passi (uno per slide) · 6 = la sintesi/verità · 7 = CTA canonica.
 
 8 caroselli già pronti (topic da incollare su Swipeeza + copy slide-per-slide) in `docs/marketing/caroselli-swipeeza-claudio.md`. Brand Swipeeza: "Ciak — Evolution PRO" e "Metodo EVO".
 
@@ -231,6 +244,21 @@ Storie ogni giorno: dietro le quinte (avatar che gira, una trattativa, una doman
 ## Lead magnet collegato
 
 Per la CTA "commenta CIAK": guida PDF **"Da 'ci penso' a 'sì'"** (`docs/marketing/lead-magnet-ci-penso-a-si.pdf`, sorgente `.md` + generatore `scripts/genera_lead_magnet.py`). **Consegna e nurture su Systeme**: pagina opt-in che rilascia il PDF + sequenza email. Il commento "CIAK" → DM col link alla pagina Systeme.
+
+Il PDF **non sostituisce la masterclass gratuita**. È una porta laterale veloce: intercetta un problema caldo, apre DM/commenti e porta il contatto dentro Systeme. La masterclass resta la porta principale autorevole: posiziona Ciak, spiega Metodo EVO e prepara meglio a 8 Domande e Blueprint.
+
+Flusso consigliato:
+
+```text
+Reel / carosello
+-> Commenta CIAK
+-> PDF "Da ci penso a sì"
+-> email Systeme
+-> Masterclass gratuita o 8 Domande Ciak
+-> Blueprint 27€
+-> Call
+-> Start 499€ o Partnership 2.790€
+```
 
 ## Prossimi passi operativi
 
