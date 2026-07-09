@@ -2,6 +2,7 @@
 
 > Creato il 2026-07-09. Basato su `docs/strategy/analisi-competitor-creator-italiani.md`, `docs/strategy/analisi-competitor-maxcecco.md` e sul voice-lock `docs/marketing/claudio_voice_style.md`.
 > Decisioni di Claudio: protagonista = **Mix Claudio + Ciak** · canale P1 = **Instagram (reel)** · formato = **mix video (avatar HeyGen) + faceless/caroselli** · target = **2 linee (business/vendita + coach/benessere)** · produzione video = **avatar HeyGen (voice clone di Claudio)**.
+> Tooling: **per Ciak la distribuzione e il nurture dei lead magnet passano da Systeme** (opt-in + email), mai da altri tool. Caroselli su Swipeeza (`caroselli-swipeeza-claudio.md`).
 
 ---
 
@@ -82,11 +83,11 @@ Con HeyGen togli l'attrito delle riprese → puoi **batchare**. Una sola session
 **Flusso (1 batch/settimana, ~2-3 ore tue):**
 1. **Lunedì — Scrittura (agente Andrea / Claude):** genera 5 script dai pillar della settimana + 2 caroselli. Tu li leggi e correggi tono/numeri/storie (20-30 min).
 2. **Lunedì — Render:** incolli gli script approvati su HeyGen (voice clone) → render in batch dei 5 reel.
-3. **Martedì — Editing:** captions bruciate, hook-text brand-kit, b-roll reale, musica leggera. Caroselli grafici (Canva/Swipeeza col brand kit).
+3. **Martedì — Editing:** captions bruciate, hook-text brand-kit, b-roll reale, musica leggera. Caroselli grafici (Swipeeza col brand kit → `caroselli-swipeeza-claudio.md`).
 4. **Martedì — Schedulazione:** carichi tutto nello scheduler, 1 reel/giorno (lun–ven), caroselli mer/sab, storie quotidiane.
 5. **In settimana — Interazione:** rispondi a commenti/DM (qui nasce il lead). 15 min/giorno.
 
-**Ruoli:** Andrea = script · tu = approvazione voce/storie/numeri + closing · HeyGen = render · editor (tu o freelance) = captions/b-roll · scheduler = distribuzione. Gaia = automazione comment-to-DM per i lead magnet.
+**Ruoli:** Andrea = script · tu = approvazione voce/storie/numeri + closing · HeyGen = render · editor (tu o freelance) = captions/b-roll · scheduler = distribuzione. **Gaia = funnel Systeme** per i lead magnet (pagina opt-in + sequenza email). Il commento "CIAK" → DM col link alla pagina Systeme che consegna il PDF.
 
 > Nota sottotitoli: la regola "niente sottotitoli" del CLAUDE.md vale per le **lezioni del videocorso**. Sui **reel social** i sottotitoli bruciati aumentano la retention e vanno usati. Sono contesti diversi.
 
@@ -98,7 +99,7 @@ Con HeyGen togli l'attrito delle riprese → puoi **batchare**. Una sola session
 2. **2-6s — TENSIONE.** Nomini il problema/la frase-fatta che stai per smontare. Crei la crepa.
 3. **6-22s — SOSTANZA.** 1 sola idea. Max 3 micro-punti. Frasi brevi. Almeno **1 numero o esempio concreto** (una trattativa, un caso, una cifra).
 4. **22-30s — GIRO DI BOA.** La verità/riformulazione: "il vero problema non è X, è Y".
-5. **CTA finale — UNA sola.** Soft: *"Commenta CIAK e ti mando [risorsa]"* (comment-to-DM). Oppure diretta: *"Se vuoi che lo costruiamo noi, www.ciak.io"*. Mai due CTA.
+5. **CTA finale — UNA sola.** Soft: *"Commenta CIAK e ti mando [risorsa]"* → DM col link alla **pagina opt-in Systeme** che consegna il PDF. Oppure diretta: *"Se vuoi che lo costruiamo noi, www.ciak.io"*. Mai due CTA.
 
 **Caption:** 1 riga gancio + 2-3 righe di valore + 1 CTA. Pochi hashtag (3-5 mirati). Firma `— Claudio` quando è un contenuto-opinione.
 
@@ -178,16 +179,12 @@ I primi 8 script (settimane 1-2) e i successivi 12 (settimane 3-4) sono in `docs
 
 ---
 
-## 10. Caroselli — struttura + 4 idee pronte
+## 10. Caroselli — struttura + set pronto
 
 **Struttura standard (7 slide, brand kit antracite/giallo/Manrope):**
 Slide 1 = hook (una frase, testo grande) · 2 = il problema · 3-5 = i punti/passi (uno per slide) · 6 = la sintesi/verità · 7 = CTA (www.ciak.io o "commenta CIAK").
 
-**Idee pronte:**
-1. **"5 frasi che ti stanno facendo perdere clienti"** (Linea A/P2) — una frase per slide ("mando il preventivo e aspetto", "faccio un prezzo di favore", …).
-2. **"Da competenza a offerta: i 3 passi del metodo EVO"** (Linea A+B/P4) — Esamina · Valida · Ottimizza, uno per slide, con esempio.
-3. **"Perché il tuo coaching non si vende (e non è il prezzo)"** (Linea B/P3) — 5 motivi, ultimo slide = soluzione.
-4. **"Cosa fa Ciak in 6 slide"** (P4) — anti-posizionamento: "non è un corso / non è un'agenzia / è la macchina che costruiamo per te".
+8 caroselli già pronti (topic da incollare su Swipeeza + copy slide-per-slide) in `docs/marketing/caroselli-swipeeza-claudio.md`. Brand Swipeeza: "Ciak — Evolution PRO" e "Metodo EVO".
 
 ---
 
@@ -197,8 +194,8 @@ Slide 1 = hook (una frase, testo grande) · 2 = il problema · 3-5 = i punti/pas
 |---|---|---|---|---|---|---|
 | **1** | Reel 1 (A) | Reel 2 (A) | Carosello 1 (A) | Reel 3 (B) | Reel 4 (A/P5) | Carosello 3 (B) |
 | **2** | Reel 6 (B) | Reel 8 (A) | Carosello 2 (EVO) | Reel 7 (A) | Reel 5 (A/P4 avatar) | Carosello 4 (Ciak) |
-| **3** | Reel 9 (A) | Reel 10 (A) | "5 frasi" (B) | Reel 11 (B) | Reel 15 (A/P5) | "3 passi offerta" (B) |
-| **4** | Reel 13 (A) | Reel 14 (B) | carosello caso partner | Reel 16 (A) | Reel 19 (P4) | carosello "guru vs" |
+| **3** | Reel 9 (A) | Reel 10 (A) | Carosello 5 (A) | Reel 11 (B) | Reel 15 (A/P5) | Carosello 7 (B) |
+| **4** | Reel 13 (A) | Reel 14 (B) | Carosello 6 (A/B) | Reel 16 (A) | Reel 19 (P4) | Carosello 8 (A) |
 
 Storie ogni giorno: dietro le quinte (avatar che gira, una trattativa, una domanda al pubblico, un sondaggio, un risultato partner). Le storie scaldano; i reel acquisiscono; i caroselli educano.
 
@@ -233,12 +230,13 @@ Storie ogni giorno: dietro le quinte (avatar che gira, una trattativa, una doman
 
 ## Lead magnet collegato
 
-Per la CTA "commenta CIAK": guida PDF **"Da 'ci penso' a 'sì'"** (`docs/marketing/lead-magnet-ci-penso-a-si.pdf`, sorgente `.md` + generatore `scripts/genera_lead_magnet.py`).
+Per la CTA "commenta CIAK": guida PDF **"Da 'ci penso' a 'sì'"** (`docs/marketing/lead-magnet-ci-penso-a-si.pdf`, sorgente `.md` + generatore `scripts/genera_lead_magnet.py`). **Consegna e nurture su Systeme**: pagina opt-in che rilascia il PDF + sequenza email. Il commento "CIAK" → DM col link alla pagina Systeme.
 
 ## Prossimi passi operativi
 
 1. Completa il setup HeyGen (checklist §13) — voice clone è la priorità assoluta.
 2. Approva i 20 script (`script-mese1-claudio.md`): correggi tono, numeri e aggiungi aneddoti tuoi reali.
-3. Batch settimana 1: render + editing + schedulazione.
-4. Attiva la comment-to-DM (Gaia) per la CTA "commenta CIAK" con il lead magnet.
-5. Dopo 2 settimane: prima review KPI e raddoppio di ciò che tira.
+3. Produci gli 8 caroselli su Swipeeza (`caroselli-swipeeza-claudio.md`).
+4. Batch settimana 1: render + editing + schedulazione.
+5. Imposta il **funnel Systeme** (Gaia): pagina opt-in che consegna il PDF + sequenza email di nurture. La CTA "commenta CIAK" → DM col link alla pagina Systeme. (Per Ciak la distribuzione è sempre Systeme, non altri tool.)
+6. Dopo 2 settimane: prima review KPI e raddoppio di ciò che tira.
