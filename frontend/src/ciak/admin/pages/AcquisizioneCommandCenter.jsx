@@ -135,6 +135,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const funnel = data.funnel || {};
   const priorities = data.priorities || {};
   const routine = data.routine || {};
+  const activity = data.activity_today || {};
   const channels = data.channels || {};
   const partnerSalesEngine = data.partner_sales_engine || {};
   const discoveryEngine = data.discovery_engine || {};
@@ -209,6 +210,9 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
           <p>
             {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
+          </p>
+          <p className="mt-2 text-slate-900 font-semibold">
+            Oggi: {activity.new_leads || 0} nuovi lead · {activity.diagnostics_completed || 0} diagnosi (target {activity.target_new_contacts || 20} contatti)
           </p>
           <div className="mt-3 space-y-2">
             {(routine.today || []).map((item) => (

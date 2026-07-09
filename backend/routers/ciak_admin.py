@@ -685,6 +685,11 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
         sort=[("executed_at", -1)],
     )
 
+    # Attività reale di oggi (input metrics: cosa si è mosso oggi vs target 20/giorno).
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    leads_today = await db.ciak_leads.count_documents({"created_at": {"$gte": today_start}})
+    diagnostics_today = await db.diagnostic_sessions.count_documents({"created_at": {"$gte": today_start}})
+
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
         em = _email(d.get("user_email"))
@@ -935,6 +940,11 @@ async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
             "queued_systeme_failed": queue_failed,
             "lista_fredda_pending_blocked": lista_fredda_pending_blocked,
             "last_import": last_systeme_import,
+        },
+        "activity_today": {
+            "new_leads": leads_today,
+            "diagnostics_completed": diagnostics_today,
+            "target_new_contacts": daily_new_contacts,
         },
     }
 
@@ -2428,3 +2438,224 @@ async def cancel_invoice(invoice_id: str, admin=Depends(require_ciak_admin)):
     if res.matched_count == 0:
         raise HTTPException(404, "Fattura non trovata")
     return {"ok": True, "id": invoice_id, "stato": "annullata"}
+
+
+# ─── Delivery Audit (vista sintetica stato reale percorso EVO dei partner) ───
+
+@router.get("/delivery-audit")
+async def delivery_audit(admin=Depends(require_ciak_admin)):
+    """
+    Audit Delivery — una riga per partner attivo con lo stato reale del percorso EVO.
+
+    Sola lettura. Aggrega partners + partner_hub + partner_journey_steps +
+    masterclass_factory + partner_videocorso + partner_funnel per rispondere a:
+    chi e' fermo, cosa manca (offerta / videocorso / funnel), prossima azione,
+    chi deve muoversi (Claudio / Partner / Team).
+
+    Serve a Stefania e Luca per la Delivery, senza aprire N schede full-data.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+
+    STEP_META = {
+        d["step_id"]: {
+            "label": d["label"],
+            "macro_phase": d["macro_phase"],
+            "step_number": d["step_number"],
+        }
+        for d in JOURNEY_STEPS_DEFINITION
+    }
+    MACRO_LABEL = {"esamina": "Esamina", "valida": "Valida", "ottimizza": "Ottimizza"}
+    # Step in cui la palla e' al partner (registra grezzo / invia dati); gli altri
+    # sono a carico del team Evolution.
+    PARTNER_ACTION_STEPS = {
+        "01-contratto",
+        "02-discovery-video",
+        "burocrazia",
+        "la-tua-storia",
+        "07-registra-masterclass",
+        "08-registra-lezioni",
+    }
+    STALE_DAYS = 7
+    now = datetime.now(timezone.utc)
+
+    def _iso(v):
+        if not v:
+            return None
+        if isinstance(v, str):
+            return v
+        try:
+            return v.isoformat()
+        except Exception:
+            return str(v)
+
+    def _filled(v):
+        return bool((v or "").strip()) if isinstance(v, str) else bool(v)
+
+    # Partner attivi (stato "attivo" o assente).
+    partners = []
+    async for p in db.partners.find(
+        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}
+    ).sort("name", 1):
+        partners.append(p)
+    partner_ids = [p.get("id") for p in partners if p.get("id")]
+
+    hub_by, mc_by, vc_by, funnel_by = {}, {}, {}, {}
+    steps_by: dict[str, list] = {}
+    async for h in db.partner_hub.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        hub_by[h.get("partner_id")] = h
+    async for m in db.masterclass_factory.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        mc_by[m.get("partner_id")] = m
+    async for v in db.partner_videocorso.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        vc_by[v.get("partner_id")] = v
+    async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        funnel_by[f.get("partner_id")] = f
+    async for s in db.partner_journey_steps.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        steps_by.setdefault(s.get("partner_id"), []).append(s)
+
+    items = []
+    counters = {
+        "offerta_mancante": 0,
+        "videocorso_zero": 0,
+        "funnel_mancante": 0,
+        "fermi": 0,
+        "serve_claudio": 0,
+        "incoerenze": 0,
+    }
+
+    for p in partners:
+        pid = p.get("id")
+        hub = hub_by.get(pid) or {}
+        mc = mc_by.get(pid) or {}
+        vc = vc_by.get(pid) or {}
+        funnel = funnel_by.get(pid) or {}
+        steps = sorted(steps_by.get(pid, []), key=lambda s: s.get("step_number") or 0)
+
+        phase_legacy = p.get("phase") or "F1"
+        is_live = phase_legacy in ("LIVE", "OTTIMIZZAZIONE")
+
+        current = next((s for s in steps if s.get("status") == "in_progress"), None)
+        if not current and steps:
+            current = steps[-1]
+        cur_id = current.get("step_id") if current else None
+        cur_meta = STEP_META.get(cur_id or "", {})
+        macro = "ottimizza" if is_live else (cur_meta.get("macro_phase") or "esamina")
+
+        # Offerta (4 campi).
+        offer_fields = [hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes"), hub.get("offerGuarantee")]
+        offer_filled = sum(1 for x in offer_fields if _filled(x))
+        offerta = "completa" if offer_filled == 4 else ("parziale" if offer_filled > 0 else "mancante")
+
+        # Posizionamento (6 campi).
+        pos_fields = [hub.get("whoYouAre"), hub.get("targetAudience"), hub.get("problem"), hub.get("solution"), hub.get("pitch"), hub.get("differentiator")]
+        pos_filled = sum(1 for x in pos_fields if _filled(x))
+
+        # Masterclass.
+        mc_script = bool((mc.get("dyf_status") in ("pronto", "approvato")) or mc.get("full_script") or mc.get("script"))
+        mc_video = bool((mc.get("pipeline_status") in ("ready_for_review", "approved", "da_revisionare", "montaggio")) or mc.get("video_youtube_url"))
+
+        # Videocorso — lezioni.
+        lessons = vc.get("lessons") or {}
+        n_lessons = 0
+        n_lessons_ready = 0
+        if isinstance(lessons, dict):
+            for lv in lessons.values():
+                if not isinstance(lv, dict):
+                    continue
+                n_lessons += 1
+                if lv.get("status") in ("ready_for_review", "approved", "done") or lv.get("youtube_url") or lv.get("video_youtube_url"):
+                    n_lessons_ready += 1
+
+        # Funnel Systeme del partner.
+        funnel_url = funnel.get("funnel_systeme_url") or funnel.get("funnel_url")
+        funnel_ok = bool(funnel_url)
+
+        # Fermo / stale.
+        cur_updated = _iso(current.get("updated_at")) if current else None
+        stale = False
+        if cur_updated:
+            try:
+                dt = datetime.fromisoformat(cur_updated.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                stale = (now - dt).days >= STALE_DAYS
+            except Exception:
+                stale = False
+        approval = current.get("approval_status") if current else None
+        blocked = bool(current and current.get("status") == "blocked") or (approval == "pending_review")
+
+        # Incoerenza fase↔dati: fase vendita/lancio (F5-F7) ma asset base incompleti.
+        incoerenza = None
+        if not is_live and phase_legacy >= "F5":
+            if not mc_video or pos_filled < 6 or offerta == "mancante":
+                incoerenza = "Fase avanzata ma asset base incompleti"
+
+        # Chi deve muoversi.
+        if approval == "pending_review":
+            owner = "Team/Claudio"
+        elif cur_id in PARTNER_ACTION_STEPS:
+            owner = "Partner"
+        else:
+            owner = "Team"
+
+        # Prossima azione (prioritizza i gap sistematici).
+        if offerta != "completa":
+            next_action = "Completare l'offerta: nome, prezzo, cosa include, garanzia"
+        elif n_lessons == 0 and not is_live:
+            next_action = "Avviare le lezioni del videocorso"
+        elif not funnel_ok and not is_live:
+            next_action = "Costruire il funnel nel Systeme del partner"
+        elif is_live:
+            next_action = "Fase Ottimizza: calendario 90gg, live 60gg, lettura dati"
+        elif current:
+            next_action = f"Step in corso: {cur_meta.get('label', cur_id)}"
+        else:
+            next_action = "Percorso completato"
+
+        if offerta != "completa":
+            counters["offerta_mancante"] += 1
+        if n_lessons == 0:
+            counters["videocorso_zero"] += 1
+        if not funnel_ok:
+            counters["funnel_mancante"] += 1
+        if blocked or stale:
+            counters["fermi"] += 1
+        if owner == "Team/Claudio":
+            counters["serve_claudio"] += 1
+        if incoerenza:
+            counters["incoerenze"] += 1
+
+        items.append({
+            "id": pid,
+            "name": p.get("name") or hub.get("name"),
+            "phase": phase_legacy,
+            "macro_phase": macro,
+            "macro_label": MACRO_LABEL.get(macro, macro),
+            "niche": p.get("niche") or p.get("nicchia"),
+            "current_step": cur_meta.get("label") or cur_id,
+            "current_step_id": cur_id,
+            "step_updated_at": cur_updated,
+            "positioning_filled": pos_filled,
+            "offerta": offerta,
+            "offer_filled": offer_filled,
+            "masterclass_script": mc_script,
+            "masterclass_video": mc_video,
+            "videocorso_lessons": n_lessons,
+            "videocorso_lessons_ready": n_lessons_ready,
+            "funnel_systeme": funnel_ok,
+            "funnel_url": funnel_url,
+            "blocked": blocked,
+            "stale": stale,
+            "incoerenza": incoerenza,
+            "owner": owner,
+            "next_action": next_action,
+        })
+
+    return {
+        "total": len(items),
+        "counters": counters,
+        "generated_at": now.isoformat(),
+        "items": items,
+    }

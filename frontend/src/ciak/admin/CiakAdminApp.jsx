@@ -49,6 +49,7 @@ import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { ClientiCiak } from "./pages/ClientiCiak";
 import { PartnerHub } from "./pages/PartnerHub";
+import { DeliveryAudit } from "./pages/DeliveryAudit";
 import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
@@ -143,6 +144,7 @@ const NAV = [
     landing: true,
     pages: [
       { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+      { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
       { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
       { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
       { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
@@ -609,6 +611,7 @@ export default function CiakAdminApp() {
 
         {/* ── Delivery ── */}
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
+        <Route path="delivery-audit" element={<DeliveryAudit onAuthExpired={handleLogout} />} />
         <Route path="quarantena-partner" element={<QuarantenaPartner onAuthExpired={handleLogout} />} />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
         <Route path="documenti-partner" element={<PartnerDocumenti onAuthExpired={handleLogout} />} />

@@ -448,3 +448,132 @@ async def clear_chat_history(
     collection_key = f"admin_{token_data.user_id}_{session_id}"
     await db.admin_luca_conversations.delete_one({"session_key": collection_key})
     return {"success": True}
+
+
+# ─── Report unico A+D (Acquisizione + Delivery) per Luca/Claudio ─────────────
+
+@router.get("/daily-report")
+async def luca_daily_report(token_data=Depends(require_admin)):
+    """
+    Report giornaliero UNICO che tiene insieme Acquisizione e Delivery.
+
+    Sola lettura. Serve a Luca (e a Claudio) per il briefing: dove siamo con gli
+    ingressi Metodo EVO e quali partner della Delivery sono fermi o aspettano un OK.
+    Ritorna dati strutturati + un testo markdown pronto da leggere.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+    # ── Acquisizione ──────────────────────────────────────────────────────
+    leads_today = await db.ciak_leads.count_documents({"created_at": {"$gte": today_start}})
+    diagnostics_today = await db.diagnostic_sessions.count_documents({"created_at": {"$gte": today_start}})
+    target_optimal = 4
+    target_new_contacts = 20
+
+    partnerships_month = await db.partners.count_documents({
+        "$or": [
+            {"partnership_pagata_at": {"$gte": month_start}},
+            {"contract_signed_at": {"$gte": month_start}},
+        ]
+    })
+    gap_ingressi = max(target_optimal - partnerships_month, 0)
+
+    # ── Delivery ──────────────────────────────────────────────────────────
+    STEP_META = {d["step_id"]: d for d in JOURNEY_STEPS_DEFINITION}
+    partners = []
+    async for p in db.partners.find(
+        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]},
+        {"_id": 0, "id": 1, "name": 1, "phase": 1},
+    ):
+        partners.append(p)
+    partner_ids = [p.get("id") for p in partners if p.get("id")]
+
+    hub_by, vc_by, funnel_by = {}, {}, {}
+    steps_by: dict = {}
+    async for h in db.partner_hub.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+        hub_by[h.get("partner_id")] = h
+    async for v in db.partner_videocorso.find({"partner_id": {"$in": partner_ids}}, {"_id": 0, "partner_id": 1, "lessons": 1}):
+        vc_by[v.get("partner_id")] = v
+    async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0, "partner_id": 1, "funnel_systeme_url": 1, "funnel_url": 1}):
+        funnel_by[f.get("partner_id")] = f
+    async for s in db.partner_journey_steps.find(
+        {"partner_id": {"$in": partner_ids}, "status": "in_progress"}, {"_id": 0}
+    ):
+        steps_by[s.get("partner_id")] = s
+
+    offerta_mancante, videocorso_zero, funnel_mancante, fermi, serve_ok = 0, 0, 0, 0, 0
+    fermi_nomi, serve_ok_nomi = [], []
+    for p in partners:
+        pid = p.get("id")
+        hub = hub_by.get(pid) or {}
+        vc = vc_by.get(pid) or {}
+        funnel = funnel_by.get(pid) or {}
+        cur = steps_by.get(pid)
+
+        offer = [hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes"), hub.get("offerGuarantee")]
+        if sum(1 for x in offer if (x or "").strip()) < 4:
+            offerta_mancante += 1
+        lessons = vc.get("lessons") or {}
+        if not (isinstance(lessons, dict) and any(isinstance(x, dict) for x in lessons.values())):
+            videocorso_zero += 1
+        if not (funnel.get("funnel_systeme_url") or funnel.get("funnel_url")):
+            funnel_mancante += 1
+
+        approval = (cur or {}).get("approval_status")
+        blocked = bool(cur and cur.get("status") == "blocked") or (approval == "pending_review")
+        stale = False
+        upd = (cur or {}).get("updated_at")
+        if upd:
+            try:
+                dt = datetime.fromisoformat(str(upd).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                stale = (now - dt).days >= 7
+            except Exception:
+                stale = False
+        if blocked or stale:
+            fermi += 1
+            fermi_nomi.append(p.get("name") or pid)
+        if approval == "pending_review":
+            serve_ok += 1
+            serve_ok_nomi.append(p.get("name") or pid)
+
+    md = (
+        f"# Report Evolution — {now.strftime('%d/%m/%Y')}\n\n"
+        f"## Acquisizione\n"
+        f"- Ingressi Metodo EVO nel mese: {partnerships_month}/{target_optimal} (gap {gap_ingressi})\n"
+        f"- Oggi: {leads_today} nuovi lead, {diagnostics_today} diagnosi (target {target_new_contacts} contatti)\n\n"
+        f"## Delivery ({len(partners)} partner attivi)\n"
+        f"- Fermi/bloccati: {fermi}" + (f" ({', '.join(fermi_nomi[:6])})" if fermi_nomi else "") + "\n"
+        f"- Aspettano un OK: {serve_ok}" + (f" ({', '.join(serve_ok_nomi[:6])})" if serve_ok_nomi else "") + "\n"
+        f"- Offerta incompleta: {offerta_mancante} · Videocorso 0 lezioni: {videocorso_zero} · Funnel Systeme mancante: {funnel_mancante}\n"
+    )
+
+    return {
+        "generated_at": now.isoformat(),
+        "acquisition": {
+            "ingressi_mese": partnerships_month,
+            "target_ottimale": target_optimal,
+            "gap": gap_ingressi,
+            "leads_today": leads_today,
+            "diagnostics_today": diagnostics_today,
+            "target_new_contacts": target_new_contacts,
+        },
+        "delivery": {
+            "partner_attivi": len(partners),
+            "fermi": fermi,
+            "fermi_nomi": fermi_nomi,
+            "serve_ok": serve_ok,
+            "serve_ok_nomi": serve_ok_nomi,
+            "offerta_mancante": offerta_mancante,
+            "videocorso_zero": videocorso_zero,
+            "funnel_mancante": funnel_mancante,
+        },
+        "markdown": md,
+    }
