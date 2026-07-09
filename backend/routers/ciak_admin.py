@@ -2659,3 +2659,62 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         "generated_at": now.isoformat(),
         "items": items,
     }
+
+
+# ─── Partner Alignment — override manuali (innesto sul Delivery Audit) ───────
+# Layer NON invasivo: il GET /delivery-audit resta invariato. Questi due endpoint
+# leggono/scrivono le correzioni manuali (campi alignment_*) sul documento
+# partner; la pagina Delivery Audit le sovrappone alla stima automatica.
+
+@router.get("/partner-alignment/overrides")
+async def partner_alignment_overrides(admin=Depends(require_ciak_admin)):
+    """Override manuali di alignment per tutti i partner: { id: {alignment_*} }."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.partner_alignment import OVERRIDE_FIELDS
+    projection = {"_id": 0, "id": 1}
+    for f in OVERRIDE_FIELDS + ["alignment_updated_at", "alignment_updated_by"]:
+        projection[f] = 1
+    out = {}
+    async for p in db.partners.find({}, projection):
+        ov = {k: v for k, v in p.items() if k.startswith("alignment_") and v not in (None, "")}
+        if ov:
+            out[p.get("id")] = ov
+    return {"overrides": out}
+
+
+class AlignmentOverrideBody(BaseModel):
+    alignment_status_override: Optional[str] = Field(None, description="Stato reale forzato a mano")
+    alignment_risk: Optional[str] = Field(None, description="Rischio principale forzato")
+    alignment_next_step: Optional[str] = Field(None, description="Prossima azione forzata")
+    alignment_owner: Optional[str] = Field(None, description="Chi muove: Claudio | Luca | Team | Partner")
+    alignment_priority: Optional[str] = Field(None, description="alta | media | bassa")
+    alignment_notes: Optional[str] = Field(None, description="Nota libera di regia")
+
+
+@router.patch("/partner/{partner_id}/alignment")
+async def set_partner_alignment(
+    partner_id: str,
+    body: AlignmentOverrideBody,
+    admin=Depends(require_ciak_admin),
+):
+    """Salva/azzera gli override manuali di alignment sul documento partner.
+    Stringa vuota o null su un campo lo azzera (torna alla stima automatica)."""
+    from services.partner_alignment import build_override_update
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "id": 1})
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    payload = body.dict(exclude_unset=True)
+    set_fields, unset_fields = build_override_update(payload)
+    if not set_fields and not unset_fields:
+        raise HTTPException(400, "Nessun campo alignment da aggiornare")
+    now = datetime.now(timezone.utc).isoformat()
+    set_fields["alignment_updated_at"] = now
+    set_fields["alignment_updated_by"] = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    update: dict = {"$set": set_fields}
+    if unset_fields:
+        update["$unset"] = unset_fields
+    await db.partners.update_one({"id": partner_id}, update)
+    return {"ok": True, "partner_id": partner_id, "updated": list(set_fields.keys()), "cleared": list(unset_fields.keys())}
