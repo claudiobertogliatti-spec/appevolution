@@ -2677,8 +2677,12 @@ STATUS: PENDING"""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/lancio/generate-plan")
-async def generate_lancio_plan(request: LancioGenerateRequest):
+async def generate_lancio_plan(
+    request: LancioGenerateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera il piano di lancio completo AI-driven: calendario, contenuti, ads, webinar"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Raccogli tutto il contesto del partner
@@ -2987,8 +2991,12 @@ REGOLE IMPORTANTI:
 
 
 @router.post("/lancio/approve-plan")
-async def approve_lancio_plan(partner_id: str):
+async def approve_lancio_plan(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva il piano di lancio generato"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
 
     lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
@@ -3010,8 +3018,12 @@ async def approve_lancio_plan(partner_id: str):
 
 
 @router.get("/lancio/email-followup/{partner_id}")
-async def get_lancio_email_followup(partner_id: str):
+async def get_lancio_email_followup(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Restituisce le 6 email follow-up del piano di lancio con subject e body pronti da copiare"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
 
@@ -3031,8 +3043,7 @@ async def get_lancio_email_followup(partner_id: str):
     }
 
 
-@router.get("/lancio/{partner_id}")
-async def get_lancio_status(partner_id: str):
+async def _get_lancio_status_unchecked(partner_id: str):
     """Recupera lo stato di preparazione al lancio"""
     partner = await get_partner_or_404(partner_id)
     
@@ -3063,13 +3074,26 @@ async def get_lancio_status(partner_id: str):
         "plan_approved": lancio.get("plan_approved", False) if lancio else False
     }
 
+
+@router.get("/lancio/{partner_id}")
+async def get_lancio_status(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    return await _get_lancio_status_unchecked(partner_id)
+
 @router.post("/lancio/publish-funnel")
-async def publish_funnel_for_launch(partner_id: str):
+async def publish_funnel_for_launch(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Pubblica il funnel finale per il lancio"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Verifica prerequisiti
-    lancio_status = await get_lancio_status(partner_id)
+    lancio_status = await _get_lancio_status_unchecked(partner_id)
     if not lancio_status.get("all_ready"):
         raise HTTPException(status_code=400, detail="Completa tutti i prerequisiti prima del lancio")
     
@@ -3100,12 +3124,16 @@ async def publish_funnel_for_launch(partner_id: str):
     }
 
 @router.post("/lancio/activate")
-async def activate_launch(request: LancioActivateRequest):
+async def activate_launch(
+    request: LancioActivateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Attiva il lancio dell'Accademia Digitale"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Verifica prerequisiti
-    lancio_status = await get_lancio_status(request.partner_id)
+    lancio_status = await _get_lancio_status_unchecked(request.partner_id)
     if not lancio_status.get("all_ready"):
         raise HTTPException(status_code=400, detail="Completa tutti i prerequisiti prima del lancio")
     
@@ -3147,8 +3175,12 @@ async def activate_launch(request: LancioActivateRequest):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/progress/{partner_id}")
-async def get_partner_journey_progress(partner_id: str):
+async def get_partner_journey_progress(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera il progresso complessivo del percorso partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Recupera tutti gli stati
@@ -3790,8 +3822,12 @@ class ExportCalendarioRequest(BaseModel):
     format: str  # pdf, csv, gcal
 
 @router.get("/lancio/calendario/{partner_id}")
-async def get_calendario_lancio(partner_id: str):
+async def get_calendario_lancio(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera il calendario di lancio esistente"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     lancio = await db.partner_lancio.find_one(
@@ -3806,8 +3842,12 @@ async def get_calendario_lancio(partner_id: str):
 
 
 @router.post("/lancio/genera-calendario")
-async def genera_calendario_lancio(request: GeneraCalendarioRequest):
+async def genera_calendario_lancio(
+    request: GeneraCalendarioRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera il calendario editoriale di 30 giorni usando AI"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Recupera posizionamento
@@ -3949,8 +3989,12 @@ def generate_fallback_calendario():
 
 
 @router.post("/lancio/export-calendario")
-async def export_calendario(request: ExportCalendarioRequest):
+async def export_calendario(
+    request: ExportCalendarioRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Esporta il calendario in PDF, CSV o Google Calendar"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     lancio = await db.partner_lancio.find_one(
