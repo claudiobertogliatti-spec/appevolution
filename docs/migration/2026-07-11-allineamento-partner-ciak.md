@@ -73,19 +73,22 @@ Solo dopo l'allineamento interno:
 
 ## Priorita di lavorazione
 
-Ordine operativo iniziale:
+Ordine operativo iniziale aggiornato:
 
 1. Sarah
-2. Arianna
+2. Cosimo
 3. Michele
 4. Mariantonietta
 5. Daniele
-6. Cosimo
-7. Marco
-8. Andrea
-9. Eva
-10. Sara
-11. Luigi Calafiore
+6. Marco
+7. Andrea
+8. Eva
+9. Sara
+10. Luigi Calafiore
+
+Standby:
+
+- Arianna Aceto: non cancellare dall'inventario, ma sospendere la migrazione operativa finche non viene riattivata.
 
 Nota su Luigi Calafiore: trattarlo come nuovo partner appena firmato, non come partner fermo o da riabilitare.
 
@@ -220,7 +223,7 @@ Note:
 | Partner | Stato reale | Materiali verificati | Mancanze segnate | Prossima azione | Owner | 30/60/90 | Chiuso |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Sarah |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Arianna |  | [ ] | [ ] |  |  | [ ] | [ ] |
+| Arianna | Standby | [ ] | [ ] | Migrazione sospesa fino a riattivazione |  | [ ] | [ ] |
 | Michele |  | [ ] | [ ] |  |  | [ ] | [ ] |
 | Mariantonietta |  | [ ] | [ ] |  |  | [ ] | [ ] |
 | Daniele |  | [ ] | [ ] |  |  | [ ] | [ ] |

@@ -15,11 +15,11 @@ Nota: questa e una prima passata di discovery. Prima di scrivere dati definitivi
 | Partner | Cartella partner trovata | Materiali emersi | Attenzione / gap |
 | --- | --- | --- | --- |
 | Sarah Arensi | Si | Contratto, posizionamento, email funnel, sequenza follow-up, call argomenti | Presenza di duplicati e risultati anche per Sarah Haghighi: usare solo Sarah Arensi |
-| Arianna Aceto | Si, almeno due cartelle | Call argomenti, contratto, posizionamento, documenti | Verificare quale cartella e sorgente principale |
+| Arianna Aceto | Si, almeno due cartelle | Call argomenti, contratto, posizionamento, documenti | Standby operativo: non migrare ora, conservare inventario |
 | Michele Baggio | Si | Calendario lancio videocorso, script masterclass, workbook, documenti web | Verificare se esistono masterclass/video/funnel dentro la cartella |
 | Mariantonietta Tornello | Si | Posizionamento, consulenza gratuita, email funnel, calendario lancio videocorso, calendario editoriale | Verificare file duplicati tra originale e copie 2026-06/2026-07 |
 | Daniele Andolfi | Si | Calendario lancio social Sabai, analisi, CRM/lista contatti | Collegare con stato pipeline masterclass noto nel sistema |
-| Cosimo Filieri | Si, almeno due cartelle | Posizionamento, calendario editoriale lancio social, istruzioni calendario | Verificare cartella principale tra `Cosimo Filieri` e `COSIMO FILIERI` |
+| Cosimo Filieri | Si, almeno due cartelle | Posizionamento, calendario editoriale lancio social, istruzioni calendario | Aggiunto al blocco operativo immediato dopo Sarah |
 | Marco Lamanna | Si | Calendario, script masterclass, posizionamento, bonus e risorse | Marco Serra e un ex partner che non ha rinnovato: escluderlo dai prioritari |
 | Andrea Fredi | Si | Calendario social lancio TAI, script masterclass, istruzioni calendario, script chiusura | Risultati includono anche Andrea Bianchi: filtrare su Andrea Fredi |
 | Eva Gugliucciello | Si | Posizionamento, calendario lancio videocorso, template videocorso, script masterclass | Verificare asset finali e duplicati 2026-06/2026-07 |
@@ -50,6 +50,8 @@ Da verificare:
 
 ### Arianna Aceto
 
+Stato operativo: standby. Materiali gia trovati e da conservare, ma non procedere con integrazione in Ciak finche non viene riattivata.
+
 Cartelle:
 
 - Arianna Aceto: https://drive.google.com/drive/folders/1Y0la5fto47RouQ30_s6FJfLNcjTFzvBl
@@ -67,6 +69,7 @@ Da verificare:
 
 - Quale delle due cartelle contiene la versione piu aggiornata.
 - Presenza di masterclass, funnel, videocorso e calendario.
+- Non avviare la migrazione ora.
 
 ### Michele Baggio
 
@@ -124,6 +127,8 @@ Da verificare:
 
 ### Cosimo Filieri
 
+Stato operativo: aggiunto al blocco immediato dopo Sarah.
+
 Cartelle:
 
 - Cosimo Filieri: https://drive.google.com/drive/folders/1vzJij7xRNaC5uHoLzckrYGWBtnVB7A2L
@@ -140,6 +145,7 @@ Da verificare:
 
 - Cartella principale e sottocartelle.
 - Presenza di funnel, masterclass e videocorso.
+- Procedere con apertura cartelle e integrazione Ciak dopo la chiusura di Sarah.
 
 ### Marco Lamanna
 
@@ -234,6 +240,7 @@ Da fare:
 
 1. Aprire le cartelle dedicate dei partner con cartella trovata.
 2. Per ogni cartella, listare le sottocartelle dirette e segnare asset presenti/mancanti.
-3. Disambiguare Marco.
-4. Creare/agganciare sorgente Drive per Luigi Calafiore.
-5. Solo dopo, scrivere dentro Ciak i link e gli stati reali.
+3. Mettere Arianna Aceto in standby operativo.
+4. Lavorare Cosimo Filieri subito dopo Sarah.
+5. Creare/agganciare sorgente Drive per Luigi Calafiore.
+6. Solo dopo, scrivere dentro Ciak i link e gli stati reali.
