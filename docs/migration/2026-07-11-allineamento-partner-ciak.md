@@ -5,6 +5,12 @@
 Portare dentro Ciak lo stato reale dei partner prioritari, senza migrare dati alla cieca.
 La giornata serve ad allineare scheda partner, Drive, materiali, prossima azione, owner e strategia operativa dove necessaria.
 
+Il lavoro completo ha tre fasi:
+
+1. Recuperare da Drive tutto il materiale disponibile per ogni partner.
+2. Integrare correttamente i materiali nei profili Ciak e segnare cio che manca.
+3. Contattare i partner e istruirli su come proseguire dentro il nuovo protocollo Ciak.
+
 ## Principio guida
 
 Ogni partner va chiuso con una risposta chiara a cinque domande:
@@ -16,6 +22,54 @@ Ogni partner va chiuso con una risposta chiara a cinque domande:
 5. Chi la possiede?
 
 Se una di queste risposte manca, il partner non e ancora allineato.
+
+## Sorgenti Drive individuate
+
+Cartelle da usare come punto di partenza:
+
+| Cartella | Uso operativo | URL |
+| --- | --- | --- |
+| 04 - EVOLUTION PRO | Cartella madre attuale del progetto. Contiene `01 Partner`, `01 - Clienti`, documenti strategici e la copia dei partner da risistemare. | https://drive.google.com/drive/folders/1Gi8TJ_vBYkxW9iz-UHDR5958_74qw4DI |
+| Partner Evolution Pro da risistemare | Archivio storico operativo con materiali partner, funnel, masterclass, videocorso, calendari editoriali e documenti sparsi. | https://drive.google.com/drive/folders/1QFBh-93fiPXmFIKWE2-RBNRzCTiHlsLy |
+| Partner Evolution Pro da risistemare (Copia) | Copia presente dentro `04 - EVOLUTION PRO`; usare come confronto se mancano materiali nella cartella originale. | https://drive.google.com/drive/folders/1dCQdOLcv2lyyjmiAAtOBh6t8w5yKszvW |
+
+Regola: non fidarsi di una sola cartella. Per ogni partner cercare sia nella cartella madre sia nell'archivio storico, usando nome, cognome, nome corso/offerta e varianti note.
+
+## Flusso end-to-end
+
+### Fase 1 - Inventario Drive
+
+Per ogni partner prioritario:
+
+- [ ] Cercare cartelle e file con nome/cognome.
+- [ ] Aprire eventuale cartella partner dedicata.
+- [ ] Verificare sottocartelle ricorrenti: `Documenti`, `Masterclass`, `Video corso`, `Videocorso`, `Funnel`, `Calendario editoriale`, `Loghi`.
+- [ ] Elencare file utili con titolo, tipo, link e data ultima modifica.
+- [ ] Distinguere materiali pronti, bozze, duplicati e file vecchi.
+- [ ] Segnare il miglior link sorgente per ogni asset da integrare in Ciak.
+
+### Fase 2 - Integrazione Ciak
+
+Per ogni partner:
+
+- [ ] Aprire il profilo partner in Ciak.
+- [ ] Inserire o aggiornare lo stato reale.
+- [ ] Collegare i materiali trovati nei campi corretti del percorso.
+- [ ] Compilare i materiali mancanti come gap espliciti.
+- [ ] Aggiornare prossima azione e owner.
+- [ ] Aggiungere strategia 30/60/90 dove serve.
+- [ ] Verificare che il profilo sia leggibile anche per chi non ha seguito la migrazione.
+
+### Fase 3 - Contatto partner
+
+Solo dopo l'allineamento interno:
+
+- [ ] Preparare messaggio sintetico per il partner.
+- [ ] Spiegare dove si trova nel protocollo Ciak.
+- [ ] Indicare cosa deve fare ora.
+- [ ] Dare una sola istruzione principale, non una lista confusa.
+- [ ] Se servono materiali, chiedere esattamente cosa inviare e dove.
+- [ ] Se serve una call, indicare obiettivo della call e output atteso.
 
 ## Priorita di lavorazione
 
@@ -189,4 +243,3 @@ La giornata e chiusa bene solo se per ogni partner prioritario esiste almeno:
 - strategia 30/60/90 dove serve.
 
 Se un partner non puo essere chiuso, lasciarlo con un blocco esplicito e non con una nota generica.
-
