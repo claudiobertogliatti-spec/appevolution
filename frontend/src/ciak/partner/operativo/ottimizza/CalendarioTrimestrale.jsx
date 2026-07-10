@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { CalendarDays, Loader2, Sparkles, Megaphone, Radio, ShoppingCart, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { authHeaders } from "../../api";
 
 /**
  * Card "Calendario tra le live" (fase Ottimizza) — il ponte di nutrimento.
  * Un piano da 90 giorni che tiene caldo il pubblico TRA una live e l'altra (la live e
- * l'evento di vendita, gestito dalla card "Live ogni 2 mesi"). Genera dal motore backend
+ * l'evento di vendita, gestito dalla card "Live ogni 2 mesi"). Si rigenera fino al mese 12.
+ * Genera dal motore backend
  * services/quarterly_calendar.py (AI tool-use + fallback deterministico). Riusa l'outline
  * lezioni gia in profilo.
  *
@@ -71,6 +73,29 @@ function Mese({ m }) {
   );
 }
 
+function ExtraContentCta() {
+  return (
+    <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 mb-5">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-700">
+        Servizio extra
+      </p>
+      <p className="text-[15px] font-semibold text-slate-900 mt-1">
+        Vuoi i contenuti gia pronti?
+      </p>
+      <p className="text-[13px] text-slate-700 leading-relaxed mt-1 mb-3">
+        Qui trovi il piano da 90 giorni da ripetere e aggiornare fino al mese 12.
+        Se non vuoi scriverli tu, prepariamo noi post, reel, caroselli, email e CTA.
+      </p>
+      <Link
+        to="/partner/servizi-extra"
+        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
+      >
+        Voglio i contenuti pronti <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+}
+
 export default function CalendarioTrimestrale({ partnerId }) {
   const [calendar, setCalendar] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -120,11 +145,13 @@ export default function CalendarioTrimestrale({ partnerId }) {
       <div className="mb-5">
         <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Calendario tra le live</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Il ritmo che nutre il pubblico tra una live e l'altra: cosa pubblicare ogni giorno per
-          tenere viva l'attenzione e portare valore, così alla prossima live arrivi con un pubblico
-          caldo. La live resta l'evento di vendita — qui costruisci il pubblico che ci verrà.
+          Il ritmo che nutre il pubblico tra una live e l'altra: cosa pubblicare ogni giorno fino al
+          mese 12 per tenere viva l'attenzione e portare valore. La live resta l'evento di vendita:
+          qui costruisci il pubblico che ci arrivera' caldo.
         </p>
       </div>
+
+      <ExtraContentCta />
 
       {!calendar && !loading && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
@@ -133,8 +160,8 @@ export default function CalendarioTrimestrale({ partnerId }) {
           </div>
           <p className="text-[15px] font-semibold text-slate-900 mb-1">Genera il tuo piano da 90 giorni</p>
           <p className="text-[13px] text-slate-500 leading-relaxed mb-4 max-w-md mx-auto">
-            Lo costruiamo sulle lezioni del tuo corso: contenuti pronti che nutrono il pubblico tra
-            una live e l'altra, così arrivi all'evento con persone già calde.
+            Lo costruiamo sulle lezioni del tuo corso: una traccia concreta da seguire tra una live
+            e l'altra, cosi arrivi all'evento con persone gia calde.
           </p>
           {error && <p className="text-[13px] text-red-500 mb-3">{error}</p>}
           <button

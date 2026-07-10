@@ -5992,6 +5992,13 @@ from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_D
 # La fase resta un campo DENORMALIZZATO derivato dal sistema canonico
 # partner_journey_steps: serve solo al badge atto EVO in admin (evo.js attoEvo).
 _FASE_LEGACY_BY_STEP = {d["step_id"]: d.get("fase_legacy", "F1") for d in JOURNEY_STEPS_DEFINITION}
+_STEP_NUMBER_BY_ID = {d["step_id"]: d["step_number"] for d in JOURNEY_STEPS_DEFINITION}
+_LEGACY_STEP_MIGRATIONS = [
+    ("07-registra-masterclass", "08-registra-masterclass"),
+    ("08-registra-lezioni", "09-registra-lezioni"),
+    ("10-funnel-team-work", "10-sistema-vendita"),
+    ("09-funnel-asset", "10-sistema-vendita"),
+]
 
 
 async def _project_legacy_phase(partner_id: str):
@@ -6016,13 +6023,56 @@ async def _project_legacy_phase(partner_id: str):
     await db.partners.update_one({"id": partner_id}, {"$set": {"phase": phase}})
 
 
+async def _migrate_legacy_valida_steps(partner_id: str) -> None:
+    """Riallinea i vecchi step Valida alla sequenza definitiva.
+
+    I record storici possono contenere ancora `07-registra-masterclass`,
+    `08-registra-lezioni`, `09-funnel-asset`, `10-funnel-team-work`.
+    La UI nuova usa invece script videolezioni + nuovi ID coerenti.
+    """
+    for old_id, new_id in _LEGACY_STEP_MIGRATIONS:
+        old = await db.partner_journey_steps.find_one({"partner_id": partner_id, "step_id": old_id})
+        if not old:
+            continue
+        new = await db.partner_journey_steps.find_one({"partner_id": partner_id, "step_id": new_id})
+        if not new:
+            await db.partner_journey_steps.update_one(
+                {"_id": old["_id"]},
+                {"$set": {
+                    "step_id": new_id,
+                    "step_number": _STEP_NUMBER_BY_ID.get(new_id, old.get("step_number")),
+                    "fase_legacy": _FASE_LEGACY_BY_STEP.get(new_id, old.get("fase_legacy", "F1")),
+                    "updated_at": datetime.utcnow(),
+                }},
+            )
+            continue
+
+        old_status = old.get("status")
+        new_status = new.get("status")
+        if old_status in ("in_progress", "done") and new_status == "pending":
+            await db.partner_journey_steps.update_one(
+                {"_id": new["_id"]},
+                {"$set": {
+                    "status": old_status,
+                    "data": {**(new.get("data") or {}), **(old.get("data") or {})},
+                    "started_at": old.get("started_at") or new.get("started_at"),
+                    "completed_at": old.get("completed_at") or new.get("completed_at"),
+                    "updated_at": datetime.utcnow(),
+                }},
+            )
+        await db.partner_journey_steps.update_one(
+            {"_id": old["_id"]},
+            {"$set": {"status": "skipped", "updated_at": datetime.utcnow()}},
+        )
+
+
 @router.get("/operativo/state/{partner_id}")
 async def get_operativo_state(
     partner_id: str,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Ritorna stato completo journey del partner.
-    Se è la prima visita (no step in DB), seeda automaticamente i 13 step
+    Se è la prima visita (no step in DB), seeda automaticamente gli step
     con step 1 in_progress.
     """
     await require_partner_or_admin_for_partner(partner_id, credentials)
@@ -6035,15 +6085,16 @@ async def get_operativo_state(
         # qui ci arrivano solo i legacy senza step.
         partner_doc = await db.partners.find_one({"id": partner_id}, {"_id": 0, "phase": 1})
         phase = (partner_doc or {}).get("phase") or "F1"
-        # Numeri aggiornati al nuovo modello a 14 step (burocrazia inserita al n.3).
-        _PHASE_START = {"F1": 2, "F2": 5, "F3": 7, "F4": 9}
-        start_step = 15 if phase >= "F5" else _PHASE_START.get(phase, 1)
+        _PHASE_START = {"F1": 2, "F2": 5, "F3": 7, "F4": 10, "F5": 12, "F6": 13, "F7": 15}
+        start_step = _PHASE_START.get(phase, 1)
         await seed_partner_journey(db, partner_id, start_step_number=start_step)
-        if phase >= "F5":
+        if phase in ("F7", "LIVE", "OTTIMIZZAZIONE"):
             await db.partners.update_one(
                 {"id": partner_id},
                 {"$set": {"journey_current_step": "completato"}},
             )
+
+    await _migrate_legacy_valida_steps(partner_id)
 
     steps_cursor = db.partner_journey_steps.find(
         {"partner_id": partner_id},

@@ -2,7 +2,7 @@
 EVOLUTION PRO — Workspace Valida · WORKSPACE 3 "Costruiamo il Sistema di Vendita".
 
 Stessa struttura a 8 componenti di WS1/WS2 (vedi workspace_valida.py / workspace_corso.py).
-Assorbe gli step 09-funnel-asset + 10-funnel-team-work + il prezzo (da 12). Agente: Gaia.
+Assorbe lo step 10-sistema-vendita + il prezzo (da 12). Agente: Gaia.
 
 Riusa i motori esistenti (NON duplicati), chiamati direttamente dal frontend:
   - genera funnel/blueprint: POST /api/partner-journey/funnel/generate
@@ -46,6 +46,8 @@ def _helpers():
 
 # Task automatiche: completate quando il funnel/blueprint e stato generato.
 AI_TASKS_W3 = [
+    {"id": "subaccount", "label": "Subaccount Systeme collegato a Evolution PRO", "kind": "auto"},
+    {"id": "dominio", "label": "Dominio, DNS e SSL", "kind": "auto"},
     {"id": "optin", "label": "Pagina di opt-in", "kind": "auto"},
     {"id": "landing", "label": "Pagina di vendita", "kind": "auto"},
     {"id": "email", "label": "Sequenza email", "kind": "auto"},
@@ -169,11 +171,11 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
         "workspace_total": 5,
         "title": "Costruiamo il Sistema di Vendita",
         "agent": "GAIA",
-        "objective": "Avere il sistema che trasforma i visitatori in clienti: pagina di opt-in, "
-                     "pagina di vendita, email e pagamento, pronti e online.",
-        "intro": "Sono Gaia. Adesso costruiamo il tuo sistema di vendita: le pagine, le email e il "
-                 "pagamento. Lo genero io sui tuoi contenuti — a te resta controllarlo e dare l'ok "
-                 "per pubblicarlo.",
+        "objective": "Avere il sistema che trasforma i visitatori in clienti: subaccount Systeme, "
+                     "dominio, legal pages, opt-in, pagina di vendita, email e pagamento, pronti e online.",
+        "intro": "Sono Gaia. Adesso costruiamo il tuo sistema di vendita: subaccount Systeme collegato "
+                 "a Evolution PRO, dominio, pagine legali, funnel, email e checkout. Tu controlli "
+                 "le decisioni importanti; alla parte tecnica pensa il team Evolution.",
         "has_funnel": has_funnel,
         "approved": approved,
         "published": published,

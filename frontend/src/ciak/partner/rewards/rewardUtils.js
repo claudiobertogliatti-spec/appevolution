@@ -14,17 +14,17 @@ const PHASES = [
     stepIds: [
       "05-script-masterclass",
       "06-outline-lezioni",
-      "07-registra-masterclass",
-      "08-registra-lezioni",
-      "09-funnel-asset",
-      "10-funnel-team-work",
+      "07-script-videolezioni",
+      "08-registra-masterclass",
+      "09-registra-lezioni",
+      "10-sistema-vendita",
       "11-calendario-30gg",
       "12-prezzo-webinar",
       "13-lancio",
     ],
   },
   {
-    id: "golive",
+    id: "ottimizza",
     label: "Ottimizza",
     title: "Primi dati e piano post-lancio",
     bonusTitle: "Piano 90 Giorni per Crescere",
@@ -39,14 +39,17 @@ function isDone(step) {
 export function buildRewardPhases(state, partnerId, apiPhases = null) {
   const steps = state?.steps || [];
   const byId = Object.fromEntries(steps.map((step) => [step.step_id, step]));
-  const apiById = Object.fromEntries((apiPhases || []).map((phase) => [phase.id, phase]));
+  const apiById = Object.fromEntries((apiPhases || []).map((phase) => [
+    phase.id === "golive" ? "ottimizza" : phase.id,
+    phase,
+  ]));
 
   return PHASES.map((phase) => {
     const api = apiById[phase.id];
     let unlocked = false;
     if (api) {
       unlocked = !!api.unlocked;
-    } else if (phase.id === "golive") {
+    } else if (phase.id === "ottimizza") {
       const launch = byId["13-lancio"];
       unlocked = !!(isDone(launch) && (launch?.data?.launched_at || launch?.completed_at));
     } else {

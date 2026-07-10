@@ -2,7 +2,8 @@
 EVOLUTION PRO — Workspace Valida · WORKSPACE 2 "Organizziamo il tuo Corso".
 
 Stessa struttura a 8 componenti di WS1 (vedi workspace_valida.py). Assorbe gli step
-06-outline-lezioni + 08-registra-lezioni. Agente di riferimento: Andrea.
+06-outline-lezioni + 07-script-videolezioni + 09-registra-lezioni.
+Agente di riferimento: Andrea.
 
 Riusa i motori esistenti (NON duplicati):
   - struttura corso: POST /api/partner-journey/videocorso/generate-course

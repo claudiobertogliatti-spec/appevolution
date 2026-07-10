@@ -343,7 +343,7 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
     setSettingPronto(true);
     setVideoMsg(null);
     try {
-      const res = await adminFetch(`/api/partner-journey/operativo/admin/set-status/${partnerId}/07-registra-masterclass`, {
+      const res = await adminFetch(`/api/partner-journey/operativo/admin/set-status/${partnerId}/08-registra-masterclass`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "done" })

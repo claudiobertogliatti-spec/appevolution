@@ -357,6 +357,20 @@ export function PartnerHub({ onAuthExpired }) {
     load();
   }, [load]);
 
+  // Deep-link: /admin/partner?id=<id>&tab=<tab> apre direttamente la scheda
+  // del partner (usato dalla vista Partner Alignment).
+  useEffect(() => {
+    if (!partners) return;
+    const params = new URLSearchParams(window.location.search);
+    const wantId = params.get("id");
+    if (!wantId) return;
+    const p = partners.find((x) => String(x.id) === String(wantId));
+    if (p) {
+      setDetailTab(params.get("tab") || "journey");
+      setDetailPartner(p);
+    }
+  }, [partners]);
+
   const switchView = (v) => {
     setView(v);
     localStorage.setItem("ciak_admin_partner_view", v);

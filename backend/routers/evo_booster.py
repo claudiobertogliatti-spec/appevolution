@@ -55,9 +55,10 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://www.ciak.io")
 
 # Piani EVO-S — importi in centesimi, ricorrenza mensile.
 EVO_S_PLANS = {
-    "start": {"name": "EVO-S Start", "amount": 29700},
-    "grow": {"name": "EVO-S Grow", "amount": 49700},
-    "scale": {"name": "EVO-S Scale", "amount": 79700},
+    "recover": {"name": "Recupero Ottimizza", "amount": 14700},
+    "start": {"name": "Ciak Continuita", "amount": 29700},
+    "grow": {"name": "Ciak Crescita", "amount": 49700},
+    "scale": {"name": "Ciak Espansione", "amount": 79700},
 }
 
 # Mesi di percorso EVO prima di poter accedere a EVO-S.
@@ -69,7 +70,7 @@ EVO_MONTHS_REQUIRED = 12
 # ═══════════════════════════════════════════════════════════════════════════
 class EvoSCheckoutRequest(BaseModel):
     partner_id: str
-    plan: str  # "start" | "grow" | "scale"
+    plan: str  # "recover" | "start" | "grow" | "scale"
 
 
 class BoosterRequestIn(BaseModel):

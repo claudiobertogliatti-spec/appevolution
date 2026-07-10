@@ -49,7 +49,7 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               </div>
               <h3 className="text-xl font-semibold leading-tight mt-4">{projectName}</h3>
               <p className="text-xs text-slate-600 leading-relaxed mt-2">
-                La dispensa professionale del progetto che stiamo costruendo insieme.
+                La dispensa professionale del progetto: si arricchisce a ogni fase del Protocollo EVO.
               </p>
             </div>
             <div className="mt-5 h-2 rounded-full bg-slate-200 overflow-hidden">
@@ -66,8 +66,8 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               </p>
               <h3 className="text-xl font-semibold text-slate-900 mt-1">La tua dispensa pratica</h3>
               <p className="text-sm text-slate-600 leading-relaxed mt-2 max-w-xl">
-                La vedi gia adesso, poi si arricchisce fase dopo fase con posizionamento,
-                masterclass, corso, funnel, calendario e live.
+                La vedi gia adesso, poi si arricchisce fase dopo fase: Esamina aggiunge le fondamenta,
+                Valida aggiunge masterclass, corso, script, sistema di vendita e lancio, Ottimizza aggiunge dati e miglioramenti.
               </p>
             </div>
             <a

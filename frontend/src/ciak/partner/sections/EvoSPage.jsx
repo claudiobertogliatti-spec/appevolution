@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import {
   Anchor, TrendingUp, Rocket, ArrowLeft, ArrowRight, Check, X,
-  Calendar, Users, Clock, ShieldCheck, Lock,
+  Calendar, Users, Clock, ShieldCheck, Lock, RotateCcw,
 } from "lucide-react";
 
 /**
  * Scala — programma di continuità in abbonamento, riservato a chi ha completato
  * i 12 mesi del Protocollo EVO. Non è un rinnovo tecnico: è l'accesso al livello
- * successivo. 3 piani (Start / Grow / Scale), permanenza minima 6 mesi.
+ * successivo. 4 soluzioni (Recupero / Continuita / Crescita / Espansione),
+ * attivabili per almeno 6 mesi.
  *
  * Gating: GET /api/evo-booster/evo-s-eligibility/{partnerId} → se non sono passati
  * 12 mesi, i piani restano visibili ma in sola lettura (CTA bloccata). Se il backend
@@ -17,12 +18,55 @@ import {
 
 const PLANS = [
   {
+    id: "recover",
+    name: "Recupero Ottimizza",
+    price: 147,
+    priceLabel: "147 € / mese",
+    icon: RotateCcw,
+    beneficio: "Per rimettere ordine quando i 12 mesi sono passati, ma Ottimizza non e' stata fatta davvero.",
+    perChi:
+      "Per partner arrivati al dodicesimo mese con sistema online, ma senza ritmo costante su calendario, live, KPI e revisione funnel.",
+    obiettivo:
+      "Recuperare la fase Ottimizza in modo guidato: capire cosa manca, riprendere il ritmo e arrivare a una decisione seria sul passo successivo.",
+    comprende: [
+      "Audit iniziale dello stato reale del sistema.",
+      "Piano mensile di recupero con priorita' operative.",
+      "Calendario guidato da seguire mese per mese.",
+      "Piano live ogni 2 mesi con checklist di preparazione.",
+      "Checklist KPI per leggere traffico, contatti, vendite e show-up.",
+      "Indicazioni di ottimizzazione su funnel, offerta e follow-up.",
+      "Report mensile sintetico con prossime azioni.",
+      "Decisione finale: continuita', crescita, espansione o stop.",
+    ],
+    frequenza: "Mensile, con piano di recupero e controllo delle azioni.",
+    cosaFaIlTeam: [
+      "Legge lo stato del sistema e ti indica le priorita'.",
+      "Prepara il piano operativo del mese.",
+      "Ti dice cosa monitorare e quando fare la prossima live.",
+      "Rivede i dati principali e aggiorna le prossime azioni.",
+    ],
+    cosaFaIlPartner: [
+      "Esegue le azioni indicate nel piano mensile.",
+      "Pubblica i contenuti previsti dal calendario.",
+      "Tiene le live ricorrenti.",
+      "Inserisce o comunica i dati necessari al report.",
+    ],
+    nonComprende: [
+      "Produzione contenuti done-for-you.",
+      "Gestione completa delle live.",
+      "Copywriting completo di pagine, email o funnel.",
+      "Gestione ads, budget pubblicitario o setup tecnico extra.",
+    ],
+    risultatoAtteso:
+      "Un sistema rimesso in ordine e finalmente misurabile. Non e' scaling: e' il passaggio necessario per capire se e come continuare.",
+  },
+  {
     id: "start",
-    name: "Ciak Continuità",
+    name: "Ciak Continuita",
     price: 297,
     priceLabel: "297 € / mese",
     icon: Anchor,
-    beneficio: "Il tuo sistema resta seguito anche dopo i 12 mesi.",
+    beneficio: "Il tuo sistema resta seguito anche dopo i 12 mesi, con una presenza leggera ma costante.",
     perChi:
       "Per chi ha completato i 12 mesi e vuole mantenere vivo e aggiornato il sistema, senza tornare a fare tutto da solo.",
     obiettivo:
@@ -31,7 +75,7 @@ const PLANS = [
       "Monitoraggio mensile dei numeri del funnel.",
       "Una revisione di ottimizzazione ogni mese.",
       "Calendario contenuti tenuto aggiornato.",
-      "Supporto via chat con il team.",
+      "Supporto operativo via chat con il team.",
       "Un check periodico sulla tua live ricorrente.",
     ],
     frequenza: "Mensile e continuativa.",
@@ -52,7 +96,7 @@ const PLANS = [
       "Creazione di nuovi prodotti o funnel.",
     ],
     risultatoAtteso:
-      "Un sistema che resta in ordine e continua a lavorare, senza perdere ciò che hai costruito. I risultati dipendono anche dalla tua costanza.",
+      "Un sistema che resta in ordine e continua a lavorare, senza perdere cio' che hai costruito. I risultati dipendono anche dalla tua costanza.",
   },
   {
     id: "grow",
@@ -61,12 +105,12 @@ const PLANS = [
     priceLabel: "497 € / mese",
     icon: TrendingUp,
     popular: true,
-    beneficio: "Più contenuti e ottimizzazione attiva per crescere con continuità.",
+    beneficio: "Piu' contenuti e ottimizzazione attiva per crescere con continuita'.",
     perChi:
-      "Per chi ha un sistema che già vende e vuole crescere con più contenuti, più ottimizzazione e una spinta strutturata.",
+      "Per chi ha un sistema che gia' vende e vuole crescere con piu' contenuti, piu' ottimizzazione e una spinta strutturata.",
     obiettivo: "Aumentare contatti e vendite in modo graduale e misurabile.",
     comprende: [
-      "Tutto ciò che è incluso in Ciak Continuità.",
+      "Tutto ciò che è incluso in Ciak Continuita.",
       "Ottimizzazioni del funnel più frequenti (ogni due settimane).",
       "Un pacchetto di contenuti extra prodotti dal team.",
       "Supporto sulla strategia delle tue live.",
@@ -91,7 +135,7 @@ const PLANS = [
       "Creazione di nuovi prodotti complessi (vedi Ciak Espansione).",
     ],
     risultatoAtteso:
-      "Una crescita graduale di contatti e vendite, costruita su contenuti e ottimizzazioni costanti. Nessun numero è garantito: dipende anche dal mercato e dalla tua esecuzione.",
+      "Una crescita graduale di contatti e vendite, costruita su contenuti e ottimizzazioni costanti. Nessun numero e' garantito: dipende anche dal mercato e dalla tua esecuzione.",
   },
   {
     id: "scale",
@@ -99,7 +143,7 @@ const PLANS = [
     price: 797,
     priceLabel: "797 € / mese",
     icon: Rocket,
-    beneficio: "La spinta completa: advertising, nuovi prodotti e affiancamento strategico.",
+    beneficio: "La soluzione piu' completa: advertising, nuovi prodotti e affiancamento strategico.",
     perChi:
       "Per chi ha validato il modello e vuole spingere: ads, nuovi funnel, nuovi prodotti, più entrate.",
     obiettivo: "Scalare il business e diversificare le entrate, con il team al tuo fianco.",
@@ -129,7 +173,7 @@ const PLANS = [
       "Spese di strumenti o licenze di terze parti.",
     ],
     risultatoAtteso:
-      "Le condizioni per scalare: più traffico, più prodotti, più entrate potenziali. È il piano più ambizioso, ma i risultati dipendono da budget, mercato ed esecuzione.",
+      "Le condizioni per scalare: piu' traffico, piu' prodotti, piu' entrate potenziali. E' il piano piu' ambizioso, ma i risultati dipendono da budget, mercato ed esecuzione.",
   },
 ];
 
@@ -174,7 +218,7 @@ function PlanCard({ plan, onOpen }) {
         <p className="text-[13px] text-slate-700 leading-snug mt-1">{plan.perChi}</p>
       </div>
       <p className="text-[12px] text-slate-500 mb-3">
-        <span className="font-semibold text-slate-700">Investimento:</span> {plan.priceLabel} · minimo 6 mesi
+        <span className="font-semibold text-slate-700">Investimento:</span> {plan.priceLabel} · Attivabile per almeno 6 mesi
       </p>
       <ul className="space-y-1.5 mb-4 flex-1">
         {plan.comprende.slice(0, 4).map((t, i) => (
@@ -282,9 +326,9 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-1.5 text-slate-400 mb-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Permanenza minima</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest">Attivazione</span>
             </div>
-            <p className="text-[14px] text-slate-700">6 mesi</p>
+            <p className="text-[14px] text-slate-700">Attivabile per almeno 6 mesi</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-1.5 text-slate-400 mb-1">
@@ -354,7 +398,7 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
             <div>
               <p className="text-[15px] font-semibold text-white">Attiva {plan.name}</p>
               <p className="text-[13px] text-slate-400 mt-0.5">
-                {plan.priceLabel} · permanenza minima 6 mesi.
+                {plan.priceLabel} · Attivabile per almeno 6 mesi.
               </p>
             </div>
             <button
@@ -416,16 +460,15 @@ export function EvoSPage({ partnerId }) {
                 Hai costruito il sistema. Ora va mantenuto, ottimizzato e fatto crescere.
               </h1>
               <p className="text-[15px] text-slate-600 leading-relaxed mt-4 max-w-2xl">
-                Continua a scalare non e' un semplice rinnovo tecnico: e' il livello di continuita'
-                per non lasciare fermo cio' che hai costruito. Il team resta al tuo fianco per leggere
-                i numeri, aggiornare le leve giuste e trasformare il percorso in una crescita piu'
-                ordinata.
+                Le soluzioni post 12 mesi non sono un nuovo metodo e non sostituiscono il Protocollo EVO.
+                Servono a scegliere il livello di supporto piu' adatto allo stato reale del tuo sistema:
+                recupero, continuita', crescita o espansione.
               </p>
               <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">La scelta non e' “comprare un piano”.</p>
                 <p className="text-[13px] text-slate-600 leading-relaxed mt-1">
-                  E' decidere quanto supporto vuoi mantenere dopo il lancio: controllo leggero, crescita
-                  costante o spinta completa.
+                  E' decidere con lucidita' cosa serve adesso: rimettere ordine, mantenere il sistema,
+                  crescere con piu' supporto o lavorare su una vera espansione.
                 </p>
               </div>
             </div>
@@ -503,11 +546,15 @@ export function EvoSPage({ partnerId }) {
 
         <div className="mb-4">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-            Scegli il livello di continuita'
+            Soluzioni post 12 mesi
           </p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">Tre modi per restare seguito</h2>
+          <h2 className="text-2xl font-semibold text-slate-900 mt-1">Quattro modi per continuare con ordine</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Ogni soluzione e' attivabile per almeno 6 mesi. Cambia il livello di supporto, non il metodo:
+            si parte sempre dai dati e dallo stato reale del sistema.
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {PLANS.map((p) => (
             <PlanCard key={p.id} plan={p} onOpen={setSelectedId} />
           ))}

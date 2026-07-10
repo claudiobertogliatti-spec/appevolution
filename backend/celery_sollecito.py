@@ -29,7 +29,7 @@ DEADLINE_GIORNI = 21
 # In ordine crescente: (giorno_soglia, step_id_atteso entro quella soglia)
 SOGLIE = [
     (7,  "04-posizionamento"),
-    (14, "08-registra-lezioni"),
+    (14, "09-registra-lezioni"),
     (18, "13-lancio"),
 ]
 

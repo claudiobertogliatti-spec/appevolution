@@ -3,6 +3,7 @@ import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
 import axios from "axios";
 import { authHeaders } from "../../api";
+import { Link } from "react-router-dom";
 
 const FORMATI = ["Reel", "Carosello", "Post", "Storie"];
 const CTA_OPTIONS = [
@@ -114,9 +115,9 @@ export default function Step11Calendario({ step, partnerId, onComplete, onSaveDr
       >
         <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
           <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
-            Andrea costruisce 30 giorni di contenuti organici in 4 settimane: prima esisti,
-            poi dimostri il metodo, poi annunci il webinar. Nessuna vendita questo mese: solo
-            audience. Ci mette qualche secondo.
+            Andrea costruisce 30 giorni di lancio: contenuti, canali, date, CTA, rimandi alla
+            masterclass e follow-up. Ti diamo la direzione; se vuoi anche i contenuti pronti,
+            puoi attivare il servizio extra.
           </p>
           <button
             type="button"
@@ -126,6 +127,16 @@ export default function Step11Calendario({ step, partnerId, onComplete, onSaveDr
           >
             {generating ? "Andrea sta costruendo il calendario…" : "✨ Genera il calendario dei 30 giorni"}
           </button>
+        </div>
+        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-slate-800">
+          <div className="font-semibold text-slate-900">Vuoi i contenuti gia' pronti?</div>
+          <p className="text-[13px] leading-relaxed mt-1">
+            Il calendario e' incluso. Post, script reel, email, grafiche o programmazione possono
+            essere prodotti dal team Evolution come servizio extra.
+          </p>
+          <Link to="/partner/servizi-extra" className="inline-flex mt-3 text-[13px] font-semibold text-blue-700 hover:text-blue-900">
+            Vedi i servizi extra →
+          </Link>
         </div>
         {error && (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -156,6 +167,17 @@ export default function Step11Calendario({ step, partnerId, onComplete, onSaveDr
       </div>
 
       <div className="px-5 py-5">
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 mb-5">
+          <div className="text-[13px] font-semibold text-slate-900">Base inclusa, produzione extra se vuoi</div>
+          <p className="text-[12.5px] text-slate-700 leading-relaxed mt-1">
+            Qui hai strategia, traccia e CTA per 30 giorni. Se vuoi risparmiare tempo, il team
+            Evolution puo' trasformare il calendario in contenuti pronti da pubblicare.
+          </p>
+          <Link to="/partner/servizi-extra" className="inline-flex mt-2 text-[12.5px] font-semibold text-blue-700 hover:text-blue-900">
+            Attiva contenuti di lancio / Calendario PRO →
+          </Link>
+        </div>
+
         {(cal.weeks || []).map((w, wi) => (
           <div key={wi} className="mb-6">
             {/* Intestazione settimana */}

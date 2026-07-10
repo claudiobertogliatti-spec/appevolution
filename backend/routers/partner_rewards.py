@@ -38,19 +38,19 @@ PHASE_META = {
     },
     "valida": {
         "label": "Valida",
-        "result": "Il progetto e' diventato un sistema reale: masterclass, corso, funnel e lancio.",
+        "result": "Il progetto e' diventato un sistema reale: masterclass, corso, script lezioni, sistema di vendita e lancio.",
         "next_step": "Da qui leggiamo i dati e miglioriamo il sistema con continuita'.",
         "bonus_title": "Checklist Lancio del tuo Modello Digitale",
         "bonus_bullets": [
-            "Controlla video, pagine, checkout e comunicazioni prima del go-live.",
+            "Controlla video, dominio, legal pages, pagine, checkout e comunicazioni prima del go-live.",
             "Prepara il pubblico con contenuti semplici e coerenti.",
             "Tieni pronta la traccia della live e il follow-up.",
         ],
     },
-    "golive": {
-        "label": "Go Live",
-        "result": "Il modello digitale e' online e pronto a vendere.",
-        "next_step": "Ora inizia la fase Ottimizza: dati, live ricorrenti, calendario e crescita.",
+    "ottimizza": {
+        "label": "Ottimizza",
+        "result": "Il modello digitale e' online: ora il lavoro passa su dati, vendite e miglioramento continuo.",
+        "next_step": "Leggiamo i numeri reali, miglioriamo il funnel e costruiamo continuita' nei 12 mesi.",
         "bonus_title": "Piano 90 Giorni per Crescere",
         "bonus_bullets": [
             "Mantieni un ritmo editoriale semplice tra una live e l'altra.",
@@ -59,6 +59,10 @@ PHASE_META = {
         ],
     },
 }
+
+
+def _normalize_phase(phase: str) -> str:
+    return "ottimizza" if phase == "golive" else phase
 
 
 def _parse_dt(value: Any) -> Optional[datetime]:
@@ -101,7 +105,8 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
 
 
 def _phase_step_ids(phase: str) -> list[str]:
-    if phase == "golive":
+    phase = _normalize_phase(phase)
+    if phase == "ottimizza":
         return ["13-lancio"]
     for mp in MACRO_PHASES_DEFINITION:
         if mp["id"] == phase:
@@ -114,9 +119,10 @@ def _is_step_done(step: dict[str, Any] | None) -> bool:
 
 
 def _phase_unlocked(ctx: dict[str, Any], phase: str) -> bool:
+    phase = _normalize_phase(phase)
     steps_by_id = ctx["steps_by_id"]
     ids = _phase_step_ids(phase)
-    if phase == "golive":
+    if phase == "ottimizza":
         step = steps_by_id.get("13-lancio")
         return _is_step_done(step) and bool((step.get("data") or {}).get("launched_at") or step.get("completed_at"))
     return bool(ids) and all(_is_step_done(steps_by_id.get(sid)) for sid in ids)
@@ -160,7 +166,7 @@ def _start_date(ctx: dict[str, Any]) -> str:
 
 def _reward_state(ctx: dict[str, Any]) -> dict[str, Any]:
     phases = []
-    for phase in ("esamina", "valida", "golive"):
+    for phase in ("esamina", "valida", "ottimizza"):
         meta = PHASE_META[phase]
         unlocked = _phase_unlocked(ctx, phase)
         phases.append({
@@ -183,9 +189,12 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     brand = (steps.get("03-brand-kit") or {}).get("data") or {}
     masterclass = (steps.get("05-script-masterclass") or {}).get("data") or {}
     course = (steps.get("06-outline-lezioni") or {}).get("data") or {}
-    funnel = (steps.get("09-funnel-asset") or {}).get("data") or {}
+    scripts = (steps.get("07-script-videolezioni") or {}).get("data") or {}
+    funnel = (steps.get("10-sistema-vendita") or {}).get("data") or {}
     calendar = (steps.get("11-calendario-30gg") or {}).get("data") or {}
     webinar = (steps.get("12-prezzo-webinar") or {}).get("data") or {}
+    launch = (steps.get("13-lancio") or {}).get("data") or {}
+    ott = ctx.get("partner", {}).get("ottimizzazione") or {}
 
     return [
         {"title": "Identita' professionale", "body": story.get("sintesi") or partner.get("bio") or "Questa sezione si completera' nella fase Esamina."},
@@ -194,9 +203,11 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
         {"title": "Brand", "body": brand.get("descrizione") or brand.get("tono") or "Logo, colori e stile saranno raccolti qui."},
         {"title": "Masterclass", "body": masterclass.get("titolo") or masterclass.get("script_summary") or "La masterclass si completera' nella fase Valida."},
         {"title": "Corso", "body": course.get("titolo") or course.get("outline") or "La struttura del corso verra' aggiunta dopo l'outline."},
-        {"title": "Sistema di vendita", "body": funnel.get("headline") or funnel.get("descrizione") or "Landing, pagina vendita e checkout saranno raccolti qui."},
+        {"title": "Script videolezioni", "body": scripts.get("summary") or scripts.get("script_videolezioni") or "Gli script delle videolezioni saranno raccolti qui."},
+        {"title": "Sistema di vendita", "body": funnel.get("headline") or funnel.get("descrizione") or funnel.get("note_sistema_vendita") or "Subaccount, dominio, legal pages, funnel e checkout saranno raccolti qui."},
         {"title": "Calendario di lancio", "body": str(calendar.get("calendario") or calendar.get("summary") or "Il piano contenuti verra' aggiunto quando generato.")},
         {"title": "Webinar e offerta", "body": str(webinar.get("strategia") or webinar.get("prezzo") or "Prezzo, bonus e live saranno raccolti qui.")},
+        {"title": "Ottimizzazione", "body": str(ott.get("summary") or launch.get("report") or "Qui entreranno dati reali, vendite, prossime azioni e miglioramenti dopo il lancio.")},
     ]
 
 
@@ -221,6 +232,7 @@ async def get_rewards_state(partner_id: str):
 
 @router.get("/{partner_id}/certificate/{phase}")
 async def download_certificate(partner_id: str, phase: str):
+    phase = _normalize_phase(phase)
     if phase not in PHASE_META:
         raise HTTPException(404, "Fase non valida")
     ctx = await _load_context(partner_id)
@@ -244,6 +256,7 @@ async def download_certificate(partner_id: str, phase: str):
 
 @router.get("/{partner_id}/bonus/{phase}")
 async def download_bonus(partner_id: str, phase: str):
+    phase = _normalize_phase(phase)
     if phase not in PHASE_META:
         raise HTTPException(404, "Fase non valida")
     ctx = await _load_context(partner_id)

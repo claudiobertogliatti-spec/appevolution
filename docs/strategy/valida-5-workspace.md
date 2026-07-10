@@ -1,6 +1,6 @@
 # Fase Valida (Metodo EVO) → 5 Workspace
 
-Stato (2026-06-30): WS1 Masterclass e WS2 Corso in produzione. Decisione di Claudio:
+Stato (2026-07-10): versione definitiva della Fase 2 "Valida". Decisione di Claudio:
 la Fase 2 "Valida" non è un elenco di 9 pagine/step, ma **5 Workspace**, ognuno un
 obiettivo con dentro tutte le attività per completarlo.
 
@@ -21,17 +21,34 @@ passo sempre visibili. Carico decisionale del partner minimo.
 
 Componente riusabile: `frontend/src/ciak/partner/operativo/WorkspaceShell.jsx`.
 
-## Mappatura 9 step → 5 Workspace (confermata da Claudio)
+## Mappatura definitiva Valida → 5 Workspace
 
 | Workspace | Titolo | Step assorbiti | Agente | Stato |
 |---|---|---|---|---|
-| 1 | Creiamo la tua Masterclass | 05-script + 07-registra-masterclass | Andrea | ✅ in produzione |
-| 2 | Organizziamo il tuo Corso | 06-outline + 08-registra-lezioni | Andrea | ✅ in produzione |
-| 3 | Costruiamo il Sistema di Vendita | 09-funnel-asset + 10-funnel-team-work + prezzo (da 12) | Gaia | da fare |
-| 4 | Prepariamo il Lancio | 11-calendario-30gg + webinar (da 12) | Marco | da fare |
+| 1 | Creiamo la tua Masterclass | 05-script-masterclass + 08-registra-masterclass | Andrea | in produzione |
+| 2 | Organizziamo il tuo Corso | 06-outline-lezioni + 07-script-videolezioni + 09-registra-lezioni | Andrea | in produzione |
+| 3 | Costruiamo il Sistema di Vendita | 10-sistema-vendita + prezzo/checkout da 12 | Gaia | in produzione |
+| 4 | Prepariamo il Lancio | 11-calendario-30gg + webinar da 12 | Marco | da fare |
 | 5 | Andiamo Online | 13-lancio + go-live + report | Marco | da fare |
 
 Lo step 12-prezzo-webinar è sciolto: prezzo → WS3 (checkout), webinar → WS4 (lancio).
+
+## Sequenza definitiva della Fase Valida
+
+1. Script masterclass.
+2. Outline videocorso.
+3. Script videolezioni, una traccia per ogni lezione come per la masterclass.
+4. Registrazione masterclass.
+5. Registrazione videolezioni.
+6. Sistema di vendita: subaccount Systeme collegato a Evolution PRO, dominio, DNS/SSL, legal pages, funnel, checkout, tag, email, workflow e tracking.
+7. Calendario lancio 30 giorni.
+8. Prezzo + webinar/masterclass.
+9. Go-live e test completo.
+
+CTA servizi extra:
+- Dove il partner non riesce o vuole accelerare, la formula è: "Se vuoi farlo da solo, ti guidiamo. Se preferisci non occupartene, lo facciamo noi."
+- Nel calendario 30 giorni: il piano è incluso; post, script reel, email, grafiche e programmazione sono servizio extra.
+- Nel sistema di vendita: dominio, legal pages, copy avanzato, checkout, setup tecnico o campagne possono diventare servizio extra quando opportuno.
 
 ## Backend — router (prefix `/api/partner-journey/workspace`)
 
@@ -51,9 +68,9 @@ WS2 — `backend/routers/workspace_corso.py`:
 
 ## Frontend
 
-`WorkspaceShell.jsx` (8 sezioni), `Workspace1Masterclass.jsx`, `Workspace2Corso.jsx`.
+`WorkspaceShell.jsx` (8 sezioni), `Workspace1Masterclass.jsx`, `Workspace2Corso.jsx`, `Workspace3SistemaVendita.jsx`.
 `PartnerOperativo.jsx` monta i workspace via mappa deep-link `WORKSPACE_COMPONENTS`
-(`ws1-masterclass`, `ws2-corso`) — inerte di default. Per i prossimi WS basta aggiungere
+(`ws1-masterclass`, `ws2-corso`, `ws3-vendita`) — inerte di default. Per i prossimi WS basta aggiungere
 l'import + una entry nella mappa.
 
 ## Come testare
@@ -67,8 +84,6 @@ Partner consigliato: Daniele Andolfi (id "23").
 
 ## Prossimi passi
 
-1. Verificare WS1+WS2 in produzione dopo il deploy (Cloud Build + Vercel ~10 min).
-2. WS3 "Costruiamo il Sistema di Vendita" (agente Gaia): riusa `/funnel/generate` + `/funnel/publish` + Systeme.io; generatori per dominio/privacy/cookie/termini come task tracciate.
-3. WS4 "Prepariamo il Lancio" (Marco): riusa `/editorial_calendar`, `/lancio/generate-plan`; generatori reel/post/caroselli + check social.
-4. WS5 "Andiamo Online" (Marco): publish funnel, controllo tracking/automazioni, monitoraggio, report primi 30gg.
-5. Cutover: la fase Valida in `JourneyMap` mostra 5 card Workspace invece delle card step singole.
+1. WS4 "Prepariamo il Lancio" (Marco): riusa `/editorial_calendar`, `/lancio/generate-plan`; generatori reel/post/caroselli + check social.
+2. WS5 "Andiamo Online" (Marco): publish funnel, controllo tracking/automazioni, monitoraggio, report primi 30gg.
+3. Cutover: la fase Valida in `JourneyMap` mostra 5 card Workspace invece delle card step singole.

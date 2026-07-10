@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { getPhasePresentation } from "./phases";
 import {
   FileText, PlayCircle, Contact, Palette, Target, Mic, ListChecks,
-  Video, Film, LayoutGrid, Hammer, CalendarDays, Tag, Rocket,
+  Video, Film, LayoutGrid, CalendarDays, Tag, Rocket,
   BookOpen, ArrowRight, Check, Lock,
 } from "lucide-react";
 
@@ -23,11 +23,11 @@ const STEP_COPY = {
   "04-posizionamento": { title: "Il tuo posizionamento", desc: "Poche domande per mettere a fuoco il tuo messaggio." },
   "05-script-masterclass": { title: "Lo script della masterclass", desc: "Ti prepariamo la traccia: tu la validi e la porti con la tua voce." },
   "06-outline-lezioni": { title: "La scaletta delle lezioni", desc: "Ti proponiamo l'indice del corso: tu controlli che rispecchi il tuo metodo." },
-  "07-registra-masterclass": { title: "Registra la masterclass", desc: "La tua lezione gratuita: il primo assaggio." },
-  "08-registra-lezioni": { title: "Registra le lezioni", desc: "Il cuore del corso che venderai." },
-  "09-funnel-asset": { title: "Direzione pagine", desc: "Confermi promessa, marchio e contesto: al copy finale pensiamo noi." },
-  "10-funnel-team-work": { title: "Systeme.io in lavorazione", desc: "Pagine, collegamenti e automazioni li montiamo noi nel tuo subaccount." },
-  "11-calendario-30gg": { title: "Il piano 30 giorni", desc: "Cosa pubblicare, giorno per giorno." },
+  "07-script-videolezioni": { title: "Script videolezioni", desc: "Prepariamo una traccia per ogni lezione, come per la masterclass." },
+  "08-registra-masterclass": { title: "Registra la masterclass", desc: "La tua lezione gratuita: il primo assaggio." },
+  "09-registra-lezioni": { title: "Registra le lezioni", desc: "Il cuore del corso che venderai." },
+  "10-sistema-vendita": { title: "Sistema di vendita", desc: "Subaccount Systeme, dominio, legal pages, funnel e checkout." },
+  "11-calendario-30gg": { title: "Il piano 30 giorni", desc: "Calendario incluso; contenuti pronti come servizio extra." },
   "12-prezzo-webinar": { title: "Prezzo e diretta", desc: "Quanto vendi e come lo presenti." },
   "13-lancio": { title: "Il lancio", desc: "Online e pronto a vendere. Ce l'hai fatta." },
 };
@@ -41,10 +41,10 @@ const STEP_ICON = {
   "04-posizionamento": Target,
   "05-script-masterclass": Mic,
   "06-outline-lezioni": ListChecks,
-  "07-registra-masterclass": Video,
-  "08-registra-lezioni": Film,
-  "09-funnel-asset": LayoutGrid,
-  "10-funnel-team-work": Hammer,
+  "07-script-videolezioni": FileText,
+  "08-registra-masterclass": Video,
+  "09-registra-lezioni": Film,
+  "10-sistema-vendita": LayoutGrid,
   "11-calendario-30gg": CalendarDays,
   "12-prezzo-webinar": Tag,
   "13-lancio": Rocket,

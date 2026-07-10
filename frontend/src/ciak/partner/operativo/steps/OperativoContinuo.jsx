@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BarChart3, CalendarDays, Users, Rocket, Radio, SlidersHorizontal, ArrowRight, ChevronLeft } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Rocket, Radio, SlidersHorizontal, ArrowRight, ChevronLeft, Sparkles } from "lucide-react";
 import { F7Ottimizzazione } from "../../phases/F7Ottimizzazione";
 import AcceleraGrowth from "../ottimizza/AcceleraGrowth";
 import CommunityLista from "../ottimizza/CommunityLista";
@@ -12,7 +12,8 @@ import { authHeaders } from "../../api";
 /**
  * Hub fase Ottimizza (operativo continuo post-lancio) — Protocollo EVO, Fase 3.
  * NON tocca il journey model: vive solo qui, quando il partner ha completato il go-live.
- * Obiettivo dichiarato: entro 6 mesi un sistema che vende con continuita'.
+ * Obiettivo dichiarato: accompagnare il partner fino al mese 12 con calendario continuativo,
+ * live ogni 2 mesi e ottimizzazione del sistema.
  * Landing = striscia Marco (ritmo) + 5 workspace numerati + card di supporto community.
  *   dati       -> WS1 Analizziamo il Lancio (F7Ottimizzazione)
  *   calendari  -> WS2 Calendario Editoriale Continuativo (CalendarioTrimestrale)
@@ -35,14 +36,14 @@ const CARDS = [
     num: 2,
     icon: CalendarDays,
     title: "Calendario Editoriale Continuativo",
-    desc: "Non più 30 giorni: un sistema. Reel, post, caroselli, newsletter e CTA per nutrire il pubblico.",
+    desc: "Ti diciamo cosa pubblicare fino al mese 12: reel, post, caroselli, newsletter e CTA tra una live e l'altra.",
   },
   {
     id: "live",
     num: 3,
     icon: Radio,
     title: "La Live Strategica",
-    desc: "Ogni due mesi una diretta per vendere. Il team prepara tutto: tu vai live.",
+    desc: "Una live ogni 2 mesi con ciclo da 8 settimane: nutri, annunci, scaldi, vai live e fai follow-up.",
   },
   {
     id: "sistema",
@@ -130,6 +131,10 @@ export default function OperativoContinuo({ partnerId }) {
     window.location.assign("/partner/supporto");
   };
 
+  const goExtra = () => {
+    window.location.assign("/partner/servizi-extra");
+  };
+
   // Dati usa F7Ottimizzazione che e' una pagina intera con il suo header/back.
   if (view === "dati") {
     return <F7Ottimizzazione partnerId={partnerId} />;
@@ -166,8 +171,8 @@ export default function OperativoContinuo({ partnerId }) {
             La tua accademia è online
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Adesso il lavoro più importante: migliorare ciò che funziona, correggere ciò che non funziona
-            e arrivare — entro sei mesi — a un sistema che genera vendite con continuità.
+            Adesso ti diciamo cosa fare fino al mese 12: calendario continuativo, live ogni 2 mesi,
+            follow-up e ottimizzazione del sistema. Se non vuoi farlo tu, lo facciamo noi.
           </p>
         </div>
 
@@ -176,6 +181,33 @@ export default function OperativoContinuo({ partnerId }) {
           giorniDaUltimaAzione={signals.giorniDaUltimaAzione}
           onAzione={() => setView("dati")}
         />
+
+        <div className="bg-slate-900 rounded-2xl p-5 mb-5 text-white border border-slate-800">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-slate-900" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-400">
+                Fino al mese 12
+              </p>
+              <h2 className="text-lg font-semibold tracking-tight mt-1">
+                Ti diamo il piano. Se vuoi, lo eseguiamo noi.
+              </h2>
+              <p className="text-[13px] text-slate-300 leading-relaxed mt-1 mb-4">
+                In Ottimizza lavori su due leve: calendario continuativo e live ogni 2 mesi.
+                Vuoi contenuti, email, grafiche, organizzazione live e follow-up gia pronti?
+                Attiva il servizio extra e il team li prepara per te.
+              </p>
+              <button
+                onClick={goExtra}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 transition"
+              >
+                Vedi servizi extra <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {CARDS.map((c) => (

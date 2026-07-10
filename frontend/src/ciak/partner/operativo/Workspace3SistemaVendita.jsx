@@ -7,7 +7,7 @@ import { authHeaders } from "../api";
 /**
  * WORKSPACE 3 — "Costruiamo il Sistema di Vendita" (Fase Valida, agente Gaia).
  *
- * Assorbe gli step 09-funnel-asset + 10-funnel-team-work + prezzo (da 12).
+ * Assorbe lo step 10-sistema-vendita + prezzo (da 12).
  * Riusa i motori esistenti:
  *   - genera funnel/blueprint: POST /api/partner-journey/funnel/generate
  *   - pubblica funnel (Systeme): POST /api/partner-journey/funnel/publish
@@ -112,7 +112,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   if (!state.has_funnel) {
     primary = { label: busy === "funnel" ? "Gaia sta preparando il sistema…" : "Prepara il sistema di vendita",
                 onClick: generateFunnel, disabled: busy === "funnel",
-                hint: "Dai tuoi contenuti, Gaia prepara pagine, email e pagamento. Il team Evolution implementa nel tuo subaccount Systeme.io." };
+                hint: "Dai tuoi contenuti, Gaia prepara subaccount, dominio, legal pages, pagine, email e pagamento. Il team Evolution implementa nel tuo subaccount Systeme.io." };
   } else if (!state.published) {
     primary = { label: busy === "publish" ? "Invio al team…" : "Conferma per il go-live",
                 onClick: publishFunnel, disabled: busy === "publish",
@@ -125,18 +125,27 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const bp = state.blueprint;
   const ls = bp && (bp.landing_sections || {});
   const extra = ls && ls.hero ? (
-    <div className="border border-slate-200 rounded-xl p-4 mb-6 bg-slate-50">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[13px] font-semibold text-slate-900">Anteprima del sistema di vendita</span>
-        <button onClick={() => setBpOpen(!bpOpen)} className="text-[12px] text-slate-400 hover:text-slate-600">{bpOpen ? "Comprimi" : "Vedi tutto"}</button>
+    <>
+      <div className="border border-slate-200 rounded-xl p-4 mb-4 bg-slate-50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[13px] font-semibold text-slate-900">Anteprima del sistema di vendita</span>
+          <button onClick={() => setBpOpen(!bpOpen)} className="text-[12px] text-slate-400 hover:text-slate-600">{bpOpen ? "Comprimi" : "Vedi tutto"}</button>
+        </div>
+        <div className={`text-[13px] text-slate-700 leading-relaxed ${bpOpen ? "" : "max-h-44 overflow-hidden"}`}>
+          <div className="font-semibold text-slate-900">{ls.hero.headline}</div>
+          {ls.hero.subheadline && <div className="text-slate-600 mb-2">{ls.hero.subheadline}</div>}
+          {ls.promessa && <div className="mb-1"><span className="font-semibold">Promessa:</span> {ls.promessa.headline}</div>}
+          {ls.cta_finale && <div className="mb-1"><span className="font-semibold">Offerta:</span> {ls.cta_finale.offerta} {ls.cta_finale.prezzo ? `— ${ls.cta_finale.prezzo}` : ""}</div>}
+        </div>
       </div>
-      <div className={`text-[13px] text-slate-700 leading-relaxed ${bpOpen ? "" : "max-h-44 overflow-hidden"}`}>
-        <div className="font-semibold text-slate-900">{ls.hero.headline}</div>
-        {ls.hero.subheadline && <div className="text-slate-600 mb-2">{ls.hero.subheadline}</div>}
-        {ls.promessa && <div className="mb-1"><span className="font-semibold">Promessa:</span> {ls.promessa.headline}</div>}
-        {ls.cta_finale && <div className="mb-1"><span className="font-semibold">Offerta:</span> {ls.cta_finale.offerta} {ls.cta_finale.prezzo ? `— ${ls.cta_finale.prezzo}` : ""}</div>}
+      <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 mb-6">
+        <div className="text-[13px] font-semibold text-slate-900">Se vuoi accelerare</div>
+        <p className="text-[12.5px] text-slate-700 leading-relaxed mt-1">
+          Ti guidiamo a fare le parti semplici. Se dominio, legal pages, copy, checkout o setup tecnico
+          ti bloccano, nessun problema: il team Evolution puo' occuparsene come servizio extra.
+        </p>
       </div>
-    </div>
+    </>
   ) : null;
 
   return (

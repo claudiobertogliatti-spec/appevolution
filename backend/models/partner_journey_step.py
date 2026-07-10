@@ -43,7 +43,7 @@ class PartnerJourneyStep(BaseModel):
 # La fase "ottimizza" è post-lancio (subentra OperativoContinuo).
 MACRO_PHASES_DEFINITION: list[dict[str, Any]] = [
     {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "burocrazia", "03-brand-kit", "la-tua-storia", "04-posizionamento"]},
-    {"id": "valida",    "label": "Valida",    "tagline": "Andiamo online e testiamo il mercato", "icon": "🚀", "agent": "ANDREA",    "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-registra-masterclass", "08-registra-lezioni", "09-funnel-asset", "10-funnel-team-work", "11-calendario-30gg", "12-prezzo-webinar", "13-lancio"]},
+    {"id": "valida",    "label": "Valida",    "tagline": "Costruiamo una prima versione vendibile e pubblicabile", "icon": "🚀", "agent": "ANDREA",    "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-script-videolezioni", "08-registra-masterclass", "09-registra-lezioni", "10-sistema-vendita", "11-calendario-30gg", "12-prezzo-webinar", "13-lancio"]},
     {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali",            "icon": "📈", "agent": "MARCO",     "step_ids": []},  # post-lancio, gestita da OperativoContinuo
 ]
 
@@ -67,11 +67,11 @@ JOURNEY_STEPS_DEFINITION: list[dict[str, Any]] = [
     {"step_id": "04-posizionamento",      "step_number": 6,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Posizionamento"},
     {"step_id": "05-script-masterclass",  "step_number": 7,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Script masterclass"},
     {"step_id": "06-outline-lezioni",     "step_number": 8,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Outline lezioni"},
-    {"step_id": "07-registra-masterclass","step_number": 9,  "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra masterclass"},
-    {"step_id": "08-registra-lezioni",    "step_number": 10,  "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra lezioni"},
-    {"step_id": "09-funnel-asset",        "step_number": 11, "fase_legacy": "F5", "macro_phase": "valida",    "label": "Funnel asset"},
-    {"step_id": "10-funnel-team-work",    "step_number": 12, "fase_legacy": "F5", "macro_phase": "valida",    "label": "Team costruisce funnel"},
-    {"step_id": "11-calendario-30gg",     "step_number": 13, "fase_legacy": "F6", "macro_phase": "valida",    "label": "Calendario 30gg"},
+    {"step_id": "07-script-videolezioni", "step_number": 9,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Script videolezioni"},
+    {"step_id": "08-registra-masterclass","step_number": 10, "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra masterclass"},
+    {"step_id": "09-registra-lezioni",    "step_number": 11, "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra lezioni"},
+    {"step_id": "10-sistema-vendita",     "step_number": 12, "fase_legacy": "F5", "macro_phase": "valida",    "label": "Subaccount, dominio, legal e funnel"},
+    {"step_id": "11-calendario-30gg",     "step_number": 13, "fase_legacy": "F6", "macro_phase": "valida",    "label": "Calendario lancio 30gg"},
     {"step_id": "12-prezzo-webinar",      "step_number": 14, "fase_legacy": "F6", "macro_phase": "valida",    "label": "Prezzo + webinar"},
     {"step_id": "13-lancio",              "step_number": 15, "fase_legacy": "F7", "macro_phase": "valida",    "label": "Lancio"},
 ]

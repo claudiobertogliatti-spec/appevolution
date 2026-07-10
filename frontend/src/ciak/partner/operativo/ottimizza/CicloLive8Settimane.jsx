@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Radio, Loader2, Sparkles, Megaphone, Flame, CheckCircle2, CalendarClock, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { authHeaders } from "../../api";
 
 /**
@@ -7,6 +8,7 @@ import { authHeaders } from "../../api";
  * Strategia: docs/strategy/playbook-partner-6-mesi.md, Sezione 6.
  * Un ciclo da 8 settimane: Nutri (1-5) → Annuncia (6) → Scalda (7) → LIVE (8) → Chiudi → riparte.
  * Una live gratuita ogni 2 mesi = 6 eventi/anno = picchi di vendita prevedibili a costo zero.
+ * Il ciclo continua fino al mese 12: piano incluso, esecuzione delegabile come servizio extra.
  *
  * Backend: GET/POST /api/partner-journey/ciclo-live/{partnerId}
  *          POST     /api/partner-journey/ciclo-live/{partnerId}/data-live
@@ -54,6 +56,30 @@ function Settimana({ w }) {
           <ArrowRight className="w-3 h-3" /> {w.cta}
         </p>
       )}
+    </div>
+  );
+}
+
+function ExtraLiveCta() {
+  return (
+    <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 mb-5">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-700">
+        Servizio extra
+      </p>
+      <p className="text-[15px] font-semibold text-slate-900 mt-1">
+        Vuoi fare la live senza gestire tutto il contorno?
+      </p>
+      <p className="text-[13px] text-slate-700 leading-relaxed mt-1 mb-3">
+        Il ciclo da 8 settimane ti dice cosa fare fino al mese 12. Se non vuoi occuparti di
+        organizzazione, testi, email e follow-up, Facciamo noi: landing, inviti, promemoria,
+        scaletta e sequenza post-live.
+      </p>
+      <Link
+        to="/partner/servizi-extra"
+        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
+      >
+        Voglio la live preparata <ArrowRight className="w-4 h-4" />
+      </Link>
     </div>
   );
 }
@@ -146,10 +172,12 @@ export default function CicloLive8Settimane({ partnerId }) {
         <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Live ogni 2 mesi</h2>
         <p className="text-sm text-slate-500 mt-1">
           Il motore che fa girare le vendite tutto l'anno. Una live gratuita ogni 2 mesi: sei
-          appuntamenti, sei occasioni di vendita concentrate. Costa zero — bastano webcam e una
-          diretta. Tra una live e l'altra ti nutri il pubblico col calendario.
+          appuntamenti fino al mese 12, sei occasioni di vendita concentrate. Costa zero: bastano
+          webcam e una diretta. Tra una live e l'altra nutri il pubblico col calendario.
         </p>
       </div>
+
+      <ExtraLiveCta />
 
       {/* Promemoria prossima live */}
       {cycle && (
