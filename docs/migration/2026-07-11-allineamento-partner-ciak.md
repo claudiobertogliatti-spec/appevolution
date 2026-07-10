@@ -40,6 +40,13 @@ Stati usati:
 - `fase1_chiusa_ok_operativo`: partner attivo o comunque da proseguire operativamente.
 - `fase1_chiusa_ok_operativo_riabilitazione`: partner in quarantena/recupero; Fase 1 chiusa come base di riabilitazione.
 - `fase1_chiusa_ok_operativo_ex_non_attivo`: partner ex/non attivo; Fase 1 chiusa come fotografia storica, non come rilancio.
+- `fase1_chiusa_ok_operativo_ex_da_migrare`: partner ex/non attivo ma incluso nella migrazione materiali.
+- `fase1_standby_contratto_insoluto`: partner in standby per contratto/pagamento insoluto; non proseguire finche non viene sbloccato amministrativamente.
+
+Aggiornamento segmentazione:
+
+- Marco Serra e Loris Bonomi sono ex partner, ma devono comunque far parte della migrazione materiali.
+- Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
 
 ## Sorgenti Drive individuate
 
@@ -258,19 +265,19 @@ Il 2026-07-10 e stata chiusa la Fase 1 anche per gli altri partner presenti in C
 
 | Partner | Stato Fase 1 | Prossima azione |
 | --- | --- | --- |
-| Alice Conventi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Alice Conventi | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Annamaria Depalma | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 | Daphne Oliveti | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Elena Perniola | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Elena Perniola | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Federica Arimatea | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 | Filadelfio Vasi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Giuseppe Sarno | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Loris Bonomi | `fase1_chiusa_ok_operativo_ex_non_attivo` | Non procedere al lancio salvo riattivazione esplicita |
+| Giuseppe Sarno | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
+| Loris Bonomi | `fase1_chiusa_ok_operativo_ex_da_migrare` | Ex partner incluso nella migrazione materiali |
 | Marco Orlandi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Marco Serra | `fase1_chiusa_ok_operativo_ex_non_attivo` | Ex partner non rinnovato: non procedere al lancio salvo riattivazione esplicita |
+| Marco Serra | `fase1_chiusa_ok_operativo_ex_da_migrare` | Ex partner non rinnovato, ma incluso nella migrazione materiali |
 | Maria Giulia Falcone | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 | Silvia Sedda | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Simone Ricco | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Simone Ricco | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Valter Romani | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 
 ## Regole di chiusura giornata

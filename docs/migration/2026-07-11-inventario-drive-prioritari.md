@@ -8,6 +8,8 @@ Aggiornamento Fase 1: 2026-07-10.
 - Luigi Calafiore resta escluso perche nuovo partner: deve procedere in autonomia nel percorso iniziale.
 - La chiusura Fase 1 non richiede approvazione documenti; i documenti mancanti restano note per fasi successive.
 - Stato Sarah: `fase1_chiusa_ok_operativo`; playlist YouTube masterclass + lezioni gia editate da mappare.
+- Marco Serra e Loris Bonomi restano ex partner, ma sono inclusi nella migrazione materiali.
+- Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
 
 Fonte principale:
 
@@ -27,7 +29,7 @@ Nota: questa e una prima passata di discovery. Prima di scrivere dati definitivi
 | Mariantonietta Tornello | Si | Posizionamento, consulenza gratuita, email funnel, calendario lancio videocorso, calendario editoriale | Verificare file duplicati tra originale e copie 2026-06/2026-07 |
 | Daniele Andolfi | Si | Calendario lancio social Sabai, analisi, CRM/lista contatti | Collegare con stato pipeline masterclass noto nel sistema |
 | Cosimo Filieri | Si, almeno due cartelle | Posizionamento, calendario editoriale lancio social, istruzioni calendario | Aggiunto al blocco operativo immediato dopo Sarah |
-| Marco Lamanna | Si | Calendario, script masterclass, posizionamento, bonus e risorse | Marco Serra e un ex partner che non ha rinnovato: escluderlo dai prioritari |
+| Marco Lamanna | Si | Calendario, script masterclass, posizionamento, bonus e risorse | Marco Serra e un ex partner che non ha rinnovato, ma va comunque migrato come archivio/materiali ex |
 | Andrea Fredi | Si | Calendario social lancio TAI, script masterclass, istruzioni calendario, script chiusura | Risultati includono anche Andrea Bianchi: filtrare su Andrea Fredi |
 | Eva Gugliucciello | Si | Posizionamento, calendario lancio videocorso, template videocorso, script masterclass | Verificare asset finali e duplicati 2026-06/2026-07 |
 | Sara Due | Si | Calendario lancio videocorso, contratto, posizionamento, template videocorso, sessione strategica gratuita | Nome Drive con accento `Sara Due` / `Sara Duè`: uniformare in Ciak |
@@ -185,7 +187,7 @@ Materiali trovati:
 Da verificare:
 
 - Usare Marco Lamanna come partner prioritario.
-- Escludere Marco Serra dal flusso prioritario: e un ex partner che non ha rinnovato.
+- Marco Serra e un ex partner che non ha rinnovato, ma deve comunque far parte della migrazione materiali.
 - Verificare se i materiali "Alice Marco" appartengono effettivamente a Marco Lamanna prima di integrarli in Ciak.
 
 ### Andrea Fredi

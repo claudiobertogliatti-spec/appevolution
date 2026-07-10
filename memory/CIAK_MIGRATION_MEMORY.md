@@ -105,16 +105,21 @@ Regola da mantenere per tutti i partner:
 - per brand kit cercare asset anche fuori dalla cartella `Immagini`: cartelle storiche, lancio, reel/storie/caroselli, funnel, live, copertine;
 - distinguere sempre partner attivo, quarantena/riabilitazione, ex/non attivo;
 - Luigi Calafiore e escluso dalla chiusura massiva: nuovo partner appena firmato, dovra procedere in autonomia nel percorso iniziale.
+- Marco Serra e Loris Bonomi sono ex partner, ma devono comunque far parte della migrazione materiali.
+- Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
 
 Stati Ciak usati:
 
 - `fase1_chiusa_ok_operativo`
 - `fase1_chiusa_ok_operativo_riabilitazione`
 - `fase1_chiusa_ok_operativo_ex_non_attivo`
+- `fase1_chiusa_ok_operativo_ex_da_migrare`
+- `fase1_standby_contratto_insoluto`
 
 Chiusura massiva eseguita il 2026-07-10:
 
 - 24 partner presenti in Ciak chiusi in Fase 1.
 - Luigi Calafiore lasciato aperto/escluso.
-- Marco Serra marcato come ex/non attivo, coerente con indicazione di Claudio: ex partner che non ha rinnovato.
+- Marco Serra e Loris Bonomi corretti come ex partner inclusi nella migrazione materiali.
+- Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola corretti in standby per insoluto pagamento.
 - Sarah Arensi mantenuta come `fase1_chiusa_ok_operativo` per il lavoro operativo appena fatto, con prossimo step playlist YouTube masterclass/lezioni.
