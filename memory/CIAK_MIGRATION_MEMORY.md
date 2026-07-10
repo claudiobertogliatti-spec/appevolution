@@ -27,16 +27,18 @@ Correzione importante: Sarah non va considerata pronta al lancio. La migrazione 
   - `masterclass_factory`
   - `files`
 - Registrati 14 materiali Drive come allegati approvati.
-- Fase 1 aggiornata il 2026-07-10 con stato `fase1_posizionamento_storia_brand_compilati_con_gap`.
+- Fase 1 aggiornata il 2026-07-10 con stato `fase1_chiusa_ok_operativo`.
+- Nota: nella Fase 1 non ci sono documenti da approvare. Dati/documenti mancanti vanno registrati come contesto o gap per fasi successive, ma non bloccano la chiusura di Esamina/posizionamento/storia/brand kit.
 - Dati web pubblici integrati: sito ufficiale, P.IVA pubblica `IT08577240966`, contatto pubblico, profili Instagram/Facebook/LinkedIn e profilo Arte Laguna.
 - Contratto/distinta riletti come fonti primarie: formula Partnership Professional, 3.480 EUR in tre rate da 1.160 EUR, ripartizione 50/50, distinta 1/3 accreditata il 25/04/2025.
 - Posizionamento compilato usando come fonte primaria `PosizionamentoSarahArensi.pdf` da Drive.
 - Storia compilata in bozza usando posizionamento Drive + fonti web pubbliche.
 - Brand kit compilato come parziale: la cartella `05 - Immagini` e vuota, ma gli asset visuali sono nelle cartelle storiche/lancio. In Ciak sono stati agganciati foto/hero visuale, direzione palette oro/fucsia/blu, tone of voice e note su logo `SA / Sarah Arensi` incorporato negli asset; logo standalone, foto isolate e font ufficiali restano da validare.
+- Playlist YouTube indicata da Claudio come fonte video gia editata per masterclass + lezioni: https://www.youtube.com/playlist?list=PLotgbrUYTzMy3IyL69aecoX7PtdyP0w0X. In Ciak e stata agganciata a masterclass/videocorso come `video_editati_presenti_da_mappare`.
 
 ### Stato Sarah
 
-Stato operativo: migrazione parziale in Ciak, percorso non completo.
+Stato operativo: Fase 1 chiusa con OK operativo; percorso complessivo non ancora completo.
 
 Materiali presenti:
 
@@ -61,8 +63,7 @@ Gap residui:
 - storia in formato Ciak approvata;
 - posizionamento validato da Sarah;
 - brand kit definitivo: logo standalone, foto professionali isolate, palette/font ufficiali;
-- masterclass verificata;
-- video finali del corso;
+- mappatura playlist: identificare masterclass e ordine lezioni;
 - bonus;
 - cover;
 - immagini branding;

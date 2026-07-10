@@ -6,13 +6,13 @@ Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10, ma
 
 Aggiornamento Fase 1: 2026-07-10.
 
-Stato Fase 1 in Ciak: `fase1_posizionamento_storia_brand_compilati_con_gap`.
+Stato Fase 1 in Ciak: `fase1_chiusa_ok_operativo`.
 
 ## Stato operativo proposto
 
 Migrazione parziale. Non definire pronta al lancio.
 
-Motivo: esistono materiali utili, ma il percorso Ciak va simulato fase per fase e alcuni blocchi restano vuoti o non validati. In particolare mancano o non sono stati verificati dati personali/documenti, storia approvata, logo/foto standalone, masterclass, video finali, bonus, cover e asset definitivi.
+Motivo: la Fase 1 Esamina e stata compilata con posizionamento, storia bozza e brand kit parziale. In Fase 1 non ci sono documenti da approvare: eventuali dati personali/documenti mancanti restano note di contesto per fasi successive, non bloccano la chiusura operativa.
 
 Regola: inserire in Ciak solo cio che esiste o si puo dedurre con ragionevole sicurezza dai materiali. Lasciare vuoti i campi non provati. Non trasformare un materiale trovato in una fase completata.
 
@@ -103,9 +103,9 @@ Da lasciare vuoto o verificare:
 
 ### Storia
 
-Compilabile solo in bozza, non completata.
+Compilata in bozza operativa.
 
-Fonti utili: sito ufficiale, profilo Arte Laguna, piano operativo e posizionamento. La storia pubblica conferma artista contemporanea, performer, creative mentor, oltre 25 anni di ricerca/pratica artistica, EstaticArt nel 2019 e La Matrice Creativa nel 2024. Non e stato trovato un documento storia completo nel formato Ciak, quindi la fase storia resta da validare con Sarah.
+Fonti utili: sito ufficiale, profilo Arte Laguna, piano operativo e posizionamento. La storia pubblica conferma artista contemporanea, performer, creative mentor, oltre 25 anni di ricerca/pratica artistica, EstaticArt nel 2019 e La Matrice Creativa nel 2024. Non e stato trovato un documento storia completo nel formato Ciak, quindi la storia e chiusa come bozza operativa da validare con Sarah quando si passa al contatto.
 
 ### Posizionamento
 
@@ -123,7 +123,7 @@ Inserito in Ciak:
 - problema: blocco creativo, frustrazione, paura del giudizio/fallimento, disconnessione dalla propria identita creativa;
 - risultato: sbloccare la forza creativa, ritrovare una voce espressiva autentica e portare creativita nella vita quotidiana;
 - unicita: metodo Galactic Creativity / La Matrice Creativa, arte + corpo + presenza + mentoring evolutivo;
-- positioning statement operativo, marcato `compilata_con_gap_da_validare`.
+- positioning statement operativo, marcato `chiusa_ok_operativo`.
 
 Da verificare:
 
@@ -161,9 +161,13 @@ Da verificare:
 
 ### Masterclass
 
-Da lasciare non completata.
+Video editato presente da mappare.
 
-Esiste un URL Drive gia presente in Ciak, ma non e stato verificato se sia masterclass definitiva, grezzo, storico o file non piu valido. La cartella `02 - Masterclass` era vuota al controllo.
+Claudio ha indicato la playlist YouTube con masterclass + lezioni gia editate:
+
+- Playlist Sarah Arensi: https://www.youtube.com/playlist?list=PLotgbrUYTzMy3IyL69aecoX7PtdyP0w0X
+
+La cartella `02 - Masterclass` era vuota al controllo, ma la fonte operativa video ora e la playlist YouTube. Prossimo step: identificare quale video della playlist e la masterclass e agganciarlo nel campo corretto.
 
 ### Videocorso
 
@@ -173,10 +177,11 @@ Trovati:
 - descrizioni lezioni;
 - indicazione di 20 lezioni e circa 7 ore;
 - packaging commerciale 299/699/1399.
+- playlist YouTube con masterclass + lezioni gia editate: https://www.youtube.com/playlist?list=PLotgbrUYTzMy3IyL69aecoX7PtdyP0w0X
 
 Da lasciare incompleto:
 
-- video finali non agganciati;
+- mappatura video finali non ancora completata dentro Ciak;
 - dispensa non trovata nella cartella ordinata;
 - eserciziario non trovato;
 - webinar non trovato;
@@ -208,8 +213,7 @@ Da lasciare incompleto:
 - Conferma social ufficiali da usare nel progetto Ciak.
 - Brand kit definitivo: logo standalone, colori/font ufficiali, foto professionali isolate.
 - Storia in formato Ciak completa e approvata.
-- Link masterclass gratuita o video masterclass definitivo.
-- Video finali del videocorso, non trovati nella cartella ordinata.
+- Mappatura playlist: identificare masterclass e ordine lezioni.
 - Dispensa unica con trascrizioni.
 - Eserciziario PDF.
 - Webinar: slide, audio o video.
@@ -233,7 +237,7 @@ Contiene materiali live/caption e immagini, ma non e stata identificata come car
 
 ## Prossima azione
 
-Continuare la simulazione del percorso Ciak lasciando vuoti i blocchi non provati. Prima di contattare Sarah, verificare soprattutto dati personali/documenti, storia, brand kit, masterclass e video finali.
+Continuare la simulazione del percorso Ciak lasciando vuoti i blocchi non provati. Fase 1 chiusa con OK operativo. Prossimo step: mappare playlist YouTube tra masterclass e lezioni, poi verificare materiali didattici accessori.
 
 Aggiornamenti gia applicati in Ciak:
 
@@ -241,7 +245,7 @@ Aggiornamenti gia applicati in Ciak:
 - `partner_posizionamento`: target, problema, risultato, unicita, proof/authority, fonte primaria Drive, storia bozza, direzione brand kit, positioning statement e valore unico.
 - `partner_videocorso`: titolo corso, promessa, outline 20 lezioni, note produzione, link descrizioni videocorso e livelli offerta 299/699/1399.
 - `partner_funnel`: funnel live, stato, prezzi offerta, stato email, asset Drive e prossime azioni tecniche.
-- `masterclass_factory`: mantenuto URL Drive gia presente e aggiunte note admin/gap.
+- `masterclass_factory`: aggiunta playlist YouTube con masterclass + lezioni gia editate, da mappare.
 - `files`: registrati 14 materiali Drive come allegati approvati.
 
 Fonti web pubbliche usate per Fase 1:
@@ -257,7 +261,7 @@ Fonti web pubbliche usate per Fase 1:
 Messaggio interno:
 
 ```text
-Sarah e migrata solo in prima passata. Abbiamo importato i materiali disponibili e compilato Fase 1 con posizionamento, storia bozza e brand kit parziale, ma il percorso Ciak non e completo: mancano o non sono verificati dati personali/documenti, storia approvata, logo/foto standalone, masterclass, video finali, bonus, cover, checkout e Calendly. Non definirla pronta al lancio finche queste fasi non sono compilate o marcate come mancanti.
+Sarah ha Fase 1 chiusa con OK operativo: posizionamento, storia bozza e brand kit parziale sono compilati. Il percorso Ciak non e completo: va ancora mappata la playlist YouTube con masterclass + lezioni editate, e restano da verificare bonus, cover, materiali didattici accessori, checkout e Calendly. Non definirla pronta al lancio finche queste fasi non sono compilate o marcate come mancanti.
 ```
 
 ## Owner da assegnare
@@ -274,7 +278,7 @@ Ciao Sarah, stiamo riallineando il tuo percorso dentro Ciak per ripartire in mod
 
 Abbiamo recuperato una parte dei materiali: posizionamento, struttura del corso, descrizioni delle lezioni, calendario editoriale, email funnel e follow-up.
 
-Ora ci serve verificare cio che manca o non risulta ancora agganciato: dati/documenti, storia, brand kit, masterclass, video finali del corso, bonus, cover aggiornate e materiali immagine.
+Ora ci serve verificare cio che manca o non risulta ancora agganciato: mappatura playlist masterclass/lezioni, bonus, cover aggiornate, materiali didattici accessori, checkout e Calendly.
 
 Appena questi materiali sono confermati, possiamo completare la scheda Ciak e definire il prossimo step operativo.
 ```
