@@ -285,6 +285,44 @@ Ultimi interventi eseguiti:
 | Simone Ricco | Creata struttura `01-04`; contratto, proforma, email e documenti legali principali spostati in `01 - Documenti`; audio vocali lasciati in root per classificazione successiva; standby insoluto |
 | Alfredo Vasi | Corretto nome da Filadelfio ad Alfredo; creata struttura `01-04`; posizionamento spostato in `01 - Documenti` |
 
+## Audit contenuti Drive - 2026-07-10
+
+Nota operativa: `drive_strutturato_base` conferma che le cartelle standard esistono e sono agganciate a Ciak. Non significa che tutte le cartelle siano piene. L'audit sotto separa i contenuti realmente verificati dalle cartelle vuote/parziali.
+
+| Partner | Contenuti verificati nelle cartelle standard | Vuoti / mancanti emersi | Stato contenuti |
+| --- | --- | --- | --- |
+| Sarah Arensi | `01 - Documenti` contiene call argomenti, contratto, distinta e posizionamenti; `03 - Videocorso` contiene descrizioni videocorso; `04 - Calendario Editoriale` contiene cartella calendario; `06 - Funnel` contiene email/follow-up funnel | `02 - Masterclass` vuota in Drive; `05 - Bonus` vuota. Playlist YouTube nota, ma non e contenuto fisico Drive | parziale avanzato |
+| Marco Lamanna | `01 - Documenti` contiene posizionamento; `02 - Masterclass` contiene script e video; `03 - Videocorso` contiene template videocorso e bonus/risorse; `04 - Calendario Editoriale` contiene calendario lancio social | Nessun vuoto critico emerso nella verifica diretta | contenuti presenti |
+| Andrea Fredi | `02 - Masterclass` ora contiene `Template_Script_Masterclass_Andrea Fredi` e `script_chiusura_andrea_fredi` spostati nella cartella corretta; `04 - Calendario Editoriale` contiene calendario, reel, storie, caroselli e documenti istruzione | `01 - Documenti` vuota; `03 - Videocorso` vuota | parziale, recuperare documenti/posizionamento e videocorso |
+| Cosimo Filieri | `04 - Calendario Editoriale` contiene sottocartella con calendario editoriale, istruzioni, prompt AI e template risposta commenti | `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso` vuote | parziale, solo calendario |
+| Daniele Andolfi | `01 - Documenti` contiene contratto, CI/CF e analisi | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote in Drive standard | parziale documentale |
+| Michele Baggio | `03 - Videocorso` contiene cartella WeTransfer con zip molto pesanti e sottocartelle materiali grezzi | `01 - Documenti`, `02 - Masterclass`, `04 - Calendario Editoriale` vuote | parziale, materiali video grezzi |
+| Mariantonietta Tornello | `01 - Documenti` contiene contratto, pagamenti, posizionamento, brief e argomenti corso; `02 - Masterclass` contiene video; `04 - Calendario Editoriale` contiene cartella calendario | `03 - Videocorso` vuota | parziale avanzato |
+| Eva Gugliucciello | `01 - Documenti` contiene posizionamento; `03 - Videocorso` contiene diversi video grezzi; `04 - Calendario Editoriale` contiene cartella calendario | `02 - Masterclass` vuota | parziale avanzato |
+| Sara Stella Due | `01 - Documenti` contiene posizionamento; `04 - Calendario Editoriale` contiene cartella calendario | `02 - Masterclass` e `03 - Videocorso` vuote nel controllo diretto delle cartelle standard | parziale |
+| Marco Serra | `01 - Documenti` molto piena: contratto, proforma, distinta, CI, posizionamenti e dati brand; `06 - Immagini` contiene logo, grafiche e immagini brand | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`, `05 - Bonus` vuote | ex partner, archivio documentale/brand presente |
+| Loris Bonomi | `01 - Documenti` contiene contratto, pagamenti e materiali legali principali; `04 - Calendario Editoriale` rinominata e agganciata | `02 - Masterclass` e `03 - Videocorso` non risultano popolati nella passata di riordino | ex partner, archivio parziale |
+| Alfredo Vasi | `01 - Documenti` contiene posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote | parziale minimo |
+| Federica Arimatea | `01 - Documenti` contiene posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote nella passata di struttura | parziale minimo |
+| Daphne Oliveti | `01 - Documenti` contiene posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote nella passata di struttura | parziale minimo |
+| Annamaria Depalma | `01 - Documenti` contiene posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote nella passata di struttura | parziale minimo |
+| Marco Orlandi | `01 - Documenti` contiene posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote nella passata di struttura | parziale minimo |
+| Valter Romani | `04 - Calendario Editoriale` contiene la cartella calendario rinominata | `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso` vuote nella passata di struttura | parziale, solo calendario |
+| Silvia Sedda | Struttura `01-04` creata | Cartella principale era vuota al controllo: nessun materiale recuperato | struttura vuota |
+| Maria Giulia Falcone | Struttura `01-04` creata | Cartella principale era vuota al controllo: nessun materiale recuperato | struttura vuota |
+| Alice Conventi | `04 - Calendario Editoriale` deriva dalla cartella calendario esistente | `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso` create ma non popolate; standby insoluto | standby, parziale |
+| Elena Perniola | `01 - Documenti` contiene contratto, pagamento e posizionamento | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote; standby insoluto | standby, parziale documentale |
+| Giuseppe Sarno | Struttura `01-04` creata | Cartella principale era vuota al controllo; standby insoluto | standby, struttura vuota |
+| Simone Ricco | `01 - Documenti` contiene contratto, proforma, email e documenti legali principali | `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale` vuote; audio vocali lasciati in root da classificare; standby insoluto | standby, parziale documentale |
+
+Priorita dopo audit:
+
+1. Non trattare come "pieni" i partner con sola struttura.
+2. Per Fase 2 partire da chi ha contenuti operativi gia presenti: Marco Lamanna, Mariantonietta Tornello, Sarah Arensi, Eva Gugliucciello, Michele Baggio.
+3. Andrea Fredi va tenuto prioritario ma con recupero immediato di `01 - Documenti` e `03 - Videocorso`.
+4. Cosimo Filieri ha calendario pronto, ma vanno recuperati documenti, masterclass e videocorso.
+5. I partner standby insoluto restano archiviati/strutturati, non operativi.
+
 ### Luigi Calafiore
 
 Risultato prima ricerca:

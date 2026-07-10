@@ -281,6 +281,40 @@ Il 2026-07-10 e stata chiusa la Fase 1 anche per gli altri partner presenti in C
 | Simone Ricco | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Valter Romani | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 
+## Nota audit Drive contenuti - 2026-07-10
+
+La struttura Drive e stata completata/agganciata per tutti i partner presenti, escluso Luigi Calafiore. Questo non equivale a "cartelle piene". Dopo controllo diretto dei contenuti, la regola operativa per la seconda fase e:
+
+- `drive_strutturato_base` = cartelle standard presenti e link Drive agganciato;
+- contenuti presenti/parziali/vuoti = stato reale da usare per decidere da chi partire;
+- dove una cartella e vuota, lasciare vuoto il relativo campo dentro Ciak e segnare recupero materiali come prossima azione.
+
+Partner con contenuti operativi gia utili per Fase 2:
+
+- Marco Lamanna: documenti, masterclass, videocorso e calendario presenti.
+- Mariantonietta Tornello: documenti, masterclass video e calendario presenti; videocorso vuoto.
+- Sarah Arensi: documenti, videocorso, calendario e funnel presenti; masterclass vuota in Drive, playlist YouTube esterna gia nota.
+- Eva Gugliucciello: posizionamento, video grezzi videocorso e calendario presenti; masterclass vuota.
+- Michele Baggio: materiali video grezzi/pacchetti WeTransfer in videocorso; documenti/masterclass/calendario vuoti.
+
+Partner prioritari ma parziali:
+
+- Andrea Fredi: script masterclass spostati in `02 - Masterclass`, calendario pieno; documenti e videocorso vuoti.
+- Cosimo Filieri: calendario pieno; documenti, masterclass e videocorso vuoti.
+- Daniele Andolfi: documenti presenti; masterclass/videocorso/calendario vuoti nella struttura Drive.
+
+Partner con struttura minima o vuota:
+
+- Con solo posizionamento in `01 - Documenti`: Alfredo Vasi, Federica Arimatea, Daphne Oliveti, Annamaria Depalma, Marco Orlandi.
+- Solo calendario: Valter Romani.
+- Struttura vuota: Silvia Sedda, Maria Giulia Falcone.
+
+Partner ex/standby:
+
+- Marco Serra: ex partner, documenti e immagini brand presenti; produzione corso vuota.
+- Loris Bonomi: ex partner, archivio documentale/legale presente; produzione corso non popolata.
+- Alice Conventi, Elena Perniola, Giuseppe Sarno, Simone Ricco: standby insoluto, da tenere strutturati/archiviati ma non operativi.
+
 ## Regole di chiusura giornata
 
 La giornata e chiusa bene solo se per ogni partner prioritario esiste almeno:

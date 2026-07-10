@@ -162,3 +162,32 @@ Ultima passata:
 - Alice Conventi, Elena Perniola, Giuseppe Sarno, Simone Ricco: Drive strutturato ma partner in standby per insoluto.
 - Loris Bonomi e Marco Serra: ex partner inclusi nella migrazione materiali, Drive strutturato.
 - Alfredo Vasi: nome corretto rispetto al precedente Filadelfio; Drive strutturato e posizionamento in `01 - Documenti`.
+
+## Audit contenuti Drive - 2026-07-10
+
+Regola importante: `drive_structure_status = drive_strutturato_base` non significa cartelle piene. Significa solo che la struttura standard esiste ed e agganciata. Per la Fase 2 bisogna usare anche lo stato contenuti.
+
+Esito audit contenuti:
+
+- Marco Lamanna: contenuti presenti in `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`. E il caso piu pulito.
+- Sarah Arensi: parziale avanzato. Documenti, videocorso, calendario e funnel presenti; `02 - Masterclass` e `05 - Bonus` vuote in Drive. Playlist YouTube nota ma da non confondere con contenuto fisico Drive.
+- Andrea Fredi: parziale. Spostati nella cartella corretta `02 - Masterclass` i documenti `Template_Script_Masterclass_Andrea Fredi` e `script_chiusura_andrea_fredi`; `04 - Calendario Editoriale` piena; `01 - Documenti` e `03 - Videocorso` vuote.
+- Cosimo Filieri: parziale, solo calendario. `04 - Calendario Editoriale` contiene calendario, istruzioni, prompt AI e template risposta commenti; `01`, `02`, `03` vuote.
+- Daniele Andolfi: parziale documentale. `01 - Documenti` contiene contratto, CI/CF e analisi; `02`, `03`, `04` vuote in Drive standard.
+- Michele Baggio: parziale video. `03 - Videocorso` contiene pacchetti WeTransfer pesanti e materiali grezzi; `01`, `02`, `04` vuote.
+- Mariantonietta Tornello: parziale avanzato. `01 - Documenti` piena, `02 - Masterclass` con video, `04 - Calendario Editoriale` con cartella calendario; `03 - Videocorso` vuota.
+- Eva Gugliucciello: parziale avanzato. `01 - Documenti` con posizionamento, `03 - Videocorso` con video grezzi, `04 - Calendario Editoriale` con calendario; `02 - Masterclass` vuota.
+- Sara Stella Due: parziale. `01 - Documenti` con posizionamento, `04 - Calendario Editoriale` con cartella calendario; `02` e `03` vuote.
+- Marco Serra: ex partner con archivio documentale/brand presente. `01 - Documenti` molto piena e `06 - Immagini` piena; `02`, `03`, `04`, `05` vuote.
+- Loris Bonomi: ex partner parziale. `01 - Documenti` piena di contratto, pagamenti e materiali legali; calendario agganciato; masterclass/videocorso non popolati.
+- Alfredo Vasi, Federica Arimatea, Daphne Oliveti, Annamaria Depalma, Marco Orlandi: parziali minimi con posizionamento in `01 - Documenti`, altre cartelle vuote nella passata.
+- Valter Romani: parziale, solo calendario.
+- Silvia Sedda e Maria Giulia Falcone: struttura vuota.
+- Alice Conventi, Elena Perniola, Giuseppe Sarno, Simone Ricco: standby insoluto. Mantenerli strutturati/archiviati, non operativi; Elena e Simone hanno documenti in `01`, Giuseppe e probabile struttura vuota.
+
+Priorita Fase 2 dopo audit:
+
+1. Partire dai partner con contenuti operativi gia presenti: Marco Lamanna, Mariantonietta Tornello, Sarah Arensi, Eva Gugliucciello, Michele Baggio.
+2. Tenere Andrea Fredi prioritario, ma recuperare subito documenti/posizionamento e videocorso.
+3. Cosimo Filieri ha calendario pronto ma richiede recupero documenti, masterclass e videocorso.
+4. Non dichiarare "Drive pieno" se la cartella ha solo struttura o solo posizionamento.
