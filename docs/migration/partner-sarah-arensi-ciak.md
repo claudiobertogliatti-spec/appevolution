@@ -2,6 +2,8 @@
 
 Data prima lavorazione: 2026-07-10
 
+Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10.
+
 ## Stato operativo proposto
 
 Pronta al lancio, con gap operativi da chiudere prima del contatto partner.
@@ -31,6 +33,8 @@ Movimenti Drive eseguiti:
 - Spostati `Email automatizzate funnel Sarah Arensi` e `SEQUENZA FOLLOW SARAH ARENSI.docx` dentro `06 - Funnel e Follow-up`.
 
 ## Materiali presenti
+
+I materiali sotto sono stati registrati anche in Ciak come file Drive approvati, associati al partner ID `4`.
 
 ### Documenti / posizionamento
 
@@ -92,6 +96,14 @@ Contiene materiali live/caption e immagini, ma non e stata identificata come car
 
 Recuperare o confermare la cartella reale dei video finali e dei bonus del corso.
 
+Aggiornamenti gia applicati in Ciak:
+
+- `partner_posizionamento`: target, risultato, unicita, fonte Drive, positioning statement e valore unico.
+- `partner_videocorso`: titolo corso, promessa, outline 20 lezioni, note produzione, link descrizioni videocorso e livelli offerta 299/699/1399.
+- `partner_funnel`: funnel live, stato, prezzi offerta, stato email, asset Drive e prossime azioni tecniche.
+- `masterclass_factory`: mantenuto URL Drive gia presente e aggiunte note admin/gap.
+- `files`: registrati 14 materiali Drive come allegati approvati.
+
 Messaggio interno:
 
 ```text
@@ -116,4 +128,3 @@ Ora ci serve verificare l'ultima parte: video finali del corso, bonus, cover agg
 
 Appena questi materiali sono confermati, possiamo chiudere la scheda Ciak e preparare il prossimo step operativo sul lancio.
 ```
-
