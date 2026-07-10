@@ -1630,11 +1630,17 @@ async def get_masterclass_video_status(
     await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    from services.video_health import partner_facing_video_status
     if not doc:
-        return {"success": True, "pipeline_status": None}
+        _pf_none = partner_facing_video_status(None)
+        return {"success": True, "pipeline_status": None, **_pf_none}
+    _pf = partner_facing_video_status(doc.get("video_pipeline_status"))
     return {
         "success": True,
         "pipeline_status": doc.get("video_pipeline_status"),
+        # Messaggio partner-facing (nessun dettaglio tecnico). L'admin usa comunque i campi grezzi sotto.
+        "partner_status": _pf["partner_status"],
+        "partner_message": _pf["partner_message"],
         "pipeline_error": doc.get("video_pipeline_error"),
         "video_raw_url": doc.get("video_raw_url"),
         "video_youtube_url": doc.get("video_youtube_url"),
@@ -1789,6 +1795,88 @@ async def approve_masterclass_review(
         from video_pipeline_task import run_apply_background
         background_tasks.add_task(run_apply_background, partner_id=req.partner_id, video_type="masterclass")
     return {"success": True, "message": f"Montaggio avviato con {enabled_count} tagli mantenuti.", "enabled_cuts": enabled_count}
+
+
+# ─── Revisione testo VIDEOCORSO (stessa UX Descript della masterclass) ────────
+
+def _build_lesson_review_response(lesson: dict) -> dict:
+    """Risposta revisione per una lezione videocorso (gemella di masterclass)."""
+    return {
+        "success": True,
+        "pipeline_status": lesson.get("pipeline_status"),
+        "transcript": lesson.get("review_transcript", ""),
+        "words": lesson.get("review_words", []),
+        "cut_segments": lesson.get("review_cut_segments", []),
+        "filler_report": lesson.get("review_filler_report"),
+        "review_note": lesson.get("review_note"),
+        "pipeline_error": lesson.get("pipeline_error"),
+        "script": lesson.get("script_content") or lesson.get("approved_script") or lesson.get("script") or "",
+        "raw_duration_s": lesson.get("video_raw_duration_s"),
+        "review_created_at": lesson.get("review_created_at"),
+        "lesson_title": lesson.get("title") or lesson.get("titolo"),
+    }
+
+
+@router.get("/videocorso/review-data/{partner_id}/{lesson_id}")
+async def get_videocorso_review_data(
+    partner_id: str,
+    lesson_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Dati per la revisione testo di una lezione videocorso."""
+    await require_admin_token(credentials)
+    await get_partner_or_404(partner_id)
+    doc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Nessun dato videocorso")
+    lesson = (doc.get("lessons") or {}).get(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lezione {lesson_id} non trovata")
+    return _build_lesson_review_response(lesson)
+
+
+class LessonReviewApproveRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+    disabled_cut_ids: list = []
+
+
+@router.post("/videocorso/review-approve")
+async def approve_videocorso_review(
+    req: LessonReviewApproveRequest,
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Admin approva i tagli di una lezione e avvia il montaggio (Fase B)."""
+    await require_admin_token(credentials)
+    await get_partner_or_404(req.partner_id)
+    doc = await db.partner_videocorso.find_one({"partner_id": req.partner_id})
+    lesson = (doc.get("lessons") or {}).get(req.lesson_id) if doc else None
+    if not lesson or lesson.get("pipeline_status") != "da_revisionare":
+        raise HTTPException(status_code=400, detail="Nessuna revisione in attesa per questa lezione")
+    segs = lesson.get("review_cut_segments", [])
+    disabled = set(req.disabled_cut_ids or [])
+    for s in segs:
+        s["enabled"] = s.get("id") not in disabled
+    enabled_count = sum(1 for s in segs if s.get("enabled"))
+    lk = f"lessons.{req.lesson_id}"
+    now = datetime.now(timezone.utc).isoformat()
+    await db.partner_videocorso.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            f"{lk}.review_cut_segments": segs,
+            f"{lk}.review_approved_at": now,
+            f"{lk}.pipeline_status": "montaggio",
+            "updated_at": now,
+        }},
+    )
+    try:
+        from video_pipeline_task import apply_approved_cuts
+        apply_approved_cuts.delay(partner_id=req.partner_id, video_type="videocorso", lesson_id=req.lesson_id)
+    except Exception:
+        from video_pipeline_task import run_apply_background
+        background_tasks.add_task(run_apply_background, partner_id=req.partner_id, video_type="videocorso", lesson_id=req.lesson_id)
+    return {"success": True, "message": f"Montaggio lezione {req.lesson_id} avviato con {enabled_count} tagli mantenuti.", "enabled_cuts": enabled_count}
 
 
 @router.post("/masterclass/reset-pipeline")

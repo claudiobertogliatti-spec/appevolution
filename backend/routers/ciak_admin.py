@@ -23,7 +23,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
@@ -1183,6 +1183,259 @@ async def ciak_stripe_webhook_health(admin=Depends(require_ciak_admin)):
     if db is None:
         raise HTTPException(503, "Database non configurato")
     return await _stripe_webhook_observability_snapshot(db)
+
+
+# ─── Video pipeline: health + retry ──────────────────────────────────────────
+
+@router.get("/video-pipeline-health")
+async def ciak_video_pipeline_health(admin=Depends(require_ciak_admin)):
+    """Stato operativo della pipeline video in un colpo d'occhio.
+
+    Aggrega masterclass + lezioni videocorso nei bucket: da revisionare,
+    in montaggio, bloccati (heartbeat vecchio/assente), errori YouTube, errori.
+    Etichette semplici; il dettaglio tecnico sta nel campo `error` (collassabile).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services import video_health as vh
+    now = datetime.now(timezone.utc)
+
+    partner_names = {}
+    async for p in db.partners.find({}, {"_id": 0, "id": 1, "name": 1}):
+        if p.get("id"):
+            partner_names[p["id"]] = p.get("name")
+
+    items = []
+    async for doc in db.masterclass_factory.find(
+        {"video_pipeline_status": {"$nin": [None, "", "approved"]}}
+    ):
+        row = vh.item_from_masterclass(doc, partner_names, now)
+        if row:
+            items.append(row)
+    async for doc in db.partner_videocorso.find({"lessons": {"$exists": True}}):
+        items.extend(vh.items_from_videocorso(doc, partner_names, now))
+
+    return vh.build_summary(items, now)
+
+
+class VideoRetryRequest(BaseModel):
+    partner_id: str
+    video_type: str = "masterclass"      # "masterclass" | "videocorso" | "lesson"
+    lesson_id: Optional[str] = None
+    force_phase: Optional[str] = None     # "a" | "b" | None (auto)
+
+
+@router.post("/video-pipeline-retry")
+async def ciak_video_pipeline_retry(
+    req: VideoRetryRequest,
+    background_tasks: BackgroundTasks,
+    admin=Depends(require_ciak_admin),
+):
+    """Rilancia una pipeline video. Sceglie automaticamente:
+      - Fase A (process_partner_video) dal video grezzo;
+      - Fase B (apply_approved_cuts) quando c'è montaggio/error_youtube con tagli
+        approvati o video finale.
+    Forzabile con force_phase = "a" | "b".
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services import video_health as vh
+
+    vtype = (req.video_type or "masterclass").strip().lower()
+    is_lesson = vtype in ("lesson", "videocorso") and bool(req.lesson_id)
+    pipe_video_type = "masterclass" if vtype == "masterclass" else "videocorso"
+
+    if vtype == "masterclass":
+        doc = await db.masterclass_factory.find_one({"partner_id": req.partner_id})
+        if not doc:
+            raise HTTPException(404, "Nessun record masterclass")
+        status = doc.get("video_pipeline_status")
+        raw_url = doc.get("video_raw_url")
+        segs = doc.get("review_cut_segments") or []
+        has_final = bool(doc.get("video_youtube_url"))
+    elif is_lesson:
+        doc = await db.partner_videocorso.find_one({"partner_id": req.partner_id})
+        if not doc:
+            raise HTTPException(404, "Nessun record videocorso")
+        lesson = (doc.get("lessons") or {}).get(req.lesson_id) or {}
+        if not lesson:
+            raise HTTPException(404, f"Lezione {req.lesson_id} non trovata")
+        status = lesson.get("pipeline_status")
+        raw_url = lesson.get("video_raw_url") or lesson.get("drive_file_id")
+        segs = lesson.get("review_cut_segments") or []
+        has_final = bool(lesson.get("video_youtube_url"))
+    else:
+        raise HTTPException(400, "Per il videocorso serve lesson_id")
+
+    has_raw = bool(raw_url)
+    has_cuts = any(s.get("enabled") for s in segs) if segs else False
+    decision = vh.decide_retry_action(
+        status=status, has_raw_url=has_raw, has_approved_cuts=has_cuts,
+        has_final_video=has_final, force_phase=(req.force_phase or None),
+    )
+    action = decision["action"]
+    if action == "none":
+        raise HTTPException(400, decision["reason"])
+
+    now = datetime.now(timezone.utc).isoformat()
+    # Drive id nudo → URL completo (lezioni)
+    if has_raw and not str(raw_url).startswith(("http", "gs://")):
+        raw_url = f"https://drive.google.com/file/d/{raw_url}/view"
+
+    lesson_arg = req.lesson_id if is_lesson else None
+
+    if action == "fase_a":
+        if vtype == "masterclass":
+            await db.masterclass_factory.update_one(
+                {"partner_id": req.partner_id},
+                {"$set": {"video_pipeline_status": "queued",
+                          "video_pipeline_error": None, "updated_at": now}},
+            )
+        else:
+            lk = f"lessons.{req.lesson_id}"
+            await db.partner_videocorso.update_one(
+                {"partner_id": req.partner_id},
+                {"$set": {f"{lk}.pipeline_status": "queued",
+                          f"{lk}.pipeline_error": None, "updated_at": now}},
+            )
+        task_id = None
+        try:
+            from video_pipeline_task import process_partner_video
+            task = process_partner_video.delay(
+                partner_id=req.partner_id, video_url=raw_url,
+                video_type=pipe_video_type, lesson_id=lesson_arg,
+            )
+            task_id = getattr(task, "id", None)
+        except Exception:
+            from video_pipeline_task import run_pipeline_background
+            background_tasks.add_task(
+                run_pipeline_background, partner_id=req.partner_id, video_url=raw_url,
+                video_type=pipe_video_type, lesson_id=lesson_arg,
+            )
+        return {"success": True, "action": "fase_a", "reason": decision["reason"], "task_id": task_id}
+
+    # action == "fase_b"
+    if vtype == "masterclass":
+        await db.masterclass_factory.update_one(
+            {"partner_id": req.partner_id},
+            {"$set": {"video_pipeline_status": "montaggio", "updated_at": now}},
+        )
+    else:
+        lk = f"lessons.{req.lesson_id}"
+        await db.partner_videocorso.update_one(
+            {"partner_id": req.partner_id},
+            {"$set": {f"{lk}.pipeline_status": "montaggio", "updated_at": now}},
+        )
+    task_id = None
+    try:
+        from video_pipeline_task import apply_approved_cuts
+        task = apply_approved_cuts.delay(
+            partner_id=req.partner_id, video_type=pipe_video_type, lesson_id=lesson_arg,
+        )
+        task_id = getattr(task, "id", None)
+    except Exception:
+        from video_pipeline_task import run_apply_background
+        background_tasks.add_task(
+            run_apply_background, partner_id=req.partner_id,
+            video_type=pipe_video_type, lesson_id=lesson_arg,
+        )
+    return {"success": True, "action": "fase_b", "reason": decision["reason"], "task_id": task_id}
+
+
+@router.get("/system-health")
+async def ciak_system_health(admin=Depends(require_ciak_admin)):
+    """Semaforo unico di salute sistema: backend, Celery, worker, YouTube,
+    Stripe webhook, pipeline video, coda Systeme. Stato globale ok/attention/critical.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services import video_health as vh
+    now = datetime.now(timezone.utc)
+
+    components = {}
+
+    # Backend: se rispondiamo, è vivo.
+    components["backend"] = {"status": "ok", "label": "Backend attivo"}
+
+    # Celery (processo backend) + worker atteso come servizio separato.
+    celery_status = "attention"
+    celery_detail = {}
+    try:
+        from celery_manager import get_celery_status
+        celery_detail = get_celery_status()
+        # Il worker gira come servizio separato (evolution-pro-worker): qui misuriamo
+        # solo la raggiungibilità di Redis, che è condivisa tra backend e worker.
+        celery_status = "ok" if celery_detail.get("redis_available") else "critical"
+    except Exception as e:
+        celery_detail = {"error": str(e)}
+        celery_status = "attention"
+    components["celery"] = {
+        "status": celery_status,
+        "label": "Redis raggiungibile" if celery_status == "ok" else "Redis non raggiungibile",
+        "detail": celery_detail,
+        "worker_service": "evolution-pro-worker (separato)",
+    }
+
+    # YouTube auth
+    yt_ok = False
+    try:
+        import youtube_uploader
+        yt_ok = bool(youtube_uploader.is_authenticated())
+    except Exception:
+        yt_ok = False
+    components["youtube"] = {
+        "status": "ok" if yt_ok else "critical",
+        "label": "YouTube autenticato" if yt_ok else "YouTube NON autenticato",
+    }
+
+    # Stripe webhook
+    try:
+        stripe_snap = await _stripe_webhook_observability_snapshot(db)
+        components["stripe"] = {
+            "status": stripe_snap.get("status", "ok"),
+            "label": "Webhook Stripe",
+            "counts": stripe_snap.get("counts", {}),
+        }
+    except Exception as e:
+        components["stripe"] = {"status": "attention", "label": "Webhook Stripe", "error": str(e)}
+
+    # Video pipeline summary
+    partner_names = {}
+    async for p in db.partners.find({}, {"_id": 0, "id": 1, "name": 1}):
+        if p.get("id"):
+            partner_names[p["id"]] = p.get("name")
+    v_items = []
+    async for d in db.masterclass_factory.find({"video_pipeline_status": {"$nin": [None, "", "approved"]}}):
+        r = vh.item_from_masterclass(d, partner_names, now)
+        if r:
+            v_items.append(r)
+    async for d in db.partner_videocorso.find({"lessons": {"$exists": True}}):
+        v_items.extend(vh.items_from_videocorso(d, partner_names, now))
+    v_summary = vh.build_summary(v_items, now)
+    components["video_pipeline"] = {
+        "status": "attention" if v_summary["attention"] else "ok",
+        "label": "Pipeline video",
+        "counts": v_summary["counts"],
+        "total_attention": v_summary["total_attention"],
+    }
+
+    # Coda Systeme (se presente)
+    try:
+        systeme_failed = await db.systeme_daily_queue.count_documents({"status": "failed"})
+        components["systeme"] = {
+            "status": "attention" if systeme_failed else "ok",
+            "label": "Sync Systeme",
+            "failed": systeme_failed,
+        }
+    except Exception:
+        components["systeme"] = {"status": "ok", "label": "Sync Systeme", "failed": 0}
+
+    overall = vh.aggregate_system_status([c["status"] for c in components.values()])
+    return {
+        "generated_at": now.isoformat(),
+        "overall": overall,
+        "components": components,
+    }
 
 
 @router.get("/transactions")

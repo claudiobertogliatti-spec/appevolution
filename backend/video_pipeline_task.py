@@ -1604,7 +1604,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 # Se attivo, NON taglia: salva trascrizione + parole + tagli proposti
                 # e si ferma a "da_revisionare" per la revisione umana sul testo.
                 # Gated (default OFF) e solo masterclass: il path normale resta intatto.
-                if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
+                if VIDEO_REVIEW_ENABLED and (video_type == "masterclass" or (video_type == "videocorso" and lesson_id)):
                     _cut_rev = []
                     for _i, _s in enumerate(all_segs):
                         _typ = "filler" if _s.get("word") else ("smart" if _s.get("reason") else "silence")
@@ -1617,22 +1617,41 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                             "word": _s.get("word", ""),
                             "enabled": True,
                         })
-                    await db.masterclass_factory.update_one(
-                        {"partner_id": partner_id},
-                        {"$set": {
-                            "video_pipeline_status": "da_revisionare",
-                            "video_raw_url": video_url,
-                            "video_raw_duration_s": int(raw_dur),
-                            "review_transcript": transcript,
-                            "review_words": words,
-                            "review_cut_segments": _cut_rev,
-                            "review_filler_report": filler_report,
-                            "review_created_at": datetime.now(timezone.utc).isoformat(),
-                            "updated_at": datetime.now(timezone.utc).isoformat(),
-                        }},
-                        upsert=True,
-                    )
-                    logger.info(f"[VIDEO-PIPE] Checkpoint revisione: {len(_cut_rev)} tagli proposti — fermo a da_revisionare")
+                    _review_now = datetime.now(timezone.utc).isoformat()
+                    if video_type == "masterclass":
+                        await db.masterclass_factory.update_one(
+                            {"partner_id": partner_id},
+                            {"$set": {
+                                "video_pipeline_status": "da_revisionare",
+                                "video_raw_url": video_url,
+                                "video_raw_duration_s": int(raw_dur),
+                                "review_transcript": transcript,
+                                "review_words": words,
+                                "review_cut_segments": _cut_rev,
+                                "review_filler_report": filler_report,
+                                "review_created_at": _review_now,
+                                "updated_at": _review_now,
+                            }},
+                            upsert=True,
+                        )
+                    else:
+                        _lk = f"lessons.{lesson_id}"
+                        await db.partner_videocorso.update_one(
+                            {"partner_id": partner_id},
+                            {"$set": {
+                                f"{_lk}.pipeline_status": "da_revisionare",
+                                f"{_lk}.video_raw_url": video_url,
+                                f"{_lk}.video_raw_duration_s": int(raw_dur),
+                                f"{_lk}.review_transcript": transcript,
+                                f"{_lk}.review_words": words,
+                                f"{_lk}.review_cut_segments": _cut_rev,
+                                f"{_lk}.review_filler_report": filler_report,
+                                f"{_lk}.review_created_at": _review_now,
+                                "updated_at": _review_now,
+                            }},
+                            upsert=True,
+                        )
+                    logger.info(f"[VIDEO-PIPE] Checkpoint revisione ({label}): {len(_cut_rev)} tagli proposti — fermo a da_revisionare")
                     try:
                         await telegram(f"📝 <b>Video pronto per revisione testo</b>\n👤 {name} — {label}\n{len(_cut_rev)} tagli proposti. Aprilo in admin → Revisione Video.")
                     except Exception:
@@ -1673,23 +1692,44 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         # pubblicare in automatico. Se siamo qui (trascrizione fallita o assente),
         # il checkpoint principale non e scattato: fermati comunque a da_revisionare
         # invece di tagliare/pubblicare il grezzo.
-        if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
-            await db.masterclass_factory.update_one(
-                {"partner_id": partner_id},
-                {"$set": {
-                    "video_pipeline_status": "da_revisionare",
-                    "video_raw_url": video_url,
-                    "video_raw_duration_s": int(raw_dur),
-                    "review_transcript": transcript or "",
-                    "review_words": words or [],
-                    "review_cut_segments": [],
-                    "review_filler_report": filler_report,
-                    "review_note": "Trascrizione non disponibile (timeout/errore): rivedi o ritrascrivi prima di montare.",
-                    "review_created_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                }},
-                upsert=True,
-            )
+        if VIDEO_REVIEW_ENABLED and (video_type == "masterclass" or (video_type == "videocorso" and lesson_id)):
+            _cn = datetime.now(timezone.utc).isoformat()
+            _note = "Trascrizione non disponibile (timeout/errore): rivedi o ritrascrivi prima di montare."
+            if video_type == "masterclass":
+                await db.masterclass_factory.update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {
+                        "video_pipeline_status": "da_revisionare",
+                        "video_raw_url": video_url,
+                        "video_raw_duration_s": int(raw_dur),
+                        "review_transcript": transcript or "",
+                        "review_words": words or [],
+                        "review_cut_segments": [],
+                        "review_filler_report": filler_report,
+                        "review_note": _note,
+                        "review_created_at": _cn,
+                        "updated_at": _cn,
+                    }},
+                    upsert=True,
+                )
+            else:
+                _lk = f"lessons.{lesson_id}"
+                await db.partner_videocorso.update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {
+                        f"{_lk}.pipeline_status": "da_revisionare",
+                        f"{_lk}.video_raw_url": video_url,
+                        f"{_lk}.video_raw_duration_s": int(raw_dur),
+                        f"{_lk}.review_transcript": transcript or "",
+                        f"{_lk}.review_words": words or [],
+                        f"{_lk}.review_cut_segments": [],
+                        f"{_lk}.review_filler_report": filler_report,
+                        f"{_lk}.review_note": _note,
+                        f"{_lk}.review_created_at": _cn,
+                        "updated_at": _cn,
+                    }},
+                    upsert=True,
+                )
             logger.info("[VIDEO-PIPE] Checkpoint catch-all: trascrizione mancante, fermo a da_revisionare (no auto-publish)")
             return
 
@@ -2045,30 +2085,51 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
     raw_path = str(tmp_dir / "raw.mp4")
     final_path = str(tmp_dir / "final.mp4")
 
-    async def _set(status, extra={}):
+    is_lesson = video_type == "videocorso" and bool(lesson_id)
+    lk = f"lessons.{lesson_id}" if is_lesson else None
+
+    async def _set(status, extra=None):
+        extra = extra or {}
         now = datetime.now(timezone.utc).isoformat()
-        await db.masterclass_factory.update_one(
-            {"partner_id": partner_id},
-            {"$set": {"video_pipeline_status": status, "updated_at": now, **extra}},
-            upsert=True,
-        )
+        if is_lesson:
+            upd = {f"{lk}.pipeline_status": status, "updated_at": now}
+            for k, v in extra.items():
+                # rimappa il campo errore masterclass sul nome lezione
+                key = "pipeline_error" if k == "video_pipeline_error" else k
+                upd[f"{lk}.{key}"] = v
+            await db.partner_videocorso.update_one(
+                {"partner_id": partner_id}, {"$set": upd}, upsert=True,
+            )
+        else:
+            await db.masterclass_factory.update_one(
+                {"partner_id": partner_id},
+                {"$set": {"video_pipeline_status": status, "updated_at": now, **extra}},
+                upsert=True,
+            )
 
     try:
-        doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
-        if not doc:
-            logger.error(f"[VIDEO-APPLY] Nessun doc masterclass per {partner_id}")
-            return
+        if is_lesson:
+            vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+            src = ((vc or {}).get("lessons") or {}).get(lesson_id) or {}
+            if not src:
+                logger.error(f"[VIDEO-APPLY] Nessuna lezione {lesson_id} per {partner_id}")
+                return
+        else:
+            src = await db.masterclass_factory.find_one({"partner_id": partner_id})
+            if not src:
+                logger.error(f"[VIDEO-APPLY] Nessun doc masterclass per {partner_id}")
+                return
         partner = await db.partners.find_one({"id": partner_id})
         name = partner.get("name", partner_id) if partner else partner_id
-        video_url = doc.get("video_raw_url")
+        video_url = src.get("video_raw_url")
         if not video_url:
             await _set("error", {"video_pipeline_error": "video_raw_url mancante per il montaggio"})
             return
 
-        segs = [s for s in (doc.get("review_cut_segments") or []) if s.get("enabled")]
+        segs = [s for s in (src.get("review_cut_segments") or []) if s.get("enabled")]
         segs.sort(key=lambda x: x.get("start", 0))
-        transcript = doc.get("review_transcript", "")
-        filler_report = doc.get("review_filler_report") or {"count": 0, "segments": [], "time_saved_s": 0}
+        transcript = src.get("review_transcript", "")
+        filler_report = src.get("review_filler_report") or {"count": 0, "segments": [], "time_saved_s": 0}
 
         await _set("downloading")
         await download_video(video_url, raw_path)
@@ -2083,12 +2144,16 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         final_dur = get_video_duration(final_path)
 
         await _set("uploading_youtube")
-        orig_name = doc.get("video_original_name")
-        if orig_name:
-            yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
+        if is_lesson:
+            les_title = src.get("title") or src.get("titolo") or f"Lezione {lesson_id}"
+            yt_title = f"{name} - {les_title}"[:100]
         else:
-            ts = datetime.now().strftime("%m/%Y")
-            yt_title = f"{name} - Masterclass {ts}"
+            orig_name = src.get("video_original_name")
+            if orig_name:
+                yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
+            else:
+                ts = datetime.now().strftime("%m/%Y")
+                yt_title = f"{name} - Masterclass {ts}"
         youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
         if not youtube_url:
             await _set("error_youtube")
@@ -2097,27 +2162,37 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         youtube_id = youtube_url.split("v=")[-1]
         embed_url = f"https://www.youtube.com/embed/{youtube_id}"
         systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
-
-        await db.masterclass_factory.update_one(
-            {"partner_id": partner_id},
-            {"$set": {
-                "video_pipeline_status": "ready_for_review",
-                "video_youtube_url": youtube_url,
-                "video_youtube_id": youtube_id,
-                "video_embed_url": embed_url,
-                "video_systeme_embed": systeme_embed,
-                "video_transcript": (transcript or "")[:5000],
-                "video_filler_report": filler_report,
-                "video_raw_duration_s": int(raw_dur),
-                "video_final_duration_s": int(final_dur),
-                "video_time_saved_s": int(raw_dur - final_dur),
-                "video_approved": False,
-                "video_reviewed": True,
-                "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }},
-            upsert=True,
-        )
+        now_iso = datetime.now(timezone.utc).isoformat()
+        _final_fields = {
+            "video_youtube_url": youtube_url,
+            "video_youtube_id": youtube_id,
+            "video_embed_url": embed_url,
+            "video_systeme_embed": systeme_embed,
+            "video_transcript": (transcript or "")[:5000],
+            "video_filler_report": filler_report,
+            "video_raw_duration_s": int(raw_dur),
+            "video_final_duration_s": int(final_dur),
+            "video_time_saved_s": int(raw_dur - final_dur),
+            "video_approved": False,
+            "video_reviewed": True,
+            "pipeline_completed_at": now_iso,
+        }
+        if is_lesson:
+            await db.partner_videocorso.update_one(
+                {"partner_id": partner_id},
+                {"$set": {**{f"{lk}.{k}": v for k, v in _final_fields.items()},
+                          f"{lk}.pipeline_status": "ready_for_review",
+                          "updated_at": now_iso}},
+                upsert=True,
+            )
+        else:
+            await db.masterclass_factory.update_one(
+                {"partner_id": partner_id},
+                {"$set": {**_final_fields,
+                          "video_pipeline_status": "ready_for_review",
+                          "updated_at": now_iso}},
+                upsert=True,
+            )
         try:
             m, s = divmod(int(raw_dur - final_dur), 60)
             await telegram(f"Video montato dopo revisione - {name} - {len(segs)} tagli - {youtube_url}")
