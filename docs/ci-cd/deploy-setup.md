@@ -89,7 +89,20 @@ Al prossimo push su `main` che tocca `backend/`, il deploy parte da solo e punta
 il traffico all'ultima revisione. Per provarlo subito: Actions → "Deploy Backend
 (Cloud Run)" → (oppure un commit qualsiasi sotto `backend/`).
 
-## Nota: worker
-Esiste anche il servizio `evolution-pro-worker`. Se va ridiscovato/ridistribuito
-con lo stesso flusso, aggiungere uno step gemello con il suo comando di deploy
-(da definire: stessa `--source ./backend` con entrypoint worker, o servizio dedicato).
+## Nota: worker (automatizzato dal 2026-07)
+Il servizio `evolution-pro-worker` (worker + beat Celery, `CELERY_ENABLED=true`)
+viene ora deployato **automaticamente insieme al backend** dallo stesso workflow
+`deploy-backend.yml`, subito dopo `evolution-pro-backend`, con:
+
+```bash
+gcloud run deploy evolution-pro-worker --source ./backend --region europe-west1 --project ... --quiet
+```
+
+Non passiamo env/command: `gcloud run deploy --source` su un servizio esistente
+**preserva** env, entrypoint e secret/mount non specificati, quindi la config del
+worker (entrypoint celery, `CELERY_ENABLED=true`, min-instances) resta intatta.
+Uno step idempotente e non bloccante riallinea il mount del secret YouTube
+(`youtube-user-credentials` → `/secrets/youtube_credentials.pickle`) nel caso venga
+perso. Lo smoke post-deploy verifica `/api/health` e `/api/youtube/status` via
+`www.ciak.io`; lo stato worker/beat va verificato via
+`gcloud run services describe evolution-pro-worker` (non esposto su www.ciak.io).

@@ -11,9 +11,9 @@
 import { useState, useEffect } from "react";
 import {
   Play, Check, Copy, ChevronDown, ChevronUp,
-  Clock, Scissors, Loader2, AlertTriangle, CheckCircle, List, Trash2
+  Clock, Scissors, Loader2, AlertTriangle, CheckCircle, List, Trash2, RefreshCw
 } from "lucide-react";
-import { adminFetch } from "../api";
+import { adminFetch, apiGet, apiPost } from "../api";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
@@ -275,6 +275,130 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
   );
 }
 
+/** Dettaglio tecnico dell'errore — collassato di default (l'admin non vede stack trace). */
+function ErrorDetail({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1">
+      <button onClick={() => setOpen(!open)} className="text-[11px] underline" style={{ color: C.muted }}>
+        {open ? "Nascondi dettaglio tecnico" : "Dettaglio tecnico"}
+      </button>
+      {open && (
+        <div className="mt-1 text-[11px] p-2 rounded"
+          style={{ background: "#FFF", color: C.muted, border: `1px solid ${C.border}`, wordBreak: "break-word" }}>
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Card operativa "Salute pipeline video": conteggi per bucket + lista dei video
+ * bloccati/in errore con bottone Riprova (Fase A/B decisa dal backend).
+ * Fonte: GET /api/admin/ciak/video-pipeline-health · Retry: POST .../video-pipeline-retry
+ */
+function PipelineHealthCard({ onAuthExpired }) {
+  const [health, setHealth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState("");
+
+  const load = async () => {
+    try {
+      const d = await apiGet("/video-pipeline-health");
+      setHealth(d);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else console.error("pipeline-health error", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const retry = async (item) => {
+    const key = `${item.partner_id}-${item.video_type}-${item.lesson_id || ""}`;
+    setRetrying(key);
+    try {
+      await apiPost("/video-pipeline-retry", {
+        partner_id: item.partner_id,
+        video_type: item.video_type,
+        lesson_id: item.lesson_id || null,
+      });
+      await load();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else window.alert("Retry non riuscito: " + e.message);
+    } finally {
+      setRetrying("");
+    }
+  };
+
+  if (loading || !health) return null;
+  const c = health.counts || {};
+  const problems = [
+    ...(health.bloccati || []),
+    ...(health.errori_youtube || []),
+    ...(health.errori || []),
+  ];
+  const chips = [
+    { label: "Da revisionare", n: c.da_revisionare, color: C.yellowDark, bg: "#FEF9E7" },
+    { label: "In montaggio", n: c.montaggio, color: C.blue, bg: C.blueDim },
+    { label: "Bloccati", n: c.bloccati, color: C.red, bg: C.redDim },
+    { label: "Upload YouTube fallito", n: c.errori_youtube, color: C.red, bg: C.redDim },
+    { label: "Errori", n: c.errori, color: C.red, bg: C.redDim },
+  ];
+
+  return (
+    <div className="max-w-3xl mb-8 rounded-2xl p-4" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.muted }}>Salute pipeline video</span>
+        <a href="/admin/sistema" className="text-xs font-bold" style={{ color: C.blue }}>Stato sistema →</a>
+      </div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {chips.map((ch) => (
+          <span key={ch.label} className="text-xs font-bold px-2.5 py-1 rounded-full"
+            style={{ background: ch.n ? ch.bg : "#F3F4F6", color: ch.n ? ch.color : C.dim }}>
+            {ch.label}: {ch.n || 0}
+          </span>
+        ))}
+      </div>
+      {problems.length === 0 ? (
+        <div className="text-xs font-bold" style={{ color: C.green }}>Nessun video bloccato o in errore.</div>
+      ) : (
+        <div className="space-y-2">
+          {problems.map((it, i) => {
+            const key = `${it.partner_id}-${it.video_type}-${it.lesson_id || ""}`;
+            return (
+              <div key={`${key}-${i}`} className="flex items-start gap-3 p-2.5 rounded-lg" style={{ background: C.redDim }}>
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: C.red }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold" style={{ color: C.text }}>
+                    {it.partner_name || it.partner_id}
+                    <span className="ml-2 text-xs font-normal" style={{ color: C.muted }}>
+                      {it.video_type === "masterclass" ? "Masterclass" : `Lezione ${it.lesson_id}`}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold" style={{ color: C.red }}>{it.label}</div>
+                  {it.error && <ErrorDetail text={it.error} />}
+                </div>
+                {it.has_raw_url && (
+                  <button onClick={() => retry(it)} disabled={retrying === key}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all hover:opacity-90 disabled:opacity-50 flex-shrink-0"
+                    style={{ background: C.text, color: "white" }}>
+                    {retrying === key ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Riprova
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function VideoReview({ onAuthExpired }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -393,6 +517,9 @@ export function VideoReview({ onAuthExpired }) {
         </div>
       </div>
 
+      {/* Card operativa: salute pipeline + retry */}
+      <PipelineHealthCard onAuthExpired={onAuthExpired} />
+
       <div className="max-w-3xl space-y-8">
 
         {/* DA REVISIONARE — taglio testo (stile Descript) */}
@@ -416,7 +543,9 @@ export function VideoReview({ onAuthExpired }) {
                     </span>
                     <div className="text-xs mt-0.5" style={{ color: C.muted }}>Trascrizione pronta — leggi e approva i tagli</div>
                   </div>
-                  <a href={`/admin/revisione-video/${v.partner_id}`}
+                  <a href={v.type === "masterclass"
+                      ? `/admin/revisione-video/${v.partner_id}`
+                      : `/admin/revisione-video/${v.partner_id}/${v.lesson_id}`}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black transition-all hover:opacity-90 flex-shrink-0"
                     style={{ background: C.text, color: C.yellow }}>
                     <Scissors className="w-3.5 h-3.5" /> Apri revisione

@@ -67,6 +67,7 @@ import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
 import { MasterclassReview } from "./pages/MasterclassReview";
+import { SystemHealth } from "./pages/SystemHealth";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { PartnerSalesEngine } from "./pages/PartnerSalesEngine";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
@@ -648,6 +649,8 @@ export default function CiakAdminApp() {
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="cabina-regia" element={<Navigate to="/admin" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
+        <Route path="revisione-video/:partnerId/:lessonId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
+        <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />

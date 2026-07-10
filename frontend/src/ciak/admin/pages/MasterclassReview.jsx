@@ -27,7 +27,8 @@ const TYPE_META = {
 };
 
 export function MasterclassReview({ onAuthExpired }) {
-  const { partnerId } = useParams();
+  const { partnerId, lessonId } = useParams();
+  const isLesson = Boolean(lessonId);
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,10 @@ export function MasterclassReview({ onAuthExpired }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminFetch(`/api/partner-journey/masterclass/review-data/${partnerId}`);
+      const url = isLesson
+        ? `/api/partner-journey/videocorso/review-data/${partnerId}/${lessonId}`
+        : `/api/partner-journey/masterclass/review-data/${partnerId}`;
+      const res = await adminFetch(url);
       const d = await res.json();
       setData(d);
     } catch (e) {
@@ -48,7 +52,7 @@ export function MasterclassReview({ onAuthExpired }) {
     } finally {
       setLoading(false);
     }
-  }, [partnerId, onAuthExpired]);
+  }, [partnerId, lessonId, isLesson, onAuthExpired]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -87,10 +91,16 @@ export function MasterclassReview({ onAuthExpired }) {
     setSubmitting(true);
     setError("");
     try {
-      const res = await adminFetch(`/api/partner-journey/masterclass/review-approve`, {
+      const approveUrl = isLesson
+        ? `/api/partner-journey/videocorso/review-approve`
+        : `/api/partner-journey/masterclass/review-approve`;
+      const body = isLesson
+        ? { partner_id: partnerId, lesson_id: lessonId, disabled_cut_ids: Array.from(disabled) }
+        : { partner_id: partnerId, disabled_cut_ids: Array.from(disabled) };
+      const res = await adminFetch(approveUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partner_id: partnerId, disabled_cut_ids: Array.from(disabled) }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const t = await res.text().catch(() => "");
@@ -150,7 +160,9 @@ export function MasterclassReview({ onAuthExpired }) {
 
       <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Revisione del taglio</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Revisione del taglio{isLesson ? ` — Lezione ${lessonId}` : ""}
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Leggi la trascrizione confrontandola con lo script. I tagli proposti sono <span className="line-through text-slate-400">barrati</span>. Togli un taglio se mozza una frase, poi approva.
           </p>

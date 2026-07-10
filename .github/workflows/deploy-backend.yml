@@ -47,8 +47,64 @@ jobs:
 
       # Garantisce che il traffico vada all'ultima revisione (pitfall noto: traffico
       # pinnato su revisioni vecchie — vedi CLAUDE.md "Problemi noti del backend" #3).
-      - name: Punta il traffico all'ultima revisione
+      - name: Punta il traffico all'ultima revisione (backend)
         run: |
           gcloud run services update-traffic evolution-pro-backend \
             --to-latest --region europe-west1 \
             --project gen-lang-client-0744698012 --quiet
+
+      # Worker Celery (worker + beat) = servizio separato evolution-pro-worker.
+      # Stesso codice sorgente del backend, ma config propria: CELERY_ENABLED=true,
+      # entrypoint celery, min-instances=1. `gcloud run deploy --source` su un
+      # servizio ESISTENTE preserva env, command e secret/mount non specificati:
+      # quindi qui NON passiamo env/command per non sovrascrivere la config del worker.
+      - name: Deploy evolution-pro-worker
+        run: |
+          gcloud run deploy evolution-pro-worker \
+            --source ./backend \
+            --region europe-west1 \
+            --project gen-lang-client-0744698012 \
+            --quiet
+
+      - name: Punta il traffico all'ultima revisione (worker)
+        run: |
+          gcloud run services update-traffic evolution-pro-worker \
+            --to-latest --region europe-west1 \
+            --project gen-lang-client-0744698012 --quiet
+
+      # Safeguard: se un deploy dovesse perdere il mount del secret con le
+      # credenziali YouTube del worker, riallinearlo. Non-bloccante: se il mount
+      # è già presente (caso normale, preservato da --source) questo è un no-op
+      # idempotente; se il secret non esiste in questo progetto, non fallisce il deploy.
+      - name: Assicura secret YouTube sul worker (idempotente, non bloccante)
+        continue-on-error: true
+        run: |
+          gcloud run services update evolution-pro-worker \
+            --update-secrets=/secrets/youtube_credentials.pickle=youtube-user-credentials:latest \
+            --region europe-west1 --project gen-lang-client-0744698012 --quiet
+
+      # Smoke post-deploy: il backend è raggiungibile via www.ciak.io (rewrite Vercel).
+      # /api/celery/status sul BACKEND riporta CELERY_ENABLED=false per design (il
+      # worker è separato): qui verifichiamo solo che backend e YouTube rispondano.
+      # Lo stato worker/beat va verificato via gcloud/identity-token (vedi commento sotto).
+      - name: Smoke post-deploy
+        run: |
+          set -e
+          BASE="https://www.ciak.io"
+          echo "→ /api/health (con retry per cold start)"
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" "$BASE/api/health" || echo "000")
+            echo "  tentativo $i → HTTP $code"
+            if [ "$code" = "200" ]; then break; fi
+            sleep 10
+          done
+          if [ "$code" != "200" ]; then
+            echo "❌ /api/health non risponde 200"; cat /tmp/health.json || true; exit 1
+          fi
+          cat /tmp/health.json; echo
+          echo "→ /api/youtube/status"
+          curl -s "$BASE/api/youtube/status"; echo
+          echo "→ /api/celery/status (backend: enabled=false atteso)"
+          curl -s "$BASE/api/celery/status"; echo
+          echo "ℹ️  Stato worker/beat evolution-pro-worker: non interrogabile via www.ciak.io."
+          echo "    Verifica manuale: gcloud run services describe evolution-pro-worker --region europe-west1"
