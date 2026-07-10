@@ -32,8 +32,18 @@ class FakeCollection:
         return None
 
     async def insert_one(self, doc):
+        if "_id" in doc and any(existing.get("_id") == doc["_id"] for existing in self.docs):
+            from pymongo.errors import DuplicateKeyError
+            raise DuplicateKeyError("duplicate _id")
         self.docs.append(dict(doc))
         return None
+
+    async def delete_one(self, query):
+        for idx, doc in enumerate(self.docs):
+            if all(doc.get(key) == value for key, value in query.items()):
+                self.docs.pop(idx)
+                return type("Result", (), {"deleted_count": 1})()
+        return type("Result", (), {"deleted_count": 0})()
 
     async def update_one(self, query, update, upsert=False):
         for doc in self.docs:
@@ -62,6 +72,7 @@ class FakeDB:
         self.payment_transactions = FakeCollection()
         self.payments = FakeCollection()
         self.pagamenti_partnership = FakeCollection()
+        self.stripe_webhook_events = FakeCollection()
 
 
 class FakeBackgroundTasks:
@@ -385,6 +396,36 @@ async def test_stripe_webhook_checkout_completed_activates_ciak_start():
     assert fake_db.payment_transactions.docs[0]["tipo"] == "ciak_start"
     assert fake_db.payments.docs[0]["amount"] == 499.0
     assert tasks.calls == []
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_checkout_completed_deduplicates_retried_session():
+    fake_db = FakeDB()
+    fake_db.ciak_clients.docs.append(
+        {
+            "id": "client-1",
+            "email": "start@example.com",
+            "events": [],
+        }
+    )
+    tasks = FakeBackgroundTasks()
+    event = {
+        "id": "cs_start_retry",
+        "payment_status": "paid",
+        "metadata": {
+            "tipo": "ciak_start",
+            "client_id": "client-1",
+        },
+    }
+
+    await stripe_webhook.handle_checkout_completed(fake_db, event, tasks)
+    await stripe_webhook.handle_checkout_completed(fake_db, event, tasks)
+
+    client = fake_db.ciak_clients.docs[0]
+    assert len(client["events"]) == 1
+    assert len(fake_db.payment_transactions.docs) == 1
+    assert len(fake_db.payments.docs) == 1
+    assert fake_db.stripe_webhook_events.docs[0]["status"] == "processed"
 
 
 @pytest.mark.asyncio

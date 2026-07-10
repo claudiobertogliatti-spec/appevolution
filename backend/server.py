@@ -95,9 +95,10 @@ redis_url_env = os.environ.get('REDIS_URL', '')
 if not redis_url_env and REDIS_FALLBACK:
     os.environ['REDIS_URL'] = REDIS_FALLBACK
     logging.info("REDIS_URL non trovata, impostato fallback")
-# Force CELERY_ENABLED=true sempre — il check Redis in celery_manager gestisce l'indisponibilità
-os.environ['CELERY_ENABLED'] = 'true'
-logging.info("CELERY_ENABLED forzato a true (Redis check in celery_manager)")
+# CELERY_ENABLED decides whether this process autostarts Celery worker/beat.
+# Backend web services should run with CELERY_ENABLED=false; the dedicated
+# worker service runs with CELERY_ENABLED=true.
+logging.info("CELERY_ENABLED=%s", os.environ.get("CELERY_ENABLED", "false"))
 
 # SMTP env vars — già nel .env, nessun fallback hardcoded necessario
 

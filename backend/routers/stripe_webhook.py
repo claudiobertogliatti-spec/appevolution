@@ -16,6 +16,7 @@ import logging
 import stripe
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel
 from typing import Optional
 
@@ -31,6 +32,65 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 CLIENT_PARTNER_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
+
+
+async def _claim_stripe_webhook_event(db, *, event_type: str, reference_id: str, tipo: str | None) -> bool:
+    """
+    Acquire an atomic, per-Stripe-event lock before running webhook side effects.
+
+    Stripe retries the same checkout.session.completed event. The previous guard
+    was mostly user-state based, so concurrent deliveries could both schedule
+    emails/automations before either write completed. Mongo's `_id` uniqueness
+    gives us a small, reliable lock without requiring a transaction.
+    """
+    locks = getattr(db, "stripe_webhook_events", None)
+    if locks is None:
+        logger.warning("[STRIPE_WEBHOOK] stripe_webhook_events collection unavailable; processing without event lock")
+        return True
+
+    now = datetime.now(timezone.utc).isoformat()
+    lock_id = f"{event_type}:{reference_id}"
+    try:
+        await locks.insert_one({
+            "_id": lock_id,
+            "event_type": event_type,
+            "reference_id": reference_id,
+            "tipo": tipo,
+            "status": "processing",
+            "created_at": now,
+            "updated_at": now,
+        })
+        return True
+    except DuplicateKeyError:
+        logger.info("[STRIPE_WEBHOOK] Duplicate event ignored: %s", lock_id)
+        return False
+
+
+async def _mark_stripe_webhook_event(db, *, event_type: str, reference_id: str, status: str, error: str | None = None) -> None:
+    locks = getattr(db, "stripe_webhook_events", None)
+    if locks is None:
+        return
+
+    update = {
+        "status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if error:
+        update["error"] = error[:1000]
+    await locks.update_one(
+        {"_id": f"{event_type}:{reference_id}"},
+        {"$set": update},
+    )
+
+
+async def _release_stripe_webhook_event(db, *, event_type: str, reference_id: str) -> None:
+    locks = getattr(db, "stripe_webhook_events", None)
+    if locks is None:
+        return
+    delete_one = getattr(locks, "delete_one", None)
+    if delete_one is None:
+        return
+    await delete_one({"_id": f"{event_type}:{reference_id}"})
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -115,6 +175,46 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
     if payment_status != 'paid':
         logger.warning(f"[STRIPE_WEBHOOK] Checkout not paid: {payment_status}")
         return
+
+    tipo = metadata.get('tipo')
+    event_type = "checkout.session.completed"
+    if not await _claim_stripe_webhook_event(
+        db,
+        event_type=event_type,
+        reference_id=session_id,
+        tipo=tipo,
+    ):
+        return
+
+    try:
+        await _dispatch_checkout_completed(db, session_id, metadata, background_tasks)
+    except Exception as exc:
+        await _mark_stripe_webhook_event(
+            db,
+            event_type=event_type,
+            reference_id=session_id,
+            status="failed",
+            error=str(exc),
+        )
+        await _release_stripe_webhook_event(
+            db,
+            event_type=event_type,
+            reference_id=session_id,
+        )
+        raise
+
+    await _mark_stripe_webhook_event(
+        db,
+        event_type=event_type,
+        reference_id=session_id,
+        status="processed",
+    )
+
+
+async def _dispatch_checkout_completed(db, session_id: str, metadata: dict, background_tasks: BackgroundTasks):
+    """Route a paid checkout.session.completed event after the dedup lock is held."""
+    user_id = metadata.get('user_id')
+    tipo = metadata.get('tipo')
     
     if tipo == 'ciak_start':
         client_id = metadata.get('client_id')

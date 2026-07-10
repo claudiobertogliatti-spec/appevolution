@@ -107,6 +107,72 @@ def _month_start_iso() -> str:
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
 
+def _parse_iso_or_now(value: Optional[str]) -> datetime:
+    return _parse_iso(value) or datetime.now(timezone.utc)
+
+
+async def _stripe_webhook_observability_snapshot(database, now_iso: Optional[str] = None) -> dict:
+    now = _parse_iso_or_now(now_iso)
+    stuck_cutoff = (now - timedelta(minutes=10)).isoformat()
+    events = database.stripe_webhook_events
+    payments = database.payment_transactions
+
+    event_total = await events.count_documents({})
+    processed = await events.count_documents({"status": "processed"})
+    failed = await events.count_documents({"status": "failed"})
+    processing = await events.count_documents({"status": "processing"})
+    stuck_processing = await events.count_documents({
+        "status": "processing",
+        "updated_at": {"$lt": stuck_cutoff},
+    })
+
+    paid = await payments.count_documents({"payment_status": "paid"})
+    pending = await payments.count_documents({"payment_status": "pending"})
+
+    recent_failures = await events.find(
+        {"status": "failed"},
+        {
+            "_id": 0,
+            "event_type": 1,
+            "reference_id": 1,
+            "tipo": 1,
+            "error": 1,
+            "updated_at": 1,
+        },
+    ).sort("updated_at", -1).limit(10).to_list(10)
+
+    recent_processing = await events.find(
+        {"status": "processing"},
+        {
+            "_id": 0,
+            "event_type": 1,
+            "reference_id": 1,
+            "tipo": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        },
+    ).sort("updated_at", 1).limit(10).to_list(10)
+
+    return {
+        "status": "attention" if failed or stuck_processing else "ok",
+        "checked_at": now.isoformat(),
+        "stuck_cutoff": stuck_cutoff,
+        "events": {
+            "total": event_total,
+            "processed": processed,
+            "failed": failed,
+            "processing": processing,
+            "stuck_processing": stuck_processing,
+        },
+        "payments": {
+            "paid": paid,
+            "pending": pending,
+        },
+        "recent_failures": recent_failures,
+        "recent_processing": recent_processing,
+    }
+
+
 def _lead_item(email: str, name: Optional[str], updated_at: Optional[str], reason: str) -> dict:
     return {
         "email": email,
@@ -1105,6 +1171,19 @@ async def ciak_lead_detail(
 
 
 # ─── Transactions ──────────────────────────────────────────────────────────
+
+@router.get("/stripe-webhook-health")
+async def ciak_stripe_webhook_health(admin=Depends(require_ciak_admin)):
+    """
+    Snapshot operativa dei webhook Stripe.
+
+    Serve per capire in pochi secondi se ci sono eventi falliti, lock rimasti in
+    processing o transazioni pagate/non pagate da riconciliare.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    return await _stripe_webhook_observability_snapshot(db)
+
 
 @router.get("/transactions")
 async def ciak_transactions(
