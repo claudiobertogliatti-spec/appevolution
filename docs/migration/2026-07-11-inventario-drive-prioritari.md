@@ -10,6 +10,7 @@ Aggiornamento Fase 1: 2026-07-10.
 - Stato Sarah: `fase1_chiusa_ok_operativo`; playlist YouTube masterclass + lezioni gia editate da mappare.
 - Marco Serra e Loris Bonomi restano ex partner, ma sono inclusi nella migrazione materiali.
 - Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
+- Aggiornamento Drive: strutturate/verificate anche Federica Arimatea, Silvia Sedda, Daphne Oliveti, Annamaria Depalma, Maria Giulia Falcone, Marco Orlandi, Valter Romani, Sara Stella Due.
 
 Fonte principale:
 
@@ -245,6 +246,21 @@ Da verificare:
 
 - Uniformare nome partner in Ciak: `Sara Due` o `Sara Stella Due`.
 - Presenza di funnel, masterclass e video.
+
+Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`.
+
+## Verifica Drive partner aggiuntivi - 2026-07-10
+
+| Partner | Cartella Drive | Intervento eseguito | Stato |
+| --- | --- | --- | --- |
+| Federica Arimatea | https://drive.google.com/drive/folders/1X9TZbgMun7JmhqkUlLkBjn4m0ufb5PFv | Creata struttura `01-04`; spostato `Federica Arimatea Pos` in `01 - Documenti` | `drive_strutturato_base` |
+| Silvia Sedda | https://drive.google.com/drive/folders/1erUT7jylvKKW0cZ8e2GNOW-bXb_yQpdt | Creata struttura `01-04`; cartella principale vuota al controllo | `drive_strutturato_base` |
+| Daphne Oliveti | https://drive.google.com/drive/folders/1OApHoGTF4EXE6kJsOzWEp6p9P1NOf-ow | Creata struttura `01-04`; spostato `Dafne Oliveti Pos` in `01 - Documenti` | `drive_strutturato_base` |
+| Annamaria Depalma | https://drive.google.com/drive/folders/1ThOSxxpbIc1HMwfS5KRL2EwRSPPIrMag | Creata struttura `01-04`; spostato `Annamaria Depalma Pos` in `01 - Documenti` | `drive_strutturato_base` |
+| Maria Giulia Falcone | https://drive.google.com/drive/folders/1ZlmIIerhndzvhii7ULdPOhNNCCwnChcw | Creata struttura `01-04`; cartella principale vuota al controllo | `drive_strutturato_base` |
+| Marco Orlandi | https://drive.google.com/drive/folders/1UcEPVmohzSQ0AT468PuSX4j8PmRV4EaT | Creata struttura `01-04`; spostato `Marco Orlandi Pos` in `01 - Documenti` | `drive_strutturato_base` |
+| Valter Romani | https://drive.google.com/drive/folders/13eImAOGh44EPlXUxELybltj-m-tlBAP6 | Create `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`; rinominato `Calendario editoriale` in `04 - Calendario Editoriale` | `drive_strutturato_base` |
+| Sara Stella Due | https://drive.google.com/drive/folders/1Vy0bLW4OqT4-LIvrkTH9Y3O5VTqA-3xn | Struttura `01-04` gia presente; nessuno spostamento necessario | `drive_strutturato_base` |
 
 ### Luigi Calafiore
 

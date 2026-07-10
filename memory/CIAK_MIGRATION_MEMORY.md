@@ -123,3 +123,25 @@ Chiusura massiva eseguita il 2026-07-10:
 - Marco Serra e Loris Bonomi corretti come ex partner inclusi nella migrazione materiali.
 - Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola corretti in standby per insoluto pagamento.
 - Sarah Arensi mantenuta come `fase1_chiusa_ok_operativo` per il lavoro operativo appena fatto, con prossimo step playlist YouTube masterclass/lezioni.
+
+## Drive strutturato - passata 2026-07-10
+
+Struttura standard usata:
+
+- `01 - Documenti`
+- `02 - Masterclass`
+- `03 - Videocorso`
+- `04 - Calendario Editoriale`
+
+Partner strutturati/verificati in questa passata:
+
+- Federica Arimatea: cartella `FEDERICA ARIMATEA`; creato `01-04`, posizionamento spostato in `01 - Documenti`.
+- Silvia Sedda: creata struttura `01-04`; cartella principale vuota al controllo.
+- Daphne Oliveti: cartella `DAPHNE OLIVETI`; creato `01-04`, posizionamento spostato in `01 - Documenti`.
+- Annamaria Depalma: cartella `ANNA MARIA DEPALMA`; creato `01-04`, posizionamento spostato in `01 - Documenti`.
+- Maria Giulia Falcone: creata struttura `01-04`; cartella principale vuota al controllo.
+- Marco Orlandi: cartella `MARCO ORLANDI`; creato `01-04`, posizionamento spostato in `01 - Documenti`.
+- Valter Romani: create `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`; rinominato calendario in `04 - Calendario Editoriale`.
+- Sara Stella Due / Sara Due: struttura `01-04` gia presente; nessuno spostamento necessario.
+
+In Ciak questi partner hanno `drive_structure_status = drive_strutturato_base`.
