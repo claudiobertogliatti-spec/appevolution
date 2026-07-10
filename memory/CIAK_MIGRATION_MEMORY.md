@@ -143,5 +143,6 @@ Partner strutturati/verificati in questa passata:
 - Marco Orlandi: cartella `MARCO ORLANDI`; creato `01-04`, posizionamento spostato in `01 - Documenti`.
 - Valter Romani: create `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`; rinominato calendario in `04 - Calendario Editoriale`.
 - Sara Stella Due / Sara Due: struttura `01-04` gia presente; nessuno spostamento necessario.
+- Eva Gugliucciello: struttura `01-04` gia presente; corretto refuso `01 - Docementi` in `01 - Documenti`.
 
 In Ciak questi partner hanno `drive_structure_status = drive_strutturato_base`.
