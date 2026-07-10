@@ -11,6 +11,7 @@ Aggiornamento Fase 1: 2026-07-10.
 - Marco Serra e Loris Bonomi restano ex partner, ma sono inclusi nella migrazione materiali.
 - Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
 - Aggiornamento Drive: strutturate/verificate anche Federica Arimatea, Silvia Sedda, Daphne Oliveti, Annamaria Depalma, Maria Giulia Falcone, Marco Orlandi, Valter Romani, Sara Stella Due, Eva Gugliucciello.
+- Aggiornamento finale Drive: tutti i partner presenti in Ciak, escluso Luigi Calafiore, hanno `drive_structure_status = drive_strutturato_base` e cartella Drive registrata. Il record indicato prima come Filadelfio Vasi e stato corretto in Alfredo Vasi.
 
 Fonte principale:
 
@@ -264,6 +265,25 @@ Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Maste
 | Valter Romani | https://drive.google.com/drive/folders/13eImAOGh44EPlXUxELybltj-m-tlBAP6 | Create `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`; rinominato `Calendario editoriale` in `04 - Calendario Editoriale` | `drive_strutturato_base` |
 | Sara Stella Due | https://drive.google.com/drive/folders/1Vy0bLW4OqT4-LIvrkTH9Y3O5VTqA-3xn | Struttura `01-04` gia presente; nessuno spostamento necessario | `drive_strutturato_base` |
 | Eva Gugliucciello | https://drive.google.com/drive/folders/1A1OQpSlYBrXmixyM76Pa29AwVVdwKTLc | Struttura `01-04` gia presente; corretto refuso `01 - Docementi` in `01 - Documenti` | `drive_strutturato_base` |
+
+## Verifica Drive finale - 2026-07-10
+
+Tutti i partner presenti in Ciak, escluso Luigi Calafiore, risultano con cartella Drive registrata in Ciak e `drive_structure_status = drive_strutturato_base`.
+
+Ultimi interventi eseguiti:
+
+| Partner | Intervento |
+| --- | --- |
+| Marco Lamanna | Struttura `01-04` gia presente; registrata in Ciak |
+| Andrea Fredi | Struttura `01-04` gia presente; registrata in Ciak |
+| Arianna Aceto | Struttura `01-05` gia presente; registrata in Ciak; seconda cartella rilevata vuota |
+| Alice Conventi | Create `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`; rinominato calendario in `04 - Calendario Editoriale`; standby insoluto |
+| Elena Perniola | Creata struttura `01-04`; contratto, pagamento e posizionamento spostati in `01 - Documenti`; standby insoluto |
+| Giuseppe Sarno | Creata struttura `01-04`; cartella principale vuota; standby insoluto |
+| Loris Bonomi | Creata struttura `01-04`; calendario rinominato; documenti, pagamenti e materiali legali principali spostati in `01 - Documenti` |
+| Marco Serra | Struttura gia presente e ampliata `01-07`; registrata in Ciak come ex da migrare |
+| Simone Ricco | Creata struttura `01-04`; contratto, proforma, email e documenti legali principali spostati in `01 - Documenti`; audio vocali lasciati in root per classificazione successiva; standby insoluto |
+| Alfredo Vasi | Corretto nome da Filadelfio ad Alfredo; creata struttura `01-04`; posizionamento spostato in `01 - Documenti` |
 
 ### Luigi Calafiore
 

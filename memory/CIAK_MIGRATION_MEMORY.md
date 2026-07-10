@@ -107,6 +107,7 @@ Regola da mantenere per tutti i partner:
 - Luigi Calafiore e escluso dalla chiusura massiva: nuovo partner appena firmato, dovra procedere in autonomia nel percorso iniziale.
 - Marco Serra e Loris Bonomi sono ex partner, ma devono comunque far parte della migrazione materiali.
 - Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
+- Il record precedentemente indicato come Filadelfio Vasi va trattato come Alfredo Vasi.
 
 Stati Ciak usati:
 
@@ -146,3 +147,18 @@ Partner strutturati/verificati in questa passata:
 - Eva Gugliucciello: struttura `01-04` gia presente; corretto refuso `01 - Docementi` in `01 - Documenti`.
 
 In Ciak questi partner hanno `drive_structure_status = drive_strutturato_base`.
+
+## Drive completato per partner presenti - 2026-07-10
+
+Verifica finale: tutti i partner presenti in Ciak, escluso Luigi Calafiore, hanno:
+
+- cartella Drive registrata in Ciak;
+- `drive_structure_status = drive_strutturato_base`.
+
+Ultima passata:
+
+- Marco Lamanna e Andrea Fredi prioritari: struttura `01-04` gia presente e registrata in Ciak.
+- Arianna Aceto: struttura gia presente; seconda cartella rilevata vuota.
+- Alice Conventi, Elena Perniola, Giuseppe Sarno, Simone Ricco: Drive strutturato ma partner in standby per insoluto.
+- Loris Bonomi e Marco Serra: ex partner inclusi nella migrazione materiali, Drive strutturato.
+- Alfredo Vasi: nome corretto rispetto al precedente Filadelfio; Drive strutturato e posizionamento in `01 - Documenti`.

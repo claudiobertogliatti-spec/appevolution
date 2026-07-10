@@ -47,6 +47,7 @@ Aggiornamento segmentazione:
 
 - Marco Serra e Loris Bonomi sono ex partner, ma devono comunque far parte della migrazione materiali.
 - Simone Ricco, Giuseppe Sarno, Alice Conventi ed Elena Perniola sono in standby per contratti insoluti di pagamento.
+- Il record precedentemente indicato come Filadelfio Vasi va trattato come Alfredo Vasi.
 
 ## Sorgenti Drive individuate
 
@@ -270,7 +271,7 @@ Il 2026-07-10 e stata chiusa la Fase 1 anche per gli altri partner presenti in C
 | Daphne Oliveti | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 | Elena Perniola | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Federica Arimatea | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
-| Filadelfio Vasi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Alfredo Vasi | `fase1_chiusa_ok_operativo_riabilitazione` | Drive strutturato; procedere con recupero materiali fasi successive |
 | Giuseppe Sarno | `fase1_standby_contratto_insoluto` | Standby per contratto/pagamento insoluto |
 | Loris Bonomi | `fase1_chiusa_ok_operativo_ex_da_migrare` | Ex partner incluso nella migrazione materiali |
 | Marco Orlandi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
