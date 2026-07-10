@@ -162,6 +162,15 @@ export function MasterclassReview({ onAuthExpired }) {
       </div>
 
       {error && <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-2">{error}</div>}
+      {(data?.review_note || data?.pipeline_error) && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 flex gap-2">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            {data?.review_note && <div>{data.review_note}</div>}
+            {data?.pipeline_error && <div className="text-xs mt-1 text-amber-700">Errore tecnico: {data.pipeline_error}</div>}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Script del team — riferimento */}

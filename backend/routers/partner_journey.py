@@ -1732,6 +1732,10 @@ async def get_masterclass_review_data(
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Nessun dato masterclass")
+    return _build_masterclass_review_response(doc)
+
+
+def _build_masterclass_review_response(doc: dict) -> dict:
     return {
         "success": True,
         "pipeline_status": doc.get("video_pipeline_status"),
@@ -1739,6 +1743,8 @@ async def get_masterclass_review_data(
         "words": doc.get("review_words", []),
         "cut_segments": doc.get("review_cut_segments", []),
         "filler_report": doc.get("review_filler_report"),
+        "review_note": doc.get("review_note"),
+        "pipeline_error": doc.get("video_pipeline_error") or doc.get("pipeline_error"),
         "script": doc.get("script_content") or doc.get("approved_script") or doc.get("full_script") or doc.get("script") or "",
         "raw_duration_s": doc.get("video_raw_duration_s"),
         "review_created_at": doc.get("review_created_at"),
