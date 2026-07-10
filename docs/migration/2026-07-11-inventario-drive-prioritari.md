@@ -14,7 +14,7 @@ Nota: questa e una prima passata di discovery. Prima di scrivere dati definitivi
 
 | Partner | Cartella partner trovata | Materiali emersi | Attenzione / gap |
 | --- | --- | --- | --- |
-| Sarah Arensi | Si | Contratto, posizionamento, email funnel, sequenza follow-up, call argomenti | Presenza di duplicati e risultati anche per Sarah Haghighi: usare solo Sarah Arensi |
+| Sarah Arensi | Si | Contratto, posizionamento, email funnel, sequenza follow-up, call argomenti, descrizioni videocorso, calendario lancio | Drive riordinato; mancano da agganciare video finali, masterclass, bonus, cover, immagini e funnel/checkout |
 | Arianna Aceto | Si, almeno due cartelle | Call argomenti, contratto, posizionamento, documenti | Standby operativo: non migrare ora, conservare inventario |
 | Michele Baggio | Si | Calendario lancio videocorso, script masterclass, workbook, documenti web | Verificare se esistono masterclass/video/funnel dentro la cartella |
 | Mariantonietta Tornello | Si | Posizionamento, consulenza gratuita, email funnel, calendario lancio videocorso, calendario editoriale | Verificare file duplicati tra originale e copie 2026-06/2026-07 |
@@ -30,6 +30,10 @@ Nota: questa e una prima passata di discovery. Prima di scrivere dati definitivi
 
 ### Sarah Arensi
 
+Scheda operativa dettagliata:
+
+- `docs/migration/partner-sarah-arensi-ciak.md`
+
 Cartella:
 
 - Sarah Arensi: https://drive.google.com/drive/folders/1XnT13G6w3fzSKcZAjCLuR7v918nhGaBm
@@ -42,11 +46,14 @@ Materiali trovati:
 - Email automatizzate funnel Sarah Arensi: https://docs.google.com/document/d/1O1y6Lp0s9bpt7rcvERZvgGqQTs3RJwFp3rxiDXjoCIY
 - SEQUENZA FOLLOW SARAH ARENSI.docx: https://drive.google.com/file/d/1Vocmrp9CmdMCZLcdwAF7ZXy4YXXC-4au
 - Call Argomenti Sarah: https://docs.google.com/document/d/1EAJe1_zNogOnPbSq7_fJH6EMXQ9teJ8nYTYdg2kExcI
+- Descrizioni video corso: https://docs.google.com/document/d/1sulTOjrvkQkrMkKPAOS9Jse8bsty7uGHhuXD2KGKVDU
+- Calendario editoriale social Lancio Corso: https://drive.google.com/drive/folders/12ta9v0o3fpuxIS4CIYNtPtNiuzP-z5NV
 
 Da verificare:
 
 - File duplicati tra cartella storica e copie recenti.
 - Non confondere con Sarah Haghighi.
+- Video finali, masterclass, bonus, cover, immagini, funnel/checkout e Calendly.
 
 ### Arianna Aceto
 

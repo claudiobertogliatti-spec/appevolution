@@ -222,7 +222,7 @@ Note:
 
 | Partner | Stato reale | Materiali verificati | Mancanze segnate | Prossima azione | Owner | 30/60/90 | Chiuso |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sarah |  | [ ] | [ ] |  |  | [ ] | [ ] |
+| Sarah | Pronta al lancio con gap operativi | [x] | [x] | Verificare video finali, bonus, cover, funnel/checkout e Calendly | Da assegnare | [ ] | [ ] |
 | Arianna | Standby | [ ] | [ ] | Migrazione sospesa fino a riattivazione |  | [ ] | [ ] |
 | Michele |  | [ ] | [ ] |  |  | [ ] | [ ] |
 | Mariantonietta |  | [ ] | [ ] |  |  | [ ] | [ ] |
