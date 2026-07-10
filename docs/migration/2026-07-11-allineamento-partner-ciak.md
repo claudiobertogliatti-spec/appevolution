@@ -25,6 +25,22 @@ Ogni partner va chiuso con una risposta chiara a cinque domande:
 
 Se una di queste risposte manca, il partner non e ancora allineato.
 
+## Regola standard Fase 1 - Esamina
+
+Aggiornamento operativo 2026-07-10:
+
+- La Fase 1 non contiene documenti da approvare.
+- Si chiude con `OK operativo` quando in Ciak esiste una base utilizzabile per Esamina: posizionamento, storia/bio, brand kit o note di contesto recuperate da Ciak/Drive/web.
+- Dati personali, documenti fiscali, IBAN o documento identita sono note di contesto per fasi successive: non bloccano la chiusura della Fase 1.
+- Per il brand kit non fermarsi alla cartella `Immagini`: cercare anche in cartelle storiche, calendario editoriale, reel/storie/caroselli, funnel, live e asset di lancio.
+- Luigi Calafiore e escluso dalla chiusura massiva: essendo nuovo partner deve procedere in autonomia nel percorso iniziale.
+
+Stati usati:
+
+- `fase1_chiusa_ok_operativo`: partner attivo o comunque da proseguire operativamente.
+- `fase1_chiusa_ok_operativo_riabilitazione`: partner in quarantena/recupero; Fase 1 chiusa come base di riabilitazione.
+- `fase1_chiusa_ok_operativo_ex_non_attivo`: partner ex/non attivo; Fase 1 chiusa come fotografia storica, non come rilancio.
+
 ## Sorgenti Drive individuate
 
 Cartelle da usare come punto di partenza:
@@ -224,17 +240,38 @@ Note:
 
 | Partner | Stato reale | Materiali verificati | Mancanze segnate | Prossima azione | Owner | 30/60/90 | Chiuso |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sarah | Migrazione parziale in Ciak - percorso non completo | [x] | [x] | Completare/verificare dati personali, storia, brand kit, masterclass, video finali, bonus, cover, funnel/checkout e Calendly | Da assegnare | [ ] | [ ] |
-| Arianna | Standby | [ ] | [ ] | Migrazione sospesa fino a riattivazione |  | [ ] | [ ] |
-| Michele |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Mariantonietta |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Daniele |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Cosimo |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Marco |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Andrea |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Eva |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Sara |  | [ ] | [ ] |  |  | [ ] | [ ] |
-| Luigi Calafiore | Nuovo partner appena firmato | [ ] | [ ] | Creare/allineare onboarding iniziale |  | [ ] | [ ] |
+| Sarah | Fase 1 chiusa OK operativo | [x] | [x] | Mappare playlist YouTube tra masterclass e lezioni | Da assegnare | [ ] | [x] |
+| Arianna | Ex/non attiva - Fase 1 chiusa come fotografia storica | [x] | [x] | Non procedere salvo riattivazione esplicita |  | [ ] | [x] |
+| Michele | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Mariantonietta | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Daniele | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Cosimo | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Marco Lamanna | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Andrea | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Eva | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Sara | Fase 1 chiusa OK operativo | [x] | [x] | Proseguire con mappatura materiali fasi successive |  | [ ] | [x] |
+| Luigi Calafiore | Nuovo partner appena firmato | [ ] | [ ] | Escluso dalla chiusura massiva: percorso Fase 1 da fare in autonomia |  | [ ] | [ ] |
+
+### Chiusura massiva altri partner presenti in Ciak
+
+Il 2026-07-10 e stata chiusa la Fase 1 anche per gli altri partner presenti in Ciak, escluso Luigi Calafiore:
+
+| Partner | Stato Fase 1 | Prossima azione |
+| --- | --- | --- |
+| Alice Conventi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Annamaria Depalma | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Daphne Oliveti | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Elena Perniola | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Federica Arimatea | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Filadelfio Vasi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Giuseppe Sarno | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Loris Bonomi | `fase1_chiusa_ok_operativo_ex_non_attivo` | Non procedere al lancio salvo riattivazione esplicita |
+| Marco Orlandi | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Marco Serra | `fase1_chiusa_ok_operativo_ex_non_attivo` | Ex partner non rinnovato: non procedere al lancio salvo riattivazione esplicita |
+| Maria Giulia Falcone | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Silvia Sedda | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Simone Ricco | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
+| Valter Romani | `fase1_chiusa_ok_operativo_riabilitazione` | Verificare Drive/materiali mancanti e definire azione minima di recupero |
 
 ## Regole di chiusura giornata
 

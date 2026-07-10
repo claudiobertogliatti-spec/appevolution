@@ -2,6 +2,13 @@
 
 Data: 2026-07-10
 
+Aggiornamento Fase 1: 2026-07-10.
+
+- Fase 1 chiusa in Ciak per tutti i partner presenti, escluso Luigi Calafiore.
+- Luigi Calafiore resta escluso perche nuovo partner: deve procedere in autonomia nel percorso iniziale.
+- La chiusura Fase 1 non richiede approvazione documenti; i documenti mancanti restano note per fasi successive.
+- Stato Sarah: `fase1_chiusa_ok_operativo`; playlist YouTube masterclass + lezioni gia editate da mappare.
+
 Fonte principale:
 
 - `04 - EVOLUTION PRO`: https://drive.google.com/drive/folders/1Gi8TJ_vBYkxW9iz-UHDR5958_74qw4DI
@@ -95,6 +102,8 @@ Da verificare:
 - Presenza di video masterclass, video corso, funnel e checkout.
 - Duplicati del calendario e del workbook.
 
+Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`.
+
 ### Mariantonietta Tornello
 
 Cartella:
@@ -114,6 +123,8 @@ Da verificare:
 - Versione corretta tra copie 2026-06-29, 2026-07-01 e file storici.
 - Stato reale: lancio, ottimizzazione o recupero risultati.
 
+Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`.
+
 ### Daniele Andolfi
 
 Cartella:
@@ -131,6 +142,8 @@ Da verificare:
 
 - Stato pipeline masterclass e video grezzo/finale gia citati nel contesto tecnico.
 - Quali asset vanno in Ciak come masterclass, calendario e CRM/lancio.
+
+Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario editoriale`.
 
 ### Cosimo Filieri
 
@@ -153,6 +166,8 @@ Da verificare:
 - Cartella principale e sottocartelle.
 - Presenza di funnel, masterclass e videocorso.
 - Procedere con apertura cartelle e integrazione Ciak dopo la chiusura di Sarah.
+
+Struttura Drive verificata il 2026-07-10: presenti `01 - Documenti`, `02 - Masterclass`, `03 - Videocorso`, `04 - Calendario Editoriale`.
 
 ### Marco Lamanna
 

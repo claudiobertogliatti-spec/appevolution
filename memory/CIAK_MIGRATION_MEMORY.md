@@ -93,3 +93,28 @@ Per ogni partner:
 16. Aggiornare `docs/migration`.
 
 Prossimo partner operativo: Cosimo Filieri.
+
+## Regola Fase 1 standardizzata - 2026-07-10
+
+Claudio ha chiarito che in Fase 1 non ci sono documenti da approvare. La chiusura della Fase 1 riguarda Esamina/posizionamento/storia/brand kit, non documenti fiscali o anagrafici.
+
+Regola da mantenere per tutti i partner:
+
+- chiudere Fase 1 con OK operativo quando esiste una base utilizzabile da Ciak/Drive/web;
+- lasciare dati/documenti mancanti come note di contesto per fasi successive, non come blocco Fase 1;
+- per brand kit cercare asset anche fuori dalla cartella `Immagini`: cartelle storiche, lancio, reel/storie/caroselli, funnel, live, copertine;
+- distinguere sempre partner attivo, quarantena/riabilitazione, ex/non attivo;
+- Luigi Calafiore e escluso dalla chiusura massiva: nuovo partner appena firmato, dovra procedere in autonomia nel percorso iniziale.
+
+Stati Ciak usati:
+
+- `fase1_chiusa_ok_operativo`
+- `fase1_chiusa_ok_operativo_riabilitazione`
+- `fase1_chiusa_ok_operativo_ex_non_attivo`
+
+Chiusura massiva eseguita il 2026-07-10:
+
+- 24 partner presenti in Ciak chiusi in Fase 1.
+- Luigi Calafiore lasciato aperto/escluso.
+- Marco Serra marcato come ex/non attivo, coerente con indicazione di Claudio: ex partner che non ha rinnovato.
+- Sarah Arensi mantenuta come `fase1_chiusa_ok_operativo` per il lavoro operativo appena fatto, con prossimo step playlist YouTube masterclass/lezioni.
