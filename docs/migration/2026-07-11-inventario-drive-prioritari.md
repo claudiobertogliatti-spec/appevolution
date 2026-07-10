@@ -20,7 +20,7 @@ Nota: questa e una prima passata di discovery. Prima di scrivere dati definitivi
 | Mariantonietta Tornello | Si | Posizionamento, consulenza gratuita, email funnel, calendario lancio videocorso, calendario editoriale | Verificare file duplicati tra originale e copie 2026-06/2026-07 |
 | Daniele Andolfi | Si | Calendario lancio social Sabai, analisi, CRM/lista contatti | Collegare con stato pipeline masterclass noto nel sistema |
 | Cosimo Filieri | Si, almeno due cartelle | Posizionamento, calendario editoriale lancio social, istruzioni calendario | Verificare cartella principale tra `Cosimo Filieri` e `COSIMO FILIERI` |
-| Marco | Ambiguo | Marco Lamanna: calendario, script masterclass, posizionamento, bonus. Marco Serra: dati contratto/brand, posizionamento SlimAmour | Disambiguare quale Marco e prioritario prima di integrare in Ciak |
+| Marco Lamanna | Si | Calendario, script masterclass, posizionamento, bonus e risorse | Marco Serra e un ex partner che non ha rinnovato: escluderlo dai prioritari |
 | Andrea Fredi | Si | Calendario social lancio TAI, script masterclass, istruzioni calendario, script chiusura | Risultati includono anche Andrea Bianchi: filtrare su Andrea Fredi |
 | Eva Gugliucciello | Si | Posizionamento, calendario lancio videocorso, template videocorso, script masterclass | Verificare asset finali e duplicati 2026-06/2026-07 |
 | Sara Due | Si | Calendario lancio videocorso, contratto, posizionamento, template videocorso, sessione strategica gratuita | Nome Drive con accento `Sara Due` / `Sara Duè`: uniformare in Ciak |
@@ -141,26 +141,24 @@ Da verificare:
 - Cartella principale e sottocartelle.
 - Presenza di funnel, masterclass e videocorso.
 
-### Marco
+### Marco Lamanna
 
-Risultati principali:
+Cartelle:
 
 - Marco Lamanna: https://drive.google.com/drive/folders/121_nTTax-lctfGakCIEhlSk4VzOdL-vZ
 - Bonus e Risorse - Marco Lamanna: https://drive.google.com/drive/folders/1_LcslcL-1OgUyPkDCZ2UY2OLsrTFqqVK
-- Marco Serra: https://drive.google.com/drive/folders/1dKRP1YERp6B3NvxN2q7BeUa5w6i_817V
 
 Materiali trovati:
 
 - Calendario Lancio Videocorso Marco Lamanna.xlsx: https://drive.google.com/file/d/1-Hn07ODUKC09ORIUWdoWf_INMCC5LXy2
 - Alice Marco Template Script Masterclass: https://docs.google.com/document/d/1qtx1gPNw0TFwOz2oH0c_RUEb0-cJrR8WRP3e1KT4M3k
 - Alice e Marco Documento di Posizionamento: https://docs.google.com/document/d/1sYZ7rrBZ_ar_bFVnIbUd24va9BmIcW3ZJFQ6IHVmFNE
-- Marco Serra - Dati Contratto e Brand: https://docs.google.com/document/d/1TAIH-i8lHJTAh0WEI6FCdm3HF7Cj-iqnU5YEF2QAj_8
-- Marco Serra - SlimAmour Pos: https://docs.google.com/document/d/1VwTwT5QnMRpydWncE_Ly4F1oZ6hXe7bw30muH0YRDBk
 
 Da verificare:
 
-- Disambiguare se il prioritario e Marco Lamanna o Marco Serra.
-- Non integrare materiali prima della disambiguazione.
+- Usare Marco Lamanna come partner prioritario.
+- Escludere Marco Serra dal flusso prioritario: e un ex partner che non ha rinnovato.
+- Verificare se i materiali "Alice Marco" appartengono effettivamente a Marco Lamanna prima di integrarli in Ciak.
 
 ### Andrea Fredi
 
