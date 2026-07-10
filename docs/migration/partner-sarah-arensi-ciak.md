@@ -6,13 +6,13 @@ Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10, ma
 
 Aggiornamento Fase 1: 2026-07-10.
 
-Stato Fase 1 in Ciak: `fase1_esamina_compilata_con_gap`.
+Stato Fase 1 in Ciak: `fase1_posizionamento_storia_brand_compilati_con_gap`.
 
 ## Stato operativo proposto
 
 Migrazione parziale. Non definire pronta al lancio.
 
-Motivo: esistono alcuni materiali utili, ma il percorso Ciak va simulato fase per fase e molti blocchi restano vuoti o non validati. In particolare mancano o non sono stati verificati dati personali/documenti, storia, posizionamento completo validato, brand kit, masterclass, video finali, bonus, cover e asset immagine.
+Motivo: esistono materiali utili, ma il percorso Ciak va simulato fase per fase e alcuni blocchi restano vuoti o non validati. In particolare mancano o non sono stati verificati dati personali/documenti, storia approvata, logo/foto standalone, masterclass, video finali, bonus, cover e asset definitivi.
 
 Regola: inserire in Ciak solo cio che esiste o si puo dedurre con ragionevole sicurezza dai materiali. Lasciare vuoti i campi non provati. Non trasformare un materiale trovato in una fase completata.
 
@@ -135,9 +135,29 @@ Da verificare:
 
 ### Brand kit
 
-Da lasciare vuoto.
+Compilato come parziale, non validato.
 
-Non risultano trovati logo, palette, font, immagini ufficiali, tone of voice approvato o linee guida visuali complete. Il sito ufficiale fornisce direzione estetica e opere, ma non sostituisce un brand kit Ciak.
+La cartella `05 - Immagini` risulta vuota, ma nelle cartelle storiche e di lancio sono presenti asset visuali utilizzabili come riferimento:
+
+- InvitoLive18Febbraio: https://drive.google.com/file/d/1FOLyLi3i0dWKN709BP5ONxST803nOtZZ
+- CaroselloLIVE18Febbraio: https://drive.google.com/drive/folders/1BtzM42DJeP4eGrm_DSmsYp6mQLPjSHR9
+- Calendario editoriale social Lancio Corso: https://drive.google.com/drive/folders/12ta9v0o3fpuxIS4CIYNtPtNiuzP-z5NV
+
+Agganciato in Ciak:
+
+- foto/hero visuale da asset Drive con Sarah;
+- logo `SA / Sarah Arensi` presente nell'asset, ma non trovato come file standalone;
+- direzione visiva: oro dominante, accenti fucsia/blu, texture pittoriche, scintille/luminosita;
+- font: serif elegante + script/handwritten da validare;
+- tone of voice: artistico, evocativo, spirituale e trasformativo, da rendere piu concreto per il protocollo Ciak.
+
+Da verificare:
+
+- logo standalone;
+- foto professionali isolate;
+- palette ufficiale;
+- font ufficiali;
+- linee guida visuali complete.
 
 ### Masterclass
 
@@ -186,7 +206,7 @@ Da lasciare incompleto:
 - IBAN partner.
 - Sede legale / anagrafica fiscale completa.
 - Conferma social ufficiali da usare nel progetto Ciak.
-- Brand kit visuale: logo, colori, font, foto professionali, tone of voice definitivo.
+- Brand kit definitivo: logo standalone, colori/font ufficiali, foto professionali isolate.
 - Storia in formato Ciak completa e approvata.
 - Link masterclass gratuita o video masterclass definitivo.
 - Video finali del videocorso, non trovati nella cartella ordinata.
@@ -197,7 +217,7 @@ Da lasciare incompleto:
 - 5 audio di visualizzazione creativa.
 - Eventuale audiocorso meditazione.
 - Cover aggiornate per i tre livelli offerta.
-- Foto professionali, immagini branding, testimonianze.
+- Foto professionali isolate, immagini branding definitive, testimonianze.
 - Funnel/landing page definitiva.
 - Checkout per 299 / 699 / 1399 euro.
 - Collegamento Calendly o equivalente per coaching premium.
@@ -218,7 +238,7 @@ Continuare la simulazione del percorso Ciak lasciando vuoti i blocchi non provat
 Aggiornamenti gia applicati in Ciak:
 
 - `partners`: sito, bio sintetica, profili pubblici, P.IVA pubblica, sintesi contratto e pagamento, gap documentali.
-- `partner_posizionamento`: target, problema, risultato, unicita, proof/authority, fonte Drive/web, positioning statement e valore unico.
+- `partner_posizionamento`: target, problema, risultato, unicita, proof/authority, fonte primaria Drive, storia bozza, direzione brand kit, positioning statement e valore unico.
 - `partner_videocorso`: titolo corso, promessa, outline 20 lezioni, note produzione, link descrizioni videocorso e livelli offerta 299/699/1399.
 - `partner_funnel`: funnel live, stato, prezzi offerta, stato email, asset Drive e prossime azioni tecniche.
 - `masterclass_factory`: mantenuto URL Drive gia presente e aggiunte note admin/gap.
@@ -237,7 +257,7 @@ Fonti web pubbliche usate per Fase 1:
 Messaggio interno:
 
 ```text
-Sarah e migrata solo in prima passata. Abbiamo importato i materiali disponibili, ma il percorso Ciak non e completo: mancano o non sono verificati dati personali/documenti, storia, brand kit, masterclass, video finali, bonus, cover, immagini, checkout e Calendly. Non definirla pronta al lancio finche queste fasi non sono compilate o marcate come mancanti.
+Sarah e migrata solo in prima passata. Abbiamo importato i materiali disponibili e compilato Fase 1 con posizionamento, storia bozza e brand kit parziale, ma il percorso Ciak non e completo: mancano o non sono verificati dati personali/documenti, storia approvata, logo/foto standalone, masterclass, video finali, bonus, cover, checkout e Calendly. Non definirla pronta al lancio finche queste fasi non sono compilate o marcate come mancanti.
 ```
 
 ## Owner da assegnare

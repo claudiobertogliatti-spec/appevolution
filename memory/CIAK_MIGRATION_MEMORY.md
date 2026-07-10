@@ -27,9 +27,12 @@ Correzione importante: Sarah non va considerata pronta al lancio. La migrazione 
   - `masterclass_factory`
   - `files`
 - Registrati 14 materiali Drive come allegati approvati.
-- Fase 1 aggiornata il 2026-07-10 con stato `fase1_esamina_compilata_con_gap`.
+- Fase 1 aggiornata il 2026-07-10 con stato `fase1_posizionamento_storia_brand_compilati_con_gap`.
 - Dati web pubblici integrati: sito ufficiale, P.IVA pubblica `IT08577240966`, contatto pubblico, profili Instagram/Facebook/LinkedIn e profilo Arte Laguna.
 - Contratto/distinta riletti come fonti primarie: formula Partnership Professional, 3.480 EUR in tre rate da 1.160 EUR, ripartizione 50/50, distinta 1/3 accreditata il 25/04/2025.
+- Posizionamento compilato usando come fonte primaria `PosizionamentoSarahArensi.pdf` da Drive.
+- Storia compilata in bozza usando posizionamento Drive + fonti web pubbliche.
+- Brand kit compilato come parziale: la cartella `05 - Immagini` e vuota, ma gli asset visuali sono nelle cartelle storiche/lancio. In Ciak sono stati agganciati foto/hero visuale, direzione palette oro/fucsia/blu, tone of voice e note su logo `SA / Sarah Arensi` incorporato negli asset; logo standalone, foto isolate e font ufficiali restano da validare.
 
 ### Stato Sarah
 
@@ -56,8 +59,8 @@ Gap residui:
 - sede legale/anagrafica fiscale completa;
 - conferma social ufficiali da usare nel progetto Ciak;
 - storia in formato Ciak approvata;
-- posizionamento completo validato;
-- brand kit;
+- posizionamento validato da Sarah;
+- brand kit definitivo: logo standalone, foto professionali isolate, palette/font ufficiali;
 - masterclass verificata;
 - video finali del corso;
 - bonus;
@@ -81,10 +84,11 @@ Per ogni partner:
 8. Leggere contratto firmato e distinta come fonti primarie per formula, importi, date, durata e pagamento.
 9. Usare ricerca web pubblica per sito, bio, P.IVA pubblica, social, profili e autorita, citando la fonte.
 10. Non ricostruire codice fiscale o dati sensibili: inserirli solo se presenti in documenti ufficiali o materiali firmati.
-11. Salvare backup locale pre/post in `storage/migration-backups`.
-12. Aggiornare le collection journey corrette.
-13. Registrare i materiali Drive in `files`.
-14. Verificare con `GET /api/admin/partner/{id}/full-data`.
-15. Aggiornare `docs/migration`.
+11. Per il brand kit, non fermarsi alla cartella `05 - Immagini`: cercare anche in cartelle storiche, calendario editoriale, reel/storie/caroselli, funnel e materiali live.
+12. Salvare backup locale pre/post in `storage/migration-backups`.
+13. Aggiornare le collection journey corrette.
+14. Registrare i materiali Drive in `files`.
+15. Verificare con `GET /api/admin/partner/{id}/full-data`.
+16. Aggiornare `docs/migration`.
 
 Prossimo partner operativo: Cosimo Filieri.
