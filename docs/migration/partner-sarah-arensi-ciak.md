@@ -4,6 +4,10 @@ Data prima lavorazione: 2026-07-10
 
 Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10, ma percorso non completo.
 
+Aggiornamento Fase 1: 2026-07-10.
+
+Stato Fase 1 in Ciak: `fase1_esamina_compilata_con_gap`.
+
 ## Stato operativo proposto
 
 Migrazione parziale. Non definire pronta al lancio.
@@ -77,20 +81,31 @@ Trovati:
 
 - contratto;
 - distinta.
+- nome: Sarah Arensi;
+- email: saraharensi@gmail.com;
+- telefono: +39 392 149 2870;
+- sito web: https://www.saraharensi.com;
+- settore: arte, creativita, mentoring evolutivo, crescita personale;
+- P.IVA pubblica da sito ufficiale: IT08577240966;
+- formula contrattuale: Partnership Professional;
+- importo contratto: 3.480 EUR, in 3 rate da 1.160 EUR;
+- ripartizione ricavi: 50% Partner / 50% Evolution PRO;
+- distinta bonifico: 1.160 EUR, accredito 25/04/2025, causale `Servizio Partnership PROFESSIONAL 1 di 3 rate`.
 
 Da lasciare vuoto o verificare:
 
 - documento identita fronte/retro;
 - codice fiscale;
-- P.IVA se necessaria;
+- IBAN partner;
+- sede legale / anagrafica fiscale completa;
 - dati fiscali completi;
 - conferma anagrafica aggiornata.
 
 ### Storia
 
-Da lasciare vuoto.
+Compilabile solo in bozza, non completata.
 
-Non e stato trovato un documento storia completo nel formato Ciak. La biografia/posizionamento contiene elementi utili, ma non basta per segnare la fase storia come completata.
+Fonti utili: sito ufficiale, profilo Arte Laguna, piano operativo e posizionamento. La storia pubblica conferma artista contemporanea, performer, creative mentor, oltre 25 anni di ricerca/pratica artistica, EstaticArt nel 2019 e La Matrice Creativa nel 2024. Non e stato trovato un documento storia completo nel formato Ciak, quindi la fase storia resta da validare con Sarah.
 
 ### Posizionamento
 
@@ -99,6 +114,16 @@ Trovati:
 - file di posizionamento;
 - call argomenti;
 - dati corso e promessa.
+- profilo pubblico e autorita professionale;
+- target, problema, promessa, differenziante e competitor di riferimento.
+
+Inserito in Ciak:
+
+- target: donne e uomini, in prevalenza 30-60 anni, creativi, professionisti, artisti, coach, operatori olistici o persone in burnout che sentono un blocco creativo/esistenziale;
+- problema: blocco creativo, frustrazione, paura del giudizio/fallimento, disconnessione dalla propria identita creativa;
+- risultato: sbloccare la forza creativa, ritrovare una voce espressiva autentica e portare creativita nella vita quotidiana;
+- unicita: metodo Galactic Creativity / La Matrice Creativa, arte + corpo + presenza + mentoring evolutivo;
+- positioning statement operativo, marcato `compilata_con_gap_da_validare`.
 
 Da verificare:
 
@@ -112,7 +137,7 @@ Da verificare:
 
 Da lasciare vuoto.
 
-Non risultano trovati logo, palette, font, immagini ufficiali, tone of voice approvato o linee guida visuali complete.
+Non risultano trovati logo, palette, font, immagini ufficiali, tone of voice approvato o linee guida visuali complete. Il sito ufficiale fornisce direzione estetica e opere, ma non sostituisce un brand kit Ciak.
 
 ### Masterclass
 
@@ -156,6 +181,13 @@ Da lasciare incompleto:
 
 ## Materiali mancanti o da verificare
 
+- Codice fiscale personale.
+- Documento identita fronte/retro.
+- IBAN partner.
+- Sede legale / anagrafica fiscale completa.
+- Conferma social ufficiali da usare nel progetto Ciak.
+- Brand kit visuale: logo, colori, font, foto professionali, tone of voice definitivo.
+- Storia in formato Ciak completa e approvata.
 - Link masterclass gratuita o video masterclass definitivo.
 - Video finali del videocorso, non trovati nella cartella ordinata.
 - Dispensa unica con trascrizioni.
@@ -185,11 +217,22 @@ Continuare la simulazione del percorso Ciak lasciando vuoti i blocchi non provat
 
 Aggiornamenti gia applicati in Ciak:
 
-- `partner_posizionamento`: target, risultato, unicita, fonte Drive, positioning statement e valore unico.
+- `partners`: sito, bio sintetica, profili pubblici, P.IVA pubblica, sintesi contratto e pagamento, gap documentali.
+- `partner_posizionamento`: target, problema, risultato, unicita, proof/authority, fonte Drive/web, positioning statement e valore unico.
 - `partner_videocorso`: titolo corso, promessa, outline 20 lezioni, note produzione, link descrizioni videocorso e livelli offerta 299/699/1399.
 - `partner_funnel`: funnel live, stato, prezzi offerta, stato email, asset Drive e prossime azioni tecniche.
 - `masterclass_factory`: mantenuto URL Drive gia presente e aggiunte note admin/gap.
 - `files`: registrati 14 materiali Drive come allegati approvati.
+
+Fonti web pubbliche usate per Fase 1:
+
+- Sito ufficiale Sarah Arensi: https://www.saraharensi.com
+- About / bio ufficiale: https://www.saraharensi.com/press-media
+- Contatti ufficiali: https://www.saraharensi.com/contact
+- Profilo Arte Laguna: https://artelaguna.world/artist/arensi-sarah
+- Instagram individuato da ricerca pubblica: https://www.instagram.com/saraharensi_art/
+- Facebook individuato da ricerca pubblica: https://www.facebook.com/saraharensiofficial/
+- LinkedIn individuato da ricerca pubblica: https://it.linkedin.com/in/sarah-arensi-974b3216
 
 Messaggio interno:
 
