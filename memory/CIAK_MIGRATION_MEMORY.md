@@ -6,6 +6,8 @@ Data: 2026-07-10
 
 Sarah Arensi e il primo partner usato come caso pilota per la migrazione reale Drive -> Ciak.
 
+Correzione importante: Sarah non va considerata pronta al lancio. La migrazione consiste nel simulare il percorso Ciak completo con i dati disponibili e lasciare vuoti/marcati come mancanti tutti i blocchi non provati.
+
 ### Cosa e stato fatto
 
 - Riordinata la cartella Drive Sarah Arensi.
@@ -27,7 +29,7 @@ Sarah Arensi e il primo partner usato come caso pilota per la migrazione reale D
 
 ### Stato Sarah
 
-Stato operativo: migrata in Ciak, pronta al lancio con gap operativi.
+Stato operativo: migrazione parziale in Ciak, percorso non completo.
 
 Materiali presenti:
 
@@ -44,8 +46,12 @@ Materiali presenti:
 
 Gap residui:
 
+- dati personali/documenti completi;
+- storia;
+- posizionamento completo validato;
+- brand kit;
+- masterclass verificata;
 - video finali del corso;
-- masterclass definitiva / YouTube;
 - bonus;
 - cover;
 - immagini branding;
@@ -60,11 +66,14 @@ Per ogni partner:
 1. Riordinare prima Drive senza cancellare nulla.
 2. Spostare solo file certi nella struttura corretta.
 3. Leggere `full-data` Ciak prima di scrivere.
-4. Salvare backup locale pre/post in `storage/migration-backups`.
-5. Aggiornare le collection journey corrette.
-6. Registrare i materiali Drive in `files`.
-7. Verificare con `GET /api/admin/partner/{id}/full-data`.
-8. Aggiornare `docs/migration`.
+4. Simulare tutto il percorso Ciak: dati/documenti, storia, posizionamento, brand kit, masterclass, videocorso, funnel, lancio/ottimizzazione.
+5. Compilare solo i campi supportati da materiali reali o da deduzione ragionevole.
+6. Lasciare vuoto o segnare come mancante cio che non abbiamo.
+7. Non marcare una fase come pronta/completa solo perche esiste un materiale parziale.
+8. Salvare backup locale pre/post in `storage/migration-backups`.
+9. Aggiornare le collection journey corrette.
+10. Registrare i materiali Drive in `files`.
+11. Verificare con `GET /api/admin/partner/{id}/full-data`.
+12. Aggiornare `docs/migration`.
 
 Prossimo partner operativo: Cosimo Filieri.
-

@@ -2,13 +2,15 @@
 
 Data prima lavorazione: 2026-07-10
 
-Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10.
+Stato migrazione Ciak: materiali importati nel profilo partner il 2026-07-10, ma percorso non completo.
 
 ## Stato operativo proposto
 
-Pronta al lancio, con gap operativi da chiudere prima del contatto partner.
+Migrazione parziale. Non definire pronta al lancio.
 
-Motivo: esistono posizionamento, architettura videocorso, calendario editoriale di lancio, descrizioni videocorso, email funnel e follow-up. Non risultano ancora agganciati nella cartella ordinata i video finali, la masterclass, i bonus, le cover e gli asset immagine richiesti nella call.
+Motivo: esistono alcuni materiali utili, ma il percorso Ciak va simulato fase per fase e molti blocchi restano vuoti o non validati. In particolare mancano o non sono stati verificati dati personali/documenti, storia, posizionamento completo validato, brand kit, masterclass, video finali, bonus, cover e asset immagine.
+
+Regola: inserire in Ciak solo cio che esiste o si puo dedurre con ragionevole sicurezza dai materiali. Lasciare vuoti i campi non provati. Non trasformare un materiale trovato in una fase completata.
 
 ## Drive ordinato
 
@@ -67,6 +69,91 @@ Contesto da call:
 - Email automatizzate funnel Sarah Arensi: https://docs.google.com/document/d/1O1y6Lp0s9bpt7rcvERZvgGqQTs3RJwFp3rxiDXjoCIY
 - SEQUENZA FOLLOW SARAH ARENSI.docx: https://drive.google.com/file/d/1Vocmrp9CmdMCZLcdwAF7ZXy4YXXC-4au
 
+## Percorso Ciak - compilazione fase per fase
+
+### Dati personali / documenti
+
+Trovati:
+
+- contratto;
+- distinta.
+
+Da lasciare vuoto o verificare:
+
+- documento identita fronte/retro;
+- codice fiscale;
+- P.IVA se necessaria;
+- dati fiscali completi;
+- conferma anagrafica aggiornata.
+
+### Storia
+
+Da lasciare vuoto.
+
+Non e stato trovato un documento storia completo nel formato Ciak. La biografia/posizionamento contiene elementi utili, ma non basta per segnare la fase storia come completata.
+
+### Posizionamento
+
+Trovati:
+
+- file di posizionamento;
+- call argomenti;
+- dati corso e promessa.
+
+Da verificare:
+
+- statement finale approvato;
+- target definitivo;
+- promessa finale;
+- differenziante validato;
+- coerenza con il protocollo Ciak.
+
+### Brand kit
+
+Da lasciare vuoto.
+
+Non risultano trovati logo, palette, font, immagini ufficiali, tone of voice approvato o linee guida visuali complete.
+
+### Masterclass
+
+Da lasciare non completata.
+
+Esiste un URL Drive gia presente in Ciak, ma non e stato verificato se sia masterclass definitiva, grezzo, storico o file non piu valido. La cartella `02 - Masterclass` era vuota al controllo.
+
+### Videocorso
+
+Trovati:
+
+- architettura corso da call;
+- descrizioni lezioni;
+- indicazione di 20 lezioni e circa 7 ore;
+- packaging commerciale 299/699/1399.
+
+Da lasciare incompleto:
+
+- video finali non agganciati;
+- dispensa non trovata nella cartella ordinata;
+- eserciziario non trovato;
+- webinar non trovato;
+- bonus non trovati.
+
+### Funnel / lancio
+
+Trovati:
+
+- funnel live storico;
+- calendario editoriale lancio;
+- email funnel;
+- sequenza follow-up.
+
+Da lasciare incompleto:
+
+- checkout;
+- thank-you page;
+- Calendly/coaching;
+- automazioni definitive Systeme.io;
+- conferma che il funnel live sia quello attuale e completo.
+
 ## Materiali mancanti o da verificare
 
 - Link masterclass gratuita o video masterclass definitivo.
@@ -94,7 +181,7 @@ Contiene materiali live/caption e immagini, ma non e stata identificata come car
 
 ## Prossima azione
 
-Recuperare o confermare la cartella reale dei video finali e dei bonus del corso.
+Continuare la simulazione del percorso Ciak lasciando vuoti i blocchi non provati. Prima di contattare Sarah, verificare soprattutto dati personali/documenti, storia, brand kit, masterclass e video finali.
 
 Aggiornamenti gia applicati in Ciak:
 
@@ -107,7 +194,7 @@ Aggiornamenti gia applicati in Ciak:
 Messaggio interno:
 
 ```text
-Sarah e quasi pronta per il riallineamento Ciak/lancio. Abbiamo posizionamento, struttura corso, descrizioni videocorso, calendario editoriale, email funnel e follow-up. Mancano da agganciare video finali, masterclass, bonus, cover, immagini, landing/funnel, checkout e Calendly. Prima di contattarla, verificare dove sono i 20 video gia montati e i bonus citati nella call.
+Sarah e migrata solo in prima passata. Abbiamo importato i materiali disponibili, ma il percorso Ciak non e completo: mancano o non sono verificati dati personali/documenti, storia, brand kit, masterclass, video finali, bonus, cover, immagini, checkout e Calendly. Non definirla pronta al lancio finche queste fasi non sono compilate o marcate come mancanti.
 ```
 
 ## Owner da assegnare
@@ -122,9 +209,9 @@ Sarah e quasi pronta per il riallineamento Ciak/lancio. Abbiamo posizionamento, 
 ```text
 Ciao Sarah, stiamo riallineando il tuo percorso dentro Ciak per ripartire in modo ordinato.
 
-Abbiamo gia recuperato posizionamento, struttura del corso, descrizioni delle lezioni, calendario editoriale, email funnel e follow-up.
+Abbiamo recuperato una parte dei materiali: posizionamento, struttura del corso, descrizioni delle lezioni, calendario editoriale, email funnel e follow-up.
 
-Ora ci serve verificare l'ultima parte: video finali del corso, bonus, cover aggiornate e materiali immagine.
+Ora ci serve verificare cio che manca o non risulta ancora agganciato: dati/documenti, storia, brand kit, masterclass, video finali del corso, bonus, cover aggiornate e materiali immagine.
 
-Appena questi materiali sono confermati, possiamo chiudere la scheda Ciak e preparare il prossimo step operativo sul lancio.
+Appena questi materiali sono confermati, possiamo completare la scheda Ciak e definire il prossimo step operativo.
 ```

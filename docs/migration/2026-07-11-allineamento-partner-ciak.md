@@ -11,6 +11,8 @@ Il lavoro completo ha tre fasi:
 2. Integrare correttamente i materiali nei profili Ciak e segnare cio che manca.
 3. Contattare i partner e istruirli su come proseguire dentro il nuovo protocollo Ciak.
 
+Regola non negoziabile: la migrazione non serve a dichiarare un partner pronto. Serve a simulare il percorso Ciak completo con i materiali reali in nostro possesso. I campi o le fasi senza materiale/prova restano vuoti o marcati come mancanti.
+
 ## Principio guida
 
 Ogni partner va chiuso con una risposta chiara a cinque domande:
@@ -222,7 +224,7 @@ Note:
 
 | Partner | Stato reale | Materiali verificati | Mancanze segnate | Prossima azione | Owner | 30/60/90 | Chiuso |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sarah | Migrata in Ciak - pronta al lancio con gap operativi | [x] | [x] | Verificare video finali, bonus, cover, funnel/checkout e Calendly | Da assegnare | [ ] | [ ] |
+| Sarah | Migrazione parziale in Ciak - percorso non completo | [x] | [x] | Completare/verificare dati personali, storia, brand kit, masterclass, video finali, bonus, cover, funnel/checkout e Calendly | Da assegnare | [ ] | [ ] |
 | Arianna | Standby | [ ] | [ ] | Migrazione sospesa fino a riattivazione |  | [ ] | [ ] |
 | Michele |  | [ ] | [ ] |  |  | [ ] | [ ] |
 | Mariantonietta |  | [ ] | [ ] |  |  | [ ] | [ ] |
