@@ -1605,18 +1605,40 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 # e si ferma a "da_revisionare" per la revisione umana sul testo.
                 # Gated (default OFF) e solo masterclass: il path normale resta intatto.
                 if VIDEO_REVIEW_ENABLED and (video_type == "masterclass" or (video_type == "videocorso" and lesson_id)):
-                    _cut_rev = []
-                    for _i, _s in enumerate(all_segs):
-                        _typ = "filler" if _s.get("word") else ("smart" if _s.get("reason") else "silence")
-                        _cut_rev.append({
-                            "id": _i,
-                            "start": round(float(_s["start"]), 3),
-                            "end": round(float(_s["end"]), 3),
-                            "type": _typ,
-                            "reason": _s.get("reason", ""),
-                            "word": _s.get("word", ""),
-                            "enabled": True,
-                        })
+                    try:
+                        from services.ciak_cut_engine import build_prompt, assemble_cuts
+                        # Normalizza words a secondi se AssemblyAI le dà in ms
+                        _mx = max((float(w.get("end", 0)) for w in (words or [])), default=0)
+                        _words_s = words
+                        if raw_dur and _mx > raw_dur * 3:
+                            _words_s = [{**w, "start": float(w.get("start", 0)) / 1000.0,
+                                         "end": float(w.get("end", 0)) / 1000.0} for w in words]
+                        _llm_raw = None
+                        try:
+                            from services.ciak_llm import LlmChat, UserMessage
+                            _chat = LlmChat(session_id=f"cut-{partner_id}-{lesson_id or 'mc'}",
+                                            system_message="Sei un montatore video professionale.")
+                            _llm_raw = await _chat.send_message(UserMessage(text=build_prompt(_words_s)))
+                        except Exception as _llm_err:
+                            logger.warning(f"[VIDEO-PIPE] Cut LLM fallito, fallback euristiche: {_llm_err}")
+                            _llm_raw = None
+                        _cut_res = assemble_cuts(_llm_raw, _words_s, silence_segs)
+                        _cut_rev = _cut_res["cut_segments"]
+                        logger.info(f"[VIDEO-PIPE] Cut engine: {len(_cut_rev)} tagli (ai_used={_cut_res['ai_used']})")
+                    except Exception as _ce_err:
+                        logger.warning(f"[VIDEO-PIPE] Cut engine errore, uso all_segs: {_ce_err}")
+                        _cut_rev = []
+                        for _i, _s in enumerate(all_segs):
+                            _typ = "filler" if _s.get("word") else ("smart" if _s.get("reason") else "silence")
+                            _cut_rev.append({
+                                "id": _i,
+                                "start": round(float(_s["start"]), 3),
+                                "end": round(float(_s["end"]), 3),
+                                "type": _typ,
+                                "reason": _s.get("reason", ""),
+                                "word": _s.get("word", ""),
+                                "enabled": True,
+                            })
                     _review_now = datetime.now(timezone.utc).isoformat()
                     if video_type == "masterclass":
                         await db.masterclass_factory.update_one(
