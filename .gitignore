@@ -13,6 +13,7 @@ dist/
 
 # Storage and logs
 storage/
+backend/uploads/
 *.log
 logs/
 

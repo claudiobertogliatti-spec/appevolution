@@ -5781,7 +5781,11 @@ async def upload_onboarding_document(
     }
 
 @api_router.delete("/partners/{partner_id}/onboarding-documents/{document_type}")
-async def delete_onboarding_document(partner_id: str, document_type: str):
+async def delete_onboarding_document(
+    partner_id: str,
+    document_type: str,
+    _admin=Depends(verify_admin),
+):
     """Delete an onboarding document"""
     # Find the document
     doc = await db.onboarding_documents.find_one({
@@ -5812,14 +5816,18 @@ async def delete_onboarding_document(partner_id: str, document_type: str):
     return {"success": True, "deleted": document_type}
 
 @api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/verify")
-async def verify_onboarding_document(partner_id: str, document_type: str, admin_email: str = "admin"):
+async def verify_onboarding_document(
+    partner_id: str,
+    document_type: str,
+    admin=Depends(verify_admin),
+):
     """Mark an onboarding document as verified (Admin only)"""
     result = await db.onboarding_documents.update_one(
         {"partner_id": partner_id, "document_type": document_type},
         {"$set": {
             "status": "verified",
             "verified_at": datetime.now(timezone.utc).isoformat(),
-            "verified_by": admin_email
+            "verified_by": getattr(admin, "email", "admin")
         }}
     )
     
@@ -10240,7 +10248,7 @@ async def get_storage_stats():
     return file_storage.get_storage_stats()
 
 @api_router.post("/files/documents/{filename}/verify")
-async def verify_document(filename: str):
+async def verify_document(filename: str, _admin=Depends(verify_admin)):
     """Mark a document as verified (LUCA compliance check)"""
     result = file_storage.verify_document(filename)
     if result["success"]:
@@ -10255,7 +10263,11 @@ async def verify_document(filename: str):
     return result
 
 @api_router.delete("/files/documents/{filename}/reject")
-async def reject_document(filename: str, reason: str = ""):
+async def reject_document(
+    filename: str,
+    reason: str = "",
+    _admin=Depends(verify_admin),
+):
     """Reject and delete a document"""
     result = file_storage.reject_document(filename, reason)
     if result["success"]:
