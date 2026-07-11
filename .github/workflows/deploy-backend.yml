@@ -58,12 +58,18 @@ jobs:
       # entrypoint celery, min-instances=1. `gcloud run deploy --source` su un
       # servizio ESISTENTE preserva env, command e secret/mount non specificati:
       # quindi qui NON passiamo env/command per non sovrascrivere la config del worker.
+      # --no-cpu-throttling: un servizio worker esegue Celery worker+beat in
+      # BACKGROUND (senza traffico HTTP). Col throttling di default la CPU è
+      # allocata solo durante le richieste, quindi i processi Celery restano
+      # affamati (avvio lentissimo, task da minuti, timeout Mongo). Il worker
+      # deve avere CPU sempre allocata.
       - name: Deploy evolution-pro-worker
         run: |
           gcloud run deploy evolution-pro-worker \
             --source ./backend \
             --region europe-west1 \
             --project gen-lang-client-0744698012 \
+            --no-cpu-throttling \
             --quiet
 
       - name: Punta il traffico all'ultima revisione (worker)

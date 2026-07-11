@@ -21,10 +21,28 @@ logger = logging.getLogger(__name__)
 
 # MongoDB connection - create fresh per task to avoid event loop issues
 def get_db():
-    """Get a fresh database connection"""
+    """Get a fresh database connection.
+
+    Ritorna la tupla (client, db). Chiamare SEMPRE come `client, db = get_db()`.
+
+    - Fallback MONGO_URL come in video_pipeline_task/server: se MONGO_URL è
+      assente o punta al cluster Emergent morto (`customer-apps`), usa
+      MONGO_ATLAS_URL. Evita hang su un broker Mongo defunto.
+    - Timeout espliciti: un Mongo non raggiungibile fallisce in fretta invece di
+      rallentare il task (i default a 30s si sommano su ogni query e, con un
+      worker rallentato, degradano i monitor).
+    """
     from motor.motor_asyncio import AsyncIOMotorClient
-    mongo_url = os.environ.get('MONGO_URL')
-    client = AsyncIOMotorClient(mongo_url)
+    mongo_url = os.environ.get('MONGO_URL') or os.environ.get('MONGODB_URL', '')
+    if not mongo_url or 'customer-apps' in mongo_url:
+        mongo_url = os.environ.get('MONGO_ATLAS_URL', mongo_url)
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=15000,
+        connectTimeoutMS=15000,
+        socketTimeoutMS=30000,
+        retryWrites=True,
+    )
     return client, client[os.environ.get('DB_NAME', 'evolution_pro')]
 
 
@@ -110,8 +128,8 @@ def generate_heygen_video(self, job_id: str, script: str, avatar_id: str, voice_
         logger.info(f"[CELERY] Starting video generation for job {job_id}")
         
         async def _generate():
-            db = get_db()
-            
+            client, db = get_db()
+
             # Update job status
             await db.pipeline_jobs.update_one(
                 {"job_id": job_id},
@@ -192,8 +210,8 @@ def poll_heygen_video(self, job_id: str, video_id: str):
         logger.info(f"[CELERY] Polling video {video_id} for job {job_id} (attempt {self.request.retries + 1})")
         
         async def _poll():
-            db = get_db()
-            
+            client, db = get_db()
+
             from heygen_service import HeyGenService
             heygen = HeyGenService()
             
@@ -281,8 +299,8 @@ def upload_to_youtube(self, job_id: str, video_url: str):
             from googleapiclient.discovery import build
             from googleapiclient.http import MediaFileUpload
             
-            db = get_db()
-            
+            client, db = get_db()
+
             # Update status
             await db.pipeline_jobs.update_one(
                 {"job_id": job_id},
@@ -424,7 +442,7 @@ Prodotto da Evolution PRO
 
 async def mark_job_failed(job_id: str, error: str):
     """Mark pipeline job as failed"""
-    db = get_db()
+    client, db = get_db()
     
     await db.pipeline_jobs.update_one(
         {"job_id": job_id},
@@ -449,7 +467,7 @@ async def mark_job_failed(job_id: str, error: str):
 
 async def mark_job_completed(job_id: str, youtube_url: str = None, youtube_failed: bool = False):
     """Mark pipeline job as completed"""
-    db = get_db()
+    client, db = get_db()
     
     status = "completed" if not youtube_failed else "completed_partial"
     
@@ -510,7 +528,7 @@ def check_stuck_pipelines():
     try:
         async def _check():
             client, db = get_db()
-            
+
             # Find jobs stuck for more than 15 minutes
             fifteen_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat()
             
