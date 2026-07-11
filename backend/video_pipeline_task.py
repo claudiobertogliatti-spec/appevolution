@@ -2168,7 +2168,9 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         now_iso = datetime.now(timezone.utc).isoformat()
         if is_lesson:
             # --- Fase 1B: pubblicazione lezione videocorso su GCS servita da Ciak (niente YouTube) ---
-            from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet, partner_file_doc
+            # Il link nei "I Miei File" del partner viene scritto solo all'approvazione
+            # finale admin (/videocorso/approve-video), non qui al montaggio.
+            from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet
             await _set("uploading_gcs")
             les_title = src.get("title") or src.get("titolo") or f"Lezione {lesson_id}"
             _version = int(src.get("output_version") or 0) + 1
@@ -2200,18 +2202,6 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                           "updated_at": now_iso}},
                 upsert=True,
             )
-            # Salva/aggiorna il link permanente nei "I Miei File" del partner
-            try:
-                _fdoc = partner_file_doc(partner_id, lesson_id, f"{name} - {les_title}", _ciak_url, now_iso)
-                _set_fields = {k: v for k, v in _fdoc.items() if k not in ("file_id", "created_at")}
-                await db.files.update_one(
-                    {"partner_id": str(partner_id), "lesson_id": lesson_id, "category": "lezione_video"},
-                    {"$set": _set_fields,
-                     "$setOnInsert": {"file_id": _fdoc["file_id"], "created_at": now_iso}},
-                    upsert=True,
-                )
-            except Exception as _fe:
-                logger.error(f"[VIDEO-APPLY] db.files upsert fallito: {_fe}")
             try:
                 await telegram(f"Lezione montata dopo revisione - {name} - {les_title} - {len(segs)} tagli - {_ciak_url}")
             except Exception:
