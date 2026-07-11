@@ -153,6 +153,8 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
         await handle_checkout_completed(db, data, background_tasks)
     elif event_type == 'payment_intent.succeeded':
         await handle_payment_succeeded(db, data, background_tasks)
+    elif event_type == 'invoice.payment_succeeded':
+        await handle_invoice_payment_succeeded(db, data)
     else:
         logger.info(f"[STRIPE_WEBHOOK] Unhandled event type: {event_type}")
     
@@ -185,7 +187,7 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
         return
 
     try:
-        await _dispatch_checkout_completed(db, session_id, metadata, background_tasks)
+        await _dispatch_checkout_completed(db, session, session_id, metadata, background_tasks)
     except Exception as exc:
         await _mark_stripe_webhook_event(
             db,
@@ -209,11 +211,15 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
     )
 
 
-async def _dispatch_checkout_completed(db, session_id: str, metadata: dict, background_tasks: BackgroundTasks):
+async def _dispatch_checkout_completed(db, session: dict, session_id: str, metadata: dict, background_tasks: BackgroundTasks):
     """Route a paid checkout.session.completed event after the dedup lock is held."""
     user_id = metadata.get('user_id')
     tipo = metadata.get('tipo')
-    
+
+    if tipo == 'evo_s':
+        await process_evo_s_payment(db, session, metadata)
+        return
+
     if tipo == 'ciak_start':
         client_id = metadata.get('client_id')
         if client_id:
@@ -248,6 +254,61 @@ async def _dispatch_checkout_completed(db, session_id: str, metadata: dict, back
         # Servizi extra (avatar_pro, consulenza_marketing, branding_pack) o tipo sconosciuto
         logger.info(f"[STRIPE_WEBHOOK] Routing to servizi extra handler: tipo={tipo}, session={session_id}")
         await process_servizi_extra_payment(db, session_id, background_tasks)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EVO-S — abbonamenti (post 12 mesi). Riconoscimento pagamento verificato server.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def process_evo_s_payment(db, session: dict, metadata: dict) -> None:
+    """
+    checkout.session.completed con tipo=evo_s: registra la subscription come
+    PAGATA (periodo corrente) usando il prezzo dal catalogo, non dal client.
+    """
+    from services.evo_s_billing import record_evo_s_payment
+
+    plan = metadata.get('plan')
+    partner_id = metadata.get('partner_id')
+    subscription_id = session.get('subscription')
+    customer_id = session.get('customer')
+    session_id = session.get('id')
+    if not subscription_id:
+        logger.warning(f"[STRIPE_WEBHOOK] EVO-S senza subscription id (session {session_id})")
+        return
+    result = await record_evo_s_payment(
+        db,
+        plan=plan,
+        partner_id=partner_id,
+        subscription_id=subscription_id,
+        customer_id=customer_id,
+        session_id=session_id,
+    )
+    if result:
+        logger.info(f"[STRIPE_WEBHOOK] EVO-S attivata: sub={subscription_id} plan={plan} partner={partner_id}")
+
+
+async def handle_invoice_payment_succeeded(db, invoice: dict) -> None:
+    """
+    invoice.payment_succeeded: rinnovi mensili EVO-S. Agisce SOLO se esiste già
+    una evo_s_subscriptions per quel subscription id (creata al checkout) → non
+    tocca gli abbonamenti dei servizi extra (gestiti dal loro webhook).
+    """
+    subscription_id = invoice.get('subscription')
+    if not subscription_id:
+        return
+    sub = await db.evo_s_subscriptions.find_one({"subscription_id": subscription_id})
+    if not sub:
+        return  # non è un abbonamento EVO-S
+    from services.evo_s_billing import record_evo_s_payment
+    await record_evo_s_payment(
+        db,
+        plan=sub.get('plan'),
+        partner_id=sub.get('partner_id'),
+        subscription_id=subscription_id,
+        customer_id=invoice.get('customer') or sub.get('customer_id'),
+        invoice_payment_id=invoice.get('id'),
+    )
+    logger.info(f"[STRIPE_WEBHOOK] EVO-S rinnovo registrato: sub={subscription_id}")
 
 
 async def handle_payment_succeeded(db, payment_intent, background_tasks: BackgroundTasks):

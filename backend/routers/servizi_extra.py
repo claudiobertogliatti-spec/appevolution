@@ -471,6 +471,32 @@ SERVIZI_CATALOGO = [
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PERIODICITA FATTURAZIONE — arricchisce il catalogo con `periodicita`
+# (una_tantum | mensile | mensile_variabile) e l'eventuale componente variabile.
+# Fonte unica: SERVIZI_CATALOGO. Il campo `tipo` (usato da Stripe/checkout) resta
+# invariato; `periodicita` serve alla fatturazione admin.
+# ═══════════════════════════════════════════════════════════════════════════════
+_PERIODICITA_OVERRIDE = {
+    # Gestione Campagne: canone mensile fisso + 10% sulle vendite generate.
+    "gestione-campagne": "mensile_variabile",
+}
+_COMPONENTE_VARIABILE = {
+    "gestione-campagne": {
+        "percentuale": 10,
+        "base": "vendite_generate",
+        "descrizione": "10% delle vendite generate nel mese (base da comunicare)",
+    },
+}
+for _s in SERVIZI_CATALOGO:
+    _s["periodicita"] = _PERIODICITA_OVERRIDE.get(
+        _s["id"],
+        "mensile" if _s["tipo"] == "abbonamento_mensile" else "una_tantum",
+    )
+    if _s["id"] in _COMPONENTE_VARIABILE:
+        _s["componente_variabile"] = _COMPONENTE_VARIABILE[_s["id"]]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENDPOINT PUBBLICI (per partner)
 # ═══════════════════════════════════════════════════════════════════════════════
 

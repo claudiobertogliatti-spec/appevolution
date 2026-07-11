@@ -54,12 +54,28 @@ stripe.api_key = os.environ.get("STRIPE_API_KEY") or os.environ.get("STRIPE_SECR
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://www.ciak.io")
 
 # Piani EVO-S — importi in centesimi, ricorrenza mensile.
-EVO_S_PLANS = {
-    "recover": {"name": "Recupero Ottimizza", "amount": 14700},
-    "start": {"name": "Ciak Continuita", "amount": 29700},
-    "grow": {"name": "Ciak Crescita", "amount": 49700},
-    "scale": {"name": "Ciak Espansione", "amount": 79700},
-}
+# Fonte unica dei prezzi/descrizioni: services/ciak_offers.EVO_S_OFFERS (usata
+# anche dalla fatturazione admin). Qui manteniamo le chiavi legacy `name`/`amount`.
+try:
+    from services.ciak_offers import EVO_S_OFFERS as _EVO_S_OFFERS
+
+    EVO_S_PLANS = {
+        offer["plan"]: {
+            "name": offer["nome"],
+            "amount": offer["amount_cents"],
+            "code": offer["code"],
+            "periodicita": offer["periodicita"],
+            "descrizione": offer["descrizione"],
+        }
+        for offer in _EVO_S_OFFERS.values()
+    }
+except Exception:  # pragma: no cover — fallback difensivo
+    EVO_S_PLANS = {
+        "recover": {"name": "Recupero Ottimizza", "amount": 14700},
+        "start": {"name": "Ciak Continuita", "amount": 29700},
+        "grow": {"name": "Ciak Crescita", "amount": 49700},
+        "scale": {"name": "Ciak Espansione", "amount": 79700},
+    }
 
 # Mesi di percorso EVO prima di poter accedere a EVO-S.
 EVO_MONTHS_REQUIRED = 12

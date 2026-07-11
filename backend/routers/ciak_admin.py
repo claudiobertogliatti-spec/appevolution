@@ -2399,12 +2399,18 @@ class InvoiceRiga(BaseModel):
 class InvoiceCreate(BaseModel):
     cliente: InvoiceCliente
     righe: list[InvoiceRiga] = Field(default_factory=list)
-    fonte: str = Field("manuale", description="blueprint_67 | partnership | servizio_extra | manuale")
+    fonte: str = Field("manuale", description="blueprint_67 | ciak_start | partnership | upgrade | evo_s | servizio_extra | manuale")
     source_key: Optional[str] = Field(None, description="Chiave univoca sorgente, per evitare doppie fatture")
     data_emissione: Optional[str] = Field(None, description="ISO date; default oggi")
     note: Optional[str] = None
     valuta: str = "EUR"
     partner_id: Optional[str] = None
+    # Metadati sorgente (per idempotenza/tracciabilità; assenti per fatture manuali)
+    source_type: Optional[str] = None
+    source_payment_id: Optional[str] = None
+    source_subscription_id: Optional[str] = None
+    billing_period: Optional[str] = None
+    service_code: Optional[str] = None
 
 
 async def _invoice_settings_doc() -> dict:
@@ -2430,13 +2436,6 @@ async def _next_invoice_number(anno: int, prefix: str = "") -> str:
     )
     seq = doc.get("seq", 1)
     return f"{prefix}{anno}/{seq:03d}"
-
-
-def _cents_to_eur(c):
-    try:
-        return round(float(c or 0) / 100.0, 2)
-    except (TypeError, ValueError):
-        return 0.0
 
 
 async def _partner_cliente(partner_id: str) -> dict:
@@ -2493,25 +2492,44 @@ async def set_invoice_settings(body: dict, admin=Depends(require_ciak_admin)):
 
 # ─── Sorgenti fatturabili ──────────────────────────────────────────────────
 
-@router.get("/invoices/sources")
-async def invoice_sources(admin=Depends(require_ciak_admin)):
+def _client_cliente(client: dict) -> dict:
+    """Blocco cliente dai dati di un ciak_clients (cliente Blueprint/Start/Partner)."""
+    return {
+        "nome": client.get("name") or client.get("nome") or "",
+        "ragione_sociale": client.get("ragione_sociale") or client.get("nome_azienda") or "",
+        "indirizzo": client.get("indirizzo") or "",
+        "cap": client.get("cap") or "",
+        "citta": client.get("citta") or "",
+        "provincia": client.get("provincia") or "",
+        "paese": client.get("paese") or "Italia",
+        "codice_fiscale": client.get("codice_fiscale") or "",
+        "partita_iva": client.get("partita_iva") or "",
+        "email": client.get("email") or "",
+        "pec": client.get("pec") or "",
+    }
+
+
+async def _build_all_sources(db) -> list[dict]:
     """
-    Vendite fatturabili dalle 3 fonti, con flag `gia_fatturata` (match su
-    source_key delle fatture già emesse e non annullate). Ogni voce include un
-    blocco `cliente` precompilato per la generazione con un click.
+    Costruisce TUTTE le fonti fatturabili (offerte principali + EVO-S + servizi
+    extra) con prezzi/descrizioni CANONICI dal catalogo backend. Condiviso tra
+    GET /invoices/sources e il resolver usato in fase di creazione (anti-tamper).
     """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
+    from services.ciak_offers import MAIN_OFFERS, eur_from_cents
+    from services.ciak_client_accounts import partnership_price_for_client, has_start_entitlement
+    from services.evo_s_billing import build_evo_s_sources
+    from services.ciak_invoice_sources import build_servizio_extra_source
 
     # source_key già fatturati (fatture non annullate)
-    invoiced = set()
+    invoiced: set = set()
     async for inv in db.ciak_invoices.find(
         {"stato": {"$ne": "annullata"}, "source_key": {"$ne": None}},
-        {"source_key": 1, "numero": 1},
+        {"source_key": 1},
     ):
         invoiced.add(inv.get("source_key"))
 
-    sources = []
+    sources: list = []
+    blueprint_offer = MAIN_OFFERS["CIAK-BLUEPRINT"]
 
     # ── Ciak Blueprint €27 — linked ──
     async for d in db.diagnostic_sessions.find({"events.event": "stripe_payment_completed"}):
@@ -2520,12 +2538,12 @@ async def invoice_sources(admin=Depends(require_ciak_admin)):
         meta = ev.get("metadata", {}) or {}
         sid = meta.get("stripe_session_id") or d.get("session_token")
         key = f"blueprint:{sid}"
-        importo = _cents_to_eur(meta.get("amount_total") or 2700)
         sources.append({
-            "source_key": key, "fonte": "blueprint_67",
-            "fonte_label": "Ciak Blueprint €27",
-            "descrizione": "Ciak Blueprint — Analisi strategica",
-            "importo": importo, "data": ev.get("timestamp"),
+            "source_key": key, "source_type": "blueprint", "fonte": "blueprint_67",
+            "fonte_label": "Ciak Blueprint €27", "service_code": blueprint_offer["code"],
+            "descrizione": blueprint_offer["descrizione"], "periodicita": "una_tantum",
+            "importo": eur_from_cents(blueprint_offer["amount_cents"]),
+            "source_payment_id": sid, "data": ev.get("timestamp"),
             "cliente": {"nome": d.get("user_name") or "", "email": d.get("user_email") or "", "paese": "Italia"},
             "gia_fatturata": key in invoiced,
         })
@@ -2535,59 +2553,118 @@ async def invoice_sources(admin=Depends(require_ciak_admin)):
         sid = o.get("stripe_session_id")
         key = f"blueprint:{sid}"
         sources.append({
-            "source_key": key, "fonte": "blueprint_67",
-            "fonte_label": "Ciak Blueprint €27 (orfano)",
-            "descrizione": "Ciak Blueprint — Analisi strategica",
-            "importo": _cents_to_eur(o.get("amount_total") or 2700), "data": o.get("created_at"),
+            "source_key": key, "source_type": "blueprint", "fonte": "blueprint_67",
+            "fonte_label": "Ciak Blueprint €27 (orfano)", "service_code": blueprint_offer["code"],
+            "descrizione": blueprint_offer["descrizione"], "periodicita": "una_tantum",
+            "importo": eur_from_cents(blueprint_offer["amount_cents"]),
+            "source_payment_id": sid, "data": o.get("created_at"),
             "cliente": {"nome": "", "email": o.get("customer_email") or "", "paese": "Italia"},
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Partnership €2.790 ──
+    # ── Ciak Start €499 (ciak_clients che hanno acquistato lo Start) ──
+    start_offer = MAIN_OFFERS["CIAK-START"]
+    async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
+        key = f"start:client:{c.get('id')}"
+        sources.append({
+            "source_key": key, "source_type": "ciak_start", "fonte": "ciak_start",
+            "fonte_label": "Ciak Start", "service_code": start_offer["code"],
+            "descrizione": start_offer["descrizione"], "periodicita": "una_tantum",
+            "importo": eur_from_cents(start_offer["amount_cents"]),
+            "source_payment_id": c.get("last_checkout_session_id"),
+            "data": c.get("start_purchased_at"),
+            "partner_id": c.get("partner_id"),
+            "cliente": _client_cliente(c),
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Partnership €2.790 / Upgrade €2.291 (ciak_clients partner attivi) ──
+    partnership_offer = MAIN_OFFERS["CIAK-PARTNERSHIP"]
+    upgrade_offer = MAIN_OFFERS["CIAK-UPGRADE"]
+    async for c in db.ciak_clients.find({"partnership_attiva": True}):
+        is_upgrade = has_start_entitlement(c)
+        offer = upgrade_offer if is_upgrade else partnership_offer
+        pricing = partnership_price_for_client(c)
+        key = f"partnership:client:{c.get('id')}"
+        sources.append({
+            "source_key": key, "source_type": "partnership",
+            "fonte": "upgrade" if is_upgrade else "partnership",
+            "fonte_label": "Upgrade Partnership" if is_upgrade else "Partnership Ciak",
+            "service_code": offer["code"], "descrizione": offer["descrizione"],
+            "periodicita": "una_tantum",
+            "importo": eur_from_cents(pricing["due_amount_cents"]),
+            "source_payment_id": c.get("last_checkout_session_id"),
+            "data": c.get("partnership_purchased_at"),
+            "partner_id": c.get("partner_id"),
+            "cliente": _client_cliente(c),
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Partnership da proposte firmate (flusso Evolution/proposta) ──
     async for p in db.proposte.find({"pagamento_completato": True}):
         cp = p.get("contract_params", {}) or {}
-        importo = float(cp.get("corrispettivo", 2790.0))
+        importo = float(cp.get("corrispettivo", eur_from_cents(partnership_offer["amount_cents"])))
         key = f"partnership:{p.get('token') or p.get('partner_id')}"
         cliente = await _partner_cliente(p.get("partner_id"))
         if not cliente.get("nome"):
             cliente = {"nome": p.get("prospect_nome") or "", "email": p.get("prospect_email") or "", "paese": "Italia"}
         sources.append({
-            "source_key": key, "fonte": "partnership",
-            "fonte_label": "Partnership Evolution",
-            "descrizione": "Partnership Evolution PRO — Creazione e lancio Accademia Digitale",
-            "importo": importo, "data": p.get("pagamento_completato_at"),
-            "partner_id": p.get("partner_id"),
-            "cliente": cliente,
+            "source_key": key, "source_type": "partnership_proposta", "fonte": "partnership",
+            "fonte_label": "Partnership (proposta)", "service_code": partnership_offer["code"],
+            "descrizione": partnership_offer["descrizione"], "periodicita": "una_tantum",
+            "importo": importo, "source_payment_id": p.get("token"),
+            "data": p.get("pagamento_completato_at"),
+            "partner_id": p.get("partner_id"), "cliente": cliente,
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Servizi extra ──
+    # ── Abbonamenti EVO-S PAGATI (evo_s_subscriptions) ──
+    paid_subs = []
+    async for s in db.evo_s_subscriptions.find({"status": "attivo"}):
+        s.pop("_id", None)
+        # arricchisci cliente da anagrafica partner se assente
+        if not s.get("cliente") and s.get("partner_id"):
+            pc = await _partner_cliente(s.get("partner_id"))
+            if pc:
+                s["cliente"] = pc
+        paid_subs.append(s)
+    sources.extend(build_evo_s_sources(paid_subs, invoiced))
+
+    # ── Servizi extra (partner_servizi attivi) ──
     try:
         from routers.servizi_extra import SERVIZI_CATALOGO
         catalog = {s["id"]: s for s in SERVIZI_CATALOGO}
     except Exception:
         catalog = {}
     async for sv in db.partner_servizi.find({"stato": "attivo"}):
-        sid = sv.get("servizio_id")
-        cat = catalog.get(sid, {})
-        key = f"extra:{sv.get('id')}"
         cliente = await _partner_cliente(sv.get("partner_id"))
-        sources.append({
-            "source_key": key, "fonte": "servizio_extra",
-            "fonte_label": "Servizio extra",
-            "descrizione": cat.get("nome") or f"Servizio extra ({sid})",
-            "importo": float(cat.get("prezzo") or 0), "data": sv.get("data_attivazione") or sv.get("created_at"),
-            "partner_id": sv.get("partner_id"),
-            "cliente": cliente,
-            "gia_fatturata": key in invoiced,
-        })
+        sources.append(build_servizio_extra_source(sv, catalog, cliente, invoiced))
 
     sources.sort(key=lambda s: s.get("data") or "", reverse=True)
-    da_fatturare = [s for s in sources if not s["gia_fatturata"]]
+    return sources
+
+
+@router.get("/invoices/sources")
+async def invoice_sources(admin=Depends(require_ciak_admin)):
+    """
+    Vendite fatturabili da TUTTE le fonti (offerte principali, abbonamenti EVO-S,
+    servizi extra), con flag `gia_fatturata` (match su source_key delle fatture
+    già emesse e non annullate) e blocco `cliente` precompilato. Prezzi e
+    descrizioni sono CANONICI dal catalogo backend.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    sources = await _build_all_sources(db)
+    da_fatturare = [s for s in sources if not s.get("gia_fatturata")]
     return {
         "total": len(sources),
         "da_fatturare": len(da_fatturare),
         "items": sources,
+        "gruppi": {
+            "principali": [s for s in sources if s.get("fonte") in ("blueprint_67", "ciak_start", "partnership", "upgrade")],
+            "evo_s": [s for s in sources if s.get("fonte") == "evo_s"],
+            "servizi_extra": [s for s in sources if s.get("fonte") == "servizio_extra"],
+        },
     }
 
 
@@ -2620,21 +2697,69 @@ async def list_invoices(
 
 # ─── Crea fattura (da sorgente o manuale) ──────────────────────────────────
 
+_INVOICE_INDEXES_READY = False
+
+
+async def _ensure_invoice_indexes() -> None:
+    """
+    Indice univoco parziale anti-doppia-fatturazione. Copre SOLO le fatture con
+    source_key stringa e stato 'emessa' → le fatture manuali (source_key assente)
+    e quelle annullate restano fuori dall'indice (nessun blocco). Per le
+    ricorrenze EVO-S il source_key incorpora già subscription+periodo.
+    """
+    global _INVOICE_INDEXES_READY
+    if _INVOICE_INDEXES_READY or db is None:
+        return
+    try:
+        await db.ciak_invoices.create_index(
+            "source_key",
+            name="uniq_source_key_emessa",
+            unique=True,
+            partialFilterExpression={"source_key": {"$type": "string"}, "stato": "emessa"},
+        )
+        _INVOICE_INDEXES_READY = True
+    except Exception as e:  # best-effort: non blocca la creazione
+        logger.warning(f"[INVOICE] create_index fallito (uso guardia applicativa): {e}")
+
+
+async def _resolve_source_by_key(source_key: str) -> Optional[dict]:
+    """Ritrova la fonte canonica (prezzo/descrizione dal catalogo) per source_key."""
+    if not source_key:
+        return None
+    for s in await _build_all_sources(db):
+        if s.get("source_key") == source_key:
+            return s
+    return None
+
+
 @router.post("/invoices")
 async def create_invoice(body: InvoiceCreate, admin=Depends(require_ciak_admin)):
     """
     Genera una fattura di cortesia: assegna il numero progressivo, renderizza il
     PDF (senza IVA) e lo archivia in ciak_invoices (PDF in base64, durevole).
     Idempotente per source_key: se esiste già una fattura non annullata per
-    quella vendita → 409.
+    quella vendita → 409. Per le vendite con fonte server-side, prezzo e
+    descrizione della prima riga vengono RICALCOLATI dal catalogo (anti-tamper).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     from services.invoice_pdf import render_invoice_pdf, upload_invoice_pdf_to_cloudinary
     import uuid as _uuid
     import base64 as _b64
+    from pymongo.errors import DuplicateKeyError
 
-    # Anti-duplicato
+    await _ensure_invoice_indexes()
+
+    # Metadati sorgente (ricalcolati dal server quando c'è una fonte)
+    source_type = body.source_type
+    source_payment_id = body.source_payment_id
+    source_subscription_id = body.source_subscription_id
+    billing_period = body.billing_period
+    service_code = body.service_code
+    partner_id = body.partner_id
+    fonte = body.fonte
+
+    # Anti-duplicato (guardia applicativa; l'indice univoco fa da rete atomica)
     if body.source_key:
         existing = await db.ciak_invoices.find_one(
             {"source_key": body.source_key, "stato": {"$ne": "annullata"}}
@@ -2642,10 +2767,34 @@ async def create_invoice(body: InvoiceCreate, admin=Depends(require_ciak_admin))
         if existing:
             raise HTTPException(409, f"Vendita già fatturata (n. {existing.get('numero')})")
 
+    # Righe (server-side). Con fonte server-side la PRIMA riga è canonica: prezzo
+    # e descrizione dal catalogo, ignorando eventuali valori manomessi dal client.
+    body_righe = list(body.righe)
+    if body.source_key:
+        src = await _resolve_source_by_key(body.source_key)
+        if src:
+            fonte = src.get("fonte") or fonte
+            source_type = src.get("source_type") or source_type
+            source_payment_id = src.get("source_payment_id") or source_payment_id
+            source_subscription_id = src.get("source_subscription_id") or source_subscription_id
+            billing_period = src.get("billing_period") or billing_period
+            service_code = src.get("service_code") or service_code
+            partner_id = src.get("partner_id") or partner_id
+            canonical = {
+                "descrizione": src["descrizione"],
+                "quantita": 1,
+                "prezzo_unitario": float(src.get("importo") or 0),
+                "importo": round(float(src.get("importo") or 0), 2),
+            }
+            # Sostituisce la prima riga (auto-compilata) con quella canonica;
+            # eventuali righe aggiuntive (es. componente variabile) restano.
+            extra = body_righe[1:] if body_righe else []
+            body_righe = [InvoiceRiga(**canonical)] + extra
+
     # Righe + totale (calcolato lato server)
     righe = []
     totale = 0.0
-    for r in body.righe:
+    for r in body_righe:
         imp = r.importo if r.importo is not None else round(r.quantita * r.prezzo_unitario, 2)
         righe.append({
             "descrizione": r.descrizione,
@@ -2693,9 +2842,14 @@ async def create_invoice(body: InvoiceCreate, admin=Depends(require_ciak_admin))
         "numero": numero,
         "anno": anno,
         "data_emissione": data_em,
-        "fonte": body.fonte,
+        "fonte": fonte,
         "source_key": body.source_key,
-        "partner_id": body.partner_id,
+        "source_type": source_type,
+        "source_payment_id": source_payment_id,
+        "source_subscription_id": source_subscription_id,
+        "billing_period": billing_period,
+        "service_code": service_code,
+        "partner_id": partner_id,
         "cliente": cliente,
         "righe": righe,
         "totale": totale,
@@ -2707,7 +2861,14 @@ async def create_invoice(body: InvoiceCreate, admin=Depends(require_ciak_admin))
         "created_at": now.isoformat(),
         "created_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
     }
-    await db.ciak_invoices.insert_one(doc)
+    try:
+        await db.ciak_invoices.insert_one(doc)
+    except DuplicateKeyError:
+        # Rete atomica: due richieste concorrenti sulla stessa vendita
+        existing = await db.ciak_invoices.find_one(
+            {"source_key": body.source_key, "stato": "emessa"}, {"numero": 1}
+        )
+        raise HTTPException(409, f"Vendita già fatturata (n. {(existing or {}).get('numero')})")
 
     out = dict(doc)
     out.pop("_id", None)
@@ -2759,16 +2920,20 @@ async def cancel_invoice(invoice_id: str, admin=Depends(require_ciak_admin)):
     """Annulla una fattura (resta a registro, ma esce dai totali e libera la sorgente)."""
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    res = await db.ciak_invoices.update_one(
-        {"id": invoice_id},
-        {"$set": {
-            "stato": "annullata",
-            "annullata_at": datetime.now(timezone.utc).isoformat(),
-            "annullata_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
-        }},
-    )
-    if res.matched_count == 0:
+    inv = await db.ciak_invoices.find_one({"id": invoice_id}, {"source_key": 1})
+    if not inv:
         raise HTTPException(404, "Fattura non trovata")
+    update: dict = {"$set": {
+        "stato": "annullata",
+        "annullata_at": datetime.now(timezone.utc).isoformat(),
+        "annullata_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+    }}
+    # Libera il source_key dall'indice univoco parziale così la vendita può
+    # essere rifatturata (preservando l'originale per tracciabilità).
+    if inv.get("source_key"):
+        update["$set"]["source_key_annullata"] = inv["source_key"]
+        update["$unset"] = {"source_key": ""}
+    await db.ciak_invoices.update_one({"id": invoice_id}, update)
     return {"ok": True, "id": invoice_id, "stato": "annullata"}
 
 

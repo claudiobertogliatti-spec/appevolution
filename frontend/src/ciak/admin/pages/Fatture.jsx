@@ -31,7 +31,10 @@ function fmtDate(iso) {
 
 const FONTE_BADGE = {
   blueprint_67: { label: "Blueprint €27", cls: "bg-blue-100 text-blue-700" },
+  ciak_start: { label: "Ciak Start", cls: "bg-cyan-100 text-cyan-700" },
   partnership: { label: "Partnership", cls: "bg-purple-100 text-purple-700" },
+  upgrade: { label: "Upgrade", cls: "bg-fuchsia-100 text-fuchsia-700" },
+  evo_s: { label: "EVO-S", cls: "bg-amber-100 text-amber-700" },
   servizio_extra: { label: "Servizio extra", cls: "bg-emerald-100 text-emerald-700" },
   manuale: { label: "Manuale", cls: "bg-slate-100 text-slate-600" },
 };
@@ -39,6 +42,17 @@ const FONTE_BADGE = {
 function Badge({ fonte }) {
   const b = FONTE_BADGE[fonte] || FONTE_BADGE.manuale;
   return <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${b.cls}`}>{b.label}</span>;
+}
+
+function PeriodicitaChip({ periodicita }) {
+  if (!periodicita) return null;
+  const map = {
+    una_tantum: { label: "una tantum", cls: "bg-slate-100 text-slate-500" },
+    mensile: { label: "mensile", cls: "bg-amber-50 text-amber-700" },
+    mensile_variabile: { label: "mensile + %", cls: "bg-orange-50 text-orange-700" },
+  };
+  const c = map[periodicita] || map.una_tantum;
+  return <span className={`ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${c.cls}`}>{c.label}</span>;
 }
 
 // ─── Modale generazione/modifica fattura ───────────────────────────────────
@@ -95,6 +109,11 @@ function InvoiceModal({ initial, onClose, onSaved }) {
         fonte: initial.fonte || "manuale",
         source_key: initial.source_key || null,
         partner_id: initial.partner_id || null,
+        source_type: initial.source_type || null,
+        source_payment_id: initial.source_payment_id || null,
+        source_subscription_id: initial.source_subscription_id || null,
+        billing_period: initial.billing_period || null,
+        service_code: initial.service_code || null,
         data_emissione: dataEm,
         note: note || null,
       });
@@ -301,6 +320,71 @@ function EmittenteEditor({ onAuthExpired }) {
   );
 }
 
+// ─── Gruppo di sorgenti fatturabili ────────────────────────────────────────
+
+function SourceGroup({ title, items, onGen, showEvoS }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+        <span className="text-xs text-slate-400">{items.length}</span>
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <th className="px-5 py-3 font-semibold">Fonte</th>
+              <th className="px-5 py-3 font-semibold">Cliente</th>
+              <th className="px-5 py-3 font-semibold">Descrizione</th>
+              {showEvoS && <th className="px-5 py-3 font-semibold">Periodo</th>}
+              <th className="px-5 py-3 font-semibold text-right">Importo</th>
+              <th className="px-5 py-3 font-semibold">Data</th>
+              <th className="px-5 py-3 font-semibold text-right">Azione</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((s, i) => (
+              <tr key={s.source_key + i} className="border-b border-gray-100 last:border-0">
+                <td className="px-5 py-3"><Badge fonte={s.fonte} /></td>
+                <td className="px-5 py-3">
+                  <div className="text-slate-800">{s.cliente?.nome || s.cliente?.ragione_sociale || "—"}</div>
+                  <div className="text-xs text-slate-400">{s.cliente?.email}</div>
+                </td>
+                <td className="px-5 py-3 text-slate-600">
+                  {s.descrizione}
+                  <PeriodicitaChip periodicita={s.periodicita} />
+                  {showEvoS && s.piano && (
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      {s.piano}
+                      {s.source_subscription_id ? ` · ${s.source_subscription_id}` : ""}
+                    </div>
+                  )}
+                </td>
+                {showEvoS && <td className="px-5 py-3 text-slate-500">{s.billing_period || "—"}</td>}
+                <td className="px-5 py-3 text-right font-medium">{euro(s.importo)}</td>
+                <td className="px-5 py-3 text-slate-500">{fmtDate(s.data)}</td>
+                <td className="px-5 py-3 text-right">
+                  {s.gia_fatturata ? (
+                    <span className="text-xs text-emerald-600 font-medium">Fatturata ✓</span>
+                  ) : (
+                    <button
+                      onClick={() => onGen(s)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+                    >
+                      Genera fattura
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pagina ────────────────────────────────────────────────────────────────
 
 export function Fatture({ onAuthExpired }) {
@@ -333,14 +417,30 @@ export function Fatture({ onAuthExpired }) {
     loadIssued();
   };
 
-  const genFromSource = (s) =>
+  const genFromSource = (s) => {
+    const righe = [{ descrizione: s.descrizione, quantita: 1, prezzo_unitario: s.importo }];
+    // Gestione Campagne (mensile_variabile): riga extra per la % sulle vendite.
+    if (s.componente_variabile) {
+      righe.push({
+        descrizione: `Componente variabile — ${s.componente_variabile.percentuale}% ${s.componente_variabile.base || "vendite generate"} (indicare importo)`,
+        quantita: 1,
+        prezzo_unitario: 0,
+      });
+    }
     setModal({
       cliente: s.cliente || {},
-      righe: [{ descrizione: s.descrizione, quantita: 1, prezzo_unitario: s.importo }],
+      righe,
       fonte: s.fonte,
       source_key: s.source_key,
       partner_id: s.partner_id || null,
+      source_type: s.source_type || null,
+      source_payment_id: s.source_payment_id || null,
+      source_subscription_id: s.source_subscription_id || null,
+      billing_period: s.billing_period || null,
+      service_code: s.service_code || null,
+      periodicita: s.periodicita || null,
     });
+  };
 
   const downloadPdf = async (inv) => {
     try {
@@ -399,52 +499,21 @@ export function Fatture({ onAuthExpired }) {
       {error && <div className="text-red-600 text-sm mb-4">Errore: {error}</div>}
 
       {tab === "da-fatturare" && (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          {!sources ? (
-            <div className="p-6 text-slate-400">Caricamento…</div>
-          ) : sources.items.length === 0 ? (
-            <div className="p-6 text-slate-400">Nessuna vendita trovata.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-                  <th className="px-5 py-3 font-semibold">Fonte</th>
-                  <th className="px-5 py-3 font-semibold">Cliente</th>
-                  <th className="px-5 py-3 font-semibold">Descrizione</th>
-                  <th className="px-5 py-3 font-semibold text-right">Importo</th>
-                  <th className="px-5 py-3 font-semibold">Data</th>
-                  <th className="px-5 py-3 font-semibold text-right">Azione</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sources.items.map((s, i) => (
-                  <tr key={s.source_key + i} className="border-b border-gray-100 last:border-0">
-                    <td className="px-5 py-3"><Badge fonte={s.fonte} /></td>
-                    <td className="px-5 py-3">
-                      <div className="text-slate-800">{s.cliente?.nome || s.cliente?.ragione_sociale || "—"}</div>
-                      <div className="text-xs text-slate-400">{s.cliente?.email}</div>
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">{s.descrizione}</td>
-                    <td className="px-5 py-3 text-right font-medium">{euro(s.importo)}</td>
-                    <td className="px-5 py-3 text-slate-500">{fmtDate(s.data)}</td>
-                    <td className="px-5 py-3 text-right">
-                      {s.gia_fatturata ? (
-                        <span className="text-xs text-emerald-600 font-medium">Fatturata ✓</span>
-                      ) : (
-                        <button
-                          onClick={() => genFromSource(s)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-400 text-slate-900 hover:bg-yellow-300"
-                        >
-                          Genera fattura
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        !sources ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-400">Caricamento…</div>
+        ) : sources.items.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-400">Nessuna vendita trovata.</div>
+        ) : (
+          <div className="space-y-6">
+            <SourceGroup title="Offerte principali" items={(sources.gruppi?.principali) || sources.items} onGen={genFromSource} />
+            {sources.gruppi?.evo_s?.length > 0 && (
+              <SourceGroup title="Abbonamenti EVO-S" items={sources.gruppi.evo_s} onGen={genFromSource} showEvoS />
+            )}
+            {sources.gruppi?.servizi_extra?.length > 0 && (
+              <SourceGroup title="Servizi extra" items={sources.gruppi.servizi_extra} onGen={genFromSource} />
+            )}
+          </div>
+        )
       )}
 
       {tab === "emesse" && (
