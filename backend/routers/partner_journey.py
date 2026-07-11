@@ -2125,28 +2125,6 @@ async def approve_videocorso_video(
     except Exception as e:
         logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
 
-    # Fase 1B: se la lezione è stata pubblicata su GCS (link servito da Ciak),
-    # salva/aggiorna il link permanente nei "I Miei File" del partner.
-    try:
-        vc2 = await db.partner_videocorso.find_one({"partner_id": partner_id})
-        lesson2 = ((vc2 or {}).get("lessons") or {}).get(lesson_id, {})
-        if lesson2.get("output_gcs_url"):
-            from services.ciak_publish import ciak_lesson_url, partner_file_doc
-            pname = (partner or {}).get("name") or partner_id
-            ltitle = lesson2.get("title") or lesson2.get("titolo") or f"Lezione {lesson_id}"
-            ciak_url = lesson2.get("video_ciak_url") or ciak_lesson_url(partner_id, lesson_id)
-            now2 = datetime.now(timezone.utc).isoformat()
-            fdoc = partner_file_doc(partner_id, lesson_id, f"{pname} - {ltitle}", ciak_url, now2)
-            set_fields = {k: v for k, v in fdoc.items() if k not in ("file_id", "created_at")}
-            await db.files.update_one(
-                {"partner_id": str(partner_id), "lesson_id": lesson_id, "category": "lezione_video"},
-                {"$set": set_fields,
-                 "$setOnInsert": {"file_id": fdoc["file_id"], "created_at": now2}},
-                upsert=True,
-            )
-    except Exception as e:
-        logging.warning(f"[VIDEOCORSO] Salvataggio file partner (approve) non bloccante: {e}")
-
     return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 

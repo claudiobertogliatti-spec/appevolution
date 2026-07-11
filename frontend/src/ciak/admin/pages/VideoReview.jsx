@@ -150,6 +150,9 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
     ? "Masterclass"
     : `Videocorso — Lezione ${video.lesson_id}`;
 
+  // Lezione pubblicata su GCS e servita da Ciak: nessun YouTube, link permanente = embed_url.
+  const ciakLink = !video.youtube_url && video.embed_url ? video.embed_url : null;
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
       {/* Header */}
@@ -213,6 +216,16 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
             style={{ background: C.blueDim, color: C.blue, border: `1px solid #BFDBFE` }}>
             <List className="w-3.5 h-3.5" /> Playlist partner
           </a>
+        )}
+        {ciakLink && (
+          <a href={ciakLink} target="_blank" rel="noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+            style={{ background: "#FEF9E7", color: C.yellowDark, border: `1px solid #FDE68A` }}>
+            <Play className="w-3.5 h-3.5" /> Guarda montato
+          </a>
+        )}
+        {ciakLink && (
+          <CopyButton text={ciakLink} label="Copia link Ciak" />
         )}
         {video.systeme_embed && (
           <CopyButton text={video.systeme_embed} label="Copia embed Systeme" />
