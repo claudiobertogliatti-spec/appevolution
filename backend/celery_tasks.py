@@ -509,7 +509,7 @@ def check_stuck_pipelines():
     """
     try:
         async def _check():
-            db = get_db()
+            client, db = get_db()
             
             # Find jobs stuck for more than 15 minutes
             fifteen_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat()
@@ -560,7 +560,7 @@ def check_stuck_video_pipelines():
     try:
         async def _check():
             from video_pipeline_task import process_partner_video
-            db = get_db()
+            client, db = get_db()
             now = datetime.now(timezone.utc)
             cutoff_hb = (now - timedelta(minutes=HEARTBEAT_DEAD_MINUTES)).isoformat()
             cutoff_old = (now - timedelta(minutes=FALLBACK_STUCK_MINUTES)).isoformat()
