@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 
 import pytest
 
@@ -70,3 +71,21 @@ def test_unknown_app_env_is_rejected(monkeypatch):
     security = _module(monkeypatch, APP_ENV="staging")
     with pytest.raises(RuntimeError, match="APP_ENV"):
         security.get_app_env()
+
+
+def test_ci_runs_secret_scan_and_security_regressions():
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github" / "workflows" / "ci.yml"
+    ).read_text(encoding="utf-8")
+    assert "fetch-depth: 0" in workflow
+    assert "gitleaks/gitleaks-action@" in workflow
+    assert "gitleaks/gitleaks-action@v" not in workflow
+    for test_file in (
+        "tests/test_security_config.py",
+        "tests/test_stripe_webhook_security.py",
+        "tests/test_document_admin_auth.py",
+        "tests/test_partner_journey_auth_unittest.py",
+        "tests/test_no_shadow_routes.py",
+        "tests/test_proposta_security.py",
+    ):
+        assert test_file in workflow

@@ -1,0 +1,10 @@
+title = "Ciak gitleaks configuration"
+
+[allowlist]
+description = "Solo valori esplicitamente fittizi usati dai test"
+regexTarget = "match"
+regexes = [
+  '''ci-test-secret(?:-explicit-only)?''',
+  '''whsec_test_only''',
+  '''whsec_YOUR_WEBHOOK_SECRET_HERE''',
+]
