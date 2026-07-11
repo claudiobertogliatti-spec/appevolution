@@ -2165,41 +2165,34 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
             shutil.copy(raw_path, final_path)
         final_dur = get_video_duration(final_path)
 
-        await _set("uploading_youtube")
-        if is_lesson:
-            les_title = src.get("title") or src.get("titolo") or f"Lezione {lesson_id}"
-            yt_title = f"{name} - {les_title}"[:100]
-        else:
-            orig_name = src.get("video_original_name")
-            if orig_name:
-                yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
-            else:
-                ts = datetime.now().strftime("%m/%Y")
-                yt_title = f"{name} - Masterclass {ts}"
-        youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
-        if not youtube_url:
-            await _set("error_youtube")
-            return
-
-        youtube_id = youtube_url.split("v=")[-1]
-        embed_url = f"https://www.youtube.com/embed/{youtube_id}"
-        systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
         now_iso = datetime.now(timezone.utc).isoformat()
-        _final_fields = {
-            "video_youtube_url": youtube_url,
-            "video_youtube_id": youtube_id,
-            "video_embed_url": embed_url,
-            "video_systeme_embed": systeme_embed,
-            "video_transcript": (transcript or "")[:5000],
-            "video_filler_report": filler_report,
-            "video_raw_duration_s": int(raw_dur),
-            "video_final_duration_s": int(final_dur),
-            "video_time_saved_s": int(raw_dur - final_dur),
-            "video_approved": False,
-            "video_reviewed": True,
-            "pipeline_completed_at": now_iso,
-        }
         if is_lesson:
+            # --- Fase 1B: pubblicazione lezione videocorso su GCS servita da Ciak (niente YouTube) ---
+            from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet, partner_file_doc
+            await _set("uploading_gcs")
+            les_title = src.get("title") or src.get("titolo") or f"Lezione {lesson_id}"
+            _version = int(src.get("output_version") or 0) + 1
+            _subpath = edited_gcs_subpath(partner_id, lesson_id, _version)
+            _public_url = _gcs_upload_public(final_path, _subpath, "video/mp4")
+            if not _public_url:
+                await _set("error_gcs")
+                return
+            _ciak_url = ciak_lesson_url(partner_id, lesson_id)
+            _final_fields = {
+                "output_gcs_url": _public_url,
+                "output_version": _version,
+                "video_embed_url": _ciak_url,
+                "video_ciak_url": _ciak_url,
+                "video_systeme_embed": embed_snippet(_ciak_url),
+                "video_transcript": (transcript or "")[:5000],
+                "video_filler_report": filler_report,
+                "video_raw_duration_s": int(raw_dur),
+                "video_final_duration_s": int(final_dur),
+                "video_time_saved_s": int(raw_dur - final_dur),
+                "video_approved": False,
+                "video_reviewed": True,
+                "pipeline_completed_at": now_iso,
+            }
             await db.partner_videocorso.update_one(
                 {"partner_id": partner_id},
                 {"$set": {**{f"{lk}.{k}": v for k, v in _final_fields.items()},
@@ -2207,7 +2200,52 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                           "updated_at": now_iso}},
                 upsert=True,
             )
+            # Salva/aggiorna il link permanente nei "I Miei File" del partner
+            try:
+                _fdoc = partner_file_doc(partner_id, lesson_id, f"{name} - {les_title}", _ciak_url, now_iso)
+                _set_fields = {k: v for k, v in _fdoc.items() if k not in ("file_id", "created_at")}
+                await db.files.update_one(
+                    {"partner_id": str(partner_id), "lesson_id": lesson_id, "category": "lezione_video"},
+                    {"$set": _set_fields,
+                     "$setOnInsert": {"file_id": _fdoc["file_id"], "created_at": now_iso}},
+                    upsert=True,
+                )
+            except Exception as _fe:
+                logger.error(f"[VIDEO-APPLY] db.files upsert fallito: {_fe}")
+            try:
+                await telegram(f"Lezione montata dopo revisione - {name} - {les_title} - {len(segs)} tagli - {_ciak_url}")
+            except Exception:
+                pass
+            logger.info(f"[VIDEO-APPLY] DONE lesson {name}/{lesson_id} v{_version} - {_ciak_url}")
         else:
+            await _set("uploading_youtube")
+            orig_name = src.get("video_original_name")
+            if orig_name:
+                yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
+            else:
+                ts = datetime.now().strftime("%m/%Y")
+                yt_title = f"{name} - Masterclass {ts}"
+            youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
+            if not youtube_url:
+                await _set("error_youtube")
+                return
+            youtube_id = youtube_url.split("v=")[-1]
+            embed_url = f"https://www.youtube.com/embed/{youtube_id}"
+            systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
+            _final_fields = {
+                "video_youtube_url": youtube_url,
+                "video_youtube_id": youtube_id,
+                "video_embed_url": embed_url,
+                "video_systeme_embed": systeme_embed,
+                "video_transcript": (transcript or "")[:5000],
+                "video_filler_report": filler_report,
+                "video_raw_duration_s": int(raw_dur),
+                "video_final_duration_s": int(final_dur),
+                "video_time_saved_s": int(raw_dur - final_dur),
+                "video_approved": False,
+                "video_reviewed": True,
+                "pipeline_completed_at": now_iso,
+            }
             await db.masterclass_factory.update_one(
                 {"partner_id": partner_id},
                 {"$set": {**_final_fields,
@@ -2215,12 +2253,11 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                           "updated_at": now_iso}},
                 upsert=True,
             )
-        try:
-            m, s = divmod(int(raw_dur - final_dur), 60)
-            await telegram(f"Video montato dopo revisione - {name} - {len(segs)} tagli - {youtube_url}")
-        except Exception:
-            pass
-        logger.info(f"[VIDEO-APPLY] DONE {name} - {youtube_url}")
+            try:
+                await telegram(f"Video montato dopo revisione - {name} - {len(segs)} tagli - {youtube_url}")
+            except Exception:
+                pass
+            logger.info(f"[VIDEO-APPLY] DONE {name} - {youtube_url}")
     except Exception as e:
         logger.error(f"[VIDEO-APPLY] Error: {e}", exc_info=True)
         try:
