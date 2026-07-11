@@ -29,6 +29,7 @@ Thumbs.db
 
 # Local Codex/CAPI worktrees
 .capi-wt/
+.worktrees/
 
 # Secrets
 *.pem
