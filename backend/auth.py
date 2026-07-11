@@ -11,12 +11,13 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr, Field
 import uuid
+from security_config import require_jwt_secret
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "evolution-pro-os-secret-key-2026")
+JWT_SECRET_KEY = require_jwt_secret()
 JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_HOURS = int(os.environ.get("JWT_EXPIRATION_HOURS", "24"))
 

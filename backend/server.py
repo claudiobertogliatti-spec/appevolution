@@ -29,6 +29,7 @@ from acquisition_policy import (
     get_lista_fredda_freeze_message,
     is_lista_fredda_systeme_import_allowed,
 )
+from security_config import build_cors_origins
 try:
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 except ImportError:
@@ -116,30 +117,12 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 # Create the main app - disable redirect_slashes to prevent 307 redirects losing auth headers
 app = FastAPI(title="Evolution PRO OS", version="3.0", redirect_slashes=False)
 
-# CORS Configuration - MUST be before routers
-# Allow specific origins for production + wildcard for development
-ALLOWED_ORIGINS = [
-    "https://evolution-pro.it",
-    "https://www.evolution-pro.it",
-    "https://ciak.io",
-    "https://www.ciak.io",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8001",
-]
-
-# Add any preview URLs from environment
-cors_env = os.environ.get('CORS_ORIGINS', '')
-if cors_env and cors_env != '*':
-    ALLOWED_ORIGINS.extend([o.strip() for o in cors_env.split(',') if o.strip()])
-
-# Add current preview URL dynamically
-react_backend_url = os.environ.get('REACT_APP_BACKEND_URL', '')
-if react_backend_url and react_backend_url not in ALLOWED_ORIGINS:
-    ALLOWED_ORIGINS.append(react_backend_url)
-
-# If CORS_ORIGINS is '*', allow all origins
-final_cors_origins = ['*'] if cors_env == '*' else ALLOWED_ORIGINS
+# CORS Configuration - MUST be before routers. La policy centralizzata rifiuta
+# wildcard e origini HTTP/localhost in produzione.
+final_cors_origins = build_cors_origins(
+    os.environ.get("CORS_ORIGINS", ""),
+    os.environ.get("REACT_APP_BACKEND_URL", ""),
+)
 
 app.add_middleware(
     CORSMiddleware,
