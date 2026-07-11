@@ -1,0 +1,49 @@
+"""Creazione idempotente degli indici Mongo per le query calde.
+
+Chiamato una volta allo startup (server.py, `start_background_services`).
+`create_index` è idempotente: creare un indice già esistente è un no-op.
+
+Gli indici sono NON unique di proposito: velocizzano le lookup senza rischiare
+un fallimento di build su eventuali duplicati nei dati esistenti. Ogni indice è
+protetto da try/except: il fallimento di uno non blocca gli altri né lo startup.
+
+Coprono i campi usati nei `find`/`find_one` più frequenti del backend.
+"""
+import logging
+
+logger = logging.getLogger(__name__)
+
+# (collection, campo) — indici a campo singolo, ascendente.
+_INDEXES = [
+    ("partners", "id"),
+    ("partners", "evolution_id"),
+    ("users", "id"),
+    ("users", "email"),
+    ("clienti_analisi", "id"),
+    ("clienti_analisi", "email"),
+    ("masterclass_factory", "partner_id"),
+    ("masterclass_factory", "video_pipeline_status"),
+    ("partner_videocorso", "partner_id"),
+    ("partner_journey_steps", "partner_id"),
+    ("diagnostic_sessions", "session_token"),
+    ("diagnostic_sessions", "user_email"),
+    ("pipeline_jobs", "job_id"),
+    ("pipeline_jobs", "status"),
+    ("ciak_leads", "email"),
+    ("stripe_events", "event_id"),
+]
+
+
+async def ensure_indexes(db):
+    """Crea (idempotente) gli indici sulle collezioni calde. Ritorna un riepilogo."""
+    created = 0
+    failed = 0
+    for coll, field in _INDEXES:
+        try:
+            await db[coll].create_index(field)
+            created += 1
+        except Exception as e:  # pragma: no cover - difensivo, non deve bloccare lo startup
+            failed += 1
+            logger.warning(f"[INDEXES] {coll}.{field}: {e}")
+    logger.info(f"[INDEXES] ensure_indexes: {created} ok, {failed} falliti su {len(_INDEXES)}")
+    return {"ok": created, "failed": failed, "total": len(_INDEXES)}

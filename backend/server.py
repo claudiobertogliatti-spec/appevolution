@@ -17304,6 +17304,14 @@ async def start_background_services():
         logging.info("MongoDB aggregated views initialized")
     except Exception as e:
         logging.warning(f"Could not initialize MongoDB views: {e}")
+
+    # Ensure Mongo indexes on hot query fields (idempotent, non-blocking)
+    try:
+        from db_indexes import ensure_indexes
+        summary = await ensure_indexes(db)
+        logging.info(f"Mongo indexes ensured: {summary}")
+    except Exception as e:
+        logging.warning(f"Could not ensure Mongo indexes: {e}")
     
     # Start Celery worker (if enabled and Redis available)
     try:
