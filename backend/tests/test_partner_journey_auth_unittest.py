@@ -1,10 +1,14 @@
 import unittest
 
+import pytest
+
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from auth import create_access_token
 from routers import partner_journey
+
+pytestmark = pytest.mark.unit
 
 
 class _FakeUsers:

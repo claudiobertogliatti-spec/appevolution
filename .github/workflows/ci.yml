@@ -10,6 +10,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security:
+    name: Security (secrets)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # v2.3.9, fissata a commit per evitare tag mutabili nella supply chain.
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   backend:
     name: Backend (syntax + lint + unit)
     runs-on: ubuntu-latest
@@ -59,6 +75,7 @@ jobs:
           MONGO_URL: mongodb://localhost:27017
           DB_NAME: ciak_ci
           JWT_SECRET_KEY: ci-test-secret
+          APP_ENV: test
         run: >
           pytest -q
           tests/test_ciak_analisi.py
@@ -67,6 +84,12 @@ jobs:
           tests/test_checkout_trigger.py
           tests/test_ciak_pdf.py
           tests/test_servizi_extra_catalogo.py
+          tests/test_security_config.py
+          tests/test_stripe_webhook_security.py
+          tests/test_document_admin_auth.py
+          tests/test_partner_journey_auth_unittest.py
+          tests/test_no_shadow_routes.py
+          tests/test_proposta_security.py
 
   frontend:
     name: Frontend (build smoke)

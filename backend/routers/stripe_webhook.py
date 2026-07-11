@@ -11,7 +11,6 @@ Flow after €67 payment:
 """
 
 import os
-import json
 import logging
 import stripe
 from datetime import datetime, timezone, timedelta
@@ -27,11 +26,30 @@ from services.ciak_client_accounts import (
     default_start_progress,
     has_start_entitlement,
 )
+from security_config import require_stripe_webhook_secret
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 CLIENT_PARTNER_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
+
+
+def _construct_stripe_event(payload: bytes, signature: str | None):
+    """Verifica la firma Stripe senza alcun fallback a JSON non autenticato."""
+    try:
+        webhook_secret = require_stripe_webhook_secret()
+    except RuntimeError as exc:
+        logger.error("[STRIPE_WEBHOOK] webhook secret non configurato")
+        raise HTTPException(status_code=503, detail="Stripe webhook not configured") from exc
+
+    try:
+        return stripe.Webhook.construct_event(payload, signature, webhook_secret)
+    except ValueError as exc:
+        logger.error("[STRIPE_WEBHOOK] Invalid payload: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
+    except stripe.error.SignatureVerificationError as exc:
+        logger.error("[STRIPE_WEBHOOK] Invalid signature: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid signature") from exc
 
 
 async def _claim_stripe_webhook_event(db, *, event_type: str, reference_id: str, tipo: str | None) -> bool:
@@ -115,7 +133,6 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
     
-    webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
     stripe_key = os.environ.get('STRIPE_API_KEY')
     
     if not stripe_key:
@@ -124,26 +141,7 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
     
     stripe.api_key = stripe_key
     
-    event = None
-    
-    # Verify webhook signature if secret is configured
-    if webhook_secret and webhook_secret != 'whsec_YOUR_WEBHOOK_SECRET_HERE':
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, webhook_secret
-            )
-        except ValueError as e:
-            logger.error(f"[STRIPE_WEBHOOK] Invalid payload: {e}")
-            raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError as e:
-            logger.error(f"[STRIPE_WEBHOOK] Invalid signature: {e}")
-            raise HTTPException(status_code=400, detail="Invalid signature")
-    else:
-        # No webhook secret, parse payload directly (dev mode)
-        try:
-            event = json.loads(payload)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON")
+    event = _construct_stripe_event(payload, sig_header)
     
     event_type = event.get('type') if isinstance(event, dict) else event.type
     data = event.get('data', {}).get('object', {}) if isinstance(event, dict) else event.data.object
