@@ -148,6 +148,7 @@ h2 {
 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.marquee__semantic { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .marquee-section { overflow: hidden; }
 .marquee-section h2 { margin-bottom: 2rem; }
 .marquee { width: 100%; overflow: hidden; padding-block: 1rem; }
@@ -220,7 +221,10 @@ h2 {
   .hero-agent { position: relative; inset: auto; display: block; }
   .hero-agent img { width: 100%; }
   .hero-agent__card { position: relative; width: auto; }
-  .marquee__track { animation: none; }
+  .marquee { overflow: visible; padding: 0; }
+  .marquee__semantic { position: static; display: grid; width: auto; height: auto; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; margin: 0; padding: 0; overflow: visible; clip: auto; white-space: normal; list-style: none; }
+  .marquee__semantic li { display: grid; min-height: 4.5rem; place-items: center; border: 1px solid var(--brand-border); padding: .75rem; color: var(--brand-navy); background: var(--surface-white); font-weight: 700; text-align: center; }
+  .marquee__track { display: none; }
   .direction-sequence, .problem-sequence { min-height: auto; }
   .direction-sequence__stage, .problem-sequence__stage { position: relative; min-height: auto; padding-block: var(--section-space); }
   .direction-sequence__stage { display: flex; flex-direction: column; gap: 2rem; }
@@ -249,7 +253,10 @@ h2 {
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
   }
-  .marquee__track { animation: none; }
+  .marquee { overflow: visible; padding: 0; }
+  .marquee__semantic { position: static; display: grid; width: auto; height: auto; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; margin: 0; padding: 0; overflow: visible; clip: auto; white-space: normal; list-style: none; }
+  .marquee__semantic li { display: grid; min-height: 4.5rem; place-items: center; border: 1px solid var(--brand-border); padding: .75rem; color: var(--brand-navy); background: var(--surface-white); font-weight: 700; text-align: center; }
+  .marquee__track { display: none; }
   .direction-sequence, .problem-sequence { min-height: auto; }
   .direction-sequence__stage, .problem-sequence__stage { position: relative; min-height: auto; padding-block: var(--section-space); }
   .direction-sequence__stage { display: flex; flex-direction: column; gap: 2rem; }

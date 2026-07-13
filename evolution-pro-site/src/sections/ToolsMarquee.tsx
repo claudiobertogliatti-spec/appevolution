@@ -8,12 +8,12 @@ export function ToolsMarquee() {
       <div className="container">
         <p className="eyebrow">Strumenti</p>
         <h2>Gli strumenti giusti, già collegati.</h2>
-        <ul className="sr-only" aria-label="Strumenti collegati">
+        <ul className="marquee__semantic" aria-label="Strumenti collegati">
           {siteContent.tools.map(({ name }) => <li key={name}>{name}</li>)}
         </ul>
       </div>
       <div className="marquee marquee--reverse" tabIndex={0}>
-        <div className="marquee__track" aria-hidden="true" data-testid="tools-visual-track">
+        <div className="marquee__track marquee__track--clone" aria-hidden="true" data-testid="tools-visual-track">
           {repeated.map(({ name }, index) => (
             <span className="marquee__item" key={`${name}-${index}`}>{name}</span>
           ))}

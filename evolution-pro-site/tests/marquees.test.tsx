@@ -17,7 +17,8 @@ describe('marquee accessibili', () => {
       css.indexOf('.hero-agents--static'),
     );
 
-    expect(mobileCss).toMatch(/\.marquee__track\s*\{[^}]*animation:\s*none/);
+    expect(mobileCss).toMatch(/\.marquee__semantic\s*\{[^}]*display:\s*grid/);
+    expect(mobileCss).toMatch(/\.marquee__track\s*\{[^}]*display:\s*none/);
     expect(css).toMatch(/\.marquee:focus-visible\s+\.marquee__item\s*\{[^}]*color:/);
   });
 
@@ -25,9 +26,11 @@ describe('marquee accessibili', () => {
     render(<ToolsMarquee />);
 
     const list = screen.getByRole('list', { name: /strumenti collegati/i });
+    expect(list).toHaveClass('marquee__semantic');
     expect(within(list).getAllByRole('listitem')).toHaveLength(12);
     expect(within(list).getByText('Canva')).toBeInTheDocument();
     expect(within(list).getByText('HeyGen')).toBeInTheDocument();
+    expect(screen.getByTestId('tools-visual-track')).toHaveClass('marquee__track--clone');
     expect(screen.getByTestId('tools-visual-track')).toHaveAttribute('aria-hidden', 'true');
   });
 
@@ -35,7 +38,9 @@ describe('marquee accessibili', () => {
     render(<LogoMarquee />);
 
     const list = screen.getByRole('list', { name: /collaborazioni/i });
+    expect(list).toHaveClass('marquee__semantic');
     expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByTestId('logos-visual-track')).toHaveClass('marquee__track--clone');
     expect(screen.getByTestId('logos-visual-track')).toHaveAttribute('aria-hidden', 'true');
   });
 });
