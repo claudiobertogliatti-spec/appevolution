@@ -46,6 +46,13 @@ describe('demo Ciak', () => {
     );
   });
 
+  it('presenta gli stati come scenari dimostrativi, non come fasi Ciak', () => {
+    render(<CiakPlatformDemo />);
+
+    expect(screen.getByText('Scenario demo 1 di 5')).toBeInTheDocument();
+    expect(screen.queryByText('Fase 1 di 5')).not.toBeInTheDocument();
+  });
+
   it('sostituisce i placeholder nell applicazione completa', () => {
     render(<App />);
     const system = screen.getByRole('region', { name: /un sistema umano, potenziato dall.ai/i });

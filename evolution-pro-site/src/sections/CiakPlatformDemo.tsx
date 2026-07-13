@@ -42,7 +42,7 @@ function PlatformPanel({ state, index }: { state: (typeof demoStates)[number]; i
     <article className="ciak-demo__panel">
       <div className="ciak-demo__panel-bar"><Circle aria-hidden="true" /><span>Ciak</span><span>Area partner</span></div>
       <div className="ciak-demo__panel-body">
-        <aside aria-label="Navigazione dimostrativa"><span>Il tuo percorso</span><span>Fase {index + 1} di 5</span></aside>
+        <aside aria-label="Navigazione dimostrativa"><span>Il tuo percorso</span><span>Scenario demo {index + 1} di 5</span></aside>
         <div className="ciak-demo__workspace">
           <p className="ciak-demo__kicker">{state.kicker}</p>
           <h3>{state.title}</h3>
