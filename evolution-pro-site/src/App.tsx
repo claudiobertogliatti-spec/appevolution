@@ -1,12 +1,12 @@
 import { Header } from './components/Header';
 import { Section } from './components/ui/Section';
 import { HeroAgents } from './sections/HeroAgents';
+import { DirectionSequence } from './sections/DirectionSequence';
+import { LogoMarquee } from './sections/LogoMarquee';
+import { ProblemSequence } from './sections/ProblemSequence';
+import { ToolsMarquee } from './sections/ToolsMarquee';
 
 const sections = [
-  { id: 'collaborazioni', tone: 'white', heading: 'Collaborazioni che fanno la differenza' },
-  { id: 'strumenti', tone: 'light', heading: 'Gli strumenti giusti, già collegati' },
-  { id: 'direzione', tone: 'navy', heading: 'Una direzione chiara per il tuo progetto' },
-  { id: 'problema', tone: 'white', heading: 'Il problema non è la tua competenza' },
   { id: 'claudio', tone: 'light', heading: 'Claudio, al tuo fianco nel percorso' },
   { id: 'metodo-evo', tone: 'ink', heading: 'Il metodo Evolution PRO' },
   { id: 'sistema', tone: 'white', heading: 'Un sistema costruito intorno a te' },
@@ -23,6 +23,10 @@ export default function App() {
       <Header />
       <main id="main-content">
         <HeroAgents />
+        <LogoMarquee />
+        <ToolsMarquee />
+        <DirectionSequence />
+        <ProblemSequence />
         {sections.map(({ id, tone, heading }) => (
           <Section id={id} tone={tone} key={id}>
             <h2>{heading}</h2>

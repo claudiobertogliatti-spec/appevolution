@@ -8,6 +8,11 @@ export interface Tool {
   name: string;
 }
 
+export interface Collaboration {
+  name: string;
+  logo?: string;
+}
+
 export interface Testimonial {
   name: string;
 }
@@ -21,6 +26,7 @@ export interface SiteContent {
   };
   agents: Agent[];
   tools: Tool[];
+  collaborations: Collaboration[];
   testimonials: Testimonial[];
 }
 
@@ -77,6 +83,11 @@ export const siteContent: SiteContent = {
     'Canva',
     'HeyGen',
   ].map((name) => ({ name })),
+  collaborations: [
+    { name: 'Michele Baggio' },
+    { name: 'Mariantonietta Tornello' },
+    { name: 'Sarah Arensi' },
+  ],
   testimonials: [
     { name: 'Michele Baggio' },
     { name: 'Mariantonietta Tornello' },
