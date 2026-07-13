@@ -7,10 +7,10 @@ import { ProblemSequence } from './sections/ProblemSequence';
 import { ToolsMarquee } from './sections/ToolsMarquee';
 import { FounderStory } from './sections/FounderStory';
 import { EvoMethodSequence } from './sections/EvoMethodSequence';
+import { HumanAiSystem } from './sections/HumanAiSystem';
+import { CiakPlatformDemo } from './sections/CiakPlatformDemo';
 
 const sections = [
-  { id: 'sistema', tone: 'white', heading: 'Un sistema costruito intorno a te' },
-  { id: 'ciak', tone: 'navy', heading: 'Ciak: il lavoro prende forma' },
   { id: 'testimonianze', tone: 'light', heading: 'Le esperienze dei nostri partner' },
   { id: 'faq', tone: 'white', heading: 'Domande frequenti' },
   { id: 'inizia', tone: 'ink', heading: 'Inizia dalla masterclass gratuita' },
@@ -29,6 +29,8 @@ export default function App() {
         <ProblemSequence />
         <FounderStory />
         <EvoMethodSequence />
+        <HumanAiSystem />
+        <CiakPlatformDemo />
         {sections.map(({ id, tone, heading }) => (
           <Section id={id} tone={tone} key={id}>
             <h2>{heading}</h2>
