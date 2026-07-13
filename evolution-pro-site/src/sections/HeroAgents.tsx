@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { motion, useMotionValueEvent, useReducedMotion } from 'framer-motion';
 
 import { siteContent } from '../content/siteContent';
-import { useSafeScrollProgress } from '../lib/motion';
+import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
 
 const agentImage = (name: string) => `/agents/${name.toLowerCase()}.jpg`;
 
@@ -10,6 +10,8 @@ export function HeroAgents() {
   const sectionRef = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(sectionRef);
   const reduceMotion = useReducedMotion();
+  const isMobile = useMediaQuery('(max-width: 59.99rem)');
+  const staticMode = Boolean(reduceMotion || isMobile);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useMotionValueEvent(progress, 'change', (value) => {
@@ -21,7 +23,7 @@ export function HeroAgents() {
     <section
       ref={sectionRef}
       id="hero"
-      className={`hero-agents${reduceMotion ? ' hero-agents--static' : ''}`}
+      className={`hero-agents${staticMode ? ' hero-agents--static' : ''}`}
       data-testid="home-section"
     >
       <div className="hero-agents__stage container">
@@ -40,14 +42,14 @@ export function HeroAgents() {
           <div className="hero-agents__shape" aria-hidden="true" />
           <ul className="hero-agents__cluster" aria-label="Il team che ti accompagna">
             {siteContent.agents.map((agent, index) => {
-              const active = reduceMotion || index === activeIndex;
+              const active = staticMode || index === activeIndex;
               return (
                 <motion.li
                   className="hero-agent"
                   data-active={active}
                   key={agent.name}
-                  animate={{ opacity: active ? 1 : 0.42, scale: active ? 1 : 0.78 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.25 }}
+                  animate={staticMode ? undefined : { opacity: active ? 1 : 0.42, scale: active ? 1 : 0.78 }}
+                  transition={staticMode ? undefined : { duration: 0.25 }}
                 >
                   <img src={agentImage(agent.name)} alt={`${agent.name}, ${agent.role}`} />
                   <div className="hero-agent__card">

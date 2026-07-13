@@ -1,16 +1,39 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const motionPreference = vi.hoisted(() => ({ reduced: true }));
 
 vi.mock('framer-motion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('framer-motion')>();
 
   return {
     ...actual,
-    useReducedMotion: () => true,
+    useReducedMotion: () => motionPreference.reduced,
   };
 });
 
 import { HeroAgents } from '../src/sections/HeroAgents';
+
+function mockMobileViewport(matches: boolean) {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+afterEach(() => {
+  motionPreference.reduced = true;
+  mockMobileViewport(false);
+});
 
 describe('hero agenti con movimento ridotto', () => {
   it('rende accessibili la direzione e tutti i sei agenti', () => {
@@ -23,5 +46,23 @@ describe('hero agenti con movimento ridotto', () => {
     for (const name of ['Stefania', 'Valentina', 'Andrea', 'Gaia', 'Marco', 'Matteo']) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
+  });
+
+  it('usa una modalità statica e non attenuata su viewport mobile', () => {
+    motionPreference.reduced = false;
+    mockMobileViewport(true);
+
+    render(<HeroAgents />);
+
+    expect(screen.getByTestId('home-section')).toHaveClass('hero-agents--static');
+    for (const item of screen.getAllByRole('listitem')) {
+      expect(item).toHaveAttribute('data-active', 'true');
+      expect(item).not.toHaveStyle({ opacity: '0.42', transform: 'scale(0.78)' });
+    }
+    expect(screen.getByRole('link', { name: /accedi a ciak/i })).toHaveAttribute(
+      'href',
+      'https://www.ciak.io',
+    );
+    expect(screen.getByAltText(/Stefania, Coordinatrice del tuo percorso/i)).toBeInTheDocument();
   });
 });
