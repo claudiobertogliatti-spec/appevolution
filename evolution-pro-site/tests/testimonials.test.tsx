@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+// @ts-expect-error Il runtime Vitest espone node:fs; il progetto browser non include @types/node.
+import { readFileSync } from 'node:fs';
 import { EnvelopeTestimonials } from '../src/sections/EnvelopeTestimonials';
 import { FaqAccordion } from '../src/sections/FaqAccordion';
 import { FinalCta } from '../src/sections/FinalCta';
@@ -59,6 +61,15 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
     expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
+  });
+
+  it('disattiva le animazioni dei quattro layer con reduced motion', () => {
+    const css = readFileSync('src/styles/globals.css', 'utf8');
+    const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reducedMotion).toMatch(/\.envelope__flap[^}]*animation:\s*none/);
+    expect(reducedMotion).toMatch(/\.envelope__photo[^}]*animation:\s*none/);
+    expect(reducedMotion).toMatch(/\.envelope__message[^}]*animation:\s*none/);
+    expect(reducedMotion).toMatch(/\.envelope__actions[^}]*animation:\s*none/);
   });
 
 });

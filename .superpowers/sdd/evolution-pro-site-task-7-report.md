@@ -31,3 +31,9 @@ Implementate le sezioni testimonianze a busta, FAQ e CTA finale, insieme al moda
 - Backdrop rimosso dalla sequenza focusabile; il focus trap è verificato in entrambe le direzioni.
 - La chiusura del modal mette in pausa il video prima dell'unmount e ripristina il focus al trigger.
 - Test mirato aggiornato: 5/5 passati; suite completa 25/25.
+
+## Verifica finale reduced motion
+
+- Nel blocco `prefers-reduced-motion: reduce`, lembo, foto, messaggio e azioni usano tutti `animation: none` e mantengono lo stato finale visibile.
+- La regola è coperta da un test statico sul CSS locale, senza dipendere dalla trasformazione Vite `?raw`.
+- Conteggi finali: test mirato 6/6; suite completa 26/26; build TypeScript/Vite con exit code 0.

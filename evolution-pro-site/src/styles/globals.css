@@ -389,6 +389,8 @@ h2 {
   .ciak-demo__stage { position: relative; min-height: auto; grid-template-columns: 1fr; padding-block: var(--section-space); }
   .ciak-demo__states { display: grid; min-height: auto; gap: 1rem; }
   .ciak-demo__states > li { position: relative; inset: auto; opacity: 1 !important; }
-  .envelope__flap { transform: rotateX(180deg); }
-  .envelope__photo, .envelope__message, .envelope__actions { opacity: 1; transform: none; }
+  .envelope__flap { animation: none; transform: rotateX(180deg); }
+  .envelope__photo { animation: none; opacity: 1; transform: none; }
+  .envelope__message { animation: none; opacity: 1; transform: none; }
+  .envelope__actions { animation: none; opacity: 1; transform: none; }
 }
