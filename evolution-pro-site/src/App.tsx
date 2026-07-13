@@ -1,6 +1,6 @@
 import { Header } from './components/Header';
-import { HighlightedText } from './components/ui/HighlightedText';
 import { Section } from './components/ui/Section';
+import { HeroAgents } from './sections/HeroAgents';
 
 const sections = [
   { id: 'collaborazioni', tone: 'white', heading: 'Collaborazioni che fanno la differenza' },
@@ -22,12 +22,7 @@ export default function App() {
       <a className="skip-link" href="#main-content">Vai al contenuto</a>
       <Header />
       <main id="main-content">
-        <Section id="hero" tone="light" className="hero-shell">
-          <p className="eyebrow">Evolution PRO</p>
-          <h1>
-            La tua competenza diventa un progetto <HighlightedText>pronto a crescere</HighlightedText>
-          </h1>
-        </Section>
+        <HeroAgents />
         {sections.map(({ id, tone, heading }) => (
           <Section id={id} tone={tone} key={id}>
             <h2>{heading}</h2>
