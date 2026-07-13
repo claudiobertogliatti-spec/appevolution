@@ -46,6 +46,10 @@ describe('hero agenti con movimento ridotto', () => {
     for (const name of ['Stefania', 'Valentina', 'Andrea', 'Gaia', 'Marco', 'Matteo']) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
+    const images = screen.getAllByRole('img');
+    expect(images[0]).toHaveAttribute('fetchpriority', 'high');
+    expect(images[0]).not.toHaveAttribute('loading', 'lazy');
+    for (const image of images.slice(1)) expect(image).toHaveAttribute('loading', 'lazy');
   });
 
   it('usa una modalità statica e non attenuata su viewport mobile', () => {

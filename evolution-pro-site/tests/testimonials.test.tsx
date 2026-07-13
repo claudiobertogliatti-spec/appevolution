@@ -54,13 +54,24 @@ describe('EnvelopeTestimonials', () => {
   it('espone layer distinti per flap, foto, messaggio e azioni', () => {
     render(<EnvelopeTestimonials testimonials={[completeTestimonial]} />);
     const envelope = screen.getByTestId('testimonial-envelope');
+    const timeline = screen.getByTestId('testimonial-timeline');
+    expect(timeline).toHaveClass('envelope-timeline');
+    expect(timeline).toHaveAttribute('data-scroll-linked', 'true');
     expect(envelope).toHaveClass('envelope--staged');
     expect(envelope).toHaveAttribute('data-mobile-state', 'final');
     expect(screen.getByTestId('testimonial-flap')).toHaveClass('envelope__flap');
     expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
     expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
-    expect(envelope).toHaveAttribute('data-scroll-linked', 'true');
+  });
+
+  it('assegna altezza narrativa e sticky solo alla timeline desktop', () => {
+    const css = readFileSync('src/styles/globals.css', 'utf8');
+    expect(css).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*220vh/);
+    expect(css).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*sticky/);
+    const mobileCss = css.slice(css.indexOf('@media (max-width: 59.99rem)'), css.indexOf('.hero-agents--static'));
+    expect(mobileCss).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*auto/);
+    expect(mobileCss).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*relative/);
   });
 
   it('non usa animazioni CSS autonome e mantiene lo stato finale con reduced motion', () => {

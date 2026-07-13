@@ -51,7 +51,13 @@ export function HeroAgents() {
                   animate={staticMode ? undefined : { opacity: active ? 1 : 0.42, scale: active ? 1 : 0.78 }}
                   transition={staticMode ? undefined : { duration: 0.25 }}
                 >
-                  <img src={agentImage(agent.name)} alt={`${agent.name}, ${agent.role}`} />
+                  <img
+                    src={agentImage(agent.name)}
+                    alt={`${agent.name}, ${agent.role}`}
+                    decoding="async"
+                    loading={index === 0 ? undefined : 'lazy'}
+                    fetchPriority={index === 0 ? 'high' : undefined}
+                  />
                   <div className="hero-agent__card">
                     <strong>{agent.name}</strong>
                     <span>{agent.role}</span>

@@ -38,8 +38,9 @@ describe('homepage shell', () => {
 
     expect(screen.getByRole('img', { name: 'Evolution PRO' })).toHaveAttribute(
       'src',
-      '/brand/evolution-pro-logo.png',
+      '/brand/evolution-pro-logo.webp',
     );
+    expect(screen.getByRole('img', { name: 'Evolution PRO' })).toHaveAttribute('decoding', 'async');
     for (const [label, href] of [
       ['Metodo EVO', '#metodo-evo'],
       ['Piattaforma', '#ciak'],

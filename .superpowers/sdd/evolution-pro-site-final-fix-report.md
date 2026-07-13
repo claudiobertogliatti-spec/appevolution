@@ -62,3 +62,11 @@ Metriche principali: FCP 2,6 s; LCP 6,7 s; TBT 610 ms; Max Potential FID 420 ms;
 - Tutte le correzioni comportamentali hanno regression test e ciclo RED/GREEN registrato.
 - Nessun artefatto Lighthouse è incluso; configurazione e lockfile rendono l’audit riproducibile.
 - Gap noto non risolto: Performance Lighthouse 58/100; nessuna dichiarazione di conformità alla soglia 90.
+
+## Addendum — geometria testimonial e quick wins immagini
+
+- Ogni busta pubblicabile è ora contenuta in una timeline desktop da `220vh`; la busta interna usa `position: sticky`. Mobile e `prefers-reduced-motion` ripristinano `min-height: auto` e `position: relative`.
+- Il progress di `useScroll` governa esplicitamente flap, foto, messaggio e azioni. La fixture E2E isolata in `e2e/fixtures/` non modifica contenuti o route della homepage e verifica start, metà, finale e ritorno inverso.
+- Il logo ufficiale PNG da 487.813 byte è stato sostituito con WebP responsive 640/1280 (8.768 e 17.386 byte), con dimensioni intrinseche, `srcSet`, `sizes` e `decoding="async"`.
+- La prima foto agente resta prioritaria (`fetchPriority="high"`); le altre cinque usano `loading="lazy"` e tutte `decoding="async"`.
+- Il debito Performance Lighthouse resta dichiarato: nessun grande refactor del bundle è stato incluso in questo fix mirato.
