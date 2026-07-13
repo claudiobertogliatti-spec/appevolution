@@ -1,5 +1,4 @@
 import { Header } from './components/Header';
-import { Section } from './components/ui/Section';
 import { HeroAgents } from './sections/HeroAgents';
 import { DirectionSequence } from './sections/DirectionSequence';
 import { LogoMarquee } from './sections/LogoMarquee';
@@ -9,12 +8,9 @@ import { FounderStory } from './sections/FounderStory';
 import { EvoMethodSequence } from './sections/EvoMethodSequence';
 import { HumanAiSystem } from './sections/HumanAiSystem';
 import { CiakPlatformDemo } from './sections/CiakPlatformDemo';
-
-const sections = [
-  { id: 'testimonianze', tone: 'light', heading: 'Le esperienze dei nostri partner' },
-  { id: 'faq', tone: 'white', heading: 'Domande frequenti' },
-  { id: 'inizia', tone: 'ink', heading: 'Inizia dalla masterclass gratuita' },
-] as const;
+import { EnvelopeTestimonials } from './sections/EnvelopeTestimonials';
+import { FaqAccordion } from './sections/FaqAccordion';
+import { FinalCta } from './sections/FinalCta';
 
 export default function App() {
   return (
@@ -31,11 +27,9 @@ export default function App() {
         <EvoMethodSequence />
         <HumanAiSystem />
         <CiakPlatformDemo />
-        {sections.map(({ id, tone, heading }) => (
-          <Section id={id} tone={tone} key={id}>
-            <h2>{heading}</h2>
-          </Section>
-        ))}
+        <EnvelopeTestimonials />
+        <FaqAccordion />
+        <FinalCta />
       </main>
     </>
   );
