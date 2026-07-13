@@ -57,7 +57,8 @@ describe('EnvelopeTestimonials', () => {
     const timeline = screen.getByTestId('testimonial-timeline');
     expect(timeline).toHaveClass('envelope-timeline');
     expect(timeline).toHaveAttribute('data-scroll-linked', 'true');
-    expect(envelope).toHaveClass('envelope--staged');
+    expect(envelope).toHaveClass('envelope--cinematic');
+    expect(screen.getByTestId('testimonial-letter')).toBeInTheDocument();
     expect(envelope).toHaveAttribute('data-mobile-state', 'final');
     expect(screen.getByTestId('testimonial-flap')).toHaveClass('envelope__flap');
     expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
@@ -74,13 +75,11 @@ describe('EnvelopeTestimonials', () => {
     expect(mobileCss).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*relative/);
   });
 
-  it('non usa animazioni CSS autonome e mantiene lo stato finale con reduced motion', () => {
+  it('non usa animazioni CSS autonome che competono con lo scroll', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
     expect(css).not.toMatch(/@keyframes\s+envelope-open/);
     expect(css).not.toMatch(/animation:\s*(envelope-open|photo-emerge|message-emerge|actions-emerge)/);
-    const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-    expect(reducedMotion).toMatch(/\.envelope__flap[^}]*transform:\s*rotateX\(180deg\)/);
-    expect(reducedMotion).toMatch(/\.envelope__photo[^}]*opacity:\s*1/);
+    expect(css).not.toContain('@media (prefers-reduced-motion: reduce)');
   });
 
 });

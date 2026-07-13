@@ -28,12 +28,12 @@ describe('marquee accessibili', () => {
     render(<ToolsMarquee />);
 
     const list = screen.getByRole('list', { name: /strumenti collegati/i });
-    expect(list).toHaveClass('marquee__semantic');
+    expect(list).toHaveClass('tools-cinematic__fan');
     expect(within(list).getAllByRole('listitem')).toHaveLength(12);
     expect(within(list).getByText('Canva')).toBeInTheDocument();
     expect(within(list).getByText('HeyGen')).toBeInTheDocument();
-    expect(screen.getByTestId('tools-visual-track')).toHaveClass('marquee__track--clone');
-    expect(screen.getByTestId('tools-visual-track')).toHaveAttribute('aria-hidden', 'true');
+    expect(document.querySelector('#strumenti')).toHaveAttribute('data-scroll-linked', 'true');
+    expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
   });
 
   it('espone ogni collaborazione reale una volta e nasconde il track visuale', () => {

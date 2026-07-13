@@ -36,6 +36,12 @@ afterEach(() => {
 });
 
 describe('hero agenti con movimento ridotto', () => {
+  it('mantiene attive le animazioni desktop anche se il sistema richiede movimento ridotto', () => {
+    render(<HeroAgents />);
+
+    expect(screen.getByTestId('home-section')).not.toHaveClass('hero-agents--static');
+  });
+
   it('rende accessibili la direzione e tutti i sei agenti', () => {
     render(<HeroAgents />);
 

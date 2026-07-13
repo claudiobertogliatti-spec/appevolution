@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion, useTransform } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 
 import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
 
@@ -12,7 +12,7 @@ const phases = [
 export function EvoMethodSequence() {
   const ref = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = Boolean(useReducedMotion() || useMediaQuery('(max-width: 59.99rem)'));
+  const staticMode = useMediaQuery('(max-width: 59.99rem)');
   const active = [
     useTransform(progress, [0, 0.28, 0.42], [1, 1, 0]),
     useTransform(progress, [0.28, 0.5, 0.7], [0, 1, 0]),

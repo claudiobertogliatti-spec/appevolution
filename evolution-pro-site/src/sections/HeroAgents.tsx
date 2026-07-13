@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, useMotionValueEvent, useReducedMotion } from 'framer-motion';
+import { motion, useMotionValueEvent } from 'framer-motion';
 
 import { siteContent } from '../content/siteContent';
 import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
@@ -9,9 +9,8 @@ const agentImage = (name: string) => `/agents/${name.toLowerCase()}.jpg`;
 export function HeroAgents() {
   const sectionRef = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(sectionRef);
-  const reduceMotion = useReducedMotion();
   const isMobile = useMediaQuery('(max-width: 59.99rem)');
-  const staticMode = Boolean(reduceMotion || isMobile);
+  const staticMode = isMobile;
   const [activeIndex, setActiveIndex] = useState(0);
 
   useMotionValueEvent(progress, 'change', (value) => {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, useMotionValueEvent, useReducedMotion } from 'framer-motion';
+import { motion, useMotionValueEvent } from 'framer-motion';
 import { VideoModal } from '../components/ui/VideoModal';
 import { Section } from '../components/ui/Section';
 import { siteContent, type Testimonial } from '../content/siteContent';
@@ -14,7 +14,7 @@ const stage = (value: number, start: number, end: number) => Math.min(1, Math.ma
 function TestimonialEnvelope({ testimonial, onOpen }: { testimonial: Testimonial; onOpen: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = Boolean(useReducedMotion() || useMediaQuery('(max-width: 59.99rem)'));
+  const staticMode = useMediaQuery('(max-width: 59.99rem)');
   const [visualProgress, setVisualProgress] = useState(0);
   useMotionValueEvent(progress, 'change', (value) => {
     setVisualProgress(value);
@@ -24,12 +24,13 @@ function TestimonialEnvelope({ testimonial, onOpen }: { testimonial: Testimonial
   const photo = stage(visualProgress, 0.22, 0.42);
   const message = stage(visualProgress, 0.4, 0.64);
   const actions = stage(visualProgress, 0.66, 0.9);
+  const letter = stage(visualProgress, 0.18, 0.58);
 
   return (
     <div ref={ref} className={`envelope-timeline${staticMode ? ' envelope-timeline--static' : ''}`} data-testid="testimonial-timeline" data-scroll-linked="true">
-    <article className="envelope envelope--staged" data-testid="testimonial-envelope" data-mobile-state="final">
+    <article className="envelope envelope--cinematic" data-testid="testimonial-envelope" data-mobile-state="final">
       <motion.div className="envelope__flap" aria-hidden="true" data-testid="testimonial-flap" style={staticMode ? undefined : { rotateX: flap * 180 }} />
-      <div className="envelope__letter">
+      <motion.div className="envelope__letter" data-testid="testimonial-letter" style={staticMode ? undefined : { y: 150 * (1 - letter), rotate: -4 * (1 - letter) }}>
         {testimonial.photo && <motion.img className="envelope__photo" src={testimonial.photo} alt="" data-testid="testimonial-photo" style={staticMode ? undefined : { opacity: photo, y: 64 * (1 - photo) }} />}
         <motion.div className="envelope__message" data-testid="testimonial-message" style={staticMode ? undefined : { opacity: message, y: 32 * (1 - message) }}>
           <blockquote>“{testimonial.quote}”</blockquote>
@@ -39,7 +40,8 @@ function TestimonialEnvelope({ testimonial, onOpen }: { testimonial: Testimonial
           <div className="envelope__stars" aria-label="5 stelle su 5">★★★★★</div>
           <button className="button button--primary" onClick={onOpen}>Guarda la testimonianza</button>
         </motion.div>
-      </div>
+      </motion.div>
+      <div className="envelope__front" aria-hidden="true" />
     </article>
     </div>
   );

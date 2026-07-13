@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion, useTransform } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 
 import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
 
@@ -14,7 +14,7 @@ const milestones = [
 export function FounderStory() {
   const ref = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = Boolean(useReducedMotion() || useMediaQuery('(max-width: 59.99rem)'));
+  const staticMode = useMediaQuery('(max-width: 59.99rem)');
   const portraitOpacity = useTransform(progress, [0, 0.22], [1, 0]);
   const storyOpacity = useTransform(progress, [0.12, 0.3, 0.46], [0, 1, 0]);
   const numbersOpacity = useTransform(progress, [0.38, 0.55, 0.7], [0, 1, 0]);
