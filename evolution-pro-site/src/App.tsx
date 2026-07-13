@@ -11,6 +11,7 @@ import { CiakPlatformDemo } from './sections/CiakPlatformDemo';
 import { EnvelopeTestimonials } from './sections/EnvelopeTestimonials';
 import { FaqAccordion } from './sections/FaqAccordion';
 import { FinalCta } from './sections/FinalCta';
+import { Footer } from './components/Footer';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
         <FaqAccordion />
         <FinalCta />
       </main>
+      <Footer />
     </>
   );
 }

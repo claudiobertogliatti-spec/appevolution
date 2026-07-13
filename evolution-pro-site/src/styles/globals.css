@@ -36,6 +36,16 @@ body {
   line-height: 1.6;
 }
 
+.site-footer { padding-block: 3rem; color: var(--text-on-dark); background: var(--brand-navy); }
+.site-footer__inner { display: grid; grid-template-columns: 1.1fr 1fr 1.5fr; gap: 2rem; align-items: start; }
+.site-footer p { margin: .5rem 0 0; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.site-footer address { font-style: normal; }
+
+@media (max-width: 47.99rem) {
+  .site-footer__inner { grid-template-columns: 1fr; }
+}
+
 a {
   color: inherit;
 }
