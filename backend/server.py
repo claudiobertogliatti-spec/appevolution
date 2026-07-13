@@ -17213,6 +17213,11 @@ set_ciak_admin_db(db)
 set_ciak_matteo_prompt_store_db(db)
 app.include_router(ciak_admin_router)
 
+# Liquidazioni, fatture passive e bonifici dei collaboratori (solo Claudio/superadmin)
+from routers.collaborator_settlements import router as collaborator_settlements_router, set_db as set_collaborator_settlements_db
+set_collaborator_settlements_db(db)
+app.include_router(collaborator_settlements_router)
+
 from routers.lesson_video import router as lesson_video_router, set_db as set_lesson_video_db
 set_lesson_video_db(db)
 app.include_router(lesson_video_router)

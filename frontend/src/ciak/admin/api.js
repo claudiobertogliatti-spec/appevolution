@@ -127,6 +127,39 @@ export async function apiPost(path, body = {}) {
   return res.json();
 }
 
+/** POST multipart autenticato, senza impostare Content-Type (lo aggiunge il browser col boundary). */
+export async function apiMultipart(path, formData) {
+  const token = getToken();
+  const res = await fetch(`/api/admin/ciak${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail || `Errore ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Scarica un documento admin protetto senza esporre URL pubblici. */
+export async function downloadAdminFile(path, fallbackName) {
+  const res = await adminFetch(`/api/admin/ciak${path}`);
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Fetch autenticato GENERICO per qualunque endpoint backend (path completo
  * `/api/...`). Usato dai componenti del back-office Evolution importati

@@ -91,6 +91,7 @@ class TokenData(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
+    admin_type: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -141,11 +142,12 @@ def decode_token(token: str) -> Optional[TokenData]:
         user_id: str = payload.get("sub")
         email: str = payload.get("email")
         role: str = payload.get("role")
+        admin_type: Optional[str] = payload.get("admin_type")
         
         if user_id is None:
             return None
         
-        return TokenData(user_id=user_id, email=email, role=role)
+        return TokenData(user_id=user_id, email=email, role=role, admin_type=admin_type)
     
     except JWTError as e:
         logger.error(f"JWT decode error: {e}")

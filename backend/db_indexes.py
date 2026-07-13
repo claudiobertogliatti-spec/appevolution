@@ -31,6 +31,10 @@ _INDEXES = [
     ("pipeline_jobs", "status"),
     ("ciak_leads", "email"),
     ("stripe_events", "event_id"),
+    ("collaborator_settlements", "settlement_id"),
+    ("collaborator_settlements", "collaborator_id"),
+    ("collaborator_settlements", "status"),
+    ("agent_tasks", "collaborator_settlement_id"),
 ]
 
 

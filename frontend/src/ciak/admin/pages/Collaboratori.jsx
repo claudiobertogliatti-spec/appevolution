@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, FileText, Plus, UserRound } from "lucide-react";
 import { apiGet, apiPost } from "../api";
+import { CollaboratorSettlements } from "./CollaboratorSettlements";
 
 function minutesLabel(minutes) {
   const n = Number(minutes || 0);
@@ -30,6 +31,7 @@ function Stat({ label, value, icon: Icon }) {
 export function Collaboratori({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState("work");
 
   const load = async () => {
     try {
@@ -89,8 +91,14 @@ export function Collaboratori({ onAuthExpired }) {
   const pending = tasks.filter((t) => t.status === "completed" && !t.approved_at);
   const approved = tasks.filter((t) => t.approved_at && String(t.created_at || "").startsWith(month));
 
+  if (tab === "billing") return <div>
+    <div className="px-8 pt-6"><button onClick={() => setTab("work")} className="mr-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Attivita' e compensi</button><button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Fatture e pagamenti</button></div>
+    <CollaboratorSettlements collaborator={collaborator} onAuthExpired={onAuthExpired} />
+  </div>;
+
   return (
     <div className="p-8 max-w-6xl">
+      <div className="mb-5"><button className="mr-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Attivita' e compensi</button><button onClick={() => setTab("billing")} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Fatture e pagamenti</button></div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
