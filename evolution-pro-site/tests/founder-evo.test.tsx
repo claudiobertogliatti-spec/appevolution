@@ -15,6 +15,14 @@ describe('storia di Claudio', () => {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
   });
+
+  it('espone cinque beat narrativi distinti nell’ordine previsto', () => {
+    const { container } = render(<FounderStory />);
+
+    expect(
+      Array.from(container.querySelectorAll('[data-beat]')).map((beat) => beat.getAttribute('data-beat')),
+    ).toEqual(['introduzione', 'storia', 'numeri', 'ufficio', 'partner-operativo']);
+  });
 });
 
 describe('Metodo EVO', () => {

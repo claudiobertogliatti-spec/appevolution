@@ -27,3 +27,11 @@ Implementazione completata con ciclo TDD RED/GREEN.
 - valori finali sempre presenti come testo nel DOM;
 - animazioni limitate a opacity, senza letture layout durante lo scroll;
 - nessuna modifica a file fuori dallo scope del task.
+
+## Correzione successiva
+
+- separati fotografia in ufficio e conclusione “partner operativo” in due beat distinti;
+- assegnate curve di opacità sequenziali e reversibili ai beat 4 e 5;
+- aggiunto test strutturale che verifica cinque beat e il loro ordine;
+- mantenuto il fallback statico in ordine: fotografia, poi conclusione.
+- verifica correzione: test mirato 3/3, suite 15/15, build completata con exit code 0.
