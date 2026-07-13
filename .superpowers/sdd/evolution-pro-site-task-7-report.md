@@ -23,3 +23,11 @@ Implementate le sezioni testimonianze a busta, FAQ e CTA finale, insieme al moda
 - Test mirato: 4/4 passati.
 - Suite: 24/24 test passati.
 - Build TypeScript/Vite completata con exit code 0.
+
+## Follow-up qualità
+
+- Timeline desktop separata in quattro layer verificabili: lembo, foto, messaggio/nome, stelle/CTA, ciascuno con curva e delay dedicati.
+- Al breakpoint mobile tutti i layer sono nello stato finale e senza animazione, indipendentemente da `prefers-reduced-motion`.
+- Backdrop rimosso dalla sequenza focusabile; il focus trap è verificato in entrambe le direzioni.
+- La chiusura del modal mette in pausa il video prima dell'unmount e ripristina il focus al trigger.
+- Test mirato aggiornato: 5/5 passati; suite completa 25/25.

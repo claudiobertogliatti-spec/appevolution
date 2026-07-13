@@ -24,7 +24,7 @@ describe('EnvelopeTestimonials', () => {
   });
 
   it('apre il video verificato e con Escape chiude ripristinando il focus', () => {
-    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
     render(<EnvelopeTestimonials testimonials={[completeTestimonial]} />);
 
     expect(screen.getByLabelText('5 stelle su 5')).toHaveTextContent('★★★★★');
@@ -35,11 +35,32 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByRole('dialog', { name: /partner verificato/i })).toBeInTheDocument();
     const video = screen.getByTitle('Video testimonianza di Partner verificato');
     expect(video).not.toHaveAttribute('autoplay');
+    const close = screen.getByRole('button', { name: 'Chiudi video' });
+    expect(close).toHaveFocus();
+    expect(document.querySelector('.video-modal__backdrop')).not.toHaveAttribute('tabindex');
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(video).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(close).toHaveFocus();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+    expect(pause).toHaveBeenCalledOnce();
   });
+
+  it('espone layer distinti per flap, foto, messaggio e azioni', () => {
+    render(<EnvelopeTestimonials testimonials={[completeTestimonial]} />);
+    const envelope = screen.getByTestId('testimonial-envelope');
+    expect(envelope).toHaveClass('envelope--staged');
+    expect(envelope).toHaveAttribute('data-mobile-state', 'final');
+    expect(screen.getByTestId('testimonial-flap')).toHaveClass('envelope__flap');
+    expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
+    expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
+    expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
+  });
+
 });
 
 describe('FaqAccordion', () => {

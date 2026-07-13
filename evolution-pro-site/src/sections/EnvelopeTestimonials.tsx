@@ -17,14 +17,18 @@ export function EnvelopeTestimonials({ testimonials = siteContent.testimonials }
       {publishable.length ? (
         <div className="testimonials__grid">
           {publishable.map((testimonial) => (
-            <article className="envelope" key={testimonial.name}>
-              <div className="envelope__flap" aria-hidden="true" />
+            <article className="envelope envelope--staged" key={testimonial.name} data-testid="testimonial-envelope" data-mobile-state="final">
+              <div className="envelope__flap" aria-hidden="true" data-testid="testimonial-flap" />
               <div className="envelope__letter">
-                {testimonial.photo && <img src={testimonial.photo} alt="" />}
-                <blockquote>“{testimonial.quote}”</blockquote>
-                <p><strong>{testimonial.name}</strong></p>
-                <div className="envelope__stars" aria-label="5 stelle su 5">★★★★★</div>
-                <button className="button button--primary" onClick={() => setActive(testimonial)}>Guarda la video testimonianza</button>
+                {testimonial.photo && <img className="envelope__photo" src={testimonial.photo} alt="" data-testid="testimonial-photo" />}
+                <div className="envelope__message" data-testid="testimonial-message">
+                  <blockquote>“{testimonial.quote}”</blockquote>
+                  <p><strong>{testimonial.name}</strong></p>
+                </div>
+                <div className="envelope__actions" data-testid="testimonial-actions">
+                  <div className="envelope__stars" aria-label="5 stelle su 5">★★★★★</div>
+                  <button className="button button--primary" onClick={() => setActive(testimonial)}>Guarda la video testimonianza</button>
+                </div>
               </div>
             </article>
           ))}

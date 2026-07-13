@@ -312,6 +312,10 @@ h2 {
   .ciak-demo__states > li { position: relative; inset: auto; opacity: 1 !important; }
   .ciak-demo__panel-body { grid-template-columns: 1fr; }
   .ciak-demo__panel aside { border-right: 0; border-bottom: 1px solid var(--brand-border); }
+  .envelope__flap { animation: none; transform: rotateX(180deg); }
+  .envelope__photo { animation: none; opacity: 1; transform: none; }
+  .envelope__message { animation: none; opacity: 1; transform: none; }
+  .envelope__actions { animation: none; opacity: 1; transform: none; }
 }
 
 .hero-agents--static { min-height: auto; }
@@ -327,16 +331,20 @@ h2 {
 .testimonials__pending { max-width: 42rem; border-left: .35rem solid var(--brand-yellow); padding: 1rem; background: var(--surface-white); }
 .testimonials__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 2rem; margin-top: 3rem; }
 .envelope { position: relative; min-height: 31rem; overflow: hidden; padding: 4rem 1.25rem 1.25rem; background: var(--brand-navy); }
-.envelope__flap { position: absolute; inset: 0 0 auto; height: 9rem; background: var(--brand-yellow); clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: top; animation: envelope-open .7s ease both; }
-.envelope__letter { position: relative; display: grid; align-content: end; min-height: 25rem; padding: 1.5rem; background: var(--surface-white); animation: letter-emerge .8s .35s ease both; }
-.envelope__letter img { width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; }
+.envelope__flap { position: absolute; inset: 0 0 auto; height: 9rem; background: var(--brand-yellow); clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: top; animation: envelope-open .65s .15s cubic-bezier(.4, 0, .2, 1) both; }
+.envelope__letter { position: relative; display: grid; align-content: end; min-height: 25rem; padding: 1.5rem; background: var(--surface-white); }
+.envelope__photo { width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; animation: photo-emerge .55s .75s cubic-bezier(.2, .8, .2, 1) both; }
+.envelope__message { animation: message-emerge .55s 1.25s cubic-bezier(.2, .8, .2, 1) both; }
+.envelope__actions { animation: actions-emerge .45s 1.75s ease-out both; }
 .envelope__letter blockquote { margin: 1rem 0; font-size: 1.05rem; }
 .envelope__letter p { margin: 0 0 .5rem; }
 .envelope__stars { margin-bottom: 1rem; color: var(--brand-yellow); font-size: 1.35rem; letter-spacing: .12em; }
 @keyframes envelope-open { from { transform: rotateX(0); } to { transform: rotateX(180deg); } }
-@keyframes letter-emerge { from { opacity: 0; transform: translateY(45%); } to { opacity: 1; transform: none; } }
+@keyframes photo-emerge { from { opacity: 0; transform: translateY(4rem) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes message-emerge { from { opacity: 0; transform: translateY(2rem); } to { opacity: 1; transform: none; } }
+@keyframes actions-emerge { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: none; } }
 .video-modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--gutter); }
-.video-modal__backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: #101326dd; cursor: default; }
+.video-modal__backdrop { position: absolute; inset: 0; background: #101326dd; cursor: default; }
 .video-modal__panel { position: relative; z-index: 1; width: min(60rem, 100%); padding: 3rem 1rem 1rem; background: var(--surface-white); }
 .video-modal__panel video { display: block; width: 100%; max-height: 75vh; background: var(--brand-ink); }
 .video-modal__close { position: absolute; top: .25rem; right: .75rem; border: 0; color: var(--brand-ink); background: transparent; font-size: 2rem; }
@@ -382,5 +390,5 @@ h2 {
   .ciak-demo__states { display: grid; min-height: auto; gap: 1rem; }
   .ciak-demo__states > li { position: relative; inset: auto; opacity: 1 !important; }
   .envelope__flap { transform: rotateX(180deg); }
-  .envelope__letter { opacity: 1; transform: none; }
+  .envelope__photo, .envelope__message, .envelope__actions { opacity: 1; transform: none; }
 }

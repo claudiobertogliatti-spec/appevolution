@@ -16,6 +16,7 @@ export function VideoModal({ open, onClose, src, title, poster }: VideoModalProp
     if (!open) return;
     const previousFocus = document.activeElement as HTMLElement | null;
     const dialog = dialogRef.current;
+    const video = videoRef.current;
     dialog?.querySelector<HTMLElement>('.video-modal__close')?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -25,7 +26,7 @@ export function VideoModal({ open, onClose, src, title, poster }: VideoModalProp
         return;
       }
       if (event.key !== 'Tab' || !dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button, video[controls]'));
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('.video-modal__close, video[controls]'));
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -40,7 +41,7 @@ export function VideoModal({ open, onClose, src, title, poster }: VideoModalProp
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      videoRef.current?.pause();
+      video?.pause();
       previousFocus?.focus();
     };
   }, [open, onClose]);
@@ -48,10 +49,10 @@ export function VideoModal({ open, onClose, src, title, poster }: VideoModalProp
   if (!open) return null;
   return (
     <div className="video-modal" role="dialog" aria-modal="true" aria-label={title} ref={dialogRef}>
-      <button className="video-modal__backdrop" aria-label="Chiudi video" onClick={onClose} />
+      <div className="video-modal__backdrop" aria-hidden="true" onClick={onClose} />
       <div className="video-modal__panel">
         <button className="video-modal__close" onClick={onClose} aria-label="Chiudi video">×</button>
-        <video ref={videoRef} controls preload="metadata" poster={poster} title={`Video testimonianza di ${title}`}>
+        <video ref={videoRef} controls tabIndex={0} preload="metadata" poster={poster} title={`Video testimonianza di ${title}`}>
           <source src={src} />
         </video>
       </div>
