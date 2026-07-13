@@ -25,7 +25,7 @@ export function FounderStory() {
     <section ref={ref} id="claudio" data-testid="home-section" className={`founder-story${staticMode ? ' founder-story--static' : ''}`}>
       <div className="founder-story__stage container">
         <motion.div data-beat="introduzione" className="founder-story__portrait" style={staticMode ? undefined : { opacity: portraitOpacity }}>
-          <img src="/founder/claudio-portrait.png" alt="Claudio Bertogliatti, fondatore di Evolution PRO" />
+          <img src="/founder/claudio-portrait-640.webp" srcSet="/founder/claudio-portrait-640.webp 640w, /founder/claudio-portrait-1024.webp 1024w" sizes="(min-width: 60rem) 50vw, 100vw" width="1024" height="1536" loading="lazy" decoding="async" alt="Claudio Bertogliatti, fondatore di Evolution PRO" />
           <div><p className="eyebrow">La mia storia</p><h2>Mi chiamo Claudio Bertogliatti</h2></div>
         </motion.div>
 
@@ -39,7 +39,7 @@ export function FounderStory() {
         </motion.ul>
 
         <motion.div data-beat="ufficio" className="founder-story__office" style={staticMode ? undefined : { opacity: officeOpacity }}>
-          <img src="/founder/claudio-office.png" alt="Claudio Bertogliatti al lavoro nel suo ufficio" />
+          <img src="/founder/claudio-office-640.webp" srcSet="/founder/claudio-office-640.webp 640w, /founder/claudio-office-1280.webp 1280w" sizes="(min-width: 75rem) 1200px, 100vw" width="1536" height="1024" loading="lazy" decoding="async" alt="Claudio Bertogliatti al lavoro nel suo ufficio" />
         </motion.div>
 
         <motion.div data-beat="partner-operativo" className="founder-story__conclusion" style={staticMode ? undefined : { opacity: conclusionOpacity }}>

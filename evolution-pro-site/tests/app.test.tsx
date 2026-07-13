@@ -28,9 +28,26 @@ describe('homepage shell', () => {
   it('propone la masterclass gratuita su Ciak', () => {
     render(<App />);
 
-    expect(
-      screen.getByRole('link', { name: /masterclass gratuita/i }),
-    ).toHaveAttribute('href', 'https://www.ciak.io');
+    for (const link of screen.getAllByRole('link', { name: /masterclass gratuita/i })) {
+      expect(link).toHaveAttribute('href', 'https://www.ciak.io');
+    }
+  });
+
+  it('usa il logo ufficiale e offre le quattro ancore principali', () => {
+    render(<App />);
+
+    expect(screen.getByRole('img', { name: 'Evolution PRO' })).toHaveAttribute(
+      'src',
+      '/brand/evolution-pro-logo.png',
+    );
+    for (const [label, href] of [
+      ['Metodo EVO', '#metodo-evo'],
+      ['Piattaforma', '#ciak'],
+      ['Testimonianze', '#testimonianze'],
+      ['FAQ', '#faq'],
+    ]) {
+      expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href);
+    }
   });
 
   it('mantiene l’ordine narrativo previsto', () => {

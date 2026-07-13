@@ -44,7 +44,7 @@ export const siteContent: SiteContent = {
   brand: 'Evolution PRO',
   platform: 'Ciak',
   primaryCta: {
-    label: 'Accedi a Ciak',
+    label: 'Guarda la masterclass gratuita',
     href: 'https://www.ciak.io',
   },
   agents: [
@@ -108,6 +108,6 @@ export const siteContent: SiteContent = {
     { question: 'Quanto tempo devo dedicare al progetto?', answer: 'Servono confronto, decisioni e registrazione dei contenuti. Il team si occupa della struttura, della tecnologia e dell’esecuzione concordata.' },
     { question: 'Chi possiede il progetto alla fine della collaborazione?', answer: 'Il progetto, i contenuti e gli asset realizzati per il tuo business restano tuoi.' },
     { question: 'Cosa succede se il corso non vende subito?', answer: 'Si leggono i dati, si individua il punto debole e si corregge. Un primo lancio serve anche a raccogliere segnali concreti dal mercato.' },
-    { question: 'Cos’è il Metodo EVO?', answer: 'È il percorso in sette fasi con cui definiamo la direzione, costruiamo l’offerta e la portiamo sul mercato insieme.' },
+    { question: 'Cos’è il Metodo EVO?', answer: 'È il percorso in 12 fasi operative con cui definiamo la direzione, costruiamo l’offerta e la portiamo sul mercato insieme.' },
   ],
 };

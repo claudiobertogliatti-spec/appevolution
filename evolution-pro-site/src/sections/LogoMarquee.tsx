@@ -12,7 +12,7 @@ export function LogoMarquee() {
           {siteContent.collaborations.map(({ name }) => <li key={name}>{name}</li>)}
         </ul>
       </div>
-      <div className="marquee" tabIndex={0}>
+      <div className="marquee">
         <div className="marquee__track marquee__track--clone" aria-hidden="true" data-testid="logos-visual-track">
           {repeated.map(({ name, logo }, index) => (
             <span className="marquee__item" key={`${name}-${index}`}>

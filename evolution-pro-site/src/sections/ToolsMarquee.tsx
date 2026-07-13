@@ -12,7 +12,7 @@ export function ToolsMarquee() {
           {siteContent.tools.map(({ name }) => <li key={name}>{name}</li>)}
         </ul>
       </div>
-      <div className="marquee marquee--reverse" tabIndex={0}>
+      <div className="marquee marquee--reverse">
         <div className="marquee__track marquee__track--clone" aria-hidden="true" data-testid="tools-visual-track">
           {repeated.map(({ name }, index) => (
             <span className="marquee__item" key={`${name}-${index}`}>{name}</span>

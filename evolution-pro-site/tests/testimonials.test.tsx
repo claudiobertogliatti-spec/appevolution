@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-// @ts-expect-error Il runtime Vitest espone node:fs; il progetto browser non include @types/node.
 import { readFileSync } from 'node:fs';
 import { EnvelopeTestimonials } from '../src/sections/EnvelopeTestimonials';
 import { FaqAccordion } from '../src/sections/FaqAccordion';
@@ -30,7 +29,7 @@ describe('EnvelopeTestimonials', () => {
     render(<EnvelopeTestimonials testimonials={[completeTestimonial]} />);
 
     expect(screen.getByLabelText('5 stelle su 5')).toHaveTextContent('★★★★★');
-    const trigger = screen.getByRole('button', { name: /guarda la video testimonianza/i });
+    const trigger = screen.getByRole('button', { name: /guarda la testimonianza/i });
     trigger.focus();
     fireEvent.click(trigger);
 
@@ -61,15 +60,16 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
     expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
+    expect(envelope).toHaveAttribute('data-scroll-linked', 'true');
   });
 
-  it('disattiva le animazioni dei quattro layer con reduced motion', () => {
+  it('non usa animazioni CSS autonome e mantiene lo stato finale con reduced motion', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
+    expect(css).not.toMatch(/@keyframes\s+envelope-open/);
+    expect(css).not.toMatch(/animation:\s*(envelope-open|photo-emerge|message-emerge|actions-emerge)/);
     const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-    expect(reducedMotion).toMatch(/\.envelope__flap[^}]*animation:\s*none/);
-    expect(reducedMotion).toMatch(/\.envelope__photo[^}]*animation:\s*none/);
-    expect(reducedMotion).toMatch(/\.envelope__message[^}]*animation:\s*none/);
-    expect(reducedMotion).toMatch(/\.envelope__actions[^}]*animation:\s*none/);
+    expect(reducedMotion).toMatch(/\.envelope__flap[^}]*transform:\s*rotateX\(180deg\)/);
+    expect(reducedMotion).toMatch(/\.envelope__photo[^}]*opacity:\s*1/);
   });
 
 });

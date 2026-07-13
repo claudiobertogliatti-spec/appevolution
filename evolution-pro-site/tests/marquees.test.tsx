@@ -1,5 +1,4 @@
 import { render, screen, within } from '@testing-library/react';
-// @ts-expect-error Vitest runs in Node; the app intentionally has no Node type dependency.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -9,7 +8,7 @@ import { ProblemSequence } from '../src/sections/ProblemSequence';
 import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 describe('marquee accessibili', () => {
-  it('ferma il movimento su mobile e rende evidente il focus del contenitore', () => {
+  it('ferma il movimento su mobile senza creare focus stop vuoti', () => {
     const { process } = globalThis as unknown as { process: { cwd: () => string } };
     const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
     const mobileCss = css.slice(
@@ -19,7 +18,10 @@ describe('marquee accessibili', () => {
 
     expect(mobileCss).toMatch(/\.marquee__semantic\s*\{[^}]*display:\s*grid/);
     expect(mobileCss).toMatch(/\.marquee__track\s*\{[^}]*display:\s*none/);
-    expect(css).toMatch(/\.marquee:focus-visible\s+\.marquee__item\s*\{[^}]*color:/);
+    render(<><LogoMarquee /><ToolsMarquee /></>);
+    for (const marquee of document.querySelectorAll('.marquee')) {
+      expect(marquee).not.toHaveAttribute('tabindex');
+    }
   });
 
   it('espone i dodici strumenti una volta sola e include Canva e HeyGen', () => {

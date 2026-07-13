@@ -59,7 +59,7 @@ describe('hero agenti con movimento ridotto', () => {
       expect(item).toHaveAttribute('data-active', 'true');
       expect(item).not.toHaveStyle({ opacity: '0.42', transform: 'scale(0.78)' });
     }
-    expect(screen.getByRole('link', { name: /accedi a ciak/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /guarda la masterclass gratuita/i })).toHaveAttribute(
       'href',
       'https://www.ciak.io',
     );

@@ -3,6 +3,7 @@ import { ArrowRight, Check, Circle, Play } from 'lucide-react';
 import { motion, useReducedMotion, useTransform } from 'framer-motion';
 
 import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
+import { siteContent } from '../content/siteContent';
 
 const demoStates = [
   {
@@ -78,7 +79,7 @@ export function CiakPlatformDemo() {
           <p className="eyebrow">La piattaforma operativa</p>
           <h2 id="ciak-title">Ciak: il lavoro prende forma</h2>
           <p>Il tuo percorso operativo continua su Ciak.</p>
-          <a className="button button--primary" href="https://www.ciak.io">Vai su Ciak <ArrowRight aria-hidden="true" /></a>
+          <a className="button button--primary" href={siteContent.primaryCta.href}>{siteContent.primaryCta.label} <ArrowRight aria-hidden="true" /></a>
         </header>
         <ol className="ciak-demo__states" aria-label="Cinque momenti del percorso su Ciak">
           {demoStates.map((state, index) => (
