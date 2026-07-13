@@ -156,6 +156,7 @@ h2 {
 .marquee:hover .marquee__track, .marquee:focus .marquee__track, .marquee:focus-within .marquee__track { animation-play-state: paused; }
 .marquee__item { display: grid; min-width: clamp(12rem, 24vw, 20rem); min-height: 6rem; place-items: center; margin-right: 1rem; border: 1px solid var(--brand-border); color: var(--brand-muted); background: var(--surface-white); font-size: clamp(1rem, 2vw, 1.35rem); font-weight: 700; filter: grayscale(1); transition: color .2s ease, border-color .2s ease, filter .2s ease; }
 .marquee__item:hover { color: var(--brand-navy); border-color: var(--brand-yellow); filter: grayscale(0); }
+.marquee:focus-visible .marquee__item { color: var(--brand-navy); border-color: var(--brand-yellow); filter: grayscale(0); }
 .marquee__item img { max-width: 10rem; max-height: 3rem; }
 @keyframes marquee-scroll { to { transform: translateX(-50%); } }
 
@@ -219,6 +220,7 @@ h2 {
   .hero-agent { position: relative; inset: auto; display: block; }
   .hero-agent img { width: 100%; }
   .hero-agent__card { position: relative; width: auto; }
+  .marquee__track { animation: none; }
   .direction-sequence, .problem-sequence { min-height: auto; }
   .direction-sequence__stage, .problem-sequence__stage { position: relative; min-height: auto; padding-block: var(--section-space); }
   .direction-sequence__stage { display: flex; flex-direction: column; gap: 2rem; }
