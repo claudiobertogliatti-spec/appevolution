@@ -36,6 +36,19 @@ afterEach(() => {
 });
 
 describe('hero agenti con movimento ridotto', () => {
+  it('mantiene la modalità animata nel pannello desktop affiancato', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('59.99rem'), media: query, onchange: null,
+        addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+      })),
+    });
+    motionPreference.reduced = false;
+    render(<HeroAgents />);
+    expect(screen.getByTestId('home-section')).not.toHaveClass('hero-agents--static');
+  });
+
   it('mantiene attive le animazioni desktop anche se il sistema richiede movimento ridotto', () => {
     render(<HeroAgents />);
 

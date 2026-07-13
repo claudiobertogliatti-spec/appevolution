@@ -9,7 +9,7 @@ const agentImage = (name: string) => `/agents/${name.toLowerCase()}.jpg`;
 export function HeroAgents() {
   const sectionRef = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(sectionRef);
-  const isMobile = useMediaQuery('(max-width: 59.99rem)');
+  const isMobile = useMediaQuery('(max-width: 39.99rem)');
   const staticMode = isMobile;
   const [activeIndex, setActiveIndex] = useState(0);
 

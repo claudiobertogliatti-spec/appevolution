@@ -240,7 +240,7 @@ h2 {
 .human-ai__step h3 { margin: 0; color: var(--brand-navy); font-size: 1.2rem; }
 .human-ai__step p { margin: .5rem 0 0; color: var(--brand-muted); }
 
-.ciak-demo { min-height: 500vh; color: var(--text-on-dark); background: var(--brand-navy); }
+.ciak-demo { min-height: 500vh; overflow: clip; color: var(--text-on-dark); background: var(--brand-navy); }
 .ciak-demo__stage { position: sticky; top: 0; display: grid; min-height: 100vh; grid-template-columns: minmax(16rem, .65fr) minmax(30rem, 1.35fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); padding-block: 4rem; }
 .ciak-demo .eyebrow { color: var(--brand-yellow); }
 .ciak-demo__intro > p:not(.eyebrow) { max-width: 30rem; color: var(--brand-border); font-size: 1.1rem; }
@@ -296,7 +296,21 @@ h2 {
   .hero-agents__stage { grid-template-columns: minmax(0, .9fr) minmax(28rem, 1.1fr); }
 }
 
-@media (max-width: 59.99rem) {
+@media (min-width: 40rem) and (max-width: 59.99rem) {
+  .container { width: min(100% - 2rem, var(--container)); }
+  .hero-agents__stage { grid-template-columns: minmax(12rem, .72fr) minmax(0, 1.28fr); gap: 1rem; padding-block: 3rem; }
+  .hero-agents__visual, .hero-agents__cluster { min-height: 25rem; }
+  .hero-agent img { width: min(15rem, 42vw); }
+  .hero-agent__card { width: min(17rem, 42vw); }
+  .evo-method__stage, .ciak-demo__stage { grid-template-columns: minmax(12rem, .62fr) minmax(0, 1.38fr); gap: 1rem; padding-block: 2rem; }
+  .ciak-demo__collage { min-height: 30rem; }
+  .ciak-demo__panel-body { grid-template-columns: 6rem 1fr; }
+  .ciak-demo__workspace { padding: 1.25rem; }
+  .founder-story__numbers { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+  .founder-story__numbers strong { font-size: clamp(1.5rem, 5vw, 2.75rem); }
+}
+
+@media (max-width: 39.99rem) {
   .tools-cinematic { min-height: auto; }
   .tools-cinematic__stage { position: relative; min-height: auto; padding-block: var(--section-space); }
   .tools-cinematic__fan { display: grid; min-height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }

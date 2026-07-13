@@ -14,7 +14,7 @@ const painPoints = [
 export function ProblemSequence() {
   const ref = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 59.99rem)');
+  const staticMode = useMediaQuery('(max-width: 39.99rem)');
   const conclusionOpacity = useTransform(progress, [0.65, 0.9], [0, 1]);
 
   return (

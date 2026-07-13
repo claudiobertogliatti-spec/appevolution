@@ -28,7 +28,7 @@ function ToolCard({ tool, index, total, progress, staticMode }: { tool: Tool; in
 export function ToolsMarquee() {
   const ref = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 59.99rem)');
+  const staticMode = useMediaQuery('(max-width: 39.99rem)');
   useMotionValueEvent(progress, 'change', value => ref.current?.style.setProperty('--scroll-progress', value.toFixed(3)));
   return <section ref={ref} id="strumenti" data-testid="home-section" data-scroll-linked="true" className={`tools-cinematic${staticMode ? ' tools-cinematic--static' : ''}`}>
     <div className="tools-cinematic__stage container">

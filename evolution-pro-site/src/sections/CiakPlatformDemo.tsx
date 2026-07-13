@@ -78,7 +78,7 @@ function CiakScreen({ state, index, progress, staticMode }: { state: (typeof dem
 export function CiakPlatformDemo() {
   const ref = useRef<HTMLElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 59.99rem)');
+  const staticMode = useMediaQuery('(max-width: 39.99rem)');
   useMotionValueEvent(progress, 'change', value => ref.current?.style.setProperty('--scroll-progress', value.toFixed(3)));
 
   return (

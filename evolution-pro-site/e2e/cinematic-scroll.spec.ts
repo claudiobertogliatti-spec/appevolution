@@ -23,3 +23,11 @@ test('mobile mostra le scene complete senza sticky cinematografico', async ({ pa
   await expect(page.locator('[data-testid="tool-card"]')).toHaveCount(12);
   await expect(page.locator('[data-ciak-state]')).toHaveCount(5);
 });
+
+test('un pannello desktop affiancato a 731px mantiene le animazioni', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium');
+  await page.setViewportSize({ width: 731, height: 642 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#strumenti')).not.toHaveClass(/--static/);
+  await expect(page.locator('#ciak')).not.toHaveClass(/--static/);
+});

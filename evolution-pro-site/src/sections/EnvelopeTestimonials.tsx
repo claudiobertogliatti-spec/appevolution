@@ -14,7 +14,7 @@ const stage = (value: number, start: number, end: number) => Math.min(1, Math.ma
 function TestimonialEnvelope({ testimonial, onOpen }: { testimonial: Testimonial; onOpen: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 59.99rem)');
+  const staticMode = useMediaQuery('(max-width: 39.99rem)');
   const [visualProgress, setVisualProgress] = useState(0);
   useMotionValueEvent(progress, 'change', (value) => {
     setVisualProgress(value);
