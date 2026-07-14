@@ -51,7 +51,7 @@ describe('homepage shell', () => {
     }
   });
 
-  it('mostra il banner cookie al primo accesso e apre le informative dal footer', () => {
+  it('mostra il banner cookie e apre le informative legali complete di Evolution PRO', () => {
     localStorage.clear();
     render(<App />);
 
@@ -62,15 +62,19 @@ describe('homepage shell', () => {
 
     fireEvent.click(screen.getByRole('link', { name: 'Privacy' }));
     expect(screen.getByRole('dialog', { name: /informativa privacy/i })).toBeInTheDocument();
+    expect(screen.getByText(/Clienti analisi/)).toBeInTheDocument();
+    expect(screen.getByText(/Principali fornitori/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /chiudi informative/i }));
 
     fireEvent.click(screen.getByRole('link', { name: 'Cookie' }));
     expect(screen.getByRole('dialog', { name: /cookie policy/i })).toBeInTheDocument();
+    expect(screen.getByText(/Cookie tecnici/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /chiudi informative/i }));
 
-    fireEvent.click(screen.getByRole('link', { name: 'Termini e condizioni' }));
-    expect(screen.getByRole('dialog', { name: /termini e condizioni/i })).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByRole('link', { name: 'Condizioni di Vendita' }));
+    expect(screen.getByRole('dialog', { name: /condizioni generali di vendita/i })).toBeInTheDocument();
+    expect(screen.getByText(/Analisi Consulenziale/)).toBeInTheDocument();
+  }, 15_000);
 
   it('mantiene l’ordine narrativo previsto', () => {
     render(<App />);

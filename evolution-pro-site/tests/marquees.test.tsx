@@ -36,7 +36,8 @@ describe('marquee accessibili', () => {
     expect(document.querySelector('#strumenti')).not.toHaveAttribute('data-scroll-linked');
     expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
     expect(screen.getByTestId('tools-laptop')).toBeInTheDocument();
-    expect(screen.getByTestId('tools-laptop-image')).toHaveAttribute('src', '/visuals/tools-laptop.webp');
+    expect(screen.getByTestId('tools-laptop-image')).toHaveAttribute('src', '/visuals/tools-laptop-cutout.webp');
+    expect(screen.getByTestId('tools-laptop-brand')).toHaveAttribute('src', '/brand/evolution-pro-logo-transparent.webp');
     const logos = within(list).getAllByRole('img');
     expect(logos).toHaveLength(12);
     expect(logos.map((logo) => logo.getAttribute('src'))).toEqual(expect.arrayContaining([
@@ -62,7 +63,7 @@ describe('marquee accessibili', () => {
 
 describe('sequenze narrative', () => {
   it('mostra la direzione finale e il rumore iniziale senza duplicare il copy', () => {
-    render(<DirectionSequence />);
+    const { container } = render(<DirectionSequence />);
 
     const backgroundVideo = screen.getByTestId('direction-background-video');
     expect(backgroundVideo).toHaveAttribute('src', '/video/direction-background.mp4');
@@ -70,9 +71,20 @@ describe('sequenze narrative', () => {
     expect(backgroundVideo).toHaveAttribute('loop');
     expect(backgroundVideo).toHaveAttribute('playsinline');
     expect(screen.queryByTestId('direction-video')).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-direction-scene]')).toHaveLength(1);
+    expect(screen.getAllByTestId('direction-noise-icon')).toHaveLength(4);
     for (const item of ['Funnel', 'Ads', 'Automazioni', 'Videocorso']) {
       expect(screen.getByText(item)).toBeInTheDocument();
     }
+  });
+
+  it('usa il nuovo principio e un logo ampio dentro il display', () => {
+    const { process } = globalThis as unknown as { process: { cwd: () => string } };
+    const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
+    render(<><ToolsMarquee /><DirectionSequence /></>);
+
+    expect(screen.getByText('Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.')).toBeInTheDocument();
+    expect(css).toMatch(/\.tools-laptop__brand\s*\{[^}]*width:\s*min\(28rem,\s*60%\)/);
   });
 
   it('presenta i cinque pain point e la chiusura', () => {

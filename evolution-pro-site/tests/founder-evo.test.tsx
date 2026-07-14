@@ -26,11 +26,13 @@ describe('storia di Claudio', () => {
     expect(screen.getAllByRole('listitem', { hidden: true }).map((item) => item.textContent)).toEqual(expect.arrayContaining(['introduzione', 'storia', 'numeri', 'ufficio', 'partner operativo']));
   });
 
-  it('passa dalla presentazione alla storia dopo tre secondi', () => {
+  it('lascia sei secondi per leggere ogni schermata della storia', () => {
     render(<FounderStory />);
 
     expect(screen.getByText('Mi chiamo Claudio Bertogliatti')).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(3100));
+    act(() => vi.advanceTimersByTime(4000));
+    expect(screen.getByText('Mi chiamo Claudio Bertogliatti')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(2100));
     expect(screen.getByText(/Da oltre 20 anni lavoro/)).toBeInTheDocument();
   });
 });

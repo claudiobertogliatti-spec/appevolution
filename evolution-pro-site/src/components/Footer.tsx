@@ -22,7 +22,7 @@ export function Footer({ onOpenPolicy, onOpenCookies }: { onOpenPolicy: (policy:
         <nav aria-label="Informazioni legali">
           <a href="#privacy-policy" onClick={(event) => openPolicy(event, 'privacy')}>Privacy</a>
           <a href="#cookie-policy" onClick={(event) => openPolicy(event, 'cookie')}>Cookie</a>
-          <a href="#termini-condizioni" onClick={(event) => openPolicy(event, 'terms')}>Termini e condizioni</a>
+          <a href="#condizioni-vendita" onClick={(event) => openPolicy(event, 'terms')}>Condizioni di Vendita</a>
           <button onClick={resetCookies}>Gestisci cookie</button>
         </nav>
         <address>

@@ -174,6 +174,7 @@ h2 {
 .tools-laptop { position: relative; width: min(78rem, 100%); margin: clamp(2rem, 5vw, 4rem) auto 0; }
 .tools-laptop__image { position: relative; z-index: 1; display: block; width: 100%; height: auto; }
 .tools-laptop__screen { position: absolute; top: 8.8%; left: 17.2%; z-index: 2; width: 65.5%; height: 64.5%; overflow: hidden; border-radius: .6rem; background: radial-gradient(circle at 50% 110%, #fbc00230, transparent 44%), linear-gradient(145deg, #f7f8fb, #dfe5ee); }
+.tools-laptop__brand { position: absolute; top: 3%; left: 50%; z-index: 15; display: block; width: min(28rem, 60%); height: auto; transform: translateX(-50%); }
 .tools-cinematic__fan { position: relative; width: 100%; height: 100%; margin: 0; padding: 0; list-style: none; perspective: 1200px; }
 .tools-cinematic__card { position: absolute; left: calc(50% - 4.25rem); bottom: 14%; z-index: 2; display: grid; width: 8.5rem; min-height: 8.5rem; place-items: center; align-content: center; gap: .4rem; border: 1px solid #d8d8d8; border-radius: 1.15rem; padding: .75rem; color: var(--brand-ink); background: #fff; box-shadow: 0 1rem 2.5rem #10132626; text-align: center; transform-origin: 50% 120%; }
 .tools-cinematic__logo { display: block; width: 3rem; height: 3rem; object-fit: contain; }
@@ -206,13 +207,14 @@ h2 {
 .direction-sequence__stage { position: relative; z-index: 2; display: grid; min-height: clamp(32rem, 80vh, 48rem); place-items: center; padding-block: var(--section-space); text-align: center; }
 .direction-sequence__noise, .direction-sequence__stop, .direction-sequence__final { position: absolute; }
 .direction-sequence__noise { inset: 18% 8%; }
-.direction-sequence__noise span { position: absolute; font-size: clamp(1.25rem, 4vw, 3.5rem); font-weight: 700; }
+.direction-sequence__noise span { position: absolute; display: inline-flex; align-items: center; gap: clamp(.45rem, 1vw, .9rem); font-size: clamp(1.25rem, 4vw, 3.5rem); font-weight: 700; }
+.direction-sequence__noise span svg { width: clamp(2.5rem, 5vw, 4.75rem); height: clamp(2.5rem, 5vw, 4.75rem); flex: 0 0 auto; color: var(--brand-yellow); filter: drop-shadow(0 .35rem .85rem #10132666); }
 .direction-sequence__noise span:nth-child(1) { top: 5%; left: 5%; transform: rotate(-8deg); }
 .direction-sequence__noise span:nth-child(2) { top: 18%; right: 4%; transform: rotate(7deg); }
 .direction-sequence__noise span:nth-child(3) { bottom: 18%; left: 12%; transform: rotate(5deg); }
 .direction-sequence__noise span:nth-child(4) { right: 12%; bottom: 3%; transform: rotate(-6deg); }
 .direction-sequence__stop { display: grid; width: min(52rem, calc(100% - 2rem)); gap: 1.5rem; place-items: center; }
-.direction-sequence__stop p { max-width: 28ch; margin: 0; font-size: clamp(1.5rem, 4vw, 3rem); font-weight: 600; }
+.direction-sequence__stop p { max-width: 34ch; margin: 0; font-size: clamp(1.35rem, 3.2vw, 2.5rem); font-weight: 600; line-height: 1.16; }
 .direction-sequence__final { max-width: 18ch; }
 .direction-sequence mark { color: var(--brand-ink); background: var(--brand-yellow); }
 .direction-sequence__premise { max-width: 35rem; color: var(--brand-border); }
@@ -342,6 +344,8 @@ h2 {
   .tools-cinematic__stage { position: relative; min-height: auto; padding-block: var(--section-space); }
   .tools-laptop { width: calc(100% + 1rem); margin-left: -.5rem; }
   .tools-laptop__screen { border-radius: .25rem; }
+  .tools-laptop__brand { top: 3%; width: 64%; }
+  .direction-sequence__noise span svg { width: 2.35rem; height: 2.35rem; }
   .tools-cinematic__card { left: calc(50% - 3.5rem); bottom: 12%; width: 7rem; min-height: 7rem; padding: .5rem; }
   .tools-cinematic__logo { width: 2.35rem; height: 2.35rem; }
   .tools-cinematic__card small { display: none; }
@@ -425,6 +429,11 @@ h2 {
 .legal-modal__panel h2 { font-size: clamp(2rem, 5vw, 3.5rem); }
 .legal-modal__content { margin-top: 2rem; }
 .legal-modal__content h3 { margin: 1.5rem 0 .25rem; color: var(--brand-navy); }
+.legal-modal__content ul { display: grid; gap: .55rem; padding-left: 1.25rem; }
+.legal-modal__content table { width: 100%; margin-top: .75rem; border-collapse: collapse; font-size: .9rem; }
+.legal-modal__content th, .legal-modal__content td { border: 1px solid var(--brand-border); padding: .65rem; text-align: left; vertical-align: top; }
+.legal-modal__content th { color: var(--brand-navy); background: var(--surface-light); }
+.legal-modal__date { color: var(--brand-muted); font-size: .9rem; }
 .legal-modal__close { position: absolute; top: .75rem; right: 1rem; border: 0; color: var(--brand-ink); background: transparent; font-size: 2rem; cursor: pointer; }
 
 @media (min-width: 48rem) {

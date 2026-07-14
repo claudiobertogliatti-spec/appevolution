@@ -11,7 +11,7 @@ const milestones = [
 ];
 
 export function FounderStory() {
-  const { index: activeBeat, reduced, interactionProps } = useAutoplaySequence(5, 3000);
+  const { index: activeBeat, reduced, interactionProps } = useAutoplaySequence(5, 6000);
   const scene = { initial: reduced ? false : { opacity: 0, scale: .96, y: 18 }, animate: { opacity: 1, scale: 1, y: 0 }, transition: { duration: .65, ease: 'easeOut' as const } };
 
   return (

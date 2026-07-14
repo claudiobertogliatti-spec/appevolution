@@ -30,8 +30,9 @@ export function ToolsMarquee() {
     <div className="tools-cinematic__stage container">
       <header><p className="eyebrow">Strumenti</p><h2>Gli strumenti giusti, già collegati.</h2><p>Non una collezione di software. Un ecosistema che lavora nella stessa direzione.</p></header>
       <div className="tools-laptop" data-testid="tools-laptop">
-        <img className="tools-laptop__image" data-testid="tools-laptop-image" src="/visuals/tools-laptop.webp" alt="Computer portatile con gli strumenti Evolution PRO" />
+        <img className="tools-laptop__image" data-testid="tools-laptop-image" src="/visuals/tools-laptop-cutout.webp" alt="Computer portatile con gli strumenti Evolution PRO" />
         <div className="tools-laptop__screen">
+          <img className="tools-laptop__brand" data-testid="tools-laptop-brand" src="/brand/evolution-pro-logo-transparent.webp" alt="Logo Evolution PRO nel computer" decoding="async" />
           <ul className="tools-cinematic__fan" aria-label="Strumenti collegati">
             {siteContent.tools.map((tool, index) => <ToolCard key={tool.name} tool={tool} index={index} total={siteContent.tools.length} activeIndex={activeIndex} compact={compact} />)}
           </ul>

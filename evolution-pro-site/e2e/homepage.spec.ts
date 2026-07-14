@@ -70,6 +70,10 @@ test('videotestimonianze, banner cookie e collegamenti footer sono operativi', a
   await page.getByRole('button', { name: 'Chiudi informative' }).click();
   await page.getByRole('link', { name: 'Cookie', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Cookie Policy' })).toBeVisible();
+  await page.getByRole('button', { name: 'Chiudi informative' }).click();
+  await page.getByRole('link', { name: 'Condizioni di Vendita', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Condizioni Generali di Vendita' })).toBeVisible();
+  await expect(page.getByText('Analisi Consulenziale')).toBeVisible();
 });
 
 test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo) => {
