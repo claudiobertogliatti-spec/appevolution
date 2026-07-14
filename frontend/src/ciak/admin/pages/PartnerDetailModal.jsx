@@ -634,6 +634,7 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
         <SaveBtn onClick={() => onSave("masterclass", "masterclass_factory", {
           video_youtube_url: mc.video_youtube_url,
           script: mc.script,
+          answers: mcAnswers,
           ...(mc.script_sections ? { script_sections: mc.script_sections } : {})
         })} saving={saving.masterclass} saved={saved.masterclass} />
       </JourneySection>
