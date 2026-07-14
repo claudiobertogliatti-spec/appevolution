@@ -19,4 +19,14 @@ describe('contratto dei contenuti istituzionali', () => {
     expect(siteContent.faq.find(({ question }) => question === 'Cos’è il Metodo EVO?')?.answer)
       .toContain('12 fasi operative');
   });
+
+  it('pubblica tre videotestimonianze complete con foto e poster', () => {
+    expect(siteContent.testimonials).toHaveLength(3);
+    for (const testimonial of siteContent.testimonials) {
+      expect(testimonial.quote).toBeTruthy();
+      expect(testimonial.video).toMatch(/^\/testimonials\/.+\.mp4$/);
+      expect(testimonial.photo).toMatch(/^\/testimonials\/.+\.webp$/);
+      expect(testimonial.poster).toBe(testimonial.photo);
+    }
+  });
 });

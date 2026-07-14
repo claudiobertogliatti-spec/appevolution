@@ -99,9 +99,27 @@ export const siteContent: SiteContent = {
     { name: 'Sarah Arensi' },
   ],
   testimonials: [
-    { name: 'Michele Baggio' },
-    { name: 'Mariantonietta Tornello' },
-    { name: 'Sarah Arensi' },
+    {
+      name: 'Michele Baggio',
+      quote: 'Michele racconta il suo percorso con Evolution PRO.',
+      video: '/testimonials/michele-baggio.mp4',
+      photo: '/testimonials/michele-baggio.webp',
+      poster: '/testimonials/michele-baggio.webp',
+    },
+    {
+      name: 'Mariantonietta Tornello',
+      quote: 'Mariantonietta racconta il suo percorso con Evolution PRO.',
+      video: '/testimonials/mariantonietta-tornello.mp4',
+      photo: '/testimonials/mariantonietta-tornello.webp',
+      poster: '/testimonials/mariantonietta-tornello.webp',
+    },
+    {
+      name: 'Sarah Arensi',
+      quote: 'Sarah racconta il suo percorso con Evolution PRO.',
+      video: '/testimonials/sarah-arensi.mp4',
+      photo: '/testimonials/sarah-arensi.webp',
+      poster: '/testimonials/sarah-arensi.webp',
+    },
   ],
   faq: [
     { question: 'Lavorate con qualsiasi tipo di business?', answer: 'No. Il Metodo EVO è pensato per consulenti, coach e professionisti che vogliono trasformare competenze reali in un’offerta digitale chiara.' },

@@ -70,7 +70,7 @@ describe('EnvelopeTestimonials', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
     expect(css).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*220vh/);
     expect(css).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*sticky/);
-    const mobileCss = css.slice(css.indexOf('@media (max-width: 59.99rem)'), css.indexOf('.hero-agents--static'));
+    const mobileCss = css.slice(css.indexOf('@media (max-width: 39.99rem)'), css.indexOf('.hero-agents--static'));
     expect(mobileCss).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*auto/);
     expect(mobileCss).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*relative/);
   });

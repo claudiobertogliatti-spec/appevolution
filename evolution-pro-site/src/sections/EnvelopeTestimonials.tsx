@@ -33,7 +33,7 @@ function TestimonialEnvelope({ testimonial, onOpen }: { testimonial: Testimonial
       <motion.div className="envelope__letter" data-testid="testimonial-letter" style={staticMode ? undefined : { y: 150 * (1 - letter), rotate: -4 * (1 - letter) }}>
         {testimonial.photo && <motion.img className="envelope__photo" src={testimonial.photo} alt="" data-testid="testimonial-photo" style={staticMode ? undefined : { opacity: photo, y: 64 * (1 - photo) }} />}
         <motion.div className="envelope__message" data-testid="testimonial-message" style={staticMode ? undefined : { opacity: message, y: 32 * (1 - message) }}>
-          <blockquote>“{testimonial.quote}”</blockquote>
+          <blockquote>{testimonial.quote}</blockquote>
           <p><strong>{testimonial.name}</strong></p>
         </motion.div>
         <motion.div className="envelope__actions" data-testid="testimonial-actions" style={staticMode ? undefined : { opacity: actions, y: 16 * (1 - actions) }}>
