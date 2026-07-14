@@ -828,9 +828,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         youtube_playlist_id: partner.youtube_playlist_id || partner.yt_playlist_id || "",
         phase: partner.phase || partner.fase || "F1",
         bio: partner.bio || "",
-        social_instagram: partner.social_instagram || "",
-        social_linkedin: partner.social_linkedin || "",
-        social_website: partner.social_website || "",
+        social_instagram: partner.social_instagram || partner.instagram || "",
+        social_linkedin: partner.social_linkedin || partner.linkedin || "",
+        social_website: partner.social_website || partner.website || "",
         contract_end: partner.contract_end || "",
         systeme_subdomain: partner.systeme_subdomain || "",
         // Admin control fields

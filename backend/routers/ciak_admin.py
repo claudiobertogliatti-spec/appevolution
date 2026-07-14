@@ -336,6 +336,7 @@ async def ciak_partners_list(
             "phase": p.get("phase"),
             "niche": p.get("niche") or p.get("nicchia"),
             "revenue": p.get("revenue"),
+            "bio": p.get("bio"),
             "phone": p.get("phone") or p.get("telefono"),
             "website": p.get("website") or p.get("social_website"),
             "instagram": p.get("instagram") or p.get("social_instagram"),
@@ -388,7 +389,7 @@ async def ciak_partners_list(
             item["email"] = item.get("email") or hub.get("email") or buro.get("email")
             item["phone"] = item.get("phone") or hub.get("phone") or buro.get("telefono")
             item["city"] = hub.get("city") or buro.get("comune")
-            item["bio"] = hub.get("bio")
+            item["bio"] = item.get("bio") or hub.get("bio")
             item["website"] = item.get("website") or hub.get("website") or buro.get("sito_web")
             item["instagram"] = item.get("instagram") or hub.get("instagram") or buro.get("instagram")
             item["linkedin"] = item.get("linkedin") or hub.get("linkedin") or buro.get("linkedin")
