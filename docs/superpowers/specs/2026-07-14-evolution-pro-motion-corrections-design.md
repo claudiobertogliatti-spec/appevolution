@@ -4,7 +4,7 @@
 
 **Ambito:** sito vetrina `www.evolution-pro.it` (`evolution-pro-site`)
 
-**Stato:** approvato verbalmente da Claudio
+**Stato:** revisione approvata verbalmente da Claudio; aggiornamento finale del 2026-07-14 con laptop realistico nella sezione strumenti
 
 ## Obiettivo
 
@@ -17,8 +17,8 @@ La direzione scelta è **scene controllate**: una sola scena visibile alla volta
 - Una sola scheda o scena è montata e visibile in ogni area animata.
 - Entrata e uscita usano dissolvenza e movimento breve, senza sovrapposizioni leggibili.
 - Le animazioni sono autonome e continuano anche quando la sezione è già nel viewport.
-- Il ciclo si mette in pausa quando l’utente interagisce con l’elemento.
-- `prefers-reduced-motion` mostra una composizione stabile, senza sequenze continue.
+- Il ciclo non si mette in pausa al passaggio del mouse e resta autonomo.
+- Le sequenze richieste da Claudio restano attive anche quando il browser segnala `prefers-reduced-motion`, evitando il blocco completo osservato in produzione.
 - Le animazioni usano principalmente `transform` e `opacity`.
 - Su mobile si riducono ampiezza e durata, preservando testo e controlli.
 
@@ -52,13 +52,11 @@ Il sottotitolo diventa:
 
 ## Collaborazioni
 
-La sezione viene trasformata in un mockup di laptop:
+La sezione mantiene la barra orizzontale semplice presente nella prima versione:
 
-- cornice del portatile in navy/ink;
-- schermo con sfondo dashboard coordinato alla palette;
-- barra superiore e piccoli moduli grafici per suggerire un ambiente operativo;
-- nomi dei partner in scorrimento continuo dentro lo schermo;
-- pausa su hover/focus e versione statica con movimento ridotto.
+- nomi dei partner in scorrimento continuo, senza cornice di computer;
+- nessun modulo dashboard o statistica nella sezione collaborazioni;
+- lista completa disponibile semanticamente e disposizione leggibile su mobile.
 
 Elenco completo:
 
@@ -83,15 +81,25 @@ Elenco completo:
 19. Alfredo Vasi
 20. Eva Gugliucciello
 
+## Strumenti nel laptop realistico
+
+Il computer appartiene esclusivamente alla sezione strumenti:
+
+- al centro della pagina compare un portatile fotorealistico visto frontalmente, non una cornice costruita con soli bordi CSS;
+- l’asset del portatile ha uno schermo vuoto con area utile definita, dentro cui viene integrata l’animazione dei dodici loghi reali;
+- il ventaglio dei loghi ruota automaticamente nello schermo e resta contenuto nella cornice;
+- il computer è centrato e mantiene proporzioni realistiche su desktop, tablet e mobile;
+- il titolo e il testo introduttivo rimangono sopra il portatile.
+
 ## Direzione prima degli strumenti
 
 La sequenza conserva i tre momenti narrativi, ma monta una sola scena alla volta:
 
 1. rumore degli strumenti;
-2. “Lo strumento senza direzione è solo rumore.” con il video MP4 fornito da Claudio posizionato sotto il testo;
+2. “Lo strumento senza direzione è solo rumore.”;
 3. “Prima la direzione. Poi gli strumenti.”
 
-Il video sarà `muted`, `playsInline`, in loop e con controlli coerenti con l’intento narrativo; non deve coprire il testo né causare salti di layout.
+Il video indicato da Claudio (`https://cdn.dribbble.com/userupload/48249026/file/a061928a6f36b905ec15d4d711e8391c.mp4`) viene scaricato tra gli asset locali e usato come sfondo a piena sezione. Sarà `muted`, `playsInline`, `autoplay` e in loop. Un overlay navy/ink protegge la leggibilità dei testi animati, che restano sopra il filmato senza salti di layout.
 
 ## Problema
 
@@ -121,7 +129,8 @@ L’immagine deve comunicare collaborazione tra persona, team e tecnologia, senz
 ## Storia di Claudio
 
 - La foto ritratto usa un posizionamento ancorato in alto per mantenere visibile tutta la testa.
-- Le scene narrative continuano a ruotare una alla volta.
+- Le scene narrative ruotano automaticamente una alla volta ogni circa 3 secondi, anche con puntatore fermo o impostazione browser di movimento ridotto.
+- La transizione è visibile tramite dissolvenza e breve spostamento; nessuna scena resta congelata permanentemente.
 - I numeri non si sovrappongono alle immagini o ai testi durante il cambio.
 
 ## Metodo EVO
@@ -130,16 +139,16 @@ Il testo introduttivo diventa:
 
 > 3 passaggi semplici dentro un protocollo testato negli ultimi 7 anni
 
-Le tre fasi Esamina, Valida e Ottimizza vengono mostrate una alla volta con transizione pulita e senza elementi residui della fase precedente.
+Le tre fasi Esamina, Valida e Ottimizza vengono mostrate una alla volta ogni circa 3 secondi con transizione pulita, visibile e senza elementi residui della fase precedente. Il ciclo non si ferma su hover e non viene disattivato da `prefers-reduced-motion`.
 
 ## Videotestimonianze e busta
 
 ### Aspetto
 
-- Il triangolo/grembiule della busta passa dal giallo al grigio chiaro `#D8D8D8`.
-- La busta riceve un sigillo in ceralacca navy `#0D2952`.
-- Il sigillo contiene il marchio Evolution PRO in oro `#FBC002`, usando l’asset ufficiale disponibile nel progetto.
-- Il sigillo si apre prima del sollevamento del messaggio.
+- Il triangolo superiore della busta torna giallo `#FBC002`.
+- Il sigillo non ha cerchio, fondo o wordmark.
+- Il sigillo mostra esclusivamente la spirale del marchio Evolution PRO, riempita in grigio `#787878`/`#D8D8D8` e ritagliata su trasparenza.
+- La spirale si apre o scompare prima del sollevamento del messaggio.
 
 ### Leggibilità e azione
 
@@ -162,9 +171,21 @@ Non vengono introdotti colori dominanti esterni alla palette.
 ## Asset
 
 - Riutilizzare il logo ufficiale Evolution PRO già presente nel progetto.
-- Recuperare il video MP4 già fornito da Claudio e copiarlo tra gli asset pubblici del sito con nome descrittivo.
+- Scaricare il video MP4 Dribbble indicato da Claudio e copiarlo tra gli asset pubblici del sito con nome descrittivo, senza dipendenza runtime dal CDN esterno.
+- Creare un asset fotorealistico di portatile frontale con schermo vuoto, destinato alla sezione strumenti.
+- Estrarre o ricostruire la sola spirale Evolution PRO su trasparenza e in grigio per il sigillo.
 - Generare due immagini tematiche originali, una per “Problema” e una per “Sistema umano e AI”, senza testi o loghi inventati.
+- Generare un’immagine tematica originale per la CTA finale, coerente con il concetto di scelta della direzione, senza testo incorporato.
 - Ottimizzare immagini e video per il web senza degradare la leggibilità.
+
+## CTA finale
+
+La sezione “Prima di costruire, scegli una direzione” passa a due colonne:
+
+- testo, descrizione e pulsante a sinistra;
+- immagine tematica coerente a destra;
+- immagine con persona/professionista e segnali di pianificazione o scelta strategica, senza estetica stock generica, loghi inventati o testo;
+- su mobile l’immagine va sotto il contenuto e non riduce la visibilità della CTA.
 
 ## Verifica
 
@@ -173,19 +194,21 @@ Non vengono introdotti colori dominanti esterni alla palette.
 - copy esatto della hero, problema e Metodo EVO;
 - presenza dei 20 partner;
 - una sola scena hero visibile/montata alla volta;
-- video presente nella seconda scena “direzione”;
+- video di sfondo presente e in autoplay nella sezione “direzione”;
+- laptop realistico centrato nella sezione strumenti e assente dalle collaborazioni;
+- rotazione effettiva di storia e Metodo EVO anche con movimento ridotto;
 - CTA della testimonianza apre il video;
 - sigillo e lettera presenti con ruoli/accessibilità corretti;
-- rispetto di `prefers-reduced-motion`;
+- contenuti accessibili con `prefers-reduced-motion`, mantenendo però attive le sequenze espressamente richieste;
 - nessun overflow orizzontale su viewport mobile.
 
 ### Verifica visiva
 
 - desktop 1440 × 900;
-- laptop 1280 × 800;
+- desktop compatto 1280 × 800;
 - tablet 768 × 1024;
 - mobile 390 × 844;
-- controllo della testa di Claudio, della busta, del laptop e delle transizioni hero;
+- controllo della testa di Claudio, della busta, del laptop realistico, dell’immagine CTA e delle transizioni hero/storia/Metodo EVO;
 - controllo live dopo il deploy su `https://www.evolution-pro.it`.
 
 ## Fuori ambito
