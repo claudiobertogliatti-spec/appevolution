@@ -1,152 +1,279 @@
-# Evolution PRO Motion Corrections — Implementation Plan
+# Evolution PRO Final Motion Corrections Implementation Plan
 
-> **For Codex:** execute this plan inline with test-driven development. Do not delegate tasks.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** correggere le sovrapposizioni delle animazioni e applicare tutti gli aggiornamenti di copy, immagini e layout approvati per `www.evolution-pro.it`.
+**Goal:** correggere definitivamente hero e animazioni, spostare il portatile realistico nella sezione strumenti, usare il video Dribbble come sfondo della direzione e rifinire busta e CTA finale.
 
-**Architecture:** sostituire le pile di elementi assoluti sempre montati con scene a montaggio singolo tramite `AnimatePresence` e una variante condivisa. Mantenere l’autoplay indipendente dallo scroll, aggiungere pausa su interazione e fallback `prefers-reduced-motion`. Le nuove composizioni grafiche restano componenti React/CSS; solo le due immagini tematiche e il video sono asset raster/media.
+**Architecture:** le sequenze usano un solo indice autoplay condiviso, sempre attivo e indipendente da scroll, hover e preferenze browser. Partner e strumenti tornano componenti separati: marquee semplice per i partner, asset fotorealistico con screen overlay per gli strumenti. Video e immagini vengono serviti localmente da `public/`.
 
-**Tech Stack:** React 19, TypeScript, Framer Motion 12, Vitest/Testing Library, Playwright, Vite, CSS.
+**Tech Stack:** React 19, TypeScript, Framer Motion 12, CSS, Vitest/Testing Library, Playwright, Vite, Vercel.
+
+## Global Constraints
+
+- Palette obbligatoria: `#FBC002`, `#0D2952`, `#101326`, `#787878`, `#D8D8D8`.
+- Hero su quattro righe esatte: `La tua` / `competenza` / `merita una` / `direzione`.
+- Nessuna sequenza si ferma su hover o con `prefers-reduced-motion`.
+- Il portatile fotorealistico compare solo negli strumenti ed è centrato.
+- I partner restano nella barra semplice in scorrimento.
+- Il video Dribbble è locale, in autoplay, muted, loop e playsInline.
+- Il sigillo mostra solo la spirale grigia su trasparenza; il triangolo superiore è giallo.
+- Nessuna modifica a `www.ciak.io` o alla destinazione delle CTA.
 
 ---
 
-## Task 1: fissare i contratti di contenuto
+### Task 1: bloccare hero e autoplay con test di regressione
 
 **Files:**
-- Modify: `evolution-pro-site/tests/content.test.ts`
-- Modify: `evolution-pro-site/tests/app.test.tsx`
-- Modify: `evolution-pro-site/src/content/siteContent.ts`
-- Modify: `evolution-pro-site/src/sections/HeroAgents.tsx`
-- Modify: `evolution-pro-site/src/sections/ProblemSequence.tsx`
-- Modify: `evolution-pro-site/src/sections/EvoMethodSequence.tsx`
-
-**Steps:**
-1. Aggiungere test fallenti per pillola target, titolo su quattro righe, sottotitolo esatto, etichetta problema, testo Metodo EVO e 20 collaborazioni.
-2. Eseguire i test mirati e verificare che falliscano per i valori correnti.
-3. Aggiornare i contenuti e il markup editoriale minimo.
-4. Rieseguire i test mirati fino al verde.
-
-## Task 2: rendere le scene realmente esclusive
-
-**Files:**
-- Modify: `evolution-pro-site/tests/free-motion.test.tsx`
 - Modify: `evolution-pro-site/tests/motion.test.tsx`
-- Modify: `evolution-pro-site/src/lib/motion.ts`
-- Modify: `evolution-pro-site/src/sections/HeroAgents.tsx`
-- Modify: `evolution-pro-site/src/sections/DirectionSequence.tsx`
-- Modify: `evolution-pro-site/src/sections/FounderStory.tsx`
-- Modify: `evolution-pro-site/src/sections/EvoMethodSequence.tsx`
-
-**Steps:**
-1. Scrivere test che richiedano una sola scena visuale montata alla volta nella hero, nella direzione, nella storia e nel Metodo EVO.
-2. Aggiungere un test per la pausa su hover/focus e per il fallback con movimento ridotto.
-3. Verificare il fallimento dei test con l’attuale strategia basata solo sull’opacità.
-4. Introdurre una variante condivisa e usare `AnimatePresence` con una chiave di scena.
-5. Conservare una rappresentazione semanticamente accessibile dei contenuti non attivi senza duplicare elementi visuali.
-6. Rieseguire i test mirati.
-
-## Task 3: ricostruire la hero
-
-**Files:**
-- Modify: `evolution-pro-site/src/sections/HeroAgents.tsx`
-- Modify: `evolution-pro-site/src/styles/globals.css`
+- Modify: `evolution-pro-site/tests/free-motion.test.tsx`
 - Modify: `evolution-pro-site/e2e/homepage.spec.ts`
+- Modify: `evolution-pro-site/src/lib/motion.ts`
+- Modify: `evolution-pro-site/src/styles/globals.css`
 
-**Steps:**
-1. Aggiungere un test E2E per assenza di sovrapposizione, titolo leggibile e blocco agenti leggermente rialzato.
-2. Implementare pillola gialla non interattiva e titolo con righe esplicite.
-3. Ridimensionare il titolo in modo fluido e limitare la larghezza della colonna.
-4. Montare una sola foto/scheda agente e rialzare il visual con una trasformazione responsiva.
-5. Verificare desktop e mobile.
+**Interfaces:**
+- Produces: `useAutoplaySequence(length, intervalMs)` con indice sempre attivo e `interactionProps: {}`.
 
-## Task 4: trasformare le collaborazioni in laptop dashboard
+- [ ] **Step 1: mantenere i test fallenti già creati**
+
+I test devono richiedere rotazione con reduced motion e hover, `white-space: nowrap` sulle quattro righe e nessuna sovrapposizione a 1920 px.
+
+- [ ] **Step 2: verificare il rosso e implementare il minimo**
+
+```ts
+export function useAutoplaySequence(length: number, intervalMs: number) {
+  return { index: useAutoplayIndex(length, intervalMs), reduced: false, interactionProps: {} };
+}
+```
+
+```css
+.hero-agents__copy h1 { font-size: clamp(3.5rem, 6.1vw, 6.65rem); }
+.hero-agents__copy h1 > span { white-space: nowrap; }
+```
+
+- [ ] **Step 3: eseguire unit ed E2E mirati**
+
+Run: `npx vitest run tests/motion.test.tsx tests/free-motion.test.tsx --reporter=dot`
+
+Run: `npx playwright test e2e/homepage.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line`
+
+Expected: tutti PASS; rotazione visibile e quattro righe senza overlap.
+
+### Task 2: ripristinare partner e costruire il laptop realistico degli strumenti
 
 **Files:**
+- Create: `evolution-pro-site/public/visuals/tools-laptop.webp`
 - Modify: `evolution-pro-site/tests/marquees.test.tsx`
 - Modify: `evolution-pro-site/src/sections/LogoMarquee.tsx`
+- Modify: `evolution-pro-site/src/sections/ToolsMarquee.tsx`
 - Modify: `evolution-pro-site/src/styles/globals.css`
 
-**Steps:**
-1. Aggiungere test per la struttura laptop, dashboard e lista completa accessibile.
-2. Verificare il fallimento.
-3. Costruire cornice, schermo, barra dashboard e moduli decorativi in HTML/CSS.
-4. Inserire lo scorrimento dei partner soltanto dentro lo schermo.
-5. Fornire griglia statica per movimento ridotto e layout mobile.
-6. Rieseguire i test.
+**Interfaces:**
+- Produces: `[data-testid="tools-laptop"]` con `.tools-laptop__screen`; `LogoMarquee` senza laptop.
 
-## Task 5: integrare media e immagini tematiche
+- [ ] **Step 1: scrivere test fallenti**
+
+```ts
+render(<><LogoMarquee /><ToolsMarquee /></>);
+expect(screen.queryByTestId('collaboration-laptop')).not.toBeInTheDocument();
+expect(screen.getByTestId('tools-laptop')).toBeInTheDocument();
+expect(screen.getByTestId('tools-laptop-image')).toHaveAttribute('src', '/visuals/tools-laptop.webp');
+expect(screen.getByTestId('logos-visual-track')).toHaveClass('marquee__track--clone');
+```
+
+- [ ] **Step 2: generare il portatile realistico**
+
+Creare un portatile frontale fotorealistico, centrato, con chassis argento, schermo rettangolare scuro vuoto e sfondo trasparente o neutro uniforme. Convertire in WebP ottimizzato e verificare visivamente l’area schermo.
+
+- [ ] **Step 3: ripristinare la barra partner**
+
+`LogoMarquee` deve rendere direttamente `.marquee > .marquee__track`, senza dashboard, statistiche o base del laptop.
+
+- [ ] **Step 4: integrare i loghi nello schermo**
+
+```tsx
+<div className="tools-laptop" data-testid="tools-laptop">
+  <img data-testid="tools-laptop-image" src="/visuals/tools-laptop.webp" alt="Computer portatile con gli strumenti Evolution PRO" />
+  <div className="tools-laptop__screen">
+    <ul className="tools-cinematic__fan" aria-label="Strumenti collegati">
+      {siteContent.tools.map((tool, index) => <ToolCard key={tool.name} tool={tool} index={index} total={siteContent.tools.length} activeIndex={activeIndex} compact={compact} />)}
+    </ul>
+  </div>
+</div>
+```
+
+Lo schermo overlay deve restare dentro la cornice a tutti i breakpoint.
+
+- [ ] **Step 5: verificare**
+
+Run: `npx vitest run tests/marquees.test.tsx --reporter=dot`
+
+Expected: PASS con 20 partner nel marquee semplice e 12 loghi nel laptop.
+
+### Task 3: usare il video Dribbble come sfondo della direzione
 
 **Files:**
-- Create: `evolution-pro-site/public/visuals/human-ai-system.webp`
-- Create: `evolution-pro-site/public/visuals/problem-direction.webp`
-- Create: `evolution-pro-site/public/video/direction-tools.mp4`
-- Modify: `evolution-pro-site/tests/platform.test.tsx`
-- Modify: `evolution-pro-site/src/sections/HumanAiSystem.tsx`
-- Modify: `evolution-pro-site/src/sections/ProblemSequence.tsx`
+- Create: `evolution-pro-site/public/video/direction-background.mp4`
+- Modify: `evolution-pro-site/tests/marquees.test.tsx`
 - Modify: `evolution-pro-site/src/sections/DirectionSequence.tsx`
 - Modify: `evolution-pro-site/src/styles/globals.css`
 
-**Steps:**
-1. Aggiungere test fallenti per le due immagini e per il video nella scena centrale.
-2. Individuare il file MP4 fornito da Claudio tra gli asset locali disponibili, copiarlo con nome descrittivo e ottimizzarlo solo se necessario.
-3. Generare due immagini originali coerenti con il brand: professionista bloccato da attività frammentate; collaborazione umana con AI concreta e non fantascientifica.
-4. Convertire/ottimizzare gli output e copiarli negli asset pubblici.
-5. Portare Problema e Sistema umano a layout a due colonne.
-6. Inserire il video sotto il testo della scena centrale con dimensioni stabili, `muted`, `loop` e `playsInline`.
-7. Rieseguire i test.
+**Interfaces:**
+- Produces: `[data-testid="direction-background-video"]` sempre montato dietro le tre scene.
 
-## Task 6: correggere la storia di Claudio
+- [ ] **Step 1: scrivere il test fallente**
+
+```ts
+expect(screen.getByTestId('direction-background-video')).toHaveAttribute('src', '/video/direction-background.mp4');
+expect(screen.getByTestId('direction-background-video')).toHaveAttribute('autoplay');
+expect(screen.getByTestId('direction-background-video')).toHaveAttribute('loop');
+expect(screen.getByTestId('direction-background-video')).toHaveAttribute('muted');
+```
+
+- [ ] **Step 2: scaricare e verificare il video**
+
+Scaricare `https://cdn.dribbble.com/userupload/48249026/file/a061928a6f36b905ec15d4d711e8391c.mp4` in `public/video/direction-background.mp4`; verificare MIME, dimensioni e riproduzione locale.
+
+- [ ] **Step 3: montare video, overlay e scene**
+
+```tsx
+<video data-testid="direction-background-video" className="direction-sequence__background" src="/video/direction-background.mp4" autoPlay muted loop playsInline preload="auto" />
+<div className="direction-sequence__overlay" aria-hidden="true" />
+```
+
+Rimuovere il vecchio video inserito sotto il testo. Le tre scene testuali restano sopra overlay e filmato.
+
+- [ ] **Step 4: verificare**
+
+Run: `npx vitest run tests/marquees.test.tsx --reporter=dot`
+
+Expected: PASS e video di sfondo sempre presente.
+
+### Task 4: rendere evidenti storia e Metodo EVO
 
 **Files:**
 - Modify: `evolution-pro-site/tests/founder-evo.test.tsx`
 - Modify: `evolution-pro-site/src/sections/FounderStory.tsx`
-- Modify: `evolution-pro-site/src/styles/globals.css`
+- Modify: `evolution-pro-site/src/sections/EvoMethodSequence.tsx`
 
-**Steps:**
-1. Aggiungere un test per la classe/attributo che ancora il ritratto in alto.
-2. Verificare il fallimento.
-3. Applicare `object-position` superiore e controllare i breakpoint.
-4. Confermare che le scene esclusive impediscano sovrapposizioni con storia e numeri.
+**Interfaces:**
+- Consumes: `useAutoplaySequence` sempre attivo.
+- Produces: scene con intervallo 3000 ms e attributi `data-active-founder-beat`, `data-testid="active-evo-phase"`.
 
-## Task 7: ricostruire busta, sigillo e lettera
+- [ ] **Step 1: scrivere test fallenti con fake timer**
+
+```ts
+render(<FounderStory />);
+expect(screen.getByText(/Mi chiamo Claudio/)).toBeInTheDocument();
+act(() => vi.advanceTimersByTime(3100));
+expect(screen.getByText(/Da oltre 20 anni/)).toBeInTheDocument();
+```
+
+```ts
+render(<EvoMethodSequence />);
+expect(screen.getByTestId('active-evo-phase')).toHaveTextContent('Esamina');
+act(() => vi.advanceTimersByTime(3100));
+expect(screen.getByTestId('active-evo-phase')).toHaveTextContent('Valida');
+```
+
+- [ ] **Step 2: uniformare gli intervalli a 3000 ms**
+
+Usare `useAutoplaySequence(5, 3000)` nella storia e `useAutoplaySequence(3, 3000)` nel Metodo EVO; mantenere una sola scena visuale montata.
+
+- [ ] **Step 3: verificare**
+
+Run: `npx vitest run tests/founder-evo.test.tsx --reporter=dot`
+
+Expected: PASS e cambio scena dopo 3,1 secondi.
+
+### Task 5: rifinire sigillo e CTA finale
 
 **Files:**
+- Create: `evolution-pro-site/public/brand/evolution-spiral-gray.webp`
+- Create: `evolution-pro-site/public/visuals/final-direction.webp`
 - Modify: `evolution-pro-site/tests/testimonials.test.tsx`
+- Modify: `evolution-pro-site/tests/app.test.tsx`
 - Modify: `evolution-pro-site/src/sections/EnvelopeTestimonials.tsx`
+- Modify: `evolution-pro-site/src/sections/FinalCta.tsx`
 - Modify: `evolution-pro-site/src/styles/globals.css`
-- Modify: `evolution-pro-site/e2e/testimonial-scroll.spec.ts`
 
-**Steps:**
-1. Scrivere test per flap grigio, sigillo, logo, sequenza di apertura e CTA cliccabile.
-2. Aggiungere test E2E che misuri la lettera e confermi che foto, citazione, stelle e bottone restino sopra il fronte della busta.
-3. Verificare il fallimento.
-4. Costruire il sigillo navy con asset ufficiale oro e animazione di rottura/apertura.
-5. Rendere grigio chiaro il triangolo e ridurre l’altezza coprente del fronte.
-6. Alzare la lettera e mantenere il pulsante sopra lo strato non interattivo.
-7. Rieseguire unit ed E2E mirati.
+**Interfaces:**
+- Produces: `.envelope__seal-logo--spiral`, `.final-cta__layout`, `/visuals/final-direction.webp`.
 
-## Task 8: verifica completa e rifinitura responsive
+- [ ] **Step 1: scrivere test fallenti**
+
+```ts
+expect(screen.getAllByTestId('testimonial-seal')[0]).toHaveAttribute('data-seal-style', 'gray-spiral');
+expect(screen.getAllByTestId('testimonial-seal')[0].querySelector('img')).toHaveAttribute('src', '/brand/evolution-spiral-gray.webp');
+```
+
+```ts
+expect(screen.getByRole('img', { name: /scelta della direzione/i })).toHaveAttribute('src', '/visuals/final-direction.webp');
+```
+
+- [ ] **Step 2: creare gli asset**
+
+Estrarre la sola spirale del logo, convertirla in grigio e salvarla con trasparenza. Generare un’immagine orizzontale per la CTA: professionista a destra davanti a una mappa strategica/roadmap, palette navy e giallo, nessun testo.
+
+- [ ] **Step 3: modificare la busta**
+
+Il triangolo superiore usa `background: var(--brand-yellow)`. Il contenitore del sigillo non ha bordo, cerchio, sfondo o ombra; contiene solo la spirale grigia.
+
+- [ ] **Step 4: modificare la CTA**
+
+```tsx
+<div className="final-cta__layout">
+  <div className="final-cta__copy">
+    <h2>Prima di costruire, scegli una direzione.</h2>
+    <p>La masterclass gratuita ti spiega quali errori evitare e qual è il primo passo da fare.</p>
+    <a className="button button--primary" href={siteContent.primaryCta.href}>{siteContent.primaryCta.label}</a>
+  </div>
+  <img className="final-cta__image" src="/visuals/final-direction.webp" alt="Professionista che sceglie la direzione strategica del progetto" />
+</div>
+```
+
+Desktop: due colonne. Mobile: testo sopra, immagine sotto.
+
+- [ ] **Step 5: verificare**
+
+Run: `npx vitest run tests/testimonials.test.tsx tests/app.test.tsx --reporter=dot`
+
+Expected: PASS.
+
+### Task 6: verifica completa, commit e deploy
 
 **Files:**
-- Modify as needed: `evolution-pro-site/src/styles/globals.css`
-- Modify as needed: `evolution-pro-site/e2e/homepage.spec.ts`
+- Commit only: codice, test, specifica, piano e nuovi asset del sito.
 
-**Steps:**
-1. Eseguire l’intera suite Vitest.
-2. Eseguire build di produzione.
-3. Avviare preview Vite e l’intera suite Playwright.
-4. Ispezionare screenshot a 1440×900, 1280×800, 768×1024 e 390×844.
-5. Correggere overflow, crop e allineamenti; ripetere test e screenshot.
-6. Controllare console del browser e richieste media fallite.
+- [ ] **Step 1: eseguire suite e build**
 
-## Task 9: pubblicazione e controllo live
+Run: `npm run test:run -- --reporter=dot`
 
-**Files:**
-- Commit only files belonging to this site update.
+Expected: tutti PASS.
 
-**Steps:**
-1. Rieseguire test, build e controlli essenziali immediatamente prima della pubblicazione.
-2. Committare soltanto specifica, piano, codice, test e asset del sito.
-3. Pubblicare il progetto `evolution-pro-site` su Vercel produzione.
-4. Verificare che `https://www.evolution-pro.it` punti al deployment nuovo.
-5. Controllare dal vivo hero, laptop, direzione/video, problema, storia e buste.
+Run: `npm run build`
+
+Expected: build Vite completata.
+
+- [ ] **Step 2: eseguire E2E essenziali**
+
+Run: `npx playwright test e2e/homepage.spec.ts e2e/testimonial-scroll.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line`
+
+Expected: PASS, con skip previsto solo per test desktop su mobile.
+
+- [ ] **Step 3: verificare visivamente**
+
+Controllare screenshot 1920×1080 e 390×844: laptop reale centrato, partner senza laptop, video dietro il testo, storia/EVO in due momenti separati, spirale grigia, flap giallo e immagine CTA.
+
+- [ ] **Step 4: commit e push**
+
+```bash
+git add docs/superpowers/plans/2026-07-14-evolution-pro-motion-corrections-plan.md evolution-pro-site/e2e/homepage.spec.ts evolution-pro-site/src evolution-pro-site/tests evolution-pro-site/public/brand/evolution-spiral-gray.webp evolution-pro-site/public/visuals/tools-laptop.webp evolution-pro-site/public/visuals/final-direction.webp evolution-pro-site/public/video/direction-background.mp4
+git commit -m "fix(site): align motion sections with approved design"
+git push origin main
+```
+
+- [ ] **Step 5: deploy e verifica live**
+
+Run: `npx vercel --prod --yes`
+
+Verificare su `https://www.evolution-pro.it` che le scene cambino dopo 3–4 secondi e che tutti i nuovi asset rispondano `200`.
