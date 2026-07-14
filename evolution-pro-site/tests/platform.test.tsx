@@ -27,7 +27,8 @@ describe('demo Ciak', () => {
     const states = Array.from(container.querySelectorAll('[data-ciak-state]'));
 
     expect(states).toHaveLength(5);
-    expect(screen.getByTestId('ciak-collage')).toHaveAttribute('data-scroll-linked', 'true');
+    expect(screen.getByTestId('ciak-collage')).not.toHaveAttribute('data-scroll-linked');
+    expect(document.querySelector('#ciak')).toHaveAttribute('data-animation', 'autoplay');
     for (const state of states) expect(state).toHaveAttribute('data-depth');
     expect(states.map((state) => state.getAttribute('data-ciak-state'))).toEqual([
       'brainstorming',

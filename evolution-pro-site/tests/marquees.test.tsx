@@ -8,12 +8,12 @@ import { ProblemSequence } from '../src/sections/ProblemSequence';
 import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 describe('marquee accessibili', () => {
-  it('ferma il movimento su mobile senza creare focus stop vuoti', () => {
+  it('mantiene le collaborazioni leggibili su mobile senza focus stop vuoti', () => {
     const { process } = globalThis as unknown as { process: { cwd: () => string } };
     const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
     const mobileCss = css.slice(
-      css.indexOf('@media (max-width: 59.99rem)'),
-      css.indexOf('.hero-agents--static'),
+      css.indexOf('@media (max-width: 39.99rem)'),
+      css.indexOf('.testimonials h2'),
     );
 
     expect(mobileCss).toMatch(/\.marquee__semantic\s*\{[^}]*display:\s*grid/);
@@ -32,7 +32,8 @@ describe('marquee accessibili', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(12);
     expect(within(list).getByText('Canva')).toBeInTheDocument();
     expect(within(list).getByText('HeyGen')).toBeInTheDocument();
-    expect(document.querySelector('#strumenti')).toHaveAttribute('data-scroll-linked', 'true');
+    expect(document.querySelector('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
+    expect(document.querySelector('#strumenti')).not.toHaveAttribute('data-scroll-linked');
     expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
   });
 

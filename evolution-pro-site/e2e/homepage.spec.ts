@@ -41,15 +41,14 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
   await page.screenshot({ path: testInfo.outputPath(`homepage-${testInfo.project.name}.png`), fullPage: true });
 });
 
-test('hero desktop espone una sequenza scroll-linked reversibile', async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.startsWith('desktop-'), 'La motion desktop è statica su mobile e tablet.');
+test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('desktop-'), 'La rotazione completa viene verificata sui browser desktop.');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#hero .hero-agent')).toHaveCount(6);
   await expect(page.locator('#hero .hero-agent[data-active="true"]')).toHaveCount(1);
-  await page.locator('#hero').evaluate((hero) => window.scrollTo(0, hero.scrollHeight * .72));
-  await expect(page.locator('#hero .hero-agent').first()).toHaveAttribute('data-active', 'false');
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await expect(page.locator('#hero .hero-agent').first()).toHaveAttribute('data-active', 'true');
+  const scrollBefore = await page.evaluate(() => scrollY);
+  await expect.poll(async () => page.locator('#hero .hero-agent').first().getAttribute('data-active'), { timeout: 6_000 }).toBe('false');
+  expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
 });
 
 test('contenuto principale resta disponibile con rete rallentata', async ({ page }) => {

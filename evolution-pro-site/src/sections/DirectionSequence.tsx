@@ -1,29 +1,22 @@
-import { useRef } from 'react';
-import { motion, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
+import { useAutoplayIndex } from '../lib/motion';
 
 const noise = ['Funnel', 'Ads', 'Automazioni', 'Videocorso'];
 
 export function DirectionSequence() {
-  const ref = useRef<HTMLElement>(null);
-  const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 39.99rem)');
-  const noiseOpacity = useTransform(progress, [0, 0.35], [1, 0]);
-  const stopOpacity = useTransform(progress, [0.25, 0.48, 0.68], [0, 1, 0]);
-  const finalOpacity = useTransform(progress, [0.58, 0.82], [0, 1]);
+  const activeScene = useAutoplayIndex(3, 2600);
 
   return (
-    <section ref={ref} className={`direction-sequence${staticMode ? ' direction-sequence--static' : ''}`} id="direzione" data-testid="home-section">
+    <section className="direction-sequence" id="direzione" data-testid="home-section" data-animation="autoplay">
       <div className="direction-sequence__stage container">
-        {staticMode && <p className="direction-sequence__premise">Gli strumenti funzionano quando seguono una scelta chiara.</p>}
-        <motion.div className="direction-sequence__noise" style={staticMode ? undefined : { opacity: noiseOpacity }} aria-hidden={staticMode}>
+        <motion.div className="direction-sequence__noise" data-active={activeScene === 0} animate={{ opacity: activeScene === 0 ? 1 : 0, scale: activeScene === 0 ? 1 : .88 }} transition={{ duration: .7 }} aria-hidden={activeScene !== 0}>
           {noise.map((item) => <span key={item}>{item}</span>)}
         </motion.div>
-        <motion.p className="direction-sequence__stop" style={staticMode ? undefined : { opacity: stopOpacity }}>
+        <motion.p className="direction-sequence__stop" data-active={activeScene === 1} animate={{ opacity: activeScene === 1 ? 1 : 0, scale: activeScene === 1 ? 1 : .88 }} transition={{ duration: .7 }}>
           Lo strumento senza direzione è solo rumore.
         </motion.p>
-        <motion.h2 className="direction-sequence__final" style={staticMode ? undefined : { opacity: finalOpacity }}>
+        <motion.h2 className="direction-sequence__final" data-active={activeScene === 2} animate={{ opacity: activeScene === 2 ? 1 : 0, scale: activeScene === 2 ? 1 : .88 }} transition={{ duration: .7 }}>
           Prima la <mark>direzione</mark>. Poi gli strumenti.
         </motion.h2>
       </div>

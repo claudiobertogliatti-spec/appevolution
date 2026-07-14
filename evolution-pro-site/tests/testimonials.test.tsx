@@ -56,7 +56,8 @@ describe('EnvelopeTestimonials', () => {
     const envelope = screen.getByTestId('testimonial-envelope');
     const timeline = screen.getByTestId('testimonial-timeline');
     expect(timeline).toHaveClass('envelope-timeline');
-    expect(timeline).toHaveAttribute('data-scroll-linked', 'true');
+    expect(timeline).not.toHaveAttribute('data-scroll-linked');
+    expect(document.querySelector('.testimonials__grid')).toHaveAttribute('data-animation', 'autoplay');
     expect(envelope).toHaveClass('envelope--cinematic');
     expect(screen.getByTestId('testimonial-letter')).toBeInTheDocument();
     expect(envelope).toHaveAttribute('data-mobile-state', 'final');
@@ -66,13 +67,12 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
   });
 
-  it('assegna altezza narrativa e sticky solo alla timeline desktop', () => {
+  it('lascia libera la busta senza altezza narrativa o sticky', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
-    expect(css).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*220vh/);
-    expect(css).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*sticky/);
-    const mobileCss = css.slice(css.indexOf('@media (max-width: 39.99rem)'), css.indexOf('.hero-agents--static'));
-    expect(mobileCss).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*auto/);
-    expect(mobileCss).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*relative/);
+    expect(css).toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*auto/);
+    expect(css).toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*relative/);
+    expect(css).not.toMatch(/\.envelope-timeline\s*\{[^}]*min-height:\s*220vh/);
+    expect(css).not.toMatch(/\.envelope-timeline\s+\.envelope\s*\{[^}]*position:\s*sticky/);
   });
 
   it('non usa animazioni CSS autonome che competono con lo scroll', () => {

@@ -71,17 +71,14 @@ describe('hero agenti con movimento ridotto', () => {
     for (const image of images.slice(1)) expect(image).toHaveAttribute('loading', 'lazy');
   });
 
-  it('usa una modalità statica e non attenuata su viewport mobile', () => {
+  it('mantiene l’autoplay anche su viewport mobile', () => {
     motionPreference.reduced = false;
     mockMobileViewport(true);
 
     render(<HeroAgents />);
 
-    expect(screen.getByTestId('home-section')).toHaveClass('hero-agents--static');
-    for (const item of screen.getAllByRole('listitem')) {
-      expect(item).toHaveAttribute('data-active', 'true');
-      expect(item).not.toHaveStyle({ opacity: '0.42', transform: 'scale(0.78)' });
-    }
+    expect(screen.getByTestId('home-section')).toHaveAttribute('data-animation', 'autoplay');
+    expect(screen.getAllByRole('listitem').filter((item) => item.dataset.active === 'true')).toHaveLength(1);
     expect(screen.getByRole('link', { name: /guarda la masterclass gratuita/i })).toHaveAttribute(
       'href',
       'https://www.ciak.io',

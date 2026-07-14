@@ -1,5 +1,5 @@
-import { type RefObject, useEffect, useState } from 'react';
-import { useScroll, type MotionValue, type Variants } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { type Variants } from 'framer-motion';
 
 export const reveal: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -37,13 +37,18 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-export function useSafeScrollProgress(
-  ref: RefObject<HTMLElement | null>,
-): MotionValue<number> {
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end end'],
-  });
+export function useAutoplayIndex(length: number, intervalMs: number): number {
+  const [index, setIndex] = useState(0);
 
-  return scrollYProgress;
+  useEffect(() => {
+    if (length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % length);
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [intervalMs, length]);
+
+  return index;
 }

@@ -1,8 +1,7 @@
-import { useRef } from 'react';
 import { ArrowRight, Check, Circle, Play } from 'lucide-react';
-import { motion, useMotionValueEvent, useTransform, type MotionValue } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-import { useMediaQuery, useSafeScrollProgress } from '../lib/motion';
+import { useAutoplayIndex, useMediaQuery } from '../lib/motion';
 import { siteContent } from '../content/siteContent';
 
 const demoStates = [
@@ -60,29 +59,24 @@ function PlatformPanel({ state, index }: { state: (typeof demoStates)[number]; i
   );
 }
 
-function CiakScreen({ state, index, progress, staticMode }: { state: (typeof demoStates)[number]; index: number; progress: MotionValue<number>; staticMode: boolean }) {
-  const center = index / (demoStates.length - 1);
-  const start = Math.max(0, center - .18);
-  const end = Math.min(1, center + .18);
-  const side = index % 2 ? 1 : -1;
-  const x = useTransform(progress, [start, center, end], [side * 330, 0, side * -180]);
-  const y = useTransform(progress, [start, center, end], [140 + index * 20, 0, -90]);
-  const rotate = useTransform(progress, [start, center, end], [side * 11, 0, side * -5]);
-  const scale = useTransform(progress, [start, center, end], [.68, 1, .78]);
-  const opacity = useTransform(progress, [start, Math.min(center + .01, 1), end], [.18, 1, .28]);
-  return <motion.li data-ciak-state={state.id} data-depth={index + 1} style={staticMode ? undefined : { x, y, rotate, scale, opacity, zIndex: demoStates.length - index }}>
+function CiakScreen({ state, index, activeIndex, compact }: { state: (typeof demoStates)[number]; index: number; activeIndex: number; compact: boolean }) {
+  const rawOffset = index - activeIndex;
+  const offset = rawOffset > demoStates.length / 2 ? rawOffset - demoStates.length : rawOffset < -demoStates.length / 2 ? rawOffset + demoStates.length : rawOffset;
+  const active = offset === 0;
+  const animate = compact
+    ? { x: active ? 0 : offset * 22, y: active ? 0 : 26, rotate: active ? 0 : offset * 2, scale: active ? 1 : .92, opacity: active ? 1 : .12 }
+    : { x: offset * 180, y: Math.abs(offset) * 65, rotate: offset * 6, scale: active ? 1 : .76, opacity: active ? 1 : .2 };
+  return <motion.li data-ciak-state={state.id} data-depth={index + 1} data-active={active} animate={animate} transition={{ duration: .85, ease: 'easeInOut' }} style={{ zIndex: active ? demoStates.length + 1 : demoStates.length - Math.abs(offset) }}>
     <PlatformPanel state={state} index={index} />
   </motion.li>;
 }
 
 export function CiakPlatformDemo() {
-  const ref = useRef<HTMLElement>(null);
-  const progress = useSafeScrollProgress(ref);
-  const staticMode = useMediaQuery('(max-width: 39.99rem)');
-  useMotionValueEvent(progress, 'change', value => ref.current?.style.setProperty('--scroll-progress', value.toFixed(3)));
+  const activeIndex = useAutoplayIndex(demoStates.length, 3600);
+  const compact = useMediaQuery('(max-width: 39.99rem)');
 
   return (
-    <section ref={ref} id="ciak" data-testid="home-section" className={`ciak-demo${staticMode ? ' ciak-demo--static' : ''}`} aria-labelledby="ciak-title">
+    <section id="ciak" data-testid="home-section" data-animation="autoplay" className="ciak-demo" aria-labelledby="ciak-title">
       <div className="ciak-demo__stage container">
         <header className="ciak-demo__intro">
           <p className="eyebrow">La piattaforma operativa</p>
@@ -90,9 +84,9 @@ export function CiakPlatformDemo() {
           <p>Il tuo percorso operativo continua su Ciak.</p>
           <a className="button button--primary" href={siteContent.primaryCta.href}>{siteContent.primaryCta.label} <ArrowRight aria-hidden="true" /></a>
         </header>
-        <ol className="ciak-demo__collage" data-testid="ciak-collage" data-scroll-linked="true" aria-label="Cinque momenti del percorso su Ciak">
+        <ol className="ciak-demo__collage" data-testid="ciak-collage" aria-label="Cinque momenti del percorso su Ciak">
           {demoStates.map((state, index) => (
-            <CiakScreen key={state.id} state={state} index={index} progress={progress} staticMode={staticMode} />
+            <CiakScreen key={state.id} state={state} index={index} activeIndex={activeIndex} compact={compact} />
           ))}
         </ol>
       </div>
