@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { type Variants } from 'framer-motion';
+import { useEffect, useState, type FocusEvent } from 'react';
+import { type Variants, useReducedMotion } from 'framer-motion';
 
 export const reveal: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -37,18 +37,37 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-export function useAutoplayIndex(length: number, intervalMs: number): number {
+export function useAutoplayIndex(length: number, intervalMs: number, enabled = true): number {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (length <= 1) return;
+    if (length <= 1 || !enabled) return;
 
     const timer = window.setInterval(() => {
       setIndex((current) => (current + 1) % length);
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [intervalMs, length]);
+  }, [enabled, intervalMs, length]);
 
   return index;
+}
+
+export function useAutoplaySequence(length: number, intervalMs: number) {
+  const reduced = Boolean(useReducedMotion());
+  const [paused, setPaused] = useState(false);
+  const index = useAutoplayIndex(length, intervalMs, !reduced && !paused);
+
+  return {
+    index,
+    reduced,
+    interactionProps: {
+      onMouseEnter: () => setPaused(true),
+      onMouseLeave: () => setPaused(false),
+      onFocusCapture: () => setPaused(true),
+      onBlurCapture: (event: FocusEvent<HTMLElement>) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+      },
+    },
+  };
 }

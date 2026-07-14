@@ -15,9 +15,9 @@ describe('contratto dei contenuti istituzionali', () => {
     expect(siteContent.primaryCta.label).toBe('Guarda la masterclass gratuita');
   });
 
-  it('descrive il Metodo EVO come percorso in 12 fasi operative', () => {
+  it('descrive il Metodo EVO come protocollo in tre passaggi testato in 7 anni', () => {
     expect(siteContent.faq.find(({ question }) => question === 'Cos’è il Metodo EVO?')?.answer)
-      .toContain('12 fasi operative');
+      .toMatch(/protocollo testato negli ultimi 7 anni.*tre passaggi semplici/i);
   });
 
   it('pubblica tre videotestimonianze complete con foto e poster', () => {
@@ -28,5 +28,15 @@ describe('contratto dei contenuti istituzionali', () => {
       expect(testimonial.photo).toMatch(/^\/testimonials\/.+\.webp$/);
       expect(testimonial.poster).toBe(testimonial.photo);
     }
+  });
+
+  it('espone tutte le venti collaborazioni approvate', () => {
+    expect(siteContent.collaborations).toHaveLength(20);
+    expect(siteContent.collaborations.map(({ name }) => name)).toEqual(expect.arrayContaining([
+      'Andrea Fredi',
+      'Daniele Andolfi',
+      'Sara Stella Duè',
+      'Eva Gugliucciello',
+    ]));
   });
 });

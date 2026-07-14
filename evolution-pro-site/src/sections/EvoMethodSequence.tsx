@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-import { useAutoplayIndex } from '../lib/motion';
+import { useAutoplaySequence } from '../lib/motion';
 
 const phases = [
   { name: 'Esamina', text: 'Mercato, problema e posizionamento.' },
@@ -9,19 +9,19 @@ const phases = [
 ];
 
 export function EvoMethodSequence() {
-  const activeIndex = useAutoplayIndex(phases.length, 3200);
+  const { index: activeIndex, reduced, interactionProps } = useAutoplaySequence(phases.length, 3200);
+  const phase = phases[activeIndex];
 
   return (
     <section id="metodo-evo" data-testid="home-section" data-animation="autoplay" className="evo-method">
-      <div className="evo-method__stage container">
-        <header><p className="eyebrow">Metodo EVO</p><h2>Dal punto di partenza alla crescita</h2><p>12 fasi operative accompagnano il lavoro, dentro tre passaggi chiari.</p></header>
-        <ol className="evo-method__phases">
-          {phases.map(({ name, text }, index) => (
-            <motion.li key={name} data-active={activeIndex === index} animate={{ opacity: activeIndex === index ? 1 : 0, x: activeIndex === index ? 0 : 36, scale: activeIndex === index ? 1 : .94 }} transition={{ duration: .75, ease: 'easeInOut' }} style={{ zIndex: activeIndex === index ? 2 : 1 }}>
-              <span aria-hidden="true">0{index + 1}</span><h3>{name}</h3><p>{text}</p>
-            </motion.li>
-          ))}
-        </ol>
+      <div className="evo-method__stage container" {...interactionProps}>
+        <header><p className="eyebrow">Metodo EVO</p><h2>Dal punto di partenza alla crescita</h2><p>3 passaggi semplici dentro un protocollo testato negli ultimi 7 anni</p></header>
+        <div className="evo-method__phases">
+          <motion.article key={phase.name} data-testid="active-evo-phase" initial={reduced ? false : { opacity: 0, x: 36, scale: .95 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: .6, ease: 'easeOut' }}>
+            <span aria-hidden="true">0{activeIndex + 1}</span><h3>{phase.name}</h3><p>{phase.text}</p>
+          </motion.article>
+        </div>
+        <ol className="sr-only" aria-label="Le tre fasi del Metodo EVO">{phases.map(({ name, text }) => <li key={name}>{name}: {text}</li>)}</ol>
       </div>
     </section>
   );

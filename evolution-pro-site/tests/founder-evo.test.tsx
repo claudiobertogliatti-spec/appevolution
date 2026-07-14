@@ -8,7 +8,7 @@ describe('storia di Claudio', () => {
   it('mostra le fotografie approvate e tutti i valori finali', () => {
     render(<FounderStory />);
 
-    expect(screen.getByAltText('Claudio Bertogliatti, fondatore di Evolution PRO')).toBeInTheDocument();
+    expect(screen.getByAltText('Claudio Bertogliatti, fondatore di Evolution PRO')).toHaveClass('founder-story__portrait-image');
     expect(screen.getByAltText('Claudio Bertogliatti al lavoro nel suo ufficio')).toBeInTheDocument();
 
     for (const value of ['20+', '13', '25.000+', '€6M+', '7']) {
@@ -16,21 +16,19 @@ describe('storia di Claudio', () => {
     }
   });
 
-  it('espone cinque beat narrativi distinti nell’ordine previsto', () => {
+  it('espone un beat visuale alla volta e conserva la sequenza accessibile', () => {
     const { container } = render(<FounderStory />);
 
-    expect(
-      Array.from(container.querySelectorAll('[data-beat]')).map((beat) => beat.getAttribute('data-beat')),
-    ).toEqual(['introduzione', 'storia', 'numeri', 'ufficio', 'partner-operativo']);
+    expect(container.querySelectorAll('[data-active-founder-beat]')).toHaveLength(1);
+    expect(screen.getAllByRole('listitem', { hidden: true }).map((item) => item.textContent)).toEqual(expect.arrayContaining(['introduzione', 'storia', 'numeri', 'ufficio', 'partner operativo']));
   });
 });
 
 describe('Metodo EVO', () => {
-  it('presenta tre fasi operative e mantiene le 12 fasi come dettaglio', () => {
+  it('presenta una fase visuale alla volta e il nuovo protocollo', () => {
     render(<EvoMethodSequence />);
 
-    const phases = screen.getAllByRole('heading', { level: 3 });
-    expect(phases.map((phase) => phase.textContent)).toEqual(['Esamina', 'Valida', 'Ottimizza']);
-    expect(screen.getByText(/12 fasi operative/i).tagName).toBe('P');
+    expect(screen.getAllByTestId('active-evo-phase')).toHaveLength(1);
+    expect(screen.getByText('3 passaggi semplici dentro un protocollo testato negli ultimi 7 anni').tagName).toBe('P');
   });
 });

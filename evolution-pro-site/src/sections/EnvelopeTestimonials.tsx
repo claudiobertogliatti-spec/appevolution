@@ -16,8 +16,9 @@ function TestimonialEnvelope({ testimonial, onOpen, index }: { testimonial: Test
   return (
     <div className="envelope-timeline" data-testid="testimonial-timeline">
     <article className="envelope envelope--cinematic" data-testid="testimonial-envelope" data-mobile-state="final">
-      <motion.div className="envelope__flap" aria-hidden="true" data-testid="testimonial-flap" initial={{ rotateX: 0 }} animate={{ rotateX: [0, 0, 180, 180, 180, 0] }} transition={autoplayTransition(delay, [0, .06, .2, .82, .92, 1])} />
-      <motion.div className="envelope__letter" data-testid="testimonial-letter" initial={{ y: 150, rotate: -4 }} animate={{ y: [150, 150, 0, 0, 150], rotate: [-4, -4, 0, 0, -4] }} transition={autoplayTransition(delay, [0, .16, .34, .84, 1])}>
+      <motion.div className="envelope__flap" data-flap-color="light-gray" aria-hidden="true" data-testid="testimonial-flap" initial={{ rotateX: 0 }} animate={{ rotateX: [0, 0, 180, 180, 180, 0] }} transition={autoplayTransition(delay, [0, .1, .24, .82, .92, 1])} />
+      <motion.div className="envelope__seal" data-seal-color="navy" data-testid="testimonial-seal" initial={{ scale: 1, rotate: 0 }} animate={{ scale: [1, 1, 0, 0, 0, 1], rotate: [0, 0, -18, -18, 0, 0] }} transition={autoplayTransition(delay, [0, .08, .18, .82, .93, 1])}><img className="envelope__seal-logo" src="/brand/evolution-pro-logo.webp" alt="Marchio Evolution PRO sul sigillo" /></motion.div>
+      <motion.div className="envelope__letter" data-testid="testimonial-letter" initial={{ y: 170, rotate: -4 }} animate={{ y: [170, 170, -132, -132, 170], rotate: [-4, -4, 0, 0, -4] }} transition={autoplayTransition(delay, [0, .2, .38, .84, 1])}>
         {testimonial.photo && <motion.img className="envelope__photo" src={testimonial.photo} alt="" data-testid="testimonial-photo" initial={{ opacity: 0, y: 64 }} animate={{ opacity: [0, 0, 1, 1, 0], y: [64, 64, 0, 0, 32] }} transition={autoplayTransition(delay, [0, .24, .42, .88, 1])} />}
         <motion.div className="envelope__message" data-testid="testimonial-message" initial={{ opacity: 0, y: 32 }} animate={{ opacity: [0, 0, 1, 1, 0], y: [32, 32, 0, 0, 18] }} transition={autoplayTransition(delay, [0, .34, .52, .9, 1])}>
           <blockquote>{testimonial.quote}</blockquote>

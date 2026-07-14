@@ -49,10 +49,10 @@ describe('hero agenti con movimento ridotto', () => {
     expect(screen.getByTestId('home-section')).not.toHaveClass('hero-agents--static');
   });
 
-  it('mantiene attive le animazioni desktop anche se il sistema richiede movimento ridotto', () => {
+  it('rende statica la hero se il sistema richiede movimento ridotto', () => {
     render(<HeroAgents />);
 
-    expect(screen.getByTestId('home-section')).not.toHaveClass('hero-agents--static');
+    expect(screen.getByTestId('home-section')).toHaveClass('hero-agents--static');
   });
 
   it('rende accessibili la direzione e tutti i sei agenti', () => {
@@ -62,13 +62,12 @@ describe('hero agenti con movimento ridotto', () => {
       screen.getByRole('heading', { level: 1, name: /direzione/i }),
     ).toBeInTheDocument();
 
+    const teamList = screen.getByRole('list', { name: /team che ti accompagna/i });
+    expect(teamList).toHaveClass('sr-only');
     for (const name of ['Stefania', 'Valentina', 'Andrea', 'Gaia', 'Marco', 'Matteo']) {
-      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(teamList).toHaveTextContent(name);
     }
-    const images = screen.getAllByRole('img');
-    expect(images[0]).toHaveAttribute('fetchpriority', 'high');
-    expect(images[0]).not.toHaveAttribute('loading', 'lazy');
-    for (const image of images.slice(1)) expect(image).toHaveAttribute('loading', 'lazy');
+    expect(screen.getByTestId('active-hero-agent').querySelector('img')).toHaveAttribute('fetchpriority', 'high');
   });
 
   it('mantiene l’autoplay anche su viewport mobile', () => {
@@ -78,7 +77,7 @@ describe('hero agenti con movimento ridotto', () => {
     render(<HeroAgents />);
 
     expect(screen.getByTestId('home-section')).toHaveAttribute('data-animation', 'autoplay');
-    expect(screen.getAllByRole('listitem').filter((item) => item.dataset.active === 'true')).toHaveLength(1);
+    expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
     expect(screen.getByRole('link', { name: /guarda la masterclass gratuita/i })).toHaveAttribute(
       'href',
       'https://www.ciak.io',

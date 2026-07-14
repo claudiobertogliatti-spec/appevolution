@@ -65,6 +65,10 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByTestId('testimonial-photo')).toHaveClass('envelope__photo');
     expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
+    expect(screen.getByTestId('testimonial-seal')).toHaveClass('envelope__seal');
+    expect(screen.getByTestId('testimonial-seal')).toHaveAttribute('data-seal-color', 'navy');
+    expect(screen.getByTestId('testimonial-flap')).toHaveAttribute('data-flap-color', 'light-gray');
+    expect(screen.getByAltText('Marchio Evolution PRO sul sigillo')).toHaveClass('envelope__seal-logo');
   });
 
   it('lascia libera la busta senza altezza narrativa o sticky', () => {

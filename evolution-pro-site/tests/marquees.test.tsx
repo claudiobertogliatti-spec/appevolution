@@ -35,6 +35,14 @@ describe('marquee accessibili', () => {
     expect(document.querySelector('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
     expect(document.querySelector('#strumenti')).not.toHaveAttribute('data-scroll-linked');
     expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
+    const logos = within(list).getAllByRole('img');
+    expect(logos).toHaveLength(12);
+    expect(logos.map((logo) => logo.getAttribute('src'))).toEqual(expect.arrayContaining([
+      '/tools/canva.png',
+      '/tools/heygen.png',
+      '/tools/systemeio.png',
+    ]));
+    expect(document.querySelector('.tools-cinematic__mark')).not.toBeInTheDocument();
   });
 
   it('espone ogni collaborazione reale una volta e nasconde il track visuale', () => {
@@ -42,7 +50,9 @@ describe('marquee accessibili', () => {
 
     const list = screen.getByRole('list', { name: /collaborazioni/i });
     expect(list).toHaveClass('marquee__semantic');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(20);
+    expect(screen.getByTestId('collaboration-laptop')).toBeInTheDocument();
+    expect(screen.getByTestId('collaboration-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('logos-visual-track')).toHaveClass('marquee__track--clone');
     expect(screen.getByTestId('logos-visual-track')).toHaveAttribute('aria-hidden', 'true');
   });
@@ -52,8 +62,7 @@ describe('sequenze narrative', () => {
   it('mostra la direzione finale e il rumore iniziale senza duplicare il copy', () => {
     render(<DirectionSequence />);
 
-    expect(screen.getByText('Lo strumento senza direzione è solo rumore.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Prima la direzione\s*\.\s*Poi gli strumenti\./ })).toBeInTheDocument();
+    expect(screen.getByTestId('direction-video')).toHaveAttribute('src', '/video/direction-tools.mp4');
     for (const item of ['Funnel', 'Ads', 'Automazioni', 'Videocorso']) {
       expect(screen.getByText(item)).toBeInTheDocument();
     }
@@ -70,5 +79,9 @@ describe('sequenze narrative', () => {
     expect(screen.getByText('provi strumenti senza un sistema')).toBeInTheDocument();
     expect(screen.getByText('resti economicamente fermo nonostante la competenza')).toBeInTheDocument();
     expect(screen.getByText('Non ti manca la competenza. Ti manca un sistema.')).toBeInTheDocument();
+    expect(screen.getByText('Il problema comune al 95% della categoria')).toBeInTheDocument();
+    const problemImage = screen.getByRole('img', { name: /professionista bloccato/i });
+    expect(problemImage).toHaveAttribute('src', '/visuals/problem-direction.webp');
+    expect(problemImage).toHaveAttribute('loading', 'eager');
   });
 });

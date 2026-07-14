@@ -58,4 +58,13 @@ describe('homepage shell', () => {
       screen.getAllByTestId('home-section').map((section) => section.id),
     ).toEqual(sectionOrder);
   });
+
+  it('usa il copy hero approvato e una pillola target non interattiva', () => {
+    render(<App />);
+
+    expect(screen.getByText('PER CONSULENTI, COACH E PROFESSIONISTI')).toHaveClass('hero-target-pill');
+    expect(screen.queryByRole('link', { name: 'PER CONSULENTI, COACH E PROFESSIONISTI' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('La tua competenza merita una direzione');
+    expect(screen.getByText('Prima di costruire la tua Accademia Digitale, bisogna capire se hai la direzione corretta che può venderla.')).toBeInTheDocument();
+  });
 });

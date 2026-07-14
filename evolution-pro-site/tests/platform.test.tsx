@@ -18,6 +18,9 @@ describe('sistema umano e AI', () => {
       'partner',
     ]);
     expect(screen.getByText(/supervisione umana/i)).toBeInTheDocument();
+    const systemImage = screen.getByRole('img', { name: /collaborazione tra persone e intelligenza artificiale/i });
+    expect(systemImage).toHaveAttribute('src', '/visuals/human-ai-system.webp');
+    expect(systemImage).toHaveAttribute('loading', 'eager');
   });
 });
 

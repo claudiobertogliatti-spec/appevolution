@@ -18,7 +18,7 @@ function ToolCard({ tool, index, total, activeIndex, compact }: { tool: Tool; in
     ? { opacity: active ? 1 : .42, scale: active ? 1.04 : .94, y: active ? -8 : 0 }
     : { x: offset * 120, y: distance * 22, rotate: offset * 6, scale: active ? 1.28 : Math.max(.66, .9 - distance * .06), opacity: distance <= 4 ? (active ? 1 : .72) : .08 };
   return <motion.li data-testid="tool-card" data-active={active} className="tools-cinematic__card" animate={animate} transition={{ duration: .75, ease: 'easeInOut' }} style={{ zIndex: total - distance }}>
-    <span className="tools-cinematic__mark" aria-hidden="true">{tool.name.slice(0, 2)}</span>
+    <img className="tools-cinematic__logo" src={tool.logo} alt={`Logo ${tool.name}`} loading="lazy" decoding="async" />
     <strong>{tool.name}</strong><small>{descriptions[tool.name]}</small>
   </motion.li>;
 }

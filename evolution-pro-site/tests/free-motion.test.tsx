@@ -24,15 +24,16 @@ afterEach(() => vi.useRealTimers());
 describe('animazioni libere dallo scroll', () => {
   it('fa ruotare automaticamente gli agenti della hero', () => {
     render(<HeroAgents />);
-    const agents = screen.getAllByRole('listitem');
+    const currentAgent = () => screen.getByTestId('active-hero-agent');
 
     expect(screen.getByTestId('home-section')).toHaveAttribute('data-animation', 'autoplay');
-    expect(agents[0]).toHaveAttribute('data-active', 'true');
+    expect(currentAgent()).toHaveAttribute('data-agent', 'Stefania');
+    expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
 
     act(() => vi.advanceTimersByTime(3600));
 
-    expect(agents[0]).toHaveAttribute('data-active', 'false');
-    expect(agents[1]).toHaveAttribute('data-active', 'true');
+    expect(currentAgent()).toHaveAttribute('data-agent', 'Valentina');
+    expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
   });
 
   it('rende autonome tutte le scene narrative e le videotestimonianze', () => {

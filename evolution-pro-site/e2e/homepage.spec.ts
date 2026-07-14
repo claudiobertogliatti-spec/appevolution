@@ -44,10 +44,12 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
 test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith('desktop-'), 'La rotazione completa viene verificata sui browser desktop.');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#hero .hero-agent')).toHaveCount(6);
-  await expect(page.locator('#hero .hero-agent[data-active="true"]')).toHaveCount(1);
+  const activeAgent = page.getByTestId('active-hero-agent');
+  await expect(activeAgent).toHaveCount(1);
+  const firstAgent = await activeAgent.getAttribute('data-agent');
   const scrollBefore = await page.evaluate(() => scrollY);
-  await expect.poll(async () => page.locator('#hero .hero-agent').first().getAttribute('data-active'), { timeout: 6_000 }).toBe('false');
+  await expect.poll(async () => activeAgent.getAttribute('data-agent'), { timeout: 6_000 }).not.toBe(firstAgent);
+  await expect(activeAgent).toHaveCount(1);
   expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
 });
 

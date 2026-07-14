@@ -6,6 +6,7 @@ export interface Agent {
 
 export interface Tool {
   name: string;
+  logo: string;
 }
 
 export interface Collaboration {
@@ -80,23 +81,40 @@ export const siteContent: SiteContent = {
     },
   ],
   tools: [
-    'Systeme.io',
-    'Stripe',
-    'Cal.com',
-    'Vercel',
-    'Google Cloud',
-    'Meta',
-    'YouTube',
-    'ElevenLabs',
-    'Anthropic',
-    'Descript',
-    'Canva',
-    'HeyGen',
-  ].map((name) => ({ name })),
+    ['Systeme.io', 'systemeio.png'],
+    ['Stripe', 'stripe.svg'],
+    ['Cal.com', 'caldotcom.svg'],
+    ['Vercel', 'vercel.svg'],
+    ['Google Cloud', 'googlecloud.svg'],
+    ['Meta', 'meta.svg'],
+    ['YouTube', 'youtube.svg'],
+    ['ElevenLabs', 'elevenlabs.svg'],
+    ['Anthropic', 'anthropic.svg'],
+    ['Descript', 'descript.svg'],
+    ['Canva', 'canva.png'],
+    ['HeyGen', 'heygen.png'],
+  ].map(([name, file]) => ({ name, logo: `/tools/${file}` })),
   collaborations: [
     { name: 'Michele Baggio' },
     { name: 'Mariantonietta Tornello' },
     { name: 'Sarah Arensi' },
+    { name: 'Andrea Fredi' },
+    { name: 'Valter Romani' },
+    { name: 'Marco Lamanna' },
+    { name: 'Cosimo Filieri' },
+    { name: 'Alice Conventi' },
+    { name: 'Arianna Aceto' },
+    { name: 'Marco Orlandi' },
+    { name: 'Silvia Sedda' },
+    { name: 'Federica Arimatea' },
+    { name: 'Daniele Andolfi' },
+    { name: 'Daphne Oliveti' },
+    { name: 'Annamaria Depalma' },
+    { name: 'Maria Giulia Falcone' },
+    { name: 'Luigi Calafiore' },
+    { name: 'Sara Stella Duè' },
+    { name: 'Alfredo Vasi' },
+    { name: 'Eva Gugliucciello' },
   ],
   testimonials: [
     {
@@ -126,6 +144,6 @@ export const siteContent: SiteContent = {
     { question: 'Quanto tempo devo dedicare al progetto?', answer: 'Servono confronto, decisioni e registrazione dei contenuti. Il team si occupa della struttura, della tecnologia e dell’esecuzione concordata.' },
     { question: 'Chi possiede il progetto alla fine della collaborazione?', answer: 'Il progetto, i contenuti e gli asset realizzati per il tuo business restano tuoi.' },
     { question: 'Cosa succede se il corso non vende subito?', answer: 'Si leggono i dati, si individua il punto debole e si corregge. Un primo lancio serve anche a raccogliere segnali concreti dal mercato.' },
-    { question: 'Cos’è il Metodo EVO?', answer: 'È il percorso in 12 fasi operative con cui definiamo la direzione, costruiamo l’offerta e la portiamo sul mercato insieme.' },
+    { question: 'Cos’è il Metodo EVO?', answer: 'È un protocollo testato negli ultimi 7 anni: tre passaggi semplici per definire la direzione, costruire l’offerta e portarla sul mercato insieme.' },
   ],
 };

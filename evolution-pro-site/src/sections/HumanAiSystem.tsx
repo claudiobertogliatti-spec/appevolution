@@ -31,7 +31,8 @@ export function HumanAiSystem() {
   return (
     <section id="sistema" data-testid="home-section" className="human-ai section" aria-labelledby="human-ai-title">
       <div className="container human-ai__layout">
-        <header className="human-ai__intro">
+        <figure className="human-ai__visual"><img src="/visuals/human-ai-system.webp" alt="Collaborazione tra persone e intelligenza artificiale nel lavoro quotidiano" loading="eager" decoding="async" /></figure>
+        <div className="human-ai__content"><header className="human-ai__intro">
           <p className="eyebrow">Persone, metodo, tecnologia</p>
           <h2 id="human-ai-title">Un sistema umano, potenziato dall’AI</h2>
           <p>L’AI non sostituisce il team. Rende più ordinato e continuo il lavoro che facciamo insieme.</p>
@@ -45,7 +46,7 @@ export function HumanAiSystem() {
               <div><h3>{label}</h3><p>{text}</p></div>
             </li>
           ))}
-        </ol>
+        </ol></div>
       </div>
     </section>
   );
