@@ -11,7 +11,19 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('region', { name: /preferenze cookie/i })).toBeVisible();
+  await page.getByRole('button', { name: /solo necessari/i }).click();
   await expect(page.locator('h1')).toContainText(/direzione/i);
+  expect(await page.locator('#hero h1 > span').evaluateAll((spans) => spans.map((span) => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    return { text: span.textContent?.trim(), lines: range.getClientRects().length };
+  }))).toEqual([
+    { text: 'La tua', lines: 1 },
+    { text: 'competenza', lines: 1 },
+    { text: 'merita una', lines: 1 },
+    { text: 'direzione', lines: 1 },
+  ]);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.locator('[data-testid="home-section"]')).toHaveCount(12);
   expect(await page.locator('main > section').evaluateAll((sections) => sections.map((section) => section.id))).toEqual(sectionOrder);
@@ -41,6 +53,25 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
   await page.screenshot({ path: testInfo.outputPath(`homepage-${testInfo.project.name}.png`), fullPage: true });
 });
 
+test('videotestimonianze, banner cookie e collegamenti footer sono operativi', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('region', { name: /preferenze cookie/i })).toBeVisible();
+  await page.getByRole('button', { name: /solo necessari/i }).click();
+
+  await page.getByRole('button', { name: /guarda la testimonianza di michele baggio/i }).click();
+  const modal = page.getByRole('dialog', { name: 'Michele Baggio' });
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('source')).toHaveAttribute('src', '/testimonials/michele-baggio.mp4');
+  expect((await page.request.get('/testimonials/michele-baggio.mp4')).status()).toBe(200);
+  await page.getByRole('button', { name: 'Chiudi video' }).click();
+
+  await page.getByRole('link', { name: 'Privacy', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Informativa Privacy' })).toBeVisible();
+  await page.getByRole('button', { name: 'Chiudi informative' }).click();
+  await page.getByRole('link', { name: 'Cookie', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Cookie Policy' })).toBeVisible();
+});
+
 test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith('desktop-'), 'La rotazione completa viene verificata sui browser desktop.');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -51,6 +82,24 @@ test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo
   await expect.poll(async () => activeAgent.getAttribute('data-agent'), { timeout: 6_000 }).not.toBe(firstAgent);
   await expect(activeAgent).toHaveCount(1);
   expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
+});
+
+test('hero mantiene quattro righe senza sovrapporsi alla grafica a 1920px', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Il controllo geometrico viene eseguito una volta sul desktop principale.');
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const geometry = await page.evaluate(() => {
+    const ranges = Array.from(document.querySelectorAll('.hero-agents__copy h1 > span')).flatMap((span) => {
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      return Array.from(range.getClientRects());
+    });
+    const shape = document.querySelector('.hero-agents__shape')!.getBoundingClientRect();
+    return { titleRight: Math.max(...ranges.map((rect) => rect.right)), shapeLeft: shape.left };
+  });
+
+  expect(geometry.titleRight).toBeLessThanOrEqual(geometry.shapeLeft);
 });
 
 test('contenuto principale resta disponibile con rete rallentata', async ({ page }) => {

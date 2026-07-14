@@ -35,6 +35,8 @@ describe('marquee accessibili', () => {
     expect(document.querySelector('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
     expect(document.querySelector('#strumenti')).not.toHaveAttribute('data-scroll-linked');
     expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
+    expect(screen.getByTestId('tools-laptop')).toBeInTheDocument();
+    expect(screen.getByTestId('tools-laptop-image')).toHaveAttribute('src', '/visuals/tools-laptop.webp');
     const logos = within(list).getAllByRole('img');
     expect(logos).toHaveLength(12);
     expect(logos.map((logo) => logo.getAttribute('src'))).toEqual(expect.arrayContaining([
@@ -51,8 +53,8 @@ describe('marquee accessibili', () => {
     const list = screen.getByRole('list', { name: /collaborazioni/i });
     expect(list).toHaveClass('marquee__semantic');
     expect(within(list).getAllByRole('listitem')).toHaveLength(20);
-    expect(screen.getByTestId('collaboration-laptop')).toBeInTheDocument();
-    expect(screen.getByTestId('collaboration-dashboard')).toBeInTheDocument();
+    expect(screen.queryByTestId('collaboration-laptop')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('collaboration-dashboard')).not.toBeInTheDocument();
     expect(screen.getByTestId('logos-visual-track')).toHaveClass('marquee__track--clone');
     expect(screen.getByTestId('logos-visual-track')).toHaveAttribute('aria-hidden', 'true');
   });
@@ -62,7 +64,12 @@ describe('sequenze narrative', () => {
   it('mostra la direzione finale e il rumore iniziale senza duplicare il copy', () => {
     render(<DirectionSequence />);
 
-    expect(screen.getByTestId('direction-video')).toHaveAttribute('src', '/video/direction-tools.mp4');
+    const backgroundVideo = screen.getByTestId('direction-background-video');
+    expect(backgroundVideo).toHaveAttribute('src', '/video/direction-background.mp4');
+    expect(backgroundVideo).toHaveAttribute('autoplay');
+    expect(backgroundVideo).toHaveAttribute('loop');
+    expect(backgroundVideo).toHaveAttribute('playsinline');
+    expect(screen.queryByTestId('direction-video')).not.toBeInTheDocument();
     for (const item of ['Funnel', 'Ads', 'Automazioni', 'Videocorso']) {
       expect(screen.getByText(item)).toBeInTheDocument();
     }

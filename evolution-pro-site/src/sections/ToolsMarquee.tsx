@@ -15,7 +15,7 @@ function ToolCard({ tool, index, total, activeIndex, compact }: { tool: Tool; in
   const distance = Math.abs(offset);
   const active = offset === 0;
   const animate = compact
-    ? { opacity: active ? 1 : .42, scale: active ? 1.04 : .94, y: active ? -8 : 0 }
+    ? { opacity: active ? 1 : 0, scale: active ? 1 : .82, y: active ? 0 : 18 }
     : { x: offset * 120, y: distance * 22, rotate: offset * 6, scale: active ? 1.28 : Math.max(.66, .9 - distance * .06), opacity: distance <= 4 ? (active ? 1 : .72) : .08 };
   return <motion.li data-testid="tool-card" data-active={active} className="tools-cinematic__card" animate={animate} transition={{ duration: .75, ease: 'easeInOut' }} style={{ zIndex: total - distance }}>
     <img className="tools-cinematic__logo" src={tool.logo} alt={`Logo ${tool.name}`} loading="lazy" decoding="async" />
@@ -29,9 +29,14 @@ export function ToolsMarquee() {
   return <section id="strumenti" data-testid="home-section" data-animation="autoplay" className="tools-cinematic">
     <div className="tools-cinematic__stage container">
       <header><p className="eyebrow">Strumenti</p><h2>Gli strumenti giusti, già collegati.</h2><p>Non una collezione di software. Un ecosistema che lavora nella stessa direzione.</p></header>
-      <ul className="tools-cinematic__fan" aria-label="Strumenti collegati">
-        {siteContent.tools.map((tool, index) => <ToolCard key={tool.name} tool={tool} index={index} total={siteContent.tools.length} activeIndex={activeIndex} compact={compact} />)}
-      </ul>
+      <div className="tools-laptop" data-testid="tools-laptop">
+        <img className="tools-laptop__image" data-testid="tools-laptop-image" src="/visuals/tools-laptop.webp" alt="Computer portatile con gli strumenti Evolution PRO" />
+        <div className="tools-laptop__screen">
+          <ul className="tools-cinematic__fan" aria-label="Strumenti collegati">
+            {siteContent.tools.map((tool, index) => <ToolCard key={tool.name} tool={tool} index={index} total={siteContent.tools.length} activeIndex={activeIndex} compact={compact} />)}
+          </ul>
+        </div>
+      </div>
     </div>
   </section>;
 }

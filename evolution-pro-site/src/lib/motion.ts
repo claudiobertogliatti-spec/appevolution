@@ -1,5 +1,5 @@
-import { useEffect, useState, type FocusEvent } from 'react';
-import { type Variants, useReducedMotion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { type Variants } from 'framer-motion';
 
 export const reveal: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -54,20 +54,11 @@ export function useAutoplayIndex(length: number, intervalMs: number, enabled = t
 }
 
 export function useAutoplaySequence(length: number, intervalMs: number) {
-  const reduced = Boolean(useReducedMotion());
-  const [paused, setPaused] = useState(false);
-  const index = useAutoplayIndex(length, intervalMs, !reduced && !paused);
+  const index = useAutoplayIndex(length, intervalMs);
 
   return {
     index,
-    reduced,
-    interactionProps: {
-      onMouseEnter: () => setPaused(true),
-      onMouseLeave: () => setPaused(false),
-      onFocusCapture: () => setPaused(true),
-      onBlurCapture: (event: FocusEvent<HTMLElement>) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
-      },
-    },
+    reduced: false,
+    interactionProps: {},
   };
 }

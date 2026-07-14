@@ -9,13 +9,14 @@ export function DirectionSequence() {
 
   return (
     <section className="direction-sequence" id="direzione" data-testid="home-section" data-animation="autoplay">
+      <video data-testid="direction-background-video" className="direction-sequence__background" src="/video/direction-background.mp4" autoPlay muted loop playsInline preload="auto" aria-hidden="true" tabIndex={-1} />
+      <div className="direction-sequence__overlay" aria-hidden="true" />
       <div className="direction-sequence__stage container" {...interactionProps}>
         <motion.div hidden={activeScene !== 0} className="direction-sequence__noise" data-active={activeScene === 0} initial={reduced ? false : { opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           {noise.map((item) => <span key={item}>{item}</span>)}
         </motion.div>
         <motion.div hidden={activeScene !== 1} className="direction-sequence__stop" data-active={activeScene === 1} initial={reduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           <p>Lo strumento senza direzione è solo rumore.</p>
-          <video data-testid="direction-video" src="/video/direction-tools.mp4" muted loop autoPlay={!reduced} playsInline preload="metadata" aria-label="Gli strumenti digitali senza una direzione comune" />
         </motion.div>
         <motion.h2 hidden={activeScene !== 2} className="direction-sequence__final" data-active={activeScene === 2} initial={reduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           Prima la <mark>direzione</mark>. Poi gli strumenti.

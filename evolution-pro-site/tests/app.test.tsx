@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import App from '../src/App';
@@ -38,7 +38,7 @@ describe('homepage shell', () => {
 
     expect(screen.getByRole('img', { name: 'Evolution PRO' })).toHaveAttribute(
       'src',
-      '/brand/evolution-pro-logo.webp',
+      '/brand/evolution-pro-logo-transparent.webp',
     );
     expect(screen.getByRole('img', { name: 'Evolution PRO' })).toHaveAttribute('decoding', 'async');
     for (const [label, href] of [
@@ -49,6 +49,27 @@ describe('homepage shell', () => {
     ]) {
       expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href);
     }
+  });
+
+  it('mostra il banner cookie al primo accesso e apre le informative dal footer', () => {
+    localStorage.clear();
+    render(<App />);
+
+    expect(screen.getByRole('region', { name: /preferenze cookie/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /solo necessari/i }));
+    expect(screen.queryByRole('region', { name: /preferenze cookie/i })).not.toBeInTheDocument();
+    expect(localStorage.getItem('evolution-pro-cookie-consent')).toContain('necessary');
+
+    fireEvent.click(screen.getByRole('link', { name: 'Privacy' }));
+    expect(screen.getByRole('dialog', { name: /informativa privacy/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /chiudi informative/i }));
+
+    fireEvent.click(screen.getByRole('link', { name: 'Cookie' }));
+    expect(screen.getByRole('dialog', { name: /cookie policy/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /chiudi informative/i }));
+
+    fireEvent.click(screen.getByRole('link', { name: 'Termini e condizioni' }));
+    expect(screen.getByRole('dialog', { name: /termini e condizioni/i })).toBeInTheDocument();
   });
 
   it('mantiene l’ordine narrativo previsto', () => {

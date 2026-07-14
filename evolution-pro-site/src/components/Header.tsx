@@ -15,7 +15,7 @@ export function Header() {
     <header className={`site-header${compact ? ' site-header--compact' : ''}`}>
       <div className="container site-header__inner">
         <a className="site-header__brand" href="#hero">
-          <img src="/brand/evolution-pro-logo.webp" srcSet="/brand/evolution-pro-logo.webp 640w, /brand/evolution-pro-logo-1280.webp 1280w" sizes="(max-width: 64rem) 136px, 176px" alt="Evolution PRO" width="640" height="138" decoding="async" />
+          <img src="/brand/evolution-pro-logo-transparent.webp" alt="Evolution PRO" width="640" height="138" decoding="async" />
         </a>
         <nav className="site-header__nav" aria-label="Navigazione principale">
           <a href="#metodo-evo">Metodo EVO</a>

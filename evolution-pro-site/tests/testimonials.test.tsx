@@ -66,9 +66,10 @@ describe('EnvelopeTestimonials', () => {
     expect(screen.getByTestId('testimonial-message')).toHaveClass('envelope__message');
     expect(screen.getByTestId('testimonial-actions')).toHaveClass('envelope__actions');
     expect(screen.getByTestId('testimonial-seal')).toHaveClass('envelope__seal');
-    expect(screen.getByTestId('testimonial-seal')).toHaveAttribute('data-seal-color', 'navy');
-    expect(screen.getByTestId('testimonial-flap')).toHaveAttribute('data-flap-color', 'light-gray');
-    expect(screen.getByAltText('Marchio Evolution PRO sul sigillo')).toHaveClass('envelope__seal-logo');
+    expect(screen.getByTestId('testimonial-seal')).toHaveAttribute('data-seal-style', 'gray-spiral');
+    expect(screen.getByTestId('testimonial-flap')).toHaveAttribute('data-flap-color', 'yellow');
+    expect(screen.getByAltText('Spirale Evolution PRO')).toHaveAttribute('src', '/brand/evolution-spiral-gray.webp');
+    expect(screen.getByRole('button', { name: /guarda la testimonianza di partner verificato/i })).toBeInTheDocument();
   });
 
   it('lascia libera la busta senza altezza narrativa o sticky', () => {
@@ -104,4 +105,5 @@ describe('FaqAccordion', () => {
 it('usa il dominio Ciak nella CTA finale', () => {
   render(<FinalCta />);
   expect(screen.getByRole('link')).toHaveAttribute('href', 'https://www.ciak.io');
+  expect(screen.getByRole('img', { name: /direzione strategica/i })).toBeInTheDocument();
 });

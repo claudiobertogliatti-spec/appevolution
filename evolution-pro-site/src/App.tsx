@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { HeroAgents } from './sections/HeroAgents';
 import { DirectionSequence } from './sections/DirectionSequence';
@@ -12,8 +13,12 @@ import { EnvelopeTestimonials } from './sections/EnvelopeTestimonials';
 import { FaqAccordion } from './sections/FaqAccordion';
 import { FinalCta } from './sections/FinalCta';
 import { Footer } from './components/Footer';
+import { CookieConsent } from './components/CookieConsent';
+import { LegalModal, type LegalPolicy } from './components/LegalModal';
 
 export default function App() {
+  const [activePolicy, setActivePolicy] = useState<LegalPolicy | null>(null);
+  const [cookieRevision, setCookieRevision] = useState(0);
   return (
     <>
       <a className="skip-link" href="#main-content">Vai al contenuto</a>
@@ -32,7 +37,9 @@ export default function App() {
         <FaqAccordion />
         <FinalCta />
       </main>
-      <Footer />
+      <Footer onOpenPolicy={setActivePolicy} onOpenCookies={() => setCookieRevision((value) => value + 1)} />
+      <CookieConsent key={cookieRevision} onOpenPolicy={setActivePolicy} />
+      <LegalModal policy={activePolicy} onClose={() => setActivePolicy(null)} />
     </>
   );
 }

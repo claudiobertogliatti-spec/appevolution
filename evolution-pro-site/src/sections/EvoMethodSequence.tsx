@@ -9,7 +9,7 @@ const phases = [
 ];
 
 export function EvoMethodSequence() {
-  const { index: activeIndex, reduced, interactionProps } = useAutoplaySequence(phases.length, 3200);
+  const { index: activeIndex, reduced, interactionProps } = useAutoplaySequence(phases.length, 3000);
   const phase = phases[activeIndex];
 
   return (

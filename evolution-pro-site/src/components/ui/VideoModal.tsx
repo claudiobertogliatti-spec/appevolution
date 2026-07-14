@@ -53,7 +53,7 @@ export function VideoModal({ open, onClose, src, title, poster }: VideoModalProp
       <div className="video-modal__panel">
         <button className="video-modal__close" onClick={onClose} aria-label="Chiudi video">×</button>
         <video ref={videoRef} controls tabIndex={0} preload="metadata" poster={poster} title={`Video testimonianza di ${title}`}>
-          <source src={src} />
+          <source src={src} type="video/mp4" />
         </video>
       </div>
     </div>

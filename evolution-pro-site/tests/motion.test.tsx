@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const motionPreference = vi.hoisted(() => ({ reduced: true }));
@@ -49,10 +49,15 @@ describe('hero agenti con movimento ridotto', () => {
     expect(screen.getByTestId('home-section')).not.toHaveClass('hero-agents--static');
   });
 
-  it('rende statica la hero se il sistema richiede movimento ridotto', () => {
+  it('mantiene la rotazione degli agenti anche se il browser richiede movimento ridotto', () => {
+    vi.useFakeTimers();
     render(<HeroAgents />);
 
-    expect(screen.getByTestId('home-section')).toHaveClass('hero-agents--static');
+    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Stefania');
+    fireEvent.mouseEnter(document.querySelector('.hero-agents__visual')!);
+    act(() => vi.advanceTimersByTime(3600));
+    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Valentina');
+    vi.useRealTimers();
   });
 
   it('rende accessibili la direzione e tutti i sei agenti', () => {
