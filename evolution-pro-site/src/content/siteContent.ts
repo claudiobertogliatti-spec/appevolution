@@ -146,5 +146,10 @@ export const siteContent: SiteContent = {
     { question: 'Chi possiede il progetto alla fine della collaborazione?', answer: 'Il progetto, i contenuti e gli asset realizzati per il tuo business restano tuoi.' },
     { question: 'Cosa succede se il corso non vende subito?', answer: 'Si leggono i dati, si individua il punto debole e si corregge. Un primo lancio serve anche a raccogliere segnali concreti dal mercato.' },
     { question: 'Cos’è il Metodo EVO?', answer: 'È un protocollo testato negli ultimi 7 anni: tre passaggi semplici per definire la direzione, costruire l’offerta e portarla sul mercato insieme.' },
+    { question: 'Devo avere già un pubblico o una lista di contatti?', answer: 'No. Il percorso include la costruzione del sistema di acquisizione: funnel, contenuti e strategia per portare le persone giuste davanti alla tua offerta.' },
+    { question: 'Serve competenza tecnica per gestire funnel e piattaforme?', answer: 'No. La parte tecnica — funnel, automazioni e integrazioni — la realizza il team. A te restano le decisioni e i contenuti che solo tu puoi dare.' },
+    { question: 'In quanto tempo posso lanciare la mia Accademia?', answer: 'Dipende dai materiali disponibili e dal tuo ritmo. Il Metodo EVO serve ad arrivare al primo lancio senza passaggi inutili, non a promettere tempi magici.' },
+    { question: 'Cosa fa il team e cosa devo fare io?', answer: 'Il team cura strategia, tecnologia ed esecuzione. Tu porti la competenza, registri i contenuti e approvi le decisioni: il progetto resta guidato da te.' },
+    { question: 'Cos’è Ciak e come si collega al percorso?', answer: 'Ciak è la piattaforma operativa dove il lavoro prende forma: percorso, materiali, task e avanzamento restano in un unico posto, verificabili passo dopo passo.' },
   ],
 };

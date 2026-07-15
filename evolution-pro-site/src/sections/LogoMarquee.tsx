@@ -17,7 +17,7 @@ export function LogoMarquee() {
     <section className="section section--white collaborations" id="collaborazioni" data-testid="home-section" data-animation="autoplay">
       <div className="container">
         <p className="eyebrow">Collaborazioni</p>
-        <h2>Persone reali. Progetti costruiti insieme.</h2>
+        <h2 className="collaborations__title">Progetti reali costruiti con professionisti di talento</h2>
       </div>
       <ul className="collaborations__semantic sr-only" aria-label="Collaborazioni reali">
         {partners.map(({ name, role }) => (

@@ -13,19 +13,15 @@ describe('prestazioni degli asset', () => {
     expect(html).toContain('fonts.googleapis.com');
   });
 
-  it('usa immagini founder WebP responsive, lazy e dimensionate', () => {
+  it('usa l’immagine founder WebP responsive, lazy e dimensionata', () => {
     render(<FounderStory />);
-    for (const image of [
-      screen.getByAltText(/fondatore di Evolution PRO/i),
-      screen.getByAltText(/nel suo ufficio/i),
-    ]) {
-      expect(image).toHaveAttribute('srcset');
-      expect(image).toHaveAttribute('sizes');
-      expect(image).toHaveAttribute('loading', 'lazy');
-      expect(image).toHaveAttribute('decoding', 'async');
-      expect(image).toHaveAttribute('width');
-      expect(image).toHaveAttribute('height');
-      expect(image.getAttribute('src')).toMatch(/\.webp$/);
-    }
+    const image = screen.getByAltText(/fondatore di Evolution PRO/i);
+    expect(image).toHaveAttribute('srcset');
+    expect(image).toHaveAttribute('sizes');
+    expect(image).toHaveAttribute('loading', 'lazy');
+    expect(image).toHaveAttribute('decoding', 'async');
+    expect(image).toHaveAttribute('width');
+    expect(image).toHaveAttribute('height');
+    expect(image.getAttribute('src')).toMatch(/\.webp$/);
   });
 });

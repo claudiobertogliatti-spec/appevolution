@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-import { useAutoplaySequence, useMediaQuery } from '../lib/motion';
+import { useAutoplaySequence } from '../lib/motion';
 
 const principle = 'Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.';
 
@@ -9,30 +9,25 @@ const YT_SRC = `https://www.youtube-nocookie.com/embed/${YT_ID}?autoplay=1&mute=
 
 export function DirectionSequence() {
   const { index: activeScene, interactionProps } = useAutoplaySequence(2, 4600);
-  const prefersReduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  // Video di sfondo YouTube in loop; disattivato solo con reduced-motion (resta il fondo navy leggibile).
-  const showBackgroundVideo = !prefersReduced;
 
   return (
     <section className="direction-sequence" id="direzione" data-testid="home-section" data-animation="autoplay">
-      {showBackgroundVideo && (
-        <div className="direction-sequence__background" aria-hidden="true">
-          <iframe
-            data-testid="direction-background-video"
-            src={YT_SRC}
-            title="Sfondo Evolution PRO"
-            allow="autoplay; encrypted-media"
-            frameBorder="0"
-            tabIndex={-1}
-          />
-        </div>
-      )}
+      <div className="direction-sequence__background" aria-hidden="true">
+        <iframe
+          data-testid="direction-background-video"
+          src={YT_SRC}
+          title="Sfondo Evolution PRO"
+          allow="autoplay; encrypted-media"
+          frameBorder="0"
+          tabIndex={-1}
+        />
+      </div>
       <div className="direction-sequence__overlay" aria-hidden="true" />
       <div className="direction-sequence__stage container" {...interactionProps}>
-        {activeScene === 0 && <motion.div data-direction-scene="principio" className="direction-sequence__stop" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
+        {activeScene === 0 && <motion.div data-direction-scene="principio" className="direction-sequence__stop" initial={{ opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           <p>{principle}</p>
         </motion.div>}
-        {activeScene === 1 && <motion.h2 data-direction-scene="direzione" className="direction-sequence__final" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
+        {activeScene === 1 && <motion.h2 data-direction-scene="direzione" className="direction-sequence__final" initial={{ opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           Prima la <mark>direzione</mark>. Poi gli strumenti.
         </motion.h2>}
         <ol className="sr-only" aria-label="Sequenza direzione e strumenti"><li>{principle}</li><li>Prima la direzione. Poi gli strumenti.</li></ol>
