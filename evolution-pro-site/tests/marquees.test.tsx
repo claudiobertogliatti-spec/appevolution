@@ -96,7 +96,7 @@ describe('sequenze narrative', () => {
     expect(screen.getByText('aumenti il carico operativo')).toBeInTheDocument();
     expect(screen.getByText('provi strumenti senza un sistema')).toBeInTheDocument();
     expect(screen.getByText('resti economicamente fermo nonostante la competenza')).toBeInTheDocument();
-    expect(screen.getByText('Non ti manca la competenza. Ti manca un sistema.')).toBeInTheDocument();
+    expect(screen.getByText('Non ti mancano gli Attestati: ti manca un sistema!')).toBeInTheDocument();
     expect(screen.getByText('Il problema comune al 95% della categoria')).toBeInTheDocument();
     const problemImage = screen.getByRole('img', { name: /professionista bloccato/i });
     expect(problemImage).toHaveAttribute('src', '/visuals/problem-direction.webp');

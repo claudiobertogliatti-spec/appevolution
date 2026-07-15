@@ -23,7 +23,7 @@ export function ProblemSequence() {
           {painPoints.map((point, index) => <motion.li key={point} data-active={activePoint === index} animate={{ x: activePoint === index ? 14 : 0, opacity: activePoint === index ? 1 : .46, scale: activePoint === index ? 1.03 : 1 }} transition={{ duration: .5 }}>{point}</motion.li>)}
         </ul>
         <motion.h2 data-active={activePoint === painPoints.length} animate={{ opacity: activePoint === painPoints.length ? 1 : .48, scale: activePoint === painPoints.length ? 1.03 : 1 }} transition={{ duration: .55 }}>
-          Non ti manca la competenza. Ti manca un sistema.
+          Non ti mancano gli Attestati: ti manca un sistema!
         </motion.h2>
         </div>
       </div>
