@@ -31,8 +31,8 @@ export function FounderStory() {
             ))}
           </ul>
           <div className="founder-story__text">
-            <p>Da oltre 20 anni lavoro nella vendita e nel marketing, attraversando 13 settori e più di 25.000 trattative. Negli ultimi 7 anni nelle Accademie Digitali ho visto professionisti competenti perdere tempo, energia e denaro costruendo corsi senza una struttura.</p>
-            <p>Evolution PRO nasce per risolvere questo: non come agenzia tradizionale, ma come partner operativo al tuo fianco.</p>
+            <p>Dopo aver affrontato oltre 25 mila trattative in 13 settori differenti generando oltre 6 mln di euro di fatturato, negli ultimi 7 anni mi sono occupato di Digital Marketing osservando professionisti competenti perdere tempo, energia e denaro.</p>
+            <p>Ecco perché ho creato Evolution PRO: non un&rsquo;agenzia tradizionale, ma un partner operativo al tuo fianco.</p>
           </div>
         </div>
       </div>

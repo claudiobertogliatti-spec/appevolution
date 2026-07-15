@@ -17,8 +17,8 @@ describe('storia di Claudio', () => {
     for (const value of ['20+', '13', '25.000+', '€6M+', '7']) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
-    expect(screen.getByText(/Da oltre 20 anni lavoro/)).toBeInTheDocument();
-    expect(screen.getByText(/Evolution PRO nasce per risolvere questo/)).toBeInTheDocument();
+    expect(screen.getByText(/Dopo aver affrontato oltre 25 mila trattative/)).toBeInTheDocument();
+    expect(screen.getByText(/Ecco perché ho creato Evolution PRO/)).toBeInTheDocument();
   });
 
   it('evidenzia un numero alla volta e lo fa ruotare nel tempo', () => {
