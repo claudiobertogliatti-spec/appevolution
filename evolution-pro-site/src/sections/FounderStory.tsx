@@ -32,7 +32,7 @@ export function FounderStory() {
           </ul>
           <div className="founder-story__text">
             <p>Dopo aver affrontato oltre 25 mila trattative in 13 settori differenti generando oltre 6 mln di euro di fatturato, negli ultimi 7 anni mi sono occupato di Digital Marketing osservando professionisti competenti perdere tempo, energia e denaro.</p>
-            <p>Ecco perché ho creato Evolution PRO: non un&rsquo;agenzia tradizionale, ma un partner operativo al tuo fianco.</p>
+            <p>Ecco perché ho creato Evolution PRO: non un&rsquo;agenzia tradizionale, ma <span className="hero-agents__highlight">un partner operativo al tuo fianco</span>.</p>
           </div>
         </div>
       </div>
