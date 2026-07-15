@@ -8,17 +8,15 @@ import { ProblemSequence } from '../src/sections/ProblemSequence';
 import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 describe('marquee accessibili', () => {
-  it('mostra le collaborazioni come griglia leggibile anche su mobile', () => {
+  it('mostra le collaborazioni in un banner scorrevole', () => {
     const { process } = globalThis as unknown as { process: { cwd: () => string } };
     const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
-    const mobileCss = css.slice(
-      css.indexOf('@media (max-width: 39.99rem)'),
-      css.indexOf('.testimonials h2'),
-    );
 
-    expect(mobileCss).toMatch(/\.collaborations__grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
+    expect(css).toMatch(/\.collaborations__track\s*\{[^}]*animation:\s*marquee-scroll/);
     render(<LogoMarquee />);
-    expect(screen.getAllByTestId('collab-card')).toHaveLength(20);
+    expect(screen.getByTestId('collaborations-track')).toBeInTheDocument();
+    // 20 partner duplicati per lo scorrimento continuo
+    expect(screen.getAllByTestId('collab-card')).toHaveLength(40);
   });
 
   it('espone i dodici strumenti una volta sola e include Canva e HeyGen', () => {
@@ -45,36 +43,37 @@ describe('marquee accessibili', () => {
     expect(document.querySelector('.tools-cinematic__mark')).not.toBeInTheDocument();
   });
 
-  it('espone ogni collaborazione una volta con nome, ruolo e loghi', () => {
+  it('espone ogni collaborazione una volta nella lista semantica con nome e ruolo', () => {
     render(<LogoMarquee />);
 
     const list = screen.getByRole('list', { name: /collaborazioni/i });
-    expect(list).toHaveClass('collaborations__grid');
+    expect(list).toHaveClass('collaborations__semantic');
     expect(within(list).getAllByRole('listitem')).toHaveLength(20);
-    // ruoli reali (da Ciak)
-    expect(screen.getByText('Naturopatia')).toBeInTheDocument();
-    expect(screen.getByText('Design automobilistico')).toBeInTheDocument();
-    // loghi con alt = nome partner
-    expect(screen.getByRole('img', { name: 'Arianna Aceto' })).toHaveAttribute('src', '/collaborations/arianna-aceto.svg');
-    expect(screen.getByRole('img', { name: 'Daphne Oliveti' })).toHaveAttribute('src', '/collaborations/daphne-oliveti.png');
+    // nome + ruolo reale (da Ciak) nella lista accessibile
+    expect(within(list).getByText('Arianna Aceto — Naturopatia')).toBeInTheDocument();
+    expect(within(list).getByText('Luigi Calafiore — Design automobilistico')).toBeInTheDocument();
+    // loghi presenti nel banner (decorativi, alt vuoto)
+    const srcs = [...document.querySelectorAll('.collab-card__badge img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toContain('/collaborations/arianna-aceto.svg');
+    expect(srcs).toContain('/collaborations/valter-romani.png');
   });
 });
 
 describe('sequenze narrative', () => {
-  it('mostra la direzione finale e il rumore iniziale senza duplicare il copy', () => {
+  it('usa un video YouTube di sfondo in loop e non mostra più la scena rumore', () => {
     const { container } = render(<DirectionSequence />);
 
     const backgroundVideo = screen.getByTestId('direction-background-video');
-    expect(backgroundVideo).toHaveAttribute('src', '/video/direction-background.mp4');
-    expect(backgroundVideo).toHaveAttribute('autoplay');
-    expect(backgroundVideo).toHaveAttribute('loop');
-    expect(backgroundVideo).toHaveAttribute('playsinline');
-    expect(screen.queryByTestId('direction-video')).not.toBeInTheDocument();
+    expect(backgroundVideo.tagName).toBe('IFRAME');
+    expect(backgroundVideo.getAttribute('src')).toMatch(/youtube(-nocookie)?\.com\/embed\/FGMqGHNmI14/);
+    expect(backgroundVideo.getAttribute('src')).toMatch(/loop=1/);
+    expect(backgroundVideo.getAttribute('src')).toMatch(/mute=1/);
+    // scena "rumore" (icone + label sparse funnel/ads/automazioni/videocorso) rimossa
+    expect(screen.queryAllByTestId('direction-noise-icon')).toHaveLength(0);
+    expect(screen.queryByText('Funnel')).not.toBeInTheDocument();
+    // una sola scena attiva alla volta, la prima è il principio
     expect(container.querySelectorAll('[data-direction-scene]')).toHaveLength(1);
-    expect(screen.getAllByTestId('direction-noise-icon')).toHaveLength(4);
-    for (const item of ['Funnel', 'Ads', 'Automazioni', 'Videocorso']) {
-      expect(screen.getByText(item)).toBeInTheDocument();
-    }
+    expect(container.querySelector('[data-direction-scene="principio"]')).toBeInTheDocument();
   });
 
   it('usa il nuovo principio e un logo ampio dentro il display', () => {
@@ -82,7 +81,7 @@ describe('sequenze narrative', () => {
     const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
     render(<><ToolsMarquee /><DirectionSequence /></>);
 
-    expect(screen.getByText('Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.')).toBeInTheDocument();
+    expect(screen.getAllByText('Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.').length).toBeGreaterThan(0);
     expect(css).toMatch(/\.tools-laptop__brand\s*\{[^}]*width:\s*min\(28rem,\s*60%\)/);
   });
 

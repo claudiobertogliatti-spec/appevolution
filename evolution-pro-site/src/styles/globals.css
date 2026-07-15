@@ -177,9 +177,12 @@ h2 {
 .tools-cinematic__logo { display: block; width: 3rem; height: 3rem; object-fit: contain; }
 .tools-cinematic__card strong { font-size: .82rem; }
 .tools-cinematic__card small { color: var(--brand-muted); }
-.collaborations__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 1rem; margin-top: 2.5rem; padding: 0; list-style: none; }
-.collab-card { display: grid; grid-template-rows: auto auto 1fr; gap: .35rem; align-content: start; justify-items: center; padding: 1.5rem 1rem; border: 1px solid var(--brand-border); border-radius: 1rem; background: var(--surface-white); text-align: center; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
-.collab-card:hover { border-color: var(--brand-yellow); box-shadow: 0 .75rem 1.75rem #10132614; transform: translateY(-2px); }
+@keyframes marquee-scroll { to { transform: translateX(-50%); } }
+.collaborations__marquee { overflow: hidden; margin-top: 2.5rem; -webkit-mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.collaborations__track { display: flex; width: max-content; animation: marquee-scroll 55s linear infinite; }
+.collaborations__marquee:hover .collaborations__track, .collaborations__marquee:focus-within .collaborations__track { animation-play-state: paused; }
+.collab-card { flex: 0 0 auto; width: 12rem; margin-right: 1rem; display: grid; grid-template-rows: auto auto auto; gap: .35rem; align-content: start; justify-items: center; padding: 1.4rem 1rem; border: 1px solid var(--brand-border); border-radius: 1rem; background: var(--surface-white); text-align: center; transition: border-color .2s ease, box-shadow .2s ease; }
+.collab-card:hover { border-color: var(--brand-yellow); box-shadow: 0 .75rem 1.75rem #10132614; }
 .collab-card__badge { display: grid; place-items: center; width: 100%; height: 3.75rem; margin-bottom: .4rem; }
 .collab-card__badge img { max-width: 8.5rem; max-height: 3.75rem; object-fit: contain; }
 .collab-card__badge--initials span { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: var(--brand-navy); color: var(--brand-yellow); font-size: 1.05rem; font-weight: 800; letter-spacing: .02em; }
@@ -198,7 +201,8 @@ h2 {
 .collaboration-laptop__base::after { position: absolute; top: 0; left: 50%; width: 16%; height: .35rem; border-radius: 0 0 .6rem .6rem; background: #f3f3f3; content: ''; transform: translateX(-50%); }
 
 .direction-sequence { position: relative; overflow: hidden; color: var(--text-on-dark); background: var(--brand-navy); }
-.direction-sequence__background { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.direction-sequence__background { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.direction-sequence__background iframe { position: absolute; top: 50%; left: 50%; width: 100vw; height: 56.25vw; min-width: 177.78vh; min-height: 100%; border: 0; transform: translate(-50%, -50%); }
 .direction-sequence__overlay { position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, #0d2952e8, #101326b8 48%, #0d2952de), linear-gradient(#1013264d, #1013268f); }
 .direction-sequence__stage { position: relative; z-index: 2; display: grid; min-height: clamp(32rem, 80vh, 48rem); place-items: center; padding-block: var(--section-space); text-align: center; }
 .direction-sequence__noise, .direction-sequence__stop, .direction-sequence__final { position: absolute; }
@@ -352,8 +356,8 @@ h2 {
   .hero-agent { inset: 1.5rem; display: grid; }
   .hero-agent img { width: 100%; }
   .hero-agent__card { right: .25rem; bottom: .25rem; width: min(18rem, 88%); }
-  .collaborations__grid { grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-top: 2rem; }
-  .collab-card { padding: 1.15rem .75rem; }
+  .collaborations__marquee { margin-top: 2rem; }
+  .collab-card { width: 10.5rem; margin-right: .75rem; padding: 1.15rem .75rem; }
   .direction-sequence__stage { min-height: 30rem; padding-block: var(--section-space); }
   .direction-sequence__noise { inset: 16% 2%; }
   .problem-sequence__stage { grid-template-columns: 1fr; padding-block: var(--section-space); }

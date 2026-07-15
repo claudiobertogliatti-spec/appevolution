@@ -1,40 +1,41 @@
 import { motion } from 'framer-motion';
-import { CirclePlay, Filter, Megaphone, Workflow } from 'lucide-react';
 
 import { useAutoplaySequence, useMediaQuery } from '../lib/motion';
 
-const noise = [
-  { label: 'Funnel', Icon: Filter },
-  { label: 'Ads', Icon: Megaphone },
-  { label: 'Automazioni', Icon: Workflow },
-  { label: 'Videocorso', Icon: CirclePlay },
-];
-
 const principle = 'Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.';
 
+const YT_ID = 'FGMqGHNmI14';
+const YT_SRC = `https://www.youtube-nocookie.com/embed/${YT_ID}?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&controls=0&showinfo=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&fs=0&iv_load_policy=3`;
+
 export function DirectionSequence() {
-  const { index: activeScene, interactionProps } = useAutoplaySequence(3, 4200);
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const { index: activeScene, interactionProps } = useAutoplaySequence(2, 4600);
   const prefersReduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  // Il video di sfondo è puramente decorativo: niente download su mobile o con reduced-motion,
-  // dove la sezione resta comunque leggibile sul fondo navy con overlay.
-  const showBackgroundVideo = !prefersReduced && !isMobile;
+  // Video di sfondo YouTube in loop; disattivato solo con reduced-motion (resta il fondo navy leggibile).
+  const showBackgroundVideo = !prefersReduced;
 
   return (
     <section className="direction-sequence" id="direzione" data-testid="home-section" data-animation="autoplay">
-      {showBackgroundVideo && <video data-testid="direction-background-video" className="direction-sequence__background" src="/video/direction-background.mp4" autoPlay muted loop playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />}
+      {showBackgroundVideo && (
+        <div className="direction-sequence__background" aria-hidden="true">
+          <iframe
+            data-testid="direction-background-video"
+            src={YT_SRC}
+            title="Sfondo Evolution PRO"
+            allow="autoplay; encrypted-media"
+            frameBorder="0"
+            tabIndex={-1}
+          />
+        </div>
+      )}
       <div className="direction-sequence__overlay" aria-hidden="true" />
       <div className="direction-sequence__stage container" {...interactionProps}>
-        {activeScene === 0 && <motion.div data-direction-scene="noise" className="direction-sequence__noise" initial={prefersReduced ? false : { opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
-          {noise.map(({ label, Icon }) => <span key={label}><Icon data-testid="direction-noise-icon" aria-hidden="true" strokeWidth={2.4} />{label}</span>)}
-        </motion.div>}
-        {activeScene === 1 && <motion.div data-direction-scene="principio" className="direction-sequence__stop" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
+        {activeScene === 0 && <motion.div data-direction-scene="principio" className="direction-sequence__stop" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           <p>{principle}</p>
         </motion.div>}
-        {activeScene === 2 && <motion.h2 data-direction-scene="direzione" className="direction-sequence__final" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
+        {activeScene === 1 && <motion.h2 data-direction-scene="direzione" className="direction-sequence__final" initial={prefersReduced ? false : { opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55 }}>
           Prima la <mark>direzione</mark>. Poi gli strumenti.
         </motion.h2>}
-        <ol className="sr-only" aria-label="Sequenza direzione e strumenti"><li>Funnel, Ads, Automazioni, Videocorso</li><li>{principle}</li><li>Prima la direzione. Poi gli strumenti.</li></ol>
+        <ol className="sr-only" aria-label="Sequenza direzione e strumenti"><li>{principle}</li><li>Prima la direzione. Poi gli strumenti.</li></ol>
       </div>
     </section>
   );
