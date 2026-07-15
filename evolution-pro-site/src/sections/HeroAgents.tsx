@@ -44,7 +44,7 @@ export function HeroAgents() {
           >
             <img src={agentImage(agent.name)} alt={`${agent.name}, ${agent.role}`} decoding="async" fetchPriority="high" />
             <div className="hero-agent__card">
-              <strong>{agent.name}</strong>
+              <strong>{agent.name}<span className="hero-agent__ai-tag">Agente AI</span></strong>
               <span>{agent.role}</span>
               <p>Sono {agent.name} e {agent.message.charAt(0).toLowerCase() + agent.message.slice(1)}</p>
             </div>

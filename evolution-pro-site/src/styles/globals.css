@@ -321,6 +321,7 @@ h2 {
 .hero-agent__card strong, .hero-agent__card span { display: block; }
 .hero-agent__card span { color: var(--brand-yellow); font-size: .8rem; font-weight: 600; }
 .hero-agent__card p { margin: .5rem 0 0; font-size: .86rem; }
+.hero-agent__card strong .hero-agent__ai-tag { display: inline-block; margin-left: .45rem; border-radius: 999px; padding: .05rem .5rem; background: var(--brand-yellow); color: var(--brand-ink); font-size: .58rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; vertical-align: middle; }
 
 @media (min-width: 60rem) {
   .hero-agents__stage { grid-template-columns: minmax(0, .9fr) minmax(28rem, 1.1fr); }
