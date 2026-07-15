@@ -27,12 +27,12 @@ describe('animazioni libere dallo scroll', () => {
     const currentAgent = () => screen.getByTestId('active-hero-agent');
 
     expect(screen.getByTestId('home-section')).toHaveAttribute('data-animation', 'autoplay');
-    expect(currentAgent()).toHaveAttribute('data-agent', 'Stefania');
+    expect(currentAgent()).toHaveAttribute('data-agent', 'Claudio B.');
     expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
 
     act(() => vi.advanceTimersByTime(3600));
 
-    expect(currentAgent()).toHaveAttribute('data-agent', 'Valentina');
+    expect(currentAgent()).toHaveAttribute('data-agent', 'Stefania R.');
     expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
   });
 

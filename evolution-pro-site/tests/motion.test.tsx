@@ -53,14 +53,14 @@ describe('hero agenti con movimento ridotto', () => {
     vi.useFakeTimers();
     render(<HeroAgents />);
 
-    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Stefania');
+    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Claudio B.');
     fireEvent.mouseEnter(document.querySelector('.hero-agents__visual')!);
     act(() => vi.advanceTimersByTime(3600));
-    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Valentina');
+    expect(screen.getByTestId('active-hero-agent')).toHaveAttribute('data-agent', 'Stefania R.');
     vi.useRealTimers();
   });
 
-  it('rende accessibili il titolo e tutti i sei agenti', () => {
+  it('rende accessibili titolo, team umano e agenti AI', () => {
     render(<HeroAgents />);
 
     expect(
@@ -69,9 +69,11 @@ describe('hero agenti con movimento ridotto', () => {
 
     const teamList = screen.getByRole('list', { name: /team che ti accompagna/i });
     expect(teamList).toHaveClass('sr-only');
-    for (const name of ['Stefania', 'Valentina', 'Andrea', 'Gaia', 'Marco', 'Matteo']) {
+    for (const name of ['Claudio B.', 'Antonella R.', 'Debora B.', 'Valentina', 'Gaia', 'Marco']) {
       expect(teamList).toHaveTextContent(name);
     }
+    // il primo profilo mostrato è umano: niente badge "Agente AI"
+    expect(screen.getByTestId('active-hero-agent')).not.toHaveTextContent('Agente AI');
     expect(screen.getByTestId('active-hero-agent').querySelector('img')).toHaveAttribute('fetchpriority', 'high');
   });
 
@@ -87,6 +89,6 @@ describe('hero agenti con movimento ridotto', () => {
       'href',
       'https://www.ciak.io',
     );
-    expect(screen.getByAltText(/Stefania, Coordinatrice del tuo percorso/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/Claudio B\., CEO\/Founder/i)).toBeInTheDocument();
   });
 });

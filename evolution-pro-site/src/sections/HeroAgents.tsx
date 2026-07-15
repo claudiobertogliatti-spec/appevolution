@@ -3,11 +3,29 @@ import { motion } from 'framer-motion';
 import { siteContent } from '../content/siteContent';
 import { useAutoplaySequence } from '../lib/motion';
 
-const agentImage = (name: string) => `/agents/${name.toLowerCase()}.jpg`;
+type HeroProfile = { name: string; role: string; text: string; photo: string; ai: boolean };
+
+// Team umano prima, poi gli agenti AI. Il badge "Agente AI" compare solo sugli agenti.
+const profiles: HeroProfile[] = [
+  ...siteContent.team.map((member) => ({
+    name: member.name,
+    role: member.role,
+    text: member.description,
+    photo: member.photo,
+    ai: false,
+  })),
+  ...siteContent.agents.map((agent) => ({
+    name: agent.name,
+    role: agent.role,
+    text: `Sono ${agent.name} e ${agent.message.charAt(0).toLowerCase() + agent.message.slice(1)}`,
+    photo: `/agents/${agent.name.toLowerCase()}.jpg`,
+    ai: true,
+  })),
+];
 
 export function HeroAgents() {
-  const { index: activeIndex, reduced, interactionProps } = useAutoplaySequence(siteContent.agents.length, 3500);
-  const agent = siteContent.agents[activeIndex];
+  const { index: activeIndex, reduced, interactionProps } = useAutoplaySequence(profiles.length, 3500);
+  const profile = profiles[activeIndex];
 
   return (
     <section
@@ -34,23 +52,23 @@ export function HeroAgents() {
         <div className="hero-agents__visual" {...interactionProps}>
           <div className="hero-agents__shape" aria-hidden="true" />
           <motion.div
-            key={agent.name}
+            key={profile.name}
             className="hero-agent"
             data-testid="active-hero-agent"
-            data-agent={agent.name}
+            data-agent={profile.name}
             initial={reduced ? false : { opacity: 0, scale: .9, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: .55, ease: 'easeOut' }}
           >
-            <img src={agentImage(agent.name)} alt={`${agent.name}, ${agent.role}`} decoding="async" fetchPriority="high" />
+            <img src={profile.photo} alt={`${profile.name}, ${profile.role}`} decoding="async" fetchPriority="high" />
             <div className="hero-agent__card">
-              <strong>{agent.name}<span className="hero-agent__ai-tag">Agente AI</span></strong>
-              <span>{agent.role}</span>
-              <p>Sono {agent.name} e {agent.message.charAt(0).toLowerCase() + agent.message.slice(1)}</p>
+              <strong>{profile.name}{profile.ai ? <span className="hero-agent__ai-tag">Agente AI</span> : null}</strong>
+              <span>{profile.role}</span>
+              <p>{profile.text}</p>
             </div>
           </motion.div>
           <ul className="sr-only" aria-label="Il team che ti accompagna">
-            {siteContent.agents.map(({ name, role }) => <li key={name}>{name}, {role}</li>)}
+            {profiles.map(({ name, role }) => <li key={name}>{name}, {role}</li>)}
           </ul>
         </div>
       </div>

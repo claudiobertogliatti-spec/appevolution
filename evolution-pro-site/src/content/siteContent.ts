@@ -4,6 +4,13 @@ export interface Agent {
   message: string;
 }
 
+export interface TeamMember {
+  name: string;
+  role: string;
+  description: string;
+  photo: string;
+}
+
 export interface Tool {
   name: string;
   logo: string;
@@ -36,6 +43,7 @@ export interface SiteContent {
     href: string;
   };
   agents: Agent[];
+  team: TeamMember[];
   tools: Tool[];
   collaborations: Collaboration[];
   testimonials: Testimonial[];
@@ -80,6 +88,13 @@ export const siteContent: SiteContent = {
       role: 'Analista Ciak Blueprint',
       message: 'Ti aiuto a trasformare i dati in decisioni concrete.',
     },
+  ],
+  team: [
+    { name: 'Claudio B.', role: 'CEO/Founder', description: 'Direzione strategica dei progetti e analisi KPI', photo: '/team/claudio.webp' },
+    { name: 'Stefania R.', role: 'Back Office', description: 'Gestione attività post-vendita', photo: '/team/stefania.webp' },
+    { name: 'Antonella R.', role: 'Media Strategist', description: 'Gestione contenuti e strategie di comunicazione', photo: '/team/antonella.webp' },
+    { name: 'Matteo P.', role: 'Video Maker', description: 'Creazione contenuti video', photo: '/team/matteo.webp' },
+    { name: 'Debora B.', role: 'Amministrazione', description: 'Gestione contratti di collaborazione e pagamenti', photo: '/team/debora.webp' },
   ],
   tools: [
     ['Systeme.io', 'systemeio.png'],
