@@ -83,9 +83,9 @@ describe('animazioni libere dallo scroll', () => {
     }
   });
 
-  it('mantiene il titolo hero esattamente su quattro righe', () => {
+  it('mantiene il titolo hero su righe distinte', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
 
-    expect(css).toMatch(/\.hero-agents__copy h1 > span\s*\{[^}]*white-space:\s*nowrap/);
+    expect(css).toMatch(/\.hero-agents__copy h1 > span\s*\{[^}]*display:\s*block/);
   });
 });

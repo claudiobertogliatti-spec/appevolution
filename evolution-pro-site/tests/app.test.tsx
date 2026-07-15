@@ -89,7 +89,8 @@ describe('homepage shell', () => {
 
     expect(screen.getByText('PER CONSULENTI, COACH E PROFESSIONISTI')).toHaveClass('hero-target-pill');
     expect(screen.queryByRole('link', { name: 'PER CONSULENTI, COACH E PROFESSIONISTI' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('La tua competenza merita una direzione');
-    expect(screen.getByText('Prima di costruire la tua Accademia Digitale, bisogna capire se hai la direzione corretta che può venderla.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('La tua competenza diventa un’Accademia che vende.');
+    expect(screen.getByText('Ma prima costruiamo la direzione giusta; senza quella, nessun corso, sessione o prodotto può vendere.')).toBeInTheDocument();
+    expect(screen.getByText('Alla fine hai: il tuo posizionamento, la tua Accademia e un sistema di vendita di tua proprietà.')).toBeInTheDocument();
   });
 });

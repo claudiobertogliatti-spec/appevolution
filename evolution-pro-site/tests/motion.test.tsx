@@ -60,11 +60,11 @@ describe('hero agenti con movimento ridotto', () => {
     vi.useRealTimers();
   });
 
-  it('rende accessibili la direzione e tutti i sei agenti', () => {
+  it('rende accessibili il titolo e tutti i sei agenti', () => {
     render(<HeroAgents />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: /direzione/i }),
+      screen.getByRole('heading', { level: 1, name: /Accademia che vende/i }),
     ).toBeInTheDocument();
 
     const teamList = screen.getByRole('list', { name: /team che ti accompagna/i });

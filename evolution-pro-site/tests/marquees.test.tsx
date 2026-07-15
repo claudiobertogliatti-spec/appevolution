@@ -8,7 +8,7 @@ import { ProblemSequence } from '../src/sections/ProblemSequence';
 import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 describe('marquee accessibili', () => {
-  it('mantiene le collaborazioni leggibili su mobile senza focus stop vuoti', () => {
+  it('mostra le collaborazioni come griglia leggibile anche su mobile', () => {
     const { process } = globalThis as unknown as { process: { cwd: () => string } };
     const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
     const mobileCss = css.slice(
@@ -16,12 +16,9 @@ describe('marquee accessibili', () => {
       css.indexOf('.testimonials h2'),
     );
 
-    expect(mobileCss).toMatch(/\.marquee__semantic\s*\{[^}]*display:\s*grid/);
-    expect(mobileCss).toMatch(/\.marquee__track\s*\{[^}]*display:\s*none/);
-    render(<><LogoMarquee /><ToolsMarquee /></>);
-    for (const marquee of document.querySelectorAll('.marquee')) {
-      expect(marquee).not.toHaveAttribute('tabindex');
-    }
+    expect(mobileCss).toMatch(/\.collaborations__grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
+    render(<LogoMarquee />);
+    expect(screen.getAllByTestId('collab-card')).toHaveLength(20);
   });
 
   it('espone i dodici strumenti una volta sola e include Canva e HeyGen', () => {
@@ -48,16 +45,18 @@ describe('marquee accessibili', () => {
     expect(document.querySelector('.tools-cinematic__mark')).not.toBeInTheDocument();
   });
 
-  it('espone ogni collaborazione reale una volta e nasconde il track visuale', () => {
+  it('espone ogni collaborazione una volta con nome, ruolo e loghi', () => {
     render(<LogoMarquee />);
 
     const list = screen.getByRole('list', { name: /collaborazioni/i });
-    expect(list).toHaveClass('marquee__semantic');
+    expect(list).toHaveClass('collaborations__grid');
     expect(within(list).getAllByRole('listitem')).toHaveLength(20);
-    expect(screen.queryByTestId('collaboration-laptop')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('collaboration-dashboard')).not.toBeInTheDocument();
-    expect(screen.getByTestId('logos-visual-track')).toHaveClass('marquee__track--clone');
-    expect(screen.getByTestId('logos-visual-track')).toHaveAttribute('aria-hidden', 'true');
+    // ruoli reali (da Ciak)
+    expect(screen.getByText('Naturopatia')).toBeInTheDocument();
+    expect(screen.getByText('Design automobilistico')).toBeInTheDocument();
+    // loghi con alt = nome partner
+    expect(screen.getByRole('img', { name: 'Arianna Aceto' })).toHaveAttribute('src', '/collaborations/arianna-aceto.svg');
+    expect(screen.getByRole('img', { name: 'Daphne Oliveti' })).toHaveAttribute('src', '/collaborations/daphne-oliveti.png');
   });
 });
 

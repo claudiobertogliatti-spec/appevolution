@@ -11,6 +11,7 @@ export interface Tool {
 
 export interface Collaboration {
   name: string;
+  role?: string;
   logo?: string;
 }
 
@@ -95,26 +96,26 @@ export const siteContent: SiteContent = {
     ['HeyGen', 'heygen.png'],
   ].map(([name, file]) => ({ name, logo: `/tools/${file}` })),
   collaborations: [
-    { name: 'Michele Baggio' },
-    { name: 'Mariantonietta Tornello' },
-    { name: 'Sarah Arensi' },
-    { name: 'Andrea Fredi' },
-    { name: 'Valter Romani' },
-    { name: 'Marco Lamanna' },
-    { name: 'Cosimo Filieri' },
-    { name: 'Alice Conventi' },
-    { name: 'Arianna Aceto' },
-    { name: 'Marco Orlandi' },
-    { name: 'Silvia Sedda' },
-    { name: 'Federica Arimatea' },
-    { name: 'Daniele Andolfi' },
-    { name: 'Daphne Oliveti' },
-    { name: 'Annamaria Depalma' },
-    { name: 'Maria Giulia Falcone' },
-    { name: 'Luigi Calafiore' },
-    { name: 'Sara Stella Duè' },
-    { name: 'Alfredo Vasi' },
-    { name: 'Eva Gugliucciello' },
+    { name: 'Michele Baggio', role: 'Life coach & naturopata', logo: '/collaborations/michele-baggio.png' },
+    { name: 'Mariantonietta Tornello', role: 'Life coaching & mindfulness', logo: '/collaborations/mariantonietta-tornello.png' },
+    { name: 'Sarah Arensi', role: 'Arte & mentoring evolutivo', logo: '/collaborations/sarah-arensi.png' },
+    { name: 'Andrea Fredi', role: 'Trasformazione interiore', logo: '/collaborations/andrea-fredi.webp' },
+    { name: 'Valter Romani', role: 'Formazione vendita' },
+    { name: 'Marco Lamanna', role: 'Formazione vendita', logo: '/collaborations/marco-lamanna.png' },
+    { name: 'Cosimo Filieri', role: 'Educazione musicale', logo: '/collaborations/cosimo-filieri.png' },
+    { name: 'Alice Conventi', role: 'Rigenesa · rigenerazione & benessere' },
+    { name: 'Arianna Aceto', role: 'Naturopatia', logo: '/collaborations/arianna-aceto.svg' },
+    { name: 'Marco Orlandi', role: 'Arte', logo: '/collaborations/marco-orlandi.png' },
+    { name: 'Silvia Sedda', role: 'Insegnante di inglese', logo: '/collaborations/silvia-sedda.png' },
+    { name: 'Federica Arimatea', role: 'Vocal coaching', logo: '/collaborations/federica-arimatea.jpg' },
+    { name: 'Daniele Andolfi', role: 'Benessere olistico', logo: '/collaborations/daniele-andolfi.png' },
+    { name: 'Daphne Oliveti', role: 'Psicologia sportiva', logo: '/collaborations/daphne-oliveti.png' },
+    { name: 'Annamaria Depalma', role: 'Counselor olistico' },
+    { name: 'Maria Giulia Falcone', role: 'Coaching' },
+    { name: 'Luigi Calafiore', role: 'Design automobilistico' },
+    { name: 'Sara Stella Duè', role: 'Spiritual coaching' },
+    { name: 'Alfredo Vasi', role: 'Green IT & formazione' },
+    { name: 'Eva Gugliucciello', role: 'Naturopatia & cromopuntura', logo: '/collaborations/eva-gugliucciello.webp' },
   ],
   testimonials: [
     {

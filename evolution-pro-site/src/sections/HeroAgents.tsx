@@ -19,9 +19,12 @@ export function HeroAgents() {
       <div className="hero-agents__stage container">
         <div className="hero-agents__copy">
           <span className="hero-target-pill">PER CONSULENTI, COACH E PROFESSIONISTI</span>
-          <h1><span>La tua{' '}</span><span>competenza{' '}</span><span>merita una{' '}</span><span className="hero-agents__highlight">direzione</span></h1>
+          <h1><span>La tua competenza{' '}</span><span>diventa un&rsquo;<span className="hero-agents__highlight">Accademia</span>{' '}</span><span>che vende.</span></h1>
           <p className="hero-agents__lead">
-            Prima di costruire la tua Accademia Digitale, bisogna capire se hai la direzione corretta che può venderla.
+            Ma prima costruiamo la direzione giusta; senza quella, nessun corso, sessione o prodotto pu&ograve; vendere.
+          </p>
+          <p className="hero-agents__outcome">
+            Alla fine hai: il tuo posizionamento, la tua Accademia e un sistema di vendita di tua propriet&agrave;.
           </p>
           <a className="button button--primary" href={siteContent.primaryCta.href}>
             {siteContent.primaryCta.label}

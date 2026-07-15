@@ -13,16 +13,11 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('region', { name: /preferenze cookie/i })).toBeVisible();
   await page.getByRole('button', { name: /solo necessari/i }).click();
-  await expect(page.locator('h1')).toContainText(/direzione/i);
-  expect(await page.locator('#hero h1 > span').evaluateAll((spans) => spans.map((span) => {
-    const range = document.createRange();
-    range.selectNodeContents(span);
-    return { text: span.textContent?.trim(), lines: range.getClientRects().length };
-  }))).toEqual([
-    { text: 'La tua', lines: 1 },
-    { text: 'competenza', lines: 1 },
-    { text: 'merita una', lines: 1 },
-    { text: 'direzione', lines: 1 },
+  await expect(page.locator('h1')).toContainText(/Accademia/i);
+  expect(await page.locator('#hero h1 > span').evaluateAll((spans) => spans.map((span) => span.textContent?.trim()))).toEqual([
+    'La tua competenza',
+    'diventa un’Accademia',
+    'che vende.',
   ]);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.locator('[data-testid="home-section"]')).toHaveCount(12);
@@ -88,7 +83,7 @@ test('hero espone una sequenza autonoma senza scroll', async ({ page }, testInfo
   expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
 });
 
-test('hero mantiene quattro righe senza sovrapporsi alla grafica a 1920px', async ({ page }, testInfo) => {
+test('hero non sovrappone il titolo alla grafica a 1920px', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Il controllo geometrico viene eseguito una volta sul desktop principale.');
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -112,7 +107,7 @@ test('contenuto principale resta disponibile con rete rallentata', async ({ page
     await route.continue();
   });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(/direzione/i);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Accademia/i);
   await expect(page.locator('main')).toBeVisible();
 });
 
