@@ -59,7 +59,7 @@ export const siteContent: SiteContent = {
   },
   agents: [
     {
-      name: 'Stefania',
+      name: 'Simona',
       role: 'Coordinatrice del tuo percorso',
       message: 'Ti aiuto a rimettere in ordine il percorso.',
     },
@@ -84,7 +84,7 @@ export const siteContent: SiteContent = {
       message: 'Ti aiuto a mantenere alta la trazione fino al go-live.',
     },
     {
-      name: 'Matteo',
+      name: 'Carlo',
       role: 'Analista Ciak Blueprint',
       message: 'Ti aiuto a trasformare i dati in decisioni concrete.',
     },
