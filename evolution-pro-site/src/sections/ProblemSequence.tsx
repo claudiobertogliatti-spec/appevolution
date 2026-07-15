@@ -23,7 +23,8 @@ export function ProblemSequence() {
           {painPoints.map((point, index) => <motion.li key={point} data-active={activePoint === index} animate={{ x: activePoint === index ? 14 : 0, opacity: activePoint === index ? 1 : .46, scale: activePoint === index ? 1.03 : 1 }} transition={{ duration: .5 }}>{point}</motion.li>)}
         </ul>
         <motion.h2 className="problem-sequence__punchline" data-active={activePoint === painPoints.length} animate={{ opacity: activePoint === painPoints.length ? 1 : .48, scale: activePoint === painPoints.length ? 1.03 : 1 }} transition={{ duration: .55 }}>
-          Non ti mancano gli Attestati: <span className="hero-agents__highlight">ti manca un sistema!</span>
+          Non ti mancano gli Attestati<br />
+          <span className="hero-agents__highlight">TI MANCA UN SISTEMA!</span>
         </motion.h2>
         </div>
       </div>

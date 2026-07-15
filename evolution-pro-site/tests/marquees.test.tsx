@@ -95,8 +95,8 @@ describe('sequenze narrative', () => {
     expect(screen.getByText('aumenti il carico operativo')).toBeInTheDocument();
     expect(screen.getByText('provi strumenti senza un sistema')).toBeInTheDocument();
     expect(screen.getByText('resti economicamente fermo nonostante la competenza')).toBeInTheDocument();
-    expect(document.querySelector('.problem-sequence__punchline')?.textContent).toBe('Non ti mancano gli Attestati: ti manca un sistema!');
-    expect(screen.getByText('ti manca un sistema!')).toHaveClass('hero-agents__highlight');
+    expect(document.querySelector('.problem-sequence__punchline')?.textContent).toContain('Non ti mancano gli Attestati');
+    expect(screen.getByText('TI MANCA UN SISTEMA!')).toHaveClass('hero-agents__highlight');
     expect(screen.getByText('Il problema comune al 95% della categoria')).toBeInTheDocument();
     const problemImage = screen.getByRole('img', { name: /professionista bloccato/i });
     expect(problemImage).toHaveAttribute('src', '/visuals/problem-direction.webp');
