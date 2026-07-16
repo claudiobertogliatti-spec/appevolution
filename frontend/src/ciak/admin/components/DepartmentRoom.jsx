@@ -64,11 +64,11 @@ function AgentChat({ room, onAuthExpired }) {
 
 export function DepartmentMetricStrip({ metrics, values = {} }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-      {metrics.slice(0, 6).map((metric) => (
-        <div key={metric} className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{metric}</p>
-          <p className="mt-2 text-sm font-semibold text-slate-900">{values[metric] ?? "Da collegare"}</p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {metrics.slice(0, 7).map((metric) => (
+        <div key={metric} className="rounded-2xl border border-slate-200 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{metric}</p>
+          <p className="mt-3 text-xl font-semibold text-slate-900">{values[metric] ?? "Da collegare"}</p>
         </div>
       ))}
     </div>
@@ -91,7 +91,7 @@ export function DepartmentBriefing({ room }) {
           <h2 className="text-lg font-semibold text-slate-900">Fotografia essenziale del reparto</h2>
         </div>
         <span className="rounded-lg bg-yellow-50 px-3 py-1.5 text-xs font-semibold text-yellow-700 border border-yellow-200">
-          max 6 numeri
+          max 7 numeri
         </span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
