@@ -8,7 +8,7 @@ dal questionario alla partnership operativa a 12 mesi.
 
 Coordina:
 - NotebookLM (conoscenza)
-- OpenClaw (azione web)
+- Ricerca web (strategic_research)
 - Team AI (Stefania, Stefania, Andrea, Marco, Gaia, Antonella)
 """
 
@@ -47,8 +47,8 @@ PROTOCOLLO_ANALISI = {
     "fasi": [
         {
             "nome": "DATA_INTELLIGENCE",
-            "descrizione": "Se dati questionario scarsi, attiva OpenClaw per ricerca web",
-            "agente": "OPENCLAW",
+            "descrizione": "Se dati questionario scarsi, attiva la ricerca web per i dati mancanti",
+            "agente": "RESEARCH",
             "condizione": "completezza_questionario < 70%"
         },
         {
@@ -60,7 +60,7 @@ PROTOCOLLO_ANALISI = {
                 "ANDREA": ["15_struttura_corso", "16_modello_monetizzazione"],
                 "MARCO": ["14_criticita", "18_roadmap", "06_profilo_professionale", "20_valutazione_finale"],
                 "GAIA": ["17_costo_opportunita", "19_investimento"],
-                "OPENCLAW": ["10_analisi_mercato", "11_posizionamento_attuale", "12_analisi_competitor"]
+                "RESEARCH": ["10_analisi_mercato", "11_posizionamento_attuale", "12_analisi_competitor"]
             }
         },
         {
@@ -139,10 +139,10 @@ FASI_PARTNERSHIP = [
         "nome": "FUNNEL",
         "codice": "F4",
         "agente_principale": "GAIA",
-        "descrizione": "Deploy automatico su Systeme.io via OpenClaw",
+        "descrizione": "Deploy automatico del funnel (Funnel Factory)",
         "durata_settimane": "2",
         "deliverable": ["Landing page live", "Automazioni email", "Checkout configurato"],
-        "usa_openclaw": True
+        "usa_funnel_factory": True
     },
     {
         "numero": 5,
@@ -169,7 +169,7 @@ ACCOUNTABILITY_CONFIG = {
 
 REVENUE_CONTROL_CONFIG = {
     "frequenza": "ogni_30_giorni",
-    "agente": "OPENCLAW",
+    "agente": "SYSTEME_STATS",
     "fonte_dati": "systeme.io",
     "calcolo": "vendite_totali * 0.10",
     "notifica_admin": True
@@ -194,7 +194,7 @@ Se desideri continuare a ricevere supporto, abbiamo preparato dei pacchetti di g
 # ============================================================================
 
 ERROR_HANDLING = {
-    "openclaw_fallimento_ricerca": {
+    "ricerca_fallita": {
         "azione": "segnala_criticita",
         "criticita": "Invisibilità Digitale",
         "priorita": "alta",

@@ -192,7 +192,7 @@ class AgentAnalyticsHub:
         gaia_metrics = await self._calculate_agent_metrics("GAIA")
         stefania_metrics = await self._calculate_agent_metrics("STEFANIA")
         
-        # Get MRR from dashboard_stats (updated by OPENCLAW agent)
+        # Get MRR from dashboard_stats (updated by systeme_stats_agent)
         dashboard_data = await self.db.dashboard_stats.find_one({"_id": "overview"})
         mrr_value = dashboard_data.get("mrr", 0) if dashboard_data else 0
         

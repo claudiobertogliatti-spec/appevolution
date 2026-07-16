@@ -7,8 +7,8 @@ Stefania funge da Orchestratore che coordina tutti gli agenti del team.
 Implementa un protocollo di comunicazione con memoria condivisa.
 
 Protocollo Team AI:
-- STEFANIA: Interfaccia Utente + Attivazione OpenClaw + Orchestrazione
-- OPENCLAW: Ricerca dati web (via Telegram)
+- STEFANIA: Interfaccia Utente + Attivazione Ricerca + Orchestrazione
+- RESEARCH: Ricerca dati web
 - ORION: Lead Intelligence
 - STEFANIA: Copy & Marketing
 - ANDREA: Video Production
@@ -58,10 +58,10 @@ def get_db():
 TEAM_AGENTS = {
     "STEFANIA": {
         "role": "Orchestratrice",
-        "capabilities": ["interface", "routing", "openclaw_trigger", "coordination"],
+        "capabilities": ["interface", "routing", "research_trigger", "coordination"],
         "report_sections": ["introduzione", "prossimi_passi"]
     },
-    "OPENCLAW": {
+    "RESEARCH": {
         "role": "Web Research",
         "capabilities": ["google_search", "scraping", "competitor_analysis"],
         "report_sections": ["analisi_mercato", "analisi_competitor", "posizionamento_attuale"]
@@ -104,9 +104,9 @@ SECTION_AGENT_MAP = {
     "07_problema_risolto": "ORION",
     "08_target_ideale": "ORION",
     "09_proposta_valore": "STEFANIA",
-    "10_analisi_mercato": "OPENCLAW",
-    "11_posizionamento_attuale": "OPENCLAW",
-    "12_analisi_competitor": "OPENCLAW",
+    "10_analisi_mercato": "RESEARCH",
+    "11_posizionamento_attuale": "RESEARCH",
+    "12_analisi_competitor": "RESEARCH",
     "13_differenziazione": "STEFANIA",
     "14_criticita": "GAIA",
     "15_struttura_corso": "ANDREA",
@@ -231,7 +231,7 @@ class MultiAgentOrchestrator:
     Workflow:
     1. Riceve richiesta (es: "Analisi Strategica")
     2. Inizializza memoria condivisa
-    3. Attiva OpenClaw per ricerca dati
+    3. Attiva la ricerca web per i dati
     4. Distribuisce task agli agenti
     5. Raccoglie output
     6. Compila report finale
@@ -283,15 +283,15 @@ class MultiAgentOrchestrator:
         memory = SharedMemory(task_id)
         
         try:
-            await memory.set_status("openclaw_research")
-            
+            await memory.set_status("strategic_research")
+
             # ═══════════════════════════════════════════════════════════
-            # STEP 1: OpenClaw Research
+            # STEP 1: Strategic Research
             # ═══════════════════════════════════════════════════════════
-            logger.info(f"[Orchestrator] Step 1: OpenClaw Research")
-            
+            logger.info(f"[Orchestrator] Step 1: Strategic Research")
+
             try:
-                from openclaw_research import run_strategic_research
+                from strategic_research import run_strategic_research
                 
                 research_data = await run_strategic_research(
                     nome_partner=f"{questionario.get('nome', '')} {questionario.get('cognome', '')}",
@@ -302,13 +302,13 @@ class MultiAgentOrchestrator:
                     social_links=questionario.get('social_links')
                 )
                 
-                await memory.write_agent_output("OPENCLAW", {
+                await memory.write_agent_output("RESEARCH", {
                     "research_data": research_data,
                     "data_quality": research_data.get("data_quality", "unknown")
                 })
             except Exception as e:
-                logger.error(f"[Orchestrator] OpenClaw error: {e}")
-                await memory.write_agent_error("OPENCLAW", str(e))
+                logger.error(f"[Orchestrator] Research error: {e}")
+                await memory.write_agent_error("RESEARCH", str(e))
             
             # ═══════════════════════════════════════════════════════════
             # STEP 2: Distribuisci task agli altri agenti (in parallelo)
@@ -316,17 +316,17 @@ class MultiAgentOrchestrator:
             await memory.set_status("agents_processing")
             logger.info(f"[Orchestrator] Step 2: Distributing to agents")
             
-            # Recupera dati OpenClaw per gli altri agenti
+            # Recupera dati di ricerca per gli altri agenti
             memory_data = await memory.get()
-            openclaw_output = memory_data.get("agent_outputs", {}).get("OPENCLAW", {})
+            research_output = memory_data.get("agent_outputs", {}).get("RESEARCH", {})
             
             # Esegui task agenti in parallelo
             agent_tasks = [
-                self._run_agent_task("ORION", task_id, questionario, openclaw_output),
-                self._run_agent_task("STEFANIA", task_id, questionario, openclaw_output),
-                self._run_agent_task("ANDREA", task_id, questionario, openclaw_output),
-                self._run_agent_task("GAIA", task_id, questionario, openclaw_output),
-                self._run_agent_task("MARCO", task_id, questionario, openclaw_output),
+                self._run_agent_task("ORION", task_id, questionario, research_output),
+                self._run_agent_task("STEFANIA", task_id, questionario, research_output),
+                self._run_agent_task("ANDREA", task_id, questionario, research_output),
+                self._run_agent_task("GAIA", task_id, questionario, research_output),
+                self._run_agent_task("MARCO", task_id, questionario, research_output),
             ]
             
             await asyncio.gather(*agent_tasks, return_exceptions=True)

@@ -19,7 +19,6 @@
 │   ├── valentina_ai.py           # AI Orchestrator (VALENTINA)
 │   ├── valentina_memory.py       # Memoria persistente AI
 │   ├── valentina_actions.py      # Action dispatcher
-│   ├── openclaw_integration.py   # GUI automation via Telegram
 │   ├── routers/
 │   │   ├── clienti.py            # Funnel clienti (Analisi Strategica)
 │   │   ├── auth.py               # Autenticazione
@@ -69,7 +68,6 @@
 | `valentina_ai.py` | Orchestratore AI (VALENTINA) con Claude | ~800 |
 | `valentina_memory.py` | Sistema di memoria persistente per AI | ~300 |
 | `valentina_actions.py` | Dispatcher azioni automatiche | ~400 |
-| `openclaw_integration.py` | Integrazione GUI automation | ~650 |
 
 ### Routers
 
@@ -162,7 +160,6 @@ EMERGENT_LLM_KEY=sk-emergent-xxxxx
 TELEGRAM_BOT_TOKEN=xxxxx:yyyyy
 TELEGRAM_BOT_USERNAME=valentina_evo_bot
 TELEGRAM_ADMIN_CHAT_ID=123456789
-OPENCLAW_CHAT_ID=123456789
 
 # Stripe
 STRIPE_API_KEY=sk_live_xxxxx
@@ -211,7 +208,6 @@ WDS_SOCKET_PORT=443
 | `videos` | Job elaborazione video |
 | `files` | Metadati file uploadati |
 | `payments` | Transazioni Stripe |
-| `openclaw_tasks` | Task GUI automation |
 | `telegram_admins` | Admin Telegram |
 | `telegram_conversations` | Log conversazioni bot |
 | `webhook_logs` | Log webhook ricevuti |
@@ -248,12 +244,6 @@ WDS_SOCKET_PORT=443
 - `POST /api/telegram/webhook` - Webhook Telegram
 - `POST /api/telegram/set-webhook` - Configura webhook
 - `GET /api/telegram/webhook-info` - Info webhook
-
-### OpenClaw (GUI Automation)
-- `POST /api/openclaw/task` - Crea task
-- `POST /api/openclaw/pipeline/column` - Crea colonna pipeline
-- `POST /api/openclaw/pipeline/move` - Sposta contatto
-- `GET /api/openclaw/tasks` - Lista task
 
 ### Health
 - `GET /api/health` - Health check
@@ -307,7 +297,7 @@ yarn start  # oppure: npm start
 | **MongoDB Atlas** | Database | https://www.mongodb.com/atlas |
 | **Stripe** | Pagamenti | https://stripe.com/docs |
 | **Cloudinary** | Media storage | https://cloudinary.com/documentation |
-| **Telegram Bot API** | Bot + OpenClaw | https://core.telegram.org/bots/api |
+| **Telegram Bot API** | Bot notifiche | https://core.telegram.org/bots/api |
 | **Systeme.io** | CRM/Funnel | https://systeme.io/api |
 | **Claude (Anthropic)** | AI via Emergent | Usa `emergentintegrations` library |
 | **YouTube Data API** | Upload video | https://developers.google.com/youtube |

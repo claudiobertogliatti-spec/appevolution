@@ -67,7 +67,6 @@ EMERGENT_LLM_KEY=sk-emergent-xxxxx
 TELEGRAM_BOT_TOKEN=xxxxx:yyyyy
 TELEGRAM_BOT_USERNAME=your_bot_username
 TELEGRAM_ADMIN_CHAT_ID=your_chat_id
-OPENCLAW_CHAT_ID=your_chat_id
 
 # === STRIPE ===
 # Test keys per sviluppo:

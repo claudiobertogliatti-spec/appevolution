@@ -2695,53 +2695,19 @@ async def publish_funnel(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
-    Pubblica il funnel su Systeme.io tramite OpenClaw
-    Invia un task a Telegram per l'automazione locale
+    Marca il funnel come pubblicato (pending automazione).
+    La pubblicazione effettiva è gestita dalla Funnel Factory.
     """
     await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
-    
+
     funnel = await db.partner_funnel.find_one(
         {"partner_id": request.partner_id}, {"_id": 0}
     )
-    
+
     if not funnel or not funnel.get("generated"):
         raise HTTPException(status_code=400, detail="Genera prima il funnel")
-    
-    # Invia task a OpenClaw via Telegram
-    openclaw_chat_id = os.environ.get('OPENCLAW_CHAT_ID')
-    telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    
-    if openclaw_chat_id and telegram_token:
-        task_message = f"""🤖 OPENCLAW TASK: PUBBLICA FUNNEL
 
-PARTNER: {partner.get('name')}
-PARTNER_ID: {request.partner_id}
-
-AZIONE: Duplica template funnel standard su Systeme.io
-TEMPLATE: Evolution PRO - Funnel Standard
-NOME_FUNNEL: Funnel_{partner.get('name', 'Partner').replace(' ', '_')}
-
-CONTENUTI DA INSERIRE:
-- Opt-in: {funnel.get('content', {}).get('optin_page', {}).get('headline', 'N/D')}
-- Sales: {funnel.get('content', {}).get('sales_page', {}).get('headline', 'N/D')}
-
-STATUS: PENDING"""
-
-        try:
-            import httpx
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
-                    json={
-                        "chat_id": openclaw_chat_id,
-                        "text": task_message,
-                        "parse_mode": "HTML"
-                    }
-                )
-        except Exception as e:
-            logging.warning(f"OpenClaw notification failed: {e}")
-    
     # Marca come pubblicato (pending automazione)
     await db.partner_funnel.update_one(
         {"partner_id": request.partner_id},
@@ -2762,7 +2728,7 @@ STATUS: PENDING"""
     
     return {
         "success": True,
-        "message": "Task di pubblicazione inviato a OpenClaw",
+        "message": "Funnel marcato come pubblicato (pending automazione)",
         "status": "pending_automation"
     }
 

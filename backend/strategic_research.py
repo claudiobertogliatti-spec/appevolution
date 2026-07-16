@@ -1,11 +1,11 @@
 """
-openclaw_research.py
-====================
-OpenClaw Web Research Engine per Evolution PRO OS.
+strategic_research.py
+=====================
+Web Research Engine per Evolution PRO OS.
 
 Sistema di Web Scraping e Ricerca interno alimentato da Claude Code.
 Utilizza Playwright per navigare su Google, LinkedIn e siti competitor.
-Claude funge da "cervello" che istruisce OpenClaw su cosa cercare e sintetizzare.
+Claude funge da "cervello" che istruisce la ricerca su cosa cercare e sintetizzare.
 
 Funzionalità:
 - Ricerca Google per competitor e posizionamento
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURAZIONE
 # ============================================================================
 
-OPENCLAW_RESEARCH_CONFIG = {
+RESEARCH_CONFIG = {
     "max_google_results": 5,
     "max_linkedin_profiles": 3,
     "timeout_seconds": 30,
@@ -65,7 +65,7 @@ Sii preciso, obiettivo e critico. Non inventare dati."""
 # CORE: Web Scraper con Playwright
 # ============================================================================
 
-class OpenClawResearcher:
+class StrategicResearcher:
     """
     Motore di ricerca web per analisi competitor e autocompletamento dati.
     Usa Playwright per navigazione headless e Claude per sintesi.
@@ -92,12 +92,12 @@ class OpenClawResearcher:
                 args=['--no-sandbox', '--disable-setuid-sandbox']
             )
             self.context = await self.browser.new_context(
-                user_agent=OPENCLAW_RESEARCH_CONFIG["user_agent"],
+                user_agent=RESEARCH_CONFIG["user_agent"],
                 viewport={"width": 1920, "height": 1080}
             )
-            logger.info("[OpenClaw Research] Browser avviato")
+            logger.info("[Research] Browser avviato")
         except Exception as e:
-            logger.error(f"[OpenClaw Research] Errore avvio browser: {e}")
+            logger.error(f"[Research] Errore avvio browser: {e}")
             self.browser = None
         return self
     
@@ -109,7 +109,7 @@ class OpenClawResearcher:
             await self.browser.close()
         if hasattr(self, 'playwright'):
             await self.playwright.stop()
-        logger.info("[OpenClaw Research] Browser chiuso")
+        logger.info("[Research] Browser chiuso")
     
     async def search_google(self, query: str, num_results: int = 5) -> List[Dict]:
         """
@@ -124,7 +124,7 @@ class OpenClawResearcher:
             
             # Vai su Google
             search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}&hl=it"
-            await page.goto(search_url, timeout=OPENCLAW_RESEARCH_CONFIG["timeout_seconds"] * 1000)
+            await page.goto(search_url, timeout=RESEARCH_CONFIG["timeout_seconds"] * 1000)
             await page.wait_for_timeout(2000)
             
             # Estrai risultati
@@ -150,10 +150,10 @@ class OpenClawResearcher:
                     logger.debug(f"Errore parsing risultato: {e}")
             
             await page.close()
-            logger.info(f"[OpenClaw] Google search: {len(results)} risultati per '{query}'")
+            logger.info(f"[Research] Google search: {len(results)} risultati per '{query}'")
             
         except Exception as e:
-            logger.error(f"[OpenClaw] Errore Google search: {e}")
+            logger.error(f"[Research] Errore Google search: {e}")
             self.results["errors"].append(f"Google search error: {str(e)}")
         
         return results
@@ -177,7 +177,7 @@ class OpenClawResearcher:
         
         try:
             page = await self.context.new_page()
-            await page.goto(url, timeout=OPENCLAW_RESEARCH_CONFIG["timeout_seconds"] * 1000)
+            await page.goto(url, timeout=RESEARCH_CONFIG["timeout_seconds"] * 1000)
             await page.wait_for_timeout(2000)
             
             content = await page.content()
@@ -210,7 +210,7 @@ class OpenClawResearcher:
             await page.close()
             
         except Exception as e:
-            logger.error(f"[OpenClaw] Errore scraping {url}: {e}")
+            logger.error(f"[Research] Errore scraping {url}: {e}")
             result["error"] = str(e)
         
         return result
@@ -338,15 +338,15 @@ async def run_strategic_research(
     }
     
     try:
-        async with OpenClawResearcher() as researcher:
+        async with StrategicResearcher() as researcher:
             
             # 1. Ricerca presenza web del partner (se ha un sito)
             if website_partner:
-                logger.info(f"[OpenClaw] Analisi sito partner: {website_partner}")
+                logger.info(f"[Research] Analisi sito partner: {website_partner}")
                 research_result["partner_web_presence"] = await researcher.scrape_webpage(website_partner)
             else:
                 # Cerca il partner su Google
-                logger.info(f"[OpenClaw] Ricerca web partner: {nome_partner}")
+                logger.info(f"[Research] Ricerca web partner: {nome_partner}")
                 partner_search = await researcher.search_google(f"{nome_partner} {expertise}", num_results=3)
                 if partner_search:
                     research_result["partner_web_presence"] = {
@@ -360,13 +360,13 @@ async def run_strategic_research(
                     })
             
             # 2. Ricerca di mercato
-            logger.info(f"[OpenClaw] Ricerca mercato: {expertise} / {target}")
+            logger.info(f"[Research] Ricerca mercato: {expertise} / {target}")
             research_result["market_research"] = await researcher.research_market(expertise, target)
             
             # 3. Analisi competitor
             if competitor_names:
                 for comp_name in competitor_names[:3]:  # Max 3 competitor
-                    logger.info(f"[OpenClaw] Analisi competitor: {comp_name}")
+                    logger.info(f"[Research] Analisi competitor: {comp_name}")
                     comp_analysis = await researcher.analyze_competitor(comp_name, expertise)
                     research_result["competitor_analysis"].append(comp_analysis)
             else:
@@ -390,7 +390,7 @@ async def run_strategic_research(
                 research_result["data_quality"] = "partial"
                 
     except Exception as e:
-        logger.error(f"[OpenClaw] Errore ricerca strategica: {e}")
+        logger.error(f"[Research] Errore ricerca strategica: {e}")
         research_result["errors"].append(str(e))
         research_result["data_quality"] = "failed"
     
@@ -445,7 +445,7 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
             return {"error": "Sintesi non generata", "raw": response_text[:500]}
             
     except Exception as e:
-        logger.error(f"[OpenClaw] Errore sintesi Claude: {e}")
+        logger.error(f"[Research] Errore sintesi Claude: {e}")
         return {"error": str(e)}
 
 
@@ -496,11 +496,11 @@ async def autocomplete_missing_data(
         is_generic = value and len(value) < 10
         
         if is_empty or is_generic:
-            logger.info(f"[OpenClaw] Campo '{field}' mancante/generico, avvio ricerca web...")
+            logger.info(f"[Research] Campo '{field}' mancante/generico, avvio ricerca web...")
             
             # Tenta recupero via web
             try:
-                async with OpenClawResearcher() as researcher:
+                async with StrategicResearcher() as researcher:
                     if field in ["sito_web", "website"]:
                         # Cerca sito web del partner
                         search_results = await researcher.search_google(
@@ -550,7 +550,7 @@ async def autocomplete_missing_data(
                         })
                         
             except Exception as e:
-                logger.error(f"[OpenClaw] Errore autocompletamento {field}: {e}")
+                logger.error(f"[Research] Errore autocompletamento {field}: {e}")
                 result["missing_alerts"].append({
                     "field": field,
                     "severity": "low",
@@ -565,9 +565,9 @@ async def autocomplete_missing_data(
 # ============================================================================
 
 __all__ = [
-    "OpenClawResearcher",
+    "StrategicResearcher",
     "run_strategic_research",
     "autocomplete_missing_data",
     "synthesize_research_with_claude",
-    "OPENCLAW_RESEARCH_CONFIG"
+    "RESEARCH_CONFIG"
 ]

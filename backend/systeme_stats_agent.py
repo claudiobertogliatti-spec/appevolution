@@ -1,21 +1,20 @@
 """
-openclaw_agent.py
-Agente OpenClaw per Evolution PRO OS.
-Connette Systeme.io alla dashboard e notifica Claudio su Telegram.
+systeme_stats_agent.py
+Data-intelligence lato Systeme.io per Evolution PRO OS.
+Legge contatti/ordini da Systeme.io, aggiorna le statistiche di dashboard
+(incl. MRR letto dal cockpit) e notifica Claudio su Telegram sui nuovi ordini.
 """
 import os
-import asyncio
 import httpx
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, List
 
 # ── CONFIGURAZIONE ───────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "") or os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
 SYSTEME_API_KEY = os.environ.get("SYSTEME_API_KEY", "")
 
-OPENCLAW_CONFIG = {
-    "id": "OPENCLAW",
+STATS_AGENT_CONFIG = {
+    "id": "SYSTEME_STATS",
     "role": "Data Intelligence & Notifiche",
     "status": "ACTIVE",
     "category": "Sistema",
@@ -61,7 +60,7 @@ async def fetch_systeme_contacts(limit: int = 100) -> list:
                 data = r.json()
                 return data.get("items", data if isinstance(data, list) else [])
     except Exception as e:
-        print(f"[OpenClaw] Errore Systeme contacts: {e}")
+        print(f"[SystemeStats] Errore Systeme contacts: {e}")
     return []
 
 
@@ -80,16 +79,16 @@ async def fetch_systeme_orders() -> list:
                 data = r.json()
                 return data.get("items", data if isinstance(data, list) else [])
     except Exception as e:
-        print(f"[OpenClaw] Errore Systeme orders: {e}")
+        print(f"[SystemeStats] Errore Systeme orders: {e}")
     return []
 
 
 # ── LOGICA PRINCIPALE ────────────────────────────────────────
-async def run_openclaw(db=None) -> dict:
+async def refresh_dashboard_stats(db=None) -> dict:
     """
-    Esegue un ciclo OpenClaw:
+    Esegue un ciclo di aggiornamento statistiche:
     1. Legge dati da Systeme.io
-    2. Aggiorna la dashboard in MongoDB
+    2. Aggiorna la dashboard in MongoDB (incl. MRR letto dal cockpit)
     3. Invia notifiche Telegram per eventi rilevanti
     Ritorna un summary dell'esecuzione.
     """
@@ -131,7 +130,7 @@ async def run_openclaw(db=None) -> dict:
                     created = datetime.fromisoformat(created_raw.split("+")[0]).replace(tzinfo=timezone.utc)
                 else:
                     created = created_raw
-                
+
                 amount = float(order.get("total") or order.get("amount") or order.get("price") or 0)
                 if created > month_ago:
                     mrr += amount
@@ -156,9 +155,9 @@ async def run_openclaw(db=None) -> dict:
                 }},
                 upsert=True
             )
-            
+
             # Salva log esecuzione
-            await db.openclaw_logs.insert_one({
+            await db.stats_agent_logs.insert_one({
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": "cycle",
                 "result": result
@@ -191,12 +190,12 @@ async def run_openclaw(db=None) -> dict:
     return result
 
 
-async def get_openclaw_status() -> dict:
-    """Ritorna lo stato corrente di OpenClaw."""
+async def get_stats_status() -> dict:
+    """Ritorna lo stato corrente dell'agente statistiche Systeme."""
     return {
-        "agent": "OPENCLAW",
+        "agent": "SYSTEME_STATS",
         "status": "ACTIVE",
         "telegram_configured": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID),
         "systeme_configured": bool(SYSTEME_API_KEY),
-        "config": OPENCLAW_CONFIG
+        "config": STATS_AGENT_CONFIG
     }

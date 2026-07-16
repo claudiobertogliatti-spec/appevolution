@@ -25,9 +25,9 @@ L'analisi è ora strutturata in **21 sezioni ordinate**:
 | 07 | Il Problema che Risolvi | Personalizzato |
 | 08 | Il Tuo Target Ideale | Personalizzato |
 | 09 | La Tua Proposta di Valore | Personalizzato |
-| 10 | Analisi del Mercato | Personalizzato + OpenClaw |
-| 11 | Posizionamento Attuale | Personalizzato + OpenClaw |
-| 12 | Analisi dei Competitor | Personalizzato + OpenClaw |
+| 10 | Analisi del Mercato | Personalizzato + Ricerca web |
+| 11 | Posizionamento Attuale | Personalizzato + Ricerca web |
+| 12 | Analisi dei Competitor | Personalizzato + Ricerca web |
 | 13 | Strategia di Differenziazione | Personalizzato |
 | 14 | Criticità e Aree di Rischio | Personalizzato |
 | 15 | Ipotesi Struttura del Corso | Personalizzato |
@@ -40,7 +40,7 @@ L'analisi è ora strutturata in **21 sezioni ordinate**:
 
 ---
 
-### 2. OpenClaw Research Engine
+### 2. Strategic Research Engine
 
 Sistema di Web Intelligence interno che:
 
@@ -49,7 +49,7 @@ Sistema di Web Intelligence interno che:
 - **Analisi Mercato**: Valuta trend e dimensione del mercato
 - **Sintesi Claude**: Usa Claude per sintetizzare i dati in insight
 
-#### File: `/app/backend/openclaw_research.py`
+#### File: `/app/backend/strategic_research.py`
 
 ```python
 # Funzioni principali
@@ -99,7 +99,7 @@ Verifica configurazione:
 ```json
 {
   "master_prompt_available": true,
-  "openclaw_available": true,
+  "research_available": true,
   "versione_prompt": "2.0_21_sezioni",
   "sezioni_disponibili": 21,
   "features": {
@@ -116,13 +116,13 @@ Verifica configurazione:
 Genera analisi con parametri:
 
 - `use_21_sezioni` (bool, default: true): Usa Master Prompt 21 sezioni
-- `use_openclaw` (bool, default: true): Attiva Deep Research
+- `use_research` (bool, default: true): Attiva Deep Research
 
 ---
 
 ## File Creati
 
-1. `/app/backend/openclaw_research.py` - Engine di Web Research
+1. `/app/backend/strategic_research.py` - Engine di Web Research
 2. `/app/backend/master_prompt_analisi.py` - Configurazione Master Prompt
 3. `/app/backend/docs/MASTER_PROMPT_ANALISI.md` - Questa documentazione
 

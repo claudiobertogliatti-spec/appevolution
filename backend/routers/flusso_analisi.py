@@ -31,7 +31,7 @@ import io
 import re
 import bcrypt
 
-# Import Master Prompt e OpenClaw Research
+# Import Master Prompt e Strategic Research
 try:
     from master_prompt_analisi import (
         MASTER_PROMPT_CONFIG,
@@ -39,13 +39,13 @@ try:
         genera_data_gap_alert,
         verifica_completezza_questionario
     )
-    from openclaw_research import (
+    from strategic_research import (
         run_strategic_research,
         autocomplete_missing_data
     )
     MASTER_PROMPT_AVAILABLE = True
 except ImportError as e:
-    logging.warning(f"Master Prompt o OpenClaw non disponibili: {e}")
+    logging.warning(f"Master Prompt o Strategic Research non disponibili: {e}")
     MASTER_PROMPT_AVAILABLE = False
 
 router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"])
@@ -176,18 +176,18 @@ class UploadRicevutaRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT: Test configurazione Master Prompt e OpenClaw
+# ENDPOINT: Test configurazione Master Prompt e Strategic Research
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/config-status")
 async def get_config_status():
     """
-    Verifica lo stato della configurazione del Master Prompt e OpenClaw.
+    Verifica lo stato della configurazione del Master Prompt e Strategic Research.
     Utile per debug e verifica deployment.
     """
     return {
         "master_prompt_available": MASTER_PROMPT_AVAILABLE,
-        "openclaw_available": MASTER_PROMPT_AVAILABLE,
+        "research_available": MASTER_PROMPT_AVAILABLE,
         "versione_prompt": "2.0_21_sezioni" if MASTER_PROMPT_AVAILABLE else "1.0_legacy",
         "sezioni_disponibili": 21 if MASTER_PROMPT_AVAILABLE else 12,
         "features": {
@@ -703,24 +703,24 @@ def genera_analisi_fallback(nome, cognome, expertise, cliente_target, risultato,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# NUOVA FUNZIONE: Genera Analisi 21 Sezioni con OpenClaw Research
+# NUOVA FUNZIONE: Genera Analisi 21 Sezioni con Strategic Research
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_openclaw: bool = True):
+async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_research: bool = True):
     """
     Genera l'Analisi Strategica con il nuovo Master Prompt (21 sezioni).
     
     Implementa:
     - Struttura 21 sezioni come da Master Prompt
     - Data-Gap Protocol con alert espliciti
-    - Deep Research con OpenClaw (se abilitato)
+    - Deep Research (se abilitato)
     - Autocompletamento investigativo per dati mancanti
     - Output in formato Markdown avanzato
     
     Args:
         user_id: ID del cliente
         questionario: Dati del questionario compilato
-        use_openclaw: Se True, attiva ricerca web per dati mancanti
+        use_research: Se True, attiva ricerca web per dati mancanti
     
     Returns:
         Dict con analisi completa in 21 sezioni
@@ -755,9 +755,9 @@ async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_opencl
         completezza_report = verifica_completezza_questionario(questionario)
         logging.info(f"[FLUSSO 21] Completezza questionario: {completezza_report['completezza_percentuale']}%")
         
-        # Se completezza < 70% e OpenClaw abilitato, avvia ricerca web
-        if completezza_report["richiede_ricerca_web"] and use_openclaw:
-            logging.info("[FLUSSO 21] Avvio autocompletamento investigativo OpenClaw...")
+        # Se completezza < 70% e ricerca abilitata, avvia ricerca web
+        if completezza_report["richiede_ricerca_web"] and use_research:
+            logging.info("[FLUSSO 21] Avvio autocompletamento investigativo...")
             try:
                 autocomplete_result = await autocomplete_missing_data(questionario)
                 enriched_data = autocomplete_result.get("enriched_data", questionario)
@@ -774,11 +774,11 @@ async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_opencl
                 data_gap_alerts.append({"field": campo, "message": alert})
     
     # ═══════════════════════════════════════════════════════════════
-    # STEP 2: Deep Research con OpenClaw (se abilitato)
+    # STEP 2: Deep Research (se abilitato)
     # ═══════════════════════════════════════════════════════════════
     
-    if use_openclaw and MASTER_PROMPT_AVAILABLE and expertise:
-        logging.info("[FLUSSO 21] Avvio Deep Research OpenClaw...")
+    if use_research and MASTER_PROMPT_AVAILABLE and expertise:
+        logging.info("[FLUSSO 21] Avvio Deep Research...")
         try:
             # Prepara lista competitor se specificati
             competitor_list = []
@@ -810,7 +810,7 @@ async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_opencl
         synthesis = research_data.get("synthesis", {})
         if synthesis and not synthesis.get("error"):
             research_summary = f"""
-DATI RICERCA WEB (OpenClaw):
+DATI RICERCA WEB:
 - Posizionamento mercato: {synthesis.get('posizionamento_mercato', 'N/D')}
 - Visibilità digitale partner: {synthesis.get('visibilita_digitale_score', 'N/D')}/10
 - Competitor principali: {', '.join(synthesis.get('competitor_principali', [])[:3])}
@@ -1003,7 +1003,7 @@ STRUTTURA 21 SEZIONI (genera JSON):
         }}
     }},
     "appendice": {{
-        "dati_ricerca_web": {{"fonte": "OpenClaw Research", "data_qualita": "{research_data.get('data_quality') if research_data else 'non_eseguita'}"}},
+        "dati_ricerca_web": {{"fonte": "Strategic Research", "data_qualita": "{research_data.get('data_quality') if research_data else 'non_eseguita'}"}},
         "note_autocompletamento": "[Se dati recuperati via web, segnalalo qui]"
     }}
 }}
@@ -1045,7 +1045,7 @@ Rispondi SOLO con il JSON valido, senza testo aggiuntivo prima o dopo."""
     analisi["user_id"] = user_id
     analisi["stato"] = "bozza_analisi"
     analisi["versione_prompt"] = "2.0_21_sezioni"
-    analisi["openclaw_used"] = use_openclaw and MASTER_PROMPT_AVAILABLE
+    analisi["research_used"] = use_research and MASTER_PROMPT_AVAILABLE
     
     if research_data:
         analisi["research_metadata"] = {
@@ -1060,7 +1060,7 @@ Rispondi SOLO con il JSON valido, senza testo aggiuntivo prima o dopo."""
     return analisi
 
 @router.post("/genera-analisi-auto/{user_id}")
-async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_openclaw: bool = True):
+async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_research: bool = True):
     """
     Genera automaticamente l'analisi dopo il questionario.
     Chiamato internamente dal sistema quando il cliente invia il questionario.
@@ -1068,7 +1068,7 @@ async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_ope
     Args:
         user_id: ID del cliente
         use_21_sezioni: Se True, usa il nuovo Master Prompt con 21 sezioni (default: True)
-        use_openclaw: Se True, attiva Deep Research con OpenClaw (default: True)
+        use_research: Se True, attiva Deep Research (default: True)
     """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
@@ -1091,7 +1091,7 @@ async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_ope
     # Genera analisi (usa nuovo Master Prompt 21 sezioni se disponibile)
     if use_21_sezioni and MASTER_PROMPT_AVAILABLE:
         logging.info(f"[FLUSSO] Usando Master Prompt 21 sezioni per {user_id}")
-        analisi = await genera_analisi_21_sezioni(user_id, questionario, use_openclaw=use_openclaw)
+        analisi = await genera_analisi_21_sezioni(user_id, questionario, use_research=use_research)
     else:
         logging.info(f"[FLUSSO] Usando generazione legacy per {user_id}")
         analisi = await genera_analisi_automatica(user_id, questionario)
@@ -1123,8 +1123,8 @@ async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_ope
             nome = user.get("nome", "")
             cognome = user.get("cognome", "")
             versione = "21 sezioni" if analisi.get("versione_prompt") == "2.0_21_sezioni" else "standard"
-            openclaw_status = "✅" if analisi.get("openclaw_used") else "❌"
-            msg = f"📊 ANALISI AUTO-GENERATA\n\n👤 {nome} {cognome}\n📋 Versione: {versione}\n🦞 OpenClaw: {openclaw_status}\n\n⏳ In attesa di revisione admin"
+            research_status = "✅" if analisi.get("research_used") else "❌"
+            msg = f"📊 ANALISI AUTO-GENERATA\n\n👤 {nome} {cognome}\n📋 Versione: {versione}\n🔎 Ricerca: {research_status}\n\n⏳ In attesa di revisione admin"
             async with httpx.AsyncClient() as client_http:
                 await client_http.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",

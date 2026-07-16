@@ -629,7 +629,6 @@ INITIAL_AGENTS = [
     {"id": "GAIA", "role": "Supporto Tecnico", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
     {"id": "ANDREA", "role": "Produzione Contenuti", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
     {"id": "MARCO", "role": "Accountability Settimanale", "status": "ACTIVE", "budget": 6, "category": "Coaching"},
-    {"id": "OPENCLAW", "role": "Data Intelligence & Notifiche", "status": "ACTIVE", "budget": 0, "category": "Sistema"},
 ]
 
 INITIAL_PARTNERS = [
@@ -958,16 +957,8 @@ async def seed_database():
             "budget": 28, "category": "Coordinamento",
             "description": "Coordina il team e le attività, smista le richieste agli agenti specializzati"
         })
-    # Aggiorna OPENCLAW con il ruolo di VALENTINA
-    await db.agents.update_one(
-        {"id": "OPENCLAW"},
-        {"$set": {
-            "role": "Strategia e Onboarding",
-            "category": "Strategia",
-            "display_name": "VALENTINA",
-            "description": "Strategia dei partner, onboarding e data intelligence"
-        }}
-    )
+    # Rimuovi l'eventuale vecchio record agente OPENCLAW (sistema dismesso)
+    await db.agents.delete_many({"id": "OPENCLAW"})
     # Assicurati che VALENTINA esista come agente
     valentina_exists = await db.agents.find_one({"id": "VALENTINA"})
     if not valentina_exists:
@@ -6921,110 +6912,14 @@ async def get_tasks_dashboard():
     }
 
 # =============================================================================
-# OPENCLAW INTEGRATION - Azioni GUI su Systeme.io
+# SYSTEME STATS AGENT - Data intelligence Systeme.io (MRR, contatti, notifiche)
 # =============================================================================
 
-from openclaw_integration import (
-    requires_openclaw,
-    OpenClawTask,
-    send_openclaw_task,
-    create_pipeline_column,
-    move_contact_to_column,
-    create_funnel,
-    create_automation,
-    handle_openclaw_callback,
-    get_pending_openclaw_tasks
+from systeme_stats_agent import (
+    send_telegram,
+    refresh_dashboard_stats,
+    get_stats_status,
 )
-
-from openclaw_agent import (
-    run_openclaw,
-    get_openclaw_status,
-    send_telegram as openclaw_send_telegram,
-    OPENCLAW_CONFIG
-)
-
-class OpenClawTaskRequest(BaseModel):
-    action: str
-    params: Dict
-    priority: str = "normal"
-    description: str = ""
-    partner_id: Optional[str] = None
-
-class OpenClawCallbackRequest(BaseModel):
-    task_id: str
-    status: str  # "done" or "fail"
-    result: Optional[str] = None
-
-@api_router.post("/openclaw/task")
-async def create_openclaw_task(request: OpenClawTaskRequest):
-    """Crea e invia un task a OpenClaw via Telegram"""
-    task = OpenClawTask(
-        action=request.action,
-        params=request.params,
-        priority=request.priority,
-        description=request.description,
-        partner_id=request.partner_id
-    )
-    
-    result = await send_openclaw_task(task, db)
-    return result
-
-@api_router.post("/openclaw/pipeline/column")
-async def create_pipeline_column_endpoint(
-    column_name: str,
-    pipeline_name: str = "default",
-    position: str = "end"
-):
-    """Crea una colonna nella pipeline Systeme.io (via OpenClaw)"""
-    result = await create_pipeline_column(column_name, pipeline_name, position, db)
-    return result
-
-@api_router.post("/openclaw/pipeline/move")
-async def move_contact_endpoint(
-    email: str,
-    target_column: str,
-    pipeline_name: str = "default"
-):
-    """Sposta un contatto in una colonna della pipeline (via OpenClaw)"""
-    result = await move_contact_to_column(email, target_column, pipeline_name, db)
-    return result
-
-@api_router.post("/openclaw/funnel")
-async def create_funnel_endpoint(
-    funnel_name: str,
-    template: str = "blank",
-    pages: List[str] = None
-):
-    """Crea un nuovo funnel su Systeme.io (via OpenClaw)"""
-    result = await create_funnel(funnel_name, template, pages, db)
-    return result
-
-@api_router.post("/openclaw/callback")
-async def openclaw_callback(request: OpenClawCallbackRequest):
-    """Callback da OpenClaw quando un task è completato"""
-    result = await handle_openclaw_callback(
-        request.task_id,
-        request.status,
-        request.result,
-        db
-    )
-    return result
-
-@api_router.get("/openclaw/tasks/pending")
-async def list_pending_openclaw_tasks():
-    """Lista task OpenClaw in attesa"""
-    tasks = await get_pending_openclaw_tasks(db)
-    return {"tasks": tasks, "count": len(tasks)}
-
-@api_router.get("/openclaw/tasks")
-async def list_all_openclaw_tasks(limit: int = 50):
-    """Lista tutti i task OpenClaw"""
-    tasks = await db.openclaw_tasks.find(
-        {},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(limit).to_list(limit)
-    
-    return {"tasks": tasks, "count": len(tasks)}
 
 # =============================================================================
 # INTEGRATED SERVICES - Systeme.io & Background Jobs
@@ -14225,47 +14120,42 @@ async def test_telegram_notification(request: Request):
             # Usa il chat_id fornito
             result = await telegram_notifier.send_message(chat_id, message)
         else:
-            # Usa OpenClaw send_telegram che usa env var
-            result = await openclaw_send_telegram(message)
+            # Usa send_telegram (systeme_stats_agent) che usa env var
+            result = await send_telegram(message)
         
         return {"success": result.get("ok", False), "result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # ═══════════════════════════════════════════════════════════════
-# OPENCLAW AGENT ENDPOINTS
+# SYSTEME STATS AGENT ENDPOINTS (MRR + dati dashboard da Systeme.io)
 # ═══════════════════════════════════════════════════════════════
 
-@api_router.post("/agents/openclaw/run")
-async def openclaw_run():
-    """Esegue un ciclo manuale di OpenClaw."""
+@api_router.post("/agents/systeme-stats/refresh")
+async def systeme_stats_refresh():
+    """Esegue un refresh manuale delle statistiche Systeme (incl. MRR)."""
     try:
-        result = await run_openclaw(db=db)
+        result = await refresh_dashboard_stats(db=db)
         return {"success": True, "result": result}
     except Exception as e:
-        logging.error(f"[OpenClaw] Errore run: {e}")
+        logging.error(f"[SystemeStats] Errore refresh: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/agents/openclaw/status")
-async def openclaw_status():
-    """Ritorna lo stato corrente di OpenClaw."""
-    return await get_openclaw_status()
+@api_router.get("/agents/systeme-stats/status")
+async def systeme_stats_status():
+    """Ritorna lo stato corrente dell'agente statistiche Systeme."""
+    return await get_stats_status()
 
-@api_router.get("/agents/openclaw/logs")
-async def openclaw_logs():
+@api_router.get("/agents/systeme-stats/logs")
+async def systeme_stats_logs():
     """Ultimi log da MongoDB."""
     try:
-        logs = await db.openclaw_logs.find().sort("timestamp", -1).limit(20).to_list(20)
+        logs = await db.stats_agent_logs.find().sort("timestamp", -1).limit(20).to_list(20)
         for log in logs:
             log["_id"] = str(log["_id"])
         return {"logs": logs}
     except Exception as e:
         return {"logs": [], "error": str(e)}
-
-@api_router.get("/openclaw/config")
-async def openclaw_config():
-    """Configurazione OpenClaw."""
-    return OPENCLAW_CONFIG
 
 @api_router.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
@@ -14412,9 +14302,7 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
             
             # Log conversation - track if Claude was used
             response_type = "ai"  # Full Claude response
-            if "Task inviato a OpenClaw" in response:
-                response_type = "openclaw"
-            elif "RISULTATO AZIONE ESEGUITA" in response:
+            if "RISULTATO AZIONE ESEGUITA" in response:
                 response_type = "action"
             
             await db.telegram_conversations.insert_one({

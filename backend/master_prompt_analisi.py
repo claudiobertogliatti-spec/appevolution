@@ -161,21 +161,21 @@ Tutti i dati di mercato e le analisi competitor sono stati raccolti tramite rice
     "10_analisi_mercato": {
         "titolo": "Analisi del Mercato",
         "tipo": "personalizzato_con_ricerca",
-        "richiede_openclaw": True,
+        "richiede_ricerca": True,
         "prompt_generazione": "Valuta il mercato di riferimento: domanda esistente, trend, dimensione potenziale. Usa dati dalla ricerca web."
     },
     
     "11_posizionamento_attuale": {
         "titolo": "Il Tuo Posizionamento Attuale",
         "tipo": "personalizzato_con_ricerca",
-        "richiede_openclaw": True,
+        "richiede_ricerca": True,
         "prompt_generazione": "Valuta la presenza online attuale del partner. Analizza visibilità, autorità percepita, contenuti pubblicati."
     },
     
     "12_analisi_competitor": {
         "titolo": "Analisi dei Competitor",
         "tipo": "personalizzato_con_ricerca",
-        "richiede_openclaw": True,
+        "richiede_ricerca": True,
         "prompt_generazione": "Analizza i competitor diretti. Crea tabella comparativa con posizionamento, prezzo, punti di forza/debolezza."
     },
     

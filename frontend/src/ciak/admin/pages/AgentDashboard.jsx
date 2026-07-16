@@ -40,8 +40,7 @@ const AGENT_DESCRIPTIONS = {
   VALENTINA: "Strategia e Onboarding",
   ANDREA: "Produzione Contenuti",
   MARCO: "Accountability Settimanale",
-  GAIA: "Supporto Tecnico",
-  OPENCLAW: "Strategia e Onboarding"
+  GAIA: "Supporto Tecnico"
 };
 
 // Agent order for display
