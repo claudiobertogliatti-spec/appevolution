@@ -23,7 +23,6 @@ export function CiakLanding() {
   const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [videoMuted, setVideoMuted] = useState(true);
@@ -43,7 +42,6 @@ export function CiakLanding() {
   const captureEmail = async () => {
     const n = nome.trim();
     const e = email.trim().toLowerCase();
-    const tel = telefono.trim();
     if (n.length < 2) {
       setError("Inserisci il tuo nome");
       return;
@@ -57,11 +55,6 @@ export function CiakLanding() {
       setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero: ti servirà per ricevere il follow-up corretto.");
       return;
     }
-    const digits = tel.replace(/[^\d]/g, "");
-    if (digits.length < 6) {
-      setError("Inserisci un numero di telefono valido");
-      return;
-    }
     setSubmitting(true);
     setError(null);
     try {
@@ -72,7 +65,7 @@ export function CiakLanding() {
         body: JSON.stringify({
           email: e,
           nome: n,
-          telefono: tel,
+          telefono: "",
           source: "landing_hero",
           utm_source: qs.get("utm_source"),
           utm_medium: qs.get("utm_medium"),
@@ -84,7 +77,6 @@ export function CiakLanding() {
       }).catch(() => null);
       localStorage.setItem("ciak_lead_email", e);
       localStorage.setItem("ciak_lead_name", n);
-      localStorage.setItem("ciak_lead_phone", tel);
       // Mantengo "ciak_lead_nome" per retrocompatibilità con eventuali letture
       // legacy. Ora la chiave canonica è "ciak_lead_name" (coerente con
       // Masterclass.jsx).
@@ -142,6 +134,36 @@ export function CiakLanding() {
           <p className="mb-5 inline-flex items-center rounded-full border border-yellow-300/70 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-yellow-300 backdrop-blur">
             Ciak.io
           </p>
+
+          {/* COPERTINA MASTERCLASS — hook principale per il traffico freddo */}
+          <button
+            type="button"
+            onClick={() => document.getElementById("optin-form")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            className="group relative mb-9 w-full max-w-3xl overflow-hidden rounded-3xl border border-yellow-300/60 bg-slate-950/35 shadow-[0_30px_80px_rgba(2,6,23,0.55)] ring-1 ring-white/10 backdrop-blur-md"
+            aria-label="Vai al modulo per accedere alla masterclass gratuita sui 5 errori killer"
+          >
+            <div className="relative aspect-video w-full">
+              {/* scrim leggero: lascia intravedere il video spot di sfondo, mantiene il testo leggibile */}
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/35 to-slate-950/60" aria-hidden="true" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(250,204,21,0.18),transparent_58%)]" aria-hidden="true" />
+              <div className="absolute left-5 top-5 z-10 flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-900">Masterclass gratuita</span>
+                <span className="inline-flex items-center rounded-full border border-white/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/80">30 minuti</span>
+              </div>
+              <div className="relative flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
+                <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400 text-slate-900 shadow-xl transition group-hover:scale-110 md:h-20 md:w-20">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7 md:h-9 md:w-9"><path d="M8 5v14l11-7z" /></svg>
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-yellow-300">I 5 Errori Killer</p>
+                  <p className="mt-2 max-w-xl text-lg font-semibold leading-snug text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] md:text-2xl">
+                    Cosa blocca i professionisti prima di andare online e come evitarlo
+                  </p>
+                </div>
+              </div>
+            </div>
+          </button>
+
           <h1 className="max-w-6xl text-6xl font-semibold leading-[0.98] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-7xl lg:text-7xl">
             <span className="block">Da competenza professionale</span>
             <span className="block">ad accademia digitale</span>
@@ -151,7 +173,7 @@ export function CiakLanding() {
             supportandoti per 12 mesi fino ai primi risultati di vendita.
           </p>
 
-          <div className="mt-9 w-full max-w-2xl rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
+          <div id="optin-form" className="mt-9 w-full max-w-2xl scroll-mt-28 rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 type="text"
@@ -172,35 +194,18 @@ export function CiakLanding() {
                 className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
               />
             </div>
-            <div className="mt-2 flex flex-col sm:flex-row gap-2">
-              <input
-                type="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="Il tuo telefono"
-                autoComplete="tel"
-                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
-              />
+            <div className="mt-2">
               <button
                 onClick={captureEmail}
                 disabled={submitting}
-                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition whitespace-nowrap"
+                className="w-full px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
               >
-                {submitting ? "..." : "Accedi alla masterclass"}
+                {submitting ? "..." : "Accedi alla masterclass gratuita"}
               </button>
             </div>
             {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
             <p className="text-xs text-slate-500 mt-3 leading-relaxed text-center">
               Inserisci dati reali: dopo la masterclass ti guidiamo alle 8 Domande Ciak e al tuo stato attuale.
-            </p>
-          </div>
-
-          <div className="mt-7 max-w-5xl rounded-2xl border border-[#0B2D6B]/85 bg-[#071A3D]/60 px-5 py-5 text-center text-white shadow-[0_0_46px_rgba(11,45,107,0.64)] ring-1 ring-blue-300/10 backdrop-blur md:px-8 md:py-6">
-            <p className="text-base font-medium leading-relaxed text-white/92 drop-shadow md:text-lg">
-              <span className="block md:whitespace-nowrap">Scopri i <strong className="text-yellow-300">5 errori killer</strong> (e come evitarli)</span>
-              <span className="block md:whitespace-nowrap">che bloccano molti professionisti prima di andare online,</span>
-              <span className="block md:whitespace-nowrap">prima di investire tempo e denaro nella direzione sbagliata.</span>
             </p>
           </div>
 
@@ -427,7 +432,7 @@ export function CiakLanding() {
                 autoComplete="given-name"
                 className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
               />
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div>
                 <input
                   type="email"
                   value={email}
@@ -435,16 +440,7 @@ export function CiakLanding() {
                   onKeyDown={(e) => e.key === "Enter" && captureEmail()}
                   placeholder="La tua email"
                   autoComplete="email"
-                  className="min-w-0 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
-                />
-                <input
-                  type="tel"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                  placeholder="Il tuo telefono"
-                  autoComplete="tel"
-                  className="min-w-0 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
                 />
               </div>
               <div className="mt-2">

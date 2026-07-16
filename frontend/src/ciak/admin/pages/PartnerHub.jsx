@@ -217,8 +217,8 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
           Nessun partner con questo filtro.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+          <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
