@@ -4,8 +4,10 @@ funnel_factory.py — Render del funnel OWNED (file statici) dai contenuti partn
 Sostituisce la vecchia browser-automation di Systeme: il funnel diventa CODICE
 OWNED deployabile su Vercel (dominio del partner). Systeme resta backend CRM.
 
-Questo modulo è il primo pezzo del motore (RENDER). Riusa i template già
-esistenti in routers/funnel_builder.py — non reinventa il markup.
+Pagine prodotte (funnel a 3 momenti + legali):
+  - index.html    → landing OPT-IN professionale (funnel_templates_pro), brand-parametrica
+  - vendita.html  → pagina vendita videocorso (template funnel_builder, da elevare a pro)
+  - privacy/cookie/termini.html → legali GDPR
 
 Pipeline completa (vedi docs/superpowers/specs/2026-07-16-funnel-factory-engine-design.md):
   genera → RENDER (questo) → deploy Vercel → connettore Systeme.
@@ -20,42 +22,50 @@ from routers.funnel_builder import (
     LandingPageParams,
     DocumentiLegaliParams,
 )
+from funnel_templates_pro import render_optin
 
 # Link legali owned: pagine servite dallo stesso deploy statico.
 OWNED_LEGAL_LINKS = {"LINK_PRIVACY": "/privacy.html", "LINK_TERMINI": "/termini.html"}
 
 
-def build_funnel_files(dati: dict[str, Any] | None, legal: dict[str, Any] | None = None) -> dict[str, str]:
+def build_funnel_files(
+    optin: dict[str, Any] | None = None,
+    sales: dict[str, Any] | None = None,
+    legal: dict[str, Any] | None = None,
+    colore_brand: str | None = None,
+) -> dict[str, str]:
     """
-    Assembla i file statici del funnel owned dai parametri già pronti.
+    Assembla i file statici del funnel owned. PURA funzione (nessun accesso rete/DB).
 
-    dati  = campi landing (schema LandingPageParams: copy + brand).
-    legal = dati legali (schema DocumentiLegaliParams).
-
-    Ritorna { filename → html }. PURA funzione: nessun accesso rete/DB, testabile
-    in isolamento. I link legali sono forzati ai file owned del deploy.
+    optin        = override copy della landing opt-in (schema funnel_templates_pro).
+    sales        = campi pagina vendita videocorso (schema LandingPageParams); se None, si omette.
+    legal        = dati legali (schema DocumentiLegaliParams).
+    colore_brand = colore accento dal BrandKit del partner (hex).
     """
-    params = LandingPageParams().model_dump()
-    params.update({k: v for k, v in (dati or {}).items() if v is not None})
-    params.update(OWNED_LEGAL_LINKS)
+    files: dict[str, str] = {
+        "index.html": render_optin(optin, colore_brand=colore_brand),
+    }
 
     legal_params = DocumentiLegaliParams().model_dump()
     legal_params.update({k: v for k, v in (legal or {}).items() if v is not None})
-
     docs = genera_documenti_legali(legal_params)
-    return {
-        "index.html": genera_landing_page(params),
-        "privacy.html": docs["privacy_policy"],
-        "cookie.html": docs["cookie_policy"],
-        "termini.html": docs["condizioni_vendita"],
-    }
+    files["privacy.html"] = docs["privacy_policy"]
+    files["cookie.html"] = docs["cookie_policy"]
+    files["termini.html"] = docs["condizioni_vendita"]
+
+    if sales is not None:
+        sp = LandingPageParams().model_dump()
+        sp.update({k: v for k, v in sales.items() if v is not None})
+        sp.update(OWNED_LEGAL_LINKS)
+        files["vendita.html"] = genera_landing_page(sp)
+
+    return files
 
 
 async def build_funnel_for_partner(db, partner_id: str) -> dict[str, str]:
     """
     Carica i dati del partner e produce i file del funnel owned.
-    Fonte contenuti: landing_page.dati (dal generatore copy AI di funnel_builder).
-    Fonte brand: BrandKit. Fonte legale: record partner.
+    Brand dal BrandKit; copy dal profilo partner + landing_page.dati (generatore AI).
     """
     if db is None:
         raise RuntimeError("database non configurato")
@@ -63,29 +73,33 @@ async def build_funnel_for_partner(db, partner_id: str) -> dict[str, str]:
     if not partner:
         raise ValueError(f"partner {partner_id} non trovato")
 
-    # Prefill dal profilo (il copy AI, se presente, sovrascrive).
-    dati: dict[str, Any] = {
-        "PARTNER_NOME": partner.get("name", ""),
-        "PARTNER_NICCHIA": partner.get("niche") or partner.get("nicchia") or "",
-        "PARTNER_BIO": partner.get("bio", ""),
-        "PARTNER_FOTO_URL": partner.get("photo_url") or partner.get("avatar") or "",
-    }
-    dati.update((partner.get("landing_page") or {}).get("dati") or {})
-
-    # Brand overlay dal BrandKit (senza sovrascrivere il copy già presente).
+    nome = partner.get("name", "")
     brand = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
-    if brand.get("colore_brand"):
-        dati.setdefault("COLORE_ACCENT", brand["colore_brand"])
-    if brand.get("logo_url") and not dati.get("PARTNER_FOTO_URL"):
-        dati["PARTNER_FOTO_URL"] = brand["logo_url"]
+    colore_brand = brand.get("colore_brand")
+
+    # ── Landing opt-in: override dal profilo (il generatore AI arricchirà) ──
+    optin: dict[str, Any] = {
+        "META_TITLE": f"Masterclass gratuita — {nome}" if nome else None,
+        "PARTNER_NOME": nome,
+        "AUTHOR_BIO": partner.get("bio") or None,
+    }
+    foto = partner.get("photo_url") or partner.get("avatar") or brand.get("logo_url")
+    if foto:
+        optin["PHOTO_STYLE"] = f"background-image:url('{foto}')"
+        optin["PHOTO_FALLBACK"] = ""
+
+    # ── Pagina vendita videocorso: dal copy AI già generato, se presente ──
+    sales = (partner.get("landing_page") or {}).get("dati") or None
+    if sales is not None:
+        sales = dict(sales)
+        sales.setdefault("PARTNER_NOME", nome)
+        sales.setdefault("PARTNER_NICCHIA", partner.get("niche") or partner.get("nicchia") or "")
+        if colore_brand:
+            sales.setdefault("COLORE_ACCENT", colore_brand)
 
     legal = {
-        "titolare_nome": partner.get("name", ""),
+        "titolare_nome": nome,
         "email_legale": partner.get("email", "") or brand.get("email_partner", ""),
-        "nome_sito": partner.get("name", ""),
+        "nome_sito": nome,
     }
-    return build_funnel_for_partner_files(dati, legal)
-
-
-# Alias esplicito per chiarezza nei call-site.
-build_funnel_for_partner_files = build_funnel_files
+    return build_funnel_files(optin=optin, sales=sales, legal=legal, colore_brand=colore_brand)
