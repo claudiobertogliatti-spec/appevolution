@@ -117,4 +117,8 @@ test('reduced motion mantiene visibili i contenuti principali', async ({ page })
   for (const selector of ['#hero h1', '#hero .hero-agent', '#metodo-evo h2', '#ciak h2']) {
     await expect(page.locator(selector).first()).toBeVisible();
   }
+  // i marquee continui (collaborazioni + strumenti) devono essere fermi con reduced motion
+  for (const selector of ['.collaborations__track', '.direction-tools__track']) {
+    expect(await page.locator(selector).first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  }
 });

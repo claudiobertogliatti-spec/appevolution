@@ -447,3 +447,9 @@ h2 {
 @media (max-width: 34rem) {
   .site-header__cta { max-width: 12rem; padding: .55rem .8rem; font-size: .72rem; line-height: 1.2; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .collaborations__track,
+  .direction-tools__track { animation: none; transform: none; }
+}

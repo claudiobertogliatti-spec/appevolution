@@ -84,7 +84,6 @@ describe('EnvelopeTestimonials', () => {
     const css = readFileSync('src/styles/globals.css', 'utf8');
     expect(css).not.toMatch(/@keyframes\s+envelope-open/);
     expect(css).not.toMatch(/animation:\s*(envelope-open|photo-emerge|message-emerge|actions-emerge)/);
-    expect(css).not.toContain('@media (prefers-reduced-motion: reduce)');
   });
 
 });
