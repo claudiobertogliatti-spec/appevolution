@@ -104,7 +104,7 @@ export function Collaboratori({ onAuthExpired }) {
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Collaboratori</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Antonella viene pagata a ore effettive approvate. Stefania assegna task coerenti con il budget settimanale.
+            Antonella viene pagata a ore effettive approvate. Simona assegna task coerenti con il budget settimanale.
           </p>
         </div>
         <button onClick={createTask} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">

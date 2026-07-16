@@ -11,12 +11,12 @@ import { WELCOME_VIDEO_EMBED } from "./phases";
  * Usata come gate al primo accesso (PartnerOperativo) e come passo "Conosciamoci".
  */
 const TEAM = [
-  { id: "stefania", name: "Stefania", role: "Coordina il progetto e ti guida passo dopo passo.", img: "/agents/stefania.jpg" },
+  { id: "stefania", name: "Simona", role: "Coordina il progetto e ti guida passo dopo passo.", img: "/agents/stefania.jpg" },
   { id: "valentina", name: "Valentina", role: "Brand, posizionamento e metodo.", img: "/agents/valentina.jpg" },
   { id: "andrea", name: "Andrea", role: "Masterclass, video e contenuti.", img: "/agents/andrea.jpg" },
   { id: "gaia", name: "Gaia", role: "Funnel, pagine e parte tecnica.", img: "/agents/gaia.jpg" },
   { id: "marco", name: "Marco", role: "Strategia commerciale e lancio.", img: "/agents/marco.jpg" },
-  { id: "matteo", name: "Matteo", role: "Analisi dei risultati e ottimizzazione.", img: "/agents/matteo.jpg" },
+  { id: "matteo", name: "Carlo", role: "Analisi dei risultati e ottimizzazione.", img: "/agents/matteo.jpg" },
 ];
 
 const PHASES = [
@@ -48,14 +48,14 @@ export default function Benvenuto({ partnerName, onStart, ctaLabel = "Ho visto i
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <Photo
               src="/agents/stefania.jpg"
-              alt="Stefania"
+              alt="Simona"
               fallbackText="S"
               className="w-24 h-24 rounded-full flex-shrink-0 mx-auto sm:mx-0 ring-4 ring-yellow-400 text-3xl"
             />
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold text-yellow-400 tracking-widest mb-1.5">BENVENUTO IN CIAK</div>
               <h1 className="text-2xl font-bold leading-tight">
-                {nome ? `Ciao ${nome}, sono Stefania` : "Ciao, sono Stefania"}
+                {nome ? `Ciao ${nome}, sono Simona` : "Ciao, sono Simona"}
               </h1>
               <p className="text-[15px] leading-relaxed text-slate-300 mt-2">
                 Sarò il tuo punto di riferimento durante tutto il percorso. Dietro Ciak hai a

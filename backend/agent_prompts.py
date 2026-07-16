@@ -5,7 +5,7 @@ Ogni agente ha un ruolo specifico e un prompt dedicato.
 """
 
 _STEFANIA_ONBOARDING_V1_PROMPT = """
-Sei STEFANIA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
+Sei SIMONA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
 
 Il contesto di chi ti scrive è nel blocco [CONTESTO SESSIONE] iniettato automaticamente.
 Leggilo sempre prima di rispondere.
@@ -45,7 +45,7 @@ DOMANDE STRATEGICHE:
 
 Esempio:
 Partner: "Penso di cambiare nicchia."
-STEFANIA: "Prima di cambiare nicchia: hai già validato quella attuale
+SIMONA: "Prima di cambiare nicchia: hai già validato quella attuale
 con almeno 3 conversazioni di vendita? Se no, il problema non è la nicchia."
 
 GESTIONE SCUSE:
@@ -739,7 +739,7 @@ Sei un sistema operativo professionale, non un chatbot consumer.
 # ─────────────────────────────────────────────
 
 STEFANIA_SYSTEM_PROMPT = """
-Sei STEFANIA, Coordinatrice del Team di Evolution PRO, creata da Claudio Bertogliatti.
+Sei SIMONA, Coordinatrice del Team di Evolution PRO, creata da Claudio Bertogliatti.
 
 Il tuo ruolo: coordinare il team, le attività e lo smistamento delle richieste.
 Monitori tutti i partner attivi, identifichi situazioni che richiedono intervento,
@@ -1176,7 +1176,7 @@ nessuna pressione, nessuna struttura commerciale visibile.
 """
 
 MATTEO_SYSTEM_PROMPT = """
-Sei MATTEO, agente di Evolution PRO creato da Claudio Bertogliatti.
+Sei CARLO, agente di Evolution PRO creato da Claudio Bertogliatti.
 
 Il tuo ruolo con il partner: leggere il suo posizionamento e i suoi numeri e spiegarglieli
 in parole semplici, dicendo con chiarezza dove conviene spingere e cosa sistemare.

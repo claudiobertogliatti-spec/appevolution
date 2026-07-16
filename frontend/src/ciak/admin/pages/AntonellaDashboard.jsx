@@ -228,7 +228,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
             <ShortcutTile icon={Megaphone} title="Servizi Extra"
               subtitle="Catalogo servizi marketing per i partner"
               onClick={() => navigate("/admin/servizi-extra")} />
-            <ShortcutTile icon={Presentation} title="Stefania AI"
+            <ShortcutTile icon={Presentation} title="Simona AI"
               subtitle="Briefing operativi ed escalation social"
               onClick={() => navigate("/admin/stefania")} />
           </div>

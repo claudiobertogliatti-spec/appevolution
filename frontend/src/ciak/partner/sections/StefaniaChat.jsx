@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Sparkles, User, RefreshCw } from "lucide-react";
 
 // Messaggio di benvenuto di Stefania
-const STEFANIA_WELCOME = `🎙️ Ciao! Sono **Stefania**, e da questo momento prendo io il timone per guidarti nella creazione della tua **Masterclass Trasformativa**.
+const STEFANIA_WELCOME = `🎙️ Ciao! Sono **Simona**, e da questo momento prendo io il timone per guidarti nella creazione della tua **Masterclass Trasformativa**.
 
 Dimentica i classici videocorsi 'enciclopedici' dove spieghi solo come funzionano le cose. Qui non siamo a scuola. Il mio obiettivo è aiutarti a costruire un'esperienza che **chiarisca i dubbi** dei tuoi potenziali clienti e li porti a **desiderare la tua soluzione** prima ancora che tu faccia l'offerta.
 
@@ -92,7 +92,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
           </div>
           <div>
             <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-              STEFANIA
+              SIMONA
               <span className="text-[10px] font-semibold bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">
                 Copy &amp; Marketing Tutor
               </span>
@@ -185,7 +185,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            placeholder="Scrivi il tuo contenuto o fai una domanda a Stefania..."
+            placeholder="Scrivi il tuo contenuto o fai una domanda a Simona..."
             className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-yellow-400 transition-colors"
             disabled={loading}
           />

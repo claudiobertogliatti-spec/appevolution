@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 
-STEFANIA_SYSTEM_PROMPT = """Sei STEFANIA, agente AI di Business Evolution PRO creato da Claudio Bertogliatti.
+STEFANIA_SYSTEM_PROMPT = """Sei SIMONA, agente AI di Business Evolution PRO creato da Claudio Bertogliatti.
 
 Il tuo ruolo: orchestrare il sistema di agenti. Monitori tutti i partner attivi,
 identifichi situazioni che richiedono intervento, e smisti al giusto agente
@@ -71,7 +71,7 @@ Rispondi sempre in italiano con report strutturati."""
 
 
 ROUTING_SYSTEM_PROMPT = """
-Sei STEFANIA, orchestratrice di Business Evolution PRO.
+Sei SIMONA, orchestratrice di Business Evolution PRO.
 Analizza il messaggio del partner e rispondi SOLO con un JSON nel formato:
 {
   "agente_destinatario": "STEFANIA|ANDREA|MARCO|GAIA|CLAUDIO",
@@ -156,7 +156,7 @@ def _keyword_routing(messaggio: str) -> dict:
         return {"agente_destinatario": "MARCO", "motivo": "Accountability", "messaggio": "Ti metto in contatto con MARCO."}
     
     # Default to STEFANIA
-    return {"agente_destinatario": "STEFANIA", "motivo": "Supporto generale", "messaggio": "Ti metto in contatto con STEFANIA."}
+    return {"agente_destinatario": "STEFANIA", "motivo": "Supporto generale", "messaggio": "Ti metto in contatto con SIMONA."}
 
 
 def run_daily_monitoring(partner_ids=None) -> dict:

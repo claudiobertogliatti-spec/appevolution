@@ -51,7 +51,7 @@ Principi non negoziabili (valgono sopra ogni altra parte di questo prompt):
 
 # ─── System Prompt ────────────────────────────────────────────────────────────
 
-STEFANIA_SYSTEM_PROMPT = """Sei STEFANIA, la coordinatrice di Evolution PRO.
+STEFANIA_SYSTEM_PROMPT = """Sei SIMONA, la coordinatrice di Evolution PRO.
 
 Parli direttamente con un partner — un professionista che sta costruendo il suo videocorso con il supporto del nostro team.
 

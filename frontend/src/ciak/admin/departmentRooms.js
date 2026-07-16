@@ -110,12 +110,12 @@ export const DEPARTMENT_ROOMS = {
     label: "Delivery",
     agent: {
       id: "stefania",
-      name: "Stefania",
+      name: "Simona",
       role: "Responsabile Delivery",
       avatar: "/agents/stefania.jpg",
       initials: "S",
       chat: "stefania",
-      prompt: "Stefania, dimmi chi rischio di rallentare o perdere oggi.",
+      prompt: "Simona, dimmi chi rischio di rallentare o perdere oggi.",
     },
     metrics: [
       "Partner attivi",

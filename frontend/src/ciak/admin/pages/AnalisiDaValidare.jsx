@@ -109,7 +109,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
   };
 
   const rigenera = async () => {
-    if (!window.confirm("Rigenerare questa analisi con Matteo? I capitoli esistenti verranno sovrascritti.")) return;
+    if (!window.confirm("Rigenerare questa analisi con Carlo? I capitoli esistenti verranno sovrascritti.")) return;
     setBusy(true);
     setOpResult(null);
     try {

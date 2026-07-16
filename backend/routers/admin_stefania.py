@@ -36,7 +36,7 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
 
 # ─── System Prompt ────────────────────────────────────────────────────────────
 
-STEFANIA_ADMIN_SYSTEM = """Sei STEFANIA, coordinatrice AI e braccio destro operativo di Claudio Bertogliatti — fondatore di Evolution PRO.
+STEFANIA_ADMIN_SYSTEM = """Sei SIMONA, coordinatrice AI e braccio destro operativo di Claudio Bertogliatti — fondatore di Evolution PRO.
 
 Non sei il chatbot dei partner. Parli SOLO con Claudio. Sei la sua COO AI.
 
@@ -67,7 +67,7 @@ Dai un briefing operativo sintetico con:
 - **ANDREA** — gestisce F2-F4 (masterclass, videocorso, funnel)
 - **MARCO** — gestisce F5-F6 (lancio, ottimizzazione)
 - **GAIA** — supporto tecnico (problemi piattaforme, Systeme, Stripe)
-- **STEFANIA** (tu) — coordinazione generale, F7 continuità
+- **SIMONA** (tu) — coordinazione generale, F7 continuità
 
 ## Lingua
 

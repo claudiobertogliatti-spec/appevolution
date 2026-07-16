@@ -20,7 +20,7 @@ import { adminFetch, getToken, getAdminUser } from "../api";
 
 const PJ = "/api/partner-journey";
 
-const AGENT_NAME = { VALENTINA: "Valentina", ANDREA: "Andrea", MARCO: "Marco", STEFANIA: "Stefania" };
+const AGENT_NAME = { VALENTINA: "Valentina", ANDREA: "Andrea", MARCO: "Marco", STEFANIA: "Simona" };
 
 // status journey -> etichetta + classi colore
 const STATUS_META = {

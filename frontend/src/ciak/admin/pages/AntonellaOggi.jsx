@@ -203,11 +203,11 @@ export function AntonellaOggi({ onAuthExpired }) {
           <p className="text-slate-500 mt-0.5">Le tue azioni di oggi su contenuti, materiali e campagne.</p>
         </div>
 
-        <Block title="Agente di riferimento — Stefania">
+        <Block title="Agente di riferimento — Simona">
           <StefaniaAdmin onAuthExpired={onAuthExpired} compact />
         </Block>
 
-        <Block title="Task assegnati da Stefania" accent>
+        <Block title="Task assegnati da Simona" accent>
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Budget settimanale</p>

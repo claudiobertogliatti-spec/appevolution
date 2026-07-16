@@ -142,7 +142,7 @@ const NAV = [
   {
     id: "delivery",
     label: "Delivery",
-    agente: "Stefania",
+    agente: "Simona",
     landing: true,
     pages: [
       { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },

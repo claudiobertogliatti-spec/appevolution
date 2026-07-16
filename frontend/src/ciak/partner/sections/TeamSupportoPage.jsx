@@ -49,7 +49,7 @@ const SUPPORT_META = {
 
 const RESPONSE_NOTES = [
   "Scegli il referente più vicino al blocco: la chat arriva già contestualizzata.",
-  "Per dubbi generali parti da Stefania; per problemi tecnici vai diretto su Gaia.",
+  "Per dubbi generali parti da Simona; per problemi tecnici vai diretto su Gaia.",
   "Le risposte sono pensate per darti una prossima azione, non teoria da archiviare.",
 ];
 
@@ -120,7 +120,7 @@ function TeamChatDrawer({ agent, partner, onClose }) {
         {
           role: "assistant",
           content:
-            "Non riesco a inviare il messaggio adesso. Riprova tra qualche secondo o scegli Stefania se il dubbio è urgente.",
+            "Non riesco a inviare il messaggio adesso. Riprova tra qualche secondo o scegli Simona se il dubbio è urgente.",
         },
       ]);
     } finally {

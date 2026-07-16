@@ -198,7 +198,7 @@ export function StefaniaAdmin({ onAuthExpired, compact = false }) {
   );
 
   const clearHistory = async () => {
-    if (!window.confirm("Cancellare la cronologia della chat con Stefania?")) return;
+    if (!window.confirm("Cancellare la cronologia della chat con Simona?")) return;
     try {
       await adminFetch("/api/admin/stefania/history", { method: "DELETE" });
       setMessages([
@@ -238,7 +238,7 @@ export function StefaniaAdmin({ onAuthExpired, compact = false }) {
               S
             </div>
             <div>
-              <div className="font-semibold text-base text-slate-900">Stefania</div>
+              <div className="font-semibold text-base text-slate-900">Simona</div>
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Coordinatrice AI — visibilità totale sistema
@@ -301,7 +301,7 @@ export function StefaniaAdmin({ onAuthExpired, compact = false }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Scrivi a Stefania…"
+            placeholder="Scrivi a Simona…"
             rows={1}
             disabled={loading}
             className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none transition-all bg-gray-50 border-[1.5px] border-gray-200 text-slate-900 leading-normal max-h-[120px]"

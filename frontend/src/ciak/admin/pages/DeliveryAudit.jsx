@@ -237,7 +237,7 @@ export function DeliveryAudit({ onAuthExpired }) {
         <div className="flex items-center gap-2">
           <Route className="w-5 h-5 text-emerald-600" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Delivery · Stefania</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Delivery · Simona</p>
             <h1 className="text-2xl font-semibold text-slate-900">Delivery Audit</h1>
           </div>
         </div>

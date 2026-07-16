@@ -45,7 +45,7 @@ DEFAULT_TEMPLATES = {
         </div>
         
         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-            Se hai domande, parla con <strong>Stefania</strong> direttamente dall'app — è il tuo assistente AI personale!
+            Se hai domande, parla con <strong>Simona</strong> direttamente dall'app — è il tuo assistente AI personale!
         </p>
     </div>
     

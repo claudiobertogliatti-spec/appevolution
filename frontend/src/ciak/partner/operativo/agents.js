@@ -11,7 +11,7 @@
 export const AGENTS = {
   STEFANIA: {
     id: "STEFANIA",
-    name: "Stefania",
+    name: "Simona",
     role: "Coordinatrice del tuo percorso",
     avatar: "/agents/stefania.jpg",
     initial: "S",
@@ -56,7 +56,7 @@ export const AGENTS = {
   },
   MATTEO: {
     id: "MATTEO",
-    name: "Matteo",
+    name: "Carlo",
     role: "Analista Ciak Blueprint",
     avatar: "/agents/matteo.jpg",
     initial: "M",

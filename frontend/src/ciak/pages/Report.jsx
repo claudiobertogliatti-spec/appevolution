@@ -76,7 +76,7 @@ export function CiakReport() {
               Stato {report.stato} · {stateCfg.label}
             </span>
             <span className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">
-              Report Matteo
+              Report Carlo
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-semibold leading-tight">

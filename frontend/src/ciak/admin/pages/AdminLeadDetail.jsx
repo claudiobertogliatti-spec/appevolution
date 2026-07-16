@@ -179,7 +179,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
               {d.report?.report_markdown && (
                 <details className="mt-3">
                   <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
-                    Report Matteo
+                    Report Carlo
                   </summary>
                   <pre className="mt-2 text-xs text-slate-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 leading-relaxed">
                     {d.report.report_markdown}

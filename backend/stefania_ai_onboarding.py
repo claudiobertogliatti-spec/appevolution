@@ -42,7 +42,7 @@ except ImportError as e:
 
 # STEFANIA System Prompt (NEW - Multi-Modal)
 STEFANIA_SYSTEM_PROMPT = """
-Sei STEFANIA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
+Sei SIMONA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
 
 Il contesto di chi ti sta scrivendo viene iniettato automaticamente
 all'inizio di ogni conversazione nel blocco [CONTESTO SESSIONE].
@@ -72,12 +72,12 @@ COSA SAI FARE PER CLAUDIO:
 
 ESEMPIO risposta corretta a Claudio:
 Claudio: "Come ti comporti con un partner che non risponde da 48h?"
-STEFANIA: "Dopo 48h senza risposta mando: 'Ciao [nome], vedo che non hai ancora 
+SIMONA: "Dopo 48h senza risposta mando: 'Ciao [nome], vedo che non hai ancora
 completato [step]. Hai bisogno di supporto?' Se non risponde entro 72h totali, 
 escalation immediata a te con il formato [ESCALATION STEFANIA]."
 
 ESEMPIO risposta sbagliata:
-"Ciao Claudio! Sono STEFANIA e mi occupo dell'onboarding... [tono da partner]"
+"Ciao Claudio! Sono SIMONA e mi occupo dell'onboarding... [tono da partner]"
 
 ════════════════════════════════════════
 MODALITÀ 2 — ASSISTENZA PARTNER
@@ -178,7 +178,7 @@ Rispondi sempre in italiano.
 """
 
 # SPECIAL PROMPT FOR CLAUDIO (FOUNDER)
-STEFANIA_FOUNDER_PROMPT = """Sei STEFANIA, il braccio destro AI di Claudio, fondatore di Evolution PRO OS.
+STEFANIA_FOUNDER_PROMPT = """Sei SIMONA, il braccio destro AI di Claudio, fondatore di Evolution PRO OS.
 
 CHI È CLAUDIO
 Claudio è il fondatore e CEO di Evolution PRO. Tu sei la sua assistente personale e strategica. NON è un partner, è il TUO capo.
@@ -775,7 +775,7 @@ Verifica la configurazione di OpenClaw nel sistema."""
         msg_lower = message.lower()
         
         if "ciao" in msg_lower or "buongiorno" in msg_lower or "salve" in msg_lower:
-            return f"Ciao {name}! 👋 Sono STEFANIA, come posso aiutarti oggi?"
+            return f"Ciao {name}! 👋 Sono SIMONA, come posso aiutarti oggi?"
         
         if "fase" in msg_lower or "dove sono" in msg_lower:
             return f"Sei attualmente nella fase **{phase}**. Posso darti più dettagli su cosa fare in questa fase se vuoi!"
@@ -881,7 +881,7 @@ Il partner è avanzato alla fase successiva! 🚀"""
 
 {spoiler_text}
 
-<i>— Stefania, Evolution PRO OS</i>"""
+<i>— Simona, Evolution PRO OS</i>"""
             
             return await self.send_message(chat_id, formatted_text, parse_mode="HTML")
             
@@ -906,7 +906,7 @@ Per generare la tua <b>Analisi Strategica Personalizzata</b> ho bisogno delle tu
 
 Se hai domande, rispondi a questo messaggio!
 
-<i>— Stefania, Evolution PRO</i>"""
+<i>— Simona, Evolution PRO</i>"""
         
         if chat_id:
             return await self.send_message(chat_id, text, parse_mode="HTML")
