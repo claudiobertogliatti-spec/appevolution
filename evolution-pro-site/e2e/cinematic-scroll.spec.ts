@@ -1,15 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-test('strumenti e Ciak cambiano scena senza movimento della pagina', async ({ page }, testInfo) => {
+test('Ciak cambia scena senza movimento della pagina', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
   const scrollBefore = await page.evaluate(() => scrollY);
-  const firstTool = page.locator('#strumenti [data-active="true"]');
-  await expect(firstTool).toHaveCount(1);
-  const toolBefore = await firstTool.textContent();
-  await expect.poll(async () => page.locator('#strumenti [data-active="true"]').textContent(), { timeout: 5_000 }).not.toBe(toolBefore);
-
   const firstCiak = page.locator('#ciak [data-active="true"]');
   await expect(firstCiak).toHaveCount(1);
   const ciakBefore = await firstCiak.getAttribute('data-ciak-state');
@@ -20,11 +15,8 @@ test('strumenti e Ciak cambiano scena senza movimento della pagina', async ({ pa
 test('mobile mantiene le scene autonome senza sticky cinematografico', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
   await expect(page.locator('#ciak')).toHaveAttribute('data-animation', 'autoplay');
-  await expect(page.locator('[data-testid="tool-card"]')).toHaveCount(12);
   await expect(page.locator('[data-ciak-state]')).toHaveCount(5);
-  await expect(page.locator('#strumenti [data-active="true"]')).toHaveCount(1);
   await expect(page.locator('#ciak [data-active="true"]')).toHaveCount(1);
 });
 
@@ -32,6 +24,5 @@ test('un pannello desktop affiancato a 731px mantiene le animazioni', async ({ p
   test.skip(testInfo.project.name !== 'desktop-chromium');
   await page.setViewportSize({ width: 731, height: 642 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
   await expect(page.locator('#ciak')).toHaveAttribute('data-animation', 'autoplay');
 });

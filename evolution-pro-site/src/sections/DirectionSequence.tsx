@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 
+import { siteContent } from '../content/siteContent';
 import { useAutoplaySequence } from '../lib/motion';
+
+const toolsLoop = [...siteContent.tools, ...siteContent.tools];
 
 const principle = 'Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.';
 
@@ -31,6 +34,20 @@ export function DirectionSequence() {
           Prima la <mark>direzione</mark>. Poi gli strumenti.
         </motion.h2>}
         <ol className="sr-only" aria-label="Sequenza direzione e strumenti"><li>{principle}</li><li>Prima la direzione. Poi gli strumenti.</li></ol>
+      </div>
+      <div className="direction-sequence__tools">
+        <ul className="sr-only" aria-label="Strumenti collegati">
+          {siteContent.tools.map((tool) => <li key={tool.name}>{tool.name}</li>)}
+        </ul>
+        <div className="direction-tools" data-testid="tools-strip" aria-hidden="true">
+          <div className="direction-tools__track" data-testid="tools-strip-track">
+            {toolsLoop.map((tool, index) => (
+              <div className="direction-tools__item" data-testid="tools-strip-item" key={`${tool.name}-${index}`}>
+                <img src={tool.logo} alt="" loading="lazy" decoding="async" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const sectionOrder = ['hero', 'collaborazioni', 'strumenti', 'direzione', 'problema', 'claudio', 'metodo-evo', 'sistema', 'ciak', 'testimonianze', 'faq', 'inizia'];
+const sectionOrder = ['hero', 'collaborazioni', 'direzione', 'problema', 'claudio', 'metodo-evo', 'sistema', 'ciak', 'testimonianze', 'faq', 'inizia'];
 
 test('homepage completa, accessibile e senza errori runtime', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
@@ -20,7 +20,7 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
     'che vende.',
   ]);
   await expect(page.locator('main')).toHaveCount(1);
-  await expect(page.locator('[data-testid="home-section"]')).toHaveCount(12);
+  await expect(page.locator('[data-testid="home-section"]')).toHaveCount(11);
   expect(await page.locator('main > section').evaluateAll((sections) => sections.map((section) => section.id))).toEqual(sectionOrder);
   await expect(page.locator('.vite-error-overlay, #webpack-dev-server-client-overlay')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

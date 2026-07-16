@@ -39,10 +39,10 @@ export function HeroAgents() {
           <span className="hero-target-pill">PER CONSULENTI, COACH E PROFESSIONISTI</span>
           <h1><span>La tua competenza{' '}</span><span>diventa un&rsquo;<span className="hero-agents__highlight">Accademia</span>{' '}</span><span>che vende.</span></h1>
           <p className="hero-agents__lead">
-            Ma prima costruiamo la direzione giusta; senza quella, nessun corso, sessione o prodotto pu&ograve; vendere.
+            Ma prima costruiamo la direzione giusta; senza quella, nessun corso, sessione di coaching o prodotto digitale pu&ograve; vendere.
           </p>
           <p className="hero-agents__outcome">
-            Alla fine hai: il tuo posizionamento, la tua Accademia e un sistema di vendita di tua propriet&agrave;.
+            Definiamo il posizionamento, costruiamo l&rsquo;offerta, i contenuti e il funnel, poi prepariamo il lancio insieme. Tu porti la competenza, il team Evolution realizza il sistema. Alla fine tutto resta tuo.
           </p>
           <a className="button button--primary" href={siteContent.primaryCta.href}>
             {siteContent.primaryCta.label}

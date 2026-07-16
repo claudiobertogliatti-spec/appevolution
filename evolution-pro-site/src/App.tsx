@@ -4,7 +4,6 @@ import { HeroAgents } from './sections/HeroAgents';
 import { DirectionSequence } from './sections/DirectionSequence';
 import { LogoMarquee } from './sections/LogoMarquee';
 import { ProblemSequence } from './sections/ProblemSequence';
-import { ToolsMarquee } from './sections/ToolsMarquee';
 import { FounderStory } from './sections/FounderStory';
 import { EvoMethodSequence } from './sections/EvoMethodSequence';
 import { HumanAiSystem } from './sections/HumanAiSystem';
@@ -26,7 +25,6 @@ export default function App() {
       <main id="main-content">
         <HeroAgents />
         <LogoMarquee />
-        <ToolsMarquee />
         <DirectionSequence />
         <ProblemSequence />
         <FounderStory />

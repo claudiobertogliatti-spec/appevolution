@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { DirectionSequence } from '../src/sections/DirectionSequence';
 import { LogoMarquee } from '../src/sections/LogoMarquee';
 import { ProblemSequence } from '../src/sections/ProblemSequence';
-import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 describe('marquee accessibili', () => {
   it('mostra le collaborazioni in un banner scorrevole', () => {
@@ -19,28 +18,31 @@ describe('marquee accessibili', () => {
     expect(screen.getAllByTestId('collab-card')).toHaveLength(40);
   });
 
-  it('espone i dodici strumenti una volta sola e include Canva e HeyGen', () => {
-    render(<ToolsMarquee />);
+  it('mostra i dodici strumenti in una barra scorrevole dentro la sezione direzione', () => {
+    const { process } = globalThis as unknown as { process: { cwd: () => string } };
+    const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
+    render(<DirectionSequence />);
 
+    // barra strumenti accorpata nella sezione con il video di sfondo
+    expect(document.querySelector('#direzione .direction-sequence__tools')).toBeInTheDocument();
+    expect(css).toMatch(/\.direction-tools__track\s*\{[^}]*animation:\s*marquee-scroll/);
+
+    // lista semantica: dodici strumenti una volta sola, con Canva e HeyGen
     const list = screen.getByRole('list', { name: /strumenti collegati/i });
-    expect(list).toHaveClass('tools-cinematic__fan');
     expect(within(list).getAllByRole('listitem')).toHaveLength(12);
     expect(within(list).getByText('Canva')).toBeInTheDocument();
     expect(within(list).getByText('HeyGen')).toBeInTheDocument();
-    expect(document.querySelector('#strumenti')).toHaveAttribute('data-animation', 'autoplay');
-    expect(document.querySelector('#strumenti')).not.toHaveAttribute('data-scroll-linked');
-    expect(screen.getAllByTestId('tool-card')).toHaveLength(12);
-    expect(screen.getByTestId('tools-laptop')).toBeInTheDocument();
-    expect(screen.getByTestId('tools-laptop-image')).toHaveAttribute('src', '/visuals/tools-laptop-cutout.webp');
-    expect(screen.getByTestId('tools-laptop-brand')).toHaveAttribute('src', '/brand/evolution-pro-logo-transparent.webp');
-    const logos = within(list).getAllByRole('img');
-    expect(logos).toHaveLength(12);
-    expect(logos.map((logo) => logo.getAttribute('src'))).toEqual(expect.arrayContaining([
-      '/tools/canva.png',
-      '/tools/heygen.png',
-      '/tools/systemeio.png',
-    ]));
-    expect(document.querySelector('.tools-cinematic__mark')).not.toBeInTheDocument();
+
+    // banner decorativo: loghi duplicati per lo scorrimento continuo
+    expect(screen.getAllByTestId('tools-strip-item')).toHaveLength(24);
+    const srcs = screen.getAllByTestId('tools-strip-item').map((item) => item.querySelector('img')?.getAttribute('src'));
+    expect(srcs).toContain('/tools/canva.png');
+    expect(srcs).toContain('/tools/heygen.png');
+    expect(srcs).toContain('/tools/systemeio.png');
+
+    // la vecchia sezione laptop non esiste più
+    expect(document.querySelector('#strumenti')).not.toBeInTheDocument();
+    expect(document.querySelector('.tools-cinematic__fan')).not.toBeInTheDocument();
   });
 
   it('espone ogni collaborazione una volta nella lista semantica con nome e ruolo', () => {
@@ -76,28 +78,32 @@ describe('sequenze narrative', () => {
     expect(container.querySelector('[data-direction-scene="principio"]')).toBeInTheDocument();
   });
 
-  it('usa il nuovo principio e un logo ampio dentro il display', () => {
-    const { process } = globalThis as unknown as { process: { cwd: () => string } };
-    const css = readFileSync(`${process.cwd()}/src/styles/globals.css`, 'utf8');
-    render(<><ToolsMarquee /><DirectionSequence /></>);
+  it('usa il nuovo principio nella sequenza direzione', () => {
+    render(<DirectionSequence />);
 
     expect(screen.getAllByText('Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.').length).toBeGreaterThan(0);
-    expect(css).toMatch(/\.tools-laptop__brand\s*\{[^}]*width:\s*min\(28rem,\s*60%\)/);
   });
 
-  it('presenta i cinque pain point e la chiusura', () => {
+  it('presenta i due elenchi (ciò che fai / ciò che pensi) e la chiusura', () => {
     render(<ProblemSequence />);
 
-    const painPoints = screen.getByRole('list', { name: /problemi/i });
-    expect(within(painPoints).getAllByRole('listitem')).toHaveLength(5);
+    const doList = screen.getByRole('list', { name: /ciò che fai/i });
+    expect(within(doList).getAllByRole('listitem')).toHaveLength(5);
     expect(screen.getByText('vendi il tuo tempo')).toBeInTheDocument();
     expect(screen.getByText('riempi l’agenda')).toBeInTheDocument();
     expect(screen.getByText('aumenti il carico operativo')).toBeInTheDocument();
     expect(screen.getByText('provi strumenti senza un sistema')).toBeInTheDocument();
     expect(screen.getByText('resti economicamente fermo nonostante la competenza')).toBeInTheDocument();
+
+    const thinkList = screen.getByRole('list', { name: /ciò che pensi/i });
+    expect(within(thinkList).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(thinkList).getByText('“Non ho un pubblico.”')).toBeInTheDocument();
+    expect(within(thinkList).getByText('“Non voglio dipendere da un’agenzia.”')).toBeInTheDocument();
+    expect(within(thinkList).getByText('“Non so se le mie competenze sono vendibili.”')).toBeInTheDocument();
+
     expect(document.querySelector('.problem-sequence__punchline')?.textContent).toContain('Non ti mancano gli Attestati');
     expect(screen.getByText('TI MANCA UN SISTEMA!')).toHaveClass('hero-agents__highlight');
-    expect(screen.getByText('Il problema comune al 95% della categoria')).toBeInTheDocument();
+    expect(screen.getByText('Il problema comune al 95% dei professionisti')).toBeInTheDocument();
     const problemImage = screen.getByRole('img', { name: /professionista bloccato/i });
     expect(problemImage).toHaveAttribute('src', '/visuals/problem-direction.webp');
     expect(problemImage).toHaveAttribute('loading', 'eager');

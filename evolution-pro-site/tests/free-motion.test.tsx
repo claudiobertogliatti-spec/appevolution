@@ -9,7 +9,6 @@ import { EvoMethodSequence } from '../src/sections/EvoMethodSequence';
 import { FounderStory } from '../src/sections/FounderStory';
 import { HeroAgents } from '../src/sections/HeroAgents';
 import { ProblemSequence } from '../src/sections/ProblemSequence';
-import { ToolsMarquee } from '../src/sections/ToolsMarquee';
 
 const testimonial = {
   name: 'Partner verificato',
@@ -38,7 +37,6 @@ describe('animazioni libere dallo scroll', () => {
 
   it('rende autonome tutte le scene narrative e le videotestimonianze', () => {
     const { container } = render(<>
-      <ToolsMarquee />
       <DirectionSequence />
       <ProblemSequence />
       <FounderStory />
@@ -47,7 +45,7 @@ describe('animazioni libere dallo scroll', () => {
       <EnvelopeTestimonials testimonials={[testimonial]} />
     </>);
 
-    expect(container.querySelectorAll('[data-animation="autoplay"]')).toHaveLength(7);
+    expect(container.querySelectorAll('[data-animation="autoplay"]')).toHaveLength(6);
     expect(container.querySelector('[data-scroll-linked]')).not.toBeInTheDocument();
   });
 
@@ -56,7 +54,6 @@ describe('animazioni libere dallo scroll', () => {
 
     for (const selector of [
       '.hero-agents',
-      '.tools-cinematic',
       '.direction-sequence',
       '.problem-sequence',
       '.founder-story',
@@ -70,7 +67,6 @@ describe('animazioni libere dallo scroll', () => {
 
     for (const selector of [
       '.hero-agents__stage',
-      '.tools-cinematic__stage',
       '.direction-sequence__stage',
       '.problem-sequence__stage',
       '.founder-story__stage',
