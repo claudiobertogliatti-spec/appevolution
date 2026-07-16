@@ -450,6 +450,7 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .collaborations__track,
-  .direction-tools__track { animation: none; transform: none; }
+  /* I marquee decorativi (collaborazioni + strumenti) continuano a scorrere:
+     movimento lento e orizzontale, a basso rischio. Le animazioni narrative
+     restano comunque gestite/ferme via JS (useAutoplaySequence). */
 }
