@@ -43,7 +43,7 @@ export function DirectionSequence() {
           <div className="direction-tools__track" data-testid="tools-strip-track">
             {toolsLoop.map((tool, index) => (
               <div className="direction-tools__item" data-testid="tools-strip-item" key={`${tool.name}-${index}`}>
-                <img src={tool.logo} alt="" loading="lazy" decoding="async" />
+                <img src={tool.logo} alt="" loading="eager" decoding="async" />
               </div>
             ))}
           </div>

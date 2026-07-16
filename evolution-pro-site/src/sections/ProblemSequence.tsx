@@ -26,7 +26,7 @@ export function ProblemSequence() {
       <div className="problem-sequence__stage container">
         <figure className="problem-sequence__visual"><img src="/visuals/problem-direction.webp" alt="Professionista bloccato tra strumenti e attività senza una direzione" loading="eager" decoding="async" /></figure>
         <div className="problem-sequence__content">
-        <p className="eyebrow">Il problema comune al 95% dei professionisti</p>
+        <h2 className="problem-sequence__title">Il problema comune al 95% dei professionisti</h2>
         <div className="problem-sequence__group">
           <p className="problem-sequence__group-title">Ciò che fai</p>
           <ul aria-label="Ciò che fai">
