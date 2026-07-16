@@ -33,8 +33,8 @@ describe('marquee accessibili', () => {
     expect(within(list).getByText('Canva')).toBeInTheDocument();
     expect(within(list).getByText('HeyGen')).toBeInTheDocument();
 
-    // banner decorativo: loghi duplicati per lo scorrimento continuo
-    expect(screen.getAllByTestId('tools-strip-item')).toHaveLength(24);
+    // banner decorativo: loghi ripetuti (6 set) per uno scorrimento continuo senza vuoti
+    expect(screen.getAllByTestId('tools-strip-item')).toHaveLength(72);
     const srcs = screen.getAllByTestId('tools-strip-item').map((item) => item.querySelector('img')?.getAttribute('src'));
     expect(srcs).toContain('/tools/canva.png');
     expect(srcs).toContain('/tools/heygen.png');

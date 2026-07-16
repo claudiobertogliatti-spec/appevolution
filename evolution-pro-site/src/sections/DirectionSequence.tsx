@@ -3,7 +3,9 @@ import { motion } from 'framer-motion';
 import { siteContent } from '../content/siteContent';
 import { useAutoplaySequence } from '../lib/motion';
 
-const toolsLoop = [...siteContent.tools, ...siteContent.tools];
+// Ripetiamo i loghi più volte così ogni metà del marquee resta più larga del
+// viewport (anche su schermi grandi) e lo scorrimento non mostra spazi vuoti.
+const toolsLoop = Array.from({ length: 6 }, () => siteContent.tools).flat();
 
 const principle = 'Senza una direzione, gli strumenti implementati nella tua attività, fanno solo rumore.';
 

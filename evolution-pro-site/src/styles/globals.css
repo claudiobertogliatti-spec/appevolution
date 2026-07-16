@@ -211,7 +211,7 @@ h2 {
 .direction-tools__track { display: flex; align-items: center; width: max-content; animation: marquee-scroll 38s linear infinite; }
 .direction-tools:hover .direction-tools__track { animation-play-state: paused; }
 .direction-tools__item { flex: 0 0 auto; display: grid; place-items: center; height: 3.5rem; margin-right: .9rem; padding: 0 1.25rem; border-radius: .7rem; background: #fffffff2; box-shadow: 0 .4rem 1rem #0d295233; }
-.direction-tools__item img { display: block; max-width: 7.25rem; max-height: 2rem; object-fit: contain; }
+.direction-tools__item img { display: block; height: 2rem; width: auto; max-width: 7.25rem; object-fit: contain; }
 
 .problem-sequence { background: var(--surface-white); }
 .problem-sequence__stage { position: relative; display: grid; grid-template-columns: minmax(18rem, .9fr) minmax(0, 1.1fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); padding-block: var(--section-space); }
@@ -340,7 +340,7 @@ h2 {
 @media (max-width: 39.99rem) {
   .direction-sequence__noise span svg { width: 2.35rem; height: 2.35rem; }
   .direction-tools__item { height: 2.8rem; margin-right: .7rem; padding: 0 .95rem; }
-  .direction-tools__item img { max-width: 5.5rem; max-height: 1.6rem; }
+  .direction-tools__item img { height: 1.6rem; width: auto; max-width: 5.5rem; }
   .hero-agents__stage { min-height: auto; }
   .hero-agents__visual { min-height: 28rem; transform: none; }
   .hero-agents__shape { inset: 0; }
