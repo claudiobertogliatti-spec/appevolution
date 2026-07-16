@@ -218,7 +218,7 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
-          <table className="w-full min-w-[960px] text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
@@ -248,9 +248,6 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                         <div className="min-w-0">
                           <div className="font-medium text-slate-900 truncate">
                             {p.name || "—"}
-                          </div>
-                          <div className="text-xs text-slate-500 truncate">
-                            {p.niche || p.email}
                           </div>
                         </div>
                       </div>
