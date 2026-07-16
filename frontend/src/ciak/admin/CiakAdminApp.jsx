@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { getDepartmentRoom } from "./departmentRooms";
+import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
@@ -422,9 +423,10 @@ function RepartoLanding({ macro, onAuthExpired }) {
   const pages = macroPages(macro);
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   const room = getDepartmentRoom(macro.id);
+  const metricValues = useRepartoMetrics(macro.id);
   return (
     <div className="p-10 max-w-5xl mx-auto">
-      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} />
+      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-blue-50 text-blue-700 mb-4">
           <Icon className="w-5 h-5" />
