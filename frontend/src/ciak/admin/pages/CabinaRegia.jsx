@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { BarChart3, ClipboardCheck, CreditCard, Megaphone, Users } from "lucide-react";
 import { adminFetch } from "../api";
 import { DepartmentRoomIntro } from "../components/DepartmentRoom";
+import { FunnelWaterfall } from "../components/FunnelWaterfall";
 import { getDepartmentRoom } from "../departmentRooms";
 
 // Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard). `to`
@@ -73,6 +74,40 @@ function dashboardValues({ sum, acq, gG, gR, partners }) {
   };
 }
 
+function pct(a, b) {
+  return b > 0 ? Math.round((a / b) * 100) + "%" : "—";
+}
+
+// Calcola gli stadi del funnel a cascata + north-star dai dati reali.
+function funnelData({ mc = {}, inv = {}, hub = {} }) {
+  const F = mc.funnel || {};
+  const items = Array.isArray(inv.items) ? inv.items : [];
+  const optin = F.opt_in || 0;
+  const domande = F.diagnostic_completed || 0;
+  const blueprint = F.purchased_67 || 0;
+  const start = items.filter((s) => s.fonte === "ciak_start").length;
+  const partnership = items.filter((s) => ["partnership", "upgrade"].includes(s.fonte)).length;
+  const revBlue = blueprint * 27, revStart = start * 499, revPart = partnership * 2790;
+  const oneOff = revBlue + revStart + revPart;
+  const mrr = (hub.summary || {}).mrr || 0;
+  const arpu = optin > 0 ? oneOff / optin : 0;
+  const eur = (n) => "€ " + Number(n || 0).toLocaleString("it-IT");
+  const stages = [
+    { label: "Lead (opt-in)", count: fmt(optin) },
+    { label: "8 Domande completate", count: fmt(domande), conv: pct(domande, optin) },
+    { label: "Blueprint €27", count: fmt(blueprint), euro: eur(revBlue), conv: pct(blueprint, domande), hot: true },
+    { label: "Ciak Start €499", count: fmt(start), euro: eur(revStart), conv: pct(start, blueprint) },
+    { label: "Partnership €2.790", count: fmt(partnership), euro: eur(revPart), conv: pct(partnership, blueprint), hot: true },
+  ];
+  const northStar = {
+    oneOff: eur(oneOff),
+    mrr: eur(mrr),
+    arpu: eur(Math.round(arpu)),
+    goalPct: Math.round((oneOff / 1000000) * 100),
+  };
+  return { stages, northStar };
+}
+
 export function CabinaRegia({ onAuthExpired }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
@@ -80,13 +115,15 @@ export function CabinaRegia({ onAuthExpired }) {
 
   const load = useCallback(async () => {
     try {
-      const [hub, appr, apl, lead, acq, partnersData] = await Promise.all([
+      const [hub, appr, apl, lead, acq, partnersData, mc, inv] = await Promise.all([
         getJSON("/api/agent-hub/summary"),
         getJSON("/api/agent-tasks/approval-stats"),
         getJSON("/api/agent-tasks/approvals"),
         getJSON("/api/discovery/stats/today"),
         getJSON("/api/admin/ciak/acquisizione-command-center"),
         getJSON("/api/admin/ciak/partners"),
+        getJSON("/api/admin/ciak/masterclass-analytics"),
+        getJSON("/api/admin/ciak/invoices/sources"),
       ]);
       setD({
         hub: hub || {},
@@ -95,6 +132,8 @@ export function CabinaRegia({ onAuthExpired }) {
         lead,
         acq: acq || {},
         partners: partnersData?.items || [],
+        mc: mc || {},
+        inv: inv || {},
       });
     } catch (e) {
       if (e?.message === "AUTH_EXPIRED") onAuthExpired?.();
@@ -113,6 +152,8 @@ export function CabinaRegia({ onAuthExpired }) {
   return (
     <div className="max-w-6xl p-6 md:p-8">
       <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+
+      <FunnelWaterfall {...funnelData(d)} />
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-slate-900">Reparti Evolution PRO</h2>
