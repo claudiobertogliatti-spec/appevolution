@@ -16561,6 +16561,48 @@ async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "maste
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@api_router.post("/internal/pipeline-watchdog")
+async def internal_pipeline_watchdog(request: Request):
+    """Watchdog pipeline video — trigger HTTP service-to-service (SENZA browser).
+
+    Esegue on-demand la STESSA logica di auto-recovery del Celery Beat
+    (`check_stuck_video_pipelines`): rileva i job masterclass/lezione bloccati
+    (heartbeat morto > 5 min, oppure nessun heartbeat + updated_at > 240 min),
+    li resetta e li ri-triggera, e notifica su Telegram se resetta qualcosa.
+
+    Nota architetturale: la recovery gira GIÀ automaticamente ogni 30 min sul
+    servizio `evolution-pro-worker` via Celery Beat. Questo endpoint è un trigger
+    indipendente e browser-free — pensato per una routine schedulata / Cloud
+    Scheduler — utile come rete di sicurezza e per un check on-demand quando si
+    sospetta un job appeso. Auth via token statico: nessun Bearer del browser.
+
+    Auth: header `X-Watchdog-Token` deve combaciare con l'env `PIPELINE_WATCHDOG_TOKEN`.
+    """
+    import hmac
+    expected = os.environ.get("PIPELINE_WATCHDOG_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Watchdog non configurato (PIPELINE_WATCHDOG_TOKEN mancante)")
+    provided = (request.headers.get("X-Watchdog-Token") or "").strip()
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Token watchdog non valido")
+
+    # La funzione è sincrona e apre il proprio event loop (run_async): la eseguiamo
+    # in un thread separato per non collidere con l'event loop di FastAPI.
+    from celery_tasks import check_stuck_video_pipelines
+    try:
+        result = await asyncio.to_thread(check_stuck_video_pipelines)
+    except Exception as e:
+        logging.error(f"[WATCHDOG] pipeline-watchdog fallito: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "success": True,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "reset": (result or {}).get("reset", 0),
+        "retriggered": (result or {}).get("retriggered", 0),
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # EMAIL TEMPLATES MANAGEMENT (Admin)
 # ═══════════════════════════════════════════════════════════════════════════════
