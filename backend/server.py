@@ -3564,6 +3564,13 @@ async def get_partner_full_data(partner_id: str):
     funnel = await db.partner_funnel.find_one(_sub_collection_query(canonical_id), {"_id": 0})
     lancio = await db.partner_lancio.find_one(_sub_collection_query(canonical_id), {"_id": 0})
 
+    # Step del journey: servono all'editor admin per leggere/scrivere le risposte
+    # dei questionari di step (la-tua-storia, burocrazia, ...), che vivono in
+    # partner_journey_steps.data.answers e non in una sub-collection dedicata.
+    steps = await db.partner_journey_steps.find(
+        {"partner_id": canonical_id}, {"_id": 0}
+    ).sort("step_number", 1).to_list(length=100)
+
     return {
         "success": True,
         "partner": partner,
@@ -3572,6 +3579,7 @@ async def get_partner_full_data(partner_id: str):
         "videocorso": videocorso or {},
         "funnel": funnel or {},
         "lancio": {"plan_generated": lancio.get("plan_generated", False)} if lancio else {},
+        "steps": steps,
     }
 
 
@@ -3618,6 +3626,84 @@ async def update_partner_journey(partner_id: str, body: dict):
         )
 
     return {"success": True, "message": f"Dati {collection_name} aggiornati"}
+
+
+@api_router.patch("/admin/partner/{partner_id}/step/{step_id}")
+async def update_partner_step_answers(partner_id: str, step_id: str, body: dict):
+    """
+    Admin override per le risposte dei questionari di step (la-tua-storia,
+    burocrazia, ...).
+
+    Perche' esiste: il wizard lato partner impone di rispondere a TUTTE le
+    domande in sequenza (il bottone Avanti resta disabilitato finche' il campo
+    e' vuoto). In migrazione Drive->Ciak disponiamo solo di una parte del
+    materiale, quindi da li' non si riesce a inserire nulla oltre la prima
+    domanda. Questo canale permette di scrivere le risposte che abbiamo
+    davvero, nell'ordine che vogliamo.
+
+    Body: { "answers": { question_id: value, ... } }
+
+    Merge NON distruttivo dentro partner_journey_steps.data.answers: le risposte
+    gia' presenti restano, quelle passate le sovrascrivono.
+
+    IMPORTANTE: non tocca mai `status`. Compilare parzialmente da admin non
+    equivale a completare lo step — vedi regola 7 del protocollo di migrazione
+    in memory/CIAK_MIGRATION_MEMORY.md ("non marcare una fase come completa solo
+    perche' esiste un materiale parziale").
+    """
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+
+    partner = await db.partners.find_one(_partner_id_query(partner_id))
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    canonical_id = str(partner.get("id", partner_id))
+
+    definition = next((d for d in JOURNEY_STEPS_DEFINITION if d["step_id"] == step_id), None)
+    if not definition:
+        valid = [d["step_id"] for d in JOURNEY_STEPS_DEFINITION]
+        raise HTTPException(status_code=400, detail=f"step_id non valido. Validi: {valid}")
+
+    answers = body.get("answers")
+    if not isinstance(answers, dict) or not answers:
+        raise HTTPException(status_code=400, detail="Nessuna risposta da salvare")
+
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": canonical_id, "step_id": step_id}, {"_id": 0}
+    )
+    existing = ((step or {}).get("data") or {}).get("answers") or {}
+
+    # Merge in Python e riscrittura dell'intero data.answers: le chiavi delle
+    # domande contengono punti (es. "storia.origini.prima_di") e un $set con
+    # dotted path creerebbe oggetti annidati invece di chiavi piatte.
+    merged = {**existing, **answers}
+
+    now = datetime.utcnow()
+    if step:
+        await db.partner_journey_steps.update_one(
+            {"partner_id": canonical_id, "step_id": step_id},
+            {"$set": {"data.answers": merged, "updated_at": now, "last_edited_by": "admin"}},
+        )
+    else:
+        await db.partner_journey_steps.insert_one({
+            "partner_id": canonical_id,
+            "step_id": step_id,
+            "step_number": definition["step_number"],
+            "fase_legacy": definition["fase_legacy"],
+            "status": "pending",
+            "started_at": None,
+            "completed_at": None,
+            "data": {"answers": merged},
+            "updated_at": now,
+            "last_edited_by": "admin",
+        })
+
+    return {
+        "success": True,
+        "step_id": step_id,
+        "answers_saved": len(merged),
+        "status": (step or {}).get("status", "pending"),
+    }
 
 
 @api_router.post("/admin/partner/{partner_id}/files/register")

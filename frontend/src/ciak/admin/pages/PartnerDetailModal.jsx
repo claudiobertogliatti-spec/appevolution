@@ -22,6 +22,9 @@ import { adminFetch } from "../api";
 import { attoEvo } from "../evo";
 import { ContractParamsModal } from "./ContractParamsModal";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
+// Stesso registro domande usato dal wizard lato partner: unica fonte, così i due
+// elenchi non possono divergere.
+import { STORIA_QUESTIONS } from "../../partner/operativo/questionari/storiaQuestions";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL CONFERMA ELIMINAZIONE
@@ -201,12 +204,19 @@ const MC_ANSWER_FIELDS = [
   { key: "dopo_masterclass", label: "Dopo la masterclass", placeholder: "Cosa succede dopo? Qual è il next step per continuare con te?" },
 ];
 
-function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
+function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired }) {
   const [pos, setPos] = useState(data.posizionamento || {});
   const [mc, setMc] = useState(data.masterclass || {});
   const [vc, setVc] = useState(data.videocorso || {});
   const [fn, setFn] = useState(data.funnel || {});
   const [partner, setPartner] = useState(data.partner || {});
+
+  // "La tua storia": le risposte stanno in partner_journey_steps.data.answers,
+  // indicizzate per id domanda (S01..S21), non in una sub-collection dedicata.
+  const storiaStep = (data.steps || []).find(s => s.step_id === "la-tua-storia");
+  const [storia, setStoria] = useState((storiaStep?.data?.answers) || {});
+  const storiaBlocchi = [...new Set(STORIA_QUESTIONS.map(q => q.blocco))];
+  const storiaCompilate = STORIA_QUESTIONS.filter(q => String(storia[q.id] || "").trim()).length;
 
   // Masterclass AI generation state
   const [mcAnswers, setMcAnswers] = useState({
@@ -441,6 +451,34 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
 
       {/* ── ATTO 1: ESAMINA ── */}
       <EvoActHeader icon="🎯" label="Esamina" agent="Valentina" tagline="Chiariamo chi sei e a chi parli" />
+
+      {/* LA TUA STORIA — compilabile a pezzi da admin (il wizard partner no) */}
+      <JourneySection title={`La tua storia — ${storiaCompilate}/${STORIA_QUESTIONS.length}`} icon={BookOpen} color="#0EA5E9">
+        <div className="text-xs mb-3 leading-relaxed" style={{ color: "#9CA3AF" }}>
+          Il wizard lato partner obbliga a rispondere in sequenza a tutte e {STORIA_QUESTIONS.length} le domande:
+          senza risposta il tasto Avanti resta bloccato. Qui invece si compila liberamente, anche solo in parte —
+          serve in migrazione, quando del partner abbiamo solo una parte del materiale.
+          <br />
+          <strong style={{ color: "#6B7280" }}>Salvare qui non marca lo step come completato.</strong> Compilare a metà non è completare.
+        </div>
+        {storiaBlocchi.map(blocco => (
+          <div key={blocco} className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>{blocco}</div>
+            {STORIA_QUESTIONS.filter(q => q.blocco === blocco).map(q => (
+              <JField
+                key={q.id}
+                label={`${q.id} · ${q.domanda}`}
+                value={storia[q.id] || ""}
+                onChange={v => setStoria(p => ({ ...p, [q.id]: v }))}
+                multiline={q.tipo !== "breve"}
+                placeholder={q.hint || q.esempio}
+              />
+            ))}
+          </div>
+        ))}
+        <SaveBtn onClick={() => onSaveStep && onSaveStep("la-tua-storia", storia)}
+          saving={saving["la-tua-storia"]} saved={saved["la-tua-storia"]} />
+      </JourneySection>
 
       {/* POSIZIONAMENTO */}
       <JourneySection title="Posizionamento" icon={Target} color="#8B5CF6">
@@ -1004,6 +1042,41 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
 
+  // Salva le risposte dei questionari di step (la-tua-storia, burocrazia, ...).
+  // Vivono in partner_journey_steps.data.answers, non in una sub-collection:
+  // servono un endpoint e un canale dedicati. Il merge è lato backend e NON
+  // tocca lo status dello step (compilare a metà ≠ completare).
+  const saveStepAnswers = async (stepId, answers) => {
+    if (!partner?.id) return;
+    setJourneySaving(prev => ({ ...prev, [stepId]: true }));
+    try {
+      const res = await adminFetch(`/api/admin/partner/${partner.id}/step/${stepId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers })
+      });
+      if (res.ok) {
+        setJourneySaved(prev => ({ ...prev, [stepId]: true }));
+        setTimeout(() => setJourneySaved(prev => ({ ...prev, [stepId]: false })), 2500);
+        // Riallinea lo step in memoria così il contatore "X/21" è subito veritiero.
+        setJourneyData(prev => {
+          if (!prev) return prev;
+          const steps = (prev.steps || []).map(s =>
+            s.step_id === stepId
+              ? { ...s, data: { ...(s.data || {}), answers: { ...((s.data || {}).answers || {}), ...answers } } }
+              : s
+          );
+          return { ...prev, steps };
+        });
+      }
+    } catch (e) {
+      authErr(e);
+      console.error("Error saving step answers:", e);
+    } finally {
+      setJourneySaving(prev => ({ ...prev, [stepId]: false }));
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!partner?.id) return;
     setSaving(true);
@@ -1409,6 +1482,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     saving={journeySaving}
                     saved={journeySaved}
                     onSave={saveJourneySection}
+                    onSaveStep={saveStepAnswers}
                     onAuthExpired={onAuthExpired}
                   />
                 ) : (

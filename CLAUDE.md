@@ -16,6 +16,25 @@ Claude è autorizzato a committare e pushare su `main` senza richiedere conferma
 
 **Se il sandbox bash fallisce**: usare Claude in Chrome → navigare su github.com/claudiobertogliatti-spec/appevolution → aprire il file → Edit → modificare via console CM6 → commit su main.
 
+## ⛔ Migrazione partner Drive→Ciak — LEGGERE IL PROTOCOLLO PRIMA DI TOCCARE UN PARTNER
+
+Prima di qualsiasi lavoro sui dati di un partner (migrazione, compilazione step,
+allineamento fasi): **leggere per intero `memory/CIAK_MIGRATION_MEMORY.md`**.
+Contiene le 16 regole operative, il caso pilota (**Sarah Arensi, ID 4** — non Daniele
+Andolfi) e le decisioni su chi è escluso. Vedi anche `docs/migration/`.
+
+Non leggerne frammenti con grep/sed: è proprio la parte non letta che dice che si sta
+sbagliando approccio. Il 2026-07-20 questo errore è costato ore di lavoro rifatto e due
+falsi allarmi.
+
+Le due regole più violate:
+- **Regola 7** — non marcare una fase come completa solo perché esiste un materiale parziale.
+- **Regola 6** — ciò che non abbiamo si lascia vuoto o si segna come mancante; non si inventa.
+
+⚠️ **Gli stati "✅ fatto" scritti nelle memorie e negli audit non sono verificati.** Verificare
+sempre alla fonte (`GET /api/partners/{id}`, `/api/partner-hub/{id}`, `/api/admin/partner/{id}/full-data`)
+prima di dare un partner per completato.
+
 ## ⛔ Dominio `app.evolution-pro.it` — DISMESSO (eliminazione in corso)
 
 `app.evolution-pro.it` è un dominio **morto**: nessun partner ci accede più. L'app operativa
