@@ -45,7 +45,7 @@ async def send_purchase_event(
     *,
     event_id,
     email=None,
-    value=67.0,
+    value=27.0,
     currency="EUR",
     event_source_url=None,
     client_ip=None,

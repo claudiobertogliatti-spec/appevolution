@@ -2,7 +2,7 @@
 Ciak — Checkout router (Stripe).
 
 Endpoint:
-  POST /api/checkout/create-session  → crea Stripe checkout session Ciak Blueprint 67€
+  POST /api/checkout/create-session  → crea Stripe checkout session Ciak Blueprint 27€
   POST /api/checkout/webhook         → riceve eventi Stripe (checkout.session.completed)
 
 Differenze rispetto a routers/stripe_webhook.py:
@@ -357,7 +357,7 @@ async def stripe_webhook(request: Request):
     re-inviati per acquisti effettuati prima del rename 2026-05-12).
 
     Configurazione Stripe Dashboard → Developers → Webhooks:
-      - Endpoint URL: https://api.evolution-pro.it/api/checkout/webhook
+      - Endpoint URL: https://www.ciak.io/api/checkout/webhook
       - Events: checkout.session.completed, charge.refunded
       - Signing secret → env STRIPE_CIAK_WEBHOOK_SECRET
     """
@@ -423,7 +423,7 @@ async def _handle_checkout_completed(data: dict) -> None:
         import asyncio as _asyncio_capi
         from services.meta_capi import send_purchase_event
         _amount_total = data.get("amount_total")
-        _purchase_value = (float(_amount_total) / 100.0) if _amount_total else 67.0
+        _purchase_value = (float(_amount_total) / 100.0) if _amount_total is not None else 27.0
         _asyncio_capi.create_task(send_purchase_event(
             event_id=data.get("id"),
             email=customer_email,
