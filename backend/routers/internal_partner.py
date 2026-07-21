@@ -107,18 +107,26 @@ async def internal_update_progress(
         source=source
     )
 
+    from services.stefania_engine import STATE_TO_PHASE
+    new_state = updated_guided.get("current_state", "ONBOARDING")
+    new_phase = STATE_TO_PHASE.get(new_state)
+
+    update_payload = {
+        "guided": updated_guided,
+        f"guided_audit.{request.step_code}": {
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "source": source,
+            "agent": request.agent,
+            "note": request.note,
+        }
+    }
+    if new_phase:
+        update_payload["phase"] = new_phase
+
     # Persist guided + audit trail
     await db.partners.update_one(
         {"id": partner_id},
-        {"$set": {
-            "guided": updated_guided,
-            f"guided_audit.{request.step_code}": {
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-                "source": source,
-                "agent": request.agent,
-                "note": request.note,
-            }
-        }}
+        {"$set": update_payload}
     )
 
     logger.info(

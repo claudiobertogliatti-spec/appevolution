@@ -337,6 +337,41 @@ async def admin_verify_document(partner_id: str, doc_type: str):
             {"$set": {"documents_status": "verified", "documents_verified_at": now}}
         )
         logger.info(f"[DOCUMENTS] All documents verified for partner {partner_id}")
+        
+        # SBLOCCO STEP VERIFY_IDENTITY IN GUIDED
+        try:
+            partner_doc = await db.partners.find_one({"id": partner_id})
+            if partner_doc:
+                from services.stefania_engine import StefaniaEngine, STATE_TO_PHASE
+                guided = partner_doc.get("guided")
+                if not guided:
+                    guided = StefaniaEngine.evaluate(partner_doc, migration_source="lazy")
+                
+                progress_data = guided.get("progress_data", {})
+                onboarding_prog = progress_data.get("ONBOARDING", {})
+                if not onboarding_prog.get("VERIFY_IDENTITY"):
+                    updated_guided = StefaniaEngine.advance(
+                        partner={**partner_doc, "guided": guided},
+                        step_code="VERIFY_IDENTITY",
+                        payload={"completed": True},
+                        source="system"
+                    )
+                    
+                    new_state = updated_guided.get("current_state", "ONBOARDING")
+                    new_phase = STATE_TO_PHASE.get(new_state)
+                    
+                    update_payload = {"guided": updated_guided}
+                    if new_phase:
+                        update_payload["phase"] = new_phase
+                        
+                    await db.partners.update_one(
+                        {"id": partner_id},
+                        {"$set": update_payload}
+                    )
+                    logger.info(f"[DOCUMENTS] StefaniaEngine advanced to VERIFY_IDENTITY for partner {partner_id}")
+        except Exception as ex:
+            logger.error(f"[DOCUMENTS] Failed to advance StefaniaEngine: {ex}")
+
         # Systeme.io notification - all docs verified
         try:
             from services.systeme_notifications import notify_documents_verified

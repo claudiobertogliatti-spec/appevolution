@@ -82,7 +82,13 @@ async def _get_or_evaluate(partner: dict) -> dict:
 
     # Persist if guided was just initialized or the current step changed
     if is_new_init or partner.get("guided", {}).get("current_step") != new_guided.get("current_step"):
+        from services.stefania_engine import STATE_TO_PHASE
+        new_state = new_guided.get("current_state", "ONBOARDING")
+        new_phase = STATE_TO_PHASE.get(new_state)
+
         update_doc: dict = {"guided": new_guided}
+        if new_phase:
+            update_doc["phase"] = new_phase
 
         # If first-time init and phase was unrecognized, flag partner for manual review
         if is_new_init and new_guided.get("migration_fallback_used"):
@@ -245,10 +251,18 @@ async def complete_step(
         source="partner"
     )
 
+    from services.stefania_engine import STATE_TO_PHASE
+    new_state = updated_guided.get("current_state", "ONBOARDING")
+    new_phase = STATE_TO_PHASE.get(new_state)
+
+    update_payload = {"guided": updated_guided}
+    if new_phase:
+        update_payload["phase"] = new_phase
+
     # Persist
     await db.partners.update_one(
         {"id": partner["id"]},
-        {"$set": {"guided": updated_guided}}
+        {"$set": update_payload}
     )
 
     # Check for stall reset (partner is active again)

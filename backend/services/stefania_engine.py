@@ -318,8 +318,19 @@ _PHASE_TO_STATE: dict[str, str] = {
     "F8": "LANCIO",
     "F9": "LANCIO",
     "LIVE": "POST_LAUNCH",
-    "OTTIMIZZAZIONE": "POST_LAUNCH",
 }
+
+STATE_TO_PHASE: dict[str, str] = {
+    "ONBOARDING": "F1",
+    "POSITIONING": "F2",
+    "MASTERCLASS": "F3",
+    "VIDEOCORSO": "F5",
+    "FUNNEL": "F6",
+    "LANCIO": "F8",
+    "POST_LAUNCH": "LIVE",
+    "SCALING": "LIVE",
+}
+
 
 # Phases F3+ indicate the partner has substantial prior progress that cannot
 # be fully reconstructed from phase alone — manual review recommended.
