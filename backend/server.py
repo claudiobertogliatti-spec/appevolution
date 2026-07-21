@@ -702,12 +702,12 @@ PHASE_LABELS = {
     "F10": "La mia Accademia", "F11": "I miei Studenti", "F12": "Impegni Settimana", "F13": "Report Mensile"
 }
 
-# Piano Continuità configuration
+# Piano Continuità configuration (EVO-S)
 PIANI_CONTINUITA = {
-    "starter": {"fee_mensile": 29, "commissione_percentuale": 15, "label": "Starter"},
-    "builder": {"fee_mensile": 49, "commissione_percentuale": 10, "label": "Builder"},
-    "pro": {"fee_mensile": 79, "commissione_percentuale": 7, "label": "Pro"},
-    "elite": {"fee_mensile": 99, "commissione_percentuale": 5, "label": "Elite"}
+    "starter": {"fee_mensile": 297, "commissione_percentuale": 10, "label": "Ciak Continuità"},
+    "builder": {"fee_mensile": 497, "commissione_percentuale": 10, "label": "Ciak Crescita"},
+    "pro": {"fee_mensile": 797, "commissione_percentuale": 10, "label": "Ciak Espansione"},
+    "recover": {"fee_mensile": 147, "commissione_percentuale": 10, "label": "Recupero Ottimizza"}
 }
 
 # =============================================================================

@@ -500,7 +500,7 @@ async def get_clienti_stats():
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
-    """Create Stripe checkout session for €67 analysis"""
+    """Create Stripe checkout session for €27 analysis"""
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
@@ -517,7 +517,7 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
                         "name": "Analisi Strategica Personalizzata",
                         "description": "Check di fattibilità + 7 Bonus formativi inclusi",
                     },
-                    "unit_amount": 6700,  # €67.00 in cents
+                    "unit_amount": 2700,  # €27.00 in cents
                 },
                 "quantity": 1,
             }],
