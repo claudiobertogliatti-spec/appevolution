@@ -27,6 +27,17 @@
 5. **Offerta** — presenta il videocorso come il passo successivo naturale.
 6. **CTA finale** — una sola azione chiara + card a schermo con link/istruzione.
 
+## 2-bis. Sigla INTRO + OUTRO brandizzate (STANDARD partner — Claudio 17/7)
+Definito dal pilota Daniele Andolfi / Metodo Sabai. Vale per tutti i partner.
+- **INTRO (≤8–10s):** sigla con il **logo del partner ben visibile** + **musica in linea
+  col partner** (wellness → natura/calma; business → più energica). **SOLO musica**: la
+  **voce parte quando appare il volto**, mai sopra la sigla.
+- **OUTRO finale:** sigla di chiusura brandizzata (logo + musica) dopo l'ultima CTA.
+- **Corpo velocizzato ~1,2×** (speed-up uniforme del parlato) per dinamismo — è ciò che
+  dà ritmo alla masterclass. `setpts=PTS/1.22` + `atempo=1.22` (preserva il pitch).
+- Il corpo si ricostruisce dal **grezzo PULITO** (senza sottotitoli), tenendo intro/outro
+  del montaggio brandizzato.
+
 ## 3. Taglio (aggressivo)
 - Via **tutti** i filler (ehm/allora/diciamo), false partenze, ripetizioni, tempi morti.
 - **Jump cut** serrati: nessuna pausa "che respira" se non serve enfasi.
@@ -36,7 +47,9 @@
 ## 4. Grafica & testo a schermo
 - **Overlay di enfasi** su claim/numeri chiave (compaiono mentre vengono detti).
 - **Pattern interrupt** ogni 30–60s (zoom, cambio inquadratura, card testo) per non far mollare.
-- **Sottotitoli burned** (retention + autoplay muto sui social/landing).
+- **NIENTE sottotitoli impressi** (decisione Claudio 17/7): la masterclass va **pulita**,
+  senza sub burned. Il corpo si prende dal grezzo SENZA sottotitoli. (Le CC di YouTube si
+  possono lasciare attivabili lato player con `cc_load_policy=0` = spente di default.)
 - **Card CTA finale** brandizzata (colore del partner) con l'azione: "Accedi al videocorso".
 
 ## 5. Audio & resa
@@ -48,7 +61,7 @@
 > "Monta questo grezzo come **masterclass di vendita**. Trascrivi. Porta all'inizio il
 > gancio più forte (primi 15s). Rimuovi tutti i filler, false partenze, ripetizioni e
 > tempi morti con jump cut serrati. Riordina i contenuti sulla spina: gancio → problema →
-> meccanismo → prova → offerta → CTA. Aggiungi sottotitoli burned, overlay di testo sui
+> meccanismo → prova → offerta → CTA. Sigla intro brandizzata (logo partner + musica in linea, voce solo col volto) + outro finale; corpo velocizzato ~1,2x; NIENTE sottotitoli impressi; overlay di testo sui
 > numeri/claim chiave, un pattern interrupt ogni ~45s, studio sound. Chiudi con una card
 > CTA brandizzata (colore {BRAND}) 'Accedi al videocorso'. Priorità: retention e desiderio,
 > non completezza. Durata target 25–30 min."

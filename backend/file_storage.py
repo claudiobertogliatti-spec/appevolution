@@ -22,9 +22,9 @@ DOCUMENT_EXTENSIONS = {'.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt'
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'}
 
 # Max file sizes (in bytes)
-MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500 MB
-MAX_DOCUMENT_SIZE = 50 * 1024 * 1024  # 50 MB
-MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024  # 5 GB (supporto videocorsi HD/4K)
+MAX_DOCUMENT_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB
 
 
 class FileStorageManager:

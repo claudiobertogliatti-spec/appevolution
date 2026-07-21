@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, ClipboardCheck, CreditCard, Megaphone, Users } from "lucide-react";
+import { ArrowRight, BarChart3, ClipboardCheck, CreditCard, LineChart, Megaphone, Users } from "lucide-react";
 import { adminFetch } from "../api";
 import { DepartmentRoomIntro } from "../components/DepartmentRoom";
 import { FunnelWaterfall } from "../components/FunnelWaterfall";
@@ -154,6 +154,26 @@ export function CabinaRegia({ onAuthExpired }) {
       <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
 
       <FunnelWaterfall {...funnelData(d)} />
+
+      {/* Simulatore €1M — la proiezione, controparte della Plancia (dati reali) */}
+      <button
+        onClick={() => navigate("/admin/simulatore")}
+        className="w-full text-left rounded-2xl border border-yellow-300 bg-white overflow-hidden mb-7 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition group"
+      >
+        <div className="flex items-center gap-4 px-5 py-4">
+          <div className="w-11 h-11 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center flex-shrink-0">
+            <LineChart className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">Simulatore €1M · proiezione</p>
+            <h3 className="font-bold text-slate-900 leading-tight">Pianifica la traiettoria a 3 anni</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Scenari prudente/base/ambizioso e leve tarabili sui dati veri. La Plancia sopra è il consuntivo; questo è il piano.</p>
+          </div>
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-700 group-hover:gap-2.5 transition-all flex-shrink-0">
+            Apri <ArrowRight className="w-4 h-4" />
+          </span>
+        </div>
+      </button>
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-slate-900">Reparti Evolution PRO</h2>

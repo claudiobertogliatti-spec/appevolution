@@ -165,6 +165,14 @@ export function PartnerSetupPassword() {
                 contatta <a href="mailto:assistenza@evolution-pro.it" className="text-yellow-600 underline">assistenza@evolution-pro.it</a>
                 {" "}— ti rigeneriamo un link in pochi minuti.
               </p>
+              <div className="mt-4 pt-3 border-t border-red-100 flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate("/partner")}
+                  className="px-4 py-2 bg-slate-900 text-yellow-400 font-semibold text-xs rounded-lg hover:bg-slate-800 transition"
+                >
+                  Vai alla schermata di Login Partner →
+                </button>
+              </div>
             </div>
           )}
 

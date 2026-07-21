@@ -2,17 +2,16 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
 import CiakApp from "@/ciak/CiakApp";
+import { ErrorBoundary } from "@/ciak/components/ErrorBoundary";
 
 /**
- * Entry unico: CiakApp su tutti gli host.
- *
- * Consolidamento 2026-06-03: la vecchia app Evolution PRO (App.js + components/)
- * è stata ritirata — non era usata da nessuno. Tutti gli host servono CiakApp.
- * Il sito vetrina pubblico evolution-pro.it resta su Systeme.io, fuori da questo bundle.
+ * Entry unico: CiakApp su tutti gli host con ErrorBoundary di protezione globale.
  */
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <CiakApp />
+    <ErrorBoundary>
+      <CiakApp />
+    </ErrorBoundary>
   </React.StrictMode>,
 );

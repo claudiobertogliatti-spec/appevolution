@@ -41,21 +41,36 @@ def is_configured() -> bool:
 
 # ─── LETTURA ────────────────────────────────────────────────────
 
+def _request_with_retry(method: str, url: str, params=None, json=None, write=False, max_retries=3, timeout=15):
+    """Esegue una richiesta HTTP verso Systeme.io con tentativi automatici di retry."""
+    import time
+    last_err = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            if method.upper() == "GET":
+                r = httpx.get(url, params=params, headers=_headers(write), timeout=timeout)
+            else:
+                r = httpx.post(url, json=json, headers=_headers(write), timeout=timeout)
+            r.raise_for_status()
+            return r
+        except Exception as e:
+            last_err = e
+            logger.warning(f"[SYSTEME] Tentativo {attempt}/{max_retries} fallito per {url}: {e}")
+            if attempt < max_retries:
+                time.sleep(0.5 * attempt)
+    logger.error(f"[SYSTEME] Richiesta fallita su {url} dopo {max_retries} tentativi: {last_err}")
+    return None
+
 def get_contact_by_email(email: str) -> Optional[dict]:
-    """Recupera contatto da Systeme.io per email."""
+    """Recupera contatto da Systeme.io per email con retry automatico."""
     if not is_configured():
         logger.warning("[SYSTEME] Chiavi non configurate - modalità demo")
         return None
     try:
-        r = httpx.get(
-            f"{SYSTEME_BASE_URL}/contacts",
-            params={"email": email, "limit": 10},
-            headers=_headers(),
-            timeout=10
-        )
-        r.raise_for_status()
+        r = _request_with_retry("GET", f"{SYSTEME_BASE_URL}/contacts", params={"email": email, "limit": 10})
+        if not r:
+            return None
         data = r.json()
-        # Systeme.io API usa "items" invece di "contacts"
         items = data.get("items", [])
         for item in items:
             if item.get("email", "").lower() == email.lower():

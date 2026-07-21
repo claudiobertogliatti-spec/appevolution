@@ -67,6 +67,7 @@ import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
+import { SimulatoreFatturato } from "./pages/SimulatoreFatturato";
 import { MasterclassReview } from "./pages/MasterclassReview";
 import { SystemHealth } from "./pages/SystemHealth";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
@@ -531,6 +532,10 @@ export default function CiakAdminApp() {
         <Route path="oggi" element={isAntonella
           ? <AntonellaOggi onAuthExpired={handleLogout} />
           : <Navigate to="/admin" replace />} />
+        {/* Simulatore Fatturato €1M — Direzione, non per Antonella */}
+        <Route path="simulatore" element={isAntonella
+          ? <Navigate to="/admin" replace />
+          : <SimulatoreFatturato />} />
 
         {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
