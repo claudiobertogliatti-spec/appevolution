@@ -24,6 +24,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
+import { MasterclassLanding } from "./pages/MasterclassLanding";
 import { CiakCheckpoint } from "./pages/Checkpoint";
 import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakGrazie } from "./pages/Grazie";
@@ -66,11 +67,8 @@ export default function CiakApp() {
         <Toaster position="top-center" richColors />
         <Routes>
           <Route path="/" element={<CiakLanding />} />
-          <Route path="/masterclass" element={<CiakMasterclass />} />
-          {/* Contenuto video masterclass dopo l'opt-in. FASE 1 (contratto route,
-              2026-07-22): serve temporaneamente lo STESSO componente di /masterclass
-              così l'URL è valido da subito. Codex splitta landing/opt-in vs video
-              in FASE 2 (docs/superpowers/specs/2026-07-22-masterclass-blueprint-*). */}
+          <Route path="/masterclass" element={<MasterclassLanding />} />
+          {/* Il viewer resta accessibile direttamente da email e dal bridge post-opt-in. */}
           <Route path="/masterclass/guarda" element={<CiakMasterclass />} />
 
           {/* Checkpoint Strategico standalone — deep-link da email Systeme */}
