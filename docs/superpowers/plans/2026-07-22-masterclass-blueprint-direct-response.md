@@ -119,7 +119,8 @@ export function blueprintAttributionSource(search = "") {
 
 - [ ] **Step 4: Eseguire il test e verificare PASS**
 
-Run lo stesso comando dello Step 2.  
+Run lo stesso comando dello Step 2.
+
 Expected: 3 test PASS, 0 FAIL.
 
 - [ ] **Step 5: Commit**
@@ -155,7 +156,8 @@ test("il bridge mantiene una singola destinazione canonica", () => {
 
 - [ ] **Step 2: Eseguire il test**
 
-Run il comando del Task 1.  
+Run il comando del Task 1.
+
 Expected: 4 test PASS.
 
 - [ ] **Step 3: Modificare `captureEmail`**
