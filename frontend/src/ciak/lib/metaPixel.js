@@ -108,6 +108,12 @@ export function trackInitiateCheckout(value = 27, currency = "EUR") {
   window.fbq("track", "InitiateCheckout", { value, currency });
 }
 
+/** Evento bridge post opt-in. Rimane un no-op senza consenso/pixel pronto. */
+export function trackBlueprintBridgeView() {
+  if (!isReady()) return;
+  window.fbq("trackCustom", "BlueprintBridgeView");
+}
+
 export function trackPurchase(value = 27, currency = "EUR", eventId) {
   if (!isReady()) return;
   const opts = eventId ? { eventID: eventId } : undefined;

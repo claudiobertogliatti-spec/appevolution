@@ -1,5 +1,5 @@
 /**
- * Ciak.io /ciak-blueprint - LIV 3, prodotto EUR27.
+ * Ciak.io /blueprint - LIV 3, prodotto EUR27.
  *
  * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
  *
@@ -10,14 +10,21 @@
  *  - Naming prodotto unificato "Ciak Blueprint" (Stato 4 non piu' variante separata)
  *  - Backend checkout.py invia metadata.tipo="ciak_blueprint"
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
-import { trackInitiateCheckout } from "../lib/metaPixel";
+import { trackBlueprintBridgeView, trackInitiateCheckout } from "../lib/metaPixel";
+import { isMasterclassOptinBridge, masterclassSkipUrl, normalizeAttributionSource } from "../lib/funnelRouting";
 
 export function CiakBlueprint() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const source = useMemo(() => new URLSearchParams(window.location.search).get("source"), []);
+  const showBridge = isMasterclassOptinBridge(source);
+
+  useEffect(() => {
+    if (showBridge) trackBlueprintBridgeView();
+  }, [showBridge]);
 
   const startCheckout = async () => {
     setSubmitting(true);
@@ -39,7 +46,8 @@ export function CiakBlueprint() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product: "ciak_blueprint",
-          source: "ciak",
+          source: normalizeAttributionSource(source),
+          attribution_source: normalizeAttributionSource(source),
           email,
           session_token: sessionToken,
           origin_url: window.location.origin,
@@ -69,12 +77,28 @@ export function CiakBlueprint() {
           <div className="mx-auto max-w-6xl text-center">
             <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-yellow-300 bg-white px-3 py-1.5 shadow-sm">
               <span className="h-2 w-2 rounded-full bg-yellow-400" aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-slate-900">Ciak Blueprint</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-900">Ciak Blueprint · Analisi strategica individuale</span>
             </div>
             <h1 className="mx-auto max-w-6xl text-4xl font-semibold leading-[1.04] tracking-tight text-slate-950 sm:text-5xl md:text-6xl lg:text-[4.15rem]">
-              La chiarezza strategica per trasformare la tua competenza in un business digitale sostenibile.
+              Prima di costruire o rilanciare il tuo corso, scopri se l'offerta sta in piedi.
             </h1>
+            <p className="mx-auto mt-5 max-w-3xl text-base leading-relaxed text-slate-600 md:text-xl">
+              In 60 minuti analizziamo pubblico, problema, posizionamento e offerta. Entro 72 ore ricevi una roadmap concreta: cosa correggere, cosa costruire e quale passo fare per primo.
+            </p>
           </div>
+
+          {showBridge && (
+            <aside className="mx-auto mt-8 max-w-4xl rounded-2xl border border-yellow-300 bg-yellow-50 p-5 text-left shadow-sm" aria-label="Accesso dopo l'iscrizione alla masterclass">
+              <p className="text-lg font-semibold text-slate-950">Iscrizione completata. La masterclass è pronta.</p>
+              <p className="mt-2 text-slate-700">Se vuoi andare oltre la teoria, possiamo applicare subito il Metodo EVO al tuo progetto.</p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button onClick={startCheckout} disabled={submitting} className="rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-50">
+                  {submitting ? "..." : "Analizziamo il mio progetto — 27 €"}
+                </button>
+                <a href={masterclassSkipUrl()} className="rounded-lg px-4 py-3 font-semibold text-slate-900 underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-slate-900">Non ora, guarda la masterclass</a>
+              </div>
+            </aside>
+          )}
 
           <div className="mt-10 grid gap-5 md:grid-cols-[1fr_24rem] md:items-stretch">
             <div className="rounded-[1.75rem] border border-yellow-300/90 bg-white p-6 text-left shadow-[0_0_42px_rgba(250,204,21,0.22)] ring-1 ring-yellow-100 md:p-8">
@@ -82,13 +106,11 @@ export function CiakBlueprint() {
                 Protocollo strategico guidato
               </p>
               <p className="text-base leading-relaxed text-slate-600 md:text-xl">
-                Prima rispondi alle 8 Domande Ciak. Noi analizziamo posizionamento, mercato,
-                offerta e prontezza operativa. Poi fissi 60 minuti con Claudio e arrivi alla
-                call con una base gia' chiara.
+                Il Blueprint mette ordine prima della produzione: pubblico, problema, posizionamento e offerta. Poi definisci con Claudio il prossimo passo concreto.
               </p>
               <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                 <p className="text-sm font-medium leading-relaxed text-slate-700">
-                  Alla fine hai una roadmap chiara: cosa sistemare, cosa costruire e se ha senso entrare nel Metodo EVO.
+                  Alla fine hai una roadmap chiara: cosa correggere, cosa costruire e cosa non conviene fare adesso.
                 </p>
               </div>
             </div>
@@ -104,7 +126,7 @@ export function CiakBlueprint() {
                 disabled={submitting}
                 className="mt-7 w-full rounded-lg bg-yellow-400 px-8 py-4 font-semibold text-slate-900 shadow-[0_12px_34px_rgba(250,204,21,0.34)] transition hover:bg-yellow-300 disabled:opacity-50"
               >
-                {submitting ? "..." : "Richiedi il tuo Ciak Blueprint"}
+                {submitting ? "..." : "Voglio il mio Blueprint — 27 €"}
               </button>
               {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
               <p className="mt-4 text-xs leading-relaxed text-slate-400">
@@ -159,42 +181,41 @@ export function CiakBlueprint() {
               </div>
             </div>
           </aside>
+          <p className="mx-auto mt-6 max-w-3xl text-center text-base leading-relaxed text-slate-700">
+            L'analisi può anche concludere che l'idea non sia ancora pronta. Meglio scoprirlo con 27 € che dopo mesi di produzione.
+          </p>
         </div>
       </section>
 
-      {/* SEZIONE 2 - LE 3 DOMANDE DECISIVE */}
+      {/* SEZIONE 2 - LE 4 DECISIONI */}
       <section className="bg-white border-t border-slate-100">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20">
           <div className="grid gap-8 md:grid-cols-[0.85fr_1.15fr] md:items-start">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-yellow-600">
-                Le 3 domande decisive
+                Le 4 decisioni che vengono prima del corso
               </p>
               <h2 className="text-3xl font-semibold leading-tight text-slate-900 md:text-5xl">
-                Il Blueprint serve a non costruire a caso.
+                Il Blueprint serve a decidere prima di costruire.
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
-                Prima di investire in pagine, video, traffico o automazioni, devi rispondere a tre domande.
-                Se sono deboli, il progetto rischia di partire gia' storto.
+                Prima di investire in pagine, video, traffico o automazioni, devi chiarire quattro decisioni. Se sono deboli, il progetto rischia di partire già storto.
               </p>
             </div>
             <div className="grid gap-4">
               {[
-                {
-                  num: "01",
-                  q: "La tua competenza puo' diventare un'Accademia Digitale?",
-                  a: "Non tutte le competenze si trasformano allo stesso modo. Il Blueprint legge formato, promessa, metodo e livello di trasferibilita'.",
-                },
+                { num: "01", q: "A chi stai parlando davvero?", a: "Definiamo il pubblico prioritario e il problema per cui vale la pena farsi scegliere." },
                 {
                   num: "02",
-                  q: "Il mercato e' pronto a comprarla?",
-                  a: "Analizziamo domanda, urgenza del problema, concorrenza e spazio di posizionamento prima di parlare di implementazione.",
+                  q: "Quale problema risolvi in modo credibile?",
+                  a: "Verifichiamo urgenza, chiarezza e concretezza della trasformazione proposta.",
                 },
                 {
                   num: "03",
-                  q: "Qual e' il percorso piu' veloce per andare online senza costruire a caso?",
-                  a: "La roadmap mette in ordine cosa sistemare, cosa costruire prima e se ha senso proseguire verso il Metodo EVO.",
+                  q: "Perché il mercato dovrebbe scegliere te?",
+                  a: "Mettiamo a fuoco il posizionamento e ciò che rende l'offerta distinguibile.",
                 },
+                { num: "04", q: "Qual è il primo passo sensato?", a: "La roadmap separa ciò che va corretto da ciò che vale davvero la pena costruire." },
               ].map((item) => (
                 <div key={item.num} className="grid gap-4 rounded-2xl border border-yellow-300 bg-yellow-50 p-5 shadow-[0_18px_42px_rgba(250,204,21,0.14)] md:grid-cols-[auto_1fr]">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-yellow-300">
@@ -402,8 +423,7 @@ export function CiakBlueprint() {
                 Garanzia
               </h2>
               <p className="text-base leading-relaxed text-slate-600 md:text-lg">
-                Se al termine della sessione ritieni di non aver ricevuto una direzione strategica utile,
-                puoi richiedere il rimborso entro 7 giorni.
+                Se al termine della sessione non hai maggiore chiarezza e un prossimo passo concreto, puoi richiedere il rimborso dei 27 €.
               </p>
             </div>
 
@@ -412,10 +432,7 @@ export function CiakBlueprint() {
                 Chi conduce la sessione
               </h3>
               <p className="text-base leading-relaxed text-slate-600">
-                <strong className="text-slate-900">Claudio Bertogliatti</strong> e' il fondatore di Evolution PRO.
-                Ha maturato 22 anni di esperienza nella vendita strategica in 13 settori, con oltre 25.000 trattative
-                dirette e piu' di €6M di fatturato generato. Negli ultimi anni ha lavorato sulla trasformazione di
-                competenze professionali in modelli digitali sostenibili.
+                <strong className="text-slate-900">Claudio Bertogliatti</strong> è il creatore di Ciak e del Metodo EVO: Esamina, Valida, Ottimizza. Il suo lavoro parte da una domanda semplice: prima di costruire, c'è davvero un'offerta chiara da portare sul mercato?
               </p>
             </div>
           </div>
