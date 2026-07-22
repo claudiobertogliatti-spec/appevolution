@@ -14,6 +14,7 @@ const STEP_COMPONENTS = {
   "burocrazia":              lazy(() => import("./steps/StepBurocrazia")),
   "03-brand-kit":            lazy(() => import("./steps/Step03BrandKit")),
   "la-tua-storia":           lazy(() => import("./steps/StepLaTuaStoria")),
+  "obiettivo":               lazy(() => import("./steps/StepObiettivo")),
   "04-posizionamento":       lazy(() => import("./steps/Step04Posizionamento")),
   "05-script-masterclass":   lazy(() => import("./steps/Step05ScriptMasterclass")),
   "06-outline-lezioni":      lazy(() => import("./steps/Step06OutlineLezioni")),
