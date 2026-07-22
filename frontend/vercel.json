@@ -33,6 +33,26 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/index.ciak.html"
+    },
+    {
+      "source": "/masterclass",
+      "destination": "/masterclass.ciak.html"
+    },
+    {
+      "source": "/masterclass/guarda",
+      "destination": "/masterclass-guarda.ciak.html"
+    },
+    {
+      "source": "/blueprint",
+      "destination": "/blueprint.ciak.html"
+    },
+    {
+      "source": "/blueprint/grazie",
+      "destination": "/blueprint-grazie.ciak.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://evolution-pro-backend-dc2gzjsmdq-ew.a.run.app/api/$1"
     },

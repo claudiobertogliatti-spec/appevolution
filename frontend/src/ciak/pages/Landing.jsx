@@ -1,499 +1,60 @@
-/**
- * Ciak.io Home `/` — Landing top-funnel.
- *
- * Copy aggiornato 2026-07-09. Riferimento: docs/strategy/metodo-evo-operating-system.md.
- *
- * Obiettivo unico: CTA verso Masterclass Gratuita (LIV 2). No upsell, no
- * scarcity, no countdown. Tono: lucido, diretto, pragmatico — mai motivazionale.
- *
- * 4 schermate:
- *  1. Hero + CTA Masterclass
- *  2. Il problema reale
- *  3. Tre livelli, una sola direzione (Masterclass -> Ciak Blueprint -> Partnership)
- *  4. FAQ
- *  5. CTA finale
- */
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Volume2, VolumeX } from "lucide-react";
+/** Ciak.io — vetrina istituzionale. La conversione inizia su /masterclass. */
+import { Link } from "react-router-dom";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
-import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
 
-/** Legge un cookie by name (per _fbp / _fbc → deduplica CAPI). */
-function readCookie(name) {
-  const m = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
-  return m ? m.pop() : null;
-}
-
-/** event_id condiviso browser↔server per deduplicare l'evento Lead. */
-function newLeadEventId() {
-  try {
-    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
-  } catch {
-    /* no-op */
-  }
-  return "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-}
+const masterclassCta = "inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2";
 
 export function CiakLanding() {
-  const navigate = useNavigate();
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [videoMuted, setVideoMuted] = useState(true);
-  const videoRef = useRef(null);
-
-  // Domini palesemente non-deliverable: Systeme.io li rifiuta con 422 e il
-  // contatto non viene mai creato → nessuna sequenza email parte. Blocchiamo
-  // lato client con un messaggio chiaro.
-  const FAKE_DOMAINS = new Set([
-    "example.com", "example.it", "example.org",
-    "test.com", "test.it",
-    "mailinator.com", "yopmail.com", "guerrillamail.com",
-    "trashmail.com", "10minutemail.com", "tempmail.com",
-    "fake.com", "fakeinbox.com", "asdf.com",
-  ]);
-
-  const captureEmail = async () => {
-    const n = nome.trim();
-    const e = email.trim().toLowerCase();
-    if (n.length < 2) {
-      setError("Inserisci il tuo nome");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
-      setError("Inserisci un'email valida");
-      return;
-    }
-    const domain = e.split("@")[1];
-    if (FAKE_DOMAINS.has(domain)) {
-      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero: ti servirà per ricevere il follow-up corretto.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams(window.location.search);
-      const leadEventId = newLeadEventId();
-      const marketingConsent = hasMarketingConsent();
-      const captureResponse = await fetch("/api/ciak/lead-capture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: e,
-          nome: n,
-          telefono: "",
-          source: "landing_hero",
-          utm_source: qs.get("utm_source"),
-          utm_medium: qs.get("utm_medium"),
-          utm_campaign: qs.get("utm_campaign"),
-          utm_term: qs.get("utm_term"),
-          utm_content: qs.get("utm_content"),
-          referrer: document.referrer || null,
-          event_source_url: window.location.href,
-          marketing_consent: marketingConsent,
-          event_id: leadEventId,
-          fbp: readCookie("_fbp"),
-          fbc: readCookie("_fbc"),
-        }),
-      }).catch(() => null);
-      // Conta il Lead solo se il CRM ha accettato davvero l'opt-in.
-      // Il Pixel resta comunque subordinato al consenso marketing.
-      if (captureResponse?.ok) {
-        try {
-          trackLead(leadEventId);
-        } catch {
-          /* no-op */
-        }
-      }
-      localStorage.setItem("ciak_lead_email", e);
-      localStorage.setItem("ciak_lead_name", n);
-      // Mantengo "ciak_lead_nome" per retrocompatibilità con eventuali letture
-      // legacy. Ora la chiave canonica è "ciak_lead_name" (coerente con
-      // Masterclass.jsx).
-      localStorage.setItem("ciak_lead_nome", n);
-      navigate("/masterclass");
-    } catch (err) {
-      setError("Errore di rete, riprova");
-      setSubmitting(false);
-    }
-  };
-
-  const toggleVideoAudio = () => {
-    setVideoMuted((current) => {
-      const next = !current;
-      if (videoRef.current) {
-        videoRef.current.muted = next;
-        if (!next) {
-          videoRef.current.play().catch(() => null);
-        }
-      }
-      return next;
-    });
-  };
-
   return (
     <>
       <CiakHeader />
-
-      {/* SCHERMATA 1 — HERO */}
-      <section className="relative min-h-[calc(100vh-7rem)] overflow-hidden bg-slate-950 text-white">
-        <video
-          ref={videoRef}
-          src="/ciak/ciak-spot.mp4"
-          className="absolute inset-0 h-full w-full object-cover"
-          autoPlay
-          loop
-          muted={videoMuted}
-          playsInline
-          preload="metadata"
-          aria-label="Spot Ciak.io"
-        />
-        <div className="absolute inset-0 bg-slate-950/82" aria-hidden="true" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.54)_0%,rgba(255,255,255,0.78)_38%,rgba(15,23,42,0.82)_100%)]" aria-hidden="true" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.20),transparent_36%)]" aria-hidden="true" />
-        <button
-          type="button"
-          onClick={toggleVideoAudio}
-          className="absolute right-5 top-5 z-20 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur hover:bg-yellow-400 transition"
-          aria-label={videoMuted ? "Attiva audio video" : "Disattiva audio video"}
-        >
-          {videoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
-
-        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-7rem)] max-w-6xl flex-col items-center justify-center px-6 py-16 text-center">
-          <p className="mb-5 inline-flex items-center rounded-full border border-yellow-300/70 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-yellow-300 backdrop-blur">
-            Ciak.io
-          </p>
-
-          {/* COPERTINA MASTERCLASS — hook principale per il traffico freddo */}
-          <button
-            type="button"
-            onClick={() => document.getElementById("optin-form")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="group relative mb-9 w-full max-w-3xl overflow-hidden rounded-3xl border border-yellow-300/60 bg-slate-950/35 shadow-[0_30px_80px_rgba(2,6,23,0.55)] ring-1 ring-white/10 backdrop-blur-md"
-            aria-label="Vai al modulo per accedere alla masterclass gratuita sui 5 errori killer"
-          >
-            <div className="relative aspect-video w-full">
-              {/* scrim leggero: lascia intravedere il video spot di sfondo, mantiene il testo leggibile */}
-              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/35 to-slate-950/60" aria-hidden="true" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(250,204,21,0.18),transparent_58%)]" aria-hidden="true" />
-              <div className="absolute left-5 top-5 z-10 flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-900">Masterclass gratuita</span>
-                <span className="inline-flex items-center rounded-full border border-white/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/80">30 minuti</span>
-              </div>
-              <div className="relative flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
-                <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400 text-slate-900 shadow-xl transition group-hover:scale-110 md:h-20 md:w-20">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7 md:h-9 md:w-9"><path d="M8 5v14l11-7z" /></svg>
-                </span>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-yellow-300">I 5 Errori Killer</p>
-                  <p className="mt-2 max-w-xl text-lg font-semibold leading-snug text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] md:text-2xl">
-                    Cosa blocca i professionisti prima di andare online e come evitarlo
-                  </p>
-                </div>
-              </div>
-            </div>
-          </button>
-
-          <h1 className="max-w-6xl text-6xl font-semibold leading-[0.98] tracking-tight text-slate-900 drop-shadow-[0_1px_20px_rgba(255,255,255,0.82)] md:text-7xl lg:text-7xl">
-            <span className="block">Da competenza professionale</span>
-            <span className="block">ad accademia digitale</span>
-          </h1>
-          <p className="mt-6 max-w-4xl text-lg font-medium leading-relaxed text-slate-900 drop-shadow-[0_1px_18px_rgba(255,255,255,0.78)] md:text-2xl">
-            Il Metodo EVO ti porta online in 3/4 settimane con un sistema collaudato,
-            supportandoti per 12 mesi fino ai primi risultati di vendita.
-          </p>
-
-          <div id="optin-form" className="mt-9 w-full max-w-2xl scroll-mt-28 rounded-2xl border border-white/30 bg-white/94 p-3 text-left shadow-2xl shadow-slate-950/30 backdrop-blur md:p-4">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <input
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="Il tuo nome"
-                autoComplete="given-name"
-                className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="La tua email"
-                autoComplete="email"
-                className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-200"
-              />
-            </div>
-            <div className="mt-2">
-              <button
-                onClick={captureEmail}
-                disabled={submitting}
-                className="w-full px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
-              >
-                {submitting ? "..." : "Accedi alla masterclass gratuita"}
-              </button>
-            </div>
-            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-            <p className="text-xs text-slate-500 mt-3 leading-relaxed text-center">
-              Inserisci dati reali: dopo la masterclass ti guidiamo alle 8 Domande Ciak e al tuo stato attuale.
-            </p>
-          </div>
-
-          {/* Come ricevi il bonus 8 Domande Ciak */}
-          <div className="mt-8 max-w-4xl rounded-2xl border border-white/12 bg-slate-950/82 p-5 text-left text-white shadow-xl shadow-slate-950/20 backdrop-blur md:p-6">
-            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
-              Incluso — 8 Domande Ciak
-            </p>
-            <p className="text-slate-300 leading-relaxed text-sm md:text-base max-w-4xl">
-              Al termine della masterclass si sbloccano le <strong className="text-white">8 Domande
-              Ciak</strong>: in pochi minuti capisci cosa oggi frena la tua crescita, quanto il tuo
-              progetto è pronto per diventare un'accademia digitale e qual è il prossimo passo più intelligente da fare
-              prima di investire altro tempo o denaro.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* SCHERMATA 2 — IL PROBLEMA REALE */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
-          <div className="grid gap-10 md:grid-cols-[0.85fr_1.15fr] md:items-start">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
-                Il punto vero
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-                <span className="block">Non ti manca </span>
-                <span className="block">un altro strumento. </span>
-                <span className="block">Ti manca un sistema.</span>
-              </h2>
-            </div>
-            <div className="space-y-4 text-slate-700 leading-relaxed text-base md:text-lg">
-              <p>
-                Molti professionisti provano a portare online la propria competenza partendo da
-                contenuti, corsi, advertising o strumenti. Ma se manca una struttura, ogni scelta
-                diventa un tentativo isolato.
-              </p>
-              <p>
-                Si pubblica senza sapere a chi parlare. Si costruisce un'offerta senza validarla.
-                Si investe in traffico prima di chiarire perché un cliente dovrebbe scegliere te.
-              </p>
-              <p className="rounded-2xl border border-gray-200 bg-gray-50 p-5 font-medium text-slate-900">
-                Ciak nasce per trasformare competenze professionali reali in accademie digitali
-                vendibili: brand, videocorso, pagine, email, checkout e lancio.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SCHERMATA 3 — COME FUNZIONA */}
-      <section className="bg-gray-50 border-y border-gray-100">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
-              Metodo EVO
-            </p>
-            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-              Esamina. Valida. Ottimizza.
-            </h2>
-            <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-600 md:text-lg">
-              Non una piattaforma corsi. Non un funnel builder. Non un'agenzia marketing.
-              Non un corso per creare corsi.
-            </p>
-            <p className="mt-3 max-w-3xl text-xl font-semibold leading-snug text-slate-900 md:text-2xl">
-              Il sistema operativo per accademie digitali professionali.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                num: "01",
-                title: "Esamina",
-                text: "In una settimana mettiamo ordine in competenza, pubblico, posizionamento, offerta e priorità.",
-              },
-              {
-                num: "02",
-                title: "Valida",
-                text: "In 3/4 settimane costruiamo gli asset essenziali e portiamo online il sistema.",
-              },
-              {
-                num: "03",
-                title: "Ottimizza",
-                text: "Quello che altri promettono, noi lo applichiamo: fino al 12° mese leggiamo i dati, correggiamo il sistema e puntiamo ai primi risultati di vendita.",
-              },
-            ].map((step) => (
-              <div
-                key={step.num}
-                className="rounded-2xl border border-yellow-300 bg-yellow-50 p-6 shadow-[0_18px_42px_rgba(250,204,21,0.16)]"
-              >
-                <p className="mb-8 inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-yellow-300">
-                  {step.num}
-                </p>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-slate-700">{step.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SCHERMATA 3 — TRE LIVELLI */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
-              Il percorso
-            </p>
-            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-              Parti dalla masterclass. Poi scegli se costruire il tuo sistema.
-            </h2>
-            <p className="mt-5 text-slate-600 leading-relaxed">
-              Ciak non ti spinge subito all'implementazione. Prima ti aiuta a leggere il progetto,
-              capire lo stato reale e decidere se ha senso costruire la tua accademia digitale.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5 mt-12">
-            <div className="bg-white rounded-2xl p-7 border border-gray-200 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-                Livello 1
-              </p>
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Masterclass gratuita
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                30 minuti per vedere i 5 errori che bloccano i professionisti prima di portare online le proprie competenze
-                e sbloccare le 8 Domande Ciak.
-              </p>
-            </div>
-            <div className="bg-slate-900 rounded-2xl p-7 border border-slate-900 shadow-xl shadow-slate-900/15">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-                Livello 2
-              </p>
-              <h3 className="text-lg font-semibold text-white mb-3">
-                Ciak Blueprint <span className="text-slate-400 font-normal">— €27</span>
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                Una sessione 1:1 con Claudio e una Roadmap Operativa personalizzata per trasformare
-                la diagnosi in priorità concrete.
-              </p>
-            </div>
-            <div className="bg-white rounded-2xl p-7 border border-gray-200 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-                Livello 3
-              </p>
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Partnership Evolution PRO
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Il passaggio per chi, dopo il Blueprint, decide di costruire e lanciare la propria
-                accademia digitale con il Metodo EVO.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SCHERMATA 4 — FAQ */}
-      <section className="bg-gray-50 border-y border-gray-100">
-        <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-3">
-              Domande frequenti
-            </p>
-            <h2 className="text-3xl md:text-5xl font-semibold text-slate-900 leading-tight">
-              Prima di costruire, chiarisci i dubbi giusti.
-            </h2>
-          </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
-            {[
-              {
-                q: "Ciak e' una piattaforma corsi?",
-                a: "No. Ciak e' il sistema operativo che guida il Metodo EVO: diagnosi, task, agenti AI, team umano, materiali, avanzamento e metriche.",
-              },
-              {
-                q: "Devo gia' avere un corso pronto?",
-                a: "No. Partiamo dalla tua competenza. Prima analizziamo mercato, posizionamento e offerta, poi decidiamo cosa costruire.",
-              },
-              {
-                q: "Cosa succede dopo la masterclass gratuita?",
-                a: "Rispondi alle 8 Domande Ciak. Se il progetto ha senso, puoi richiedere il Ciak Blueprint: diagnosi, analisi e roadmap.",
-              },
-              {
-                q: "Il Metodo EVO promette vendite garantite?",
-                a: "No. Promette un processo: andare online in 3/4 settimane, leggere i dati e correggere il sistema fino al 12° mese.",
-              },
-              {
-                q: "Che differenza c'e' rispetto a un'agenzia?",
-                a: "Un'agenzia consegna pezzi. Il Metodo EVO coordina direzione, produzione, lancio e ottimizzazione dentro un percorso unico.",
-              },
-              {
-                q: "Il progetto resta mio?",
-                a: "Si'. L'accademia digitale, i contenuti, le pagine, le email e il checkout restano asset del professionista.",
-              },
-            ].map((item) => (
-              <div key={item.q} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-slate-900">{item.q}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SCHERMATA 5 — CTA FINALE */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
-          <div className="rounded-2xl border border-yellow-300/85 bg-white px-4 py-10 shadow-[0_0_46px_rgba(250,204,21,0.28)] ring-1 ring-yellow-100 sm:px-8 md:px-12 md:py-14">
-            <h2 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
-              Prima di costruire, guarda se il tuo progetto puo diventare un'accademia digitale.
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
-              Niente acquisti, niente impegno. Solo 30 minuti per leggere il tuo progetto con più
-              lucidità e capire da dove partire.
-            </p>
-            <div className="mx-auto mt-9 max-w-xl">
-              <input
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="Il tuo nome"
-                autoComplete="given-name"
-                className="mb-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
-              />
+      <main>
+        <section className="bg-slate-950 px-6 py-20 text-white md:py-28">
+          <div className="mx-auto max-w-6xl">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.24em] text-yellow-300">Ciak · Il sistema per accademie digitali</p>
+            <div className="grid gap-12 lg:grid-cols-[1.2fr_.8fr] lg:items-end">
               <div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                  placeholder="La tua email"
-                  autoComplete="email"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-yellow-400"
-                />
+                <h1 className="max-w-4xl text-4xl font-semibold leading-tight tracking-tight md:text-6xl">La tua competenza merita un sistema. Non un altro tentativo isolato.</h1>
+                <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">Ciak aiuta professionisti, consulenti e formatori a trasformare una competenza reale in un progetto digitale chiaro, costruibile e misurabile.</p>
+                <Link to="/masterclass" className={`${masterclassCta} mt-9`}>Guarda la masterclass gratuita <ArrowRight className="h-4 w-4" /></Link>
               </div>
-              <div className="mt-2">
-                <button
-                  onClick={captureEmail}
-                  disabled={submitting}
-                  className="w-full rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300 disabled:opacity-50"
-                >
-                  {submitting ? "..." : "Accedi alla masterclass"}
-                </button>
-              </div>
-              {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-              <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                Inserisci dati reali — dopo la masterclass ti guidiamo alle 8 Domande Ciak.
-              </p>
+              <aside className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+                <p className="text-sm font-semibold text-yellow-300">Anche se hai già un corso fermo</p>
+                <p className="mt-3 leading-relaxed text-slate-300">Prima di rifare pagine, contenuti o campagne, serve capire dove il progetto si è fermato e quale parte va rimessa in ordine.</p>
+              </aside>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
+        <section className="bg-white px-6 py-20">
+          <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2">
+            <div><p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Il problema</p><h2 className="mt-3 text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">Un corso, un sito o qualche contenuto non sono ancora un sistema.</h2></div>
+            <div className="space-y-4 text-lg leading-relaxed text-slate-600"><p>Quando posizionamento, offerta, pagine e lancio vengono affrontati separatamente, il progetto resta fragile.</p><p>Ciak mette queste parti nello stesso percorso: così ogni scelta ha un motivo, una priorità e una prossima azione concreta.</p></div>
+          </div>
+        </section>
+
+        <section className="border-y border-slate-200 bg-slate-50 px-6 py-20">
+          <div className="mx-auto max-w-6xl"><p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Metodo EVO</p><h2 className="mt-3 text-3xl font-semibold text-slate-900 md:text-4xl">Esamina. Valida. Ottimizza.</h2><p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-600">Metodo EVO è il modo in cui Ciak affronta un progetto: prima legge la situazione, poi costruisce ciò che serve, infine usa i dati per decidere cosa migliorare.</p>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">{[
+              ["Esamina", "Competenza, pubblico, posizionamento e offerta: prima della produzione."],
+              ["Valida", "Gli asset essenziali per presentare e vendere un progetto in modo ordinato."],
+              ["Ottimizza", "Osservazioni e correzioni basate su ciò che accade davvero, non su ipotesi."],
+            ].map(([title, text]) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-6"><CheckCircle2 className="h-6 w-6 text-yellow-500" /><h3 className="mt-5 text-xl font-semibold text-slate-900">{title}</h3><p className="mt-3 leading-relaxed text-slate-600">{text}</p></article>)}</div>
+          </div>
+        </section>
+
+        <section className="bg-white px-6 py-20"><div className="mx-auto max-w-6xl"><p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Cosa costruisce Ciak</p><h2 className="mt-3 max-w-3xl text-3xl font-semibold text-slate-900 md:text-4xl">Un progetto digitale con fondamenta chiare.</h2><div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{["Posizionamento e offerta", "Masterclass e contenuti", "Pagine, email e checkout", "Lancio e lettura dei dati"].map((item) => <div key={item} className="rounded-xl bg-slate-900 p-5 font-medium text-white">{item}</div>)}</div></div></section>
+
+        <section className="bg-slate-950 px-6 py-20 text-white"><div className="mx-auto max-w-6xl"><p className="text-xs font-semibold uppercase tracking-widest text-yellow-300">Il percorso</p><h2 className="mt-3 text-3xl font-semibold md:text-4xl">Prima capisci. Poi decidi.</h2><div className="mt-10 grid gap-5 md:grid-cols-3"><article><p className="text-yellow-300">01 · Masterclass gratuita</p><p className="mt-3 text-slate-300">I punti che bloccano più spesso un progetto digitale professionale.</p></article><article><p className="text-yellow-300">02 · Ciak Blueprint</p><p className="mt-3 text-slate-300">Una lettura più precisa del progetto e delle sue priorità.</p></article><article><p className="text-yellow-300">03 · Partnership</p><p className="mt-3 text-slate-300">Per chi decide di costruire il sistema con Evolution PRO.</p></article></div></div></section>
+
+        <section className="bg-slate-50 px-6 py-20"><div className="mx-auto max-w-4xl"><p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Chi c'è dietro</p><h2 className="mt-3 text-3xl font-semibold text-slate-900">Claudio Bertogliatti, creatore di Ciak e del Metodo EVO.</h2><p className="mt-5 text-lg leading-relaxed text-slate-600">Ciak nasce per fare una cosa semplice ma difficile: portare metodo e ordine nel passaggio dalla competenza professionale a un'offerta digitale.</p></div></section>
+
+        <section className="bg-white px-6 py-20"><div className="mx-auto max-w-4xl"><h2 className="text-3xl font-semibold text-slate-900">Domande frequenti</h2><div className="mt-8 grid gap-4 md:grid-cols-2">{[["Ciak è una piattaforma corsi?", "No. È il sistema che coordina analisi, costruzione e miglioramento del progetto."],["Devo avere già un corso?", "No. Puoi partire dalla tua competenza o da un progetto già avviato."],["La masterclass è per chi vende corsi?", "È per chi vuole trasformare competenza, consulenza o formazione in un progetto digitale più solido."],["Ci sono risultati garantiti?", "No. Ciak propone un processo e decisioni più chiare, non promesse automatiche."]].map(([q,a]) => <article key={q} className="rounded-xl border border-slate-200 p-5"><h3 className="font-semibold text-slate-900">{q}</h3><p className="mt-2 leading-relaxed text-slate-600">{a}</p></article>)}</div></div></section>
+
+        <section className="bg-yellow-400 px-6 py-20 text-center"><h2 className="mx-auto max-w-3xl text-3xl font-semibold text-slate-900 md:text-4xl">Inizia dalla masterclass: è il modo più semplice per leggere meglio il tuo progetto.</h2><Link to="/masterclass" className={`${masterclassCta} mt-8 bg-slate-950 text-white hover:bg-slate-800`}>Vai alla masterclass gratuita <ArrowRight className="h-4 w-4" /></Link></section>
+      </main>
       <CiakFooter />
     </>
   );
