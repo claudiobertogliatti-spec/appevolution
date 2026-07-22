@@ -1,64 +1,65 @@
-# CIAK.io — Template Ufficiale Funnel Partner (Light & Human-Centered)
+# CIAK.io — Framework di Layout Grafico & Sequenza Sezioni Funnel Partner
 
-Questo documento definisce lo **standard di design e copy di riferimento** per tutti i funnel e le accademie digitali dei partner generate all'interno di CIAK.io.
+Questo documento definisce l'**architettura di layout grafico e la sequenza strutturale delle sezioni** da utilizzare come modello/template dinamico per la creazione dei funnel dedicati ai Partner all'interno dell'ecosistema CIAK.
 
----
-
-## 🎨 Design System & Palette Colori
-
-* **Sfondo Primario:** Bianco Puro (`#FFFFFF`) con sezioni alternate in Slate Chiaro (`#F8FAFC`).
-* **Colore di Accento / CTA Primaria:** Giallo CIAK (`#FACC15` / `#F59E0B`) con testo scuro Slate-950 (`#0F172A`) e ombra dorata morbida (`shadow-lg shadow-yellow-500/20`).
-* **Testi & Headings:** Slate-950 (`#0F172A`) per i titoli e Slate-600 (`#64748B`) per i paragrafi.
-* **Badge & Indicatori di Stato:**
-  * Pillole di stato attivo in Verde Smeraldo (`#10B981` / `#DEF7EC`).
-  * Badge di benvenuto in Giallo Chiaro (`bg-yellow-100 border-yellow-300 text-slate-950`).
-* **Tipografia:** *Poppins* / *Plus Jakarta Sans* per gli headings e *Space Mono* per dati/statistiche.
+> **Principio Guida:** Il layout visivo e l'ordine sequenziale delle sezioni rimangono **standardizzati, collaudati e ad alta conversione**, mentre i contenuti (copy, nicchia, foto del partner, testimonianze, offerte e tutor) vengono **adattati dinamicamente alle esigenze specifiche di ciascun partner**.
 
 ---
 
-## 🎯 Target Utente & Approccio Strategico
+## 📐 Sequenza Strutturale del Layout Grafico
 
-* **Target:** Liberi professionisti, consulenti e formatori con scarse competenze digitali.
-* **Obiettivo:** Trasformare le competenze professionali in un'Accademia Digitale pronta all'uso senza impazzire con la tecnologia.
-* **Promessa Chiave:** *"Tu ci metti il tuo know-how, il nostro Team di Professionisti supportati dall'AI creano per te."*
+```
+[ HEADER ] -> Logo Partner / Accademia + Navigazione
+
+[ SEZIONE 1: HERO SECTION ] 
+  ├─ Badge Categoria/Promessa
+  ├─ Headline Principale (Trasformazione)
+  ├─ Sottotitolo Rassicurante (Know-how Partner + AI + Team)
+  ├─ Doppia CTA (Tasto Giallo #FACC15 + Tasto Secondario)
+  └─ Badge di Sicurezza (Zero competenze tecniche richieste)
+
+[ SEZIONE 2: WIDGET SIMULATORE / ONBOARDING DINAMICO ]
+  ├─ Step 1: Compilazione Guidata Input Utente (Nome, Settore, Metodo)
+  ├─ Step 2: Animazione Progresso AI + Chat Live Tutor Dedicato
+  └─ Step 3: Rivelazione Dashboard Accademia Pronta (Studenti + Stato Attivo)
+
+[ SEZIONE 3: GRIGLIA 3 PILASTRI / CARATTERISTICHE ]
+  ├─ Card 01: Sistema Pronto Personalizzato
+  ├─ Card 02: Team Umano Dedicato / Affiancamento
+  └─ Card 03: Motore AI Integrato ("L'AI genera, tu approvi o modifichi")
+
+[ SEZIONE 4: PROTOCOLLO / METODO IN 3 FASI ]
+  └─ Percorso di trasformazione (Esamina → Valida → Ottimizza)
+
+[ SEZIONE 5: FONDATORE / PARTNER STORYTELLING ]
+  ├─ Foto Ritratto del Partner
+  ├─ Storytelling Personale ("Ciao mi chiamo [Nome Partner]...")
+  └─ Griglia Dati di Autorevolezza (Anni di esperienza, Clienti, Risultati)
+
+[ SEZIONE 6: FAQ RASSICURANTI ]
+  └─ Risposte alle obiezioni tecniche e operative del target
+
+[ SEZIONE 7: BANNER CTA FINALE ]
+  └─ Banner ad alto contrasto (Giallo CIAK #FACC15 / Slate-950) + CTA Azione Immediata
+```
 
 ---
 
-## ⚙️ Componenti Standard del Template
+## 🎨 Linee Guida di Stile Grafico (Visual Tokens)
 
-1. **Hero Section con Badge di Garanzia:**
-   * Badge superiore: *"Il Sistema per creare Accademie Digitali"*.
-   * Titolo ad alto impatto + Sottotitolo rassicurante.
-   * Doppio bottone CTA: Primario dorato + Secondario bianco con bordo slate.
-
-2. **Simulatore Interattivo "Mario Rossi" (Onboarding Guidato):**
-   * **Step 1:** Digitazione guidata del Nome, della Professione e del Metodo.
-   * **Step 2:** Progresso circolare AI + Notifica chat live in entrata dal Tutor Umano dedicato.
-   * **Step 3:** Rivelazione della Dashboard attiva dell'Accademia con contatore studenti e stato verde *"Accademia Online"*.
-
-3. **Griglia in 3 Card "Perché Scegliere il Sistema":**
-   * Card 01: *Sistema Pronto personalizzato*
-   * Card 02: *Team Umano Dedicato*
-   * Card 03: *Motore AI Integrato* ("l'AI genera gli script, tu approvi o modifichi")
-
-4. **Metodo EVO (Esamina, Valida, Ottimizza):**
-   * Spiegazione in 3 punti chiave del Protocollo testato negli ultimi 7 anni.
-
-5. **Sezione Fondatore / Tutor (Storytelling & Autorevolezza):**
-   * Ritratto fotografico ad alta risoluzione.
-   * Bio del fondatore (Claudio Bertogliatti) con metriche di prova sociale (25.000+ trattative, 13 settori, €6M+ fatturato, 7 anni nel Digital Marketing).
-
-6. **Domande Frequenti (FAQ Rassicuranti):**
-   * Risposte dirette sui dubbi tecnologici, i tempi di produzione e l'uso di materiali esistenti.
-
-7. **Banner di Conversione Finale:**
-   * Box in Giallo CIAK `#FACC15` o Slate Scuro ad alto contrasto con pulsante di azione immediata alla Masterclass o al Blueprint.
+* **Sfondo:** Bianco Puro (`#FFFFFF`) con sezioni alternate in Slate Chiaro (`#F8FAFC`).
+* **Accent & Primary CTA:** Giallo CIAK (`#FACC15` / `#F59E0B`) con testo Slate-950 (`#0F172A`) e ombra dorata morbida (`shadow-lg shadow-yellow-500/20`).
+* **Headings & Body:** Slate-950 per titoli, Slate-600 per paragrafi.
+* **Badge di Stato:** Verde Smeraldo (`#10B981`) per gli indicatori "Attivo / Online".
 
 ---
 
-## 🤖 Istruzioni per gli Agenti AI di CIAK (Valentina / Stefania / Agent Dispatcher)
+## 🤖 Regole di Adattamento Dinamico per l'Agente AI
 
-Tutti gli agenti AI della piattaforma CIAK devono utilizzare le regole di questo documento quando:
-1. Generano la bozza di un nuovo funnel o accademia per un nuovo Partner.
-2. Scrivono il copy per le landing page, le email o i video script dei partner.
-3. Rendersno anteprime UI o componenti React per la sezione cliente/partner.
+Quando un Agente AI (Valentina / Stefania / Agent Dispatcher) genera o configura il funnel per un **nuovo Partner**:
+
+1. **Preserva la Sequenza:** Mantiene rigorosamente l'ordine e la struttura grafica delle 7 sezioni sopra indicate.
+2. **Personalizza i Contenuti:**
+   * Sostituisce i dati di Mario Rossi con l'avatar/cliente tipo del partner specifico.
+   * Sostituisce la foto e la storia del fondatore con il profilo, le metriche ed il metodo specifico del partner.
+   * Adatta i testi delle FAQ e i 3 pilastri al settore di riferimento del partner.

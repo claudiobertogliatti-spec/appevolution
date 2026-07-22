@@ -6,34 +6,27 @@
       "vibe": "Light & Human-Centered, High-Trust, Elegant, Accessible",
       "emotional_tone": "Rassicurante, Guidato, Team Umano Dedicato, AI Assistita"
     },
-    "ciak_funnel_template": {
-      "vibe": "Light & Human-Centered",
-      "target": "Liberi professionisti, consulenti e formatori con scarse competenze digitali",
-      "colors": {
+    "ciak_partner_funnel_framework": {
+      "framework_type": "Dynamic Structural Layout & Section Sequence",
+      "adaptation_rule": "Il layout visivo e la sequenza delle 7 sezioni rimangono standardizzati ed integrati, mentre copy, foto partner, nicchia ed offerta si adattano dinamicamente alle esigenze di ciascun partner.",
+      "section_sequence": [
+        "1. HEADER: Logo Partner/Accademia + Navigazione",
+        "2. HERO SECTION: Badge Promessa + Headline Trasformazione + Sottotitolo + Doppia CTA (Giallo #FACC15)",
+        "3. WIDGET SIMULATORE / ONBOARDING: Simulazione 3 step guidata sul cliente tipo del partner",
+        "4. GRIGLIA 3 PILASTRI: Sistema Pronto Personalizzato + Team Umano Dedicato + Motore AI Integrato",
+        "5. PROTOCOLLO / METODO: Percorso in 3 Fasi del Partner (Esamina -> Valida -> Ottimizza)",
+        "6. FONDATORE / PARTNER STORY: Foto Ritratto del Partner + Storytelling ('Ciao mi chiamo...') + Dati Autorevolezza",
+        "7. FAQ RASSICURANTI: Abbattimento delle obiezioni del target del partner",
+        "8. BANNER CTA FINALE: Conversione immediata in Giallo CIAK #FACC15 / Slate-950"
+      ],
+      "visual_tokens": {
         "background": "#FFFFFF",
         "surface": "#F8FAFC",
         "primary_cta": "#FACC15",
-        "primary_cta_hover": "#FDE047",
         "text_dark": "#0F172A",
         "text_muted": "#64748B",
-        "border": "#E2E8F0",
-        "success": "#10B981",
-        "accent": "#F59E0B"
-      },
-      "typography": {
-        "headings": "Poppins, sans-serif",
-        "body": "Poppins, sans-serif",
-        "data": "Space Mono, monospace"
-      },
-      "standard_sections": [
-        "Hero Section con badge 'Il Sistema per creare Accademie Digitali'",
-        "Simulatore Interattivo Onboarding 'Mario Rossi' (Input -> AI+Team -> Accademia Pronta)",
-        "Griglia 3 Card (Sistema Pronto personalizzato, Team Umano Dedicato, Motore AI Integrato)",
-        "Metodo EVO Protocollo 7 Anni (Esamina, Valida, Ottimizza)",
-        "Sezione Fondatore Claudio Bertogliatti (Foto + Bio + 25.000 trattative)",
-        "FAQ Rassicuranti per non-tecnici",
-        "Banner CTA finale in Giallo CIAK #FACC15"
-      ]
+        "success_pill": "#10B981"
+      }
     },
     "typography": {
       "font_family": {
@@ -115,12 +108,11 @@
         "Ensure 'Poppins' and 'Space Mono' fonts are imported in index.css."
       ],
       "implementation_rules": [
-        "Use the 'Light & Human-Centered' template for all CIAK partner funnels.",
-        "Include the 'Mario Rossi' interactive onboarding simulation component on lead generation pages.",
+        "Use the 'Ciak Partner Funnel Framework' for layout and section sequence across all partner funnels.",
+        "Adapt copy, partner photo, niche, and offer dynamically per partner while strictly preserving the 7-section layout sequence.",
+        "Include the interactive onboarding simulation widget on lead generation pages.",
         "Ensure all data/numbers use 'font-mono' (Space Mono).",
-        "Use 'sonner' for toast notifications.",
-        "Maintain clean white background (#FFFFFF) and light surface (#F8FAFC).",
-        "For AI agents (Valentina/Stefania), emphasize human team support alongside AI capabilities."
+        "Maintain clean white background (#FFFFFF) and light surface (#F8FAFC)."
       ]
     }
   }
