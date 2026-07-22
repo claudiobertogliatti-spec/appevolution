@@ -11,9 +11,10 @@ export function blueprintBridgeUrl() {
 }
 
 export function isMasterclassOptinBridge(sourceOrSearch = "") {
-  const source = sourceOrSearch.startsWith("?")
-    ? new URLSearchParams(sourceOrSearch).get("source")
-    : sourceOrSearch;
+  const safeSource = sourceOrSearch || "";
+  const source = safeSource.startsWith("?")
+    ? new URLSearchParams(safeSource).get("source")
+    : safeSource;
   return source === BLUEPRINT_SOURCES.MASTERCLASS_OPTIN;
 }
 

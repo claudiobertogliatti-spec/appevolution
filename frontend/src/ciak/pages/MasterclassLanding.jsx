@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, CheckCircle2, ShieldCheck, Play, Sparkles, Users, Clock, Award } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
@@ -34,50 +35,63 @@ function MasterclassForm({ form, onChange, onSubmit, submitting, error }) {
   const emailId = `masterclass-email-${formId}`;
 
   return (
-    <form noValidate onSubmit={onSubmit} className="rounded-2xl bg-white p-6 text-slate-900 shadow-xl md:p-8">
-      <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-500">
-        Accesso immediato
-      </p>
-      <div className="flex flex-col gap-3">
-        <label className="sr-only" htmlFor={nomeId}>Il tuo nome</label>
-        <input
-          id={nomeId}
-          name="nome"
-          type="text"
-          value={form.nome}
-          onChange={onChange}
-          placeholder="Il tuo nome"
-          autoComplete="given-name"
-          required
-          className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-slate-900"
-        />
-        <label className="sr-only" htmlFor={emailId}>La tua email</label>
-        <input
-          id={emailId}
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={onChange}
-          placeholder="La tua email"
-          autoComplete="email"
-          required
-          className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-slate-900"
-        />
+    <form noValidate onSubmit={onSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl md:p-8">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 border border-yellow-300 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-950">
+          <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Accesso Immediato
+        </span>
+        <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+          <Clock className="h-3.5 w-3.5 text-slate-400" /> 30 min
+        </span>
+      </div>
+      <div className="flex flex-col gap-3.5">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" htmlFor={nomeId}>
+            Il tuo nome
+          </label>
+          <input
+            id={nomeId}
+            name="nome"
+            type="text"
+            value={form.nome}
+            onChange={onChange}
+            placeholder="Es. Mario Rossi"
+            autoComplete="given-name"
+            required
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-amber-400 focus:bg-white transition"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" htmlFor={emailId}>
+            La tua migliore email
+          </label>
+          <input
+            id={emailId}
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={onChange}
+            placeholder="mario.rossi@email.it"
+            autoComplete="email"
+            required
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-amber-400 focus:bg-white transition"
+          />
+        </div>
         <button
           type="submit"
           disabled={submitting}
-          className="mt-1 rounded-lg bg-slate-900 px-6 py-3 font-semibold text-yellow-400 transition hover:bg-slate-800"
+          className="mt-2 w-full rounded-xl bg-yellow-400 py-4 font-bold text-slate-950 shadow-lg shadow-yellow-500/20 transition hover:bg-yellow-300 flex items-center justify-center gap-2"
         >
-          {submitting ? "Invio in corso..." : "Guarda la masterclass gratuita"}
+          {submitting ? "Accesso in corso..." : "Guarda la Masterclass Gratuita"} <ArrowRight className="h-4 w-4" />
         </button>
       </div>
       {error && (
-        <p role="alert" className="mt-4 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-xs font-semibold text-red-700 border border-red-200">
           {error}
         </p>
       )}
-      <p className="mt-4 text-xs leading-relaxed text-slate-500">
-        Accesso immediato · Nessuna carta richiesta · Contenuto operativo
+      <p className="mt-4 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
+        <ShieldCheck className="h-4 w-4 text-emerald-600" /> Nessuna carta richiesta · Accesso gratuito al 100%
       </p>
     </form>
   );
@@ -98,9 +112,9 @@ export function MasterclassLanding() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting || submissionInFlight.current) return;
-
     const nome = form.nome.trim();
     const email = form.email.trim().toLowerCase();
+
     if (nome.length < 2) {
       setError("Inserisci il tuo nome");
       return;
@@ -171,117 +185,152 @@ export function MasterclassLanding() {
   return (
     <>
       <CiakHeader />
-      <main>
-        <section className="bg-slate-900 text-white">
-          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.2fr_.8fr] md:items-center md:py-24">
-            <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-yellow-400">
-                Masterclass gratuita · 30 minuti
-              </p>
-              <h1 className="mb-6 text-3xl font-semibold leading-[1.15] md:text-5xl">
-                Da competenza o corso fermo a un&apos;offerta digitale che il mercato può capire e acquistare.
+      <main className="bg-white text-slate-900 font-[Poppins,system-ui,sans-serif]">
+        
+        {/* HERO SECTION - LIGHT & CIAK LOGO BRANDED */}
+        <section className="bg-gradient-to-b from-yellow-50/40 via-white to-white px-6 pt-16 pb-20 md:pt-20 md:pb-24 border-b border-slate-100">
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-7">
+              <span className="inline-flex items-center gap-2 rounded-full bg-yellow-100 border border-yellow-300 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-950 mb-6 shadow-sm">
+                <Play className="h-3.5 w-3.5 fill-slate-950 text-slate-950" /> Masterclass Gratuita · 30 minuti
+              </span>
+              <h1 className="text-3xl font-extrabold leading-tight text-slate-900 md:text-5xl tracking-tight">
+                Da competenza o corso fermo a un'offerta digitale che il mercato capisce e acquista.
               </h1>
-              <p className="max-w-3xl text-base leading-relaxed text-slate-300 md:text-lg">
-                Scopri perché partire dalle lezioni, dalla piattaforma o dai contenuti può bloccare il progetto
-                prima ancora della vendita — e quali decisioni chiarire prima di investire altro tempo.
+              <p className="mt-6 text-base md:text-lg leading-relaxed text-slate-600 max-w-2xl">
+                Scopri perché partire dalle lezioni, dalla piattaforma o dai contenuti può bloccare il tuo progetto prima ancora della vendita — e quali decisioni chiarire subito prima di investire altro tempo.
               </p>
-            </div>
-            <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitting={submitting} error={error} />
-          </div>
-        </section>
-
-        <section className="bg-white">
-          <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-            <h2 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
-              Se riconosci questa situazione, la masterclass è per te.
-            </h2>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <p className="rounded-xl border border-slate-200 p-5 leading-relaxed text-slate-700">
-                Hai una competenza reale, ma non riesci ancora a tradurla in un&apos;offerta che le persone comprendono.
-              </p>
-              <p className="rounded-xl border border-slate-200 p-5 leading-relaxed text-slate-700">
-                Hai già registrato un corso, creato contenuti o aperto un funnel, ma le vendite non seguono.
-              </p>
-              <p className="rounded-xl border border-slate-200 p-5 leading-relaxed text-slate-700">
-                Stai valutando altri strumenti, altre lezioni o altra produzione senza una sequenza chiara.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-slate-50">
-          <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">L&apos;errore di sequenza</p>
-            <h2 className="mt-3 text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
-              Il problema non è il corso. È aver iniziato a costruirlo prima di chiarire cosa vendere, a chi e perché dovrebbero scegliere te.
-            </h2>
-            <p className="mt-6 max-w-3xl leading-relaxed text-slate-700">
-              Nella masterclass vedrai quali decisioni vengono prima di lezioni, piattaforme e campagne: il problema
-              che risolvi, il pubblico a cui serve davvero e un&apos;offerta abbastanza chiara da poter essere scelta.
-            </p>
-          </div>
-        </section>
-
-        <section className="bg-white">
-          <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-            <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Cosa vedrai nei 30 minuti</h2>
-            <ul className="mt-7 space-y-4 leading-relaxed text-slate-700">
-              <li><strong className="text-slate-900">Le decisioni da prendere prima della produzione:</strong> cosa non puoi delegare a un corso o a un funnel.</li>
-              <li><strong className="text-slate-900">I segnali di un&apos;offerta confusa:</strong> perché competenza e contenuti non bastano a generare una scelta.</li>
-              <li><strong className="text-slate-900">Un modo concreto per ordinare i prossimi passi:</strong> senza ricominciare da zero e senza aggiungere lavoro inutile.</li>
-            </ul>
-          </div>
-        </section>
-
-        <section className="bg-slate-900 text-white">
-          <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Chi l&apos;ha creata</p>
-            <h2 className="mt-3 text-2xl font-semibold md:text-3xl">Claudio Bertogliatti, creatore di Ciak e del Metodo EVO.</h2>
-            <p className="mt-6 max-w-3xl leading-relaxed text-slate-300">
-              Ho creato Ciak e il Metodo EVO dopo aver visto troppi professionisti partire dal punto sbagliato:
-              registrano lezioni, aprono profili e costruiscono funnel prima di avere chiarito cosa vendere, a chi
-              e perché il mercato dovrebbe scegliere loro.
-            </p>
-            <div className="mt-10 rounded-2xl border border-slate-700 p-6 md:p-8">
-              <h3 className="text-xl font-semibold text-yellow-400">Metodo EVO</h3>
-              <p className="mt-3 leading-relaxed text-slate-300">
-                Esamina ciò che c&apos;è. Valida ciò che ha senso. Ottimizza solo dopo aver trovato una direzione chiara.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-white">
-          <div className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-            <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Domande frequenti</h2>
-            <div className="mt-7 space-y-6">
-              <div>
-                <h3 className="font-semibold text-slate-900">È utile anche se ho già creato un corso?</h3>
-                <p className="mt-2 leading-relaxed text-slate-700">Sì. Serve proprio a capire se il blocco è nel corso o nelle decisioni prese prima di costruirlo.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">Devo acquistare qualcosa per guardarla?</h3>
-                <p className="mt-2 leading-relaxed text-slate-700">No. È gratuita e non richiede carta.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">Quanto dura?</h3>
-                <p className="mt-2 leading-relaxed text-slate-700">Circa 30 minuti, con un percorso concreto per scegliere il prossimo passo.</p>
+              
+              <div className="mt-8 flex items-center gap-4 pt-4 border-t border-slate-200">
+                <div className="h-10 w-10 rounded-full bg-slate-950 text-yellow-400 font-extrabold flex items-center justify-center text-sm border-2 border-yellow-400">
+                  CB
+                </div>
+                <div>
+                  <span className="block text-sm font-bold text-slate-900">Claudio Bertogliatti</span>
+                  <span className="text-xs text-slate-500">Creatore del Metodo EVO & Ciak.io</span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        <section className="bg-yellow-50">
-          <div className="mx-auto max-w-2xl px-6 py-16 md:py-20">
-            <h2 className="text-center text-2xl font-semibold text-slate-900 md:text-3xl">Guarda la masterclass gratuita</h2>
-            <p className="mx-auto mt-4 max-w-xl text-center leading-relaxed text-slate-700">
-              Inserisci nome ed email. Ti accompagneremo al contenuto nel prossimo passaggio.
-            </p>
-            <div className="mt-8">
+            <div className="lg:col-span-5">
               <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitting={submitting} error={error} />
             </div>
           </div>
         </section>
+
+        {/* RECOGNITION SECTION */}
+        <section className="bg-slate-50 px-6 py-20 border-b border-slate-200">
+          <div className="mx-auto max-w-5xl">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-600">Fai questo check</span>
+              <h2 className="mt-2 text-2xl font-bold leading-tight text-slate-900 md:text-4xl">
+                Se ti riconosci in una di queste situazioni, la masterclass è per te:
+              </h2>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div className="h-8 w-8 rounded-lg bg-yellow-100 text-slate-950 font-bold flex items-center justify-center mb-4">1</div>
+                <p className="leading-relaxed text-slate-700 text-sm">
+                  Hai una competenza reale, ma non riesci ancora a tradurla in un'offerta chiara che le persone comprendono al volo.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div className="h-8 w-8 rounded-lg bg-yellow-100 text-slate-950 font-bold flex items-center justify-center mb-4">2</div>
+                <p className="leading-relaxed text-slate-700 text-sm">
+                  Hai già registrato lezioni o aperto un funnel, ma le iscrizioni non arrivano e ti senti bloccato.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div className="h-8 w-8 rounded-lg bg-yellow-100 text-slate-950 font-bold flex items-center justify-center mb-4">3</div>
+                <p className="leading-relaxed text-slate-700 text-sm">
+                  Stai valutando altri software, altri corsi o altra produzione senza una sequenza tattica definita.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEQUENCE ERROR SECTION */}
+        <section className="bg-white px-6 py-20 border-b border-slate-200">
+          <div className="mx-auto max-w-4xl">
+            <span className="text-xs font-bold uppercase tracking-widest text-amber-600">L'errore di sequenza</span>
+            <h2 className="mt-3 text-2xl font-bold leading-tight text-slate-900 md:text-4xl">
+              Il problema non è il corso. È aver iniziato a costruirlo prima di chiarire cosa vendere, a chi e perché dovrebbero scegliere te.
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-slate-600">
+              Nella masterclass vedrai quali decisioni vengono prima di lezioni, piattaforme e campagne: il problema reale che risolvi, il pubblico a cui serve davvero e un'offerta pronta per essere scelta sul mercato.
+            </p>
+          </div>
+        </section>
+
+        {/* WHAT YOU WILL SEE */}
+        <section className="bg-slate-50 px-6 py-20 border-b border-slate-200">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold text-slate-900 md:text-3xl mb-8">Cosa vedrai nei 30 minuti:</h2>
+            <div className="space-y-4">
+              {[
+                ["Le decisioni da prendere prima della produzione", "Cosa non puoi mai delegare a un semplice software o a un funnel automatico."],
+                ["I segnali di un'offerta confusa", "Perché avere competenza e contenuti non basta se la proposta non è formulata correttamente."],
+                ["Un modo concreto per ordinare i prossimi passi", "Come attivare l'accademia senza ricominciare da zero e senza lavoro superfluo."],
+              ].map(([title, desc]) => (
+                <div key={title} className="flex gap-4 p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <CheckCircle2 className="h-6 w-6 text-yellow-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-slate-900">{title}</h4>
+                    <p className="text-slate-600 text-sm mt-1">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FOUNDER BRAND SECTION */}
+        <section className="bg-white px-6 py-20 border-b border-slate-200">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid gap-10 md:grid-cols-12 md:items-center">
+              <div className="md:col-span-4 flex justify-center">
+                <img 
+                  src="/founder/claudio-portrait-640.webp" 
+                  alt="Claudio Bertogliatti" 
+                  className="w-full max-w-xs h-auto rounded-2xl border-2 border-slate-200 shadow-lg object-cover"
+                />
+              </div>
+              <div className="md:col-span-8 space-y-4">
+                <span className="text-xs font-bold uppercase tracking-widest text-amber-600">Chi l'ha creata</span>
+                <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Claudio Bertogliatti, creatore di Ciak.io e del Metodo EVO.</h2>
+                <p className="text-slate-600 leading-relaxed">
+                  Ho creato Ciak ed il Metodo EVO dopo aver visto troppi professionisti competenti partire dal punto sbagliato: registrano lezioni, aprono profili e costruiscono funnel prima di aver chiarito l'offerta ed il posizionamento.
+                </p>
+                <div className="mt-4 rounded-xl border border-yellow-300 bg-yellow-50/60 p-5">
+                  <h4 className="font-bold text-slate-950">Il Metodo EVO</h4>
+                  <p className="mt-1 text-sm text-slate-700">
+                    Esamina ciò che c'è $\rightarrow$ Valida ciò che ha senso $\rightarrow$ Ottimizza con il supporto del Team Umano e dell'AI.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* BOTTOM FORM SECTION */}
+        <section className="bg-yellow-400 px-6 py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-extrabold text-slate-950 md:text-4xl">
+              Guarda ora la Masterclass Gratuita
+            </h2>
+            <p className="mt-3 text-slate-900 text-base">
+              Inserisci nome ed email. Accederai immediatamente al contenuto senza attese.
+            </p>
+            <div className="mt-8 text-left">
+              <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitting={submitting} error={error} />
+            </div>
+          </div>
+        </section>
+
       </main>
       <CiakFooter />
     </>
