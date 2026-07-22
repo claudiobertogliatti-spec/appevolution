@@ -1,272 +1,221 @@
-# Masterclass + Ciak Blueprint — Funnel a cascata e copy direct response
+# Funnel pubblico Ciak — Vetrina, Masterclass e Blueprint
 
 **Data:** 22 luglio 2026
 
-**Stato:** design approvato da Claudio, precedente al piano di implementazione
+**Stato:** design definitivo approvato da Claudio
 
-**Obiettivo:** separare nettamente acquisizione gratuita e offerta Blueprint, mantenendole collegate in un funnel a cascata misurabile.
+**Obiettivo:** trasformare il traffico verso Ciak in un percorso misurabile, credibile e progressivo, separando presentazione del brand, acquisizione del lead e vendita del Blueprint.
 
-## 1. Decisione strategica
+## 1. Architettura definitiva
 
-Il funnel usa due landing con intenti differenti:
+Il funnel pubblico usa tre livelli con responsabilità distinte:
 
-1. **Masterclass gratuita:** acquisisce traffico freddo e ottimizza sull'evento `Lead`.
-2. **Ciak Blueprint a 27 €:** converte lead, retargeting e pubblico più consapevole in un acquisto.
+1. **`/` — Vetrina Ciak:** spiega che cos'è Ciak, a chi serve e come funziona. La sola CTA commerciale porta alla masterclass.
+2. **`/masterclass` — Landing di acquisizione:** raccoglie esclusivamente Nome + Email e ottimizza sull'evento `Lead`.
+3. **`/blueprint` — Offerta a 27 €:** converte lead, retargeting e pubblico più consapevole in un'analisi strategica individuale.
 
-Il percorso principale è:
+Il contenuto video vive su **`/masterclass/guarda`**. La conferma acquisto vive su **`/blueprint/grazie`**.
 
-`Meta Ads → Landing Masterclass → Opt-in → Landing Blueprint contestuale → Acquisto oppure Masterclass`
+Percorsi principali:
 
-La masterclass resta realmente gratuita. Dopo l'opt-in, l'utente può saltare il Blueprint con un'azione evidente e accedere immediatamente al contenuto. L'email di accesso parte comunque, indipendentemente dalla scelta sull'offerta.
+- traffico freddo: `Meta Ads → /masterclass → opt-in valido → /blueprint?source=masterclass_optin`;
+- traffico organico, branded e referral: `/ → /masterclass → opt-in valido → /blueprint?source=masterclass_optin`;
+- bridge post-opt-in: acquisto Blueprint oppure `Non ora, guarda la masterclass → /masterclass/guarda`;
+- accesso email: inviato comunque dopo l'opt-in, indipendentemente dalla scelta sul Blueprint.
 
-## 2. Pubblico
+## 2. Contratto URL
 
-Le due landing parlano a:
+URL canonici:
+
+- `/`
+- `/masterclass`
+- `/masterclass/guarda`
+- `/blueprint`
+- `/blueprint/grazie`
+
+Redirect legacy permanenti, diretti e con query string preservata dove necessario:
+
+- `/ciak-blueprint` → `/blueprint`
+- `/ciak-blueprint/grazie` → `/blueprint/grazie`
+- `/analisi` → `/blueprint`
+- `/analisi/grazie` → `/blueprint/grazie`
+- `/analisi-strategica` → `/blueprint`
+
+Backend, checkout, CAPI, email e link interni devono emettere direttamente gli URL canonici. I redirect non sono un meccanismo applicativo ordinario.
+
+## 3. Pubblico e problema
+
+Le pagine parlano a:
 
 - professionisti, consulenti e formatori con una competenza reale ma senza un'offerta digitale chiara;
-- persone che hanno già creato un corso, una consulenza o un funnel ma non riescono a venderli;
-- persone che producono contenuti o hanno acquistato strumenti senza avere un percorso coerente verso la vendita.
+- chi ha già creato un corso, una consulenza o un funnel ma non riesce a venderli;
+- chi produce contenuti o ha acquistato strumenti senza un percorso coerente verso la vendita.
 
-Il problema comune è la mancanza di un sistema comprensibile che colleghi competenza, pubblico, offerta e mercato.
-
-## 3. Tesi centrale
-
-La causa principale è una strategia poco chiara. La conseguenza è costruire nell'ordine sbagliato: lezioni, piattaforma, contenuti o funnel prima di avere chiarito cosa vendere, a chi e perché il mercato dovrebbe scegliere quella proposta.
-
-Messaggio guida:
+Tesi centrale:
 
 > Il problema non è il corso. È aver iniziato a costruirlo prima di chiarire cosa vendere, a chi e perché dovrebbero scegliere te.
 
-Il copy deve essere più incisivo delle pagine Ciak precedenti, ma resta diretto, professionale e anti-fuffa. Sono vietati promesse di fatturato, scarsità artificiale, linguaggio motivazionale e risultati non verificati.
+Il copy è direct response, incisivo e concreto, ma resta professionale e anti-fuffa. Sono vietati promesse di fatturato, risultati non verificati, urgenza artificiale e linguaggio da guru.
 
-## 4. Ruolo di Claudio e del Metodo Ciak
+## 4. Naming e autorevolezza
 
-La guida è **Claudio Bertogliatti, creatore del Metodo Ciak**.
+- **Ciak** è il sistema, la piattaforma e il brand.
+- **Metodo EVO** è il metodo: Esamina, Valida, Ottimizza.
+- **Claudio Bertogliatti** è il creatore di Ciak e del Metodo EVO.
+- La formula **“Metodo Ciak” è vietata** in tutto il funnel.
 
-Claudio offre volto, esperienza e responsabilità personale. Il Metodo Ciak dimostra che l'intervento segue un processo e non dipende da una consulenza improvvisata.
+Posizionamento guida:
 
-Posizionamento suggerito:
-
-> Ho creato il Metodo Ciak dopo aver visto troppi professionisti partire dal punto sbagliato: registrano lezioni, aprono profili e costruiscono funnel prima di avere chiarito cosa vendere, a chi e perché il mercato dovrebbe scegliere loro.
+> Ho creato Ciak e il Metodo EVO dopo aver visto troppi professionisti partire dal punto sbagliato: registrano lezioni, aprono profili e costruiscono funnel prima di avere chiarito cosa vendere, a chi e perché il mercato dovrebbe scegliere loro.
 
 ## 5. Prova e trasparenza
 
-Evolution esiste da 14 mesi. I primi partner stanno completando il percorso di costruzione e lancio, quindi le pagine non devono presentare risultati economici prematuri o testimonianze gonfiate.
+Non si pubblicano numeri, risultati economici, quantità di partner o anzianità del programma senza una fonte live verificabile.
 
-La prova si costruisce con:
+In particolare, il claim **“Evolution esiste da 14 mesi” non va usato**: è in conflitto con dati storici già presenti e non è necessario per sostenere l'offerta.
+
+La fiducia si costruisce con:
 
 - processo mostrato chiaramente;
-- lavoro e asset reali;
-- esperienza maturata sul campo;
+- asset e lavoro reali;
+- responsabilità personale di Claudio;
 - chiarezza su cosa il prodotto può e non può fare;
-- garanzia specifica sul Blueprint.
+- garanzia specifica e operativamente sostenibile sul Blueprint.
 
-L'età di Evolution non compare nell'hero. Viene spiegata nella sezione fiducia o nelle FAQ:
+## 6. Landing Masterclass — `/masterclass`
 
-> Evolution esiste da 14 mesi e i primi partner stanno completando il loro percorso di costruzione e lancio. Per questo non mostriamo risultati prematuri o testimonianze gonfiate. Ti mostriamo il processo, il lavoro reale e ciò che puoi valutare concretamente prima di decidere.
+### Obiettivo
 
-## 6. Landing Masterclass
+Ottenere un opt-in Nome + Email da traffico freddo. Il telefono non è richiesto al primo contatto; potrà essere raccolto più avanti, per esempio nelle 8 Domande o nella prenotazione.
 
-### 6.1 Obiettivo
-
-Ottenere un opt-in Nome + Email da traffico freddo. La parte iniziale non vende il Blueprint e concentra l'attenzione su un'unica azione.
-
-### 6.2 Hero approvato
+### Hero
 
 **Eyebrow**
 
-> Masterclass gratuita · 30 minuti
+`Masterclass gratuita · 30 minuti`
 
 **Headline**
 
-> Da competenza o corso fermo a un'offerta digitale che il mercato può capire e acquistare.
+`Da competenza o corso fermo a un'offerta digitale che il mercato può capire e acquistare.`
 
 **Subheadline**
 
-> Scopri perché partire dalle lezioni, dalla piattaforma o dai contenuti può bloccare il progetto prima ancora della vendita — e quali decisioni chiarire prima di investire altro tempo.
+`Scopri perché partire dalle lezioni, dalla piattaforma o dai contenuti può bloccare il progetto prima ancora della vendita — e quali decisioni chiarire prima di investire altro tempo.`
 
 **CTA**
 
-> Guarda la masterclass gratuita
+`Guarda la masterclass gratuita`
 
 **Microcopy**
 
-> Accesso immediato · Nessuna carta richiesta · Contenuto operativo
+`Accesso immediato · Nessuna carta richiesta · Contenuto operativo`
 
-### 6.3 Struttura
+### Struttura
 
-1. Hero e modulo opt-in.
+1. Hero e modulo Nome + Email.
 2. Riconoscimento: competenze, contenuti o corso pronto senza strada chiara verso la vendita.
 3. Errore di sequenza: costruzione prima della validazione.
-4. Contenuti della masterclass:
-   - perché un buon corso può restare fermo;
-   - come individuare un problema riconosciuto dal mercato;
-   - come trasformare competenze e contenuti in un'offerta leggibile;
-   - cosa validare prima di costruire o rilanciare;
-   - quale passo scegliere in base alla situazione attuale.
-5. Claudio, creatore del Metodo Ciak.
-6. Metodo Ciak: Esamina, Valida, Ottimizza.
+4. Cosa impara l'utente.
+5. Claudio, creatore di Ciak e del Metodo EVO.
+6. Metodo EVO: Esamina, Valida, Ottimizza.
 7. FAQ.
-8. Secondo modulo opt-in con la stessa CTA.
+8. Secondo modulo con la stessa CTA.
 
-### 6.4 Frasi guida
+L'evento browser `Lead` parte soltanto dopo risposta positiva di `/api/ciak/lead-capture`; Pixel e CAPI condividono lo stesso `event_id` per la deduplica. Il consenso marketing resta vincolante.
 
-Sono ammesse formulazioni dirette come:
+## 7. Masterclass video — `/masterclass/guarda`
 
-> Un corso non si vende perché contiene molte lezioni.
+La pagina contiene il video e il passaggio successivo già esistente verso le 8 Domande Ciak. Non contiene il vecchio gate con telefono.
 
-> Registrare prima di validare non è velocità. È lavoro costruito su un'ipotesi.
+L'accesso diretto deve restare possibile dal link email e dal pulsante secondario del bridge. La masterclass è realmente gratuita e non viene subordinata all'acquisto del Blueprint.
 
-> Se il mercato non capisce cosa risolvi, il problema non è l'algoritmo.
+## 8. Landing Blueprint — `/blueprint`
 
-## 7. Landing Ciak Blueprint
-
-### 7.1 Obiettivo
-
-Vendere il Ciak Blueprint a 27 € a lead appena acquisiti, pubblico di retargeting, lista calda e visitatori diretti consapevoli.
-
-### 7.2 Hero diretto approvato
+### Hero
 
 **Eyebrow**
 
-> Ciak Blueprint · Analisi strategica individuale
+`Ciak Blueprint · Analisi strategica individuale`
 
 **Headline**
 
-> Prima di costruire o rilanciare il tuo corso, scopri se l'offerta sta in piedi.
+`Prima di costruire o rilanciare il tuo corso, scopri se l'offerta sta in piedi.`
 
 **Subheadline**
 
-> In 60 minuti analizziamo pubblico, problema, posizionamento e offerta. Entro 72 ore ricevi una roadmap concreta: cosa correggere, cosa costruire e quale passo fare per primo.
+`In 60 minuti analizziamo pubblico, problema, posizionamento e offerta. Entro 72 ore ricevi una roadmap concreta: cosa correggere, cosa costruire e quale passo fare per primo.`
 
 **CTA**
 
-> Voglio il mio Blueprint — 27 €
+`Voglio il mio Blueprint — 27 €`
 
 **Riduzione del rischio**
 
-> Pagamento unico · IVA inclusa · Rimborso se non ricevi una direzione utile
+`Pagamento unico · IVA inclusa · Rimborso se non ricevi una direzione utile`
 
-### 7.3 Variante contestuale post-opt-in
+### Variante post-opt-in
 
-Quando la pagina riceve `source=masterclass_optin`, sopra l'hero compare:
+Con `source=masterclass_optin`, sopra l'hero compare:
 
 > **Iscrizione completata. La masterclass è pronta.**
 >
-> Se vuoi andare oltre la teoria, possiamo applicare subito il Metodo Ciak al tuo progetto.
+> Se vuoi andare oltre la teoria, possiamo applicare subito il Metodo EVO al tuo progetto.
 
 Azioni visibili senza scroll:
 
-- primaria: **Analizziamo il mio progetto — 27 €**;
-- secondaria: **Non ora, guarda la masterclass**.
+- primaria: `Analizziamo il mio progetto — 27 €`;
+- secondaria: `Non ora, guarda la masterclass` → `/masterclass/guarda`.
 
-La seconda azione porta direttamente a `/masterclass`. Non deve essere nascosta, attenuata o subordinata all'acquisto.
+La secondaria è evidente, accessibile da tastiera e non viene attenuata per forzare l'acquisto.
 
-### 7.4 Tesi
+### Cosa riceve il cliente
 
-> Il rischio più grande non è creare un corso imperfetto. È costruire bene qualcosa che il mercato non comprende o non considera prioritario.
+- 8 Domande Ciak;
+- sessione individuale di 60 minuti con Claudio;
+- analisi specifica di pubblico, problema, posizionamento e offerta;
+- roadmap scritta entro 72 ore.
 
-### 7.5 Struttura
+Messaggio di trasparenza:
 
-1. Hero e CTA di acquisto.
-2. Costo di costruire nell'ordine sbagliato.
-3. Quattro decisioni del Blueprint:
-   - cosa vendere realmente;
-   - a quale pubblico;
-   - quale problema rende l'offerta rilevante;
-   - perché scegliere quella proposta.
-4. Cosa riceve il cliente:
-   - 8 Domande Ciak;
-   - sessione individuale di 60 minuti con Claudio;
-   - analisi specifica del mercato;
-   - roadmap scritta entro 72 ore.
-5. Esito potenzialmente negativo, dichiarato:
+> L'analisi può anche concludere che l'idea non sia ancora pronta. Meglio scoprirlo con 27 € che dopo mesi di produzione.
 
-   > L'analisi può anche concludere che l'idea non sia ancora pronta. Meglio scoprirlo con 27 € che dopo mesi di produzione.
-
-6. Per chi è e per chi non è.
-7. Claudio e Metodo Ciak.
-8. Sezione fiducia con spiegazione dei 14 mesi.
-9. Garanzia.
-10. FAQ.
-11. CTA finale: **Richiedi il Ciak Blueprint — 27 €**.
-
-### 7.6 Garanzia
+Garanzia proposta, da mantenere coerente con le condizioni operative e legali:
 
 > Se al termine della sessione non hai maggiore chiarezza e un prossimo passo concreto, puoi richiedere il rimborso dei 27 €.
 
-La formulazione finale deve essere coerente con le condizioni operative e legali effettive del rimborso.
+## 9. Tracking e attribuzione
 
-## 8. Navigazione e flusso
+Eventi minimi:
 
-- `/` mostra la landing Masterclass.
-- Dopo un opt-in confermato, il frontend naviga a `/ciak-blueprint?source=masterclass_optin`.
-- `/ciak-blueprint` senza parametro mostra la variante diretta.
-- Il link secondario della variante contestuale porta a `/masterclass`.
-- L'email di accesso alla masterclass parte subito dopo l'opt-in e non dipende dalla visita o dall'acquisto del Blueprint.
-- Checkout, prezzo, metadata Stripe e pagina di ringraziamento esistenti restano invariati.
+- `Lead` dopo opt-in accettato;
+- `BlueprintBridgeView` una volta per visita con sorgente `masterclass_optin`;
+- `BlueprintCheckoutStart` al click di acquisto;
+- `Purchase` su `/blueprint/grazie`, deduplicato con CAPI.
 
-## 9. Tracciamento
+Fonti ammesse nel checkout: `direct`, `masterclass_optin`, `retargeting`. Valori arbitrari ricevuti dal client non entrano nei metadata Stripe.
 
-### 9.1 Masterclass
+URL backend canonici:
 
-- visita landing;
-- opt-in accettato dal backend;
-- evento Meta `Lead`, subordinato al consenso marketing;
-- accesso alla masterclass.
+- `success_url`: `/blueprint/grazie?session_id={CHECKOUT_SESSION_ID}`;
+- `cancel_url`: `/blueprint?from=cancel`;
+- `event_source_url` acquisto: `/blueprint/grazie`.
 
-### 9.2 Bridge Blueprint
+## 10. Ownership e ordine di rilascio
 
-- visualizzazione della variante `masterclass_optin`;
-- clic CTA Blueprint;
-- clic `Non ora`;
-- `InitiateCheckout`;
-- `Purchase`;
-- ricavo immediato per 100 lead.
+1. **FASE 1 — Claude, completata:** contratto route e redirect legacy, commit `871ade85`.
+2. **FASE 2 — Codex:** split Masterclass, opt-in, bridge, copy Blueprint, checkout/CAPI canonici, test e verifica.
+3. **FASE 3 — Claude:** nuova vetrina `/` e SEO multi-shell, dopo che `/masterclass` e l'evento `Lead` sono verificati.
 
-### 9.3 Blueprint diretto
+Durante la FASE 2 Codex non modifica `frontend/src/ciak/pages/Landing.jsx`, salvo una successiva integrazione concordata. La rimozione definitiva del form dalla home appartiene alla FASE 3.
 
-- visite;
-- `InitiateCheckout`;
-- `Purchase`;
-- conversione visita-acquisto;
-- CAC.
+## 11. Criteri di accettazione
 
-UTM e parametro `source` devono distinguere traffico diretto, retargeting e post-opt-in.
-
-## 10. Campagna iniziale
-
-- Budget: 10 € al giorno.
-- Durata massima iniziale: 14 giorni / 140 €.
-- Obiettivo Meta: Lead.
-- Un solo ad set iniziale.
-- Tre creatività basate sulla stessa promessa.
-- Nessuna campagna Purchase fredda nella prima fase.
-
-La campagna non parte finché l'evento Lead non è verificato nel flusso reale.
-
-## 11. Test e criteri di accettazione
-
-Prima del traffico devono risultare verificati:
-
-1. entrambi i moduli Masterclass salvano il lead;
-2. l'email di accesso parte;
-3. l'opt-in conduce alla variante Blueprint contestuale;
-4. `Non ora` apre la masterclass;
-5. il checkout Stripe resta a 27 €;
-6. `Lead`, `InitiateCheckout` e `Purchase` funzionano come previsto;
-7. Pixel e CAPI rispettano il consenso marketing;
-8. la deduplica browser/server usa lo stesso `event_id`;
-9. le varianti mobile non hanno overflow e mantengono CTA leggibili;
-10. entrambe le pagine completano la build frontend;
-11. il copy non contiene risultati, testimonianze o scarsità non verificati.
-
-## 12. Fuori scope
-
-- nuovi prodotti o variazioni di prezzo;
-- modifica del contenuto video della masterclass;
-- nuova automazione email completa;
-- campagne Purchase su traffico freddo;
-- testimonianze o casi studio non ancora disponibili;
-- persistenza backend di varianti A/B nella prima versione.
-
+- `/masterclass` contiene solo Nome + Email e non mostra il video prima dell'opt-in.
+- Opt-in valido salva il lead, emette un solo `Lead` deduplicabile e porta a `/blueprint?source=masterclass_optin`.
+- Il bridge consente acquisto o accesso immediato a `/masterclass/guarda`.
+- `/masterclass/guarda` mostra il video senza richiedere telefono.
+- `/blueprint` funziona anche senza sorgente e non mostra il bridge in quel caso.
+- Checkout e CAPI usano solo URL canonici `/blueprint*`.
+- Nel funnel non compaiono “Metodo Ciak”, claim “14 mesi”, risultati inventati o scarsità artificiale.
+- Redirect legacy continuano a funzionare senza catene.
+- Test frontend/backend e build di produzione passano.
