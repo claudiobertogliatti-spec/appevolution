@@ -139,9 +139,9 @@ async def send_lead_event(
     Affianca il Pixel browser (frontend: metaPixel.trackLead): passare lo stesso
     `event_id` in entrambi → Meta deduplica per (event_name + event_id).
 
-    Perché server-side: il Lead arriva a Meta anche se l'utente ha adblocker o se
-    il consenso marketing blocca il Pixel browser — a patto che sia presente una
-    base giuridica valida. Ritorna un dict con esito; non solleva eccezioni.
+    Perché server-side: il Lead arriva a Meta anche con errori browser o adblocker.
+    Il chiamante deve invocare questa funzione solo dopo consenso marketing
+    esplicito. Ritorna un dict con esito; non solleva eccezioni.
     """
     token = os.environ.get("META_CAPI_ACCESS_TOKEN")
     if not token:

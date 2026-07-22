@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { Volume2, VolumeX } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
-import { trackLead } from "../lib/metaPixel";
+import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
 
 /** Legge un cookie by name (per _fbp / _fbc → deduplica CAPI). */
 function readCookie(name) {
@@ -77,7 +77,8 @@ export function CiakLanding() {
     try {
       const qs = new URLSearchParams(window.location.search);
       const leadEventId = newLeadEventId();
-      await fetch("/api/ciak/lead-capture", {
+      const marketingConsent = hasMarketingConsent();
+      const captureResponse = await fetch("/api/ciak/lead-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,17 +92,21 @@ export function CiakLanding() {
           utm_term: qs.get("utm_term"),
           utm_content: qs.get("utm_content"),
           referrer: document.referrer || null,
+          event_source_url: window.location.href,
+          marketing_consent: marketingConsent,
           event_id: leadEventId,
           fbp: readCookie("_fbp"),
           fbc: readCookie("_fbc"),
         }),
       }).catch(() => null);
-      // Evento Lead lato browser (no-op se manca il consenso marketing).
-      // Stesso event_id passato alla CAPI → Meta deduplica.
-      try {
-        trackLead(leadEventId);
-      } catch {
-        /* no-op */
+      // Conta il Lead solo se il CRM ha accettato davvero l'opt-in.
+      // Il Pixel resta comunque subordinato al consenso marketing.
+      if (captureResponse?.ok) {
+        try {
+          trackLead(leadEventId);
+        } catch {
+          /* no-op */
+        }
       }
       localStorage.setItem("ciak_lead_email", e);
       localStorage.setItem("ciak_lead_name", n);

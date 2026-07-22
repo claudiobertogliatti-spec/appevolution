@@ -68,6 +68,8 @@ class LeadCaptureRequest(BaseModel):
     utm_term: Optional[str] = Field(None, max_length=80)
     utm_content: Optional[str] = Field(None, max_length=80)
     referrer: Optional[str] = Field(None, max_length=500)
+    event_source_url: Optional[str] = Field(None, max_length=1000)
+    marketing_consent: bool = False
     # Deduplica CAPI (evento Lead): stesso event_id del pixel browser + cookie
     # Meta per il match. Tutti opzionali (assenti se manca il consenso marketing).
     event_id: Optional[str] = Field(None, max_length=100)
@@ -164,21 +166,24 @@ async def lead_capture(payload: LeadCaptureRequest, request: Request):
             metadata={"source": source, "utm": utm, "telefono": telefono},
         ))
 
-        # Evento Lead → Meta CAPI (server-side), solo al primo opt-in.
+        # Evento Lead → Meta CAPI (server-side), solo al primo opt-in e con
+        # consenso marketing esplicito. La CAPI migliora l'affidabilita' del
+        # segnale ma non deve aggirare la scelta espressa nel cookie banner.
         # Dedup con il pixel browser via event_id. IP/UA da header (Cloud Run
         # è dietro proxy → X-Forwarded-For). Fire-and-forget: non blocca l'opt-in.
-        xff = request.headers.get("x-forwarded-for", "")
-        client_ip = xff.split(",")[0].strip() if xff else (
-            request.client.host if request.client else None
-        )
-        asyncio.create_task(send_lead_event(
-            event_id=payload.event_id,
-            email=email,
-            event_source_url=payload.referrer,
-            client_ip=client_ip,
-            client_user_agent=request.headers.get("user-agent"),
-            fbp=payload.fbp,
-            fbc=payload.fbc,
-        ))
+        if payload.marketing_consent:
+            xff = request.headers.get("x-forwarded-for", "")
+            client_ip = xff.split(",")[0].strip() if xff else (
+                request.client.host if request.client else None
+            )
+            asyncio.create_task(send_lead_event(
+                event_id=payload.event_id,
+                email=email,
+                event_source_url=payload.event_source_url,
+                client_ip=client_ip,
+                client_user_agent=request.headers.get("user-agent"),
+                fbp=payload.fbp,
+                fbc=payload.fbc,
+            ))
 
     return LeadCaptureResponse(ok=True, is_new=is_new)
