@@ -6,18 +6,28 @@
   "installCommand": "npm install --legacy-peer-deps",
   "redirects": [
     {
+      "source": "/ciak-blueprint",
+      "destination": "/blueprint",
+      "permanent": true
+    },
+    {
+      "source": "/ciak-blueprint/grazie",
+      "destination": "/blueprint/grazie",
+      "permanent": true
+    },
+    {
       "source": "/analisi",
-      "destination": "/ciak-blueprint",
+      "destination": "/blueprint",
       "permanent": true
     },
     {
       "source": "/analisi/grazie",
-      "destination": "/ciak-blueprint/grazie",
+      "destination": "/blueprint/grazie",
       "permanent": true
     },
     {
       "source": "/analisi-strategica",
-      "destination": "/ciak-blueprint",
+      "destination": "/blueprint",
       "permanent": true
     }
   ],

@@ -67,19 +67,29 @@ export default function CiakApp() {
         <Routes>
           <Route path="/" element={<CiakLanding />} />
           <Route path="/masterclass" element={<CiakMasterclass />} />
+          {/* Contenuto video masterclass dopo l'opt-in. FASE 1 (contratto route,
+              2026-07-22): serve temporaneamente lo STESSO componente di /masterclass
+              così l'URL è valido da subito. Codex splitta landing/opt-in vs video
+              in FASE 2 (docs/superpowers/specs/2026-07-22-masterclass-blueprint-*). */}
+          <Route path="/masterclass/guarda" element={<CiakMasterclass />} />
 
           {/* Checkpoint Strategico standalone — deep-link da email Systeme */}
           <Route path="/checkpoint" element={<CiakCheckpoint />} />
 
-          {/* LIV 3 — Ciak Blueprint (rename da /analisi 2026-05-12) */}
-          <Route path="/ciak-blueprint" element={<CiakBlueprint />} />
-          <Route path="/ciak-blueprint/grazie" element={<CiakGrazie />} />
+          {/* LIV 3 — Ciak Blueprint. Canonical /blueprint dal 2026-07-22 (rename da
+              /ciak-blueprint, a sua volta rename da /analisi 2026-05-12). */}
+          <Route path="/blueprint" element={<CiakBlueprint />} />
+          <Route path="/blueprint/grazie" element={<CiakGrazie />} />
 
-          {/* Legacy redirect /analisi → /ciak-blueprint
-              (preserva query string per success/cancel/from parameter Stripe) */}
-          <Route path="/analisi" element={<Navigate to="/ciak-blueprint" replace />} />
-          <Route path="/analisi/grazie" element={<Navigate to={`/ciak-blueprint/grazie${window.location.search}`} replace />} />
-          <Route path="/analisi-strategica" element={<Navigate to="/ciak-blueprint" replace />} />
+          {/* Redirect legacy → /blueprint. Preservano la query string per i parametri
+              Stripe (session_id success / from=cancel) finché il backend checkout non
+              emette gli URL canonici /blueprint (FASE 2 Codex). /ciak-blueprint resta
+              vivo perché il success_url/cancel_url attuali lo usano ancora. */}
+          <Route path="/ciak-blueprint" element={<Navigate to={`/blueprint${window.location.search}`} replace />} />
+          <Route path="/ciak-blueprint/grazie" element={<Navigate to={`/blueprint/grazie${window.location.search}`} replace />} />
+          <Route path="/analisi" element={<Navigate to="/blueprint" replace />} />
+          <Route path="/analisi/grazie" element={<Navigate to={`/blueprint/grazie${window.location.search}`} replace />} />
+          <Route path="/analisi-strategica" element={<Navigate to="/blueprint" replace />} />
 
           {/* 8 Domande Ciak — lead magnet PRE-pagamento (no token: la sessione
               la crea /api/diagnostic/start). Vecchia route con :token mantenuta
