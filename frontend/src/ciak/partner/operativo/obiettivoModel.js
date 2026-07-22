@@ -33,10 +33,11 @@ export function clampPrice(p) {
  * @returns {{ sales:number, attend:number, leads:number, perWeek:number }}
  */
 export function computeRitmo({ goal, price, conv, show }) {
+  const g = Math.max(0, Number(goal) || 0);
   const p = clampPrice(price);
   const c = Math.max(0, Number(conv) || 0) / 100;
   const s = Math.max(0, Number(show) || 0) / 100;
-  const sales = goal / p;
+  const sales = g / p;
   const attend = c > 0 ? sales / c : 0;
   const leads = s > 0 ? attend / s : 0;
   const perWeek = leads / WEEKS_PER_MONTH;

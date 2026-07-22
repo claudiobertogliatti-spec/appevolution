@@ -47,4 +47,10 @@ describe("obiettivoModel", () => {
     expect(etaMesi(104)).toBe(5);
     expect(etaMesi(300)).toBe(6);
   });
+
+  test("computeRitmo: goal negativo o non numerico non produce ritmo negativo/NaN", () => {
+    const p = { price: 297, conv: 15, show: 50 };
+    expect(computeRitmo({ ...p, goal: -5000 }).perWeek).toBe(0);
+    expect(computeRitmo({ ...p, goal: undefined }).perWeek).toBe(0);
+  });
 });
