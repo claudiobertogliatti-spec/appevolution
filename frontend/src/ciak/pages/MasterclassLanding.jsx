@@ -1,16 +1,40 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
+import { blueprintBridgeUrl } from "../lib/funnelRouting";
 
 const INITIAL_FORM = { nome: "", email: "" };
+const NON_DELIVERABLE_DOMAINS = new Set([
+  "example.com", "example.it", "example.org",
+  "test.com", "test.it",
+  "mailinator.com", "yopmail.com", "guerrillamail.com",
+  "trashmail.com", "10minutemail.com", "tempmail.com",
+  "fake.com", "fakeinbox.com", "asdf.com",
+]);
 
-function MasterclassForm({ form, onChange, onSubmit, submitted }) {
+function readCookie(name) {
+  const match = document.cookie.match(`(^|;)\\s*${name}\\s*=\\s*([^;]+)`);
+  return match ? match.pop() : null;
+}
+
+function newLeadEventId() {
+  try {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  } catch {
+    /* fallback sotto */
+  }
+  return `lead_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function MasterclassForm({ form, onChange, onSubmit, submitting, error }) {
   const formId = useId();
   const nomeId = `masterclass-nome-${formId}`;
   const emailId = `masterclass-email-${formId}`;
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl bg-white p-6 text-slate-900 shadow-xl md:p-8">
+    <form noValidate onSubmit={onSubmit} className="rounded-2xl bg-white p-6 text-slate-900 shadow-xl md:p-8">
       <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-500">
         Accesso immediato
       </p>
@@ -41,14 +65,15 @@ function MasterclassForm({ form, onChange, onSubmit, submitted }) {
         />
         <button
           type="submit"
+          disabled={submitting}
           className="mt-1 rounded-lg bg-slate-900 px-6 py-3 font-semibold text-yellow-400 transition hover:bg-slate-800"
         >
-          Guarda la masterclass gratuita
+          {submitting ? "Invio in corso..." : "Guarda la masterclass gratuita"}
         </button>
       </div>
-      {submitted && (
-        <p role="status" className="mt-4 text-sm text-slate-700">
-          Ricevuto. Nel prossimo passaggio ti daremo accesso alla masterclass.
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-red-700">
+          {error}
         </p>
       )}
       <p className="mt-4 text-xs leading-relaxed text-slate-500">
@@ -59,19 +84,88 @@ function MasterclassForm({ form, onChange, onSubmit, submitted }) {
 }
 
 export function MasterclassLanding() {
+  const navigate = useNavigate();
   const [form, setForm] = useState(INITIAL_FORM);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const submissionInFlight = useRef(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   };
 
-  // La cattura reale, il consenso e il redirect al bridge arrivano nel Task 3.
-  // Qui il submit resta intenzionalmente locale per separare il nuovo layout dal tracking.
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setSubmitted(true);
+    if (submitting || submissionInFlight.current) return;
+
+    const nome = form.nome.trim();
+    const email = form.email.trim().toLowerCase();
+    if (nome.length < 2) {
+      setError("Inserisci il tuo nome");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Inserisci un'email valida");
+      return;
+    }
+    if (NON_DELIVERABLE_DOMAINS.has(email.split("@")[1])) {
+      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero.");
+      return;
+    }
+
+    submissionInFlight.current = true;
+    setSubmitting(true);
+    setError(null);
+    const eventId = newLeadEventId();
+    const query = new URLSearchParams(window.location.search);
+    const marketingConsent = hasMarketingConsent();
+
+    try {
+      const response = await fetch("/api/ciak/lead-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          nome,
+          telefono: "",
+          source: "masterclass_landing",
+          utm_source: query.get("utm_source"),
+          utm_medium: query.get("utm_medium"),
+          utm_campaign: query.get("utm_campaign"),
+          utm_term: query.get("utm_term"),
+          utm_content: query.get("utm_content"),
+          referrer: document.referrer || null,
+          event_source_url: window.location.href,
+          marketing_consent: marketingConsent,
+          event_id: eventId,
+          fbp: marketingConsent ? readCookie("_fbp") : null,
+          fbc: marketingConsent ? readCookie("_fbc") : null,
+        }),
+      });
+
+      if (!response.ok) {
+        setError("Non siamo riusciti a registrare l'accesso. Riprova.");
+        return;
+      }
+
+      if (marketingConsent) {
+        try {
+          trackLead(eventId);
+        } catch {
+          /* Il redirect resta disponibile anche se il tracking browser non risponde. */
+        }
+      }
+      localStorage.setItem("ciak_lead_email", email);
+      localStorage.setItem("ciak_lead_name", nome);
+      localStorage.setItem("ciak_lead_nome", nome);
+      navigate(blueprintBridgeUrl());
+    } catch {
+      setError("Errore di rete. Riprova.");
+    } finally {
+      submissionInFlight.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -92,7 +186,7 @@ export function MasterclassLanding() {
                 prima ancora della vendita — e quali decisioni chiarire prima di investire altro tempo.
               </p>
             </div>
-            <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitted={submitted} />
+            <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitting={submitting} error={error} />
           </div>
         </section>
 
@@ -184,7 +278,7 @@ export function MasterclassLanding() {
               Inserisci nome ed email. Ti accompagneremo al contenuto nel prossimo passaggio.
             </p>
             <div className="mt-8">
-              <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitted={submitted} />
+              <MasterclassForm form={form} onChange={handleChange} onSubmit={handleSubmit} submitting={submitting} error={error} />
             </div>
           </div>
         </section>
