@@ -130,12 +130,15 @@ export default function StepObiettivo({ step, partnerName, onComplete, onSaveDra
         </div>
         {custom && (
           <div className="mt-4">
-            <label className="text-[13px] text-slate-500 font-semibold flex justify-between">
+            <label className="text-[13px] text-slate-500 font-semibold flex justify-between mb-1">
               Il tuo obiettivo <span className="text-slate-900 tabular-nums">{fmt(goal)}€ / mese</span>
             </label>
             <input
               type="range" min="1000" max="50000" step="500" value={goal}
-              onChange={(e) => setGoal(parseInt(e.target.value, 10))}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                setGoal(Number.isFinite(val) ? val : 5000);
+              }}
               className="w-full mt-2 accent-indigo-500"
             />
           </div>
@@ -224,7 +227,10 @@ function Assump({ label, value, onChange, min, max }) {
       <span className="text-slate-500">{label}</span>
       <input
         type="number" value={value} min={min} max={max}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
+        onChange={(e) => {
+          const parsed = parseFloat(e.target.value);
+          onChange(Number.isFinite(parsed) ? parsed : (min ?? 0));
+        }}
         className="w-24 px-2.5 py-1.5 border border-gray-200 rounded-lg text-right tabular-nums focus:outline-none focus:border-yellow-400"
       />
     </div>

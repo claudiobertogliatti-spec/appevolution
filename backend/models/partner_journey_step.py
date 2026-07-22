@@ -19,7 +19,7 @@ class JourneyStepStatus(str, Enum):
 class PartnerJourneyStep(BaseModel):
     partner_id: str
     step_id: str  # slug stabile: "01-contratto", "02-discovery-video", ...
-    step_number: int  # 1..13
+    step_number: float  # 1..15
     fase_legacy: str  # "F1".."F7"
     status: JourneyStepStatus = JourneyStepStatus.PENDING
     started_at: Optional[datetime] = None

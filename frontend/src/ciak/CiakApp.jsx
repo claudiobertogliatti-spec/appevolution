@@ -20,7 +20,12 @@
  *  slate-900 #0F172A | slate-500 #64748B | gray-200 #E5E7EB | yellow-400 #FACC15
  *  Poppins SemiBold (600) + Medium (500)
  */
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+
+function RedirectWithSearch({ to }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
 import { Toaster } from "sonner";
 import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
@@ -83,11 +88,11 @@ export default function CiakApp() {
               Stripe (session_id success / from=cancel) finché il backend checkout non
               emette gli URL canonici /blueprint (FASE 2 Codex). /ciak-blueprint resta
               vivo perché il success_url/cancel_url attuali lo usano ancora. */}
-          <Route path="/ciak-blueprint" element={<Navigate to={`/blueprint${window.location.search}`} replace />} />
-          <Route path="/ciak-blueprint/grazie" element={<Navigate to={`/blueprint/grazie${window.location.search}`} replace />} />
-          <Route path="/analisi" element={<Navigate to="/blueprint" replace />} />
-          <Route path="/analisi/grazie" element={<Navigate to={`/blueprint/grazie${window.location.search}`} replace />} />
-          <Route path="/analisi-strategica" element={<Navigate to="/blueprint" replace />} />
+          <Route path="/ciak-blueprint" element={<RedirectWithSearch to="/blueprint" />} />
+          <Route path="/ciak-blueprint/grazie" element={<RedirectWithSearch to="/blueprint/grazie" />} />
+          <Route path="/analisi" element={<RedirectWithSearch to="/blueprint" />} />
+          <Route path="/analisi/grazie" element={<RedirectWithSearch to="/blueprint/grazie" />} />
+          <Route path="/analisi-strategica" element={<RedirectWithSearch to="/blueprint" />} />
 
           {/* 8 Domande Ciak — lead magnet PRE-pagamento (no token: la sessione
               la crea /api/diagnostic/start). Vecchia route con :token mantenuta
