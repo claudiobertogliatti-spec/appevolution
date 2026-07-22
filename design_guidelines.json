@@ -1,21 +1,50 @@
 {
   "design_system": {
     "identity": {
-      "name": "Evolution PRO",
-      "archetype": "The Performance Pro (Customized)",
-      "vibe": "Elite, Tech-Forward, Exclusive, High-Contrast",
-      "emotional_tone": "Command Center, Professional Growth, AI-Powered Efficiency"
+      "name": "Evolution PRO & CIAK.io",
+      "archetype": "The Performance Pro & Human+AI Academy Builder",
+      "vibe": "Light & Human-Centered, High-Trust, Elegant, Accessible",
+      "emotional_tone": "Rassicurante, Guidato, Team Umano Dedicato, AI Assistita"
+    },
+    "ciak_funnel_template": {
+      "vibe": "Light & Human-Centered",
+      "target": "Liberi professionisti, consulenti e formatori con scarse competenze digitali",
+      "colors": {
+        "background": "#FFFFFF",
+        "surface": "#F8FAFC",
+        "primary_cta": "#FACC15",
+        "primary_cta_hover": "#FDE047",
+        "text_dark": "#0F172A",
+        "text_muted": "#64748B",
+        "border": "#E2E8F0",
+        "success": "#10B981",
+        "accent": "#F59E0B"
+      },
+      "typography": {
+        "headings": "Poppins, sans-serif",
+        "body": "Poppins, sans-serif",
+        "data": "Space Mono, monospace"
+      },
+      "standard_sections": [
+        "Hero Section con badge 'Il Sistema per creare Accademie Digitali'",
+        "Simulatore Interattivo Onboarding 'Mario Rossi' (Input -> AI+Team -> Accademia Pronta)",
+        "Griglia 3 Card (Sistema Pronto personalizzato, Team Umano Dedicato, Motore AI Integrato)",
+        "Metodo EVO Protocollo 7 Anni (Esamina, Valida, Ottimizza)",
+        "Sezione Fondatore Claudio Bertogliatti (Foto + Bio + 25.000 trattative)",
+        "FAQ Rassicuranti per non-tecnici",
+        "Banner CTA finale in Giallo CIAK #FACC15"
+      ]
     },
     "typography": {
       "font_family": {
-        "headings": "Nunito, sans-serif",
-        "body": "Nunito, sans-serif",
+        "headings": "Poppins, sans-serif",
+        "body": "Poppins, sans-serif",
         "data": "Space Mono, monospace"
       },
       "scale": {
-        "h1": "text-4xl font-bold tracking-tight",
-        "h2": "text-3xl font-semibold tracking-tight",
-        "h3": "text-2xl font-semibold",
+        "h1": "text-4xl font-extrabold tracking-tight",
+        "h2": "text-3xl font-bold tracking-tight",
+        "h3": "text-2xl font-bold",
         "body": "text-base leading-relaxed",
         "small": "text-sm text-muted-foreground",
         "mono": "font-mono text-sm tracking-wide"
@@ -23,25 +52,25 @@
     },
     "colors": {
       "palette": {
-        "background": "#0B0E14",
-        "surface": "#1a2332",
-        "primary": "#F5C518",
-        "primary_foreground": "#000000",
+        "background": "#FFFFFF",
+        "surface": "#F8FAFC",
+        "primary": "#FACC15",
+        "primary_foreground": "#0F172A",
         "secondary": "#3B82F6",
-        "accent": "#F5C518",
-        "text_primary": "#F8FAFC",
-        "text_secondary": "#94A3B8",
-        "border": "rgba(255, 255, 255, 0.1)",
+        "accent": "#F59E0B",
+        "text_primary": "#0F172A",
+        "text_secondary": "#64748B",
+        "border": "#E2E8F0",
         "success": "#10B981",
         "warning": "#F59E0B",
         "error": "#EF4444"
       },
       "usage": {
-        "body_bg": "bg-[#0B0E14]",
-        "card_bg": "bg-[#1a2332]",
-        "sidebar_bg": "bg-[#1a2332]",
-        "primary_btn": "bg-[#F5C518] text-black hover:bg-[#F5C518]/90",
-        "border_color": "border-white/10"
+        "body_bg": "bg-white",
+        "card_bg": "bg-[#FAFAFA]",
+        "sidebar_bg": "bg-[#F8FAFC]",
+        "primary_btn": "bg-[#FACC15] text-[#0F172A] hover:bg-[#FDE047]",
+        "border_color": "border-slate-200"
       }
     },
     "layout": {
@@ -62,73 +91,37 @@
     },
     "components": {
       "buttons": {
-        "primary": "rounded-md font-bold uppercase tracking-wide shadow-lg hover:shadow-[#F5C518]/20 transition-all",
-        "secondary": "rounded-md border border-white/10 hover:bg-white/5 text-white"
+        "primary": "rounded-xl font-bold tracking-wide shadow-lg bg-[#FACC15] text-[#0F172A] hover:bg-[#FDE047] transition-all",
+        "secondary": "rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
       },
       "cards": {
-        "style": "bg-[#1a2332] border border-white/10 rounded-lg shadow-xl",
-        "hover": "hover:border-[#F5C518]/50 transition-colors duration-300"
+        "style": "bg-white border border-slate-200 rounded-2xl shadow-sm",
+        "hover": "hover:shadow-md transition-all duration-300"
       },
       "inputs": {
-        "style": "bg-[#0B0E14] border-white/10 focus:border-[#F5C518] text-white rounded-md"
+        "style": "bg-slate-50 border-slate-300 focus:border-amber-400 text-slate-900 rounded-xl"
       },
       "status_indicators": {
-        "active": "bg-green-500/20 text-green-400 border-green-500/50",
-        "pending": "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-        "error": "bg-red-500/20 text-red-400 border-red-500/50"
+        "active": "bg-emerald-100 text-emerald-800 border-emerald-300",
+        "pending": "bg-amber-100 text-amber-800 border-amber-300",
+        "error": "bg-red-100 text-red-800 border-red-300"
       }
     },
-    "visual_enhancers": {
-      "glassmorphism": "backdrop-blur-xl bg-[#1a2332]/80 border-white/10",
-      "gradients": "bg-gradient-to-br from-[#1a2332] to-[#0B0E14]",
-      "shadows": "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
-      "borders": "border border-white/5"
-    },
-    "assets": {
-      "icons": "lucide-react",
-      "charts": "recharts (via shadcn/ui)",
-      "images": {
-        "user_avatars": [
-          "https://images.unsplash.com/photo-1581065178047-8ee15951ede6?crop=entropy&cs=srgb&fm=jpg&q=85",
-          "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=srgb&fm=jpg&q=85",
-          "https://images.unsplash.com/photo-1758518727888-ffa196002e59?crop=entropy&cs=srgb&fm=jpg&q=85"
-        ],
-        "ai_agents": [
-          "https://images.unsplash.com/photo-1677442135132-141348e809d9?crop=entropy&cs=srgb&fm=jpg&q=85",
-          "https://images.unsplash.com/photo-1756741881363-369b37b28d7c?crop=entropy&cs=srgb&fm=jpg&q=85"
-        ],
-        "course_thumbnails": [
-          "https://images.unsplash.com/photo-1761446812455-300d231f2df6?crop=entropy&cs=srgb&fm=jpg&q=85",
-          "https://images.unsplash.com/photo-1666858443985-fead1d59b4f7?crop=entropy&cs=srgb&fm=jpg&q=85",
-          "https://images.unsplash.com/photo-1733681198831-eb4b838c6f77?crop=entropy&cs=srgb&fm=jpg&q=85"
-        ]
-      }
+    "instructions_to_main_agent": {
+      "setup": [
+        "Install 'lucide-react' for icons.",
+        "Install 'recharts' for data visualization.",
+        "Configure 'tailwind.config.js' to use the CIAK color palette (Slate #0F172A, Yellow #FACC15).",
+        "Ensure 'Poppins' and 'Space Mono' fonts are imported in index.css."
+      ],
+      "implementation_rules": [
+        "Use the 'Light & Human-Centered' template for all CIAK partner funnels.",
+        "Include the 'Mario Rossi' interactive onboarding simulation component on lead generation pages.",
+        "Ensure all data/numbers use 'font-mono' (Space Mono).",
+        "Use 'sonner' for toast notifications.",
+        "Maintain clean white background (#FFFFFF) and light surface (#F8FAFC).",
+        "For AI agents (Valentina/Stefania), emphasize human team support alongside AI capabilities."
+      ]
     }
-  },
-  "instructions_to_main_agent": {
-    "setup": [
-      "Install 'lucide-react' for icons.",
-      "Install 'recharts' for data visualization.",
-      "Configure 'tailwind.config.js' to use the custom color palette (Navy #1a2332, Yellow #F5C518).",
-      "Ensure 'Nunito' and 'Space Mono' fonts are imported in index.css."
-    ],
-    "implementation_rules": [
-      "Use the 'High Density Grid' (Mode B) for the Admin Dashboard.",
-      "Use the 'Tetris Grid' (Mode A) for the Partner Course Area.",
-      "Implement the 'Phase Stepper' (F0-F10) using a horizontal scrollable list or a progress bar component.",
-      "Ensure all data/numbers use 'font-mono' (Space Mono).",
-      "Use 'sonner' for toast notifications.",
-      "Do NOT use gradients for the main background; stick to solid #0B0E14 or #1a2332 to maintain the 'Professional' look.",
-      "For the 'Valentina' chatbot, use a distinct floating panel or a dedicated sidebar with a glassmorphism effect."
-    ],
-    "universal_guidelines": [
-      "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
-      "Don't make generic centered layouts.",
-      "Create depth through layered design elements with z-index hierarchy.",
-      "Use glass-morphism effects with backdrop filters (12-24px blur) for overlays.",
-      "Every interaction needs micro-animations - hover states, transitions.",
-      "Use 2-3x more spacing than feels comfortable.",
-      "All interactive elements MUST include 'data-testid'."
-    ]
   }
 }
