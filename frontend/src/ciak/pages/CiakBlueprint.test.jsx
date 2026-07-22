@@ -49,4 +49,14 @@ describe("CiakBlueprint bridge", () => {
     expect(body.attribution_source).toBe("masterclass_optin");
     expect(trackInitiateCheckout).toHaveBeenCalledWith(27, "EUR");
   });
+
+  test("impedisce sessioni Stripe duplicate tra CTA diverse", () => {
+    global.fetch = jest.fn(() => new Promise(() => {}));
+    render(<CiakBlueprint />);
+    const checkoutButtons = screen.getAllByRole("button", { name: /27|blueprint|pagamento/i });
+    fireEvent.click(checkoutButtons[0]);
+    fireEvent.click(checkoutButtons[1]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(trackInitiateCheckout).toHaveBeenCalledTimes(1);
+  });
 });

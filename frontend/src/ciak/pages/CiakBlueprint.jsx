@@ -10,7 +10,7 @@
  *  - Naming prodotto unificato "Ciak Blueprint" (Stato 4 non piu' variante separata)
  *  - Backend checkout.py invia metadata.tipo="ciak_blueprint"
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { trackBlueprintBridgeView, trackInitiateCheckout } from "../lib/metaPixel";
@@ -19,6 +19,7 @@ import { isMasterclassOptinBridge, masterclassSkipUrl, normalizeAttributionSourc
 export function CiakBlueprint() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const checkoutInFlight = useRef(false);
   const source = useMemo(() => new URLSearchParams(window.location.search).get("source"), []);
   const showBridge = isMasterclassOptinBridge(source);
 
@@ -27,6 +28,8 @@ export function CiakBlueprint() {
   }, [showBridge]);
 
   const startCheckout = async () => {
+    if (checkoutInFlight.current) return;
+    checkoutInFlight.current = true;
     setSubmitting(true);
     setError(null);
     // Meta Pixel - InitiateCheckout (no-op se manca il consenso marketing).
@@ -60,6 +63,7 @@ export function CiakBlueprint() {
         throw new Error(data.detail || "Errore checkout");
       }
     } catch (e) {
+      checkoutInFlight.current = false;
       setError(e.message);
       setSubmitting(false);
     }
