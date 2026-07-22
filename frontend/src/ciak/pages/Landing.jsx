@@ -18,6 +18,23 @@ import { useNavigate } from "react-router-dom";
 import { Volume2, VolumeX } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { trackLead } from "../lib/metaPixel";
+
+/** Legge un cookie by name (per _fbp / _fbc → deduplica CAPI). */
+function readCookie(name) {
+  const m = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+  return m ? m.pop() : null;
+}
+
+/** event_id condiviso browser↔server per deduplicare l'evento Lead. */
+function newLeadEventId() {
+  try {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  } catch {
+    /* no-op */
+  }
+  return "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+}
 
 export function CiakLanding() {
   const navigate = useNavigate();
@@ -59,6 +76,7 @@ export function CiakLanding() {
     setError(null);
     try {
       const qs = new URLSearchParams(window.location.search);
+      const leadEventId = newLeadEventId();
       await fetch("/api/ciak/lead-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,8 +91,18 @@ export function CiakLanding() {
           utm_term: qs.get("utm_term"),
           utm_content: qs.get("utm_content"),
           referrer: document.referrer || null,
+          event_id: leadEventId,
+          fbp: readCookie("_fbp"),
+          fbc: readCookie("_fbc"),
         }),
       }).catch(() => null);
+      // Evento Lead lato browser (no-op se manca il consenso marketing).
+      // Stesso event_id passato alla CAPI → Meta deduplica.
+      try {
+        trackLead(leadEventId);
+      } catch {
+        /* no-op */
+      }
       localStorage.setItem("ciak_lead_email", e);
       localStorage.setItem("ciak_lead_name", n);
       // Mantengo "ciak_lead_nome" per retrocompatibilità con eventuali letture

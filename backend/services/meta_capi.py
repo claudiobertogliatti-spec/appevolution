@@ -121,3 +121,78 @@ async def send_purchase_event(
     except Exception as exc:  # noqa: BLE001 — non deve mai bloccare il webhook
         logger.error("[META_CAPI] Errore invio Purchase: %s", exc)
         return {"success": False, "error": str(exc)}
+
+
+async def send_lead_event(
+    *,
+    event_id,
+    email=None,
+    event_source_url=None,
+    client_ip=None,
+    client_user_agent=None,
+    fbp=None,
+    fbc=None,
+):
+    """
+    Invia un evento Lead alla Conversions API di Meta (opt-in masterclass).
+
+    Affianca il Pixel browser (frontend: metaPixel.trackLead): passare lo stesso
+    `event_id` in entrambi → Meta deduplica per (event_name + event_id).
+
+    Perché server-side: il Lead arriva a Meta anche se l'utente ha adblocker o se
+    il consenso marketing blocca il Pixel browser — a patto che sia presente una
+    base giuridica valida. Ritorna un dict con esito; non solleva eccezioni.
+    """
+    token = os.environ.get("META_CAPI_ACCESS_TOKEN")
+    if not token:
+        logger.info("[META_CAPI] META_CAPI_ACCESS_TOKEN non configurato — skip Lead")
+        return {"skipped": True, "reason": "token_missing"}
+
+    pixel_id = os.environ.get("META_PIXEL_ID", DEFAULT_PIXEL_ID)
+    graph_version = os.environ.get("META_GRAPH_VERSION", DEFAULT_GRAPH_VERSION)
+
+    user_data = {}
+    hashed_email = _hash(email)
+    if hashed_email:
+        user_data["em"] = [hashed_email]
+    if fbp:
+        user_data["fbp"] = fbp
+    if fbc:
+        user_data["fbc"] = fbc
+    if client_ip:
+        user_data["client_ip_address"] = client_ip
+    if client_user_agent:
+        user_data["client_user_agent"] = client_user_agent
+
+    event = {
+        "event_name": "Lead",
+        "event_time": int(time.time()),
+        "action_source": "website",
+        "event_id": str(event_id) if event_id is not None else None,
+        "user_data": user_data,
+    }
+    if event_source_url:
+        event["event_source_url"] = event_source_url
+
+    payload = {"data": [event]}
+    test_code = os.environ.get("META_CAPI_TEST_EVENT_CODE")
+    if test_code:
+        payload["test_event_code"] = test_code
+
+    url = f"https://graph.facebook.com/{graph_version}/{pixel_id}/events"
+
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, params={"access_token": token}, json=payload)
+            if resp.is_success:
+                logger.info("[META_CAPI] Lead inviato (event_id=%s)", event_id)
+                return {"success": True, "response": resp.json()}
+            logger.error(
+                "[META_CAPI] Lead fallito (%s): %s", resp.status_code, resp.text
+            )
+            return {"success": False, "status": resp.status_code, "body": resp.text}
+    except Exception as exc:  # noqa: BLE001 — non deve mai bloccare l'opt-in
+        logger.error("[META_CAPI] Errore invio Lead: %s", exc)
+        return {"success": False, "error": str(exc)}

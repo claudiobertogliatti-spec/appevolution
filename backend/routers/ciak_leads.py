@@ -19,10 +19,11 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from services.ciak_systeme import ciak_emit_event
+from services.meta_capi import send_lead_event
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,11 @@ class LeadCaptureRequest(BaseModel):
     utm_term: Optional[str] = Field(None, max_length=80)
     utm_content: Optional[str] = Field(None, max_length=80)
     referrer: Optional[str] = Field(None, max_length=500)
+    # Deduplica CAPI (evento Lead): stesso event_id del pixel browser + cookie
+    # Meta per il match. Tutti opzionali (assenti se manca il consenso marketing).
+    event_id: Optional[str] = Field(None, max_length=100)
+    fbp: Optional[str] = Field(None, max_length=200)
+    fbc: Optional[str] = Field(None, max_length=400)
 
 
 class LeadCaptureResponse(BaseModel):
@@ -77,7 +83,7 @@ class LeadCaptureResponse(BaseModel):
 # ─── Endpoint ──────────────────────────────────────────────────────────
 
 @router.post("/lead-capture", response_model=LeadCaptureResponse)
-async def lead_capture(payload: LeadCaptureRequest):
+async def lead_capture(payload: LeadCaptureRequest, request: Request):
     """
     Cattura email opt-in. Idempotente su `email`:
       - Primo opt-in: insert + emit tag `ciak_optin_masterclass` (+ UTM tags).
@@ -156,6 +162,23 @@ async def lead_capture(payload: LeadCaptureRequest):
             first_name=nome,
             extra_tags=extra_tags,
             metadata={"source": source, "utm": utm, "telefono": telefono},
+        ))
+
+        # Evento Lead → Meta CAPI (server-side), solo al primo opt-in.
+        # Dedup con il pixel browser via event_id. IP/UA da header (Cloud Run
+        # è dietro proxy → X-Forwarded-For). Fire-and-forget: non blocca l'opt-in.
+        xff = request.headers.get("x-forwarded-for", "")
+        client_ip = xff.split(",")[0].strip() if xff else (
+            request.client.host if request.client else None
+        )
+        asyncio.create_task(send_lead_event(
+            event_id=payload.event_id,
+            email=email,
+            event_source_url=payload.referrer,
+            client_ip=client_ip,
+            client_user_agent=request.headers.get("user-agent"),
+            fbp=payload.fbp,
+            fbc=payload.fbc,
         ))
 
     return LeadCaptureResponse(ok=True, is_new=is_new)

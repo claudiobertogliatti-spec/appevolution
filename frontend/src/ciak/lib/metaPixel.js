@@ -115,6 +115,17 @@ export function trackPurchase(value = 27, currency = "EUR", eventId) {
 }
 
 /**
+ * Evento Lead: iscrizione alla masterclass gratuita (opt-in Nome+Email).
+ * Passare `eventId` per deduplicare con l'evento Lead inviato server-side dalla
+ * CAPI (stesso valore in /api/ciak/lead-capture → send_lead_event).
+ */
+export function trackLead(eventId) {
+  if (!isReady()) return;
+  const opts = eventId ? { eventID: eventId } : undefined;
+  window.fbq("track", "Lead", {}, opts);
+}
+
+/**
  * Chiamato dal CookieBanner quando l'utente concede il consenso marketing.
  * Esposto come globale perché il banner gira in scope globale (script statico
  * iniettato via new Function).
