@@ -24,7 +24,7 @@ il cockpit di direzione (coorti, provvigioni, EVO-S). Quello non si tocca.
 ## 2. Cosa fa (obiettivo-first)
 
 1. Il partner dichiara **quanto vuole fatturare al mese** con la sua academy
-   (scelta rapida 3k / 10k / 20k + slider personalizzato).
+   (scelta rapida 2k / 5k / 10k + slider personalizzato).
 2. Il simulatore lavora **a ritroso** e restituisce **un solo numero-chiave**:
    *quante persone nuove deve portare ogni settimana*.
 3. Mostra la **curva della costanza**: ritmo costante → raggiunge l'obiettivo
@@ -52,27 +52,37 @@ Il modello è aritmetica banale; il valore sta tutto nei **default**. Se sbaglia
 il numero-chiave esce assurdo e **demotiva** (es. "245 persone a settimana"
 spaventa un partner all'esordio).
 
-Dato accertato nel codice: il prezzo del corso **non è fisso** — lo genera Andrea
-per partner dal Posizionamento (`Step12PrezzoWebinar.jsx`), con esempi
-**listino ~297€ / promo ~197€**. Quindi il default €990 del mockup è sbagliato.
+**Regola prezzo (Claudio, LOCK):** i corsi/offerte dei partner venduti ai loro
+clienti stanno **tra 97€ e 297€** (min 97, tetto 297). Nel simulatore il prezzo
+offerta è vincolato a questo range; default 297€ (tetto). Il €990 del mockup è
+quindi sbagliato. La regola vale anche per il prezzo generato da Andrea in
+`Step12PrezzoWebinar.jsx`.
 
-**Vincolo di design:** i default vanno scelti in modo che, per l'obiettivo
-"sano" (10k), il ritmo risultante cada in un range **credibile e incoraggiante**
-(indicativamente 30–60 persone/settimana). Si lavora a ritroso da lì per fissare
-prezzo/conversione/presenza realistici. **Questi tre numeri li conferma Claudio
-in review** — la spec non li congela.
+**Conseguenza da sciogliere:** con il tetto a 297€, obiettivi alti richiedono
+molti clienti → ritmo settimanale alto. Esempi (conv 8% / presenza 40%):
 
-Valori di partenza proposti (da validare):
-
-| Parametro | Default proposto | Fonte / nota |
+| Obiettivo/mese | a 297€ | iscritti nuovi/sett |
 |---|---|---|
-| Prezzo offerta | 297 € | listino tipico `Step12PrezzoWebinar` |
-| Conversione partecipante → vendita | 8 % | benchmark webinar, da confermare |
-| Tasso di presenza iscritto → webinar | 40 % | benchmark, da confermare |
+| 3.000 € | 10 vendite | ~73 |
+| 5.000 € | 17 vendite | ~121 |
+| 10.000 € | 34 vendite | ~243 |
 
-Se con questi il ritmo esce troppo alto, le leve sono: prezzo più alto (upsell),
-conversione più alta (pubblico caldo/piccolo), o cadenza webinar (mensile con
-accumulo, non settimanale). Decisione di Claudio.
+243/sett a 10k **spaventa** un esordiente. Leve per riportarlo in range
+motivante: obiettivi di default più bassi + conversioni da webinar caldo
+(conv 12–15%, presenza 50%). Scelta di Claudio (vedi §3 tabella).
+
+**Calibrazione confermata da Claudio (LOCK):**
+
+| Parametro | Default | Nota |
+|---|---|---|
+| Prezzo offerta | 297 € | vincolato al range 97–297 € |
+| Conversione partecipante → vendita | 15 % | webinar a pubblico caldo/piccolo |
+| Tasso di presenza iscritto → webinar | 50 % | con nurturing |
+| Obiettivi di default (pillole) | 2.000 / 5.000 / 10.000 € | 2k "per partire", 5k "sano", 10k "solida" |
+
+Ritmo risultante con questi default: **~21 / ~52 / ~104** iscritti nuovi a
+settimana. Fattibile e incoraggiante sugli obiettivi tipici; 10k resta
+l'ambizione. Il prezzo è editabile ma **clampato a [97, 297]**.
 
 ## 4. Dove si innesta (tecnico)
 
