@@ -7,14 +7,14 @@
  * Funnel 4 livelli (lockato 2026-05-12 — memory/ciak_brand_copy_framework.md):
  *  LIV 1  Cold/Social (esterno)
  *  LIV 2  Masterclass 30' gratis             → /masterclass (lead magnet + Checkpoint)
- *  LIV 3  Ciak Blueprint €27                 → /ciak-blueprint (checkout Stripe)
+ *  LIV 3  Ciak Blueprint €27                 → /blueprint (checkout Stripe)
  *  LIV 4  Partnership Evolution PRO €2.790   → www.evolution-pro.it (esterno)
  *
  * Post-acquisto Ciak Blueprint:
  *  8 Domande Ciak → /diagnostica → /report/[token] (output Matteo) → CTA €27
  *
- * Rename 2026-05-12: /analisi → /ciak-blueprint con redirect 301 lato Vercel
- * (vercel.json) + Navigate fallback per route legacy.
+ * Canonicalizzazione 2026-07-22: /blueprint e' la route pubblica; /ciak-blueprint
+ * e /analisi restano esclusivamente redirect legacy lato Vercel e React.
  *
  * Brand frozen (docs/brand/ciak-brand-kit.md v1.0):
  *  slate-900 #0F172A | slate-500 #64748B | gray-200 #E5E7EB | yellow-400 #FACC15

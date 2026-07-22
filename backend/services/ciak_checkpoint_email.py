@@ -22,7 +22,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-BLUEPRINT_URL_BASE = "https://www.ciak.io/ciak-blueprint"
+BLUEPRINT_URL_BASE = "https://www.ciak.io/blueprint"
 TRACKING_BASE_URL = os.environ.get("CIAK_PUBLIC_BASE_URL", "https://www.ciak.io")
 
 

@@ -4,7 +4,7 @@ Meta Conversions API (server-side) — invio evento Purchase per Ciak.
 Affianca il Meta Pixel browser (frontend: src/ciak/lib/metaPixel.js).
 La deduplica lato Meta avviene per (event_name + event_id): qui usiamo come
 event_id lo **Stripe checkout session id**, lo stesso valore che il pixel
-browser passa come `eventID` sulla pagina /ciak-blueprint/grazie
+browser passa come `eventID` sulla pagina /blueprint/grazie
 (success_url = .../grazie?session_id={CHECKOUT_SESSION_ID}). Così l'evento
 Purchase non viene contato due volte anche se arrivano sia dal browser sia dal
 server.

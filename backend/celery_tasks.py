@@ -1185,7 +1185,7 @@ def process_auto_approve_leads():
                     )
                     
                     # Get checkout URL
-                    checkout_url = os.environ.get('STRIPE_CHECKOUT_URL_ANALISI', 'https://www.ciak.io/ciak-blueprint')
+                    checkout_url = os.environ.get('STRIPE_CHECKOUT_URL_ANALISI', 'https://www.ciak.io/blueprint')
                     
                     # Schedule email sequence
                     from celery_app import celery_app

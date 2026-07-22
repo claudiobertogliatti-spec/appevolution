@@ -63,7 +63,7 @@ export function CiakReport() {
   }
 
   const stateCfg = STATE_CONFIG[report.stato] || STATE_CONFIG[2];
-  const blueprintUrl = `/ciak-blueprint?utm_source=report&utm_campaign=stato_${report.stato}&session_token=${encodeURIComponent(token)}`;
+  const blueprintUrl = `/blueprint?utm_source=report&utm_campaign=stato_${report.stato}&session_token=${encodeURIComponent(token)}`;
 
   return (
     <>

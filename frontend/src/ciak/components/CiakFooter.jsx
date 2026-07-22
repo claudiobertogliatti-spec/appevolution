@@ -41,7 +41,7 @@ export function CiakFooter({ dark = true }) {
               </Link>
             </li>
             <li>
-              <Link to="/ciak-blueprint" className="hover:text-yellow-400">
+              <Link to="/blueprint" className="hover:text-yellow-400">
                 Ciak Blueprint
               </Link>
             </li>

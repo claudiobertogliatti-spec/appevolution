@@ -445,7 +445,7 @@ export function CheckpointStrategico({ source = "masterclass", gateMode = false,
                 modello professionale attuale.
               </p>
               <Link
-                to={`/ciak-blueprint?utm_source=checkpoint&utm_campaign=stato_${stato}`}
+                to={`/blueprint?utm_source=checkpoint&utm_campaign=stato_${stato}`}
                 className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
               >
                 Scopri Ciak Blueprint

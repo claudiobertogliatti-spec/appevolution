@@ -165,6 +165,7 @@ async def test_create_checkout_session_links_latest_diagnostic_by_email(monkeypa
         CreateSessionRequest(
             product="ciak_blueprint",
             source="ciak",
+            attribution_source="masterclass_optin",
             email="lead@example.com",
             origin_url="https://ciak.io",
         ),
@@ -173,9 +174,37 @@ async def test_create_checkout_session_links_latest_diagnostic_by_email(monkeypa
 
     assert response.checkout_url == "https://checkout.example/email-link"
     assert captured["kwargs"]["metadata"]["diagnostic_session_token"] == "tok-email"
+    assert captured["kwargs"]["metadata"]["attribution_source"] == "masterclass_optin"
+    assert captured["kwargs"]["success_url"] == "https://ciak.io/blueprint/grazie?session_id={CHECKOUT_SESSION_ID}"
+    assert captured["kwargs"]["cancel_url"] == "https://ciak.io/blueprint?from=cancel"
     diagnostic = fake_db.diagnostic_sessions.docs[0]
     assert diagnostic["current_state"] == "clicked_67"
     assert any(event["event"] == "stripe_session_created" for event in diagnostic["events"])
+
+
+@pytest.mark.asyncio
+async def test_create_checkout_session_falls_back_to_direct_attribution(monkeypatch):
+    fake_db = FakeDB()
+    checkout.db = fake_db
+    captured = {}
+
+    class FakeStripeSession:
+        id = "cs_direct"
+        url = "https://checkout.example/direct"
+
+    def fake_create(**kwargs):
+        captured["kwargs"] = kwargs
+        return FakeStripeSession()
+
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setattr(checkout.stripe.checkout.Session, "create", fake_create)
+
+    await checkout.create_checkout_session(
+        CreateSessionRequest(attribution_source="<script>untrusted</script>"),
+        request=None,
+    )
+
+    assert captured["kwargs"]["metadata"]["attribution_source"] == "direct"
 
 
 @pytest.mark.asyncio

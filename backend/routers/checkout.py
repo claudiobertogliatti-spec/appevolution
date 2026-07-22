@@ -53,7 +53,7 @@ def set_db(database) -> None:
 
 class CreateSessionRequest(BaseModel):
     session_token: Optional[str] = None  # token diagnostic se da report
-    # email opzionale: se il visitatore arriva diretto su /ciak-blueprint senza
+    # email opzionale: se il visitatore arriva diretto su /blueprint senza
     # aver fatto opt-in (footer, CTA Checkpoint, link diretto) non ha email in
     # localStorage. In quel caso la raccoglie Stripe sulla sua pagina checkout.
     email: Optional[EmailStr] = None
@@ -64,6 +64,7 @@ class CreateSessionRequest(BaseModel):
     # esplicitati qui per chiarezza).
     product: Optional[str] = None
     source: Optional[str] = None
+    attribution_source: Optional[str] = None
     origin_url: Optional[str] = None
 
 
@@ -200,7 +201,7 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
     Se session_token fornito (utente arriva da report):
       - Linka acquisto al lead esistente
       - Trasferisce lo stato a clicked_67 (se non già)
-    Se session_token assente (cold direct dalla pagina /ciak-blueprint):
+    Se session_token assente (cold direct dalla pagina /blueprint):
       - Acquisto standalone, sarà associato post-pagamento via email
 
     NOTA naming: prodotto unico "Ciak Blueprint" (lockato 2026-05-12). Lo Stato 4
@@ -231,13 +232,17 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
     metadata: dict = {
         "tipo": "ciak_blueprint",
         "stato": str(payload.stato),
+        # Non propagare valori arbitrari dal browser nei metadata Stripe.
+        "attribution_source": payload.attribution_source
+        if payload.attribution_source in {"direct", "masterclass_optin", "retargeting"}
+        else "direct",
     }
     if linked_session_token:
         metadata["diagnostic_session_token"] = linked_session_token
 
     frontend = _frontend_url()
-    success_url = f"{frontend}/ciak-blueprint/grazie?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{frontend}/ciak-blueprint?from=cancel"
+    success_url = f"{frontend}/blueprint/grazie?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{frontend}/blueprint?from=cancel"
 
     session_kwargs: dict = {
         "payment_method_types": ["card"],
@@ -293,7 +298,7 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  SESSION STATUS (per pagina /ciak-blueprint/grazie)
+#  SESSION STATUS (per pagina /blueprint/grazie)
 # ═══════════════════════════════════════════════════════════════════
 
 @router.get("/session-status")
@@ -302,7 +307,7 @@ async def get_session_status(session_id: str):
     Restituisce lo stato della Stripe Checkout Session e il diagnostic_session_token
     associato (per redirigere l'utente alle 8 Domande Ciak post-acquisto).
 
-    Usato da `/ciak-blueprint/grazie` per attivare il bottone "Inizia con le 8 Domande Ciak"
+    Usato da `/blueprint/grazie` per attivare il bottone "Inizia con le 8 Domande Ciak"
     appena il webhook Stripe ha processato il pagamento.
     """
     if db is None:
@@ -429,7 +434,7 @@ async def _handle_checkout_completed(data: dict) -> None:
             email=customer_email,
             value=_purchase_value,
             currency=(data.get("currency") or "eur").upper(),
-            event_source_url=f"{_frontend_url()}/ciak-blueprint/grazie",
+            event_source_url=f"{_frontend_url()}/blueprint/grazie",
         ))
     except Exception as _capi_err:  # noqa: BLE001 — non bloccare il webhook
         logger.warning("[CIAK_WEBHOOK] Meta CAPI Purchase enqueue fallito: %s", _capi_err)

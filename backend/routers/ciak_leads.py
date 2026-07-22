@@ -45,6 +45,7 @@ ALLOWED_SOURCES = {
     "landing_hero",        # form email su / (hero)
     "landing_secondary",   # eventuale secondo form sulla / (sezione bassa)
     "masterclass_gate",    # gate fallback su /masterclass se utente arriva diretto
+    "masterclass_landing", # landing principale /masterclass
 }
 
 # Slug-safe UTM (Systeme tag names devono evitare caratteri strani).

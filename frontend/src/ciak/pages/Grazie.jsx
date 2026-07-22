@@ -1,5 +1,5 @@
 /**
- * Ciak.io /ciak-blueprint/grazie — post-Stripe checkout.
+ * Ciak.io /blueprint/grazie — post-Stripe checkout.
  *
  * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
  *
