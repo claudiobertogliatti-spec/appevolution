@@ -42,7 +42,7 @@ class PartnerJourneyStep(BaseModel):
 # Stefania resta voce narrante trasversale (non assegnata a una singola fase).
 # La fase "ottimizza" è post-lancio (subentra OperativoContinuo).
 MACRO_PHASES_DEFINITION: list[dict[str, Any]] = [
-    {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "burocrazia", "03-brand-kit", "la-tua-storia", "04-posizionamento"]},
+    {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "burocrazia", "03-brand-kit", "la-tua-storia", "obiettivo", "04-posizionamento"]},
     {"id": "valida",    "label": "Valida",    "tagline": "Costruiamo una prima versione vendibile e pubblicabile", "icon": "🚀", "agent": "ANDREA",    "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-script-videolezioni", "08-registra-masterclass", "09-registra-lezioni", "10-sistema-vendita", "11-calendario-30gg", "12-prezzo-webinar", "13-lancio"]},
     {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali",            "icon": "📈", "agent": "MARCO",     "step_ids": []},  # post-lancio, gestita da OperativoContinuo
 ]
@@ -64,6 +64,7 @@ JOURNEY_STEPS_DEFINITION: list[dict[str, Any]] = [
     {"step_id": "burocrazia",             "step_number": 3,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "I tuoi dati"},
     {"step_id": "03-brand-kit",           "step_number": 4,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Brand kit"},
     {"step_id": "la-tua-storia",         "step_number": 5,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "La tua storia"},
+    {"step_id": "obiettivo",              "step_number": 5.5, "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Il tuo obiettivo"},
     {"step_id": "04-posizionamento",      "step_number": 6,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Posizionamento"},
     {"step_id": "05-script-masterclass",  "step_number": 7,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Script masterclass"},
     {"step_id": "06-outline-lezioni",     "step_number": 8,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Outline lezioni"},
