@@ -78,7 +78,7 @@ export default function StepObiettivo({ step, partnerName, onComplete, onSaveDra
     ctx.beginPath(); ctx.moveTo(x0, Y(1)); ctx.lineTo(x1, Y(1)); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = "#64748b"; ctx.font = "11px Poppins, system-ui, sans-serif";
     ctx.fillText("obiettivo", x0 + 2, Y(1) - 5);
-  }, [eta, molla, perWeek]);
+  }, [eta, molla]);
 
   return (
     <div className="space-y-4">
@@ -176,8 +176,8 @@ export default function StepObiettivo({ step, partnerName, onComplete, onSaveDra
             ))}
             <div className="mt-2 pt-3.5 border-t border-dashed border-gray-200 space-y-2.5">
               <Assump label="Prezzo della tua offerta (97–297€)" value={price} onChange={(v) => setPrice(clampPrice(v))} min={PRICE_MIN} max={PRICE_MAX} />
-              <Assump label="Su 100 al webinar, quanti comprano" value={conv} onChange={setConv} min={0} max={100} />
-              <Assump label="Su 100 iscritti, quanti si presentano" value={show} onChange={setShow} min={0} max={100} />
+              <Assump label="Su 100 al webinar, quanti comprano" value={conv} onChange={(v) => setConv(Number.isFinite(v) ? v : 0)} min={0} max={100} />
+              <Assump label="Su 100 iscritti, quanti si presentano" value={show} onChange={(v) => setShow(Number.isFinite(v) ? v : 0)} min={0} max={100} />
               <p className="text-[11.5px] text-slate-400 leading-relaxed">Valori di partenza tarati sul metodo. Sono modificabili: Simona parte da qui.</p>
             </div>
           </div>
