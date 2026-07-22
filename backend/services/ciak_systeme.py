@@ -93,15 +93,35 @@ async def ciak_ensure_contact(
     return None
 
 
+async def _find_tag_id(client: httpx.AsyncClient, tag_name: str) -> Optional[int]:
+    """Cerca un tag per nome esatto con la ricerca server-side (?query=).
+
+    ⚠️ Necessario: l'account ha centinaia di tag e GET /tags è paginato. Una GET
+    senza filtro vedrebbe solo la prima pagina, non troverebbe i tag esistenti
+    (es. ciak_optin_masterclass) e la POST successiva fallirebbe 422 "già esiste"
+    → il tag non verrebbe MAI applicato al contatto.
+    """
+    r = await client.get(
+        f"{SYSTEME_BASE_URL}/tags",
+        headers=_headers(),
+        params={"query": tag_name, "limit": 100},
+    )
+    if r.status_code == 200:
+        for tag in r.json().get("items", []):
+            if tag.get("name", "").lower() == tag_name:
+                return int(tag.get("id"))
+    return None
+
+
 async def _get_or_create_tag_id(client: httpx.AsyncClient, tag_name: str) -> Optional[int]:
     """Find tag_id su Systeme; se non esiste, lo crea. Tag normalizzato lowercase."""
     tag_name = tag_name.strip().lower()
     try:
-        r = await client.get(f"{SYSTEME_BASE_URL}/tags", headers=_headers())
-        if r.status_code == 200:
-            for tag in r.json().get("items", []):
-                if tag.get("name", "").lower() == tag_name:
-                    return int(tag.get("id"))
+        # 1. Ricerca server-side (paginazione-safe).
+        found = await _find_tag_id(client, tag_name)
+        if found:
+            return found
+        # 2. Non esiste → crea.
         r = await client.post(
             f"{SYSTEME_BASE_URL}/tags",
             headers=_headers(),
@@ -109,6 +129,12 @@ async def _get_or_create_tag_id(client: httpx.AsyncClient, tag_name: str) -> Opt
         )
         if r.status_code in (200, 201):
             return int(r.json().get("id"))
+        # 3. 422 = esiste già ma la ricerca non l'ha intercettato (encoding/match)
+        #    → ritenta la ricerca e recupera l'id esistente.
+        if r.status_code == 422:
+            found = await _find_tag_id(client, tag_name)
+            if found:
+                return found
         logger.warning(f"[CIAK-SYSTEME] create tag '{tag_name}' failed: {r.status_code}")
     except Exception as e:
         logger.warning(f"[CIAK-SYSTEME] tag '{tag_name}' resolve error: {e}")
