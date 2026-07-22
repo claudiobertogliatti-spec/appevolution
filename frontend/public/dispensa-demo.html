@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIAK.io - Piano Operativo Strategico | Dott. Mario Rossi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0F172A;
+      --yellow: #FACC15;
+      --yellow-light: #FEF9C3;
+      --yellow-border: #FDE047;
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-600: #475569;
+      --emerald: #10B981;
+      --emerald-bg: #ECFDF5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: #E2E8F0; color: var(--navy); padding: 40px 20px; line-height: 1.6; }
+
+    .paper-document {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #CBD5E1;
+    }
+
+    .cover-header {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      color: white;
+      padding: 50px 50px 40px;
+      position: relative;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+
+    .official-logo {
+      height: 54px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .status-stamp {
+      background: rgba(250, 204, 21, 0.15);
+      border: 1px solid var(--yellow);
+      color: var(--yellow);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; background: var(--emerald); border-radius: 50%;
+    }
+
+    .doc-title-box h1 {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .doc-title-box p {
+      color: #94A3B8;
+      font-size: 16px;
+    }
+
+    .partner-meta-box {
+      margin-top: 35px;
+      padding-top: 25px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .partner-info h3 { font-size: 18px; font-weight: 700; color: white; }
+    .partner-info p { font-size: 13px; color: #CBD5E1; }
+
+    .tutor-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.05);
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .tutor-avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--yellow); color: var(--navy);
+      font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+
+    .timeline-section {
+      padding: 40px 50px;
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .section-tag {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #D97706;
+      margin-bottom: 16px;
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .timeline-item {
+      background: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .item-name { font-weight: 600; color: var(--navy); }
+    .status-done { color: var(--emerald); font-weight: 700; font-size: 11px; }
+    .status-current { color: #D97706; font-weight: 700; font-size: 11px; }
+    .status-pending { color: #94A3B8; font-size: 11px; }
+
+    .chapter-body { padding: 50px; }
+
+    .chapter-block {
+      margin-bottom: 48px;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      background: var(--yellow-light);
+      border: 1px solid var(--yellow-border);
+      color: #854D0E;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    h2.chapter-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 20px;
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .data-table th {
+      background: var(--slate-100);
+      padding: 12px 18px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate-600);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .data-table td {
+      padding: 14px 18px;
+      background: white;
+      font-size: 14px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+
+    .tutor-note-box {
+      background: #FEFCE8;
+      border: 1px solid #FEF08A;
+      border-left: 5px solid var(--yellow);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .tutor-note-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      color: #854D0E;
+      margin-bottom: 8px;
+    }
+
+    .tutor-note-body {
+      font-size: 14px;
+      color: #713F12;
+      line-height: 1.6;
+    }
+
+    .script-box {
+      background: var(--slate-50);
+      border: 1px dashed #CBD5E1;
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .script-header {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--slate-600);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .script-content {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--navy);
+      white-space: pre-wrap;
+    }
+
+    .doc-footer {
+      background: var(--slate-100);
+      padding: 24px 50px;
+      border-top: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--slate-600);
+    }
+
+    .download-bar {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .btn-download {
+      background: var(--navy);
+      color: var(--yellow);
+      padding: 16px 36px;
+      border-radius: 16px;
+      border: none;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-download:hover { transform: translateY(-2px); background: #1E293B; }
+
+    .locked-badge {
+      background: #FFFBEB;
+      border: 1.5px solid #FCD34D;
+      color: #92400E;
+      padding: 16px 28px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+    }
+
+    .toggle-demo-bar {
+      max-width: 900px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid #CBD5E1;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .toggle-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid #CBD5E1;
+      background: #F8FAFC;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .toggle-btn.active {
+      background: var(--navy);
+      color: var(--yellow);
+      border-color: var(--navy);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIMULATORE STATO PER DEMO -->
+  <div class="toggle-demo-bar">
+    <span>Simulatore Stato Partner:</span>
+    <button id="btnStateInProgress" class="toggle-btn active" onclick="setLaunchState(false)">
+      🔒 Prima del Lancio (In Corso)
+    </button>
+    <button id="btnStateLaunched" class="toggle-btn" onclick="setLaunchState(true)">
+      🚀 A Lancio Avvenuto (Sbloccato)
+    </button>
+  </div>
+
+  <div class="paper-document">
+    
+    <!-- COVER HEADER -->
+    <div class="cover-header">
+      <div class="brand-row">
+        <!-- LOGO UFFICIALE CIAK -->
+        <img src="/ciak/logo.webp" alt="CIAK Logo Ufficiale" class="official-logo" />
+        <div class="status-stamp">
+          <span class="status-dot"></span> PROTOCOLLO VALIDATO (STEP 6/14)
+        </div>
+      </div>
+
+      <div class="doc-title-box">
+        <h1>PIANO OPERATIVO STRATEGICO</h1>
+        <p>Documento Master Unificato: Da Anagrafica a Lancio dell'Accademia</p>
+      </div>
+
+      <div class="partner-meta-box">
+        <div class="partner-info">
+          <h3>Dott. Mario Rossi</h3>
+          <p>Accademia Benessere & Posturologia Integrata</p>
+        </div>
+
+        <div class="tutor-badge">
+          <div class="tutor-avatar">CB</div>
+          <div>
+            <strong style="font-size:12px; color:white; display:block;">Claudio Bertogliatti</strong>
+            <span style="font-size:11px; color:#94A3B8;">Tutor Strategico CIAK</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE INDEX -->
+    <div class="timeline-section">
+      <div class="section-tag">Avanzamento del Protocollo EVO (14 Fasi)</div>
+      <div class="timeline-grid">
+        <div class="timeline-item"><span class="item-name">01. Benvenuto & Setup</span><span class="status-done">✓ Completato</span></div>
+        <div class="timeline-item"><span class="item-name">02. Contratto & Anagrafica</span><span class="status-done">✓ Completato</span></div>
+        <div class="timeline-item"><span class="item-name">03. Brand Kit & Identità</span><span class="status-done">✓ Completato</span></div>
+        <div class="timeline-item"><span class="item-name">04. La Tua Storia (Origin)</span><span class="status-done">✓ Completato</span></div>
+        <div class="timeline-item"><span class="item-name">05. Obiettivo & Pricing</span><span class="status-done">✓ Completato</span></div>
+        <div class="timeline-item"><span class="item-name">06. Posizionamento & ICP</span><span class="status-current">▶ In Revisione Tutor</span></div>
+        <div class="timeline-item"><span class="item-name">07. Script Masterclass (30m)</span><span class="status-pending">In Coda</span></div>
+        <div class="timeline-item"><span class="item-name">08. Outline Lezioni Corso</span><span class="status-pending">In Coda</span></div>
+        <div class="timeline-item"><span class="item-name">09. Script Videolezioni</span><span class="status-pending">In Coda</span></div>
+        <div class="timeline-item"><span class="item-name">10. Registrazione Video</span><span class="status-pending">In Coda</span></div>
+        <div class="timeline-item"><span class="item-name">11. Funnel & Checkout Setup</span><span class="status-pending">In Coda</span></div>
+        <div class="timeline-item"><span class="item-name">12. Lancio Accademia (30gg)</span><span class="status-pending">In Coda</span></div>
+      </div>
+    </div>
+
+    <!-- CHAPTER BODY -->
+    <div class="chapter-body">
+      
+      <!-- CHAPTER 4: BRAND KIT -->
+      <div class="chapter-block">
+        <span class="phase-badge">FASE 03 · BRAND KIT & IDENTITÀ VISIVA</span>
+        <h2 class="chapter-title">Identità Grafica dell'Accademia</h2>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Elemento Brand</th>
+              <th>Valore Definitivo Approvato</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Nome Accademia</strong></td>
+              <td>Accademia Benessere & Posturologia Integrata</td>
+            </tr>
+            <tr>
+              <td><strong>Palette Colori</strong></td>
+              <td>
+                <span style="display:inline-block; width:14px; height:14px; background:#1E3A8A; border-radius:3px; vertical-align:middle; margin-right:4px;"></span> #1E3A8A (Blu Reale) &nbsp;
+                <span style="display:inline-block; width:14px; height:14px; background:#F59E0B; border-radius:3px; vertical-align:middle; margin-right:4px;"></span> #F59E0B (Oro Accento) &nbsp;
+                <span style="display:inline-block; width:14px; height:14px; background:#FFFFFF; border:1px solid #ccc; border-radius:3px; vertical-align:middle; margin-right:4px;"></span> #FFFFFF (Bianco)
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Font Headings & Body</strong></td>
+              <td>Poppins / Plus Jakarta Sans (Formale, pulito, accessibile)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CHAPTER 6: POSIZIONAMENTO -->
+      <div class="chapter-block">
+        <span class="phase-badge">FASE 06 · POSIZIONAMENTO STRATEGICO & ICP</span>
+        <h2 class="chapter-title">L'Offerta Unica & Il Target di Mario Rossi</h2>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Parametro Strategico</th>
+              <th>Analisi & Strategia Approvata</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Target ICP</strong></td>
+              <td>Professionisti e lavoratori d'ufficio (35-55 anni) affetti da dolori posturali cronici e mal di schiena da scrivania.</td>
+            </tr>
+            <tr>
+              <td><strong>Promessa in 1 Frase</strong></td>
+              <td><em>"Elimina il mal di schiena da scrivania e ritrova la tua postura corretta in 90 giorni con il Metodo Posturale Integrato, senza farmaci."</em></td>
+            </tr>
+            <tr>
+              <td><strong>Costo del NO</strong></td>
+              <td>Continuare a convivere con dolori quotidiani, perdita di produttività e farmaci anti-infiammatori temporanei.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TUTOR NOTE BOX -->
+        <div class="tutor-note-box">
+          <div class="tutor-note-header">
+            <span>💡 NOTE DEL TUTOR UMANO (Claudio Bertogliatti):</span>
+          </div>
+          <div class="tutor-note-body">
+            "Mario, il posizionamento focalizzato sul 'mal di schiena da ufficio' è eccellente perché attacca una nicchia con un dolore urgente ed un'elevata capacità di spesa. Procediamo con questo angolo per la Masterclass."
+          </div>
+        </div>
+
+        <!-- SCRIPT AI BOX -->
+        <div class="script-box">
+          <div class="script-header">
+            <span>📄 SCRIPT GENERATO PER IL VIDEO DI BENVENUTO (PRONTO ALL'USO)</span>
+            <span style="color:#D97706;">Copia & Incolla</span>
+          </div>
+          <div class="script-content">"Ciao e benvenuto nell'Accademia del Dott. Mario Rossi. In questo primo modulo capirai perché la postura da scrivania sta distruggendo la tua energia quotidiana e quali 3 esercizi immediati puoi fare oggi stesso per sbloccare la colonna vertebrale..."</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+      <div>© 2026 CIAK.io — Piano Operativo Strategico Riservato</div>
+      <div>Documento Generato per: Dott. Mario Rossi</div>
+    </div>
+  </div>
+
+  <!-- SEZIONE DOWNLOAD CONDIZIONALE SU LANCIO -->
+  <div class="download-bar">
+    <!-- STATO PRIMA DEL LANCIO (BLOCCATO) -->
+    <div id="boxLocked" class="locked-badge">
+      🔒 <span>Il Piano Operativo Strategico scaricabile in PDF si sbloccherà automaticamente a <strong>lancio avvenuto</strong>.</span>
+    </div>
+
+    <!-- STATO A LANCIO AVVENUTO (SBLOCCATO) -->
+    <div id="boxUnlocked" style="display:none;">
+      <button class="btn-download" onclick="alert('Download Piano Operativo Master PDF avviato!')">
+        📥 <span>Scarica Piano Operativo Strategico Completo (PDF 14 Fasi)</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function setLaunchState(isLaunched) {
+      document.getElementById('boxLocked').style.display = isLaunched ? 'none' : 'inline-flex';
+      document.getElementById('boxUnlocked').style.display = isLaunched ? 'block' : 'none';
+      
+      document.getElementById('btnStateInProgress').className = 'toggle-btn ' + (isLaunched ? '' : 'active');
+      document.getElementById('btnStateLaunched').className = 'toggle-btn ' + (isLaunched ? 'active' : '');
+    }
+  </script>
+
+</body>
+</html>
