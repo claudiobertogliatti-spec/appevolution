@@ -1,7 +1,11 @@
+import pytest
+
 from models.partner_journey_step import (
     JOURNEY_STEPS_DEFINITION,
     MACRO_PHASES_DEFINITION,
 )
+
+pytestmark = pytest.mark.unit
 
 
 def _by_id():
