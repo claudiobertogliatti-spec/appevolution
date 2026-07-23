@@ -234,54 +234,71 @@ export function CiakPartnerDashboardDemo() {
                   </div>
                 </section>
 
-                {/* 2. RIQUADRO VIDEO BENVENUTO DI CLAUDIO BERTOGLIATTI */}
-                <section className="bg-slate-950 text-white rounded-3xl overflow-hidden shadow-lg border border-slate-800">
+                {/* 2. RIQUADRO VIDEO BENVENUTO DI CLAUDIO (RIDOTTO DELLA METÀ + TESTO MOTIVANTE E CTA A DESTRA) */}
+                <section className="bg-slate-950 text-white rounded-3xl overflow-hidden shadow-xl border border-slate-800">
                   <div className="p-6 sm:p-8 space-y-6">
+                    
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                       <div>
                         <span className="text-xs font-mono font-bold uppercase tracking-wider text-yellow-400 block mb-1">
                           Primo Passo Obbligatorio
                         </span>
                         <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-                          Guarda il Video di Benvenuto di Claudio Bertogliatti
+                          Video di Benvenuto di Claudio Bertogliatti
                         </h2>
                       </div>
-                      <span className="px-3.5 py-1.5 rounded-full bg-yellow-400 text-slate-950 font-extrabold text-xs shrink-0">
+                      <span className="px-3.5 py-1.5 rounded-full bg-yellow-400 text-slate-950 font-extrabold text-xs shrink-0 self-start sm:self-auto">
                         🎬 5 Minuti di Benvenuto Completo
                       </span>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-4xl">
-                      In questo video completo, Claudio ti spiega la visione di Evolution PRO, come affronteremo le prossime settimane ed il metodo esatto per sfruttare al meglio CIAK senza perderti tra file o dubbi operativi.
-                    </p>
-
-                    {/* VIDEO PLAYER UNICO UFFICIALE COMPLETO DI CLAUDIO BERTOGLIATTI (5 MINUTI) */}
-                    <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-md">
-                      <video
-                        controls
-                        poster="/founder/claudio-portrait-640.webp"
-                        className="w-full h-full object-cover rounded-2xl"
-                      >
-                        <source src="/video/claudio-benvenuto-completo.mp4" type="video/mp4" />
-                        <source src="/video/come-funziona-evolution-pro.mp4" type="video/mp4" />
-                        Il tuo browser non supporta la riproduzione del video.
-                      </video>
-                    </div>
-
-                    {/* PULSANTE CTA DOPO IL VIDEO */}
-                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-                      <div>
-                        <h4 className="text-sm font-extrabold text-white">Hai completato la visione del video?</h4>
-                        <p className="text-xs text-slate-400 mt-0.5">Passa alla prima azione operativa guidata da Valentina.</p>
+                    {/* GRIGLIA 50% VIDEO / 50% TESTO MOTIVANTE & CTA */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center">
+                      
+                      {/* COLONNA SINISTRA: VIDEO PLAYER RIDOTTO DELLA METÀ CON COPERTINA */}
+                      <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-lg group">
+                        <video
+                          controls
+                          poster="/founder/claudio-portrait-640.webp"
+                          className="w-full h-full object-cover rounded-2xl"
+                        >
+                          <source src="/video/claudio-benvenuto-completo.mp4" type="video/mp4" />
+                          <source src="/video/come-funziona-evolution-pro.mp4" type="video/mp4" />
+                          Il tuo browser non supporta la riproduzione del video.
+                        </video>
                       </div>
-                      <button
-                        onClick={() => setAccessMode("returning")}
-                        className="w-full sm:w-auto px-6 py-3.5 bg-yellow-400 text-slate-950 font-extrabold text-xs rounded-2xl hover:bg-yellow-300 transition shadow-sm inline-flex items-center justify-center gap-2"
-                      >
-                        <span>Inizia la Fase 01 del Percorso</span>
-                        <ArrowRight className="w-4 h-4 text-slate-950" />
-                      </button>
+
+                      {/* COLONNA DESTRA: RIQUADRO CON TESTO MOTIVANTE + CTA PULSANTE */}
+                      <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl space-y-5 flex flex-col justify-between h-full">
+                        <div className="space-y-3">
+                          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-yellow-400 bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20 inline-block">
+                            🚀 Il tuo percorso comincia qui
+                          </span>
+                          <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-snug">
+                            Trasforma le tue competenze in un'Accademia Digitale
+                          </h3>
+                          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+                            In questo video di 5 minuti, Claudio ti mostra la visione ed il metodo esatto per portare online il tuo corso velocemente.
+                          </p>
+                          <p className="text-xs sm:text-sm font-semibold text-yellow-300/90 leading-relaxed">
+                            ⚡ Il ritmo nei primi giorni fa tutta la differenza: guarda il messaggio di Claudio e dai subito il via alla tua prima azione pratica!
+                          </p>
+                        </div>
+
+                        {/* CTA PULSANTE PER INIZIARE SUBITO */}
+                        <div className="pt-2">
+                          <button
+                            onClick={() => setAccessMode("returning")}
+                            className="w-full py-4 px-6 bg-yellow-400 text-slate-950 font-extrabold text-xs sm:text-sm rounded-2xl hover:bg-yellow-300 transition shadow-md flex items-center justify-center gap-2.5 group"
+                          >
+                            <span>Inizia Subito la Fase 01 del Percorso</span>
+                            <ArrowRight className="w-4 h-4 text-slate-950 group-hover:translate-x-1 transition" />
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
+
                   </div>
                 </section>
 
