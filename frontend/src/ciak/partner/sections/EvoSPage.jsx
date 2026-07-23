@@ -372,28 +372,32 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
             </div>
 
             {requested ? (
-              <div className="bg-amber-50 border-2 border-amber-300 text-slate-950 rounded-2xl p-6 space-y-2 shadow-sm">
-                <p className="text-base font-extrabold text-slate-950">Richiesta registrata con successo!</p>
-                <p className="text-xs text-slate-700 font-medium">
-                  Il team ti contatterà per completare l'attivazione del Piano {plan.name}.
-                </p>
-              </div>
-            ) : (
-              /* BOX ATTIVAZIONE 100% SFONDO CHIARO (AMBER LIGHT + PULSANTE GIALLO/NERO) */
-              <div className="bg-amber-100/70 border-2 border-amber-300 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-950">Attiva il Piano {plan.name}</h3>
-                  <p className="text-xs text-slate-700 font-semibold mt-1">
-                    {plan.priceLabel} · Impegno minimo 6 mesi per garantire continuità ed affiancamento.
+              <div className="mt-10 sm:mt-14 pt-8 border-t-2 border-slate-100">
+                <div className="bg-amber-50 border-2 border-amber-300 text-slate-950 rounded-3xl p-6 sm:p-8 space-y-2 shadow-sm">
+                  <p className="text-base font-extrabold text-slate-950">Richiesta registrata con successo!</p>
+                  <p className="text-xs text-slate-700 font-medium">
+                    Il team ti contatterà per completare l'attivazione del Piano {plan.name}.
                   </p>
                 </div>
-                <button
-                  onClick={activate}
-                  disabled={busy}
-                  className="px-7 py-4 bg-slate-950 text-yellow-400 font-extrabold rounded-2xl text-xs hover:bg-slate-800 transition shadow-md disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
-                >
-                  {busy ? "Elaborazione..." : `Attiva Piano ${plan.name}`} <ArrowRight className="w-4 h-4 text-yellow-400" />
-                </button>
+              </div>
+            ) : (
+              /* BOX ATTIVAZIONE 100% SFONDO CHIARO - DISTANZIATO PER MASSIMA VISIBILITÀ */
+              <div className="mt-10 sm:mt-14 pt-8 border-t-2 border-slate-100">
+                <div className="bg-amber-100/70 border-2 border-amber-300 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950">Attiva il Piano {plan.name}</h3>
+                    <p className="text-xs sm:text-sm text-slate-700 font-semibold mt-1">
+                      {plan.priceLabel} · Impegno minimo 6 mesi per garantire continuità ed affiancamento.
+                    </p>
+                  </div>
+                  <button
+                    onClick={activate}
+                    disabled={busy}
+                    className="px-8 py-4 bg-slate-950 text-yellow-400 font-extrabold rounded-2xl text-xs hover:bg-slate-800 transition shadow-md disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+                  >
+                    {busy ? "Elaborazione..." : `Attiva Piano ${plan.name}`} <ArrowRight className="w-4 h-4 text-yellow-400" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
