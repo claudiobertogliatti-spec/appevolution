@@ -12,12 +12,19 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   FileText, Download, Upload, Shield, FolderOpen, FileVideo,
   FileCheck, Loader2, FileAudio, Image, Receipt,
-  Target, Mail, PenLine, Trash2, Eye, Pencil, PlayCircle,
+  Target, Mail, PenLine, Trash2, Eye, Pencil, PlayCircle, Award, Sparkles,
 } from "lucide-react";
 import { WELCOME_VIDEO_EMBED } from "../operativo/phases";
 
 // File category configuration — color = classe Tailwind
 const FILE_CATEGORIES = {
+  piano_operativo: {
+    icon: Award,
+    label: "Piano Operativo & Certificati",
+    iconColor: "text-amber-600",
+    iconBg: "bg-yellow-50",
+    activeBg: "bg-yellow-500",
+  },
   contratto_firmato: {
     icon: FileCheck,
     label: "Contratto Firmato",

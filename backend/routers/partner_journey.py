@@ -3,7 +3,7 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -6656,3 +6656,126 @@ async def upload_operativo_file(
         return {"success": True, "url": local_url, "resource_type": resource_type, "fallback": "local"}
     except Exception as e:
         raise HTTPException(500, f"Upload fallito: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PIANO OPERATIVO STRATEGICO & CERTIFICATI EVO
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/piano-operativo-pdf/{partner_id}")
+async def get_piano_operativo_pdf(
+    partner_id: str,
+    preview: bool = Query(False),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Genera e scarica il PDF del Piano Operativo Strategico delle 14 Fasi.
+    Il download del PDF è sbloccato a LANCIO AVVENUTO (oppure via preview/admin).
+    """
+    token_data = await require_partner_or_admin_for_partner(partner_id, credentials)
+    partner = await get_partner_or_404(partner_id)
+
+    is_admin = token_data.role in ("admin", "superadmin")
+    is_launched = bool(
+        partner.get("is_launched")
+        or partner.get("launch_status") == "completed"
+        or partner.get("master_plan_download_unlocked")
+        or partner.get("journey_current_step") in ("13-lancio", "completed")
+    )
+
+    if not is_launched and not is_admin and not preview:
+        raise HTTPException(
+            status_code=403,
+            detail="Il Piano Operativo Strategico scaricabile in PDF si sbloccherà automaticamente a lancio avvenuto."
+        )
+
+    steps_cursor = db.partner_journey_steps.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).sort("step_number", 1)
+    steps = await steps_cursor.to_list(length=30)
+
+    label_by_step_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+    for s in steps:
+        s["label"] = label_by_step_id.get(s["step_id"], s["step_id"])
+
+    from services.piano_operativo_pdf_renderer import genera_piano_operativo_pdf
+    pdf_bytes = await genera_piano_operativo_pdf(partner, steps)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="piano_operativo_master_{partner_id}.pdf"'
+        },
+    )
+
+
+@router.get("/piano-operativo-data/{partner_id}")
+async def get_piano_operativo_data(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Ritorna i dati del Piano Operativo Master per il visualizzatore React frontend."""
+    token_data = await require_partner_or_admin_for_partner(partner_id, credentials)
+    partner = await get_partner_or_404(partner_id)
+
+    is_admin = token_data.role in ("admin", "superadmin")
+    is_launched = bool(
+        partner.get("is_launched")
+        or partner.get("launch_status") == "completed"
+        or partner.get("master_plan_download_unlocked")
+        or partner.get("journey_current_step") in ("13-lancio", "completed")
+    )
+
+    steps_cursor = db.partner_journey_steps.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).sort("step_number", 1)
+    steps = await steps_cursor.to_list(length=30)
+
+    label_by_step_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+    for s in steps:
+        s["label"] = label_by_step_id.get(s["step_id"], s["step_id"])
+
+    completed_count = sum(1 for s in steps if s.get("status") in ("done", "completed"))
+
+    return {
+        "success": True,
+        "partner": {
+            "id": partner_id,
+            "name": partner.get("name", "Partner CIAK"),
+            "brand_name": partner.get("brand_name", partner.get("accademia_name", "Accademia Digitale")),
+            "tutor_name": partner.get("tutor_name", "Claudio Bertogliatti"),
+            "is_launched": is_launched,
+        },
+        "is_launched": is_launched,
+        "is_unlocked": is_launched or is_admin,
+        "completed_count": completed_count,
+        "total_steps": len(steps) if steps else 14,
+        "steps": steps,
+    }
+
+
+@router.get("/certificato-pdf/{partner_id}/{macro_fase}")
+async def get_certificato_pdf(
+    partner_id: str,
+    macro_fase: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Scarica il Certificato Ufficiale di Completamento Macro-Fase ('esamina' o 'valida')."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    partner = await get_partner_or_404(partner_id)
+
+    from services.certificati_pdf_renderer import genera_certificato_pdf
+    pdf_bytes = await genera_certificato_pdf(
+        partner_name=partner.get("name", "Partner CIAK"),
+        accademia_name=partner.get("brand_name", partner.get("accademia_name", "Accademia Digitale")),
+        macro_fase_id=macro_fase,
+    )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="certificato_evo_{macro_fase}_{partner_id}.pdf"'
+        },
+    )
+

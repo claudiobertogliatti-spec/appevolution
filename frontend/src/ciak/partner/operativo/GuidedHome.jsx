@@ -11,6 +11,7 @@ import JourneyMap from "./JourneyMap";
 import { AGENTS, getAgentForStep } from "./agents";
 import { PHASE_CONFIG, WELCOME_VIDEO_EMBED } from "./phases";
 import ProjectBookCard from "../rewards/ProjectBookCard";
+import { PianoOperativoWidget } from "../components/PianoOperativoWidget";
 
 function firstName(name) {
   return (name || "").split(" ")[0] || "";
@@ -193,6 +194,8 @@ export default function GuidedHome({
           </div>
         </div>
       </section>
+
+      <PianoOperativoWidget partnerId={partnerId} partnerName={partnerName} />
 
       <ProjectBookCard partnerId={partnerId} state={state} />
 
