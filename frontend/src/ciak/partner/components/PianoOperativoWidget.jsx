@@ -208,34 +208,36 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
             {/* TASTO CHIUDI */}
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 z-20 bg-slate-950 text-white p-2.5 rounded-full hover:bg-slate-800 transition shadow-lg border border-slate-700"
+              className="absolute top-4 right-4 z-20 bg-slate-100 text-slate-950 p-2.5 rounded-full hover:bg-slate-200 transition shadow-sm border border-slate-300"
               aria-label="Chiudi"
             >
               <X className="h-5 w-5" />
             </button>
 
-            {/* HEADER PAPER - FISSO IN ALTO */}
-            <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white p-6 sm:p-8 md:p-10 relative shrink-0">
-              <div className="flex items-center justify-between mb-4 pr-12">
-                <img src="/ciak/logo.webp" alt="CIAK" className="h-8 sm:h-9 w-auto" />
-                <span className="px-3 py-1 bg-yellow-400/20 border border-yellow-400 text-yellow-300 rounded-full font-bold text-xs">
+            {/* HEADER PAPER - BIANCO PURO CON LOGO AD ALTO CONTRASTO */}
+            <div className="bg-white text-slate-950 border-b border-slate-200 p-6 sm:p-8 md:p-10 relative shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pr-12">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 w-max">
+                  <img src="/ciak/logo.webp" alt="CIAK" className="h-8 sm:h-9 w-auto" />
+                </div>
+                <span className="px-3.5 py-1.5 bg-yellow-100 border border-yellow-300 text-slate-950 rounded-full font-extrabold text-xs w-max">
                   PROTOCOLLO VALIDATO (STEP {completedCount}/{totalSteps})
                 </span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">PIANO OPERATIVO STRATEGICO</h2>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950">PIANO OPERATIVO STRATEGICO</h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">
                 Documento Master Unificato: Da Anagrafica a Lancio dell'Accademia
               </p>
 
-              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+              <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-700">
                 <div>
-                  <strong className="text-white block text-sm">{partner.name || partnerName || "Partner CIAK"}</strong>
-                  <span className="text-slate-400">{partner.brand_name || "Accademia Digitale"}</span>
+                  <strong className="text-slate-950 block text-sm">{partner.name || partnerName || "Partner CIAK"}</strong>
+                  <span className="text-slate-500">{partner.brand_name || "Accademia Digitale"}</span>
                 </div>
                 <div className="text-right">
-                  <span className="block font-bold text-white">{partner.tutor_name || "Claudio Bertogliatti"}</span>
-                  <span className="text-slate-400">Tutor Strategico CIAK</span>
+                  <span className="block font-bold text-slate-950">{partner.tutor_name || "Claudio Bertogliatti"}</span>
+                  <span className="text-slate-500">Tutor Strategico CIAK</span>
                 </div>
               </div>
             </div>
