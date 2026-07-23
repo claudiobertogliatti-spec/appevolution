@@ -38,6 +38,7 @@ import { CiakPartnerPercorsoDemo } from "./pages/CiakPartnerPercorsoDemo";
 import { CiakPartnerMaterialiDemo } from "./pages/CiakPartnerMaterialiDemo";
 import { CiakPartnerTeamDemo } from "./pages/CiakPartnerTeamDemo";
 import { CiakPartnerServiziExtraDemo } from "./pages/CiakPartnerServiziExtraDemo";
+import { CiakPartnerRinnovoDemo } from "./pages/CiakPartnerRinnovoDemo";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
@@ -95,6 +96,7 @@ export default function CiakApp() {
           <Route path="/materiali-demo" element={<CiakPartnerMaterialiDemo />} />
           <Route path="/team-demo" element={<CiakPartnerTeamDemo />} />
           <Route path="/servizi-extra-demo" element={<CiakPartnerServiziExtraDemo />} />
+          <Route path="/rinnovo-demo" element={<CiakPartnerRinnovoDemo />} />
 
           {/* Redirect legacy → /blueprint. Preservano la query string per i parametri
               Stripe (session_id success / from=cancel) finché il backend checkout non

@@ -448,8 +448,8 @@ export function EvoSPage({ partnerId }) {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
+    <div className="min-h-full bg-white">
+      <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 md:p-8 space-y-8 font-[Poppins,system-ui,sans-serif]">
         <section className="overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-[0_0_24px_rgba(250,204,21,0.12)] mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.92fr]">
             <div className="p-6 sm:p-8">
