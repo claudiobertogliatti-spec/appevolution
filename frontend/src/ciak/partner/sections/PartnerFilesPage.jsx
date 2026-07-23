@@ -261,8 +261,8 @@ export function PartnerFilesPage({ partnerId }) {
         </div>
       </header>
 
-      {/* CARTELLE CON MENU A TENDINA (ACCORDION FAQ STYLE) E RESPIRO VISIVO AMPIO */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-8">
+      {/* CARTELLE CON MENU A TENDINA (ACCORDION FAQ STYLE) CON RESPIRO VISIVO AMPIO ED ELEGANTE */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
         {foldersToDisplay.map((folder) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;
@@ -273,7 +273,7 @@ export function PartnerFilesPage({ partnerId }) {
           return (
             <div
               key={folder.id}
-              className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition"
+              className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition my-6"
             >
               
               {/* HEADER MENU A TENDINA (ACCORDION CLICKABLE BANNER) */}
