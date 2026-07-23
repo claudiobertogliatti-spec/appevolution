@@ -247,19 +247,19 @@ export function PartnerFilesPage({ partnerId }) {
         </div>
       </header>
 
-      {/* SEZIONI CARTELLE ELEGANTE E AMPIAMENTE DISTANZIATE PER RESPIRO VISIVO */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-12 sm:space-y-14">
-        {foldersToDisplay.map((folder) => {
+      {/* SEZIONI CARTELLE MOLTO AMPIAMENTE DISTANZIATE PER MASSIMO RESPIRO VISIVO */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 space-y-20 sm:space-y-24">
+        {foldersToDisplay.map((folder, idx) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;
 
           if (searchQuery && folderFiles.length === 0) return null;
 
           return (
-            <section key={folder.id} className="space-y-3.5 pt-2">
+            <section key={folder.id} className={`space-y-4 ${idx > 0 ? "pt-6 border-t border-slate-100" : ""}`}>
               
-              {/* DIVIDER/HEADER CARTELLA CON MAGGIORE AMPIEZZA */}
-              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3">
+              {/* DIVIDER/HEADER CARTELLA MOLTO AMPIO */}
+              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3.5">
                 <div className="flex items-center gap-2.5">
                   <FolderIcon className={`h-4 w-4 ${folder.color}`} />
                   <h2 className="text-sm font-bold text-slate-900">
