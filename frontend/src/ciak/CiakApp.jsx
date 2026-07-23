@@ -33,6 +33,7 @@ import { MasterclassLanding } from "./pages/MasterclassLanding";
 import { CiakCheckpoint } from "./pages/Checkpoint";
 import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakDispensaDemo } from "./pages/CiakDispensaDemo";
+import { CiakPartnerDashboardDemo } from "./pages/CiakPartnerDashboardDemo";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
@@ -85,6 +86,7 @@ export default function CiakApp() {
           <Route path="/blueprint" element={<CiakBlueprint />} />
           <Route path="/blueprint/grazie" element={<CiakGrazie />} />
           <Route path="/dispensa-demo" element={<CiakDispensaDemo />} />
+          <Route path="/partner-demo" element={<CiakPartnerDashboardDemo />} />
 
           {/* Redirect legacy → /blueprint. Preservano la query string per i parametri
               Stripe (session_id success / from=cancel) finché il backend checkout non
