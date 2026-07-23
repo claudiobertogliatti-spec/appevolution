@@ -9,7 +9,8 @@ import { CiakFooter } from "../components/CiakFooter";
 import { PianoOperativoWidget } from "../partner/components/PianoOperativoWidget";
 import {
   ArrowRight, CheckCircle2, Clock, Sparkles, ShieldCheck, MessageCircle,
-  FileText, Award, Lock, Cog, LayoutDashboard, UserCheck, Layers, ChevronRight
+  FileText, Award, Lock, Cog, LayoutDashboard, UserCheck, Layers, ChevronRight,
+  Home, Map, FolderOpen, Users, RefreshCw
 } from "lucide-react";
 
 export function CiakPartnerDashboardDemo() {
@@ -62,28 +63,45 @@ export function CiakPartnerDashboardDemo() {
         {/* CONTAINER DASHBOARD COMMAND CENTER */}
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
           
-          {/* SIDEBAR SEMPLIFICATA A 3 VOCI */}
-          <aside className="space-y-4">
+          {/* SIDEBAR STRUTTURATA SECONDO SPECIFICA CLAUDIO */}
+          <aside className="space-y-4 font-[Poppins,system-ui,sans-serif]">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-6">
               <div>
-                <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-amber-600 block mb-3">
-                  Menu Partner EVO
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 block mb-3">
+                  Navigazione Principale
                 </span>
                 <nav className="space-y-1.5">
-                  <a href="#percorso" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-yellow-100/80 text-slate-950 font-extrabold text-xs border border-yellow-300 shadow-sm">
-                    <LayoutDashboard className="h-4 w-4 text-amber-600" />
-                    <span>Percorso Operativo</span>
+                  <a href="#home" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-950 text-yellow-400 font-extrabold text-xs shadow-sm">
+                    <Home className="h-4 w-4 text-yellow-400" />
+                    <span>Home</span>
                   </a>
-                  <a href="#piano-master" className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 font-bold text-xs transition">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-slate-500" />
-                      <span>Il Mio Piano Operativo</span>
-                    </div>
-                    <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+                  <a href="#percorso" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50 font-bold text-xs transition">
+                    <Map className="h-4 w-4 text-slate-500" />
+                    <span>Percorso</span>
                   </a>
-                  <a href="#supporto" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 font-bold text-xs transition">
-                    <MessageCircle className="h-4 w-4 text-slate-500" />
-                    <span>Supporto & Tutor</span>
+                  <a href="#materiali" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50 font-bold text-xs transition">
+                    <FolderOpen className="h-4 w-4 text-slate-500" />
+                    <span>Materiali</span>
+                  </a>
+                  <a href="#team" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50 font-bold text-xs transition">
+                    <Users className="h-4 w-4 text-slate-500" />
+                    <span>Team</span>
+                  </a>
+                </nav>
+              </div>
+
+              <div className="pt-5 border-t border-slate-200">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block mb-3">
+                  Crescita & Rinnovo
+                </span>
+                <nav className="space-y-1.5">
+                  <a href="#extra" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-xs shadow-sm">
+                    <Sparkles className="h-4 w-4 text-slate-950" />
+                    <span>Servizi Extra</span>
+                  </a>
+                  <a href="#rinnovo" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition">
+                    <RefreshCw className="h-4 w-4 text-slate-500" />
+                    <span>Rinnovo</span>
                   </a>
                 </nav>
               </div>
