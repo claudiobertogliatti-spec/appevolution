@@ -186,7 +186,7 @@ export function PartnerFilesPage({ partnerId }) {
       
       {/* HEADER CLOUD VAULT */}
       <header className="border-b border-slate-200 bg-white py-6 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto space-y-4">
+        <div className="w-full max-w-[1400px] mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600">
@@ -262,7 +262,7 @@ export function PartnerFilesPage({ partnerId }) {
       </header>
 
       {/* CARTELLE CON MENU A TENDINA (ACCORDION FAQ STYLE) CON RESPIRO VISIVO AMPIO ED ELEGANTE */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
         {foldersToDisplay.map((folder) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;

@@ -14,7 +14,7 @@ export function CiakPartnerMaterialiDemo() {
       <CiakHeader />
 
       <main className="bg-white min-h-screen font-[Poppins,system-ui,sans-serif] text-slate-900 border-t border-slate-100">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 py-8 px-4">
+        <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 py-8 px-4 sm:px-8">
           
           {/* SIDEBAR CON LE 2 SEZIONI DI CLAUDIO */}
           <aside className="space-y-4">

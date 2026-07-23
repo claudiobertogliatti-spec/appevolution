@@ -79,7 +79,7 @@ export function MetodoEvoPage({ partnerId }) {
       
       {/* HEADER PAGINA PERCORSO */}
       <header className="border-b border-slate-200 bg-white py-10 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto space-y-4">
+        <div className="w-full max-w-[1400px] mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
@@ -112,7 +112,7 @@ export function MetodoEvoPage({ partnerId }) {
       </header>
 
       {/* BODY CONTENT */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-10">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-8 space-y-10">
 
         {/* 3 BANNER A TENDINA STILE FAQ PER SPIEGARE LA LOGICA DI COSTRUZIONE */}
         <div className="space-y-3">

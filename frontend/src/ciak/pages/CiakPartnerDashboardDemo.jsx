@@ -77,7 +77,7 @@ export function CiakPartnerDashboardDemo() {
         </div>
 
         {/* CONTAINER DASHBOARD SFONDO BIANCO */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8">
+        <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8">
           
           {/* SIDEBAR CON LE 2 SEZIONI ESATTE DI CLAUDIO */}
           <aside className="space-y-4 font-[Poppins,system-ui,sans-serif]">
