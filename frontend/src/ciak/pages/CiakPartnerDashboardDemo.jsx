@@ -255,15 +255,18 @@ export function CiakPartnerDashboardDemo() {
                       In questo video, Claudio ti spiega la visione di Evolution PRO, come affronteremo le prossime settimane ed il metodo esatto per sfruttare al meglio CIAK senza perderti tra file o dubbi operativi.
                     </p>
 
-                    {/* VIDEO PLAYER EMBEDDED */}
+                    {/* VIDEO PLAYER REALE DI CLAUDIO BERTOGLIATTI */}
                     <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-md">
-                      <iframe
-                        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                        title="Video di benvenuto di Claudio Bertogliatti"
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                      <video
+                        controls
+                        poster="/founder/claudio-portrait-640.webp"
+                        className="w-full h-full object-cover rounded-2xl"
+                      >
+                        <source src="/video_branded.mp4" type="video/mp4" />
+                        <source src="/ciak/ciak-spot.mp4" type="video/mp4" />
+                        <source src="/video_sottotitolato_v2.mp4" type="video/mp4" />
+                        Il tuo browser non supporta il riproduzione video HTML5.
+                      </video>
                     </div>
 
                     {/* PULSANTE CTA DOPO IL VIDEO */}
