@@ -1,46 +1,47 @@
 import { useState, useEffect } from "react";
 import {
   Anchor, TrendingUp, Rocket, ArrowLeft, ArrowRight, Check, X,
-  Calendar, Users, Clock, ShieldCheck, Lock, RotateCcw,
+  Calendar, Users, Clock, ShieldCheck, Lock, RotateCcw, Sparkles
 } from "lucide-react";
 
 /**
- * Scala — programma di continuità in abbonamento, riservato a chi ha completato
- * i 12 mesi del Protocollo EVO. Non è un rinnovo tecnico: è l'accesso al livello
- * successivo. 4 soluzioni (Recupero / Continuita / Crescita / Espansione),
- * attivabili per almeno 6 mesi.
+ * Rinnovo & Continuità (EVO S) — Programma di continuità in abbonamento post 12 mesi.
  *
- * Gating: GET /api/evo-booster/evo-s-eligibility/{partnerId} → se non sono passati
- * 12 mesi, i piani restano visibili ma in sola lettura (CTA bloccata). Se il backend
- * non risponde, la pagina resta sbloccata (non blocchiamo per un errore di rete).
- * CTA "Attiva questo piano" → POST /api/evo-booster/evo-s-checkout (Stripe abbonamento).
+ * 4 Piani Ufficiali:
+ * 1. Start (147 € / mese)
+ * 2. Pro (297 € / mese)
+ * 3. Executive (497 € / mese - Il più scelto)
+ * 4. Elite (797 € / mese)
+ *
+ * CTA: "Approfondimenti"
+ * Prezzo ad alta visibilità (text-3xl sm:text-4xl font-extrabold).
  */
 
 const PLANS = [
   {
-    id: "recover",
-    name: "Recupero Ottimizza",
+    id: "start",
+    name: "Start",
     price: 147,
     priceLabel: "147 € / mese",
     icon: RotateCcw,
-    beneficio: "Per rimettere ordine quando i 12 mesi sono passati, ma Ottimizza non e' stata fatta davvero.",
+    badge: "Livello 01 · Base",
+    beneficio: "Per rimettere ordine ed ottimizzare il sistema online quando si completa il primo anno.",
     perChi:
-      "Per partner arrivati al dodicesimo mese con sistema online, ma senza ritmo costante su calendario, live, KPI e revisione funnel.",
+      "Per chi ha completato il 12° mese ed ha bisogno di riordinare il sistema con un controllo guidato di priorità e KPI.",
     obiettivo:
-      "Recuperare la fase Ottimizza in modo guidato: capire cosa manca, riprendere il ritmo e arrivare a una decisione seria sul passo successivo.",
+      "Recuperare ed ottimizzare la fase operativa: capire cosa manca, riprendere il ritmo e misurare la stabilità del progetto.",
     comprende: [
       "Audit iniziale dello stato reale del sistema.",
-      "Piano mensile di recupero con priorita' operative.",
+      "Piano mensile di riordino con priorità operative.",
       "Calendario guidato da seguire mese per mese.",
       "Piano live ogni 2 mesi con checklist di preparazione.",
-      "Checklist KPI per leggere traffico, contatti, vendite e show-up.",
-      "Indicazioni di ottimizzazione su funnel, offerta e follow-up.",
+      "Checklist KPI per leggere traffico, contatti e vendite.",
+      "Indicazioni di ottimizzazione su funnel ed offerta.",
       "Report mensile sintetico con prossime azioni.",
-      "Decisione finale: continuita', crescita, espansione o stop.",
     ],
-    frequenza: "Mensile, con piano di recupero e controllo delle azioni.",
+    frequenza: "Mensile, con piano di controllo delle azioni.",
     cosaFaIlTeam: [
-      "Legge lo stato del sistema e ti indica le priorita'.",
+      "Legge lo stato del sistema e ti indica le priorità.",
       "Prepara il piano operativo del mese.",
       "Ti dice cosa monitorare e quando fare la prossima live.",
       "Rivede i dati principali e aggiorna le prossime azioni.",
@@ -49,34 +50,36 @@ const PLANS = [
       "Esegue le azioni indicate nel piano mensile.",
       "Pubblica i contenuti previsti dal calendario.",
       "Tiene le live ricorrenti.",
-      "Inserisce o comunica i dati necessari al report.",
+      "Comunica i dati necessari al report.",
     ],
     nonComprende: [
       "Produzione contenuti done-for-you.",
       "Gestione completa delle live.",
-      "Copywriting completo di pagine, email o funnel.",
-      "Gestione ads, budget pubblicitario o setup tecnico extra.",
+      "Copywriting completo di pagine o funnel.",
+      "Gestione ads o budget pubblicitario.",
     ],
     risultatoAtteso:
-      "Un sistema rimesso in ordine e finalmente misurabile. Non e' scaling: e' il passaggio necessario per capire se e come continuare.",
+      "Un sistema rimesso in ordine e perfettamente misurabile.",
   },
   {
-    id: "start",
-    name: "Ciak Continuita",
+    id: "pro",
+    name: "Pro",
     price: 297,
     priceLabel: "297 € / mese",
     icon: Anchor,
-    beneficio: "Il tuo sistema resta seguito anche dopo i 12 mesi, con una presenza leggera ma costante.",
+    badge: "Livello 02 · Continuità",
+    beneficio: "Il tuo sistema resta seguito e protetto dopo i 12 mesi, con una presenza costante del team.",
     perChi:
-      "Per chi ha completato i 12 mesi e vuole mantenere vivo e aggiornato il sistema, senza tornare a fare tutto da solo.",
+      "Per chi vuole mantenere vivo, aggiornato e performante il sistema senza tornare a gestire tutto da solo.",
     obiettivo:
-      "Mantenere il sistema attivo e stabile, con un'ottimizzazione costante e leggera mese dopo mese.",
+      "Mantenere il sistema attivo e stabile con un'ottimizzazione costante mese dopo mese.",
     comprende: [
       "Monitoraggio mensile dei numeri del funnel.",
       "Una revisione di ottimizzazione ogni mese.",
       "Calendario contenuti tenuto aggiornato.",
       "Supporto operativo via chat con il team.",
       "Un check periodico sulla tua live ricorrente.",
+      "Assistenza prioritaria sulle procedure standard.",
     ],
     frequenza: "Mensile e continuativa.",
     cosaFaIlTeam: [
@@ -96,26 +99,27 @@ const PLANS = [
       "Creazione di nuovi prodotti o funnel.",
     ],
     risultatoAtteso:
-      "Un sistema che resta in ordine e continua a lavorare, senza perdere cio' che hai costruito. I risultati dipendono anche dalla tua costanza.",
+      "Un sistema che resta in ordine e lavora senza perdere l'autorevolezza costruita.",
   },
   {
-    id: "grow",
-    name: "Ciak Crescita",
+    id: "executive",
+    name: "Executive",
     price: 497,
     priceLabel: "497 € / mese",
     icon: TrendingUp,
     popular: true,
-    beneficio: "Piu' contenuti e ottimizzazione attiva per crescere con continuita'.",
+    badge: "Livello 03 · Crescita Spinta",
+    beneficio: "Più contenuti prodotti dal team ed ottimizzazione attiva per spingere la crescita.",
     perChi:
-      "Per chi ha un sistema che gia' vende e vuole crescere con piu' contenuti, piu' ottimizzazione e una spinta strutturata.",
-    obiettivo: "Aumentare contatti e vendite in modo graduale e misurabile.",
+      "Per chi ha un sistema che già vende e vuole accelerare con più contenuti, ottimizzazione bisettimanale e call mensile.",
+    obiettivo: "Aumentare contatti e vendite in modo graduale, guidato e misurabile.",
     comprende: [
-      "Tutto ciò che è incluso in Ciak Continuita.",
-      "Ottimizzazioni del funnel più frequenti (ogni due settimane).",
-      "Un pacchetto di contenuti extra prodotti dal team.",
+      "Tutto ciò che è incluso nel piano Pro.",
+      "Ottimizzazioni del funnel ogni due settimane.",
+      "Pacchetto di contenuti extra prodotti dal team.",
       "Supporto sulla strategia delle tue live.",
       "Report avanzato con le azioni prioritarie.",
-      "Una call mensile con il team.",
+      "Una call mensile di allineamento con il team.",
     ],
     frequenza: "Mensile, con interventi sul funnel ogni due settimane.",
     cosaFaIlTeam: [
@@ -132,30 +136,31 @@ const PLANS = [
     nonComprende: [
       "Il budget pubblicitario.",
       "Gestione completa degli account social.",
-      "Creazione di nuovi prodotti complessi (vedi Ciak Espansione).",
+      "Creazione di nuovi corsi o funnel complessi.",
     ],
     risultatoAtteso:
-      "Una crescita graduale di contatti e vendite, costruita su contenuti e ottimizzazioni costanti. Nessun numero e' garantito: dipende anche dal mercato e dalla tua esecuzione.",
+      "Una crescita accelerata di contatti qualificati e vendite ricorrenti.",
   },
   {
-    id: "scale",
-    name: "Ciak Espansione",
+    id: "elite",
+    name: "Elite",
     price: 797,
     priceLabel: "797 € / mese",
     icon: Rocket,
-    beneficio: "La soluzione piu' completa: advertising, nuovi prodotti e affiancamento strategico.",
+    badge: "Livello 04 · Massima Espansione",
+    beneficio: "La soluzione più completa: gestione advertising Meta/Google, nuovi prodotti ed affiancamento VIP.",
     perChi:
-      "Per chi ha validato il modello e vuole spingere: ads, nuovi funnel, nuovi prodotti, più entrate.",
-    obiettivo: "Scalare il business e diversificare le entrate, con il team al tuo fianco.",
+      "Per chi vuole scalare il business: campagne ads a pagamento, nuovi funnel, nuovi prodotti e massima presenza sul mercato.",
+    obiettivo: "Scalare l'Accademia e diversificare le entrate con il team al tuo fianco.",
     comprende: [
-      "Tutto ciò che è incluso in Ciak Crescita.",
-      "Gestione delle campagne ads (budget escluso).",
+      "Tutto ciò che è incluso nel piano Executive.",
+      "Gestione completa delle campagne ads (budget escluso).",
       "Progettazione di un nuovo prodotto o funnel.",
-      "Affiancamento strategico continuativo.",
-      "Ottimizzazione continua del sistema.",
-      "Call strategiche frequenti.",
+      "Affiancamento strategico continuativo VIP.",
+      "Ottimizzazione continua di tutti i tassi di conversione.",
+      "Call strategiche frequenti e prioritarie.",
     ],
-    frequenza: "Continuativa, con call frequenti.",
+    frequenza: "Continuativa con call strategiche frequenti.",
     cosaFaIlTeam: [
       "Gestisce e ottimizza le campagne ads.",
       "Progetta con te nuovi funnel e prodotti.",
@@ -164,91 +169,118 @@ const PLANS = [
     ],
     cosaFaIlPartner: [
       "Mette il budget pubblicitario.",
-      "Partecipa alle decisioni e alle call.",
+      "Partecipa alle decisioni ed alle call.",
       "Registra i contenuti dei nuovi prodotti.",
     ],
     nonComprende: [
       "Il budget pubblicitario (a tuo carico).",
-      "Garanzia di risultati di fatturato.",
-      "Spese di strumenti o licenze di terze parti.",
+      "Garanzia automatica di fatturato.",
+      "Spese di licenze di terze parti.",
     ],
     risultatoAtteso:
-      "Le condizioni per scalare: piu' traffico, piu' prodotti, piu' entrate potenziali. E' il piano piu' ambizioso, ma i risultati dipendono da budget, mercato ed esecuzione.",
+      "Massima scalabilità del business: più traffico, più prodotti ed entrate superiori.",
   },
 ];
 
 const CONTINUITY_POINTS = [
-  {
-    title: "Il sistema non si spegne",
-    text: "Funnel, contenuti, live e lista restano seguiti anche dopo la fase di costruzione.",
-  },
-  {
-    title: "Le decisioni partono dai numeri",
-    text: "Ogni mese guardiamo cosa sta funzionando e dove intervenire prima di disperdere energie.",
-  },
-  {
-    title: "Cresci senza ricominciare da zero",
-    text: "Scala parte da cio' che hai gia' costruito e lo rende piu' stabile, chiaro e vendibile.",
-  },
+  { icon: ShieldCheck, title: "Nessuna regressione", text: "Mantieni l'infrastruttura attiva senza rischiare di disperdere il lavoro svolto nei primi 12 mesi." },
+  { icon: Clock, title: "Risparmio di tempo", text: "Delega la manutenzione e l'ottimizzazione mensile al team per concentrarti sui tuoi studenti." },
+  { icon: Sparkles, title: "Evoluzione costante", text: "Aggiorna script, e-mail e pagine in base alla risposta reale del mercato." },
+  { icon: Users, title: "Affiancamento continuativo", text: "Mantieni il contatto diretto con il tuo team per qualsiasi dubbio strategico o tecnico." },
 ];
 
 function PlanCard({ plan, onOpen }) {
   const Icon = plan.icon;
   return (
-    <button
+    <div
       onClick={() => onOpen(plan.id)}
-      className={`text-left bg-white rounded-xl p-5 flex flex-col transition hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
-        plan.popular ? "border-2 border-yellow-300 shadow-[0_0_24px_rgba(250,204,21,0.12)]" : "border border-gray-200 hover:border-yellow-300"
+      className={`cursor-pointer text-left bg-white rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition hover:border-amber-400 hover:shadow-lg group space-y-6 ${
+        plan.popular
+          ? "border-2 border-amber-400 shadow-md ring-4 ring-amber-400/10"
+          : "border-2 border-slate-200/80 shadow-sm"
       }`}
     >
-      {plan.popular && (
-        <span className="self-start text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 mb-3">
-          Il più scelto
-        </span>
-      )}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-900">
-          <Icon className="w-5 h-5 text-yellow-400" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
+            plan.popular ? "bg-amber-400 text-slate-950" : "bg-slate-100 text-slate-700"
+          }`}>
+            {plan.badge}
+          </span>
+          {plan.popular && (
+            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+              Il più scelto
+            </span>
+          )}
         </div>
-        <p className="text-[16px] font-semibold text-slate-900 leading-tight">{plan.name}</p>
-      </div>
-      <p className="text-[13px] text-slate-600 leading-relaxed mb-4">{plan.beneficio}</p>
-      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 mb-4">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Quando ha senso</p>
-        <p className="text-[13px] text-slate-700 leading-snug mt-1">{plan.perChi}</p>
-      </div>
-      <p className="text-[12px] text-slate-500 mb-3">
-        <span className="font-semibold text-slate-700">Investimento:</span> {plan.priceLabel} · Attivabile per almeno 6 mesi
-      </p>
-      <ul className="space-y-1.5 mb-4 flex-1">
-        {plan.comprende.slice(0, 4).map((t, i) => (
-          <li key={i} className="flex items-start gap-2 text-[13px] text-slate-700 leading-snug">
-            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600" />
-            <span>{t}</span>
-          </li>
-        ))}
-      </ul>
-      <span className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-slate-900 text-yellow-300 hover:bg-slate-800 transition">
-        Capisci se fa per te <ArrowRight className="w-4 h-4" />
-      </span>
-    </button>
-  );
-}
 
-function ContinuityPoint({ point }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-sm font-semibold text-slate-900">{point.title}</p>
-      <p className="text-[13px] leading-relaxed text-slate-600 mt-1">{point.text}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-slate-950 text-yellow-400 font-extrabold shadow-sm">
+            <Icon className="w-6 h-6 text-yellow-400" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-extrabold text-slate-950 group-hover:text-amber-600 transition">
+              {plan.name}
+            </h3>
+            <p className="text-xs text-slate-500 font-medium">Piano Rinnovo EVO S</p>
+          </div>
+        </div>
+
+        {/* PREZZO AD ALTA VISIBILITÀ */}
+        <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-1">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 block">
+            Investimento Mensile:
+          </span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
+              {plan.price} €
+            </span>
+            <span className="text-xs font-bold text-slate-600">/ mese</span>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-500 block pt-0.5">
+            Impegno minimo 6 mesi
+          </span>
+        </div>
+
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+          {plan.beneficio}
+        </p>
+
+        <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-1">
+          <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Quando ha senso:</p>
+          <p className="text-xs font-semibold text-slate-800 leading-snug">{plan.perChi}</p>
+        </div>
+
+        <ul className="space-y-2 pt-2 border-t border-slate-100">
+          {plan.comprende.slice(0, 4).map((t, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
+              <Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600 font-bold" />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* PULSANTE APPROFONDIMENTI */}
+      <div className="pt-4">
+        <span className="w-full inline-flex items-center justify-between px-5 py-3 rounded-2xl font-extrabold text-xs bg-slate-950 text-yellow-400 group-hover:bg-slate-800 transition shadow-sm group-hover:scale-[1.01]">
+          <span>Approfondimenti</span>
+          <ArrowRight className="w-4 h-4 text-yellow-400 group-hover:translate-x-1 transition" />
+        </span>
+      </div>
     </div>
   );
 }
 
-function Section({ title, children }) {
+function ContinuityPoint({ point }) {
+  const Icon = point.icon;
   return (
-    <div className="mb-6">
-      <h2 className="text-[13px] font-semibold uppercase tracking-widest text-slate-400 mb-2">{title}</h2>
-      {children}
+    <div className="rounded-3xl border-2 border-slate-200/80 bg-white p-5 space-y-2">
+      <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+        <Icon className="w-5 h-5 text-amber-600" />
+      </div>
+      <p className="text-sm font-extrabold text-slate-950">{point.title}</p>
+      <p className="text-xs leading-relaxed text-slate-600">{point.text}</p>
     </div>
   );
 }
@@ -257,10 +289,10 @@ function BulletList({ items, tone = "neutral" }) {
   const Icon = tone === "no" ? X : Check;
   const color = tone === "no" ? "text-slate-400" : "text-emerald-600";
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-2.5">
       {items.map((t, i) => (
-        <li key={i} className="flex items-start gap-2.5 text-[14px] text-slate-700 leading-relaxed">
-          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${color}`} />
+        <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${color}`} />
           <span>{t}</span>
         </li>
       ))}
@@ -288,13 +320,15 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
           plan: plan.id,
         }),
       });
-      const data = await res.json();
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+          return;
+        }
       }
       setRequested(true);
-    } catch (e) {
+    } catch {
       setRequested(true);
     } finally {
       setBusy(false);
@@ -302,114 +336,84 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
   };
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="max-w-2xl mx-auto p-6">
+    <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif]">
+      <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 md:p-8 space-y-8">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-5"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-950 transition bg-slate-100 px-4 py-2 rounded-xl"
         >
-          <ArrowLeft className="w-4 h-4" /> Scala
+          <ArrowLeft className="w-4 h-4" /> Torna a tutti i Piani di Rinnovo
         </button>
 
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-900">
-            <Icon className="w-6 h-6 text-yellow-400" />
+        <div className="overflow-hidden rounded-3xl border-2 border-slate-200 bg-white shadow-md">
+          <div className="bg-slate-950 text-white p-6 sm:p-8 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <span className="inline-flex rounded-full bg-yellow-400 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-slate-950">
+                {plan.badge}
+              </span>
+              <div className="flex items-baseline gap-1 bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800">
+                <span className="text-3xl font-extrabold text-yellow-400">{plan.price} €</span>
+                <span className="text-xs text-slate-400 font-semibold">/ mese</span>
+              </div>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">{plan.name}</h1>
+            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">{plan.beneficio}</p>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">{plan.name}</h1>
-            <p className="text-[15px] font-semibold text-slate-700">{plan.priceLabel}</p>
+
+          <div className="p-6 sm:p-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">Obiettivo Principale</h3>
+                <p className="text-sm text-slate-800 font-semibold">{plan.obiettivo}</p>
+              </div>
+              <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">Per Chi è Ideale</h3>
+                <p className="text-sm text-slate-800 font-semibold">{plan.perChi}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-slate-100 pt-6">
+              <h2 className="text-base font-extrabold text-slate-950">Cosa comprende il Piano {plan.name}:</h2>
+              <BulletList items={plan.comprende} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
+              <div className="space-y-3">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600">Cosa fa il Team</h3>
+                <BulletList items={plan.cosaFaIlTeam} />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600">Cosa fa il Partner</h3>
+                <BulletList items={plan.cosaFaIlPartner} />
+              </div>
+            </div>
+
+            {requested ? (
+              <div className="bg-slate-950 text-white rounded-2xl p-6 space-y-2 border border-slate-800">
+                <p className="text-base font-extrabold text-yellow-400">Richiesta registrata con successo!</p>
+                <p className="text-xs text-slate-300">
+                  Il team ti contatterà per completare l'attivazione del Piano {plan.name}.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border border-slate-800">
+                <div>
+                  <h3 className="text-xl font-extrabold text-white">Attiva il Piano {plan.name}</h3>
+                  <p className="text-xs text-slate-300 mt-1">
+                    {plan.priceLabel} · Impegno minimo 6 mesi per garantire continuità.
+                  </p>
+                </div>
+                <button
+                  onClick={activate}
+                  disabled={busy}
+                  className="px-6 py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-2xl text-xs hover:bg-yellow-300 transition shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+                >
+                  {busy ? "Elaborazione..." : `Attiva Piano ${plan.name}`} <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <p className="text-[15px] text-slate-600 leading-relaxed mb-5">{plan.beneficio}</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Attivazione</span>
-            </div>
-            <p className="text-[14px] text-slate-700">Attivabile per almeno 6 mesi</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Frequenza</span>
-            </div>
-            <p className="text-[14px] text-slate-700">{plan.frequenza}</p>
-          </div>
-        </div>
-
-        <Section title="Per chi è">
-          <p className="text-[14px] text-slate-700 leading-relaxed">{plan.perChi}</p>
-        </Section>
-
-        <Section title="Obiettivo del piano">
-          <p className="text-[14px] text-slate-700 leading-relaxed">{plan.obiettivo}</p>
-        </Section>
-
-        <Section title="Cosa comprende">
-          <BulletList items={plan.comprende} />
-        </Section>
-
-        <Section title="Cosa fa il team Evolution PRO">
-          <BulletList items={plan.cosaFaIlTeam} />
-        </Section>
-
-        <Section title="Cosa devi fare tu">
-          <div className="flex items-start gap-2.5 mb-2 text-slate-400">
-            <Users className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span className="text-[12px] uppercase tracking-widest font-semibold">Il tuo ruolo</span>
-          </div>
-          <BulletList items={plan.cosaFaIlPartner} />
-        </Section>
-
-        <Section title="Cosa non comprende">
-          <BulletList items={plan.nonComprende} tone="no" />
-        </Section>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-          <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-widest">Risultato atteso</span>
-          </div>
-          <p className="text-[13px] text-slate-700 leading-relaxed">{plan.risultatoAtteso}</p>
-        </div>
-
-        {locked ? (
-          <div className="bg-slate-900 rounded-2xl p-5 flex items-start gap-3">
-            <Lock className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[15px] font-semibold text-white">Disponibile al termine dei 12 mesi</p>
-              <p className="text-[13px] text-slate-400 mt-1">
-                Scala si attiva quando hai completato il Protocollo EVO
-                {unlockInfo && unlockInfo.unlock_date ? ` (dal ${unlockInfo.unlock_date})` : ""}.
-              </p>
-            </div>
-          </div>
-        ) : requested ? (
-          <div className="bg-slate-900 rounded-2xl p-5">
-            <p className="text-[15px] font-semibold text-white">Richiesta registrata</p>
-            <p className="text-[13px] text-slate-400 mt-1">
-              Il team ti contatta per completare l'attivazione di {plan.name}.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-[15px] font-semibold text-white">Attiva {plan.name}</p>
-              <p className="text-[13px] text-slate-400 mt-0.5">
-                {plan.priceLabel} · Attivabile per almeno 6 mesi.
-              </p>
-            </div>
-            <button
-              onClick={activate}
-              disabled={busy}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 transition flex-shrink-0"
-            >
-              {busy ? "..." : "Attiva questo piano"} <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -448,117 +452,56 @@ export function EvoSPage({ partnerId }) {
   }
 
   return (
-    <div className="min-h-full bg-white">
-      <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 md:p-8 space-y-8 font-[Poppins,system-ui,sans-serif]">
-        <section className="overflow-hidden rounded-xl border border-yellow-200 bg-white shadow-[0_0_24px_rgba(250,204,21,0.12)] mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.92fr]">
-            <div className="p-6 sm:p-8">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-                Dopo i 12 mesi
-              </span>
-              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight mt-2">
-                Hai costruito il sistema. Ora va mantenuto, ottimizzato e fatto crescere.
-              </h1>
-              <p className="text-[15px] text-slate-600 leading-relaxed mt-4 max-w-2xl">
-                Le soluzioni post 12 mesi non sono un nuovo metodo e non sostituiscono il Protocollo EVO.
-                Servono a scegliere il livello di supporto piu' adatto allo stato reale del tuo sistema:
-                recupero, continuita', crescita o espansione.
-              </p>
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-900">La scelta non e' “comprare un piano”.</p>
-                <p className="text-[13px] text-slate-600 leading-relaxed mt-1">
-                  E' decidere con lucidita' cosa serve adesso: rimettere ordine, mantenere il sistema,
-                  crescere con piu' supporto o lavorare su una vera espansione.
-                </p>
-              </div>
-            </div>
-            <div className="relative min-h-[280px]">
-              <img
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1100&q=80"
-                alt="Dashboard di crescita e analisi dati"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-              <div className="absolute left-5 right-5 bottom-5 rounded-xl bg-slate-950/55 backdrop-blur border border-white/80 p-4">
-                <p className="text-sm font-bold text-white">Dopo il lancio contano i dati.</p>
-                <p className="text-[13px] leading-relaxed text-white font-semibold mt-1">
-                  Scala serve a non procedere a sensazione quando il sistema inizia a muoversi.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {locked && (
-          <div className="mb-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-            <p className="text-[14px] font-semibold text-slate-900">Scala si apre al termine dei 12 mesi</p>
-            <p className="text-[13px] text-slate-600 mt-0.5">
-              È il livello successivo, riservato a chi ha completato il Protocollo EVO.
-              {elig && elig.months_remaining ? ` Mancano circa ${elig.months_remaining} mesi` : ""}
-              {elig && elig.unlock_date ? ` · sblocco dal ${elig.unlock_date}` : ""}. Intanto puoi
-              vedere cosa include ogni piano.
-            </p>
-          </div>
-        )}
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          {CONTINUITY_POINTS.map((point) => (
-            <ContinuityPoint key={point.title} point={point} />
-          ))}
-        </section>
-
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <p className="text-[13px] font-semibold uppercase tracking-widest text-slate-400">
-              Se ti fermi
-            </p>
-            <ul className="mt-3 space-y-2">
-              {[
-                "Il sistema resta online, ma rischia di perdere ritmo.",
-                "Le ottimizzazioni dipendono solo da te.",
-                "Contenuti, live e funnel possono diventare discontinui.",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
-                  <X className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-xl border border-yellow-200 bg-white p-5 shadow-[0_0_18px_rgba(250,204,21,0.10)]">
-            <p className="text-[13px] font-semibold uppercase tracking-widest text-yellow-600">
-              Se continui a scalare
-            </p>
-            <ul className="mt-3 space-y-2">
-              {[
-                "Mantieni un team che guarda numeri, contenuti e vendite.",
-                "Scegli il livello di supporto piu' adatto alla fase.",
-                "Trasformi il lavoro dei 12 mesi in una crescita piu' ordinata.",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
-                  <Check className="w-4 h-4 mt-0.5 text-emerald-600 flex-shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <div className="mb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">
-            Soluzioni post 12 mesi
-          </p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">Quattro modi per continuare con ordine</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Ogni soluzione e' attivabile per almeno 6 mesi. Cambia il livello di supporto, non il metodo:
-            si parte sempre dai dati e dallo stato reale del sistema.
+    <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
+      
+      {/* HEADER PAGINA RINNOVO CON DISTANZE UNIFORMI */}
+      <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
+        <div className="w-full max-w-[1400px] mx-auto space-y-3">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
+            Protocollo EVO S · Programma Continuità Post-12 Mesi
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950">
+            Piani di Rinnovo & Continuità
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+            Hai costruito l'infrastruttura ed il posizionamento nei primi 12 mesi. Ora scegli il livello di affiancamento continuativo più adatto alle tue esigenze: <strong>Start, Pro, Executive o Elite</strong>.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {PLANS.map((p) => (
-            <PlanCard key={p.id} plan={p} onOpen={setSelectedId} />
-          ))}
-        </div>
+      </header>
+
+      {/* CONTENUTO PRINCIPALE AD AMPIA VISIBILITÀ */}
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
+        
+        {/* GRIGLIA I 4 PIANI UFFICIALI */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="text-lg font-extrabold text-slate-950">
+              Scegli il tuo Piano di Continuità:
+            </h2>
+            <span className="text-xs font-semibold text-slate-500">
+              Impegno minimo 6 mesi
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {PLANS.map((p) => (
+              <PlanCard key={p.id} plan={p} onOpen={setSelectedId} />
+            ))}
+          </div>
+        </section>
+
+        {/* 4 PUNTI CHIAVE DELLA CONTINUITÀ */}
+        <section className="space-y-4 pt-4 border-t border-slate-100">
+          <h2 className="text-base font-extrabold text-slate-950">
+            Perché continuare dopo i primi 12 mesi:
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {CONTINUITY_POINTS.map((pt) => (
+              <ContinuityPoint key={pt.title} point={pt} />
+            ))}
+          </div>
+        </section>
+
       </div>
     </div>
   );
