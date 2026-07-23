@@ -7,14 +7,7 @@ import {
 /**
  * Rinnovo & Continuità (EVO S) — Programma di continuità in abbonamento post 12 mesi.
  *
- * 4 Piani Ufficiali:
- * 1. Start (147 € / mese)
- * 2. Pro (297 € / mese)
- * 3. Executive (497 € / mese - Il più scelto)
- * 4. Elite (797 € / mese)
- *
- * CTA: "Approfondimenti"
- * Prezzo ad alta visibilità (text-3xl sm:text-4xl font-extrabold).
+ * 100% Sfondi Chiari (nessun nero/slate scuro) e testi in italiano semplice senza termini inglesi o tecnici.
  */
 
 const PLANS = [
@@ -25,41 +18,37 @@ const PLANS = [
     priceLabel: "147 € / mese",
     icon: RotateCcw,
     badge: "Livello 01 · Base",
-    beneficio: "Per rimettere ordine ed ottimizzare il sistema online quando si completa il primo anno.",
-    perChi:
-      "Per chi ha completato il 12° mese ed ha bisogno di riordinare il sistema con un controllo guidato di priorità e KPI.",
-    obiettivo:
-      "Recuperare ed ottimizzare la fase operativa: capire cosa manca, riprendere il ritmo e misurare la stabilità del progetto.",
+    beneficio: "Per rimettere ordine nell'organizzazione e nella gestione del tuo corso al termine del primo anno.",
+    perChi: "Per chi ha completato i primi 12 mesi e vuole riordinare le attività con una guida passo passo.",
+    obiettivo: "Capire le cose prioritarie da fare, ritrovare il ritmo di lavoro e verificare la stabilità del progetto.",
     comprende: [
-      "Audit iniziale dello stato reale del sistema.",
-      "Piano mensile di riordino con priorità operative.",
-      "Calendario guidato da seguire mese per mese.",
-      "Piano live ogni 2 mesi con checklist di preparazione.",
-      "Checklist KPI per leggere traffico, contatti e vendite.",
-      "Indicazioni di ottimizzazione su funnel ed offerta.",
-      "Report mensile sintetico con prossime azioni.",
+      "Analisi iniziale della situazione reale del tuo progetto.",
+      "Piano mensile di riordino con le cose prioritarie da fare.",
+      "Calendario di lavoro guidato da seguire mese per mese.",
+      "Programmazione delle dirette video con il tuo pubblico ogni 2 mesi.",
+      "Controllo periodico dei numeri (iscrizioni, contatti e incassi).",
+      "Consigli pratici per migliorare le pagine web ed il corso.",
+      "Riepilogo scritto mensile con i prossimi passi pratici.",
     ],
     frequenza: "Mensile, con piano di controllo delle azioni.",
     cosaFaIlTeam: [
-      "Legge lo stato del sistema e ti indica le priorità.",
-      "Prepara il piano operativo del mese.",
-      "Ti dice cosa monitorare e quando fare la prossima live.",
-      "Rivede i dati principali e aggiorna le prossime azioni.",
+      "Analizza lo stato del tuo lavoro e ti indica le priorità.",
+      "Prepara il piano pratico per il mese.",
+      "Ti suggerisce cosa controllare e quando fare la prossima diretta.",
+      "Rivede i numeri principali e aggiorna i prossimi compiti.",
     ],
     cosaFaIlPartner: [
-      "Esegue le azioni indicate nel piano mensile.",
-      "Pubblica i contenuti previsti dal calendario.",
-      "Tiene le live ricorrenti.",
-      "Comunica i dati necessari al report.",
+      "Svolge i compiti pratici indicati nel piano mensile.",
+      "Pubblica i materiali previsti dal calendario.",
+      "Realizza le dirette video con i propri clienti.",
+      "Invia i dati necessari per aggiornare il riepilogo.",
     ],
     nonComprende: [
-      "Produzione contenuti done-for-you.",
-      "Gestione completa delle live.",
-      "Copywriting completo di pagine o funnel.",
-      "Gestione ads o budget pubblicitario.",
+      "Scrittura completa di testi o creazione grafica dei materiali.",
+      "Gestione diretta delle tue dirette video.",
+      "Pubblicità a pagamento ed inserzioni sui social.",
     ],
-    risultatoAtteso:
-      "Un sistema rimesso in ordine e perfettamente misurabile.",
+    risultatoAtteso: "Un sistema rimesso in ordine e perfettamente misurabile.",
   },
   {
     id: "pro",
@@ -68,38 +57,35 @@ const PLANS = [
     priceLabel: "297 € / mese",
     icon: Anchor,
     badge: "Livello 02 · Continuità",
-    beneficio: "Il tuo sistema resta seguito e protetto dopo i 12 mesi, con una presenza costante del team.",
-    perChi:
-      "Per chi vuole mantenere vivo, aggiornato e performante il sistema senza tornare a gestire tutto da solo.",
-    obiettivo:
-      "Mantenere il sistema attivo e stabile con un'ottimizzazione costante mese dopo mese.",
+    beneficio: "Il tuo lavoro viene seguito e protetto ogni mese, con la guida costante dei nostri specialisti.",
+    perChi: "Per chi vuole mantenere attivo, aggiornato ed ordinato il proprio corso senza fare tutto da solo.",
+    obiettivo: "Mantenere la presenza online attiva ed ordinata con un controllo costante ogni mese.",
     comprende: [
-      "Monitoraggio mensile dei numeri del funnel.",
-      "Una revisione di ottimizzazione ogni mese.",
-      "Calendario contenuti tenuto aggiornato.",
-      "Supporto operativo via chat con il team.",
-      "Un check periodico sulla tua live ricorrente.",
-      "Assistenza prioritaria sulle procedure standard.",
+      "Controllo mensile dei risultati e delle visite ricevute.",
+      "Revisione mensile per migliorare una pagina o un messaggio.",
+      "Calendario dei contenuti mantenuto sempre aggiornato.",
+      "Risposte dirette ai tuoi dubbi tramite la chat del team.",
+      "Verifica periodica prima delle tue dirette video.",
+      "Assistenza prioritaria sulle attività di gestione quotidiana.",
     ],
     frequenza: "Mensile e continuativa.",
     cosaFaIlTeam: [
-      "Controlla i KPI e ti segnala dove intervenire.",
-      "Aggiorna il calendario editoriale.",
-      "Rivede un elemento del funnel ogni mese.",
-      "Risponde ai tuoi dubbi via chat.",
+      "Verifica le visite e gli iscritti e ti dice dove intervenire.",
+      "Aggiorna il calendario dei messaggi e dei contenuti.",
+      "Migliora un elemento del tuo sito web ogni mese.",
+      "Risponde ai tuoi dubbi e ti guida passo passo.",
     ],
     cosaFaIlPartner: [
-      "Pubblica i contenuti con costanza.",
-      "Tiene le sue live ricorrenti.",
-      "Applica le indicazioni di ottimizzazione.",
+      "Pubblica i contenuti con regolarità.",
+      "Esegue le dirette video con i propri clienti.",
+      "Applica i consigli di miglioramento ricevuti.",
     ],
     nonComprende: [
-      "Gestione ads e budget pubblicitario.",
-      "Produzione di video o contenuti done-for-you.",
-      "Creazione di nuovi prodotti o funnel.",
+      "Gestione della pubblicità a pagamento sui social.",
+      "Registrazione video o creazione completa dei materiali.",
+      "Creazione di nuovi corsi o percorsi da zero.",
     ],
-    risultatoAtteso:
-      "Un sistema che resta in ordine e lavora senza perdere l'autorevolezza costruita.",
+    risultatoAtteso: "Un sistema che resta in ordine e lavora senza perdere l'autorevolezza costruita.",
   },
   {
     id: "executive",
@@ -109,37 +95,34 @@ const PLANS = [
     icon: TrendingUp,
     popular: true,
     badge: "Livello 03 · Crescita Spinta",
-    beneficio: "Più contenuti prodotti dal team ed ottimizzazione attiva per spingere la crescita.",
-    perChi:
-      "Per chi ha un sistema che già vende e vuole accelerare con più contenuti, ottimizzazione bisettimanale e call mensile.",
-    obiettivo: "Aumentare contatti e vendite in modo graduale, guidato e misurabile.",
+    beneficio: "Creiamo per te materiali pronti e miglioriamo le pagine ogni due settimane per accelerare gli iscritti.",
+    perChi: "Per chi ha un corso già avviato e vuole crescere con l'aiuto operativo del nostro team.",
+    obiettivo: "Aumentare le richieste dei clienti e gli iscritti al corso in modo regolare e guidato.",
     comprende: [
-      "Tutto ciò che è incluso nel piano Pro.",
-      "Ottimizzazioni del funnel ogni due settimane.",
-      "Pacchetto di contenuti extra prodotti dal team.",
-      "Supporto sulla strategia delle tue live.",
-      "Report avanzato con le azioni prioritarie.",
-      "Una call mensile di allineamento con il team.",
+      "Tutto ciò che è incluso nel Piano Pro.",
+      "Controlli e miglioramenti del sito web ogni due settimane.",
+      "Pacchetto di materiali e contenuti grafici realizzati per te dal team.",
+      "Guida alla preparazione delle dirette video di presentazione.",
+      "Riepilogo approfondito con le cose più importanti da fare.",
+      "Incontro vocale di aggiornamento ogni mese con il team.",
     ],
-    frequenza: "Mensile, con interventi sul funnel ogni due settimane.",
+    frequenza: "Mensile, con interventi sul sito ogni due settimane.",
     cosaFaIlTeam: [
-      "Ottimizza il funnel più spesso.",
-      "Produce contenuti extra per te.",
-      "Prepara e analizza le tue live.",
-      "Ti guida in una call mensile.",
+      "Migliora e aggiorna il tuo sito web due volte al mese.",
+      "Crea e confeziona materiali grafici per te.",
+      "Prepara insieme a te le dirette video principali.",
+      "Ti affianca durante l'incontro mensile.",
     ],
     cosaFaIlPartner: [
-      "Registra o partecipa ai contenuti concordati.",
-      "Tiene le live con il supporto del team.",
-      "Applica le ottimizzazioni proposte.",
+      "Utilizza i materiali preparati dal team.",
+      "Realizza le dirette video seguendo la scaletta concordata.",
+      "Mette in pratica le indicazioni di miglioramento.",
     ],
     nonComprende: [
-      "Il budget pubblicitario.",
-      "Gestione completa degli account social.",
-      "Creazione di nuovi corsi o funnel complessi.",
+      "Costi della pubblicità sui social.",
+      "Gestione completa dei tuoi profili personali.",
     ],
-    risultatoAtteso:
-      "Una crescita accelerata di contatti qualificati e vendite ricorrenti.",
+    risultatoAtteso: "Una crescita accelerata di contatti qualificati e vendite ricorrenti.",
   },
   {
     id: "elite",
@@ -148,45 +131,42 @@ const PLANS = [
     priceLabel: "797 € / mese",
     icon: Rocket,
     badge: "Livello 04 · Massima Espansione",
-    beneficio: "La soluzione più completa: gestione advertising Meta/Google, nuovi prodotti ed affiancamento VIP.",
-    perChi:
-      "Per chi vuole scalare il business: campagne ads a pagamento, nuovi funnel, nuovi prodotti e massima presenza sul mercato.",
-    obiettivo: "Scalare l'Accademia e diversificare le entrate con il team al tuo fianco.",
+    beneficio: "La soluzione completa: gestione della pubblicità sui social, nuovi corsi ed affiancamento dedicato.",
+    perChi: "Per chi vuole ingrandire l'attività: pubblicità sponsorizzata, nuovi corsi e massima presenza sul mercato.",
+    obiettivo: "Espandere la tua accademia e moltiplicare le entrate con il team sempre al tuo fianco.",
     comprende: [
-      "Tutto ciò che è incluso nel piano Executive.",
-      "Gestione completa delle campagne ads (budget escluso).",
-      "Progettazione di un nuovo prodotto o funnel.",
-      "Affiancamento strategico continuativo VIP.",
-      "Ottimizzazione continua di tutti i tassi di conversione.",
-      "Call strategiche frequenti e prioritarie.",
+      "Tutto ciò che è incluso nel Piano Executive.",
+      "Gestione completa delle pubblicità sponsorizzate sui social (budget escluso).",
+      "Progettazione e struttura per un nuovo corso o percorso.",
+      "Affiancamento continuo ed prioritario per ogni decisione.",
+      "Miglioramento costante di tutte le pagine e dei messaggi.",
+      "Incontri di lavoro frequenti con i responsabili.",
     ],
-    frequenza: "Continuativa con call strategiche frequenti.",
+    frequenza: "Continuativa con incontri di lavoro frequenti.",
     cosaFaIlTeam: [
-      "Gestisce e ottimizza le campagne ads.",
-      "Progetta con te nuovi funnel e prodotti.",
-      "Ti affianca a livello strategico.",
-      "Tiene sotto controllo tutti i numeri.",
+      "Crea e gestisce la pubblicità sponsorizzata sui social.",
+      "Progetta insieme a te la struttura dei nuovi corsi.",
+      "Ti supporta in ogni decisione importante.",
+      "Tiene sotto controllo tutti i numeri dell'attività.",
     ],
     cosaFaIlPartner: [
-      "Mette il budget pubblicitario.",
-      "Partecipa alle decisioni ed alle call.",
-      "Registra i contenuti dei nuovi prodotti.",
+      "Mette a disposizione il budget per la pubblicità.",
+      "Partecipa agli incontri di lavoro.",
+      "Registra i contenuti dei nuovi corsi.",
     ],
     nonComprende: [
-      "Il budget pubblicitario (a tuo carico).",
-      "Garanzia automatica di fatturato.",
-      "Spese di licenze di terze parti.",
+      "Importo da versare alle piattaforme per la pubblicità.",
+      "Costi per abbonamenti a strumenti esterni di terzi.",
     ],
-    risultatoAtteso:
-      "Massima scalabilità del business: più traffico, più prodotti ed entrate superiori.",
+    risultatoAtteso: "Massima scalabilità del business: più clienti, più corsi ed entrate superiori.",
   },
 ];
 
 const CONTINUITY_POINTS = [
-  { icon: ShieldCheck, title: "Nessuna regressione", text: "Mantieni l'infrastruttura attiva senza rischiare di disperdere il lavoro svolto nei primi 12 mesi." },
-  { icon: Clock, title: "Risparmio di tempo", text: "Delega la manutenzione e l'ottimizzazione mensile al team per concentrarti sui tuoi studenti." },
-  { icon: Sparkles, title: "Evoluzione costante", text: "Aggiorna script, e-mail e pagine in base alla risposta reale del mercato." },
-  { icon: Users, title: "Affiancamento continuativo", text: "Mantieni il contatto diretto con il tuo team per qualsiasi dubbio strategico o tecnico." },
+  { icon: ShieldCheck, title: "Nessun passo indietro", text: "Mantieni tutto attivo ed ordinato senza rischiare di disperdere il lavoro svolto nel primo anno." },
+  { icon: Clock, title: "Risparmio di tempo", text: "Lascia la manutenzione e i controlli mensili al team per dedicarti solo ai tuoi clienti." },
+  { icon: Sparkles, title: "Crescita costante", text: "Aggiorna messaggi e pagine in base alla risposta reale delle persone." },
+  { icon: Users, title: "Affiancamento continuo", text: "Rimani in contatto diretto con il tuo team per qualsiasi dubbio strategico o pratico." },
 ];
 
 function PlanCard({ plan, onOpen }) {
@@ -226,7 +206,7 @@ function PlanCard({ plan, onOpen }) {
           </div>
         </div>
 
-        {/* PREZZO AD ALTA VISIBILITÀ */}
+        {/* PREZZO AD ALTA VISIBILITÀ SU SFONDO CHIARO */}
         <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 block">
             Investimento Mensile:
@@ -300,10 +280,10 @@ function BulletList({ items, tone = "neutral" }) {
   );
 }
 
+// ─── PAGINA DETTAGLIO PIANO (100% SFONDI CHIARI · ZERO SCURO) ──────────────
 function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
   const [busy, setBusy] = useState(false);
   const [requested, setRequested] = useState(false);
-  const Icon = plan.icon;
 
   const activate = async () => {
     if (!partnerId) {
@@ -340,35 +320,38 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
       <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 md:p-8 space-y-8">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-950 transition bg-slate-100 px-4 py-2 rounded-xl"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-950 transition bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl"
         >
-          <ArrowLeft className="w-4 h-4" /> Torna a tutti i Piani di Rinnovo
+          <ArrowLeft className="w-4 h-4 text-slate-700" /> Torna a tutti i Piani di Rinnovo
         </button>
 
-        <div className="overflow-hidden rounded-3xl border-2 border-slate-200 bg-white shadow-md">
-          <div className="bg-slate-950 text-white p-6 sm:p-8 space-y-4">
+        {/* CONTENITORE CHIARO 100% SFONDO BIANCO / AMBER CHIARO */}
+        <div className="overflow-hidden rounded-3xl border-2 border-slate-200 bg-white shadow-sm space-y-8">
+          
+          {/* HEADER CHIARO CON BORDO E TAG ORO */}
+          <div className="bg-amber-50/60 border-b border-amber-200/80 p-6 sm:p-8 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <span className="inline-flex rounded-full bg-yellow-400 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-slate-950">
+              <span className="inline-flex rounded-full bg-amber-400 px-3.5 py-1 text-xs font-extrabold uppercase tracking-wider text-slate-950">
                 {plan.badge}
               </span>
-              <div className="flex items-baseline gap-1 bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800">
-                <span className="text-3xl font-extrabold text-yellow-400">{plan.price} €</span>
-                <span className="text-xs text-slate-400 font-semibold">/ mese</span>
+              <div className="flex items-baseline gap-1.5 bg-white px-5 py-2.5 rounded-2xl border-2 border-amber-300 shadow-sm">
+                <span className="text-3xl sm:text-4xl font-extrabold text-slate-950">{plan.price} €</span>
+                <span className="text-xs text-slate-600 font-extrabold">/ mese</span>
               </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">{plan.name}</h1>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">{plan.beneficio}</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950">{plan.name}</h1>
+            <p className="text-sm sm:text-base text-slate-700 max-w-3xl leading-relaxed font-medium">{plan.beneficio}</p>
           </div>
 
           <div className="p-6 sm:p-8 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">Obiettivo Principale</h3>
-                <p className="text-sm text-slate-800 font-semibold">{plan.obiettivo}</p>
+              <div className="space-y-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-700">Obiettivo Principale</h3>
+                <p className="text-sm text-slate-900 font-extrabold">{plan.obiettivo}</p>
               </div>
-              <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">Per Chi è Ideale</h3>
-                <p className="text-sm text-slate-800 font-semibold">{plan.perChi}</p>
+              <div className="space-y-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-700">Per Chi è Ideale</h3>
+                <p className="text-sm text-slate-900 font-extrabold">{plan.perChi}</p>
               </div>
             </div>
 
@@ -378,37 +361,38 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
-              <div className="space-y-3">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600">Cosa fa il Team</h3>
+              <div className="space-y-3 bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">Cosa fa il Team</h3>
                 <BulletList items={plan.cosaFaIlTeam} />
               </div>
-              <div className="space-y-3">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600">Cosa fa il Partner</h3>
+              <div className="space-y-3 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-blue-800">Cosa fa il Partner</h3>
                 <BulletList items={plan.cosaFaIlPartner} />
               </div>
             </div>
 
             {requested ? (
-              <div className="bg-slate-950 text-white rounded-2xl p-6 space-y-2 border border-slate-800">
-                <p className="text-base font-extrabold text-yellow-400">Richiesta registrata con successo!</p>
-                <p className="text-xs text-slate-300">
+              <div className="bg-amber-50 border-2 border-amber-300 text-slate-950 rounded-2xl p-6 space-y-2 shadow-sm">
+                <p className="text-base font-extrabold text-slate-950">Richiesta registrata con successo!</p>
+                <p className="text-xs text-slate-700 font-medium">
                   Il team ti contatterà per completare l'attivazione del Piano {plan.name}.
                 </p>
               </div>
             ) : (
-              <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border border-slate-800">
+              /* BOX ATTIVAZIONE 100% SFONDO CHIARO (AMBER LIGHT + PULSANTE GIALLO/NERO) */
+              <div className="bg-amber-100/70 border-2 border-amber-300 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
                 <div>
-                  <h3 className="text-xl font-extrabold text-white">Attiva il Piano {plan.name}</h3>
-                  <p className="text-xs text-slate-300 mt-1">
-                    {plan.priceLabel} · Impegno minimo 6 mesi per garantire continuità.
+                  <h3 className="text-xl font-extrabold text-slate-950">Attiva il Piano {plan.name}</h3>
+                  <p className="text-xs text-slate-700 font-semibold mt-1">
+                    {plan.priceLabel} · Impegno minimo 6 mesi per garantire continuità ed affiancamento.
                   </p>
                 </div>
                 <button
                   onClick={activate}
                   disabled={busy}
-                  className="px-6 py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-2xl text-xs hover:bg-yellow-300 transition shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+                  className="px-7 py-4 bg-slate-950 text-yellow-400 font-extrabold rounded-2xl text-xs hover:bg-slate-800 transition shadow-md disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
                 >
-                  {busy ? "Elaborazione..." : `Attiva Piano ${plan.name}`} <ArrowRight className="w-4 h-4" />
+                  {busy ? "Elaborazione..." : `Attiva Piano ${plan.name}`} <ArrowRight className="w-4 h-4 text-yellow-400" />
                 </button>
               </div>
             )}
