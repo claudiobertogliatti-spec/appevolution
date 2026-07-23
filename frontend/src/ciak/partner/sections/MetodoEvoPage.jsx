@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, CheckCircle2, Clock, Sparkles, ShieldCheck,
-  FileText, Award, Lock, Eye, Pencil, ChevronRight, Layers, Check
+  FileText, Award, Lock, Eye, Pencil, ChevronRight, Layers, Check, ChevronDown
 } from "lucide-react";
 import { PianoOperativoWidget } from "../components/PianoOperativoWidget";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
@@ -61,6 +61,13 @@ const PERCORSO_MACRO_PHASES = [
 export function MetodoEvoPage({ partnerId }) {
   const { state } = useJourneyState(partnerId);
   const [selectedStepModal, setSelectedStepModal] = useState(null);
+  
+  // Stato del menu a tendina stile FAQ per le 3 Fasi (default prima fase aperta)
+  const [openFaq, setOpenFaq] = useState("esamina");
+
+  const toggleFaq = (id) => {
+    setOpenFaq(openFaq === id ? null : id);
+  };
 
   // Calcolo avanzamento
   const completedCount = state?.completed_count || 5;
@@ -107,85 +114,118 @@ export function MetodoEvoPage({ partnerId }) {
       {/* BODY CONTENT */}
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-10">
 
-        {/* 3 BANNER PANORAMICI SOVRAPPOSTI PER SPIEGARE LA LOGICA DI COSTRUZIONE */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        {/* 3 BANNER A TENDINA STILE FAQ PER SPIEGARE LA LOGICA DI COSTRUZIONE */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
               Logica di Costruzione del Protocollo EVO™
             </span>
-            <span className="text-xs font-semibold text-slate-500">Panoramica a 3 Fasi</span>
+            <span className="text-xs font-semibold text-slate-500">Clicca per espandere le 3 Fasi</span>
           </div>
 
-          {/* BANNER 1: ESAMINA */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <span className="px-3.5 py-1 rounded-full bg-yellow-100 text-slate-950 font-extrabold text-xs border border-yellow-300 w-max inline-flex items-center gap-1.5">
-                <span>🎯</span> 1. ESAMINA · ARCHITETTURA & STRATEGIA
-              </span>
-              <span className="text-xs font-mono font-bold text-slate-400">Step 01 - 06</span>
-            </div>
+          {/* FAQ 1: ESAMINA */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden transition-all">
+            <button
+              onClick={() => toggleFaq("esamina")}
+              className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 hover:bg-slate-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-yellow-100 text-slate-950 font-extrabold text-xs border border-yellow-300 shrink-0">
+                  🎯 1. ESAMINA
+                </span>
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-950">
+                  1. Definizione dell'Offerta, del Target e del Posizionamento Unico
+                </h3>
+              </div>
 
-            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950">
-              1. Definizione dell'Offerta, del Target e del Posizionamento Unico
-            </h3>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs font-mono font-bold text-slate-400 hidden sm:inline">Step 01 - 06</span>
+                <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform duration-300 ${openFaq === "esamina" ? "rotate-180 text-amber-600" : ""}`} />
+              </div>
+            </button>
 
-            <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
-              In questa prima fase poniamo le fondamenta del tuo progetto. Con l'affiancamento del team, definiamo esattamente chi è il tuo studente ideale, qual è la tua promessa differenziante sul mercato e strutturiamo il tuo Brand Kit ufficiale.
-            </p>
-
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Posizionamento Strategico Validato</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Brand Kit & Colori Ufficiali</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Messaggio Differenziante</span>
-            </div>
+            {openFaq === "esamina" && (
+              <div className="px-5 pb-6 sm:px-6 sm:pb-6 pt-2 border-t border-slate-100 space-y-4 text-xs text-slate-600 leading-relaxed bg-slate-50/50">
+                <p className="text-sm text-slate-700">
+                  In questa prima fase poniamo le fondamenta del tuo progetto. Con l'affiancamento del team, definiamo esattamente chi è il tuo studente ideale, qual è la tua promessa differenziante sul mercato e strutturiamo il tuo Brand Kit ufficiale.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-bold text-slate-800">
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Posizionamento Strategico Validato</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Brand Kit & Colori Ufficiali</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Messaggio Differenziante</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* BANNER 2: VALIDA */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-950 font-extrabold text-xs border border-emerald-300 w-max inline-flex items-center gap-1.5">
-                <span>🚀</span> 2. VALIDA · PRODUZIONE & STRUTTURA
-              </span>
-              <span className="text-xs font-mono font-bold text-slate-400">Step 07 - 13</span>
-            </div>
+          {/* FAQ 2: VALIDA */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden transition-all">
+            <button
+              onClick={() => toggleFaq("valida")}
+              className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 hover:bg-slate-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-950 font-extrabold text-xs border border-emerald-300 shrink-0">
+                  🚀 2. VALIDA
+                </span>
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-950">
+                  2. Costruzione della Masterclass, del Videocorso e del Sistema di Vendita
+                </h3>
+              </div>
 
-            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950">
-              2. Costruzione della Masterclass, del Videocorso e del Sistema di Vendita
-            </h3>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs font-mono font-bold text-slate-400 hidden sm:inline">Step 07 - 13</span>
+                <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform duration-300 ${openFaq === "valida" ? "rotate-180 text-emerald-600" : ""}`} />
+              </div>
+            </button>
 
-            <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
-              Trasformiamo la tua competenza in prodotti digitali ad alto valore. Il Team CIAK redige gli script della Masterclass e delle lezioni, ti supporta durante le registrazioni e configura l'intera infrastruttura web (funnel, checkout Stripe e automazioni accessi).
-            </p>
-
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Script Masterclass & Teleprompter</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Videocorso & Piattaforma Moduli</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Funnel & Pagina di Cassa Stripe</span>
-            </div>
+            {openFaq === "valida" && (
+              <div className="px-5 pb-6 sm:px-6 sm:pb-6 pt-2 border-t border-slate-100 space-y-4 text-xs text-slate-600 leading-relaxed bg-slate-50/50">
+                <p className="text-sm text-slate-700">
+                  Trasformiamo la tua competenza in prodotti digitali ad alto valore. Il Team CIAK redige gli script della Masterclass e delle lezioni, ti supporta durante le registrazioni e configura l'intera infrastruttura web (funnel, checkout Stripe e automazioni accessi).
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-bold text-slate-800">
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Script Masterclass & Teleprompter</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Videocorso & Piattaforma Moduli</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Funnel & Pagina di Cassa Stripe</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* BANNER 3: OTTIMIZZA */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <span className="px-3.5 py-1 rounded-full bg-blue-100 text-blue-950 font-extrabold text-xs border border-blue-300 w-max inline-flex items-center gap-1.5">
-                <span>📈</span> 3. OTTIMIZZA · SCALING & CASO STUDIO
-              </span>
-              <span className="text-xs font-mono font-bold text-slate-400">Step 14+</span>
-            </div>
+          {/* FAQ 3: OTTIMIZZA */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden transition-all">
+            <button
+              onClick={() => toggleFaq("ottimizza")}
+              className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 hover:bg-slate-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-950 font-extrabold text-xs border border-blue-300 shrink-0">
+                  📈 3. OTTIMIZZA
+                </span>
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-950">
+                  3. Lancio Ufficialmente Online, Raccolta Dati e Scaling delle Vendite
+                </h3>
+              </div>
 
-            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950">
-              3. Lancio Ufficialmente Online, Raccolta Dati e Scaling delle Vendite
-            </h3>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs font-mono font-bold text-slate-400 hidden sm:inline">Step 14+</span>
+                <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform duration-300 ${openFaq === "ottimizza" ? "rotate-180 text-blue-600" : ""}`} />
+              </div>
+            </button>
 
-            <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
-              Apriamo le vendite sul mercato e tracciiamo il comportamento dei primi clienti reali. Sulla base dei numeri prodotti, ottimizziamo continuamente i flussi di conversione e documentiamo l'evoluzione del tuo progetto all'interno del tuo Caso Studio ufficiale.
-            </p>
-
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Carrello & Vendite Attive</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Ottimizzazione Tassi di Conversione</span>
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">✓ Caso Studio Ufficiale Partner</span>
-            </div>
+            {openFaq === "ottimizza" && (
+              <div className="px-5 pb-6 sm:px-6 sm:pb-6 pt-2 border-t border-slate-100 space-y-4 text-xs text-slate-600 leading-relaxed bg-slate-50/50">
+                <p className="text-sm text-slate-700">
+                  Apriamo le vendite sul mercato e tracciiamo il comportamento dei primi clienti reali. Sulla base dei numeri prodotti, ottimizziamo continuamente i flussi di conversione e documentiamo l'evoluzione del tuo progetto all'interno del tuo Caso Studio ufficiale.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-bold text-slate-800">
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Carrello & Vendite Attive</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Ottimizzazione Tassi di Conversione</span>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">✓ Caso Studio Ufficiale Partner</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
