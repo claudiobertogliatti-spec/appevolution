@@ -1,7 +1,6 @@
 /**
  * Anteprima Interattiva dal Vivo: Sezione Team Area Partner CIAK.
- * 2 Team Separati: Team Strategico & Tutor Dedicati vs Team Produzione & Specialisti Tecnici.
- * Sfondo Bianco Puro (#FFFFFF) con foto, descrizione ruolo estesa e chat 1-on-1.
+ * Layout ad ampia visibilità (Full-Width max-w-[1400px]).
  */
 import React from "react";
 import { CiakHeader } from "../components/CiakHeader";
@@ -15,7 +14,7 @@ export function CiakPartnerTeamDemo() {
       <CiakHeader />
 
       <main className="bg-white min-h-screen font-[Poppins,system-ui,sans-serif] text-slate-900 border-t border-slate-100">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 py-8 px-4">
+        <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 py-8 px-4 sm:px-8">
           
           {/* SIDEBAR CON LE 2 SEZIONI DI CLAUDIO */}
           <aside className="space-y-4">
