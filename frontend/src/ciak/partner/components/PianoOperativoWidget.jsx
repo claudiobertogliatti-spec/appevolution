@@ -202,33 +202,36 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
 
       {/* MODAL VISUALIZZATORE PIANO OPERATIVO */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-200 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl my-8 relative">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative my-auto border border-slate-700">
+            
+            {/* TASTO CHIUDI */}
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 z-10 bg-slate-950 text-white p-2.5 rounded-full hover:bg-slate-800 transition"
+              className="absolute top-4 right-4 z-20 bg-slate-950 text-white p-2.5 rounded-full hover:bg-slate-800 transition shadow-lg border border-slate-700"
+              aria-label="Chiudi"
             >
               <X className="h-5 w-5" />
             </button>
 
-            {/* HEADER PAPER */}
-            <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white p-8 md:p-12 relative">
-              <div className="flex items-center justify-between mb-6">
-                <img src="/ciak/logo.webp" alt="CIAK" className="h-10 w-auto" />
+            {/* HEADER PAPER - FISSO IN ALTO */}
+            <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white p-6 sm:p-8 md:p-10 relative shrink-0">
+              <div className="flex items-center justify-between mb-4 pr-12">
+                <img src="/ciak/logo.webp" alt="CIAK" className="h-8 sm:h-9 w-auto" />
                 <span className="px-3 py-1 bg-yellow-400/20 border border-yellow-400 text-yellow-300 rounded-full font-bold text-xs">
                   PROTOCOLLO VALIDATO (STEP {completedCount}/{totalSteps})
                 </span>
               </div>
 
-              <h2 className="text-3xl font-extrabold">PIANO OPERATIVO STRATEGICO</h2>
-              <p className="text-sm text-slate-300 mt-1">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">PIANO OPERATIVO STRATEGICO</h2>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1">
                 Documento Master Unificato: Da Anagrafica a Lancio dell'Accademia
               </p>
 
-              <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
                 <div>
                   <strong className="text-white block text-sm">{partner.name || partnerName || "Partner CIAK"}</strong>
-                  <span>{partner.brand_name || "Accademia Digitale"}</span>
+                  <span className="text-slate-400">{partner.brand_name || "Accademia Digitale"}</span>
                 </div>
                 <div className="text-right">
                   <span className="block font-bold text-white">{partner.tutor_name || "Claudio Bertogliatti"}</span>
@@ -237,8 +240,8 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
               </div>
             </div>
 
-            {/* BODY PAPER */}
-            <div className="p-6 md:p-10 space-y-8 bg-white max-h-[60vh] overflow-y-auto">
+            {/* BODY PAPER - SCROLLABILE ALL'INTERNO */}
+            <div className="p-6 md:p-8 space-y-6 bg-white overflow-y-auto flex-1">
               <div className="space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
                   Avanzamento del Protocollo EVO
@@ -258,18 +261,18 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
               </div>
             </div>
 
-            {/* FOOTER MODAL */}
-            <div className="bg-slate-100 p-5 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-xs text-slate-500">CIAK.io · Metodo EVO™</span>
+            {/* FOOTER MODAL - FISSO IN BASSO */}
+            <div className="bg-slate-100 p-4 sm:p-5 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-semibold">CIAK.io · Metodo EVO™</span>
               {isLaunched ? (
                 <button
                   onClick={handleDownloadPdf}
-                  className="px-6 py-2.5 bg-slate-950 text-yellow-400 font-bold rounded-xl text-xs inline-flex items-center gap-2 hover:bg-slate-900 transition"
+                  className="px-6 py-2.5 bg-slate-950 text-yellow-400 font-bold rounded-xl text-xs inline-flex items-center gap-2 hover:bg-slate-900 transition shadow-md"
                 >
                   <Download className="h-4 w-4" /> Scarica Master PDF
                 </button>
               ) : (
-                <span className="text-xs text-amber-800 font-semibold bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300">
+                <span className="text-xs text-amber-800 font-semibold bg-amber-100 px-3.5 py-2 rounded-xl border border-amber-300">
                   🔒 PDF sbloccato a lancio avvenuto
                 </span>
               )}
