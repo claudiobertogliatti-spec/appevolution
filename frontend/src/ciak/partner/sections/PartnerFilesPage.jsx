@@ -1,6 +1,6 @@
 /**
- * Area Partner CIAK — Sezione Materiali & Cloud Vault (Stile Google Drive).
- * Finestre Cartella chiare e leggibili in alto con l'elenco dei file disposti sotto.
+ * Area Partner CIAK — Sezione Materiali & Cloud Vault (Stile Google Drive Snello & Elegante).
+ * Layout compatto, leggero, senza riquadri spessi o caratteri enormi.
  */
 import React, { useState } from "react";
 import {
@@ -11,7 +11,7 @@ import {
 
 // Struttura Cartelle Cloud Vault
 const DRIVE_FOLDERS = [
-  { id: "brand_kit", name: "01. Brand Kit & Strategia", subtitle: "Documenti di Posizionamento Strategico, Brand Kit, Colori Ufficiali, Logo e Contratto Firmato", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "brand_kit", name: "01. Brand Kit & Strategia", subtitle: "Posizionamento Strategico, Brand Kit, Colori Ufficiali, Logo e Contratto Firmato", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
   { id: "scripts", name: "02. Script & Teleprompter", subtitle: "Copywriting persuasivo per la Masterclass, Outline delle lezioni e Tracce Video", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
   { id: "video", name: "03. Video & Moduli Corso", subtitle: "Videolezioni HD registrate, Video di Benvenuto e Risorse multimediali dell'Accademia", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
   { id: "funnel", name: "04. Piattaforma & Stripe", subtitle: "Pagine web del Funnel, Link di Cassa Stripe, Credenziali Subaccount e Dominio", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
@@ -27,7 +27,7 @@ const INITIAL_VAULT_FILES = [
     category: "Piano Master PDF",
     size: "3.4 MB",
     date: "23 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "pdf",
     icon: Award,
     iconColor: "text-amber-600",
@@ -37,10 +37,10 @@ const INITIAL_VAULT_FILES = [
     id: "f-2",
     folderId: "master_pdf",
     name: "Certificato_Fase_Esamina_Mario_Rossi.pdf",
-    category: "Certificato Ufficiale",
+    category: "Certificato",
     size: "1.2 MB",
     date: "22 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "pdf",
     icon: Award,
     iconColor: "text-emerald-600",
@@ -53,7 +53,7 @@ const INITIAL_VAULT_FILES = [
     category: "Posizionamento",
     size: "850 KB",
     date: "21 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "pdf",
     icon: FileText,
     iconColor: "text-blue-600",
@@ -66,7 +66,7 @@ const INITIAL_VAULT_FILES = [
     category: "Brand Kit",
     size: "2.1 MB",
     date: "20 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "pdf",
     icon: FileText,
     iconColor: "text-amber-500",
@@ -79,7 +79,7 @@ const INITIAL_VAULT_FILES = [
     category: "Script Word",
     size: "420 KB",
     date: "19 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "doc",
     icon: PenLine,
     iconColor: "text-yellow-600",
@@ -105,7 +105,7 @@ const INITIAL_VAULT_FILES = [
     category: "Video HD",
     size: "45 MB",
     date: "15 Lug 2026",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "video",
     icon: FileVideo,
     iconColor: "text-red-500",
@@ -118,7 +118,7 @@ const INITIAL_VAULT_FILES = [
     category: "Link Checkout",
     size: "1 KB",
     date: "Oggi",
-    owner: "⚙️ Team CIAK",
+    owner: "⚙️ CIAK",
     type: "link",
     icon: LinkIcon,
     iconColor: "text-emerald-500",
@@ -129,17 +129,15 @@ const INITIAL_VAULT_FILES = [
 export function PartnerFilesPage({ partnerId }) {
   const [files, setFiles] = useState(INITIAL_VAULT_FILES);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState("all"); // "all" o id specifica cartella
+  const [selectedFolderId, setSelectedFolderId] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [previewFileModal, setPreviewFileModal] = useState(null);
 
-  // Cartelle da mostrare in base alla selezione
   const foldersToDisplay = selectedFolderId === "all"
     ? DRIVE_FOLDERS
     : DRIVE_FOLDERS.filter((f) => f.id === selectedFolderId);
 
-  // Filtro dinamico dei file
   const filterFiles = (folderId) => {
     return files.filter((f) => {
       const matchesFolder = f.folderId === folderId;
@@ -166,95 +164,91 @@ export function PartnerFilesPage({ partnerId }) {
     };
     setFiles([newFile, ...files]);
     setUploadModalOpen(false);
-    alert("File caricato con successo nella tua cartella!");
+    alert("File caricato con successo!");
   };
 
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
       
-      {/* HEADER CLOUD VAULT */}
-      <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto space-y-6">
+      {/* HEADER COMPATTO & SOTTILE */}
+      <header className="border-b border-slate-200 bg-white py-6 px-4 sm:px-8">
+        <div className="max-w-6xl mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
-                Cloud Vault · Area Riservata
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600">
+                Cloud Vault · Area Partner
               </span>
-              <h1 className="text-3xl font-extrabold text-slate-950 mt-1">
+              <h1 className="text-2xl font-bold text-slate-950 mt-0.5">
                 I Miei Materiali & Asset
               </h1>
             </div>
 
             <button
               onClick={() => setUploadModalOpen(true)}
-              className="px-6 py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-2xl text-xs hover:bg-yellow-300 transition shadow-md inline-flex items-center justify-center gap-2"
+              className="px-4 py-2.5 bg-yellow-400 text-slate-950 font-bold rounded-xl text-xs hover:bg-yellow-300 transition shadow-sm inline-flex items-center justify-center gap-1.5"
             >
               <Plus className="h-4 w-4 text-slate-950" />
-              Carica File o Documento
+              Carica File
             </button>
           </div>
 
-          {/* BARRA DI RICERCA & FILTRI DI SELEZIONE */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
-            
-            {/* SEARCH INPUT */}
-            <div className="relative flex-1 max-w-xl">
-              <Search className="h-4 w-4 text-slate-400 absolute left-4 top-3.5" />
+          {/* BARRA RICERCA E FILTRI SOTTIMI */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cerca tra file, script, contratti o certificati..."
-                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-950 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder="Cerca file o script..."
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
-                  <X className="h-4 w-4" />
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
 
-            {/* SELETTORE CARTELLA & PROVENIENZA */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
               <select
                 value={selectedFolderId}
                 onChange={(e) => setSelectedFolderId(e.target.value)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-900 outline-none"
+                className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 outline-none"
               >
-                <option value="all">📂 Mostra Tutte le Cartelle</option>
+                <option value="all">📂 Tutte le Cartelle</option>
                 {DRIVE_FOLDERS.map((f) => (
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
               </select>
 
-              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+              <div className="bg-slate-100 p-0.5 rounded-xl flex items-center text-xs font-semibold">
                 <button
                   onClick={() => setFilterOwner("all")}
-                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "all" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-2.5 py-1 rounded-lg transition ${filterOwner === "all" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}
                 >
                   Tutti ({files.length})
                 </button>
                 <button
                   onClick={() => setFilterOwner("ciak")}
-                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "ciak" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-2.5 py-1 rounded-lg transition ${filterOwner === "ciak" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}
                 >
-                  ⚙️ Da CIAK
+                  Da CIAK
                 </button>
                 <button
                   onClick={() => setFilterOwner("user")}
-                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "user" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-2.5 py-1 rounded-lg transition ${filterOwner === "user" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}
                 >
-                  👤 Da Te
+                  Da Te
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </header>
 
-      {/* BODY CONTENT: OGNI CARTELLA È UNA FINESTRA IN ALTO CON I SUOI FILE SOTTO */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-12">
+      {/* SEZIONI CARTELLE SNELLE E PULITE */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-8">
         {foldersToDisplay.map((folder) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;
@@ -262,96 +256,73 @@ export function PartnerFilesPage({ partnerId }) {
           if (searchQuery && folderFiles.length === 0) return null;
 
           return (
-            <section key={folder.id} className="space-y-4">
+            <section key={folder.id} className="space-y-3">
               
-              {/* FINESTRA IN ALTO LEGGIBILE DELLA CARTELLA */}
-              <div className="bg-gradient-to-r from-slate-50 via-slate-50 to-white border-2 border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3.5">
-                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${folder.bg} ${folder.color}`}>
-                      <FolderIcon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 block">
-                        Cartella Cloud
-                      </span>
-                      <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 mt-0.5">
-                        {folder.name}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <span className="px-4 py-1.5 rounded-full bg-slate-950 text-yellow-400 font-mono font-extrabold text-xs w-max shadow-sm">
-                    {folderFiles.length} {folderFiles.length === 1 ? "File presente" : "File presenti"}
+              {/* DIVIDER/HEADER SNOTTO DELLA CARTELLA (UN SOLO RIGO ELEGANTE) */}
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <FolderIcon className={`h-4 w-4 ${folder.color}`} />
+                  <h2 className="text-sm font-bold text-slate-900">
+                    {folder.name}
+                  </h2>
+                  <span className="text-xs text-slate-500 font-normal hidden sm:inline">
+                    · {folder.subtitle}
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  {folder.subtitle}
-                </p>
+                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  {folderFiles.length} file
+                </span>
               </div>
 
-              {/* GRIGLIA FILE CONTENUTI DISPOSTI SOTTO */}
+              {/* GRIGLIA FILE COMPATTA */}
               {folderFiles.length === 0 ? (
-                <div className="p-6 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-400">
-                  Nessun file presente in questa cartella.
-                </div>
+                <p className="text-xs text-slate-400 italic py-2">Nessun file presente.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {folderFiles.map((file) => {
                     const IconComp = file.icon;
                     return (
                       <div
                         key={file.id}
-                        className="bg-white border-2 border-slate-200 rounded-3xl p-5 hover:border-amber-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group"
+                        className="bg-white border border-slate-200 rounded-xl p-3.5 hover:border-amber-400 transition shadow-sm flex flex-col justify-between space-y-3"
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                              <IconComp className={`h-5 w-5 ${file.iconColor}`} />
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <IconComp className={`h-4 w-4 ${file.iconColor}`} />
+                              <span className="text-[10px] font-semibold text-slate-500">{file.category}</span>
                             </div>
-
-                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                               {file.owner}
                             </span>
                           </div>
 
-                          <h3 className="text-xs font-extrabold text-slate-950 leading-snug group-hover:text-amber-600 transition" title={file.name}>
+                          <h3 className="text-xs font-semibold text-slate-900 leading-snug truncate" title={file.name}>
                             {file.name}
                           </h3>
                           
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-3 font-medium">
-                            <span>{file.category}</span>
-                            <span>{file.size}</span>
-                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1 font-normal">
+                            {file.size} · {file.date}
+                          </p>
                         </div>
 
-                        {/* TASTI AZIONE */}
-                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                           <button
                             onClick={() => setPreviewFileModal(file)}
-                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-[11px] inline-flex items-center gap-1 transition"
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-[11px] inline-flex items-center gap-1 transition"
                           >
-                            <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
+                            <Eye className="h-3 w-3 text-amber-600" /> Anteprima
                           </button>
 
-                          {file.url !== "#" ? (
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Scarica
-                            </a>
-                          ) : (
-                            <button
-                              onClick={() => alert(`Scaricamento file: ${file.name}`)}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Scarica
-                            </button>
-                          )}
+                          <a
+                            href={file.url !== "#" ? file.url : `javascript:alert('Download ${file.name}')`}
+                            target={file.url !== "#" ? "_blank" : "_self"}
+                            rel="noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-slate-950 text-yellow-400 font-semibold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
+                          >
+                            <Download className="h-3 w-3" /> Scarica
+                          </a>
                         </div>
                       </div>
                     );
@@ -367,7 +338,7 @@ export function PartnerFilesPage({ partnerId }) {
       {/* MODAL UPLOAD FILE */}
       {uploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 relative">
+          <div className="bg-white w-full max-w-lg rounded-2xl p-6 space-y-5 shadow-xl border border-slate-200 relative">
             <button
               onClick={() => setUploadModalOpen(false)}
               className="absolute top-4 right-4 bg-slate-100 text-slate-700 p-2 rounded-full hover:bg-slate-200 transition"
@@ -377,19 +348,19 @@ export function PartnerFilesPage({ partnerId }) {
 
             <div>
               <span className="text-xs font-mono font-bold text-amber-600 uppercase">Cloud Vault Upload</span>
-              <h3 className="text-xl font-extrabold text-slate-950 mt-0.5">Carica un File nel tuo Spazio</h3>
+              <h3 className="text-lg font-bold text-slate-950 mt-0.5">Carica un File</h3>
             </div>
 
             <form onSubmit={handleUploadSimulated} className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-3 bg-slate-50 hover:border-amber-400 transition cursor-pointer">
-                <Upload className="h-8 w-8 text-amber-600 mx-auto" />
+              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center space-y-2 bg-slate-50 hover:border-amber-400 transition cursor-pointer">
+                <Upload className="h-7 w-7 text-amber-600 mx-auto" />
                 <p className="text-xs font-bold text-slate-800">Trascina qui il tuo file oppure sfoglia</p>
-                <p className="text-[11px] text-slate-400">Supportati: PDF, DOCX, MP4, PNG, JPG (Max 100MB)</p>
+                <p className="text-[11px] text-slate-400">PDF, DOCX, MP4, PNG (Max 100MB)</p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-900 block">Seleziona Cartella di Destinazione:</label>
-                <select className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 outline-none">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-900 block">Cartella Destinazione:</label>
+                <select className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 outline-none">
                   {DRIVE_FOLDERS.map((f) => (
                     <option key={f.id} value={f.id}>{f.name}</option>
                   ))}
@@ -398,9 +369,9 @@ export function PartnerFilesPage({ partnerId }) {
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-xl text-xs hover:bg-yellow-300 transition shadow-md flex items-center justify-center gap-2"
+                className="w-full py-3 bg-yellow-400 text-slate-950 font-bold rounded-xl text-xs hover:bg-yellow-300 transition shadow-sm"
               >
-                CONFERMA CARICAMENTO →
+                CONFERMA CARICAMENTO
               </button>
             </form>
           </div>
@@ -410,7 +381,7 @@ export function PartnerFilesPage({ partnerId }) {
       {/* MODAL ANTEPRIMA FILE */}
       {previewFileModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 relative">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl border border-slate-200 relative">
             <button
               onClick={() => setPreviewFileModal(null)}
               className="absolute top-4 right-4 bg-slate-100 text-slate-700 p-2 rounded-full hover:bg-slate-200 transition"
@@ -418,39 +389,39 @@ export function PartnerFilesPage({ partnerId }) {
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
-                <previewFileModal.icon className={`h-5 w-5 ${previewFileModal.iconColor}`} />
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                <previewFileModal.icon className={`h-4 w-4 ${previewFileModal.iconColor}`} />
               </div>
-              <div>
-                <span className="text-xs font-mono font-bold text-amber-600 uppercase">Anteprima Documento</span>
-                <h3 className="text-lg font-extrabold text-slate-950 truncate max-w-sm">{previewFileModal.name}</h3>
+              <div className="min-w-0">
+                <span className="text-[10px] font-mono font-bold text-amber-600 uppercase block">Anteprima File</span>
+                <h3 className="text-sm font-bold text-slate-950 truncate">{previewFileModal.name}</h3>
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 text-xs text-slate-700">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700">
               <p><strong>Categoria:</strong> {previewFileModal.category}</p>
               <p><strong>Dimensione:</strong> {previewFileModal.size}</p>
               <p><strong>Data Caricamento:</strong> {previewFileModal.date}</p>
               <p><strong>Proprietario:</strong> {previewFileModal.owner}</p>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-2 flex items-center justify-between">
               <button
                 onClick={() => setPreviewFileModal(null)}
-                className="px-5 py-2.5 bg-slate-100 text-slate-900 rounded-xl font-bold text-xs hover:bg-slate-200 transition"
+                className="px-4 py-2 bg-slate-100 text-slate-800 rounded-xl font-semibold text-xs hover:bg-slate-200 transition"
               >
                 Chiudi
               </button>
 
               <button
                 onClick={() => {
-                  alert(`Copiato negli appunti il link al file: ${previewFileModal.name}`);
+                  alert(`Link copiato negli appunti: ${previewFileModal.name}`);
                   setPreviewFileModal(null);
                 }}
-                className="px-5 py-2.5 bg-slate-950 text-yellow-400 rounded-xl font-bold text-xs hover:bg-slate-800 transition inline-flex items-center gap-1.5"
+                className="px-4 py-2 bg-slate-950 text-yellow-400 rounded-xl font-bold text-xs hover:bg-slate-800 transition inline-flex items-center gap-1.5"
               >
-                <LinkIcon className="h-3.5 w-3.5" /> Copia Link Condivisibile
+                <LinkIcon className="h-3.5 w-3.5" /> Copia Link
               </button>
             </div>
           </div>
