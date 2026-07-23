@@ -1,21 +1,37 @@
 /**
  * Anteprima Interattiva dal Vivo: Home Area Partner CIAK.
- * Layout su Sfondo Bianco Puro (#FFFFFF), focalizzato al 100% solo sull'Azione da Fare,
- * senza sezioni "Percorso Guidato" o "Protocollo EVO".
+ * Sfondo Bianco Puro (#FFFFFF) con scheda Azione Interattiva:
+ * Il partner può Modificare, Aggiungere note/dettagli e poi Approvare.
  */
 import React, { useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
-import { PartnerSidebar } from "../partner/PartnerSidebar";
 import { PianoOperativoWidget } from "../partner/components/PianoOperativoWidget";
 import {
   ArrowRight, Clock, Sparkles, ShieldCheck, MessageCircle,
-  FileText, Cog, UserCheck, CheckCircle2, Home, Map, FolderOpen, Users, RefreshCw
+  FileText, Cog, UserCheck, CheckCircle2, Home, Map, FolderOpen, Users, RefreshCw,
+  Pencil, PlusCircle, Check, RotateCcw
 } from "lucide-react";
 
 export function CiakPartnerDashboardDemo() {
   // Simulatore di stato per la demo: "user_action" vs "team_working" vs "launched"
   const [demoState, setDemoState] = useState("user_action");
+
+  // Stato interattivo per la modifica, aggiunta ed approvazione
+  const [isEditing, setIsEditing] = useState(false);
+  const [targetValue, setTargetValue] = useState("Professionisti e lavoratori d'ufficio (35-55 anni) affetti da dolori posturali cronici da scrivania.");
+  const [promessaValue, setPromessaValue] = useState('"Elimina il mal di schiena da scrivania e ritrova la tua postura corretta in 90 giorni, senza farmaci."');
+  const [noteValue, setNoteValue] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
+
+  const handleApprove = () => {
+    setIsApproved(true);
+    setIsEditing(false);
+  };
+
+  const handleResetApproval = () => {
+    setIsApproved(false);
+  };
 
   return (
     <>
@@ -35,7 +51,7 @@ export function CiakPartnerDashboardDemo() {
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
               }`}
             >
-              👤 Azione Utente (Tua Approvazione)
+              👤 Azione Utente (Modifica & Approva)
             </button>
             <button
               onClick={() => setDemoState("team_working")}
@@ -130,7 +146,7 @@ export function CiakPartnerDashboardDemo() {
                 </div>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                "Hai dubbi sulle risposte da approvare? Sono qui per affiancarti."
+                "Hai dubbi sulle risposte da approvare o vuoi personalizzare la tua offerta? Sono qui per affiancarti."
               </p>
               <button 
                 onClick={() => alert("Chat live con Claudio Bertogliatti aperta!")}
@@ -141,10 +157,10 @@ export function CiakPartnerDashboardDemo() {
             </div>
           </aside>
 
-          {/* MAIN CONTENT: SOLO L'AZIONE DA FARE SU SFONDO BIANCO */}
+          {/* MAIN CONTENT: AZIONE INTERATTIVA (MODIFICA, AGGIUNGI & APPROVA SU SFONDO BIANCO) */}
           <div className="space-y-8">
 
-            {/* 1. SCHERMATA AZIONE UTENTE (PURA SU BIANCO) */}
+            {/* 1. SCHERMATA AZIONE UTENTE INTERATTIVA */}
             {demoState === "user_action" && (
               <div className="bg-white rounded-3xl p-8 sm:p-10 border-2 border-slate-200 shadow-lg space-y-6">
                 
@@ -157,44 +173,140 @@ export function CiakPartnerDashboardDemo() {
                     <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold inline-flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5 text-amber-600" /> Tempo stimato: 3 min
                     </span>
-                    <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 inline-flex items-center gap-1.5">
-                      <UserCheck className="h-3.5 w-3.5 text-emerald-600" /> Tua approvazione
+                    <span className={`px-3 py-1.5 rounded-xl font-bold border inline-flex items-center gap-1.5 ${
+                      isApproved 
+                        ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                        : "bg-amber-50 text-amber-900 border-amber-300"
+                    }`}>
+                      {isApproved ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <UserCheck className="h-3.5 w-3.5 text-amber-600" />}
+                      {isApproved ? "Step Approvato" : "Tua approvazione richiesta"}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 leading-tight">
-                    Conferma il tuo Posizionamento Strategico
+                    {isApproved ? "Posizionamento Strategico Approvato ✓" : "Verifica, Personalizza ed Approva la tua Strategia"}
                   </h1>
                   <p className="text-slate-600 text-base leading-relaxed max-w-3xl">
-                    Abbiamo definito il tuo target ideale (<strong className="text-slate-950 font-bold">lavoratori d'ufficio con mal di schiena da scrivania</strong>) e la tua promessa unica. Ti bastano 3 minuti per leggere e confermare la bozza strategica prodotta da Valentina.
+                    Controlla i dati definiti da Valentina e Claudio per la tua Accademia. Puoi <strong className="text-slate-950 font-bold">modificare i campi</strong>, <strong className="text-slate-950 font-bold">aggiungere dettagli o note personali</strong> e infine confermare.
                   </p>
                 </div>
 
-                {/* SCHEDA SINTESI STRATEGICA APPROVAZIONE */}
-                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Sintesi Strategica di Mario Rossi</span>
-                    <span className="text-xs font-bold text-amber-600">Pronta da Approvare</span>
+                {/* SCHEDA SINTESI STRATEGICA MODIFICABILE */}
+                <div className="p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200 space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                    <div>
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block">
+                        Sintesi Strategica dell'Accademia
+                      </span>
+                      <h3 className="text-lg font-bold text-slate-950 mt-0.5">Dott. Mario Rossi</h3>
+                    </div>
+
+                    {!isApproved && (
+                      <button
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-950 font-bold text-xs hover:bg-slate-100 transition inline-flex items-center gap-2 shadow-sm"
+                      >
+                        {isEditing ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Pencil className="h-3.5 w-3.5 text-amber-600" />}
+                        {isEditing ? "Visualizza Anteprima" : "✏️ Modifica o Aggiungi Dettagli"}
+                      </button>
+                    )}
                   </div>
                   
-                  <div className="grid gap-3 text-xs text-slate-700">
-                    <p><strong>🎯 Target Ideale (ICP):</strong> Professionisti 35-55 anni affetti da dolori posturali cronici da scrivania.</p>
-                    <p><strong>✨ Promessa Unica:</strong> <em>"Elimina il mal di schiena da scrivania e ritrova la tua postura corretta in 90 giorni, senza farmaci."</em></p>
-                  </div>
+                  {/* MODALITÀ LETTURA / ANTEPRIMA */}
+                  {!isEditing ? (
+                    <div className="space-y-4 text-sm text-slate-800">
+                      <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-xs font-bold text-amber-700 uppercase tracking-wider block">🎯 Target Ideale (ICP)</span>
+                        <p className="font-semibold text-slate-900">{targetValue}</p>
+                      </div>
+
+                      <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-xs font-bold text-amber-700 uppercase tracking-wider block">✨ Promessa Unica in 1 Frase</span>
+                        <p className="font-medium text-slate-900 italic">{promessaValue}</p>
+                      </div>
+
+                      {noteValue && (
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                          <span className="text-xs font-bold text-amber-900 uppercase tracking-wider block">📌 Tua Note / Precisazione Aggiunta:</span>
+                          <p className="text-xs text-amber-950 font-medium">{noteValue}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* MODALITÀ MODIFICA ED AGGIUNTA CAMPI INLINE */
+                    <div className="space-y-5 text-xs">
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-900 block text-xs">
+                          🎯 Target Ideale (ICP) — Chi è il tuo studente prioritario?
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={targetValue}
+                          onChange={(e) => setTargetValue(e.target.value)}
+                          className="w-full p-3 rounded-xl bg-white border border-slate-300 text-slate-950 font-medium text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-900 block text-xs">
+                          ✨ Promessa Unica in 1 Frase — Quale risultato garantisci?
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={promessaValue}
+                          onChange={(e) => setPromessaValue(e.target.value)}
+                          className="w-full p-3 rounded-xl bg-white border border-slate-300 text-slate-950 font-medium text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                        <label className="font-bold text-amber-800 flex items-center gap-1.5 text-xs">
+                          <PlusCircle className="h-4 w-4 text-amber-600" /> Aggiungi una nota o precisazione per il Team CIAK:
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Es. Vorrei enfatizzare che il corso include anche schede d'esercizio stampabili..."
+                          value={noteValue}
+                          onChange={(e) => setNoteValue(e.target.value)}
+                          className="w-full p-3 rounded-xl bg-white border border-amber-300 text-slate-950 font-medium text-xs focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-                  <button 
-                    onClick={() => alert("Posizionamento confermato ed approvato con successo!")}
-                    className="w-full sm:w-auto px-8 py-4 bg-yellow-400 text-slate-950 rounded-2xl font-extrabold text-sm shadow-md hover:bg-yellow-300 transition flex items-center justify-center gap-2"
-                  >
-                    CONFERMA E APPROVA QUESTO STEP <ArrowRight className="h-4 w-4 text-slate-950" />
-                  </button>
-                  <span className="text-xs font-medium text-slate-500">
-                    💡 Appena confermi, il Team CIAK inizierà a scrivere lo script della tua Masterclass.
-                  </span>
+                {/* BOTTONI AZIONE APPROVAZIONE */}
+                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+                  {!isApproved ? (
+                    <>
+                      <button 
+                        onClick={handleApprove}
+                        className="w-full sm:w-auto px-8 py-4 bg-yellow-400 text-slate-950 rounded-2xl font-extrabold text-sm shadow-md hover:bg-yellow-300 transition flex items-center justify-center gap-2"
+                      >
+                        <Check className="h-4 w-4 text-slate-950" />
+                        {isEditing || noteValue ? "SALVA MODIFICHE E APPROVA STEP" : "CONFERMA E APPROVA QUESTO STEP"}
+                      </button>
+
+                      <span className="text-xs font-medium text-slate-500">
+                        💡 Puoi modificare le risposte in qualsiasi momento prima che il team avvii la produzione video.
+                      </span>
+                    </>
+                  ) : (
+                    <div className="w-full bg-emerald-50 border border-emerald-300 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 text-xs text-emerald-900 font-bold">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                        <span>Step Approvato con successo! Il Team CIAK sta avviando la Fase 07 (Script Masterclass).</span>
+                      </div>
+                      <button
+                        onClick={handleResetApproval}
+                        className="px-4 py-2 bg-white border border-emerald-300 text-slate-900 rounded-xl font-bold text-xs hover:bg-slate-50 transition shrink-0 inline-flex items-center gap-1.5"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-slate-500" /> Modifica di nuovo
+                      </button>
+                    </div>
+                  )}
                 </div>
 
               </div>
