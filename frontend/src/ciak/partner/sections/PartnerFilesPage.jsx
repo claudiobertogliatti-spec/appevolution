@@ -247,8 +247,8 @@ export function PartnerFilesPage({ partnerId }) {
         </div>
       </header>
 
-      {/* SEZIONI CARTELLE SNELLE E PULITE */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-8">
+      {/* SEZIONI CARTELLE ELEGANTE E AMPIAMENTE DISTANZIATE PER RESPIRO VISIVO */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-12 sm:space-y-14">
         {foldersToDisplay.map((folder) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;
@@ -256,10 +256,10 @@ export function PartnerFilesPage({ partnerId }) {
           if (searchQuery && folderFiles.length === 0) return null;
 
           return (
-            <section key={folder.id} className="space-y-3">
+            <section key={folder.id} className="space-y-3.5 pt-2">
               
-              {/* DIVIDER/HEADER SNOTTO DELLA CARTELLA (UN SOLO RIGO ELEGANTE) */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              {/* DIVIDER/HEADER CARTELLA CON MAGGIORE AMPIEZZA */}
+              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
                   <FolderIcon className={`h-4 w-4 ${folder.color}`} />
                   <h2 className="text-sm font-bold text-slate-900">
