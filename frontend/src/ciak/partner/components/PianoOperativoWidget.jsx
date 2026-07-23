@@ -15,6 +15,39 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
 
   useEffect(() => {
     if (!partnerId) return;
+    if (partnerId.startsWith("demo")) {
+      setData({
+        success: true,
+        is_launched: false,
+        is_unlocked: false,
+        completed_count: 5,
+        total_steps: 14,
+        partner: {
+          name: partnerName || "Dott. Mario Rossi",
+          brand_name: "Accademia Posturologia Integrata",
+          tutor_name: "Claudio Bertogliatti",
+          is_launched: false
+        },
+        steps: [
+          { step_id: "01-contratto", label: "01. Contratto & Distinta", status: "done" },
+          { step_id: "02-discovery-video", label: "02. Video di Benvenuto", status: "done" },
+          { step_id: "burocrazia", label: "03. Dati Burocratici", status: "done" },
+          { step_id: "03-brand-kit", label: "04. Brand Kit & Logo", status: "done" },
+          { step_id: "la-tua-storia", label: "05. La Tua Storia", status: "done" },
+          { step_id: "04-posizionamento", label: "06. Posizionamento Strategico", status: "in_progress" },
+          { step_id: "05-script-masterclass", label: "07. Script Masterclass", status: "todo" },
+          { step_id: "06-outline-lezioni", label: "08. Outline Lezioni", status: "todo" },
+          { step_id: "07-script-videolezioni", label: "09. Script Videolezioni", status: "todo" },
+          { step_id: "08-registra-masterclass", label: "10. Registra Masterclass", status: "todo" },
+          { step_id: "09-registra-lezioni", label: "11. Registra Lezioni", status: "todo" },
+          { step_id: "10-sistema-vendita", label: "12. Funnel & Stripe", status: "todo" },
+          { step_id: "11-calendario-30gg", label: "13. Calendario Lancio", status: "todo" },
+          { step_id: "13-lancio", label: "14. Lancio Ufficiale", status: "todo" }
+        ]
+      });
+      setLoading(false);
+      return;
+    }
     fetch(`/api/partner-journey/piano-operativo-data/${partnerId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
