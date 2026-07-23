@@ -17,9 +17,9 @@ function firstName(name) {
   return (name || "").split(" ")[0] || "";
 }
 
-function getActiveAgent(step) {
-  // Al 1° Accesso (step Benvenuto o esamina_1), la Coordinatrice che si presenta è Simona (AGENTS.STEFANIA)
-  if (!step || step.step_id === "esamina_1" || step.title === "Benvenuto") {
+function getActiveAgent(step, completedCount = 0) {
+  // Al 1° Accesso (quando il partner ha completato 0 step o è nello step iniziale), la Coordinatrice che si presenta è Simona (AGENTS.STEFANIA)
+  if (completedCount === 0 || !step || step.step_id === "esamina_1" || step.title === "Benvenuto" || step.order === 1) {
     return AGENTS.STEFANIA;
   }
   if (step.macro_phase === "esamina") return AGENTS.VALENTINA;
@@ -40,13 +40,13 @@ export default function GuidedHome({
   onReplayWelcome,
 }) {
   const current = state?.current_step || state?.steps?.find((s) => !s.completed) || state?.steps?.[0];
-  const agent = getActiveAgent(current);
-  const nome = firstName(partnerName);
   const completed = state?.completed_count || 0;
+  const agent = getActiveAgent(current, completed);
+  const nome = firstName(partnerName);
   const total = state?.total_steps || state?.steps?.length || 0;
   const progress = total ? Math.round((completed / total) * 100) : 0;
   const currentTitle = current?.title || current?.label || "Riprendi il percorso";
-  const isWelcomeStep = !current || current.step_id === "esamina_1" || current.title === "Benvenuto";
+  const isWelcomeStep = completed === 0 || !current || current.step_id === "esamina_1" || current.title === "Benvenuto" || current.order === 1;
 
   return (
     <div className="space-y-6 font-[Poppins,system-ui,sans-serif]">
