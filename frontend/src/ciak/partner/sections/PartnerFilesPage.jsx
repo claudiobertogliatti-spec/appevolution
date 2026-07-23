@@ -1,12 +1,13 @@
 /**
- * Area Partner CIAK — Sezione Materiali & Cloud Vault (Stile Google Drive Snello & Elegante).
- * Layout compatto, leggero, senza riquadri spessi o caratteri enormi.
+ * Area Partner CIAK — Sezione Materiali & Cloud Vault.
+ * Organizzazione in Cartelle a Menu a Tendina (FAQ Accordion Style)
+ * con ampio respiro visivo e lista orizzontale dei file allineata.
  */
 import React, { useState } from "react";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
   FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
-  Sparkles, Lock, ShieldCheck, X, Upload, Check, Folder, ChevronRight
+  Sparkles, Lock, ShieldCheck, X, Upload, Check, Folder, ChevronDown, ChevronUp
 } from "lucide-react";
 
 // Struttura Cartelle Cloud Vault
@@ -134,6 +135,19 @@ export function PartnerFilesPage({ partnerId }) {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [previewFileModal, setPreviewFileModal] = useState(null);
 
+  // Stato espansione menu a tendina cartelle (tutte aperte di default)
+  const [openFolders, setOpenFolders] = useState({
+    brand_kit: true,
+    scripts: true,
+    video: true,
+    funnel: true,
+    master_pdf: true,
+  });
+
+  const toggleFolder = (id) => {
+    setOpenFolders((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const foldersToDisplay = selectedFolderId === "all"
     ? DRIVE_FOLDERS
     : DRIVE_FOLDERS.filter((f) => f.id === selectedFolderId);
@@ -170,7 +184,7 @@ export function PartnerFilesPage({ partnerId }) {
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
       
-      {/* HEADER COMPATTO & SOTTILE */}
+      {/* HEADER CLOUD VAULT */}
       <header className="border-b border-slate-200 bg-white py-6 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -247,97 +261,117 @@ export function PartnerFilesPage({ partnerId }) {
         </div>
       </header>
 
-      {/* SEZIONI CARTELLE MOLTO AMPIAMENTE DISTANZIATE PER MASSIMO RESPIRO VISIVO */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 space-y-20 sm:space-y-24">
-        {foldersToDisplay.map((folder, idx) => {
+      {/* CARTELLE CON MENU A TENDINA (ACCORDION FAQ STYLE) E RESPIRO VISIVO AMPIO */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-8">
+        {foldersToDisplay.map((folder) => {
           const folderFiles = filterFiles(folder.id);
           const FolderIcon = folder.icon;
+          const isOpen = !!openFolders[folder.id];
 
           if (searchQuery && folderFiles.length === 0) return null;
 
           return (
-            <section key={folder.id} className={`space-y-4 ${idx > 0 ? "pt-6 border-t border-slate-100" : ""}`}>
+            <div
+              key={folder.id}
+              className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition"
+            >
               
-              {/* DIVIDER/HEADER CARTELLA MOLTO AMPIO */}
-              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3.5">
-                <div className="flex items-center gap-2.5">
-                  <FolderIcon className={`h-4 w-4 ${folder.color}`} />
-                  <h2 className="text-sm font-bold text-slate-900">
-                    {folder.name}
-                  </h2>
-                  <span className="text-xs text-slate-500 font-normal hidden sm:inline">
-                    · {folder.subtitle}
-                  </span>
+              {/* HEADER MENU A TENDINA (ACCORDION CLICKABLE BANNER) */}
+              <button
+                onClick={() => toggleFolder(folder.id)}
+                className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 bg-slate-50/80 hover:bg-slate-100/80 transition group"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${folder.bg} ${folder.color}`}>
+                    <FolderIcon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-extrabold text-slate-950 group-hover:text-amber-600 transition">
+                      {folder.name}
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                      {folder.subtitle}
+                    </p>
+                  </div>
                 </div>
 
-                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                  {folderFiles.length} file
-                </span>
-              </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs font-mono font-extrabold px-3 py-1 rounded-full bg-slate-200/80 text-slate-800">
+                    {folderFiles.length} file
+                  </span>
+                  <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-amber-400 group-hover:text-slate-950 transition">
+                    {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </div>
+              </button>
 
-              {/* LISTA FILE ORIZZONTALE STILE GOOGLE DRIVE (ALLINEAMENTO PERFETTO) */}
-              {folderFiles.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-2">Nessun file presente in questa cartella.</p>
-              ) : (
-                <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-sm">
-                  {folderFiles.map((file) => {
-                    const IconComp = file.icon;
-                    return (
-                      <div
-                        key={file.id}
-                        className="p-3.5 sm:p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                      >
-                        {/* ICONA, NOME E METADATI FILE */}
-                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                          <div className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
-                            <IconComp className={`h-4 w-4 ${file.iconColor}`} />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-slate-950 text-xs truncate" title={file.name}>
-                                {file.name}
-                              </h3>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
-                                {file.owner}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 font-medium">
-                              <span>{file.category}</span>
-                              <span>·</span>
-                              <span>{file.size}</span>
-                              <span>·</span>
-                              <span>{file.date}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* BOTTONI D'AZIONE ALLINEATI A DESTRA */}
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <button
-                            onClick={() => setPreviewFileModal(file)}
-                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
+              {/* BODY MENU A TENDINA (DISCESA FILE SOTTO) */}
+              {isOpen && (
+                <div className="p-4 sm:p-6 border-t border-slate-200 bg-white space-y-3">
+                  {folderFiles.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-2">Nessun file presente in questa cartella.</p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                      {folderFiles.map((file) => {
+                        const IconComp = file.icon;
+                        return (
+                          <div
+                            key={file.id}
+                            className="p-3.5 sm:p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                           >
-                            <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
-                          </button>
+                            {/* NOME FILE E INFO */}
+                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                              <div className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                                <IconComp className={`h-4 w-4 ${file.iconColor}`} />
+                              </div>
 
-                          <a
-                            href={file.url !== "#" ? file.url : `javascript:alert('Download ${file.name}')`}
-                            target={file.url !== "#" ? "_blank" : "_self"}
-                            rel="noreferrer"
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 hover:bg-slate-800 transition"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Scarica
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-bold text-slate-950 text-xs truncate" title={file.name}>
+                                    {file.name}
+                                  </h3>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                    {file.owner}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 font-medium">
+                                  <span>{file.category}</span>
+                                  <span>·</span>
+                                  <span>{file.size}</span>
+                                  <span>·</span>
+                                  <span>{file.date}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* TASTI AZIONE */}
+                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                              <button
+                                onClick={() => setPreviewFileModal(file)}
+                                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
+                              </button>
+
+                              <a
+                                href={file.url !== "#" ? file.url : `javascript:alert('Download ${file.name}')`}
+                                target={file.url !== "#" ? "_blank" : "_self"}
+                                rel="noreferrer"
+                                className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 hover:bg-slate-800 transition"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Scarica
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
-            </section>
+            </div>
           );
         })}
       </div>
