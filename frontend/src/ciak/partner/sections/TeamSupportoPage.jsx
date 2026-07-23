@@ -1,12 +1,12 @@
 /**
  * Area Partner CIAK — Sezione Team.
  *
- * 1) PRIMO GRUPPO (IN ALTO): TEAM AGENTICO
+ * 🤖 01. PRIMO GRUPPO (IN ALTO): TEAM AGENTICO (AI Agents con Chat Singola)
  *    - Simona, Valentina, Andrea, Gaia, Marco, Carlo (ciascuno con Chat Singola 1-on-1)
  *
- * 2) SECONDO GRUPPO (SOTTO): TEAM UMANO DI SUPERVISIONE
- *    - Claudio, Antonella, Stefania, Matteo, Debora (SENZA chat singola)
- *    - Pulsante diretto verso il CANALE TELEGRAM DEDICATO per il supporto umano 1-on-1.
+ * 🧑‍💼 02. SECONDO GRUPPO (SOTTO): TEAM UMANO EVOLUTION PRO
+ *    - Claudio Bertogliatti, Stefania R., Antonella R., Matteo P., Debora B. (SENZA chat singola)
+ *    - Foto reali del team Evolution PRO e supporto sul Canale Telegram Dedicato.
  *
  * Mantiene le stesse identiche distanze (max-w-[1400px], py-8 px-4 sm:px-8) e cartelle a tendina.
  */
@@ -18,7 +18,7 @@ import {
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
-// 🤖 PRIMO GRUPPO: TEAM AGENTICO (CON CHAT SINGOLA)
+// 🤖 PRIMO GRUPPO: TEAM AGENTICO (CON CHAT SINGOLA 1-ON-1)
 export const AGENTIC_TEAM = [
   {
     id: "STEFANIA",
@@ -27,7 +27,7 @@ export const AGENTIC_TEAM = [
     avatar: "/agents/stefania.jpg",
     initial: "S",
     badge: "🤖 Agent AI",
-    description: "Tiene insieme tutto il percorso e ti dà sempre la prossima mossa quando non sai da dove ripartire. È il tuo primo punto di contatto per qualsiasi dubbio.",
+    description: "Tiene insieme tutto il percorso e ti dà sempre la prossima mossa quando non sai da dove ripartire. È il tuo primo punto di contatto in chat.",
     focus: "Orientamento, priorità e blocchi generali",
   },
   {
@@ -78,56 +78,56 @@ export const AGENTIC_TEAM = [
     initial: "C",
     badge: "🤖 Agent AI",
     description: "Analizza i tuoi dati ed il tuo posizionamento per dirti, numeri alla mano, dove spingere e cosa correggere.",
-    focus: "Analisi dati, KPI e sostenibilità economca",
+    focus: "Analisi dati, KPI e sostenibilità economica",
   },
 ];
 
-// 🧑‍💼 SECONDO GRUPPO: TEAM UMANO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO)
+// 🧑‍💼 SECONDO GRUPPO: TEAM UMANO EVOLUTION PRO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO)
 export const HUMAN_TEAM = [
   {
     id: "CLAUDIO",
-    name: "Claudio",
-    role: "Founder & Master Tutor Strategico",
+    name: "Claudio Bertogliatti",
+    role: "Founder & CEO Evolution PRO",
     avatar: "/founder/claudio-portrait-640.webp",
     initial: "CB",
-    badge: "🧑 Team Umano",
+    badge: "🧑 Team Umano Reale",
     description: "Supervisiona l'intera architettura strategica del tuo percorso lungo le 14 Fasi e valida il tuo Piano Operativo Master.",
   },
   {
-    id: "ANTONELLA",
-    name: "Antonella",
-    role: "Human Operations & Quality Manager",
-    avatar: "/agents/stefania.jpg",
-    initial: "A",
-    badge: "🧑 Team Umano",
-    description: "Supervisiona la qualità operativa e garantisce che ogni risorsa consegnata rispetti gli standard del Metodo EVO.",
+    id: "STEFANIA_HUMAN",
+    name: "Stefania R.",
+    role: "Back Office & Supporto Post-Vendita",
+    avatar: "/team/stefania.jpg",
+    initial: "S",
+    badge: "🧑 Team Umano Reale",
+    description: "Gestisce l'assistenza operativa post-vendita, il coordinamento delle pratiche e l'affiancamento del partner sul canale Telegram.",
   },
   {
-    id: "STEFANIA_HUMAN",
-    name: "Stefania",
-    role: "Human Relationship & Partner Success",
-    avatar: "/agents/stefania.jpg",
-    initial: "S",
-    badge: "🧑 Team Umano",
-    description: "Assicura che il tuo affiancamento proceda senza intralci e coordina la comunicazione diretta sul canale Telegram.",
+    id: "ANTONELLA",
+    name: "Antonella R.",
+    role: "Media Strategist",
+    avatar: "/team/antonella.jpg",
+    initial: "A",
+    badge: "🧑 Team Umano Reale",
+    description: "Supervisiona la strategia media, l'impatto visivo dei materiali pubblicitari e la qualità complessiva delle campagne.",
   },
   {
     id: "MATTEO_HUMAN",
-    name: "Matteo",
-    role: "Human Systems & Technical Director",
-    avatar: "/agents/matteo.jpg",
+    name: "Matteo P.",
+    role: "Video Maker & Media Production",
+    avatar: "/team/matteo.jpg",
     initial: "M",
-    badge: "🧑 Team Umano",
-    description: "Direttore tecnico ed ingegnere dei sistemi: collauda le infrastrutture web ed i collegamenti complessi.",
+    badge: "🧑 Team Umano Reale",
+    description: "Supervisiona la produzione video, il montaggio delle lezioni HD ed il collaudo tecnico delle registrazioni per l'Accademia.",
   },
   {
     id: "DEBORA",
-    name: "Debora",
-    role: "Human Copy & Content Supervisor",
-    avatar: "/agents/valentina.jpg",
+    name: "Debora B.",
+    role: "Amministrazione & Operations",
+    avatar: "/team/debora.jpg",
     initial: "D",
-    badge: "🧑 Team Umano",
-    description: "Revisiona ed approva la qualità dei testi, delle grafiche e dei contenuti visivi destinati al tuo mercato.",
+    badge: "🧑 Team Umano Reale",
+    description: "Gestisce la contabilizzazione, le fatturazioni e le procedure amministrative sul tuo canale Telegram riservato.",
   },
 ];
 
@@ -322,7 +322,7 @@ function AgenticCard({ agent, onChat }) {
   );
 }
 
-// ─── CARD UMANO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO) ─────────
+// ─── CARD UMANO EVOLUTION PRO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO) ─
 function HumanCard({ agent, onTelegram }) {
   return (
     <div className="bg-white border-2 border-slate-200/80 rounded-3xl p-6 hover:border-blue-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-5 group">
@@ -388,13 +388,13 @@ export function TeamSupportoPage({ partner }) {
       <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
         <div className="w-full max-w-[1400px] mx-auto space-y-3">
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
-            Ecosistema CIAK · Team Agentico & Supervisione Umana
+            Ecosistema CIAK · Team Agentico & Team Umano Evolution PRO
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950">
             Team Agentico & Team Umano Dedicato
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-            Interagisci con il <strong>Team Agentico AI</strong> in chat singola per risposte immediate 24/7. Per la supervisione strategica 1-on-1 ed il supporto del <strong>Team Umano</strong>, utilizza il tuo canale Telegram dedicato.
+            Interagisci con il <strong>Team Agentico AI</strong> in chat singola 1-on-1 per risposte immediate 24/7. Per la supervisione strategica 1-on-1 ed il supporto del <strong>Team Umano Evolution PRO</strong> (Claudio, Stefania, Antonella, Matteo e Debora), utilizza il tuo canale Telegram dedicato.
           </p>
         </div>
       </header>
@@ -414,7 +414,7 @@ export function TeamSupportoPage({ partner }) {
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 block">
-                  SUPPORTI SPECIALISTICI IN CHAT CHIAMATA SINGOLA
+                  SUPPORTI SPECIALISTICI IN CHAT SINGOLA
                 </span>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-amber-600 transition">
                   01. Team Agentico AI ({AGENTIC_TEAM.length} Referenti con Chat Singola)
@@ -458,13 +458,13 @@ export function TeamSupportoPage({ partner }) {
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600 block">
-                  SUPERVISIONE UMANA MASTER & AFFIANCAMENTO
+                  SUPERVISIONE UMANA REALE & AFFIANCAMENTO
                 </span>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-blue-600 transition">
                   02. Team Umano Evolution PRO ({HUMAN_TEAM.length} Referenti Reali · Canale Telegram Dedicato)
                 </h2>
                 <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                  Claudio, Antonella, Stefania, Matteo e Debora che supervisionano ed approvano le decisioni sul tuo canale Telegram dedicato.
+                  Claudio, Stefania R., Antonella R., Matteo P. e Debora B. sul tuo canale Telegram dedicato.
                 </p>
               </div>
             </div>
@@ -486,10 +486,10 @@ export function TeamSupportoPage({ partner }) {
               <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent border-l-4 border-blue-600 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-950">
-                    Canale Telegram Dedicato al tuo Percorso
+                    Canale Telegram Dedicato per il Supporto Umano 1-on-1
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Tutto il Team Umano (Claudio, Antonella, Stefania, Matteo e Debora) è presente nel tuo gruppo Telegram riservato per darti supporto diretto.
+                    L'intero Team Umano Evolution PRO (Claudio, Stefania R., Antonella R., Matteo P. e Debora B.) è presente nel tuo gruppo Telegram riservato per darti supporto diretto.
                   </p>
                 </div>
                 <button
