@@ -12,11 +12,11 @@ import {
 
 // Struttura Cartelle Google Drive Style per il Protocollo EVO
 const DRIVE_FOLDERS = [
-  { id: "brand_kit", name: "01. Brand Kit & Strategia", count: 4, icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
-  { id: "scripts", name: "02. Script & Teleprompter", count: 3, icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
-  { id: "video", name: "03. Video & Moduli Corso", count: 6, icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
-  { id: "funnel", name: "04. Piattaforma & Stripe", count: 2, icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
-  { id: "master_pdf", name: "05. Piano Master & Certificati", count: 3, icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "brand_kit", name: "01. Brand Kit & Strategia", subtitle: "Posizionamento, Colori Ufficiali e Logo", count: 4, icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "scripts", name: "02. Script & Teleprompter", subtitle: "Script Masterclass e Outline Lezioni", count: 3, icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
+  { id: "video", name: "03. Video & Moduli Corso", subtitle: "Videolezioni HD e Benvenuto", count: 6, icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "funnel", name: "04. Piattaforma & Stripe", subtitle: "Funnel URL e Cassa Stripe", count: 2, icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { id: "master_pdf", name: "05. Piano Master & Certificati", subtitle: "Dispensa Master PDF 14 Fasi & Certificati", count: 3, icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
 ];
 
 // Mock File Vault per la demo e l'integrazione reale
@@ -267,29 +267,46 @@ export function PartnerFilesPage({ partnerId }) {
       {/* BODY CONTENT */}
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8">
         
-        {/* 1. SEZIONE CARTELLE (GOOGLE DRIVE STYLE FOLDERS) */}
-        <div className="space-y-3">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 block">
-            Cartelle del Progetto
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* 1. SEZIONE CARTELLE (SPAZIOSA SENZA TESTI TAGLIATI) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
+              Cartelle del Cloud Vault
+            </span>
+            <span className="text-xs font-semibold text-slate-500">Seleziona una cartella per filtrare i file</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* TUTTI I MATERIALI */}
             <button
               onClick={() => setSelectedFolder("all")}
-              className={`p-4 rounded-2xl border text-left transition flex items-center justify-between gap-3 ${
+              className={`p-5 rounded-3xl border-2 text-left transition flex items-center justify-between gap-4 ${
                 selectedFolder === "all"
                   ? "bg-slate-950 text-yellow-400 border-slate-950 font-extrabold shadow-md"
-                  : "bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-bold"
+                  : "bg-white border-slate-200 hover:border-amber-400 text-slate-950 font-bold"
               }`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Folder className="h-5 w-5 shrink-0" />
-                <span className="text-xs truncate">Tutti i Materiali</span>
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                  selectedFolder === "all" ? "bg-yellow-400 text-slate-950" : "bg-amber-100 text-amber-700"
+                }`}>
+                  <Folder className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold leading-snug">Tutti i Materiali</h3>
+                  <p className={`text-xs mt-0.5 ${selectedFolder === "all" ? "text-slate-300" : "text-slate-500"}`}>
+                    Archivio globale di tutti gli asset
+                  </p>
+                </div>
               </div>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 font-mono">
-                {files.length}
+              <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold shrink-0 ${
+                selectedFolder === "all" ? "bg-yellow-400/20 text-yellow-300" : "bg-slate-100 text-slate-700"
+              }`}>
+                {files.length} file
               </span>
             </button>
 
+            {/* CARTELLE SPECIFICHE CON TESTO COMPLETO */}
             {DRIVE_FOLDERS.map((folder) => {
               const isActive = selectedFolder === folder.id;
               const FolderIcon = folder.icon;
@@ -297,20 +314,29 @@ export function PartnerFilesPage({ partnerId }) {
                 <button
                   key={folder.id}
                   onClick={() => setSelectedFolder(folder.id)}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between gap-3 ${
+                  className={`p-5 rounded-3xl border-2 text-left transition flex items-center justify-between gap-4 ${
                     isActive
                       ? "bg-amber-400 text-slate-950 border-amber-400 font-extrabold shadow-md"
-                      : "bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-bold"
+                      : "bg-white border-slate-200 hover:border-amber-400 text-slate-950 font-bold"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FolderIcon className={`h-5 w-5 shrink-0 ${isActive ? "text-slate-950" : folder.color}`} />
-                    <span className="text-xs truncate">{folder.name}</span>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                      isActive ? "bg-slate-950 text-yellow-400" : `${folder.bg} ${folder.color}`
+                    }`}>
+                      <FolderIcon className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-extrabold leading-snug">{folder.name}</h3>
+                      <p className={`text-xs mt-0.5 ${isActive ? "text-slate-900 font-medium" : "text-slate-500"}`}>
+                        {folder.subtitle}
+                      </p>
+                    </div>
                   </div>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${
-                    isActive ? "bg-slate-950 text-yellow-400" : "bg-slate-100 text-slate-600"
+                  <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold shrink-0 ${
+                    isActive ? "bg-slate-950 text-yellow-400" : "bg-slate-100 text-slate-700"
                   }`}>
-                    {folder.count}
+                    {folder.count} file
                   </span>
                 </button>
               );
