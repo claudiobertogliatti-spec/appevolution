@@ -23,6 +23,9 @@ export function CiakPartnerDashboardDemo() {
   // Stato simulatore accesso: "first_access" (1° Accesso) vs "returning" (Dal 2° Accesso in poi)
   const [accessMode, setAccessMode] = useState("first_access");
 
+  // Selettore del video di Claudio per la demo
+  const [selectedVideo, setSelectedVideo] = useState("come_funziona");
+
   // Selettore della Fase del Partner nel 2° Accesso
   const [currentPhase, setCurrentPhase] = useState("posizionamento"); // "posizionamento" | "video" | "funnel" | "lancio"
 
@@ -255,18 +258,75 @@ export function CiakPartnerDashboardDemo() {
                       In questo video, Claudio ti spiega la visione di Evolution PRO, come affronteremo le prossime settimane ed il metodo esatto per sfruttare al meglio CIAK senza perderti tra file o dubbi operativi.
                     </p>
 
+                    {/* SELETTORE VIDEO PER CLAUDIO NELLA DEMO */}
+                    <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 space-y-2">
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-yellow-400 block">
+                        Seleziona la sorgente del video di Claudio:
+                      </span>
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        <button
+                          onClick={() => setSelectedVideo("come_funziona")}
+                          className={`px-3 py-1.5 rounded-xl border font-bold transition ${
+                            selectedVideo === "come_funziona"
+                              ? "bg-yellow-400 text-slate-950 border-yellow-400"
+                              : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                          }`}
+                        >
+                          📹 1. Come Funziona Evolution PRO (.mp4)
+                        </button>
+                        <button
+                          onClick={() => setSelectedVideo("team_fianco")}
+                          className={`px-3 py-1.5 rounded-xl border font-bold transition ${
+                            selectedVideo === "team_fianco"
+                              ? "bg-yellow-400 text-slate-950 border-yellow-400"
+                              : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                          }`}
+                        >
+                          📹 2. Il Team Al Tuo Fianco (.mp4)
+                        </button>
+                        <button
+                          onClick={() => setSelectedVideo("heygen_embed")}
+                          className={`px-3 py-1.5 rounded-xl border font-bold transition ${
+                            selectedVideo === "heygen_embed"
+                              ? "bg-yellow-400 text-slate-950 border-yellow-400"
+                              : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                          }`}
+                        >
+                          🎬 3. Video HeyGen Official Embed
+                        </button>
+                      </div>
+                    </div>
+
                     {/* VIDEO PLAYER REALE DI CLAUDIO BERTOGLIATTI */}
                     <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-md">
-                      <video
-                        controls
-                        poster="/founder/claudio-portrait-640.webp"
-                        className="w-full h-full object-cover rounded-2xl"
-                      >
-                        <source src="/video_branded.mp4" type="video/mp4" />
-                        <source src="/ciak/ciak-spot.mp4" type="video/mp4" />
-                        <source src="/video_sottotitolato_v2.mp4" type="video/mp4" />
-                        Il tuo browser non supporta il riproduzione video HTML5.
-                      </video>
+                      {selectedVideo === "heygen_embed" ? (
+                        <iframe
+                          src="https://app.heygen.com/embeds/ac77fcddae7f43c8830acb24bd584106"
+                          title="Video di benvenuto HeyGen Claudio"
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allow="encrypted-media; fullscreen"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          key={selectedVideo}
+                          controls
+                          autoPlay
+                          poster="/founder/claudio-portrait-640.webp"
+                          className="w-full h-full object-cover rounded-2xl"
+                        >
+                          <source
+                            src={
+                              selectedVideo === "team_fianco"
+                                ? "/video/il-team-al-tuo-fianco.mp4"
+                                : "/video/come-funziona-evolution-pro.mp4"
+                            }
+                            type="video/mp4"
+                          />
+                          Il tuo browser non supporta la riproduzione video.
+                        </video>
+                      )}
                     </div>
 
                     {/* PULSANTE CTA DOPO IL VIDEO */}
