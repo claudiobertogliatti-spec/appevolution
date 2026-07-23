@@ -259,7 +259,7 @@ export function CiakPartnerDashboardDemo() {
                       <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-lg group">
                         <video
                           controls
-                          poster="/founder/claudio-portrait-640.webp"
+                          poster="/founder/claudio-video-poster.jpg"
                           className="w-full h-full object-cover rounded-2xl"
                         >
                           <source src="/video/claudio-benvenuto-completo.mp4" type="video/mp4" />

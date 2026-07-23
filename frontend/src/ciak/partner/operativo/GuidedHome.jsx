@@ -123,28 +123,30 @@ export default function GuidedHome({
             </div>
           </div>
 
-          <div className="bg-white border border-yellow-200 rounded-xl overflow-hidden shadow-[0_0_24px_rgba(250,204,21,0.12)]">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
-              <div className="relative bg-slate-950" style={{ aspectRatio: "16 / 9" }}>
-                <iframe
-                  src={WELCOME_VIDEO_EMBED}
-                  title="Video di benvenuto di Claudio"
-                  className="absolute inset-0 w-full h-full"
-                  frameBorder="0"
-                  allow="encrypted-media; fullscreen"
-                  allowFullScreen
-                />
+          <div className="bg-slate-950 text-white rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 items-center">
+              <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
+                <video
+                  controls
+                  poster="/founder/claudio-video-poster.jpg"
+                  className="w-full h-full object-cover rounded-xl"
+                >
+                  <source src="/video/claudio-benvenuto-completo.mp4" type="video/mp4" />
+                  Il tuo browser non supporta la riproduzione video.
+                </video>
               </div>
-              <div className="p-5 flex flex-col justify-center">
-                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-                  Prima di iniziare
-                </p>
-                <h3 className="text-xl font-semibold text-slate-900 mt-1">
-                  Guarda il messaggio di benvenuto
+              <div className="space-y-3 p-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-yellow-400 bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20 inline-block">
+                  🎬 5 Minuti di Benvenuto Completo
+                </span>
+                <h3 className="text-xl font-extrabold text-white leading-snug">
+                  Guarda il messaggio di benvenuto di Claudio
                 </h3>
-                <p className="text-sm text-slate-600 leading-relaxed mt-3">
-                  Claudio ti spiega come funziona il percorso, cosa succede nelle prossime settimane
-                  e come usare Ciak senza perderti tra strumenti, file e chat.
+                <p className="text-sm text-slate-300 leading-relaxed font-normal">
+                  Claudio ti spiega la visione ed il metodo esatto per portare online il tuo corso velocemente.
+                </p>
+                <p className="text-xs font-semibold text-yellow-300/90 leading-relaxed">
+                  ⚡ Il ritmo nei primi giorni fa tutta la differenza: guarda il messaggio di Claudio e dai subito il via alla tua prima azione pratica!
                 </p>
               </div>
             </div>
