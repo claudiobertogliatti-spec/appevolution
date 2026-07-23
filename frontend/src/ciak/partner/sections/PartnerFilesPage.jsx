@@ -275,53 +275,60 @@ export function PartnerFilesPage({ partnerId }) {
                 </span>
               </div>
 
-              {/* GRIGLIA FILE COMPATTA */}
+              {/* LISTA FILE ORIZZONTALE STILE GOOGLE DRIVE (ALLINEAMENTO PERFETTO) */}
               {folderFiles.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-2">Nessun file presente.</p>
+                <p className="text-xs text-slate-400 italic py-2">Nessun file presente in questa cartella.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-sm">
                   {folderFiles.map((file) => {
                     const IconComp = file.icon;
                     return (
                       <div
                         key={file.id}
-                        className="bg-white border border-slate-200 rounded-xl p-3.5 hover:border-amber-400 transition shadow-sm flex flex-col justify-between space-y-3"
+                        className="p-3.5 sm:p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                       >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <IconComp className={`h-4 w-4 ${file.iconColor}`} />
-                              <span className="text-[10px] font-semibold text-slate-500">{file.category}</span>
-                            </div>
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                              {file.owner}
-                            </span>
+                        {/* ICONA, NOME E METADATI FILE */}
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <div className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                            <IconComp className={`h-4 w-4 ${file.iconColor}`} />
                           </div>
 
-                          <h3 className="text-xs font-semibold text-slate-900 leading-snug truncate" title={file.name}>
-                            {file.name}
-                          </h3>
-                          
-                          <p className="text-[11px] text-slate-400 mt-1 font-normal">
-                            {file.size} · {file.date}
-                          </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-slate-950 text-xs truncate" title={file.name}>
+                                {file.name}
+                              </h3>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                {file.owner}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 font-medium">
+                              <span>{file.category}</span>
+                              <span>·</span>
+                              <span>{file.size}</span>
+                              <span>·</span>
+                              <span>{file.date}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        {/* BOTTONI D'AZIONE ALLINEATI A DESTRA */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                           <button
                             onClick={() => setPreviewFileModal(file)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-[11px] inline-flex items-center gap-1 transition"
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
                           >
-                            <Eye className="h-3 w-3 text-amber-600" /> Anteprima
+                            <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
                           </button>
 
                           <a
                             href={file.url !== "#" ? file.url : `javascript:alert('Download ${file.name}')`}
                             target={file.url !== "#" ? "_blank" : "_self"}
                             rel="noreferrer"
-                            className="px-2.5 py-1 rounded-lg bg-slate-950 text-yellow-400 font-semibold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 hover:bg-slate-800 transition"
                           >
-                            <Download className="h-3 w-3" /> Scarica
+                            <Download className="h-3.5 w-3.5" /> Scarica
                           </a>
                         </div>
                       </div>
