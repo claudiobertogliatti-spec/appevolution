@@ -1,24 +1,21 @@
 /**
  * Area Partner CIAK — Sezione Team.
  *
- * 🤖 01. PRIMO GRUPPO (IN ALTO): TEAM AGENTICO (AI Agents con Chat Singola)
+ * 🤖 01. PRIMO GRUPPO (IN ALTO): TEAM AGENTICO AI
  *    - Simona, Valentina, Andrea, Gaia, Marco, Carlo (ciascuno con Chat Singola 1-on-1)
  *
- * 🧑‍💼 02. SECONDO GRUPPO (SOTTO): TEAM UMANO EVOLUTION PRO
- *    - Claudio Bertogliatti, Stefania R., Antonella R., Matteo P., Debora B. (SENZA chat singola)
- *    - Foto reali del team Evolution PRO e supporto sul Canale Telegram Dedicato.
- *
- * Mantiene le stesse identiche distanze (max-w-[1400px], py-8 px-4 sm:px-8) e cartelle a tendina.
+ * 🧑‍💼 02. SECONDO GRUPPO (SOTTO): TEAM EVOLUTION PRO
+ *    - Claudio B., Stefania R., Antonella R., Matteo P., Debora B. (SENZA bottoni chat nei riquadri)
+ *    - Unico banner in alto per aprire il Canale Telegram Dedicato.
  */
 import React, { useState, useRef, useEffect } from "react";
 import {
-  MessageCircle, Send, X, ArrowRight, ShieldCheck, Sparkles, UserCheck, Star, Zap,
-  ChevronDown, ChevronUp, Bot, User, Clock3, CheckCircle2, SendHorizontal, ExternalLink
+  MessageCircle, Send, X, ArrowRight, ChevronDown, ChevronUp, SendHorizontal, ExternalLink
 } from "lucide-react";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
-// 🤖 PRIMO GRUPPO: TEAM AGENTICO (CON CHAT SINGOLA 1-ON-1)
+// 🤖 PRIMO GRUPPO: TEAM AGENTICO AI (CON CHAT SINGOLA 1-ON-1)
 export const AGENTIC_TEAM = [
   {
     id: "STEFANIA",
@@ -82,7 +79,7 @@ export const AGENTIC_TEAM = [
   },
 ];
 
-// 🧑‍💼 SECONDO GRUPPO: TEAM UMANO EVOLUTION PRO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO)
+// 🧑‍💼 SECONDO GRUPPO: TEAM EVOLUTION PRO (SENZA BOTTONI NAI RIQUADRI)
 export const HUMAN_TEAM = [
   {
     id: "CLAUDIO",
@@ -90,7 +87,7 @@ export const HUMAN_TEAM = [
     role: "CEO & Founder Evolution PRO",
     avatar: "/team/claudio.webp",
     initial: "CB",
-    badge: "🧑 Team Umano Reale",
+    badge: "🧑 Team Evolution Pro",
     description: "Direzione strategica dei progetti, supervisione master delle 14 Fasi ed analisi dei KPI dell'Accademia.",
   },
   {
@@ -99,7 +96,7 @@ export const HUMAN_TEAM = [
     role: "Back Office",
     avatar: "/team/stefania.webp",
     initial: "SR",
-    badge: "🧑 Team Umano Reale",
+    badge: "🧑 Team Evolution Pro",
     description: "Gestione attività post-vendita, coordinamento pratiche operative ed affiancamento continuo sul canale Telegram.",
   },
   {
@@ -108,7 +105,7 @@ export const HUMAN_TEAM = [
     role: "Media Strategist",
     avatar: "/team/antonella.webp",
     initial: "AR",
-    badge: "🧑 Team Umano Reale",
+    badge: "🧑 Team Evolution Pro",
     description: "Gestione contenuti, strategie di comunicazione e supervisione dell'impatto visivo delle inserzioni.",
   },
   {
@@ -117,7 +114,7 @@ export const HUMAN_TEAM = [
     role: "Video Maker",
     avatar: "/team/matteo.webp",
     initial: "MP",
-    badge: "🧑 Team Umano Reale",
+    badge: "🧑 Team Evolution Pro",
     description: "Creazione e produzione contenuti video, montaggio lezioni HD ed il collaudo tecnico delle registrazioni.",
   },
   {
@@ -126,7 +123,7 @@ export const HUMAN_TEAM = [
     role: "Amministrazione",
     avatar: "/team/debora.webp",
     initial: "DB",
-    badge: "🧑 Team Umano Reale",
+    badge: "🧑 Team Evolution Pro",
     description: "Gestione contratti di collaborazione, contabilizzazione, pagamenti e procedure amministrative sul canale riservato.",
   },
 ];
@@ -322,10 +319,10 @@ function AgenticCard({ agent, onChat }) {
   );
 }
 
-// ─── CARD UMANO EVOLUTION PRO (SENZA CHAT SINGOLA -> CANALE TELEGRAM DEDICATO) ─
-function HumanCard({ agent, onTelegram }) {
+// ─── CARD TEAM EVOLUTION PRO (SENZA PULSANTI SOTTO) ────────────────────────
+function HumanCard({ agent }) {
   return (
-    <div className="bg-white border-2 border-slate-200/80 rounded-3xl p-6 hover:border-blue-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-5 group">
+    <div className="bg-white border-2 border-slate-200/80 rounded-3xl p-6 hover:border-blue-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group">
       <div className="space-y-3">
         <div className="flex items-start gap-4">
           <Avatar agent={agent} />
@@ -342,22 +339,10 @@ function HumanCard({ agent, onTelegram }) {
           </div>
         </div>
 
-        <p className="text-xs text-slate-600 leading-relaxed font-normal pt-1 border-t border-slate-100">
+        <p className="text-xs text-slate-600 leading-relaxed font-normal pt-2 border-t border-slate-100">
           {agent.description}
         </p>
       </div>
-
-      {/* PULSANTE CANALE TELEGRAM DEDICATO */}
-      <button
-        onClick={onTelegram}
-        className="w-full py-3 px-4 bg-blue-600 text-white font-extrabold rounded-2xl text-xs hover:bg-blue-700 transition shadow-sm inline-flex items-center justify-between group-hover:scale-[1.01]"
-      >
-        <span className="inline-flex items-center gap-2">
-          <SendHorizontal className="w-4 h-4 text-white" />
-          Contatta sul Canale Telegram
-        </span>
-        <ExternalLink className="w-3.5 h-3.5 text-blue-200" />
-      </button>
     </div>
   );
 }
@@ -388,13 +373,13 @@ export function TeamSupportoPage({ partner }) {
       <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
         <div className="w-full max-w-[1400px] mx-auto space-y-3">
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
-            Ecosistema CIAK · Team Agentico & Team Umano Evolution PRO
+            Ecosistema CIAK · Team Agentico AI & Team Evolution Pro
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950">
-            Team Agentico & Team Umano Dedicato
+            Team Agentico AI & Team Evolution Pro
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-            Interagisci con il <strong>Team Agentico AI</strong> in chat singola 1-on-1 per risposte immediate 24/7. Per la supervisione strategica 1-on-1 ed il supporto del <strong>Team Umano Evolution PRO</strong> (Claudio, Stefania, Antonella, Matteo e Debora), utilizza il tuo canale Telegram dedicato.
+            Interagisci con il <strong>Team Agentico AI</strong> in chat singola 1-on-1 per risposte immediate 24/7. Per la supervisione ed il supporto diretto del <strong>Team Evolution Pro</strong>, utilizza il tuo canale Telegram dedicato.
           </p>
         </div>
       </header>
@@ -402,7 +387,7 @@ export function TeamSupportoPage({ partner }) {
       {/* CONTENUTO DIVISO IN 2 GRUPPI A TENDINA (ACCORDION STILE MATERIALI) */}
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
         
-        {/* 🤖 01. PRIMO GRUPPO: TEAM AGENTICO (SIMONA, VALENTINA, ANDREA, GAIA, MARCO, CARLO) */}
+        {/* 🤖 01. PRIMO GRUPPO: TEAM AGENTICO AI */}
         <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition">
           <button
             onClick={() => toggleSection("agentic")}
@@ -417,7 +402,7 @@ export function TeamSupportoPage({ partner }) {
                   SUPPORTI SPECIALISTICI IN CHAT SINGOLA
                 </span>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-amber-600 transition">
-                  01. Team Agentico AI ({AGENTIC_TEAM.length} Referenti con Chat Singola)
+                  Team Agentico AI
                 </h2>
                 <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
                   Simona, Valentina, Andrea, Gaia, Marco e Carlo per guidare ciascuno step in chat 1-on-1.
@@ -446,7 +431,7 @@ export function TeamSupportoPage({ partner }) {
           )}
         </div>
 
-        {/* 🧑‍💼 02. SECONDO GRUPPO: TEAM UMANO (CLAUDIO, ANTONELLA, STEFANIA, MATTEO, DEBORA) */}
+        {/* 🧑‍💼 02. SECONDO GRUPPO: TEAM EVOLUTION PRO */}
         <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-blue-400/80 transition">
           <button
             onClick={() => toggleSection("human")}
@@ -461,17 +446,17 @@ export function TeamSupportoPage({ partner }) {
                   SUPERVISIONE UMANA REALE & AFFIANCAMENTO
                 </span>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-blue-600 transition">
-                  02. Team Umano Evolution PRO ({HUMAN_TEAM.length} Referenti Reali · Canale Telegram Dedicato)
+                  Team Evolution Pro
                 </h2>
                 <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                  Claudio, Stefania R., Antonella R., Matteo P. e Debora B. sul tuo canale Telegram dedicato.
+                  Claudio B., Stefania R., Antonella R., Matteo P. e Debora B. sul tuo canale Telegram dedicato.
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-xs font-mono font-extrabold px-3 py-1 rounded-full bg-blue-100 text-blue-900">
-                {HUMAN_TEAM.length} Mentori Umani
+                {HUMAN_TEAM.length} Referenti Umani
               </span>
               <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-blue-600 group-hover:text-white transition">
                 {openSections.human ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -482,14 +467,14 @@ export function TeamSupportoPage({ partner }) {
           {openSections.human && (
             <div className="p-5 sm:p-6 border-t border-slate-200 bg-white space-y-6">
               
-              {/* BANNER CANALE TELEGRAM DEDICATO */}
+              {/* UNICO BANNER IN ALTO PER APRIRE IL CANALE TELEGRAM DEDICATO */}
               <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent border-l-4 border-blue-600 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-950">
                     Canale Telegram Dedicato per il Supporto Umano 1-on-1
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    L'intero Team Umano Evolution PRO (Claudio, Stefania R., Antonella R., Matteo P. e Debora B.) è presente nel tuo gruppo Telegram riservato per darti supporto diretto.
+                    L'intero Team Evolution Pro (Claudio B., Stefania R., Antonella R., Matteo P. e Debora B.) è presente nel tuo gruppo Telegram riservato per darti supporto diretto.
                   </p>
                 </div>
                 <button
@@ -501,10 +486,10 @@ export function TeamSupportoPage({ partner }) {
                 </button>
               </div>
 
-              {/* GRIGLIA MEMBRI TEAM UMANO */}
+              {/* GRIGLIA MEMBRI TEAM EVOLUTION PRO (SENZA PULSANTI SOTTO I RIQUADRI) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {HUMAN_TEAM.map((agent) => (
-                  <HumanCard key={agent.id} agent={agent} onTelegram={handleOpenTelegram} />
+                  <HumanCard key={agent.id} agent={agent} />
                 ))}
               </div>
             </div>
