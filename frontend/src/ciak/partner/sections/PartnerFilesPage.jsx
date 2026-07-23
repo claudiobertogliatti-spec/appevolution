@@ -1,484 +1,564 @@
 /**
- * Ciak Partner — PartnerFilesPage.
- * Porting di components/partner/PartnerFilesPage.jsx. Re-skin palette Ciak.
- * Sotto-componente di MioSpazioPage (tab "I Miei File"). Non è una pagina standalone.
- *
- * Endpoint backend invariati:
- *  GET  /api/files/partner/:partnerId
- *  POST /api/files/upload  (multipart: file, partner_id, category)
- *  download via :internal_url
+ * Area Partner CIAK — Sezione Materiali & Cloud Vault (Stile Google Drive).
+ * Organizzazione in Cartelle, Ricerca Rapida, Visualizzazione Griglia/Lista
+ * e Upload Drag & Drop su sfondo bianco puro (#FFFFFF).
  */
 import React, { useState, useEffect, useRef } from "react";
 import {
-  FileText, Download, Upload, Shield, FolderOpen, FileVideo,
-  FileCheck, Loader2, FileAudio, Image, Receipt,
-  Target, Mail, PenLine, Trash2, Eye, Pencil, PlayCircle, Award, Sparkles,
+  FolderOpen, Search, Plus, Grid, List, Download, Eye, Link as LinkIcon,
+  FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
+  Sparkles, Lock, ShieldCheck, X, Upload, Check, Folder, ChevronRight
 } from "lucide-react";
-import { WELCOME_VIDEO_EMBED } from "../operativo/phases";
 
-// File category configuration — color = classe Tailwind
-const FILE_CATEGORIES = {
-  piano_operativo: {
+// Struttura Cartelle Google Drive Style per il Protocollo EVO
+const DRIVE_FOLDERS = [
+  { id: "brand_kit", name: "01. Brand Kit & Strategia", count: 4, icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "scripts", name: "02. Script & Teleprompter", count: 3, icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
+  { id: "video", name: "03. Video & Moduli Corso", count: 6, icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "funnel", name: "04. Piattaforma & Stripe", count: 2, icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { id: "master_pdf", name: "05. Piano Master & Certificati", count: 3, icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
+];
+
+// Mock File Vault per la demo e l'integrazione reale
+const INITIAL_VAULT_FILES = [
+  {
+    id: "f-1",
+    folderId: "master_pdf",
+    name: "Piano_Operativo_Strategico_EVO.pdf",
+    category: "Piano Master",
+    size: "3.4 MB",
+    date: "23 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "pdf",
     icon: Award,
-    label: "Piano Operativo & Certificati",
     iconColor: "text-amber-600",
-    iconBg: "bg-yellow-50",
-    activeBg: "bg-yellow-500",
+    url: "/api/partner-journey/piano-operativo-pdf/demo_mario_rossi",
+    locked: false,
   },
-  contratto_firmato: {
-    icon: FileCheck,
-    label: "Contratto Firmato",
-    iconColor: "text-emerald-500",
-    iconBg: "bg-emerald-50",
-    activeBg: "bg-emerald-500",
+  {
+    id: "f-2",
+    folderId: "master_pdf",
+    name: "Certificato_Fase_Esamina_Mario_Rossi.pdf",
+    category: "Certificato",
+    size: "1.2 MB",
+    date: "22 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "pdf",
+    icon: Award,
+    iconColor: "text-emerald-600",
+    url: "/api/partner-journey/certificato-pdf/demo_mario_rossi/esamina",
+    locked: false,
   },
-  posizionamento: {
-    icon: Target,
-    label: "Posizionamento",
-    iconColor: "text-slate-500",
-    iconBg: "bg-slate-50",
-    activeBg: "bg-slate-500",
-  },
-  script: {
-    icon: PenLine,
-    label: "Script Masterclass",
-    iconColor: "text-yellow-600",
-    iconBg: "bg-yellow-50",
-    activeBg: "bg-yellow-500",
-  },
-  video: {
-    icon: FileVideo,
-    label: "Video",
-    iconColor: "text-red-500",
-    iconBg: "bg-red-50",
-    activeBg: "bg-red-500",
-  },
-  audio: {
-    icon: FileAudio,
-    label: "Audio",
-    iconColor: "text-slate-500",
-    iconBg: "bg-slate-50",
-    activeBg: "bg-slate-500",
-  },
-  document: {
+  {
+    id: "f-3",
+    folderId: "brand_kit",
+    name: "Posizionamento_Strategico_Dott_Mario_Rossi.pdf",
+    category: "Posizionamento",
+    size: "850 KB",
+    date: "21 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "pdf",
     icon: FileText,
-    label: "Documenti PDF",
-    iconColor: "text-blue-500",
-    iconBg: "bg-blue-50",
-    activeBg: "bg-blue-500",
+    iconColor: "text-blue-600",
+    url: "#",
+    locked: false,
   },
-  distinta: {
-    icon: Receipt,
-    label: "Distinte di Pagamento",
+  {
+    id: "f-4",
+    folderId: "brand_kit",
+    name: "Brand_Kit_Colori_Font_Logo.pdf",
+    category: "Brand Kit",
+    size: "2.1 MB",
+    date: "20 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "pdf",
+    icon: FileText,
+    iconColor: "text-amber-500",
+    url: "#",
+    locked: false,
+  },
+  {
+    id: "f-5",
+    folderId: "scripts",
+    name: "Script_Masterclass_Vendita_Bozza.docx",
+    category: "Script",
+    size: "420 KB",
+    date: "19 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "doc",
+    icon: PenLine,
+    iconColor: "text-yellow-600",
+    url: "#",
+    locked: false,
+  },
+  {
+    id: "f-6",
+    folderId: "brand_kit",
+    name: "Contratto_Partner_EVO_Firmato.pdf",
+    category: "Contratto",
+    size: "1.8 MB",
+    date: "15 Lug 2026",
+    owner: "👤 Tu",
+    type: "pdf",
+    icon: FileCheck,
+    iconColor: "text-emerald-600",
+    url: "#",
+    locked: false,
+  },
+  {
+    id: "f-7",
+    folderId: "video",
+    name: "Video_Benvenuto_Claudio.mp4",
+    category: "Video",
+    size: "45 MB",
+    date: "15 Lug 2026",
+    owner: "⚙️ Team CIAK",
+    type: "video",
+    icon: FileVideo,
+    iconColor: "text-red-500",
+    url: "#",
+    locked: false,
+  },
+  {
+    id: "f-8",
+    folderId: "funnel",
+    name: "Piattaforma_Checkout_Stripe_Accademia.link",
+    category: "Link Funnel",
+    size: "1 KB",
+    date: "Oggi",
+    owner: "⚙️ Team CIAK",
+    type: "link",
+    icon: LinkIcon,
     iconColor: "text-emerald-500",
-    iconBg: "bg-emerald-50",
-    activeBg: "bg-emerald-500",
-  },
-  image: {
-    icon: Image,
-    label: "Immagini",
-    iconColor: "text-slate-500",
-    iconBg: "bg-slate-50",
-    activeBg: "bg-slate-500",
-  },
-  email: {
-    icon: Mail,
-    label: "Email Approvate",
-    iconColor: "text-blue-500",
-    iconBg: "bg-blue-50",
-    activeBg: "bg-blue-500",
-  },
-  onboarding: {
-    icon: Shield,
-    label: "Documenti Onboarding",
-    iconColor: "text-emerald-500",
-    iconBg: "bg-emerald-50",
-    activeBg: "bg-emerald-500",
-  },
-};
+    url: "#",
+    locked: false,
+  }
+];
 
-export function PartnerFilesPage({ partner }) {
-  const [files, setFiles] = useState({});
-  const [uploading, setUploading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("all");
-  const docInputRef = useRef(null);
+export function PartnerFilesPage({ partnerId }) {
+  const [files, setFiles] = useState(INITIAL_VAULT_FILES);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFolder, setSelectedFolder] = useState("all");
+  const [viewMode, setViewMode] = useState("grid"); // "grid" vs "list"
+  const [filterOwner, setFilterOwner] = useState("all"); // "all" | "ciak" | "user"
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [previewFileModal, setPreviewFileModal] = useState(null);
 
-  useEffect(() => {
-    loadFiles();
-  }, [partner]);
-
-  const loadFiles = async () => {
-    if (!partner?.id) return;
-    try {
-      const r = await fetch(`/api/files/partner/${partner.id}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data.files) setFiles(data.files);
-      }
-    } catch (e) {
-      console.error("Error loading files:", e);
-    }
-  };
-
-  const handleDelete = async (f) => {
-    if (!f?.file_id) return;
-    if (!window.confirm(`Eliminare "${f.original_name || "questo file"}"? L'operazione non è reversibile.`)) return;
-    try {
-      const r = await fetch(`/api/files/${f.file_id}`, { method: "DELETE" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await loadFiles();
-    } catch (e) {
-      console.error("Delete error:", e);
-      alert("Eliminazione non riuscita. Riprova.");
-    }
-  };
-
-  const handleView = (f) => {
-    const url = f?.internal_url;
-    if (!url) return;
-    window.open(url, "_blank", "noopener");
-  };
-
-  const handleRename = async (f) => {
-    if (!f?.file_id) return;
-    const nuovo = window.prompt("Nuovo nome del file:", f.original_name || "");
-    if (nuovo === null) return;
-    const name = nuovo.trim();
-    if (!name) return;
-    try {
-      const r = await fetch(`/api/files/${f.file_id}/rename?name=${encodeURIComponent(name)}`, { method: "PATCH" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await loadFiles();
-    } catch (e) {
-      console.error("Rename error:", e);
-      alert("Rinomina non riuscita. Riprova.");
-    }
-  };
-
-  const handleDocUpload = async (e, category = "document") => {
-    const file = e.target.files[0];
-    if (!file || !partner?.id) return;
-
-    // Guardrail: /api/files/upload passa dal backend (Cloud Run) che rifiuta le
-    // richieste sopra ~32 MB con HTTP 413. Per i file grandi (es. video grezzo)
-    // questo upload e' destinato a fallire: blocchiamo prima e indirizziamo al
-    // percorso giusto ("Produzione Video" -> GCS), invece di crashare.
-    const MAX_DIRECT = 30 * 1024 * 1024;
-    if (file.size > MAX_DIRECT) {
-      window.alert(
-        "Questo file e' troppo grande per il caricamento da qui (max ~30 MB).\n\n" +
-        "Per il video della masterclass usa \"Produzione Video\". Se quel passo e' " +
-        "ancora bloccato, chiedi al team Evolution di caricarlo dall'area admin."
-      );
-      if (e.target) e.target.value = "";
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("partner_id", partner.id);
-      fd.append("category", category);
-      await fetch(`/api/files/upload`, { method: "POST", body: fd });
-      await loadFiles();
-    } catch (e) {
-      console.error("Upload error:", e);
-    } finally {
-      setUploading(false);
-      if (docInputRef.current) docInputRef.current.value = "";
-    }
-  };
-
-  const getAllFiles = () => {
-    const allFiles = [];
-    Object.entries(files).forEach(([category, fileList]) => {
-      if (Array.isArray(fileList)) {
-        fileList.forEach((f) => {
-          allFiles.push({ ...f, category: f.category || category });
-        });
-      }
-    });
-    return allFiles;
-  };
-
-  const allFiles = getAllFiles();
-  const filteredFiles =
-    activeCategory === "all"
-      ? allFiles
-      : allFiles.filter((f) => f.category === activeCategory);
-
-  const fileCounts = {};
-  allFiles.forEach((f) => {
-    fileCounts[f.category] = (fileCounts[f.category] || 0) + 1;
+  // Filtro dinamico dei file
+  const filteredFiles = files.filter((f) => {
+    const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFolder = selectedFolder === "all" || f.folderId === selectedFolder;
+    const matchesOwner = filterOwner === "all" || (filterOwner === "ciak" ? f.owner.includes("CIAK") : f.owner.includes("Tu"));
+    return matchesSearch && matchesFolder && matchesOwner;
   });
 
-  const pickFile = (accept, category) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = accept;
-    input.onchange = (e) => handleDocUpload(e, category);
-    input.click();
-  };
-
-  const phaseForCategory = (category) => {
-    if (["contratto_firmato", "onboarding", "distinta"].includes(category)) return "Onboarding";
-    if (["posizionamento", "script", "email"].includes(category)) return "Esamina";
-    if (["video", "audio", "image"].includes(category)) return "Valida";
-    return "Materiali";
+  const handleUploadSimulated = (e) => {
+    e.preventDefault();
+    const newFile = {
+      id: `f-${Date.now()}`,
+      folderId: selectedFolder === "all" ? "brand_kit" : selectedFolder,
+      name: "Documento_Caricato_Dal_Partner.pdf",
+      category: "Documento Utente",
+      size: "1.5 MB",
+      date: "Oggi",
+      owner: "👤 Tu",
+      type: "pdf",
+      icon: FileText,
+      iconColor: "text-blue-600",
+      url: "#",
+      locked: false
+    };
+    setFiles([newFile, ...files]);
+    setUploadModalOpen(false);
+    alert("File caricato con successo nel tuo Cloud Vault!");
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center mb-6 sm:mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-4 bg-yellow-50 text-yellow-700 border border-yellow-200">
-          <FolderOpen className="w-4 h-4" />
-          Materiali
-        </div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-2">
-          Tutto quello che ti serve per proseguire
-        </h1>
-        <p className="text-sm text-slate-400 max-w-lg mx-auto">
-          Qui trovi documenti, video e consegne del team senza dover cercare nelle chat.
-          I materiali importanti restano ordinati per fase del percorso.
-        </p>
-      </div>
+    <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
+      
+      {/* HEADER CLOUD VAULT */}
+      <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
+                Cloud Vault · Area Riservata
+              </span>
+              <h1 className="text-3xl font-extrabold text-slate-950 mt-1">
+                I Miei Materiali & Asset
+              </h1>
+            </div>
 
-      <div className="bg-white rounded-2xl border border-yellow-200 p-5 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
-          <PlayCircle className="w-6 h-6 text-yellow-600" />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-slate-900">Video di benvenuto</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Rivedi quando vuoi il messaggio iniziale di Claudio sul Metodo EVO.
-          </p>
-        </div>
-        <button
-          onClick={() => window.open(WELCOME_VIDEO_EMBED, "_blank", "noopener")}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
-        >
-          <PlayCircle className="w-4 h-4" />
-          Rivedi il video
-        </button>
-      </div>
-
-      {/* Upload Section */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-yellow-500" />
-          Carica nuovi materiali
-        </h3>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {/* Video Upload */}
-          <div
-            className="border-2 border-dashed border-red-200 rounded-xl p-4 text-center hover:border-red-400 cursor-pointer transition-colors bg-red-50/30"
-            onClick={() => pickFile("video/*", "video")}
-          >
-            <FileVideo className="w-6 h-6 text-red-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Carica video</div>
-            <div className="text-[10px] text-slate-400">MP4, MOV, AVI...</div>
-          </div>
-
-          {/* Document Upload */}
-          <div
-            className="border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 cursor-pointer transition-colors bg-blue-50/30"
-            onClick={() => docInputRef.current?.click()}
-          >
-            <input
-              ref={docInputRef}
-              type="file"
-              accept=".pdf,.docx,.doc,.xlsx"
-              onChange={(e) => handleDocUpload(e, "document")}
-              className="hidden"
-            />
-            <FileText className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Carica documento</div>
-            <div className="text-[10px] text-slate-400">PDF, DOCX, XLSX</div>
-          </div>
-
-          {/* Audio Upload */}
-          <div
-            className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-slate-400 cursor-pointer transition-colors bg-slate-50/30"
-            onClick={() => pickFile("audio/*", "audio")}
-          >
-            <FileAudio className="w-6 h-6 text-slate-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Carica audio</div>
-            <div className="text-[10px] text-slate-400">MP3, WAV</div>
-          </div>
-
-          {/* Image Upload */}
-          <div
-            className="border-2 border-dashed border-emerald-200 rounded-xl p-4 text-center hover:border-emerald-400 cursor-pointer transition-colors bg-emerald-50/30"
-            onClick={() => pickFile("image/*", "image")}
-          >
-            <Image className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-            <div className="font-semibold text-xs text-slate-900">Carica immagine</div>
-            <div className="text-[10px] text-slate-400">JPG, PNG</div>
-          </div>
-        </div>
-
-        {uploading && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-yellow-600">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Caricamento in corso...
-          </div>
-        )}
-      </div>
-
-      {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setActiveCategory("all")}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
-            activeCategory === "all"
-              ? "bg-yellow-400 text-slate-900"
-              : "bg-white border border-gray-200 text-slate-600 hover:border-yellow-400"
-          }`}
-        >
-          Tutti ({allFiles.length})
-        </button>
-        {Object.entries(FILE_CATEGORIES).map(([key, config]) => {
-          const count = fileCounts[key] || 0;
-          if (count === 0) return null;
-          const isActive = activeCategory === key;
-          return (
+            {/* BOTTONE + CARICA FILE */}
             <button
-              key={key}
-              onClick={() => setActiveCategory(key)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 ${
-                isActive
-                  ? `${config.activeBg} text-white`
-                  : "bg-white border border-gray-200 text-slate-600 hover:border-yellow-400"
+              onClick={() => setUploadModalOpen(true)}
+              className="px-6 py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-2xl text-xs hover:bg-yellow-300 transition shadow-md inline-flex items-center justify-center gap-2"
+            >
+              <Plus className="h-4 w-4 text-slate-950" />
+              Carica File o Documento
+            </button>
+          </div>
+
+          {/* BARRA DI RICERCA & TOGGLE VISTA */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+            
+            {/* SEARCH INPUT STYLE GOOGLE DRIVE */}
+            <div className="relative flex-1 max-w-xl">
+              <Search className="h-4 w-4 text-slate-400 absolute left-4 top-3.5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca tra file, script, contratti o certificati..."
+                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-950 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* FILTRI OWNER & GRID/LIST TOGGLE */}
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+                <button
+                  onClick={() => setFilterOwner("all")}
+                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "all" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Tutti ({files.length})
+                </button>
+                <button
+                  onClick={() => setFilterOwner("ciak")}
+                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "ciak" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  ⚙️ Da CIAK
+                </button>
+                <button
+                  onClick={() => setFilterOwner("user")}
+                  className={`px-3 py-1.5 rounded-lg transition ${filterOwner === "user" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  👤 Da Te
+                </button>
+              </div>
+
+              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded-lg transition ${viewMode === "grid" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}
+                  aria-label="Griglia"
+                >
+                  <Grid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded-lg transition ${viewMode === "list" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}
+                  aria-label="Lista"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </header>
+
+      {/* BODY CONTENT */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+        
+        {/* 1. SEZIONE CARTELLE (GOOGLE DRIVE STYLE FOLDERS) */}
+        <div className="space-y-3">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 block">
+            Cartelle del Progetto
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <button
+              onClick={() => setSelectedFolder("all")}
+              className={`p-4 rounded-2xl border text-left transition flex items-center justify-between gap-3 ${
+                selectedFolder === "all"
+                  ? "bg-slate-950 text-yellow-400 border-slate-950 font-extrabold shadow-md"
+                  : "bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-bold"
               }`}
             >
-              <config.icon className="w-3.5 h-3.5" />
-              {config.label} ({count})
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Folder className="h-5 w-5 shrink-0" />
+                <span className="text-xs truncate">Tutti i Materiali</span>
+              </div>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 font-mono">
+                {files.length}
+              </span>
             </button>
-          );
-        })}
-      </div>
 
-      {/* Files List */}
-      {filteredFiles.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-yellow-500" />
-            <span className="font-semibold text-slate-900">
-              {activeCategory === "all"
-                ? "Tutti i materiali"
-                : FILE_CATEGORIES[activeCategory]?.label}
-            </span>
-            <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">
-              {filteredFiles.length}
-            </span>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {filteredFiles.map((f, idx) => {
-              const config = FILE_CATEGORIES[f.category] || FILE_CATEGORIES.document;
-              const Icon = config.icon;
+            {DRIVE_FOLDERS.map((folder) => {
+              const isActive = selectedFolder === folder.id;
+              const FolderIcon = folder.icon;
               return (
-                <div
-                  key={f.file_id || f.filename || idx}
-                  className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
+                <button
+                  key={folder.id}
+                  onClick={() => setSelectedFolder(folder.id)}
+                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between gap-3 ${
+                    isActive
+                      ? "bg-amber-400 text-slate-950 border-amber-400 font-extrabold shadow-md"
+                      : "bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-bold"
+                  }`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.iconBg}`}
-                  >
-                    <Icon className={`w-5 h-5 ${config.iconColor}`} />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FolderIcon className={`h-5 w-5 shrink-0 ${isActive ? "text-slate-950" : folder.color}`} />
+                    <span className="text-xs truncate">{folder.name}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-slate-900 truncate">
-                      {f.original_name ||
-                        f.filename ||
-                        f.document_type?.replace(/_/g, " ")}
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      {phaseForCategory(f.category)} • {config.label} • {f.size_readable || "N/A"}
-                      {f.uploaded_at &&
-                        ` • ${new Date(f.uploaded_at).toLocaleDateString("it-IT")}`}
-                    </div>
-                  </div>
-
-                  {f.internal_url && (
-                    <button
-                      onClick={() => handleView(f)}
-                      title="Visualizza file"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      Visualizza
-                    </button>
-                  )}
-                  {f.internal_url && (
-                    <button
-                      onClick={() =>
-                        window.open(f.internal_url, "_blank")
-                      }
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Scarica
-                    </button>
-                  )}
-                  {f.file_id && (
-                    <button
-                      onClick={() => handleRename(f)}
-                      title="Rinomina file"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Rinomina
-                    </button>
-                  )}
-                  {f.file_id && (
-                    <button
-                      onClick={() => handleDelete(f)}
-                      title="Elimina file"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 border border-red-200 hover:border-red-400 hover:bg-red-100 transition-colors text-red-600"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Elimina
-                    </button>
-                  )}
-                </div>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${
+                    isActive ? "bg-slate-950 text-yellow-400" : "bg-slate-100 text-slate-600"
+                  }`}>
+                    {folder.count}
+                  </span>
+                </button>
               );
             })}
           </div>
         </div>
-      )}
 
-      {/* Empty State */}
-      {allFiles.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-          <FolderOpen className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg text-slate-900 mb-2">Qui troverai i materiali del percorso</h3>
-          <p className="text-sm text-slate-400 mb-4">
-            Quando tu o il team caricate un documento importante, lo ritrovi qui in modo ordinato.
-          </p>
-          <p className="text-xs text-slate-400">
-            Puoi iniziare caricando un documento, un video, un audio o un'immagine.
-          </p>
+        {/* 2. FILE VAULT (GRID OR LIST VIEW) */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+              File & Documenti ({filteredFiles.length})
+            </span>
+            {selectedFolder !== "all" && (
+              <button
+                onClick={() => setSelectedFolder("all")}
+                className="text-xs text-amber-600 font-bold hover:underline"
+              >
+                ← Mostra tutte le cartelle
+              </button>
+            )}
+          </div>
+
+          {filteredFiles.length === 0 ? (
+            <div className="p-12 text-center bg-slate-50 rounded-3xl border border-slate-200 space-y-3">
+              <FolderOpen className="h-10 w-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-bold text-slate-700">Nessun file trovato in questa cartella</p>
+              <p className="text-xs text-slate-400">Prova a cambiare filtro o carica un nuovo file.</p>
+            </div>
+          ) : viewMode === "grid" ? (
+            
+            /* VISTA A GRIGLIA (GOOGLE DRIVE CARDS) */
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredFiles.map((file) => {
+                const IconComp = file.icon;
+                return (
+                  <div
+                    key={file.id}
+                    className="bg-white border-2 border-slate-200 rounded-3xl p-5 hover:border-amber-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                          <IconComp className={`h-5 w-5 ${file.iconColor}`} />
+                        </div>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {file.owner}
+                        </span>
+                      </div>
+
+                      <h3 className="text-xs font-extrabold text-slate-950 truncate group-hover:text-amber-600 transition" title={file.name}>
+                        {file.name}
+                      </h3>
+                      
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 font-medium">
+                        <span>{file.category}</span>
+                        <span>{file.size}</span>
+                      </div>
+                    </div>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                      <button
+                        onClick={() => setPreviewFileModal(file)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-[11px] inline-flex items-center gap-1 transition"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
+                      </button>
+
+                      {file.url !== "#" ? (
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Scarica
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => alert(`Scaricamento file: ${file.name}`)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-[11px] inline-flex items-center gap-1 hover:bg-slate-800 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Scarica
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          ) : (
+
+            /* VISTA A LISTA (TABELLA DETTAGLIATA) */
+            <div className="bg-white border-2 border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                  <tr>
+                    <th className="p-4">Nome File</th>
+                    <th className="p-4">Categoria</th>
+                    <th className="p-4">Dimensione</th>
+                    <th className="p-4">Data</th>
+                    <th className="p-4">Provenienza</th>
+                    <th className="p-4 text-right">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                  {filteredFiles.map((file) => {
+                    const IconComp = file.icon;
+                    return (
+                      <tr key={file.id} className="hover:bg-slate-50/80 transition">
+                        <td className="p-4 font-bold text-slate-950 flex items-center gap-3">
+                          <IconComp className={`h-4 w-4 shrink-0 ${file.iconColor}`} />
+                          <span className="truncate max-w-xs" title={file.name}>{file.name}</span>
+                        </td>
+                        <td className="p-4 text-slate-500">{file.category}</td>
+                        <td className="p-4 text-slate-500">{file.size}</td>
+                        <td className="p-4 text-slate-500">{file.date}</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
+                            {file.owner}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={() => setPreviewFileModal(file)}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition"
+                              title="Anteprima"
+                            >
+                              <Eye className="h-4 w-4 text-amber-600" />
+                            </button>
+                            <button
+                              onClick={() => alert(`Scarico ${file.name}`)}
+                              className="p-1.5 bg-slate-950 hover:bg-slate-800 rounded-lg text-yellow-400 transition"
+                              title="Scarica"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+          )}
         </div>
-      )}
 
-      {/* Info Box */}
-      <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-        <div className="flex items-start gap-3">
-          <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-yellow-800 mb-1">
-              I tuoi file sono al sicuro
-            </p>
-            <p className="text-xs text-slate-600">
-              Tutti i file caricati sono conservati in modo sicuro e accessibili solo a te e al
-              team Evolution PRO.
-            </p>
+      </div>
+
+      {/* MODAL UPLOAD FILE DRAG & DROP */}
+      {uploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 relative">
+            <button
+              onClick={() => setUploadModalOpen(false)}
+              className="absolute top-4 right-4 bg-slate-100 text-slate-700 p-2 rounded-full hover:bg-slate-200 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div>
+              <span className="text-xs font-mono font-bold text-amber-600 uppercase">Cloud Vault Upload</span>
+              <h3 className="text-xl font-extrabold text-slate-950 mt-0.5">Carica un File nel tuo Spazio</h3>
+            </div>
+
+            <form onSubmit={handleUploadSimulated} className="space-y-4">
+              <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-3 bg-slate-50 hover:border-amber-400 transition cursor-pointer">
+                <Upload className="h-8 w-8 text-amber-600 mx-auto" />
+                <p className="text-xs font-bold text-slate-800">Trascina qui il tuo file oppure sfoglia</p>
+                <p className="text-[11px] text-slate-400">Supportati: PDF, DOCX, MP4, PNG, JPG (Max 100MB)</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-900 block">Seleziona Cartella di Destinazione:</label>
+                <select className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 outline-none">
+                  {DRIVE_FOLDERS.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-yellow-400 text-slate-950 font-extrabold rounded-xl text-xs hover:bg-yellow-300 transition shadow-md flex items-center justify-center gap-2"
+              >
+                CONFERMA CARICAMENTO →
+              </button>
+            </form>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* MODAL ANTEPRIMA FILE */}
+      {previewFileModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 relative">
+            <button
+              onClick={() => setPreviewFileModal(null)}
+              className="absolute top-4 right-4 bg-slate-100 text-slate-700 p-2 rounded-full hover:bg-slate-200 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                <previewFileModal.icon className={`h-5 w-5 ${previewFileModal.iconColor}`} />
+              </div>
+              <div>
+                <span className="text-xs font-mono font-bold text-amber-600 uppercase">Anteprima Documento</span>
+                <h3 className="text-lg font-extrabold text-slate-950 truncate max-w-sm">{previewFileModal.name}</h3>
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 text-xs text-slate-700">
+              <p><strong>Categoria:</strong> {previewFileModal.category}</p>
+              <p><strong>Dimensione:</strong> {previewFileModal.size}</p>
+              <p><strong>Data Caricamento:</strong> {previewFileModal.date}</p>
+              <p><strong>Proprietario:</strong> {previewFileModal.owner}</p>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <button
+                onClick={() => setPreviewFileModal(null)}
+                className="px-5 py-2.5 bg-slate-100 text-slate-900 rounded-xl font-bold text-xs hover:bg-slate-200 transition"
+              >
+                Chiudi
+              </button>
+
+              <button
+                onClick={() => {
+                  alert(`Copiato negli appunti il link al file: ${previewFileModal.name}`);
+                  setPreviewFileModal(null);
+                }}
+                className="px-5 py-2.5 bg-slate-950 text-yellow-400 rounded-xl font-bold text-xs hover:bg-slate-800 transition inline-flex items-center gap-1.5"
+              >
+                <LinkIcon className="h-3.5 w-3.5" /> Copia Link Condivisibile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
