@@ -1,61 +1,141 @@
 /**
- * Ciak Partner — Team di supporto.
+ * Area Partner CIAK — Sezione Team Ibrido (Team Umano & Team AI Operativo).
  *
- * Layout ad ampia visibilità (Full Width max-w-[1400px]) per riempire al meglio
- * l'intera pagina a disposizione nell'app.
+ * Mostra chiaramente che esiste un TEAM UMANO REALE che supervisiona e valida
+ * le attività eseguite dal TEAM AI OPERATIVO 24/7.
+ *
+ * Utilizza le cartelle/riquadri a tendina stile FAQ (Accordion) con respiro visivo
+ * identico alla sezione Materiali per non allungare troppo la pagina.
  */
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowRight, CheckCircle2, Clock3, MessageCircle, Send, X, ShieldCheck } from "lucide-react";
-import { AGENTS, TEAM_ORDER } from "../operativo/agents";
+import {
+  MessageCircle, Send, X, ArrowRight, ShieldCheck, Sparkles, UserCheck, Star, Zap,
+  ChevronDown, ChevronUp, Bot, User, Clock3, CheckCircle2, Cpu, FileText
+} from "lucide-react";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
-const SUPPORT_META = {
-  STEFANIA: {
-    need: "Non so qual è la prossima mossa",
-    focus: "Orientamento, priorità e blocchi generali",
-    tone: "Tiene insieme l'intero percorso e ti guida sulla prossima azione esatta.",
+// ─── TEAM UMANO DI SUPERVISIONE (MENTOR & SPECIALISTI REALI) ───────────────
+export const HUMAN_SUPERVISION_TEAM = [
+  {
+    id: "CLAUDIO",
+    name: "Claudio Bertogliatti",
+    role: "Tutor Strategico Master & Founder Evolution PRO",
+    avatar: "/founder/claudio-portrait-640.webp",
+    initial: "CB",
+    type: "human",
+    badge: "🧑 Umano · Direzione Strategica",
+    description:
+      "Supervisiona la direzione master del tuo progetto lungo le 14 Fasi. Approva il Piano Operativo Strategico, il posizionamento e le metriche di sostenibilità economica.",
+    focus: "Supervisione Master · Validazione 14 Fasi · Decisioni di Posizionamento",
   },
-  VALENTINA: {
-    need: "Devo chiarire brand o posizionamento",
-    focus: "Identità, promessa, nicchia e messaggio",
-    tone: "Ti aiuta a definire il tuo messaggio differenziante e la promessa unica.",
+  {
+    id: "STEFANIA",
+    name: "Simona",
+    role: "Coordinatrice Operativa Human Mentor",
+    avatar: "/agents/stefania.jpg",
+    initial: "S",
+    type: "human",
+    badge: "🧑 Umano · Coordinamento",
+    description:
+      "È il tuo punto di riferimento quotidiano. Mantiene le scadenze del percorso, risolve i blocchi operativi ed assegna le priorità per sbloccare ogni step.",
+    focus: "Orientamento Giornaliero · Gestione Scadenze · Assegnazione Task",
   },
-  ANDREA: {
-    need: "Mi serve aiuto con video e contenuti",
-    focus: "Script, scaletta, registrazione e presenza camera",
-    tone: "Ti guida nella scrittura degli script e ti rende sicuro davanti alla telecamera.",
+  {
+    id: "VALENTINA",
+    name: "Valentina",
+    role: "Senior Brand & Copywriting Strategist",
+    avatar: "/agents/valentina.jpg",
+    initial: "V",
+    type: "human",
+    badge: "🧑 Umano · Brand & Copy",
+    description:
+      "Revisiona ed approva la tua promessa unica, la nicchia ICP ed il messaggio differenziante per assicurare massima resa di conversione sul tuo target.",
+    focus: "Validazione Brand Kit · Revisione Copywriting · Promessa Unica",
   },
-  GAIA: {
-    need: "Ho un problema tecnico",
-    focus: "Funnel, pagine, automazioni e collegamenti Stripe",
-    tone: "Traduce la complessità tecnica ed i collegamenti web in soluzioni immediate.",
+  {
+    id: "ANDREA",
+    name: "Andrea",
+    role: "Video Coach & Director Teleprompter",
+    avatar: "/agents/andrea.jpg",
+    initial: "A",
+    type: "human",
+    badge: "🧑 Umano · Direzione Video",
+    description:
+      "Valida gli script della Masterclass e ti guida nella registrazione delle videolezioni, curando la tua postura, il ritmo e la presenza davanti alla telecamera.",
+    focus: "Direzione Teleprompter · Script Masterclass · Presenza Kamera",
   },
-  MARCO: {
-    need: "Sto preparando lancio o vendita",
-    focus: "Calendario, prezzo, webinar e ritmo operativo",
-    tone: "Pianifica il calendario di lancio a 30 giorni e tiene alta la trazione fino al go-live.",
+  {
+    id: "GAIA",
+    name: "Gaia",
+    role: "Tech Lead & Infrastructure Specialist",
+    avatar: "/agents/gaia.jpg",
+    initial: "G",
+    type: "human",
+    badge: "🧑 Umano · Tech Lead",
+    description:
+      "Supervisiona la configurazione tecnica dell'infrastruttura: domini personalizzati, integrazione del funnel web e collegamento della cassa Stripe.",
+    focus: "Infrastruttura Web · Collaudo Cassa Stripe · Domini & Automazioni",
   },
-  MATTEO: {
-    need: "Voglio leggere numeri e risultati",
-    focus: "Analisi, KPI, priorità di ottimizzazione",
-    tone: "Analizza i dati del tuo posizionamento per darti decisioni numeriche concrete.",
-  },
-};
-
-const RESPONSE_NOTES = [
-  "Scegli il referente più vicino al tuo blocco: la chat si apre già contestualizzata.",
-  "Per dubbi generali parti da Simona; per problemi tecnici vai diretto su Gaia.",
-  "Le risposte sono pensate per darti una prossima azione chiara e da eseguire subito.",
 ];
 
-// ─── Avatar con fallback all'iniziale se la foto non carica ───────────────
-function Avatar({ agent, size = "w-16 h-16 sm:w-20 sm:h-20" }) {
+// ─── TEAM AI OPERATIVO 24/7 (COPILOT DI ESECUZIONE VELOCE) ───────────────────
+export const AI_EXECUTION_TEAM = [
+  {
+    id: "AI_COPY",
+    name: "Copilot Posizionamento & Copy AI",
+    role: "Generatore Bozze Copywriting 24/7",
+    avatar: null,
+    initial: "AI",
+    type: "ai",
+    badge: "🤖 Agent AI 24/7",
+    description:
+      "Elabora in tempo reale le prime bozze di posizionamento, gli outline delle lezioni e le sequenze e-mail per la successiva revisione ed approvazione del team umano.",
+    focus: "Generazione Bozze · Script Masterclass · Sequenze Email",
+  },
+  {
+    id: "AI_FUNNEL",
+    name: "Copilot Funnel & Automation AI",
+    role: "Pre-Configuratore Funnel & Code AI",
+    avatar: null,
+    initial: "AI",
+    type: "ai",
+    badge: "🤖 Agent AI 24/7",
+    description:
+      "Pre-configura le pagine web del funnel, imposta le strutture di checkout Stripe ed organizza i tag degli studenti nella piattaforma.",
+    focus: "Struttura Pagine Web · Form Stripe · Trigger Automazioni",
+  },
+  {
+    id: "AI_METRICS",
+    name: "Copilot Blueprint & Metrics AI",
+    role: "Simulatore Dati & Projection AI",
+    avatar: null,
+    initial: "AI",
+    type: "ai",
+    badge: "🤖 Agent AI 24/7",
+    description:
+      "Calcola le proiezioni numeriche, il margine operativo del tuo corso ed i tassi di conversione stimati durante la simulazione di lancio.",
+    focus: "Simulazione ROI · Calcolo Pricing · Metriche Webinar",
+  },
+];
+
+// ─── AVATAR CON FALLBACK ──────────────────────────────────────────────────
+function Avatar({ agent, size = "w-14 h-14 sm:w-16 sm:h-16" }) {
   const [err, setErr] = useState(false);
+  if (agent.type === "ai") {
+    return (
+      <div
+        className={`${size} rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold text-lg shrink-0 border-2 border-slate-950 shadow-sm`}
+      >
+        <Bot className="w-8 h-8 text-slate-950" />
+      </div>
+    );
+  }
+
   if (err || !agent.avatar) {
     return (
       <div
-        className={`${size} rounded-full bg-slate-950 text-yellow-400 flex items-center justify-center font-extrabold text-xl shrink-0 border-2 border-yellow-400 shadow-sm`}
+        className={`${size} rounded-full bg-slate-950 text-yellow-400 font-extrabold flex items-center justify-center text-lg shrink-0 border-2 border-yellow-400 shadow-sm`}
       >
         {agent.initial}
       </div>
@@ -71,12 +151,12 @@ function Avatar({ agent, size = "w-16 h-16 sm:w-20 sm:h-20" }) {
   );
 }
 
-// ─── Drawer chat verso un singolo membro del team ─────────────────────────
+// ─── DRAWER CHAT INTERATTIVO VERSO UN MEMBRO ──────────────────────────────
 function TeamChatDrawer({ agent, partner, onClose }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: `Ciao! Sono ${agent.name}, ${agent.role}. Come posso aiutarti oggi sul tuo percorso?`,
+      content: `Ciao! Sono ${agent.name}, ${agent.role}. Come posso esserti utile oggi?`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -101,7 +181,6 @@ function TeamChatDrawer({ agent, partner, onClose }) {
         body: JSON.stringify({
           partner_id: partner?.id || "demo_partner",
           user_name: partner?.name || "Partner CIAK",
-          partner_niche: partner?.niche,
           message: userMsg.content,
           target_agent: agent.id,
         }),
@@ -115,7 +194,7 @@ function TeamChatDrawer({ agent, partner, onClose }) {
         ...m,
         {
           role: "assistant",
-          content: `Grazie per il messaggio! Ho preso in carico la tua richiesta. Ti risponderò a breve!`,
+          content: `Richiesta inoltrata a ${agent.name}! Ti risponderò al più presto con indicazioni precise.`,
         },
       ]);
     } finally {
@@ -143,8 +222,8 @@ function TeamChatDrawer({ agent, partner, onClose }) {
         </header>
 
         <div className="border-b border-slate-200 px-5 py-3 bg-slate-50 text-xs">
-          <span className="font-bold text-amber-600 block uppercase tracking-wider">Focus della chat</span>
-          <p className="text-slate-700 font-medium mt-0.5">{SUPPORT_META[agent.id]?.focus || agent.description}</p>
+          <span className="font-bold text-amber-600 block uppercase tracking-wider">Area di intervento</span>
+          <p className="text-slate-700 font-medium mt-0.5">{agent.focus}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/50">
@@ -164,7 +243,7 @@ function TeamChatDrawer({ agent, partner, onClose }) {
           {sending && (
             <div>
               <span className="inline-block px-4 py-2.5 rounded-2xl text-xs bg-white text-slate-500 border border-slate-200 shadow-sm">
-                {agent.name} sta scrivendo...
+                {agent.name} sta elaborando...
               </span>
             </div>
           )}
@@ -177,7 +256,7 @@ function TeamChatDrawer({ agent, partner, onClose }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={`Scrivi un messaggio a ${agent.name}...`}
+            placeholder={`Scrivi a ${agent.name}...`}
             disabled={sending}
             className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
@@ -194,149 +273,190 @@ function TeamChatDrawer({ agent, partner, onClose }) {
   );
 }
 
-// ─── Card singolo membro ──────────────────────────────────────────────────
-function TeamCard({ agent, onChat }) {
-  const meta = SUPPORT_META[agent.id] || {};
+// ─── CARD MEMBRO TEAM COMPATTA ─────────────────────────────────────────────
+function MemberCard({ agent, onChat }) {
+  const isHuman = agent.type === "human";
   return (
-    <div className="bg-white rounded-3xl border-2 border-slate-200/80 p-6 sm:p-7 flex flex-col justify-between hover:border-amber-400 transition shadow-sm hover:shadow-md group space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-start gap-4">
+    <div className="bg-white border-2 border-slate-200/80 rounded-3xl p-5 sm:p-6 hover:border-amber-400 transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group">
+      <div className="space-y-3">
+        
+        {/* HEADER MEMBER CARD: FOTO + NOME + BADGE */}
+        <div className="flex items-start gap-3.5">
           <Avatar agent={agent} />
           <div className="min-w-0 space-y-1">
-            <h3 className="text-xl font-extrabold text-slate-950 leading-snug group-hover:text-amber-600 transition">{agent.name}</h3>
-            <p className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 inline-block">{agent.role}</p>
+            <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] inline-block ${
+              isHuman ? "bg-amber-100 text-amber-950 border border-amber-300" : "bg-slate-950 text-yellow-400 font-mono"
+            }`}>
+              {agent.badge}
+            </span>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-950 leading-snug group-hover:text-amber-600 transition">
+              {agent.name}
+            </h3>
+            <p className="text-xs font-bold text-slate-500">
+              {agent.role}
+            </p>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-4 space-y-1">
-          <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-            Quando Scrivergli:
-          </p>
-          <p className="text-xs font-extrabold text-slate-900 leading-snug">{meta.need}</p>
+        {/* DESCRIZIONE RUOLO */}
+        <p className="text-xs text-slate-600 leading-relaxed pt-1 border-t border-slate-100 font-normal">
+          {agent.description}
+        </p>
+
+        {/* FOCUS OPERATIVO COMPATTO */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[11px] font-medium text-slate-700">
+          <span className="font-bold text-slate-950 block mb-0.5">Focus Specifico:</span>
+          {agent.focus}
         </div>
 
-        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-          {meta.tone || agent.description}
-        </p>
       </div>
 
+      {/* PULSANTE PARLA IN CHAT */}
       <button
         onClick={() => onChat(agent)}
-        className="w-full py-3 px-4 bg-slate-950 text-yellow-400 font-extrabold text-xs rounded-2xl inline-flex items-center justify-between hover:bg-slate-800 transition shadow-sm group-hover:scale-[1.01]"
+        className="w-full py-2.5 px-3 bg-slate-950 text-yellow-400 font-extrabold rounded-xl text-xs hover:bg-slate-800 transition shadow-sm inline-flex items-center justify-center gap-2"
       >
-        <span className="inline-flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-yellow-400" />
-          Chatta con {agent.name}
-        </span>
-        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition" />
+        <MessageCircle className="w-3.5 h-3.5 text-yellow-400" />
+        <span>Parla con {agent.name}</span>
       </button>
     </div>
   );
 }
 
-function SupportRouter({ team, onChat }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {team.map((agent) => {
-        const meta = SUPPORT_META[agent.id] || {};
-        return (
-          <button
-            key={agent.id}
-            onClick={() => onChat(agent)}
-            className="text-left bg-white border-2 border-slate-200/80 rounded-2xl p-5 hover:border-amber-400 hover:shadow-md transition space-y-1 group"
-          >
-            <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 group-hover:text-slate-950 transition">
-              {agent.name} · {agent.role}
-            </span>
-            <span className="block text-sm font-extrabold text-slate-950 leading-snug">
-              {meta.need}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Pagina ad Ampia Visibilità ──────────────────────────────────────────
+// ─── COMPONENTE PRINCIPALE TEAM IBRIDO ─────────────────────────────────────
 export function TeamSupportoPage({ partner }) {
-  const [activeAgent, setActiveAgent] = useState(null);
-  const team = TEAM_ORDER.map((id) => AGENTS[id]).filter(Boolean);
+  const [activeChatAgent, setActiveChatAgent] = useState(null);
+
+  // Stato espansione menu a tendina per le 2 sezioni (aperti di default)
+  const [openSections, setOpenSections] = useState({
+    human: true,
+    ai: true,
+  });
+
+  const toggleSection = (key) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 md:p-8 space-y-10 font-[Poppins,system-ui,sans-serif]">
+    <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
       
-      {/* HEADER AMPIO & INFORMATIVO */}
-      <header className="border-b border-slate-200 pb-8">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 block mb-1">
-          Supporto Evolution PRO · Area Partner
-        </span>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 leading-tight">
-              Trova subito la persona giusta
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-              Ogni membro del team segue una parte precisa del tuo percorso lungo le 14 Fasi. Parti dal bisogno operativo, apri la chat 1-on-1 dedicata e ricevi una prossima azione chiara senza perdere tempo.
-            </p>
-          </div>
-
-          <div className="bg-slate-950 text-white rounded-3xl p-6 shadow-sm border border-slate-800 space-y-3">
-            <div className="flex items-center gap-2 text-yellow-400 font-extrabold text-sm">
-              <Clock3 className="w-4 h-4 text-yellow-400" />
-              Prima di scrivere al team
-            </div>
-            <div className="space-y-2 pt-1">
-              {RESPONSE_NOTES.map((note) => (
-                <div key={note} className="flex gap-2.5 text-xs leading-relaxed text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
-                  <span>{note}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* HEADER PAGINA TEAM CON DISTANZE IDENTICHE A PERCORSO & MATERIALI */}
+      <header className="border-b border-slate-200 bg-white py-8 px-4 sm:px-8">
+        <div className="w-full max-w-[1400px] mx-auto space-y-3">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
+            Ecosistema Ibrido · Evolution PRO
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950">
+            Team Umano di Supervisione & AI Copilots
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+            Il tuo percorso non è affidato a meri automatismi: ogni scelta strategica è guidata e validata da <strong>Specialisti Umani Reali</strong>, affiancati da <strong>Copilot AI Operativi 24/7</strong> che accelerano la produzione dei tuoi asset.
+          </p>
         </div>
       </header>
 
-      {/* SEZIONE 1: ROUTER RAPIDO DAI BISOGNI */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <h2 className="text-base font-extrabold text-slate-950">
-            Parti dal tuo blocco o bisogno attuale:
-          </h2>
-          <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
-            Clicca per aprire subito la chat dedicata
-          </span>
-        </div>
-        <SupportRouter team={team} onChat={setActiveAgent} />
-      </section>
+      {/* CONTENUTO DIVISO NELLE 2 SEZIONI A TENDINA (ACCORDION PER NON ALLUNGARE LA PAGINA) */}
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">
+        
+        {/* 🔷 SEZIONE 1: TEAM UMANO DI SUPERVISIONE (MENU A TENDINA) */}
+        <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition">
+          <button
+            onClick={() => toggleSection("human")}
+            className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 bg-slate-50/80 hover:bg-slate-100/80 transition group"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="h-10 w-10 rounded-2xl bg-amber-100 border border-amber-300 text-amber-950 flex items-center justify-center shrink-0 shadow-sm font-extrabold">
+                🧑
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 block">
+                  SUPERVISIONE & VALIDAZIONE UMANA
+                </span>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-amber-600 transition">
+                  01. Team Umano di Mentor & Specialisti ({HUMAN_SUPERVISION_TEAM.length} Referenti Reali)
+                </h2>
+                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                  I mentor umani che approvano il tuo posizionamento, la promessa unica e la qualità video.
+                </p>
+              </div>
+            </div>
 
-      {/* SEZIONE 2: GRIGLIA MEMBRI TEAM DEDICATO */}
-      <section className="space-y-4 pt-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <h2 className="text-base font-extrabold text-slate-950">
-            Il Tuo Team di Supporto Dedicato:
-          </h2>
-          <span className="text-xs font-semibold text-slate-500">
-            {team.length} Referenti Specializzati
-          </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-xs font-mono font-extrabold px-3 py-1 rounded-full bg-slate-200/80 text-slate-800">
+                {HUMAN_SUPERVISION_TEAM.length} Mentori
+              </span>
+              <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-amber-400 group-hover:text-slate-950 transition">
+                {openSections.human ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </div>
+            </div>
+          </button>
+
+          {openSections.human && (
+            <div className="p-5 sm:p-6 border-t border-slate-200 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {HUMAN_SUPERVISION_TEAM.map((agent) => (
+                  <MemberCard key={agent.id} agent={agent} onChat={setActiveChatAgent} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {team.map((agent) => (
-            <TeamCard key={agent.id} agent={agent} onChat={setActiveAgent} />
-          ))}
-        </div>
-      </section>
+        {/* 🔶 SEZIONE 2: TEAM AI OPERATIVO 24/7 (MENU A TENDINA) */}
+        <div className="bg-white border-2 border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:border-amber-400/80 transition">
+          <button
+            onClick={() => toggleSection("ai")}
+            className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 bg-slate-50/80 hover:bg-slate-100/80 transition group"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="h-10 w-10 rounded-2xl bg-slate-950 text-yellow-400 flex items-center justify-center shrink-0 shadow-sm font-extrabold border border-slate-800">
+                🤖
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600 block">
+                  ESECUZIONE VELOCE & ESECUZIONE TASK 24/7
+                </span>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-950 group-hover:text-amber-600 transition">
+                  02. Team AI Operativo ({AI_EXECUTION_TEAM.length} Copilot Specialistici 24/7)
+                </h2>
+                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                  Gli agenti AI addestrati sul Metodo EVO che creano le prime bozze ed eseguono le parti tecniche.
+                </p>
+              </div>
+            </div>
 
-      {/* DRAWER CHAT */}
-      {activeAgent && (
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-xs font-mono font-extrabold px-3 py-1 rounded-full bg-slate-200/80 text-slate-800">
+                {AI_EXECUTION_TEAM.length} Copilots
+              </span>
+              <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-amber-400 group-hover:text-slate-950 transition">
+                {openSections.ai ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </div>
+            </div>
+          </button>
+
+          {openSections.ai && (
+            <div className="p-5 sm:p-6 border-t border-slate-200 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {AI_EXECUTION_TEAM.map((agent) => (
+                  <MemberCard key={agent.id} agent={agent} onChat={setActiveChatAgent} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* DRAWER CHAT INTERATTIVO */}
+      {activeChatAgent && (
         <TeamChatDrawer
-          agent={activeAgent}
+          agent={activeChatAgent}
           partner={partner}
-          onClose={() => setActiveAgent(null)}
+          onClose={() => setActiveChatAgent(null)}
         />
       )}
+
     </div>
   );
 }
