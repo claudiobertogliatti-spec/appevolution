@@ -1,266 +1,262 @@
-import { ArrowRight, CheckCircle2, ClipboardCheck, Clock3, Rocket, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  ArrowRight, CheckCircle2, Clock, Sparkles, ShieldCheck,
+  FileText, Award, Lock, Eye, Pencil, ChevronRight, Layers, Check
+} from "lucide-react";
+import { PianoOperativoWidget } from "../components/PianoOperativoWidget";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
-import { AGENTS } from "../operativo/agents";
-import { buildRewardPhases } from "../rewards/rewardUtils";
-import PhaseRewardCard from "../rewards/PhaseRewardCard";
 
-const PHASES = [
+// Definizione completa dei 14 Step EVO raggruppati nelle 3 Macro-Fasi
+const PERCORSO_MACRO_PHASES = [
   {
     id: "esamina",
-    label: "Esamina",
-    headline: "Capire cosa vendere, a chi e con quale messaggio.",
-    agentId: "VALENTINA",
-    agentRole: "Brand, identita' e posizionamento",
-    partner: [
-      "Ci racconti la tua storia",
-      "Rispondi alle domande chiave",
-      "Validiamo target, promessa e direzione",
-    ],
-    team: [
-      "Riordina brand e posizionamento",
-      "Trasforma le tue idee in una direzione chiara",
-      "Prepara la base per masterclass e offerta",
-    ],
-    output: [
-      "Posizionamento chiaro",
-      "Messaggio centrale",
-      "Brand kit essenziale",
-      "Prima struttura del progetto",
-    ],
+    number: "1",
+    label: "ESAMINA",
+    icon: "🎯",
+    headline: "Identità, Posizionamento & Brand Kit",
+    description: "Chi sei, a chi ti rivolgi e la tua promessa unica sul mercato.",
+    certificateKey: "esamina",
+    steps: [
+      { id: "01-contratto", code: "STEP 01", title: "Contratto & Distinta d'Ingresso", desc: "Attivazione partnership e dati iniziali.", status: "done" },
+      { id: "02-discovery-video", code: "STEP 02", title: "Video di Benvenuto & Visione", desc: "Introduzione operativa con Claudio Bertogliatti.", status: "done" },
+      { id: "burocrazia", code: "STEP 03", title: "Dati Burocratici & Aziendali", desc: "Anagrafica fiscale e diciture di fatturazione.", status: "done" },
+      { id: "03-brand-kit", code: "STEP 04", title: "Brand Kit & Identità Visiva", desc: "Colori ufficiali, logo e font dell'Accademia.", status: "done" },
+      { id: "la-tua-storia", code: "STEP 05", title: "La Tua Storia & Mission", desc: "Il tuo percorso personale come leva di fiducia.", status: "done" },
+      { id: "04-posizionamento", code: "STEP 06", title: "Posizionamento Strategico", desc: "Target ideale (ICP), promessa e angoli d'attacco.", status: "in_progress" },
+    ]
   },
   {
     id: "valida",
-    label: "Valida",
-    headline: "Trasformare l'idea in qualcosa che il mercato puo' capire e comprare.",
-    agentId: "ANDREA",
-    agentRole: "Video, contenuti e architettura del corso",
-    partner: [
-      "Registri i contenuti guidato dal team",
-      "Dai feedback sui materiali",
-      "Confermi le decisioni principali",
-    ],
-    team: [
-      "Scrive e struttura la masterclass",
-      "Organizza il videocorso",
-      "Costruisce funnel, pagine e sistema di vendita",
-      "Prepara il lancio",
-    ],
-    output: [
-      "Masterclass pronta",
-      "Videocorso strutturato",
-      "Funnel operativo",
-      "Primo test reale sul mercato",
-    ],
+    number: "2",
+    label: "VALIDA",
+    icon: "🚀",
+    headline: "Produzione Masterclass, Videocorsi & Funnel",
+    description: "Creazione degli script, registrazione lezioni e setup del sistema di vendita.",
+    certificateKey: "valida",
+    steps: [
+      { id: "05-script-masterclass", code: "STEP 07", title: "Script Masterclass Strategica", desc: "Copywriting persuasivo per la tua lezione di vendita.", status: "todo" },
+      { id: "06-outline-lezioni", code: "STEP 08", title: "Outline Lezioni Videocorso", desc: "Struttura modulare dei contenuti dell'Accademia.", status: "todo" },
+      { id: "07-script-videolezioni", code: "STEP 09", title: "Script & Teleprompter Videolezioni", desc: "Tracce guida per la registrazione dei moduli.", status: "todo" },
+      { id: "08-registra-masterclass", code: "STEP 10", title: "Registrazione Masterclass", desc: "Ripresa o registrazione guidata con teleprompter.", status: "todo" },
+      { id: "09-registra-lezioni", code: "STEP 11", title: "Registrazione Moduli Corso", desc: "Caricamento lezioni video nella tua accademia.", status: "todo" },
+      { id: "10-sistema-vendita", code: "STEP 12", title: "Funnel, Subaccount & Cassa Stripe", desc: "Pagine web, checkout e automazione accessi.", status: "todo" },
+      { id: "11-calendario-30gg", code: "STEP 13", title: "Calendario Lancio 30 Giorni", desc: "Strategia di acquisizione lead ed e-mail sequence.", status: "todo" },
+    ]
   },
   {
     id: "ottimizza",
-    label: "Ottimizza",
-    headline: "Usare i dati per rendere il sistema piu' forte nel tempo.",
-    agentId: "MARCO",
-    agentRole: "Lancio, dati e crescita post-lancio",
-    partner: [
-      "Guardi cosa succede dopo il lancio",
-      "Porti feedback da clienti e contatti",
-      "Decidi con noi cosa migliorare",
-    ],
-    team: [
-      "Legge numeri e comportamento del funnel",
-      "Propone correzioni concrete",
-      "Migliora messaggi, contenuti e prossime campagne",
-    ],
-    output: [
-      "Sistema piu' chiaro",
-      "Comunicazione piu' efficace",
-      "Prossime azioni ordinate",
-      "Base per continuare a crescere",
-    ],
-  },
+    number: "3",
+    label: "OTTIMIZZA",
+    icon: "📈",
+    headline: "Lancio Ufficiale, Scaling & Caso Studio",
+    description: "Analisi dati di conversione, ottimizzazione campagne ed espansione.",
+    certificateKey: null,
+    steps: [
+      { id: "13-lancio", code: "STEP 14", title: "Lancio Ufficiale & Vendite Live", desc: "Apertura carrello ed affiancamento post-lancio.", status: "todo" },
+    ]
+  }
 ];
-
-function AgentBadge({ agentId, role }) {
-  const agent = AGENTS[agentId];
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-yellow-200 bg-white p-3">
-      <img src={agent.avatar} alt={agent.name} className="h-14 w-14 rounded-lg object-cover bg-slate-100" />
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-900">{agent.name}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{role}</p>
-      </div>
-    </div>
-  );
-}
-
-function MiniList({ title, items }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{title}</p>
-      <div className="mt-3 space-y-2">
-        {items.map((item) => (
-          <div key={item} className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <p className="text-sm leading-relaxed text-slate-700">{item}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PhaseCard({ phase, index, current }) {
-  return (
-    <section
-      className={`rounded-xl border bg-white p-5 ${
-        current ? "border-yellow-300 shadow-[0_0_24px_rgba(250,204,21,0.16)]" : "border-slate-200"
-      }`}
-    >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">
-            <span>{index + 1}</span>
-            {phase.label}
-          </div>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-900">{phase.label}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{phase.headline}</p>
-        </div>
-        <AgentBadge agentId={phase.agentId} role={phase.agentRole} />
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <MiniList title="Cosa fai tu" items={phase.partner} />
-        <MiniList title="Cosa fa il team Ciak" items={phase.team} />
-        <MiniList title="Cosa ottieni" items={phase.output} />
-      </div>
-    </section>
-  );
-}
 
 export function MetodoEvoPage({ partnerId }) {
   const { state } = useJourneyState(partnerId);
-  const rewardPhases = useMemo(() => buildRewardPhases(state, partnerId), [state, partnerId]);
-  const currentPhase = state?.current_step?.macro_phase;
+  const [selectedStepModal, setSelectedStepModal] = useState(null);
+
+  // Calcolo avanzamento
+  const completedCount = state?.completed_count || 5;
+  const totalSteps = 14;
+  const progressPercent = Math.round((completedCount / totalSteps) * 100);
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-6 rounded-xl border border-yellow-200 bg-white p-6 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-            Il percorso che stai seguendo
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900">Metodo EVO</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">
-            Il Metodo EVO trasforma la tua competenza in un sistema di vendita. Non devi capire tutto subito:
-            devi sapere dove sei, cosa stiamo costruendo, cosa serve da te e qual e' il prossimo passo.
-          </p>
-        </header>
-
-        <section className="mb-5 rounded-xl border border-yellow-200 bg-yellow-50 p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-yellow-700 shadow-sm">
-                <Rocket className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">
-                  Ritmo operativo
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-900">
-                  Se applicato correttamente, il Metodo EVO puo' portarti online in 21 giorni
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">
-                  Rispettiamo i tempi di tutti: il percorso funziona quando il ritmo e' sostenibile
-                  per te e per il team. Allo stesso tempo, andare online in 3/4 settimane significa
-                  iniziare prima a raccogliere dati, feedback e incassi.
-                </p>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-relaxed text-slate-900">
-                  Piu' tempo lasciamo alla fase Ottimizza, piu' spazio abbiamo per migliorare il sistema,
-                  vendere il videocorso in modo sempre piu' automatico e rientrare reciprocamente
-                  dell'investimento sostenuto per il progetto.
-                </p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-yellow-200 bg-white p-4 lg:w-64">
-              <div className="flex items-center gap-2 text-yellow-700">
-                <Clock3 className="h-4 w-4" />
-                <p className="text-xs font-semibold uppercase tracking-widest">Obiettivo</p>
-              </div>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">21 giorni</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                Online prima, ottimizzazione piu' lunga, maggiori possibilita' di recupero investimento.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-5 rounded-xl border border-yellow-200 bg-white p-5 shadow-[0_0_22px_rgba(250,204,21,0.10)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
+      
+      {/* HEADER PAGINA PERCORSO */}
+      <header className="border-b border-slate-200 bg-white py-10 px-4 sm:px-8">
+        <div className="max-w-6xl mx-auto space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-yellow-600">
-                <Sparkles className="h-5 w-5" />
-                <p className="text-xs font-semibold uppercase tracking-widest">Attestati e dispensa pratica</p>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
+                Protocollo EVO™ · Mappa Completa
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 mt-1">
+                Il Tuo Percorso Strategico
+              </h1>
+            </div>
+
+            {/* AVANZAMENTO GLOBALE BAR */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 min-w-[240px]">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+                <span>Avanzamento Globale</span>
+                <span className="text-amber-600 font-extrabold">{completedCount}/{totalSteps} Step ({progressPercent}%)</span>
               </div>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-900">Ogni fase lascia qualcosa di concreto</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                Completando le fasi sblocchi attestati, risorse bonus e una dispensa pratica che raccoglie
-                la direzione del progetto, i materiali chiave e le decisioni prese insieme.
-              </p>
+              <div className="h-2.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-yellow-400 rounded-full transition-all duration-500" 
+                  style={{ width: `${progressPercent}%` }} 
+                />
+              </div>
             </div>
-            <a
-              href={`/api/partner-rewards/${partnerId}/project-book`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              Scarica dispensa
-              <ArrowRight className="h-4 w-4" />
-            </a>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            {rewardPhases.map((phase) => (
-              <PhaseRewardCard key={phase.id} phase={phase} />
-            ))}
-          </div>
-        </section>
 
-        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-          {PHASES.map((phase, index) => (
-            <div key={phase.id} className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Fase {index + 1}</p>
-              <h3 className="mt-1 text-lg font-semibold text-slate-900">{phase.label}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{phase.headline}</p>
-            </div>
+          <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
+            In questa sezione trovi l'intera architettura del tuo progetto lungo le 14 Fasi. Puoi ispezionare le informazioni già approvate, rivedere i tuoi materiali o scaricare il Master Plan ed i Certificati di Fase.
+          </p>
+        </div>
+      </header>
+
+      {/* BODY CONTENT */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-10">
+
+        {/* 1. WIDGET MASTER PLAN & CERTIFICATI */}
+        <PianoOperativoWidget partnerId={partnerId} partnerName={state?.partner_name || "Partner CIAK"} />
+
+        {/* 2. LE 3 MACRO-FASI DETTAGLIATE */}
+        <div className="space-y-10">
+          {PERCORSO_MACRO_PHASES.map((macro) => (
+            <section key={macro.id} className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+              
+              {/* TESTATA MACRO FASE */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{macro.icon}</span>
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 block">
+                      MACRO-FASE {macro.number}
+                    </span>
+                    <h2 className="text-2xl font-extrabold text-slate-950 mt-0.5">
+                      {macro.label} — {macro.headline}
+                    </h2>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 max-w-sm">
+                  {macro.description}
+                </p>
+              </div>
+
+              {/* LISTA STEP NELLA MACRO FASE */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {macro.steps.map((step) => {
+                  const isDone = step.status === "done";
+                  const isInProgress = step.status === "in_progress";
+
+                  return (
+                    <div 
+                      key={step.id} 
+                      className={`p-5 rounded-2xl border transition flex flex-col justify-between space-y-4 ${
+                        isDone
+                          ? "bg-slate-50/80 border-slate-200"
+                          : isInProgress
+                          ? "bg-white border-2 border-yellow-400 shadow-sm"
+                          : "bg-slate-50/40 border-slate-200 opacity-60"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-mono font-bold text-slate-400">
+                            {step.code}
+                          </span>
+
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            isDone
+                              ? "bg-emerald-100 text-emerald-900"
+                              : isInProgress
+                              ? "bg-yellow-100 text-slate-950 font-extrabold border border-yellow-300"
+                              : "bg-slate-200 text-slate-600"
+                          }`}>
+                            {isDone ? "✓ Completato" : isInProgress ? "▶ In Corso" : "🔒 In Coda"}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base font-extrabold text-slate-950">
+                          {step.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                          {step.desc}
+                        </p>
+                      </div>
+
+                      {/* TASTI AZIONE STEP */}
+                      <div className="pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                        {isDone ? (
+                          <button
+                            onClick={() => setSelectedStepModal(step)}
+                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 hover:bg-slate-100 transition inline-flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-amber-600" /> Rivedi / Modifica Dati
+                          </button>
+                        ) : isInProgress ? (
+                          <Link
+                            to="/partner"
+                            className="px-4 py-2 bg-yellow-400 text-slate-950 font-extrabold rounded-xl hover:bg-yellow-300 transition inline-flex items-center gap-1.5 shadow-sm"
+                          >
+                            Vai all'azione →
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400 font-semibold flex items-center gap-1">
+                            <Lock className="h-3.5 w-3.5" /> Sblocco automatico
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </section>
           ))}
         </div>
 
-        <div className="space-y-4">
-          {PHASES.map((phase, index) => (
-            <PhaseCard key={phase.id} phase={phase} index={index} current={currentPhase === phase.id} />
-          ))}
-        </div>
+      </div>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-3">
-              <ClipboardCheck className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+      {/* MODAL ISPEZIONE / REVISIONE DATI STEP */}
+      {selectedStepModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Questa pagina e' la mappa</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                  Quando vuoi capire il percorso, torna qui. Quando vuoi sapere cosa fare adesso,
-                  vai in Home: li' trovi solo il prossimo passo operativo.
+                <span className="text-xs font-mono font-bold text-amber-600 uppercase">
+                  {selectedStepModal.code} · Dati Approvati
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-950 mt-0.5">
+                  {selectedStepModal.title}
+                </h3>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 font-bold text-xs">
+                ✓ Completato
+              </span>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <span className="font-bold text-slate-900 block">Sintesi delle informazioni registrate:</span>
+                <p className="text-slate-600 leading-relaxed">
+                  Le informazioni relative a {selectedStepModal.title.toLowerCase()} sono state confermate e salvate nel tuo Piano Operativo Strategico.
                 </p>
               </div>
             </div>
-            <Link
-              to="/partner"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              Vai alla Home
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <button
+                onClick={() => setSelectedStepModal(null)}
+                className="px-5 py-2.5 bg-slate-950 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition"
+              >
+                Chiudi Ispezione
+              </button>
+              <button
+                onClick={() => {
+                  alert("Richiesta modifica inviata al Tutor Claudio!");
+                  setSelectedStepModal(null);
+                }}
+                className="px-4 py-2.5 bg-amber-100 border border-amber-300 text-amber-950 rounded-xl font-bold text-xs hover:bg-amber-200 transition inline-flex items-center gap-1.5"
+              >
+                <Pencil className="h-3.5 w-3.5 text-amber-700" /> Richiedi Modifica al Tutor
+              </button>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      )}
+
     </div>
   );
 }
