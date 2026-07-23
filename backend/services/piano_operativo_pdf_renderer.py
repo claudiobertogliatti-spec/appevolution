@@ -181,7 +181,7 @@ def render_piano_operativo_html(partner: Dict[str, Any], steps: List[Dict[str, A
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>CIAK.io - Piano Operativo Strategico | {_esc(nome)}</title>
+  <title>CIAK.io - Workbook Strategico | {_esc(nome)}</title>
   <style>{_CSS}</style>
 </head>
 <body>
@@ -193,9 +193,11 @@ def render_piano_operativo_html(partner: Dict[str, Any], steps: List[Dict[str, A
           <span class="status-dot"></span> PROTOCOLLO VALIDATO (STEP {completed_count}/{total_steps})
         </div>
       </div>
+      <div style="background:var(--yellow); color:var(--navy); padding:10px 20px; border-radius:8px; font-weight:800; font-size:20px; letter-spacing:1px; margin-bottom:12px; display:inline-block;">
+        WORKBOOK STRATEGICO
+      </div>
       <div class="doc-title-box">
-        <h1>PIANO OPERATIVO STRATEGICO</h1>
-        <p>Documento Master Unificato: Da Anagrafica a Lancio dell'Accademia</p>
+        <p style="font-size:16px; color:#E2E8F0; font-weight:500;">Una guida esclusiva per la realizzazione di accademie digitali di successo</p>
       </div>
       <div class="partner-meta-box">
         <div class="partner-info">
@@ -206,7 +208,7 @@ def render_piano_operativo_html(partner: Dict[str, Any], steps: List[Dict[str, A
           <div class="tutor-avatar">{tutor_initials}</div>
           <div>
             <strong style="font-size:12px; color:white; display:block;">{tutor}</strong>
-            <span style="font-size:11px; color:#94A3B8;">Tutor Strategico CIAK</span>
+            <span style="font-size:11px; color:#94A3B8;">Tutor Strategico CIAK.io</span>
           </div>
         </div>
       </div>
@@ -224,7 +226,7 @@ def render_piano_operativo_html(partner: Dict[str, Any], steps: List[Dict[str, A
     </div>
 
     <div class="doc-footer">
-      <div>&copy; 2026 CIAK.io &mdash; Piano Operativo Strategico Riservato</div>
+      <div>&copy; 2026 CIAK.io &mdash; Workbook Strategico Riservato</div>
       <div>Documento Generato per: {nome}</div>
     </div>
   </div>

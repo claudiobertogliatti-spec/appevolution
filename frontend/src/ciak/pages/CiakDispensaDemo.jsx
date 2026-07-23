@@ -52,11 +52,11 @@ export function CiakDispensaDemo() {
             </div>
 
             <div className="max-w-2xl">
-              <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight">
-                PIANO OPERATIVO STRATEGICO
-              </h1>
-              <p className="mt-3 text-slate-300 text-base md:text-lg">
-                Documento Master Unificato: Da Anagrafica a Lancio dell'Accademia
+              <span className="inline-block bg-yellow-400 text-slate-950 font-extrabold px-4 py-1.5 rounded-lg text-lg md:text-xl tracking-wide mb-3">
+                WORKBOOK STRATEGICO
+              </span>
+              <p className="text-slate-200 text-base md:text-lg font-medium">
+                Una guida esclusiva per la realizzazione di accademie digitali di successo
               </p>
             </div>
 

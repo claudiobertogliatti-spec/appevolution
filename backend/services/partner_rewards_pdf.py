@@ -187,8 +187,9 @@ def render_bonus_pdf(payload: dict[str, Any]) -> bytes:
 
 
 def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
-    from reportlab.platypus import PageBreak, Spacer
+    from reportlab.platypus import PageBreak, Spacer, HRFlowable
     from reportlab.lib.units import cm
+    from reportlab.lib.colors import HexColor
 
     styles = _styles()
     buf, doc = _doc()
@@ -198,23 +199,35 @@ def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
     sections = payload.get("sections") or []
 
     story = [
-        Spacer(1, 1.1 * cm),
-        _paragraph("Libretto di Progetto Ciak", styles["CiakSubtitle"]),
-        _paragraph(project_name, styles["CiakTitle"]),
-        _paragraph(f"Preparato per {nome} · Inizio lavori: {start_date}", styles["CiakSubtitle"]),
+        Spacer(1, 0.8 * cm),
+        _paragraph("CIAK.io · PROTOCOLLO EVO™", styles["CiakSmall"]),
+        Spacer(1, 0.4 * cm),
+        HRFlowable(width="100%", thickness=14, color=HexColor("#FACC15"), spaceBefore=4, spaceAfter=14),
+        _paragraph("WORKBOOK STRATEGICO", styles["CiakTitle"]),
+        HRFlowable(width="100%", thickness=1, color=HexColor("#E2E8F0"), spaceBefore=4, spaceAfter=14),
+        _paragraph("Una guida esclusiva per la realizzazione di accademie digitali di successo", styles["CiakSubtitle"]),
+        Spacer(1, 1.2 * cm),
+        _paragraph(f"<b>Preparato per:</b> {nome}", styles["CiakBody"]),
+        _paragraph(f"<b>Progetto / Accademia:</b> {project_name}", styles["CiakBody"]),
+        _paragraph(f"<b>Data Inizio Lavori:</b> {start_date}", styles["CiakBody"]),
+        _paragraph("<b>Tutor Strategico:</b> Claudio Bertogliatti & Team CIAK.io", styles["CiakBody"]),
+        Spacer(1, 1.5 * cm),
         _paragraph(
-            "Questo documento raccoglie, fase dopo fase, le caratteristiche del modello digitale "
-            "che stiamo costruendo insieme.",
-            styles["CiakBody"],
+            "Questo documento raccoglie in formato Business Plan, fase dopo fase, "
+            "gli asset, la strategia e il modello di business dell'Accademia Digitale.",
+            styles["CiakSmall"],
         ),
         PageBreak(),
     ]
 
-    for section in sections:
-        story.append(_paragraph(_safe(section.get("title"), "Sezione progetto"), styles["CiakSection"]))
+    for idx, section in enumerate(sections, 1):
+        num_title = f"{idx}.0 {section.get('title', 'Sezione Progetto')}"
+        story.append(_paragraph(num_title, styles["CiakSection"]))
+        story.append(HRFlowable(width="100%", thickness=1, color=HexColor("#CBD5E1"), spaceBefore=2, spaceAfter=8))
         story.append(_paragraph(_safe(section.get("body"), "Questa sezione si completera' nella prossima fase del percorso."), styles["CiakBody"]))
+        story.append(Spacer(1, 0.6 * cm))
 
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(_paragraph("Versione generata da Ciak.io. Il libretto si aggiorna mentre il progetto avanza.", styles["CiakSmall"]))
+    story.append(Spacer(1, 0.8 * cm))
+    story.append(_paragraph("Documento Riservato — Generato da CIAK.io. Il Workbook si arricchisce a ogni step approvato.", styles["CiakSmall"]))
     doc.build(story, onFirstPage=_draw_page_frame, onLaterPages=_draw_page_frame)
     return buf.getvalue()
