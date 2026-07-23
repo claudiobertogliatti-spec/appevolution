@@ -516,3 +516,5 @@ export function CiakPartnerDashboardDemo() {
     </>
   );
 }
+
+export default CiakPartnerDashboardDemo;
