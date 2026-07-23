@@ -198,8 +198,6 @@ export default function GuidedHome({
       <PianoOperativoWidget partnerId={partnerId} partnerName={partnerName} />
 
       <ProjectBookCard partnerId={partnerId} state={state} />
-
-      <JourneyMap state={state} partnerName={partnerName} onOpenStep={onOpenStep} />
     </div>
   );
 }
