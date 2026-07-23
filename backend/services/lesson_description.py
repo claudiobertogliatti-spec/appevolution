@@ -26,6 +26,7 @@ def generate_lesson_description(title: str, transcript_or_outline: str, partner_
     # 1. Estrarre punti chiave principali
     lines = [line.strip() for line in transcript_or_outline.splitlines() if line.strip()]
     summary_bullets = lines[:4] if lines else [f"Approfondimento pratico su {title}"]
+    markdown_bullets = "".join(f"- {bullet}\n" for bullet in summary_bullets)
 
     # 2. Generare testo Markdown
     markdown_content = f"""### 📚 Lezione: {title}
@@ -34,7 +35,7 @@ def generate_lesson_description(title: str, transcript_or_outline: str, partner_
 In questa lezione affronteremo i concetti chiave per applicare subito la strategia nel tuo business.
 
 #### 💡 Cosa imparerai in questo modulo:
-{"".join([f"- {bullet}\n" for bullet in summary_bullets])}
+{markdown_bullets}
 
 #### 📝 Azioni Pratiche da completare:
 - [ ] Guarda il video completo della lezione.
