@@ -64,7 +64,9 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
               <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
                 Premio di percorso
               </p>
-              <h3 className="text-xl font-semibold text-slate-900 mt-1">La tua dispensa pratica</h3>
+              <h3 className="text-xl font-semibold text-slate-900 mt-1">
+                La tua dispensa pratica si sta arricchendo di fase in fase
+              </h3>
               <p className="text-sm text-slate-600 leading-relaxed mt-2 max-w-xl">
                 La vedi gia adesso, poi si arricchisce fase dopo fase: Esamina aggiunge le fondamenta,
                 Valida aggiunge masterclass, corso, script, sistema di vendita e lancio, Ottimizza aggiunge dati e miglioramenti.

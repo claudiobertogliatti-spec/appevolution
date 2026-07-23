@@ -330,9 +330,6 @@ export default function GuidedHome({
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 block mb-1">
-                  Azione Focalizzata del Mese
-                </span>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950">
                   {activeAgent.stepTitle}
                 </h2>
@@ -352,7 +349,7 @@ export default function GuidedHome({
               {/* TARGET ICP */}
               <div className="bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Target ICP Individuato:</span>
+                  <span className="text-sm sm:text-base font-bold text-slate-700">Target individuato</span>
                   {!isEditing && (
                     <button onClick={() => setIsEditing(true)} className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1">
                       <Pencil className="w-3 h-3" /> Modifica
@@ -367,14 +364,14 @@ export default function GuidedHome({
                     rows={2}
                   />
                 ) : (
-                  <p className="text-xs sm:text-sm font-semibold text-slate-900">{targetValue}</p>
+                  <p className="text-xs sm:text-sm font-normal text-slate-900">{targetValue}</p>
                 )}
               </div>
 
               {/* PROMESSA UNICA */}
               <div className="bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Promessa Differenziante:</span>
+                  <span className="text-sm sm:text-base font-bold text-slate-700">Promessa di Trasformazione differenziante</span>
                   {!isEditing && (
                     <button onClick={() => setIsEditing(true)} className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1">
                       <Pencil className="w-3 h-3" /> Modifica
@@ -389,7 +386,7 @@ export default function GuidedHome({
                     rows={2}
                   />
                 ) : (
-                  <p className="text-xs sm:text-sm font-extrabold text-amber-700 italic">{promessaValue}</p>
+                  <p className="text-xs sm:text-sm font-normal text-amber-700">{promessaValue}</p>
                 )}
               </div>
 
