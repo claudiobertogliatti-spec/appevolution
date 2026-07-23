@@ -195,8 +195,6 @@ export default function GuidedHome({
         </div>
       </section>
 
-      <PianoOperativoWidget partnerId={partnerId} partnerName={partnerName} />
-
       <ProjectBookCard partnerId={partnerId} state={state} />
     </div>
   );

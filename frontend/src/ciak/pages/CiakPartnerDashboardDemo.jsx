@@ -251,14 +251,6 @@ export function CiakPartnerDashboardDemo() {
               </div>
             )}
 
-            {/* WIDGET PIANO OPERATIVO MASTER */}
-            <div id="piano-master">
-              <PianoOperativoWidget 
-                partnerId="demo_mario_rossi" 
-                partnerName="Dott. Mario Rossi" 
-              />
-            </div>
-
           </div>
 
         </div>
