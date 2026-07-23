@@ -11,14 +11,14 @@ import {
 
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
-  { to: "/partner/metodo-evo", label: "Percorso", icon: Map },
+  { to: "/partner/percorso", label: "Percorso", icon: Map },
   { to: "/partner/materiali", label: "Materiali", icon: FolderOpen },
-  { to: "/partner/team-ciak", label: "Team", icon: Users },
+  { to: "/partner/team", label: "Team", icon: Users },
 ];
 
 const EXTRA_NAV = [
   { to: "/partner/servizi-extra", label: "Servizi Extra", icon: Sparkles },
-  { to: "/partner/continua-scalare", label: "Rinnovo", icon: RefreshCw },
+  { to: "/partner/rinnovo", label: "Rinnovo", icon: RefreshCw },
 ];
 
 function navClass({ isActive }) {
@@ -78,19 +78,23 @@ export function PartnerSidebar({ user, onLogout }) {
               {(user?.name || "Partner").slice(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-extrabold text-slate-900 truncate">{user?.name || "Partner CIAK"}</p>
-              <p className="text-[11px] text-slate-500 truncate">Accademia Partner</p>
+              <span className="font-extrabold text-xs text-slate-900 block truncate">
+                {user?.name || "Partner EVO"}
+              </span>
+              <span className="text-[11px] text-slate-500 block truncate">Accademia Partner</span>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition"
+            className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-bold transition"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Esci dall'Area Partner
+            <LogOut className="w-4 h-4" />
+            <span>Esci dall'Area Partner</span>
           </button>
         </div>
       </div>
     </aside>
   );
 }
+
+export default PartnerSidebar;
