@@ -247,22 +247,22 @@ export function CiakPartnerDashboardDemo() {
                         </h2>
                       </div>
                       <span className="px-3.5 py-1.5 rounded-full bg-yellow-400 text-slate-950 font-extrabold text-xs shrink-0">
-                        🎬 8 Minuti di Visione
+                        🎬 5 Minuti di Benvenuto Completo
                       </span>
                     </div>
 
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-4xl">
-                      In questo video, Claudio ti spiega la visione di Evolution PRO, come affronteremo le prossime settimane ed il metodo esatto per sfruttare al meglio CIAK senza perderti tra file o dubbi operativi.
+                      In questo video completo, Claudio ti spiega la visione di Evolution PRO, come affronteremo le prossime settimane ed il metodo esatto per sfruttare al meglio CIAK senza perderti tra file o dubbi operativi.
                     </p>
 
-                    {/* VIDEO PLAYER UNICO UFFICIALE DI CLAUDIO BERTOGLIATTI */}
+                    {/* VIDEO PLAYER UNICO UFFICIALE COMPLETO DI CLAUDIO BERTOGLIATTI (5 MINUTI) */}
                     <div className="relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 aspect-video shadow-md">
                       <video
                         controls
                         poster="/founder/claudio-portrait-640.webp"
                         className="w-full h-full object-cover rounded-2xl"
                       >
-                        <source src="/video/il-team-al-tuo-fianco.mp4" type="video/mp4" />
+                        <source src="/video/claudio-benvenuto-completo.mp4" type="video/mp4" />
                         <source src="/video/come-funziona-evolution-pro.mp4" type="video/mp4" />
                         Il tuo browser non supporta la riproduzione del video.
                       </video>
