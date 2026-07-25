@@ -355,7 +355,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                         {i.accelerator?.reason}
                       </p>
                       {i.continuity?.due && (
-                        <p className="text-[11px] text-emerald-700 mt-1 font-semibold">Valuta Ciak Continuità</p>
+                        <p className="text-[11px] text-emerald-700 mt-1 font-semibold">Valuta EVO-S Pro</p>
                       )}
                     </td>
                     <td className="px-4 py-3">

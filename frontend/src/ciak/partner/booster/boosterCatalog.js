@@ -262,7 +262,7 @@ export const BOOSTER_CATALOG = {
     nonComprende: [
       "L'esecuzione operativa di ciò che viene deciso.",
       "Esecuzione operativa delle attività decise.",
-      "Percorsi di affiancamento continuativo (vedi Ciak Continuità).",
+      "Percorsi di affiancamento continuativo (vedi EVO-S Pro).",
     ],
     output: "Una direzione chiara e i prossimi passi messi nero su bianco.",
     tempi: "Dopo il pagamento apri il calendario e blocchi la prima data utile.",

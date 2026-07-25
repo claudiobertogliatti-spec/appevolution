@@ -704,10 +704,10 @@ PHASE_LABELS = {
 
 # Piano Continuità configuration (EVO-S)
 PIANI_CONTINUITA = {
-    "starter": {"fee_mensile": 297, "commissione_percentuale": 10, "label": "Ciak Continuità"},
-    "builder": {"fee_mensile": 497, "commissione_percentuale": 10, "label": "Ciak Crescita"},
-    "pro": {"fee_mensile": 797, "commissione_percentuale": 10, "label": "Ciak Espansione"},
-    "recover": {"fee_mensile": 147, "commissione_percentuale": 10, "label": "Recupero Ottimizza"}
+    "starter": {"fee_mensile": 297, "commissione_percentuale": 10, "label": "EVO-S Pro"},
+    "builder": {"fee_mensile": 497, "commissione_percentuale": 10, "label": "EVO-S Premium"},
+    "pro": {"fee_mensile": 797, "commissione_percentuale": 10, "label": "EVO-S Elite"},
+    "recover": {"fee_mensile": 147, "commissione_percentuale": 10, "label": "EVO-S Inside"}
 }
 
 # =============================================================================

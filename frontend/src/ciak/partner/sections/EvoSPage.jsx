@@ -13,7 +13,7 @@ import {
 const PLANS = [
   {
     id: "start",
-    name: "Start",
+    name: "Inside",
     price: 147,
     priceLabel: "147 € / mese",
     icon: RotateCcw,
@@ -89,7 +89,7 @@ const PLANS = [
   },
   {
     id: "executive",
-    name: "Executive",
+    name: "Premium",
     price: 497,
     priceLabel: "497 € / mese",
     icon: TrendingUp,
@@ -135,7 +135,7 @@ const PLANS = [
     perChi: "Per chi vuole ingrandire l'attività: pubblicità sponsorizzata, nuovi corsi e massima presenza sul mercato.",
     obiettivo: "Espandere la tua accademia e moltiplicare le entrate con il team sempre al tuo fianco.",
     comprende: [
-      "Tutto ciò che è incluso nel Piano Executive.",
+      "Tutto ciò che è incluso nel Piano Premium.",
       "Gestione completa delle pubblicità sponsorizzate sui social (budget escluso).",
       "Progettazione e struttura per un nuovo corso o percorso.",
       "Affiancamento continuo ed prioritario per ogni decisione.",
@@ -360,6 +360,20 @@ function PlanDetail({ plan, partnerId, locked, unlockInfo, onBack }) {
               <BulletList items={plan.comprende} />
             </div>
 
+            {plan.nonComprende?.length > 0 && (
+              <div className="space-y-3 border-t border-slate-100 pt-6">
+                <h2 className="text-base font-extrabold text-slate-950">Cosa non comprende il Piano {plan.name}:</h2>
+                <ul className="space-y-2">
+                  {plan.nonComprende.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                      <X className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
               <div className="space-y-3 bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100">
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">Cosa fa il Team</h3>
@@ -452,7 +466,7 @@ export function EvoSPage({ partnerId }) {
             Piani di Rinnovo & Continuità
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-            Hai costruito l'infrastruttura ed il posizionamento nei primi 12 mesi. Ora scegli il livello di affiancamento continuativo più adatto alle tue esigenze: <strong>Start, Pro, Executive o Elite</strong>.
+            Hai costruito l'infrastruttura ed il posizionamento nei primi 12 mesi. Ora scegli il livello di affiancamento continuativo più adatto alle tue esigenze: <strong>Inside, Pro, Premium o Elite</strong>.
           </p>
         </div>
       </header>

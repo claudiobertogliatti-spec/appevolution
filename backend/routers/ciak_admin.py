@@ -3508,7 +3508,7 @@ async def partner_sales_engine(admin=Depends(require_ciak_admin)):
             "continuity": {
                 "month_in_partnership": month_in_partnership,
                 "due": continuity_due,
-                "label": "Ciak Continuità" if continuity_due else "Non ancora",
+                "label": "EVO-S Pro" if continuity_due else "Non ancora",
                 "reason": "Preparare proposta post partnership: il sistema resta del partner, il team può restare a supporto." if continuity_due else "Si valuta verso mese 10-12.",
             },
             "alignment": {

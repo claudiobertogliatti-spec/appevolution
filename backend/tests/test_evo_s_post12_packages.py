@@ -75,15 +75,15 @@ def test_post12_page_explains_each_plan_minimum_six_months_without_guru_copy():
     text = read("frontend/src/ciak/partner/sections/EvoSPage.jsx")
 
     for expected in [
-        "Recupero Ottimizza",
+        "Inside",
         "147 € / mese",
-        "Ciak Continuita",
+        "Pro",
         "297 € / mese",
-        "Ciak Crescita",
+        "Premium",
         "497 € / mese",
-        "Ciak Espansione",
+        "Elite",
         "797 € / mese",
-        "Attivabile per almeno 6 mesi",
+        "Impegno minimo 6 mesi",
         "Cosa comprende",
         "Cosa non comprende",
     ]:

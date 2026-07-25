@@ -104,7 +104,7 @@ EVO_S_OFFERS: dict[str, dict[str, Any]] = {
     "EVO-S-RECOVER": {
         "code": "EVO-S-RECOVER",
         "plan": "recover",
-        "nome": "Recupero Ottimizza",
+        "nome": "EVO-S Inside",
         "amount_cents": 14700,  # €147/mese
         "periodicita": "mensile",
         "descrizione": (
@@ -119,7 +119,7 @@ EVO_S_OFFERS: dict[str, dict[str, Any]] = {
     "EVO-S-CONTINUITA": {
         "code": "EVO-S-CONTINUITA",
         "plan": "start",
-        "nome": "Ciak Continuita",
+        "nome": "EVO-S Pro",
         "amount_cents": 29700,  # €297/mese
         "periodicita": "mensile",
         "descrizione": (
@@ -133,7 +133,7 @@ EVO_S_OFFERS: dict[str, dict[str, Any]] = {
     "EVO-S-CRESCITA": {
         "code": "EVO-S-CRESCITA",
         "plan": "grow",
-        "nome": "Ciak Crescita",
+        "nome": "EVO-S Premium",
         "amount_cents": 49700,  # €497/mese
         "periodicita": "mensile",
         "descrizione": (
@@ -148,7 +148,7 @@ EVO_S_OFFERS: dict[str, dict[str, Any]] = {
     "EVO-S-ESPANSIONE": {
         "code": "EVO-S-ESPANSIONE",
         "plan": "scale",
-        "nome": "Ciak Espansione",
+        "nome": "EVO-S Elite",
         "amount_cents": 79700,  # €797/mese
         "periodicita": "mensile",
         "descrizione": (

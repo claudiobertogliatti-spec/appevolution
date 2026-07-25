@@ -71,10 +71,10 @@ try:
     }
 except Exception:  # pragma: no cover — fallback difensivo
     EVO_S_PLANS = {
-        "recover": {"name": "Recupero Ottimizza", "amount": 14700},
-        "start": {"name": "Ciak Continuita", "amount": 29700},
-        "grow": {"name": "Ciak Crescita", "amount": 49700},
-        "scale": {"name": "Ciak Espansione", "amount": 79700},
+        "recover": {"name": "EVO-S Inside", "amount": 14700},
+        "start": {"name": "EVO-S Pro", "amount": 29700},
+        "grow": {"name": "EVO-S Premium", "amount": 49700},
+        "scale": {"name": "EVO-S Elite", "amount": 79700},
     }
 
 # Mesi di percorso EVO prima di poter accedere a EVO-S.
