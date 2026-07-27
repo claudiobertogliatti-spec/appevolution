@@ -13,9 +13,10 @@ Ultimo aggiornamento: 2026-07-27.
 C:\Users\berto\appevolution
 ```
 
-Questo, e nessun altro. Se stai lavorando in `C:\Users\berto\Desktop\appevolution`,
-**fermati**: è una copia ritirata, ferma al commit `d21c346` dell'11/7/2026.
-Qualunque riferimento residuo a quel path in altri file è un errore da correggere,
+Questo, e nessun altro. Sul Desktop esistono **due cloni ritirati** dello stesso repo:
+`appevolution_RITIRATO_NON_USARE` (ex `appevolution`, fermo all'11/7/2026) e
+`appevolution-deploy` (fermo al 9/6/2026). Se ti trovi in uno dei due, **fermati**.
+Qualunque riferimento residuo a quei path in altri file è un errore da correggere,
 non un'istruzione da seguire.
 
 Verifica in un comando:
