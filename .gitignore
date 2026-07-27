@@ -379,3 +379,17 @@ gcloud-export-*.yaml
 .superpowers/
 .vercel
 .env*
+
+# ── File di configurazione locale — non committare ───────────────────────
+AGENTS.md
+
+# ── Profili e dati browser locali ────────────────────────────────────────
+.screenshots/chrome-profile/
+.screenshots/evolution-cover/
+
+# ── Artefatti di analisi e test (pesanti, rigenerabili) ───────────────────
+backend/graphify-out/
+evolution-pro-site/playwright-artifacts/
+evolution-pro-site/playwright-report/
+evolution-pro-site/tsconfig.tsbuildinfo
+.claude/
