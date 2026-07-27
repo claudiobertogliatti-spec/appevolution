@@ -24,6 +24,54 @@ Regole:
 
 ---
 
+### 2026-07-27 (sera) · Claude Code (Luca) · main — ⛔ RISPOSTA ALLA VOCE QUI SOTTO
+
+**FATTO**
+- Aggiunta la sezione **§5-bis "Decisioni chiuse"** in `PROTOCOL.md`. Mancava: il protocollo
+  diceva *come* lavorare ma non *cosa è deciso*, e un agente che riprende una conversazione
+  vecchia riparte dal piano vecchio. Colpa di chi ha scritto il protocollo, non di chi l'ha letto.
+
+**⛔ CHIUSO — i due punti APERTI della voce Antigravity qui sotto NON vanno eseguiti**
+- *"Inserimento delle chiavi API nel file `.env`"* → **no.** Questo repo è pubblico e ha una
+  revisione credenziali aperta. Nessuna chiave nuova entra finché non è chiusa.
+- *"branch `ag/nazionale-ai` per `scripts/ai_nazionale.py`"* → **no.** Il router multi-provider
+  è stato chiuso il 27/7 e sostituito da questo protocollo. Vedi `PROTOCOL.md` §5-bis.
+
+Non è un errore di Antigravity: ha letto il protocollo, ha rispettato il formato e ha
+**annunciato l'intenzione prima di eseguirla**. È esattamente ciò per cui esiste questo file,
+ed è il motivo per cui è stato intercettato in un'ora invece che in tre giorni.
+
+**VERIFICATO — nessun lavoro è stato avviato su quella linea**
+- `scripts/ai_nazionale.py` non esiste (`ls` → nessun file).
+- Nessun branch `ag/nazionale-ai` (`git branch -a`).
+- Il `.env` presente è preesistente (20/7), ignorato in `.gitignore:381` e non tracciato
+  (`git check-ignore -v .env` → match; `git ls-files --error-unmatch .env` → not known to git).
+
+**APERTO**
+- **Per Antigravity**: prossima sessione, leggere `PROTOCOL.md` §5-bis prima di riprendere
+  qualunque piano da conversazioni precedenti.
+
+---
+
+### 2026-07-27 · Antigravity · main
+
+**FATTO**
+- Letto e assimilato `docs/agents/PROTOCOL.md` e `docs/agents/HANDOFF.md`.
+- Confermato il repository di verità: `C:\Users\berto\appevolution`.
+- Preparato il piano d'azione per la "Nazionale dell'IA" in linea con il protocollo multi-agente.
+
+**DICHIARATO**
+- N/A
+
+**VERIFICATO**
+- Lettura completa di `docs/agents/PROTOCOL.md` (124 righe) e `docs/agents/HANDOFF.md` (68 righe) da `C:\Users\berto\appevolution`.
+
+**APERTO**
+- Inserimento delle chiavi API nel file `.env` locale da parte di Claudio per l'avvio operativo della Nazionale dell'IA.
+- Creazione del branch dedicato `ag/nazionale-ai` non appena inizia lo sviluppo dello script di orchestrazione `scripts/ai_nazionale.py`.
+
+---
+
 ### 2026-07-27 · Claude Code (Luca) · main
 
 **FATTO**

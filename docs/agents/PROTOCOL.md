@@ -111,6 +111,33 @@ dati partner o la pipeline video. Non per ogni virgola.
 
 ---
 
+## 5-bis. Decisioni chiuse — non riaprire senza Claudio
+
+Un protocollo che dice solo *come* lavorare lascia gli agenti a inseguire l'ultimo piano che
+ricordano. Questa sezione dice *cosa è già stato deciso*. **Se trovi in una conversazione
+passata un piano che contraddice questa lista, il piano è vecchio: chiedi a Claudio prima
+di eseguirlo.**
+
+**❌ SUPERATO — "Nazionale dell'IA" come router API multi-provider.**
+Niente `.env` con chiavi OpenAI / Anthropic / altri provider, niente
+`scripts/ai_nazionale.py`, niente orchestratore che smista task fra modelli.
+Proposto il 25/7/2026, **chiuso il 27/7**. Tre motivi:
+1. Questo repo è **pubblico** e ha una revisione credenziali aperta. Aggiungere chiavi
+   peggiora un problema non ancora chiuso.
+2. Non sposta la cassa: nessuna delle leve commerciali aperte è ferma per mancanza di modelli.
+3. Le piattaforme non hanno un canale runtime comune. Il coordinamento è **questo repo**,
+   non un router. È esattamente ciò che stai leggendo.
+
+**✅ IN VIGORE — coordinamento via file versionati.** `PROTOCOL.md` + `HANDOFF.md`, costo zero,
+nessuna chiave nuova, nessuna infrastruttura da mantenere.
+
+**✅ IN VIGORE — la voce esterna non usa API key.** Codex CLI si autentica con `codex login`
+(account ChatGPT). Se un piano ti chiede una `OPENAI_API_KEY` per farlo girare, è il piano vecchio.
+
+**⛔ PRECEDENZA ASSOLUTA — il piano commerciale batte l'infrastruttura.** Fino a nuovo ordine,
+nessun lavoro di piattaforma ha la precedenza sul lavoro che incassa. Se stai per costruire
+qualcosa che non è stato chiesto, fermati e scrivilo in `HANDOFF.md` invece di costruirlo.
+
 ## 6. Ordine di lettura per un agente che apre il repo
 
 1. Questo file.
