@@ -50,17 +50,14 @@ Regole:
 **APERTO**
 - **Per Claudio** — installare la voce esterna: `npm install -g @openai/codex` poi `codex login`
   (autenticazione con account ChatGPT, nessuna API key).
-- **Per Claudio, sicurezza** — `AGENTS.md` e `CLAUDE.md` contengono tre chiavi API in chiaro
-  (`ASSEMBLYAI_API_KEY`, `SHOTSTACK_API_KEY`, `SYSTEME_API_KEY_DEFAULT`), committate e quindi
-  presenti nella storia git. Rimuoverle dai file non basta: vanno **ruotate** alla fonte.
-  Si aggiungono alle due chiavi già note da ruotare (`ANTHROPIC_API_KEY` esposta).
+- **Per Claudio, sicurezza** — aperta una revisione delle credenziali di servizio citate nella
+  documentazione. Dettagli e stato fuori dal repo (memoria locale di Claudio), di proposito.
 - **Per chiunque** — `AGENTS.md` e `CLAUDE.md` sono due copie divergenti dello stesso contenuto.
   Il consolidamento in un file unico non è stato fatto: è un lavoro a sé, da fare quando
   non c'è cassa in gioco.
-- **Bloccato dalla sicurezza** — `AGENTS.md` andrebbe tolto da `.gitignore` e committato,
-  così tutte le piattaforme lo vedono. **Non fatto di proposito**: contiene le tre chiavi
-  API in chiaro, e committarlo ne aggiungerebbe una seconda copia nella storia git.
-  Ordine corretto: ruotare le chiavi → toglierle dai file → poi versionare `AGENTS.md`.
+- **Bloccato** — `AGENTS.md` andrebbe tolto da `.gitignore` e committato, così tutte le
+  piattaforme lo vedono. **Non fatto di proposito**: prima va chiusa la revisione credenziali
+  di cui sopra. Ordine corretto: chiudere quella → poi versionare `AGENTS.md`.
 - **Non toccato** — `docs/commerciale/` è untracked (documenti partnership €2.790, HTML+PDF).
   Non è lavoro di questa sessione: lasciato com'è, decide Claudio se versionarlo.
 - **Da salvare** — in `C:\Users\berto\Desktop\appevolution` restano documenti untracked che
