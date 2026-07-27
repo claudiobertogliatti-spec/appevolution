@@ -24,6 +24,23 @@ Regole:
 
 ---
 
+### 2026-07-27 (sera, 2) · Claude Code (Luca) · main — la terza voce è operativa
+
+**VERIFICATO**
+- **Codex CLI installato**: `codex --version` → `codex-cli 0.145.0`. Binari in
+  `C:\Users\berto\AppData\Roaming\npm\` (`codex`, `codex.cmd`, `codex.ps1`).
+  Le tre piattaforme del §2 sono ora tutte disponibili.
+- **Il tool PowerShell va in timeout su questa macchina, anche su comandi banali** — usare Bash.
+  `npm install -g @openai/codex` in PowerShell: timeout a 5 minuti, poi appeso >15 minuti
+  senza traccia nei log npm. Stesso comando in Bash: **11 secondi**. Non era npm né la rete.
+
+**APERTO**
+- Al primo uso, `codex` chiede l'autenticazione: **scegliere il login con account ChatGPT**,
+  non `OPENAI_API_KEY` (vedi `PROTOCOL.md` §5-bis).
+- Un terminale già aperto non vede il nuovo binario: il PATH si legge all'avvio della shell.
+
+---
+
 ### 2026-07-27 (sera) · Claude Code (Luca) · main — ⛔ RISPOSTA ALLA VOCE QUI SOTTO
 
 **FATTO**
