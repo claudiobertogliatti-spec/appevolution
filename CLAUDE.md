@@ -1,5 +1,17 @@
 # Evolution PRO — Istruzioni permanenti per Claude Code
 
+## ⛔ LEGGERE PRIMA DI TUTTO — protocollo multi-agente (2026-07-27)
+
+Su questo repo lavorano più agenti (Claude Code, Codex, Antigravity).
+**Prima di qualsiasi cosa, leggere `docs/agents/PROTOCOL.md` e `docs/agents/HANDOFF.md`**,
+e aggiornare l'handoff prima di chiudere la sessione.
+
+Le tre regole che vengono violate più spesso:
+1. **Il repo di verità è `C:\Users\berto\appevolution`.** `C:\Users\berto\Desktop\appevolution`
+   è una copia ritirata: non lavorarci, non committarci.
+2. **Niente è "fatto" senza prova** (comando+output, URL, risposta API, screenshot).
+3. **Mai `git add .`** — si aggiungono i file per nome.
+
 ## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
 
 Il prodotto 'Ciak Blueprint' costa **27€ IVA inclusa** (checkout.py `unit_amount: 2700`, lockato 2026-05-12). Ogni riferimento a '67€', '6700', stato `purchased_67`/`clicked_67`, tag `ciak_bought_67`/`ciak_clicked_67` è **nomenclatura legacy mai rinominata**, NON il prezzo. Non propagare '67€' come prezzo corrente. (Fix default mark-purchased 6700→2700 applicato 2026-07-05.)
@@ -315,7 +327,7 @@ Sostituire `localStorage.getItem("token")` con `localStorage.getItem("access_tok
 - Se le modifiche non appaiono online: verificare traffic routing con `gcloud run services describe evolution-pro-frontend-v2`
 - Il blocco traffico su vecchie revision: usare `gcloud run services update-traffic evolution-pro-backend --to-latest --region europe-west1`
 - Se le nuove revision falliscono: vedere sezione "Problemi noti del backend" sopra
-- **PowerShell**: eseguire sempre i comandi git da `C:\Users\berto\Desktop\appevolution`, non da `C:\WINDOWS\system32`
+- **PowerShell**: eseguire sempre i comandi git da `C:\Users\berto\appevolution`, non da `C:\WINDOWS\system32`. ⚠️ Corretto il 2026-07-27: qui c'era `Desktop\appevolution`, che è la copia ritirata (ferma all'11/7). Vedi `docs/agents/PROTOCOL.md`.
 - **PowerShell sintassi**: `&&` NON funziona in PowerShell. Usare `;` oppure comandi separati: `git add -A; git commit -m "msg"; git push origin main`
 - **Sandbox Linux Cowork**: se il workspace bash non parte (errore "Workspace unavailable"), usare GitHub web editor (vedi punto 8 nei Problemi noti). Il codice è sempre scritto correttamente su disco tramite file tools.
 
