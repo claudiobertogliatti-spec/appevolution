@@ -3657,3 +3657,190 @@ async def set_partner_alignment(
         update["$unset"] = unset_fields
     await db.partners.update_one({"id": partner_id}, update)
     return {"ok": True, "partner_id": partner_id, "updated": list(set_fields.keys()), "cleared": list(unset_fields.keys())}
+
+
+# ─── Ciak Start Admin Router ─────────────────────────────────────────────
+
+start_admin_router = APIRouter(prefix="/api/admin/ciak-start", tags=["ciak-admin"])
+
+
+class CiakStartActivateRequest(BaseModel):
+    email: str = Field(..., description="Email del cliente")
+    amount_cents: int = Field(default=49900, description="Importo in centesimi (default €499)")
+    paid_at: Optional[str] = Field(default=None, description="Data pagamento ISO8601")
+    source: str = Field(default="payment_link", description="Fonte del pagamento")
+    stripe_ref: Optional[str] = Field(default=None, description="Riferimento Stripe opzionale")
+
+
+@start_admin_router.post("/activate")
+async def activate_ciak_start(
+    payload: CiakStartActivateRequest,
+    admin_data: dict = Depends(require_ciak_admin),
+):
+    """
+    Attivazione manuale/admin di Ciak Start per un cliente (€499 / payment link).
+    - Recupera o crea l'account cliente (ciak_clients)
+    - Registra il pagamento con fonte/tipo ciak_start
+    - Imposta start_purchased_at e start_credit_amount (€499) per la promessa dello scalo
+    - Sblocca il percorso in 7 step (default_start_progress)
+    - Idempotente: chiamate multiple non raddoppiano il credito né duplicano l'attivazione.
+    """
+    from uuid import uuid4
+    from services.ciak_client_accounts import (
+        ACCESS_START,
+        ACCESS_PARTNER,
+        OFFER_START,
+        BLUEPRINT_AMOUNT_CENTS,
+        default_start_progress,
+        _score_from_session,
+        offer_for_score,
+    )
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    email = (payload.email or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email obbligatoria")
+
+    now = datetime.now(timezone.utc).isoformat()
+    paid_at = payload.paid_at or now
+
+    # 1. Recupera o crea account cliente
+    client = await db.ciak_clients.find_one({"email": email})
+
+    if not client:
+        diag_session = await db.diagnostic_sessions.find_one({"user_email": email}) or {}
+        session_token = diag_session.get("session_token")
+        score = _score_from_session(diag_session) if diag_session else 0
+
+        client_id = str(uuid4())
+        client_doc = {
+            "id": client_id,
+            "email": email,
+            "name": diag_session.get("user_name") or "",
+            "session_token": session_token,
+            "diagnostic_session_token": session_token,
+            "blueprint_score": score,
+            "recommended_offer": offer_for_score(score) if score else OFFER_START,
+            "blueprint_amount_cents": BLUEPRINT_AMOUNT_CENTS,
+            "access_level": ACCESS_START,
+            "start_credit_amount": payload.amount_cents,
+            "start_purchased_at": paid_at,
+            "start_progress": default_start_progress(),
+            "created_at": now,
+            "updated_at": now,
+            "events": [{
+                "event": "client_created_via_admin_ciak_start",
+                "timestamp": now,
+                "admin": getattr(admin_data, "email", None) or getattr(admin_data, "sub", None) or "admin",
+            }],
+        }
+        await db.ciak_clients.insert_one(client_doc)
+        client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    else:
+        client_id = client["id"]
+
+        # Idempotenza credito: non raddoppia se già impostato; imposta almeno amount_cents
+        existing_credit = client.get("start_credit_amount")
+        try:
+            cur_credit = int(existing_credit or 0)
+        except (TypeError, ValueError):
+            cur_credit = 0
+
+        new_credit = max(cur_credit, payload.amount_cents)
+        start_purchased_at = client.get("start_purchased_at") or paid_at
+
+        access_level = client.get("access_level")
+        if access_level != ACCESS_PARTNER:
+            access_level = ACCESS_START
+
+        start_progress = client.get("start_progress") or default_start_progress()
+
+        updates = {
+            "access_level": access_level,
+            "start_credit_amount": new_credit,
+            "start_purchased_at": start_purchased_at,
+            "start_progress": start_progress,
+            "updated_at": now,
+        }
+
+        events = client.get("events") or []
+        event_ref = payload.stripe_ref or f"admin_activate_{paid_at}"
+        has_event = any(
+            e.get("event") in ("ciak_start_payment_completed", "admin_ciak_start_activated")
+            and e.get("reference_id") == event_ref
+            for e in events
+        )
+        if not has_event:
+            events.append({
+                "event": "admin_ciak_start_activated",
+                "reference_id": event_ref,
+                "timestamp": now,
+                "source": payload.source,
+                "amount_cents": payload.amount_cents,
+                "admin": getattr(admin_data, "email", None) or getattr(admin_data, "sub", None) or "admin",
+            })
+
+        await db.ciak_clients.update_one(
+            {"id": client_id},
+            {"$set": {**updates, "events": events}},
+        )
+        client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+
+    # 2. Registrazione pagamento con tipo ciak_start
+    reference_id = payload.stripe_ref or f"admin_activate_{client['id']}"
+
+    payment_transactions = getattr(db, "payment_transactions", None)
+    if payment_transactions is not None:
+        await payment_transactions.update_one(
+            {"session_id": reference_id},
+            {"$set": {
+                "event_type": "admin_activation",
+                "session_id": reference_id,
+                "payment_status": "paid",
+                "client_id": client["id"],
+                "email": email,
+                "tipo": "ciak_start",
+                "source": payload.source,
+                "amount_cents": payload.amount_cents,
+                "received_at": paid_at,
+                "updated_at": now,
+            }},
+            upsert=True,
+        )
+
+    payments = getattr(db, "payments", None)
+    if payments is not None:
+        await payments.update_one(
+            {"session_id": reference_id},
+            {"$set": {
+                "session_id": reference_id,
+                "client_id": client["id"],
+                "email": email,
+                "tipo": "ciak_start",
+                "type": "ciak_start",
+                "amount": payload.amount_cents / 100.0,
+                "currency": "eur",
+                "status": "completed",
+                "payment_confirmed_via": "admin_activation",
+                "source": payload.source,
+                "created_at": paid_at,
+            }},
+            upsert=True,
+        )
+
+    return {
+        "status": "success",
+        "message": f"Ciak Start attivato per {email}",
+        "client": {
+            "id": client.get("id"),
+            "email": client.get("email"),
+            "access_level": client.get("access_level"),
+            "start_credit_amount": client.get("start_credit_amount"),
+            "start_purchased_at": client.get("start_purchased_at"),
+            "start_progress_count": len(client.get("start_progress") or []),
+        },
+        "reference_id": reference_id,
+    }
+

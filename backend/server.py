@@ -17223,11 +17223,17 @@ set_ciak_checkpoint_email_db(db)
 app.include_router(ciak_checkpoint_router)
 
 # Ciak Admin Router (pannello admin ciak.io/admin — leads, transazioni, stats — role admin)
-from routers.ciak_admin import router as ciak_admin_router, set_db as set_ciak_admin_db
+from routers.ciak_admin import (
+    router as ciak_admin_router,
+    start_admin_router as ciak_start_admin_router,
+    set_db as set_ciak_admin_db,
+)
 from services.ciak_matteo_prompt_store import set_db as set_ciak_matteo_prompt_store_db
 set_ciak_admin_db(db)
 set_ciak_matteo_prompt_store_db(db)
 app.include_router(ciak_admin_router)
+app.include_router(ciak_start_admin_router)
+
 
 # Liquidazioni, fatture passive e bonifici dei collaboratori (solo Claudio/superadmin)
 from routers.collaborator_settlements import router as collaborator_settlements_router, set_db as set_collaborator_settlements_db
