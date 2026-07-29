@@ -20,7 +20,7 @@ verifica finale va fatta lì prima di dichiarare qualsiasi step completo.
 | `02-discovery-video` | ⬜ da verificare in full-data | — |
 | `burocrazia` | ⚠️ **da verificare** | `01 - Documenti` nel ramo `01 Partner` risulta **vuota**; la nota del 20/7 dava lì contratto, CI/CF e analisi. Controllare il ramo root (`1unW-X_gtdmVYbI3vl1P9DYKvJdP5DI3M`) prima di dire che mancano. |
 | `03-brand-kit` | ✅ **completo** | Hub pieno: `logo`, `primaryColor`, `accentColor`, `textColor`, `bgColor`, `fontPrimary`, `fontSecondary`, `photo`, `toneOfVoice` |
-| `la-tua-storia` | ⚠️ **da verificare** | La nota del 20/7 segnalava lo step **verde ma vuoto (0/21 risposte)**: verificare `partner_journey_steps.data.answers` |
+| `la-tua-storia` | ✅ **COMPLETA 21/21** | 8 risposte ricostruite dal suo sito + **13 raccolte da 4 note vocali** (22/7 e 24/7), trascritte in locale il 29/7. Testo pronto in un file locale fuori dal repo (contiene parole sue). ⚠️ La nota del 20/7 che la dava a 0/21 è **superata**. |
 | `obiettivo` | ⬜ da verificare | — |
 | `04-posizionamento` | ✅ **completo** | Hub pieno: `whoYouAre`, `targetAudience`, `problem`, `solution`, `pitch`, `differentiator`, `keywords`, `niche`, `bio` |
 
@@ -33,7 +33,7 @@ verifica finale va fatta lì prima di dichiarare qualsiasi step completo.
 | `07-script-videolezioni` | ⬜ non trovato | nessuno script lezioni su Drive |
 | `08-registra-masterclass` | ✅ **FATTO** | `Masterclass_definitiva.mp4` + `video_pipeline_status: approved` + URL YouTube già presente |
 | `09-registra-lezioni` | ✅ **FATTO — 12 moduli** | vedi mappa sotto |
-| `10-sistema-vendita` | ❌ **BLOCCATO** | offerta **vuota** nell'hub: `offerName`, `offerPrice`, `offerIncludes`, `offerGuarantee` |
+| `10-sistema-vendita` | ✅ **SBLOCCATO** | Offerta definita da Claudio il 29/7: nome **Sabai Academy**, prezzo di listino e prezzo di lancio decisi, contenuto = percorso in 4 livelli (dall'Analisi Strategica) + 12 moduli. `offerGuarantee` resta **vuoto per scelta**. Valori nel file locale fuori dal repo. |
 | `11-calendario-30gg` | ⚠️ parziale | `04 - Calendario editoriale` contiene solo una cartella `reel` |
 | `12-prezzo-webinar` | ❌ **BLOCCATO** | dipende dall'offerta (step 10) |
 | `13-lancio` | ⬜ | `05 - Funnel` contiene una cartella `Funnel`, contenuto da aprire |
