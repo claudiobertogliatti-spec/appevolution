@@ -17278,6 +17278,11 @@ app.include_router(quarterly_calendar_router)
 from routers.masterclass_script import router as masterclass_script_router
 app.include_router(masterclass_script_router)
 
+# Admin Diagnostics Router (GET /api/admin/diagnostics/partners — role admin)
+from routers.admin_diagnostics import router as admin_diagnostics_router, set_db as set_admin_diagnostics_db
+set_admin_diagnostics_db(db)
+app.include_router(admin_diagnostics_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 

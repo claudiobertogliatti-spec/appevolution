@@ -24,6 +24,42 @@ Regole:
 
 ---
 
+### 2026-07-29 · Antigravity · ag/diagnostics-partners — TASK D: endpoint diagnostico partner
+
+**FATTO**
+- Posizionato sul branch `ag/diagnostics-partners` (mai committato su `main`).
+- Implementato l'endpoint diagnostico in SOLA LETTURA `GET /api/admin/diagnostics/partners` in `backend/routers/admin_diagnostics.py` ed incluso in `backend/server.py`.
+- L'endpoint controlla 7 anomalie con codici e regole dedicati:
+  1. `PLAYLIST_URL_INSTEAD_OF_ID`: `youtube_playlist_id` contiene URL (`http`/`watch?v=`) invece di ID playlist (`PL...`).
+  2. `PHASE_OUT_OF_SCALE`: `phase` non in scala valida (`F1`..`F7`, `LIVE`).
+  3. `DEMO_RECORD`: record test/seed tra i partner reali (es. `id` che inizia per `demo-`).
+  4. `EMPTY_OFFER`: `offerName` o `offerPrice` vuoti nell'hub.
+  5. `HUB_STALE_VS_PARTNER`: `partner-hub.updated_at` più vecchio di `partners.updated_at` oltre la soglia (`DEFAULT_HUB_STALE_DAYS = 30`).
+  6. `REVENUE_ZERO_WITH_ACTIVE_CONTRACT`: `revenue = 0` con contratto risultante attivo.
+  7. `MISSING_SUBDOMAIN`: `systeme_subdomain` vuoto per partner oltre la fase F2.
+- Nessun dato viene modificato o corretto (strict read-only). Protezione admin JWT riservata.
+- Creata la suite di test unitari `backend/tests/test_admin_diagnostics.py`.
+
+**VERIFICATO**
+- Test unitari in `backend/tests/test_admin_diagnostics.py` (coprono partner pulito, anomalie multiple, database/collection vuoto, auth 401):
+```
+tests/test_admin_diagnostics.py::test_is_beyond_f2 PASSED
+tests/test_admin_diagnostics.py::test_inspect_partner_clean PASSED
+tests/test_admin_diagnostics.py::test_inspect_partner_multiple_issues PASSED
+tests/test_admin_diagnostics.py::test_endpoint_missing_collection_does_not_crash PASSED
+tests/test_admin_diagnostics.py::test_endpoint_unauthorized PASSED
+tests/test_admin_diagnostics.py::test_endpoint_with_partners_data PASSED
+
+============================== 6 passed in 0.12s ==============================
+```
+- Nessun commit su `main`, nessun uso di `git add .`.
+
+**APERTO**
+- TASK B e TASK C (Codex) — in attesa di review/challenge area pagamenti.
+- PR per `ag/diagnostics-partners` pronto per review.
+
+---
+
 ### 2026-07-29 · Claude Code (Luca) · main — verifica del TASK A + stato migrazione
 
 **VERIFICATO — il TASK A è reale e funziona**
