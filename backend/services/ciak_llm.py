@@ -14,12 +14,17 @@ Chiave: usa ANTHROPIC_API_KEY (la stessa del codice nativo gia' migrato, es.
 services/ciak_analisi.py), con fallback alla chiave passata dal call site e a
 EMERGENT_LLM_KEY (che in produzione e' comunque una chiave Anthropic).
 """
+import logging
 import os
 
 import anthropic
 
 DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
-DEFAULT_MAX_TOKENS = 4096
+# 4096 non bastano per gli output strutturati del percorso (blueprint funnel, piano
+# di lancio, outline corso): la risposta veniva troncata a meta' e il json.loads dei
+# chiamanti falliva con "Errore nel parsing", senza che nessuno vedesse il perche'
+# (rilevato il 30/07/2026 sul funnel di Andolfi). E' un tetto, non un consumo.
+DEFAULT_MAX_TOKENS = 16384
 
 
 def _api_key(passed: str = "") -> str:
@@ -78,4 +83,12 @@ class LlmChat:
             system=self._system or "",
             messages=[{"role": "user", "content": text}],
         )
+        # Una risposta troncata torna comunque come stringa: senza questo avviso il
+        # chiamante prova a parsarla e vede solo un generico errore di parsing.
+        if getattr(resp, "stop_reason", None) == "max_tokens":
+            logging.warning(
+                "[ciak_llm] risposta TRONCATA dal limite di %s token (modello %s): "
+                "l'output e' incompleto, alzare max_tokens o chiedere meno contenuto.",
+                self._max_tokens, self._model,
+            )
         return _extract_text(resp)
