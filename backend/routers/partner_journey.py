@@ -2441,6 +2441,15 @@ async def generate_funnel(
     )
     course = videocorso.get("course_data", {}) if videocorso else {}
 
+    # Offerta ufficiale: la fonte del prezzo e della garanzia e' la scheda partner,
+    # mai un default del prompt. Prima il blueprint usciva con "€297/€197" inventati
+    # e con "Soddisfatti o rimborsati entro 30 giorni" anche per chi non da' garanzia.
+    hub = await db.partner_hub.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
+    offer_name = (hub.get("offerName") or "").strip()
+    offer_price = (hub.get("offerPrice") or "").strip()
+    offer_includes = (hub.get("offerIncludes") or "").strip()
+    offer_guarantee = (hub.get("offerGuarantee") or "").strip() or request.garanzia.strip()
+
     # Salva inputs
     await db.partner_funnel.update_one(
         {"partner_id": request.partner_id},
@@ -2498,7 +2507,27 @@ VIDEOCORSO:
 - Per chi NON e': {course.get('per_chi_non_e', 'N/D')}
 
 BIO PARTNER: {request.bio_partner or 'Non fornita'}
-GARANZIA: {request.garanzia or 'Soddisfatti o rimborsati entro 30 giorni'}
+
+OFFERTA UFFICIALE (fonte: scheda partner — NON inventare prezzi diversi):
+- Nome offerta: {offer_name or 'non ancora definito'}
+- Prezzo: {offer_price or 'non ancora definito'}
+- Cosa include: {offer_includes or 'non ancora definito'}
+- Garanzia: {offer_guarantee or 'NESSUNA GARANZIA PREVISTA — non inventarne una'}
+
+═══ TEMPLATE DI LAYOUT (OBBLIGATORIO) ═══
+Il funnel dei partner CIAK ha una sequenza di sezioni standardizzata e collaudata
+(`memory/CIAK_FUNNEL_TEMPLATE_DESIGN.md`): la struttura NON si cambia, si adattano
+solo i contenuti alla nicchia del partner. Le sezioni, in quest'ordine:
+1. HERO — badge categoria, headline sulla trasformazione, sottotitolo che unisce il
+   know-how del partner + AI + team, doppia CTA, badge "zero competenze tecniche".
+2. SIMULATORE / ONBOARDING DINAMICO — 3 step: input guidati, elaborazione AI con
+   tutor dedicato, rivelazione dell'accademia pronta.
+3. GRIGLIA 3 PILASTRI — sistema pronto personalizzato · team umano dedicato ·
+   motore AI ("l'AI genera, tu approvi o modifichi").
+4. PROTOCOLLO IN 3 FASI — Esamina, Valida, Ottimizza.
+5. FONDATORE / STORYTELLING — "Ciao, mi chiamo ..." + dati di autorevolezza.
+6. FAQ RASSICURANTI — obiezioni tecniche e operative del target.
+7. BANNER CTA FINALE — alto contrasto, azione immediata.
 
 ═══ OUTPUT RICHIESTO ═══
 
@@ -2506,29 +2535,47 @@ Genera un JSON con questa struttura ESATTA:
 {{
   "landing_sections": {{
     "hero": {{
-      "headline": "Headline principale della sales page - orientata al risultato",
-      "subheadline": "Sottotitolo che espande il beneficio",
-      "cta_text": "Testo del bottone CTA principale"
+      "badge_categoria": "Badge breve di categoria/promessa",
+      "headline": "Headline principale sulla trasformazione",
+      "subheadline": "Sottotitolo rassicurante: know-how del partner + AI + team",
+      "cta_text": "Testo della CTA principale",
+      "cta_secondaria": "Testo della CTA secondaria",
+      "badge_sicurezza": "Rassicurazione tecnica (es. zero competenze richieste)"
     }},
-    "problema": {{
-      "headline": "Titolo sezione problema",
-      "body": "Paragrafo che descrive il problema del target (3-4 frasi persuasive)"
+    "simulatore": {{
+      "headline": "Titolo del widget di onboarding",
+      "step_1": "Cosa compila l'utente (input guidati)",
+      "step_2": "Cosa succede mentre l'AI elabora, col tutor dedicato",
+      "step_3": "Cosa vede alla fine: la sua accademia pronta"
     }},
-    "promessa": {{
-      "headline": "Titolo sezione promessa/soluzione",
-      "body": "Paragrafo che descrive la trasformazione promessa (3-4 frasi)"
+    "pilastri": {{
+      "headline": "Titolo della griglia",
+      "cards": [
+        {{"titolo": "Sistema pronto personalizzato", "body": "2-3 frasi per la nicchia del partner"}},
+        {{"titolo": "Team umano dedicato", "body": "2-3 frasi"}},
+        {{"titolo": "Motore AI integrato", "body": "2-3 frasi: l'AI genera, il partner approva o modifica"}}
+      ]
+    }},
+    "protocollo": {{
+      "headline": "Titolo del metodo in 3 fasi",
+      "fasi": [
+        {{"nome": "Esamina", "body": "Cosa succede in questa fase, detto al target"}},
+        {{"nome": "Valida", "body": "Cosa succede in questa fase"}},
+        {{"nome": "Ottimizza", "body": "Cosa succede in questa fase"}}
+      ]
+    }},
+    "fondatore": {{
+      "headline": "Titolo della sezione storytelling",
+      "storytelling": "Racconto in prima persona che parte da 'Ciao, mi chiamo ...' (4-6 frasi)",
+      "dati_autorevolezza": ["Anni di esperienza", "Persone seguite", "Risultato concreto"]
     }},
     "moduli": {{
-      "headline": "Cosa imparerai nel corso",
+      "headline": "Cosa contiene il percorso",
       "items": ["Modulo 1: descrizione breve", "Modulo 2: descrizione breve", "..."]
-    }},
-    "bonus": {{
-      "headline": "Bonus inclusi",
-      "items": ["Bonus 1: descrizione e valore", "Bonus 2: descrizione e valore"]
     }},
     "garanzia": {{
       "headline": "La nostra garanzia",
-      "body": "Testo garanzia rassicurante"
+      "body": "SOLO se il partner ha una garanzia. Se non ce l'ha, ometti del tutto questa sezione: non inventarla."
     }},
     "faq": [
       {{"question": "Domanda frequente 1?", "answer": "Risposta dettagliata"}},
@@ -2545,8 +2592,8 @@ Genera un JSON con questa struttura ESATTA:
       "headline": "Headline CTA finale urgente",
       "body": "Breve paragrafo di urgenza e scarsita'",
       "cta_text": "Testo bottone finale",
-      "prezzo": "{course.get('prezzo_base', '€297')}",
-      "offerta": "{course.get('offerta_lancio', '€197')}"
+      "prezzo": "{offer_price or course.get('prezzo_base', 'da definire')}",
+      "offerta": "{offer_name or course.get('offerta_lancio', 'da definire')}"
     }}
   }},
   "email_sequence": [
@@ -2605,8 +2652,10 @@ REGOLE:
 - Ogni email deve avere un corpo COMPLETO (non placeholder)
 - Le FAQ devono essere realistiche per questo tipo di corso
 - La bio deve essere professionale e autorevole
-- Se la bio del partner non e' fornita, inventane una coerente col posizionamento
-- Il prezzo e l'offerta devono riflettere i dati del videocorso
+- Se la bio del partner non e' fornita, ricavala dal posizionamento e dalla sua storia
+- Mantieni la SEQUENZA delle sezioni del template: non aggiungerne, non toglierne, non riordinarle
+- Prezzo e offerta sono quelli dell'OFFERTA UFFICIALE qui sopra: non inventarne altri
+- Se non c'e' garanzia, NON scrivere una sezione garanzia
 - Rispondi SOLO con il JSON, senza altro testo"""
 
     try:
