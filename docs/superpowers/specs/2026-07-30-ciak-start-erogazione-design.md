@@ -1,24 +1,30 @@
-# Ciak Start €499 — erogazione reale (design)
+# Ciak Start €499 — erogazione reale, dentro un'unica area a livelli (design)
 
 Data: 2026-07-30 · Decisioni di Claudio prese in sessione · Stato: da implementare
+
+> **Revisione della sera del 30/7.** La prima versione di questa spec progettava un "partner light":
+> il cliente Start dentro l'area partner, accanto a un'area cliente `/cliente` mantenuta. Superata.
+> Il compromesso nasceva da un vincolo che **non esiste**: credevo che l'area partner servisse 26
+> partner paganti in produzione. Claudio ha confermato che **nessun partner è attualmente attivo
+> dentro Ciak** — la migrazione dei dati è ancora in corso. Non c'è codice vivo da proteggere,
+> quindi si fa il modello giusto: **un solo account, una sola area, un solo percorso, livelli di
+> accesso.**
 
 ## Perché questo documento
 
 Ciak Start è venduto ma non erogabile. Verificato il 30/7 alla fonte:
 
 - l'area `/cliente/start` (`frontend/src/ciak/client/pages/StartPage.jsx`, 124 righe) mostra 7
-  righe "etichetta + stato" e nient'altro: nessun contenuto, nessun form, nessun deliverable;
-- **nessun endpoint del repo scrive `start_progress`** — esiste solo la creazione col default in
-  3 punti (`services/ciak_client_accounts.py:66`, `routers/ciak_clients.py:463`,
-  `routers/stripe_webhook.py:457,510`). Gli step non possono avanzare, né dal cliente né dall'admin;
-- l'account cliente nasce **solo** dal Blueprint €27 (`routers/checkout.py:499-507`), quindi chi paga
-  i €499 da Payment Link statico non ha né account né accesso;
-- l'endpoint che risolve l'attivazione manuale (`POST /api/admin/ciak-start/activate`) esiste
-  **solo** su `origin/ag/ciak-start-activate` (`backend/routers/ciak_admin.py:3664`), non su `main`:
-  in produzione non c'è;
-- un pagamento da Payment Link statico non ha `metadata.tipo` → `routers/stripe_webhook.py:217-256`
-  lo instrada nel ramo `else` (servizi extra): l'incasso arriva, il credito €499 da scalare dalla
-  Partnership **non viene registrato**.
+  righe "etichetta + stato" e nient'altro: nessun contenuto, nessun deliverable;
+- **nessun endpoint del repo scrive `start_progress`** — solo creazione col default in 3 punti
+  (`services/ciak_client_accounts.py:66`, `routers/ciak_clients.py:463`,
+  `routers/stripe_webhook.py:457,510`). Gli step non avanzano, né da cliente né da admin;
+- l'account nasce **solo** dal Blueprint €27 (`routers/checkout.py:499-507`): chi paga i €499 da
+  Payment Link statico non ha né account né accesso;
+- `POST /api/admin/ciak-start/activate` esiste **solo** su `origin/ag/ciak-start-activate`
+  (`backend/routers/ciak_admin.py:3664`), non su `main`: in produzione non c'è;
+- un pagamento da Payment Link statico non ha `metadata.tipo` → `stripe_webhook.py:217-256` lo
+  instrada nel ramo `else`: l'incasso arriva, **il credito €499 da scalare non viene registrato**.
 
 ## Cosa abbiamo promesso (vincolante, 4 fonti concordi)
 
@@ -31,116 +37,179 @@ Ciak Start è venduto ma non erogabile. Verificato il 30/7 alla fonte:
 
 **Le 7 label non si toccano.** Sono su documenti già consegnati e sulla descrizione Stripe.
 
-## Decisioni prese (Claudio, 30/7)
+## L'idea portante
 
-1. **Erogazione su area EVO come "partner light"**, non area cliente nuova.
-2. **Sito vetrina pubblicato sul dominio proprio del cliente** (non sottodominio Systeme).
-3. **21 giorni, 3 consegne datate, 1 sola call** (kickoff 30'), resto asincrono con approvazione
-   team entro 48h lavorative.
-4. Profili social: il sistema genera bio e cover, **li applica il cliente**. Non chiediamo mai gli
-   accessi ai suoi social.
-5. Calendario editoriale a **90 giorni** (non 30 di lancio, non 12 mesi): un cliente Start non ha
-   un corso da lanciare.
-6. **La vetrina non vende**: nessun checkout, nessun opt-in, nessuna automazione. È il confine
-   col pacchetto da €2.790.
+**Ciak Start non è un prodotto separato: è il primo tratto del Protocollo EVO, venduto da solo.**
+
+Finché è un prodotto a sé, ogni passaggio di livello è una migrazione tra mondi — ed è da lì che
+nascevano le tre falle del design precedente (`tier` mai aggiornato, avanzamento riazzerato, step
+invisibili). Se invece è *lo stesso percorso, fermato prima*, allora l'upgrade non è una migrazione:
+è un lucchetto che si apre. E la promessa commerciale "i €499 si scalano interi" diventa vera nel
+codice, non solo nel messaggio: non compri due volte, continui.
 
 ## Architettura
 
-### Il vincolo che determina tutto
+### Un solo account
 
-`require_partner_or_admin_for_partner` (`routers/partner_journey.py:28-46`) risolve il `partner_id`
-**dal record `users`**, e `seed_partner_journey` (`services/journey_seed.py:73`) scrive su
-`partners.journey_current_step`. Quindi un cliente Start **deve avere un record `partners`** per
-usare l'area operativa. L'alternativa — adattare il gate — significa mettere le mani in
-`partner_journey.py` (6.000+ righe) che oggi serve partner paganti: non si fa con la cassa in gioco.
+Oggi l'identità è spezzata su tre collection: `users` (auth), `ciak_clients` (chi entra dal funnel),
+`partners` (chi eroga). Da qui vengono `_canonical_user_for_client` (`ciak_clients.py:272`) e il
+rischio di record doppi.
 
-### Modello dati
+Target: **`users.id == ciak_clients.id == partners.id`**, un solo identificativo. È già così nel
+flusso partnership (`proposta.py`: `partner_id` è l'id dell'utente); va reso invariante.
 
-- `partners.tier = "start"` (campo nuovo, esplicito). Nessun subaccount Systeme, nessun contratto
-  partnership, nessuna automazione partner.
-- `users` con `partner_id` valorizzato (⚠️ in fase di piano verificare il ramo non-admin della
-  guardia, righe 46+, per il valore corretto di `role`).
-- `ciak_clients` resta la fonte per credito e pagamento (`start_credit_amount`,
-  `start_purchased_at`), così la promessa dello scalo sulla Partnership vive dove già vive.
-- `partner_journey_steps` con la definizione Start.
+Divisione di responsabilità, senza fondere le collection (fonderle toccherebbe ogni router: no):
 
-### Debito da pagare nello stesso commit, non dopo
+| Collection | Ruolo |
+|---|---|
+| `users` | autenticazione e ruolo |
+| `ciak_clients` | record **commerciale**: diagnosi, offerta, crediti, pagamenti |
+| `partners` | record **operativo**: journey, brand kit, materiali, asset |
+| `partners.tier` | **l'unico asse di accesso**: `blueprint` → `start` → `partnership` → `evo_s` |
 
-I clienti Start finiscono nella collection dei partner da €2.790. Senza filtro si sporcano cockpit
-€1M, `/api/partners`, lista Gestione Partner, conteggi fatturato e i check di
-`routers/admin_diagnostics.py` (`MISSING_SUBDOMAIN` e `REVENUE_ZERO_WITH_ACTIVE_CONTRACT`
-scatterebbero su ogni cliente Start). Filtro `tier != "start"` introdotto **contestualmente**.
-Se si rimanda, i numeri diventano inaffidabili in una settimana.
+Il record operativo si crea **al primo pagamento che dà accesso all'area, cioè dal Blueprint €27**.
+`ensure_client_for_blueprint` (`checkout.py:504`) è già l'unico punto del sistema che crea un
+account: diventa il punto che crea *l'*account, con `tier="blueprint"`.
 
-## Il percorso: 11 step interni, 7 asset promessi, 3 consegne
+### Una sola area
 
-| # | step_id | Origine | Consegna |
+`/cliente` (`StartPage`, `BlueprintPage`, `PartnershipEducationPage`, `ClientLayout` — 548 righe)
+va in **dismissione**, non in manutenzione: duplica concetti dell'area operativa e nessuna feature
+va scritta due volte. ⚠️ Prima di staccarla: verificare quanti clienti Blueprint la stanno usando
+(dato **non** in nostro possesso — non si stacca su un'inferenza).
+
+Ciò che era `/cliente/start` diventa una **vista di riepilogo dentro l'area unica**: le 7 consegne
+promesse con le loro date. Non è un secondo posto dove si eroga.
+
+### Un solo percorso, con `min_tier` per step
+
+`JOURNEY_STEPS_DEFINITION` (`models/partner_journey_step.py:61`) resta **una sola definizione**,
+estesa con i 4 step che oggi mancano e con un campo nuovo `min_tier` per step. Niente
+`START_JOURNEY_STEPS` separata: era la radice del problema.
+
+| step_id | Fase EVO | `min_tier` | Stato |
 |---|---|---|---|
-| 1 | `02-discovery-video` | riuso, copy da riscrivere per Start | — |
-| 2 | `start-attivazione` | **nuovo** (ricevuta €499 + credito), sostituisce `01-contratto` | — |
-| 3 | `burocrazia` | riuso identico (alimenta le pagine legali della vetrina) | — |
-| 4 | `03-brand-kit` | riuso identico + `brand_kit_pdf_renderer.py` | Sett. 1 |
-| 5 | `la-tua-storia` | riuso identico + `storia_pdf_renderer.py` | Sett. 1 |
-| 6 | `obiettivo` | riuso identico | Sett. 1 |
-| 7 | `04-posizionamento` | riuso identico + `posizionamento_pdf_renderer.py` | Sett. 1 |
-| 8 | `start-profili` | **nuovo** | Sett. 2 |
-| 9 | `start-vetrina` | **nuovo** | Sett. 2 |
-| 10 | `start-contenuti` | **nuovo**, riusa `editorial_calendar` in `mode="start"` | Sett. 3 |
-| 11 | `start-readiness` | **nuovo** | Sett. 3 |
+| `02-discovery-video` Benvenuto | esamina | `blueprint` | riuso, copy da adattare per livello |
+| `start-attivazione` (ricevuta + credito) | esamina | `start` | **nuovo** |
+| `01-contratto` | esamina | `partnership` | riuso |
+| `burocrazia` I tuoi dati | esamina | `start` | riuso (alimenta le legal della vetrina) |
+| `03-brand-kit` | esamina | `start` | riuso + `brand_kit_pdf_renderer.py` |
+| `la-tua-storia` | esamina | `start` | riuso + `storia_pdf_renderer.py` |
+| `obiettivo` | esamina | `start` | riuso |
+| `04-posizionamento` | esamina | `start` | riuso + `posizionamento_pdf_renderer.py` |
+| `start-profili` | esamina | `start` | **nuovo** |
+| `start-vetrina` | esamina | `start` | **nuovo** |
+| `start-contenuti` (strategia + calendario 90gg) | esamina | `start` | **nuovo** |
+| `start-readiness` | esamina | `start` | **nuovo** |
+| `05-script-masterclass` … `13-lancio` | valida | `partnership` | invariati |
 
-Tutti in `macro_phase: "esamina"` → agente **Valentina**, attestato e dispensa di fine fase
-già esistenti (`certificati_pdf_renderer.py`, `PhaseRewardCard`).
+I 4 step nuovi entrano in **Esamina per tutti**, non solo per i clienti Start: profili, sito vetrina,
+strategia e calendario sono parte della fase "chiariamo chi sei e a chi parli" anche per un partner
+da €2.790, che oggi semplicemente non li ha come step espliciti. Un percorso, non due.
+
+### Gate per livello
+
+Un solo helper (`services/entitlements.py`, nuovo) che risponde a: *questo tier vede questo step /
+questa sezione?* Usato da backend e frontend, mai duplicato in condizioni sparse.
+
+| Elemento | `blueprint` | `start` | `partnership` |
+|---|---|---|---|
+| Home, Percorso, Materiali | ✅ | ✅ | ✅ |
+| Step Esamina `min_tier=start` | 🔒 | ✅ | ✅ |
+| Fase Valida / Ottimizza | 🔒 | 🔒 | ✅ |
+| Team Ciak.io (`/partner/team`) | 🔒 | 🔒 | ✅ |
+| Servizi Extra, Rinnovo (`PartnerSidebar.jsx:19-22`) | 🔒 | 🔒 | ✅ |
+
+**Bloccato significa visibile e non raggiungibile**, nemmeno via URL diretta: il lucchetto è la leva
+di upgrade più onesta che abbiamo — non diciamo che è tuo, mostriamo dov'è. Ma il gate è nel
+backend, non solo nella grafica.
+
+### Upgrade = cambio di `tier`
+
+Nessuna migrazione, nessun reseed, nessun record nuovo. `process_ciak_client_partnership_payment`
+(`stripe_webhook.py:482-561`) — che oggi **non tocca `partners`** — deve scrivere
+`partners.tier = "partnership"`. Fine.
+
+Le tre falle del design precedente non vengono corrette: **non esistono più**. Il partner non
+sparisce dai conteggi (il tier è l'unico asse, aggiornato in un punto solo); l'avanzamento non si
+azzera (nessun riseed con `start_step_number=2`); gli step Start non scompaiono dalla mappa (sono
+step del percorso unico, non di una definizione parallela).
 
 ## Componenti
 
-### Backend — modifiche a codice esistente
-- `models/partner_journey_step.py`: nuova costante `START_JOURNEY_STEPS`. La definizione
-  partnership non si tocca.
-- `services/journey_seed.py`: `seed_partner_journey(..., tier)` sceglie la definizione.
-  Resta idempotente (check su `partner_id` + `step_id`).
-- `services/editorial_calendar.py`: `mode="start"` → 90 giorni da posizionamento + offerta,
-  senza `06-outline-lezioni`.
-- Filtri `tier != "start"` nei punti di conteggio elencati sopra.
+### Backend — modifiche
+- `models/partner_journey_step.py`: 4 step nuovi in `esamina` + campo `min_tier` su tutti.
+- `services/entitlements.py` (**nuovo**): unico luogo dove vive la gerarchia dei tier e la domanda
+  "cosa vede questo livello".
+- `services/journey_seed.py`: seed dell'unica definizione; gli step sopra il tier nascono `blocked`.
+- `services/editorial_calendar.py`: `mode="start"` → 90 giorni da posizionamento + offerta, senza
+  pretendere `06-outline-lezioni`.
+- `routers/checkout.py`: alla conferma Blueprint crea anche il record operativo con `tier="blueprint"`.
+- `routers/stripe_webhook.py`: `tier="start"` sul pagamento Start, `tier="partnership"` su quello
+  Partnership.
 - `POST /api/admin/ciak-start/activate` (da `ag/ciak-start-activate`, **da mergiare per primo**):
-  oltre a `ciak_clients`, crea `partners` con `tier=start`, `users` agganciato, journey Start,
-  e restituisce il magic link.
+  crea/recupera l'account, imposta `tier="start"`, registra credito e pagamento, restituisce il
+  magic link.
+- Conteggi partner e i 2 check di `routers/admin_diagnostics.py`: contano `tier="partnership"` e
+  oltre. Con il tier come unico asse, il filtro è una condizione sola, non una toppa.
 
 ### Backend — nuovo
 - `services/profili_social_kit.py` — bio per piattaforma dal posizionamento, cover dal brand kit,
   checklist di applicazione.
 - `services/vetrina_builder.py` — pagina di presentazione brandizzata (template **nuovo**, non
-  `LANDING_PAGE_TEMPLATE` di `funnel_builder.py` che è un funnel) + le 3 pagine legali già
+  `LANDING_PAGE_TEMPLATE` di `funnel_builder.py`, che è un funnel) + le 3 pagine legali già
   generate da `funnel_builder.py` (cookie, privacy, CGV) parametrizzate su `sito_url`.
-- `services/start_readiness.py` — asset consegnati, gap verso la Partnership, credito €499,
-  prossimo passo.
+- `services/start_readiness.py` — asset consegnati, gap verso la Partnership, credito, prossimo passo.
 
 ### Frontend
-- 5 componenti in `frontend/src/ciak/partner/operativo/steps/` + 5 righe nel registry
-  `STEP_COMPONENTS` (`PartnerOperativo.jsx:11`).
-- Badge "Ciak Start" nell'area: non deve sembrare la Partnership.
-- `StartPage.jsx` diventa la **porta**: le 7 consegne con le date + accesso al percorso.
-  L'erogazione non si duplica lì.
+- 5 componenti step in `operativo/steps/` + 5 righe nel registry `STEP_COMPONENTS`
+  (`PartnerOperativo.jsx:11`).
+- `PartnerSidebar` e `JourneyMap` derivano le voci dal tier (helper condiviso, non `if` sparsi).
+- Badge del livello in area. Copy di `GoLive21Banner` per livello: i 21 giorni valgono per Start,
+  ma "prima lanciamo e prima incassiamo" parla di un lancio che un cliente Start non fa.
+- `/cliente`: in dismissione, dopo la verifica sui clienti Blueprint.
 
 ### Fuori scope, deliberatamente
-Automazione della pubblicazione vetrina (API Vercel, gestione domini). Resta procedura manuale
-(`npx vercel --prod`) + checklist DNS per il cliente. È infrastruttura prima della validazione:
-si fa dopo la terza vendita. **Vincolo:** la parte DNS deve essere una checklist eseguibile da
-Antonella o dal cliente, mai una call di Claudio.
+Automazione della pubblicazione vetrina (API Vercel, gestione domini). Resta la procedura manuale
+già in uso (`npx vercel --prod`) + checklist DNS. **Vincolo:** la parte DNS deve essere eseguibile
+da Antonella o dal cliente, mai una call di Claudio.
+
+## Decisioni di Claudio (30/7)
+
+1. **Una sola interfaccia a livelli**, l'account nasce dal Blueprint €27, i servizi Partnership
+   restano visibili ma bloccati.
+2. **Sito vetrina sul dominio proprio del cliente** (scartati sottodominio Systeme e solo-contenuti).
+3. **21 giorni, 3 consegne datate, 1 sola call** (kickoff 30'), resto asincrono, approvazioni ≤48h.
+4. **Profili social:** il sistema genera bio e cover, li applica il cliente. Mai chiedere i suoi accessi.
+5. **Calendario a 90 giorni** (non i 30 di lancio, non 12 mesi): un cliente Start non ha un corso.
+6. **La vetrina non vende** (no checkout, opt-in, automazioni): è il confine col €2.790.
 
 ## Flusso end-to-end
 
 1. Il cliente paga (Payment Link statico oppure checkout self-service).
-2. Attivazione: `POST /api/admin/ciak-start/activate` con l'email.
-3. L'endpoint crea/aggiorna `ciak_clients` (credito), `partners` (`tier=start`), `users`,
-   il journey Start, e restituisce il magic link.
-4. Claudio invia il magic link e fissa il kickoff (unica call, 30').
-5. Il cliente entra: badge Start, agente Valentina, 3 consegne con date.
-6. Compila dati → brand kit → storia → obiettivo → posizionamento. I due step con approval bridge
+2. Attivazione: `POST /api/admin/ciak-start/activate` con l'email → account, `tier="start"`,
+   credito, journey, magic link.
+3. Claudio invia il magic link e fissa il kickoff (unica call, 30').
+4. Il cliente entra nell'area: badge del livello, agente Valentina, 3 consegne con date, fasi
+   successive visibili e bloccate.
+5. Compila dati → brand kit → storia → obiettivo → posizionamento. I due step con approval bridge
    (`03-brand-kit`, `04-posizionamento`) passano dal team entro 48h lavorative. PDF generati.
-7. Settimana 2: profili + vetrina. Il sistema genera, il team pubblica, il cliente riceve la
+6. Settimana 2: profili + vetrina. Il sistema genera, il team pubblica, il cliente riceve la
    checklist DNS.
-8. Settimana 3: strategia + calendario 90 giorni.
-9. Readiness: PDF finale + attestato + dispensa + proposta upgrade €2.291 col credito già scalato.
+7. Settimana 3: strategia + calendario 90 giorni.
+8. Readiness: PDF finale + attestato + dispensa + proposta upgrade €2.291 col credito già scalato.
+9. Se compra: `tier="partnership"`. Stessa area, stesso percorso, lucchetti aperti.
+
+## Dipendenza dalla migrazione partner (da coordinare, non ignorare)
+
+La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel modello attuale
+(nessun `tier`, journey senza i 4 step nuovi). Due conseguenze:
+
+- **Backfill previsto e banale:** `update_many` per assegnare `tier="partnership"` ai partner
+  migrati + seed idempotente per i 4 step nuovi (che nascono `pending`, non rompono nulla).
+- **La finestra si chiude quando i partner entrano davvero.** Oggi nessun partner è attivo dentro
+  Ciak: si può cambiare il modello dati senza rompere nessuno a metà percorso. Dopo, ogni modifica
+  strutturale costa una migrazione. Questo lavoro va fatto **adesso**, non dopo.
 
 ## Casi limite
 
@@ -148,7 +217,8 @@ Antonella o dal cliente, mai una call di Claudio.
 |---|---|
 | Doppia attivazione / doppio pagamento | idempotente: non raddoppia il credito, non azzera i progressi |
 | Email Stripe ≠ email account | l'email è la chiave dell'attivazione; mismatch = riconciliazione manuale |
-| **Upgrade a Partnership** | **additivo**: il journey si estende agli step Valida senza perdere i dati compilati. Se si sbaglia qui, chi sale perde il lavoro fatto |
+| Upgrade | cambio di `tier`: nessun dato toccato, nessun reseed |
+| Downgrade / mancato pagamento | il tier non si abbassa da solo: decisione umana, non automatismo |
 | Cliente senza dominio | non blocca la consegna: sottodominio nostro, si sposta quando compra il dominio |
 | Pagamento da link statico | cieco per il webhook (nessun `metadata.tipo`): attivazione manuale. Debito: creare i Payment Link con metadata via API |
 | Generazione AI fallita | fallback deterministico, come già fa `editorial_calendar`. Mai una pagina vuota al cliente |
@@ -156,36 +226,38 @@ Antonella o dal cliente, mai una call di Claudio.
 ## Test
 
 **Unit**
-- `START_JOURNEY_STEPS`: 11 step, tutti `macro_phase=esamina`, `step_number` ordinati.
-- `seed_partner_journey` con `tier="start"` seeda 11 step; con `tier="partnership"` invariato.
-- `build_editorial_calendar(mode="start")` produce 90 giorni senza outline corso.
-- `start_readiness` con asset parziali.
-- Filtri `tier`: un cliente Start non compare nei conteggi partner né nei 2 check diagnostici.
+- `entitlements`: per ogni tier, quali step e quali sezioni sono visibili/raggiungibili.
+- `JOURNEY_STEPS_DEFINITION`: 20 step, `min_tier` valorizzato su tutti, `step_number` ordinati.
+- `seed_partner_journey`: gli step sopra il tier nascono `blocked`.
+- `build_editorial_calendar(mode="start")`: 90 giorni senza outline corso.
+- Conteggi partner: un account `tier=blueprint`/`start` non compare tra i partner né nei 2 check
+  diagnostici; con `tier=partnership` **compare**.
 
 **Integrazione**
-- Attivazione idempotente: crea `partners` + `users` + journey; seconda chiamata non duplica.
-- Guardia: il cliente Start accede al proprio `partner_id`, non ad altri.
-- Upgrade additivo: journey esteso, `data` degli step preesistenti intatta.
+- Attivazione idempotente: crea account + journey; seconda chiamata non duplica.
+- Gate backend: un `tier=start` che chiama un endpoint di fase Valida riceve 403, non dati.
+- Upgrade: cambio `tier` → nessuno step perde `data`, un solo step `in_progress`,
+  `journey_current_step` invariato.
 
 **E2E manuale (gate prima del primo cliente vero)**
-Attivazione su cliente di test → login col magic link → compilazione di uno step → PDF generato.
-Mai su dati di partner veri.
+Attivazione su account di test → login col magic link → compilazione di uno step → PDF generato →
+upgrade simulato → gli asset Start sono ancora lì e visibili. Mai su dati di partner veri.
 
 ## Ordine di implementazione
 
 1. Merge di `ag/ciak-start-activate` (superato il gate Codex) — senza questo non esiste attivazione.
-2. Definizione step Start + seed per tier + filtri `tier`.
+2. `min_tier` + `entitlements.py` + gate backend e sidebar. È la spina dorsale: prima di tutto il resto.
 3. `start-attivazione` + `start-readiness` (chiudono la promessa del credito).
 4. `start-profili` + `start-contenuti` (riuso alto, valore immediato).
 5. `start-vetrina` + runbook DNS.
-6. `StartPage` come porta + badge.
+6. Vista riepilogo delle 7 consegne + dismissione di `/cliente`.
 
 I punti 1-3 sono il minimo per erogare a un cliente reale senza promesse scoperte.
 
 ## Aperti
 
-- Valore corretto di `users.role` per un cliente Start: verificare il ramo non-admin della guardia
-  (`partner_journey.py:46+`) prima di implementare.
-- Chi esegue la pubblicazione della vetrina in pratica (Claudio o Antonella) e con quale account
-  Vercel: decisione operativa, non tecnica.
-- Copy dello step Benvenuto per Start (oggi è scritto per il partner da €2.790).
+- Unificazione degli `id` (`users` / `ciak_clients` / `partners`): è il lavoro strutturale vero.
+  Va quantificato prima di iniziare il punto 2 — quanti record esistono oggi con id divergenti.
+- Quanti clienti Blueprint usano `/cliente` oggi: dato mancante, prerequisito della dismissione.
+- Copy per livello dello step Benvenuto e del banner 21 giorni.
+- Chi pubblica la vetrina in pratica (Claudio o Antonella) e con quale account Vercel.

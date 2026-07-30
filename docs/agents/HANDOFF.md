@@ -24,6 +24,38 @@ Regole:
 
 ---
 
+### 2026-07-30 (sera) · Claude Code (Luca) · docs/ciak-start-erogazione — spec RISCRITTA: area unica a livelli
+
+**FATTO**
+- Riscritta `docs/superpowers/specs/2026-07-30-ciak-start-erogazione-design.md`. Il modello
+  "partner light" (due aree da riconciliare) è **superato**: ora un solo account, una sola area,
+  **una sola definizione di journey** con campo `min_tier` per step, e `partners.tier` come unico
+  asse di accesso (`blueprint → start → partnership → evo_s`).
+- I 4 step nuovi (`start-profili`, `start-vetrina`, `start-contenuti`, `start-readiness`) entrano in
+  **Esamina per tutti i livelli**, non in una definizione parallela.
+
+**VERIFICATO / FATTO NUOVO CHE CAMBIA IL DESIGN**
+- **Nessun partner è attualmente attivo dentro Ciak** (confermato da Claudio il 30/7: la migrazione
+  dei dati è ancora in corso in un'altra sessione). Cade il vincolo che aveva prodotto il
+  compromesso: non c'è codice vivo da proteggere, quindi `require_partner_or_admin_for_partner` e
+  `get_operativo_state` si possono toccare.
+- Le 3 falle dell'upgrade documentate nella versione precedente (tier mai aggiornato, avanzamento
+  riazzerato a `01-contratto`, step `start-*` invisibili nella JourneyMap) **non esistono** nel
+  modello a livelli: erano sintomi dei due mondi.
+
+**APERTO**
+- ⚠️ **Per chi sta migrando i partner (altra sessione):** la migrazione scrive nel modello attuale
+  (nessun `tier`, journey senza i 4 step nuovi). Backfill previsto: `update_many` per
+  `tier="partnership"` + seed idempotente dei 4 step. **La finestra per cambiare il modello dati si
+  chiude quando i partner entrano davvero in Ciak** — questo lavoro va fatto prima.
+- Gate del merge invariato: `ag/ciak-start-activate` viene per primo.
+- Da quantificare prima di iniziare: quanti record hanno `id` divergenti tra `users`,
+  `ciak_clients` e `partners` (l'unificazione degli id è il lavoro strutturale vero).
+- Non toccati in questo branch: `docs/migration/partner-daniele-andolfi-ciak.md` e
+  `memory/CIAK_MIGRATION_MEMORY.md` restano modificati e non committati.
+
+---
+
 ### 2026-07-30 · Claude Code (Luca) · docs/ciak-start-erogazione — spec erogazione Ciak Start
 
 **FATTO**
