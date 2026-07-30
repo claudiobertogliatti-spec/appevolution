@@ -968,7 +968,7 @@ git commit -m "feat(ciak): send access email on Ciak Start payment"
 
 **Interfaces:**
 - Consumes: `send_onboarding_email_async` (Task 2), `create_magic_login_token`.
-- Produces: `POST /api/ciak/admin/onboarding-email/resend` con body `{"email": str, "tier": "blueprint"|"start"}` → `{"ok": bool, "sent": bool, "access_url": str}`. Auth: `require_ciak_admin`.
+- Produces: `POST /api/admin/ciak/onboarding-email/resend` con body `{"email": str, "tier": "blueprint"|"start"}` → `{"ok": bool, "sent": bool, "access_url": str}`. Auth: `require_ciak_admin`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1123,7 +1123,7 @@ git commit -m "feat(ciak-admin): resend onboarding email with a fresh magic link
 
 **Interfaces:**
 - Consumes: collection `ciak_onboarding_emails` (Task 2), `ciak_clients`.
-- Produces: `GET /api/ciak/admin/onboarding-email/gaps` → `{"items": [{"email", "tier", "reason"}], "count": int}` con `reason` in `("nessuna_email", "invio_fallito", "mai_entrato")`. `mai_entrato` = email consegnata ma nessun token con `used_at` valorizzato su `ciak_client_login_tokens`.
+- Produces: `GET /api/admin/ciak/onboarding-email/gaps` → `{"items": [{"email", "tier", "reason"}], "count": int}` con `reason` in `("nessuna_email", "invio_fallito", "mai_entrato")`. `mai_entrato` = email consegnata ma nessun token con `used_at` valorizzato su `ciak_client_login_tokens`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1352,8 +1352,8 @@ git commit -m "feat(ciak): email the access link on manual Ciak Start activation
 ## Verifica finale prima di dichiarare fatto
 
 - [ ] `cd backend && python -m pytest -m unit -q` verde.
-- [ ] **Smoke reale**: chiamare `POST /api/ciak/admin/onboarding-email/resend` su un indirizzo di test di Claudio e **aprire la mail ricevuta**: il pulsante porta alla pagina di scelta password, l'URL in chiaro funziona, non ci sono trattini lunghi, le tre date sono giuste. Mai su un indirizzo di cliente vero.
-- [ ] `GET /api/ciak/admin/onboarding-email/gaps` risponde e, se ci sono righe, ognuna viene recuperata con il resend.
+- [ ] **Smoke reale**: chiamare `POST /api/admin/ciak/onboarding-email/resend` su un indirizzo di test di Claudio e **aprire la mail ricevuta**: il pulsante porta alla pagina di scelta password, l'URL in chiaro funziona, non ci sono trattini lunghi, le tre date sono giuste. Mai su un indirizzo di cliente vero.
+- [ ] `GET /api/admin/ciak/onboarding-email/gaps` risponde e, se ci sono righe, ognuna viene recuperata con il resend.
 - [ ] Il workflow Systeme `Ciak Bought 67` (516729) **non è stato toccato**. Va riallineato in una sessione dedicata, perché oggi manda alle 8 Domande e a Cal.com mentre questa email manda in area: due messaggi lo stesso giorno.
 
 ## Punti da confermare con Claudio (non bloccano il Task 1)

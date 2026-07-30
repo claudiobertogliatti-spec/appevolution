@@ -365,7 +365,7 @@ La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel
 | Pagamento da link statico | cieco per il webhook (nessun `metadata.tipo`): attivazione manuale. Debito: creare i Payment Link con metadata via API |
 | Generazione AI fallita | fallback deterministico, come già fa `editorial_calendar`. Mai una pagina vuota al cliente |
 | **Sequenza Systeme `Ciak Bought 67`** | ✅ verificato 30/7: **non manda l'accesso**, quindi nessun doppione di credenziali. Ma le sue 3 email mandano il cliente alle 8 Domande e a Cal.com: **va riallineata**, non spenta, o lo stesso giorno riceve due messaggi che dicono cose diverse |
-| Verifiche dietro login | sia la config Systeme sia `/api/ciak/admin/clienti-ciak` (JWT admin, `ciak_admin.py:45-53`) richiedono una sessione autenticata di Claudio: delegabili a un agente non-codice **con mandato di sola lettura** |
+| Verifiche dietro login | sia la config Systeme sia `/api/admin/ciak/clienti-ciak` (JWT admin, `ciak_admin.py:45-53`) richiedono una sessione autenticata di Claudio: delegabili a un agente non-codice **con mandato di sola lettura** |
 
 ## Test
 
