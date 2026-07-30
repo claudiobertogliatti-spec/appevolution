@@ -24,6 +24,51 @@ Regole:
 
 ---
 
+### 2026-07-30 (notte) · Claude Code (Luca) · feat/ciak-onboarding-email — email di onboarding IMPLEMENTATA
+
+**FATTO**
+- Eseguito per intero il piano `docs/superpowers/plans/2026-07-30-email-onboarding-transazionale.md`
+  (Task 1-6; il Task 7 resta bloccato dal merge di `ag/ciak-start-activate`), in un worktree
+  isolato: `.worktrees/ciak-onboarding-email`, branch **`feat/ciak-onboarding-email`** da `origin/main`.
+- Un subagente implementatore per task + una review indipendente dopo ognuno + review finale
+  sull'intero branch + una sola ondata di fix. Ledger completo in
+  `.superpowers/sdd/2026-07-30-email-onboarding-transazionale/progress.md` (non versionato).
+- Cosa contiene: `services/ciak_onboarding_email.py` (invio SMTP, audit per tentativo su
+  `ciak_onboarding_emails`, un retry differito, helper condiviso di consegna), i due trigger di
+  pagamento (`checkout.py`, `stripe_webhook.py`), e due endpoint admin:
+  `POST /api/admin/ciak/onboarding-email/resend` e `GET /api/admin/ciak/onboarding-email/gaps`.
+
+**VERIFICATO**
+- 50 test verdi sui 5 file del branch; baseline preesistente invariata (gli stessi 4 file rossi in
+  collection, nessuno nuovo). Eseguito anche il file collaterale `test_checkout_trigger.py`: 9 passed.
+- Il sospetto di una sleep nascosta nei ~48s di quel file è stato **chiuso eseguendo**:
+  `test_handle_checkout_triggers_delivery` è l'unico lento (9,66s) ed era già lento prima del branch
+  (6,47s su main) — test preesistente che tenta un SMTP reale, non una `sleep` del retry.
+- ⚠️ **Il path degli endpoint admin nel piano e nella spec era invertito** (`/api/ciak/admin/...`).
+  Il prefix reale è `/api/admin/ciak` (`ciak_admin.py:31`, e il frontend chiama `/api/admin/ciak${path}`).
+  Corretto nei documenti (commit `00d3a3fd`) e i test ora passano da `TestClient` sull'URL vero.
+
+**APERTO**
+- **Rebase su `origin/main` prima del merge**: il branch è indietro di 3 commit (tutti security).
+  Nessun conflitto atteso (l'unico file condiviso è `server.py`, hunk lontani).
+- **Da verificare in produzione prima del merge:** `CIAK_BASE_URL` è impostata su Cloud Run? Non
+  compare in nessun file versionato. Se manca, i magic link partono su host diversi a seconda del
+  flusso. Idem `SMTP_USER`/`SMTP_PASSWORD` (già usate da `ciak_checkpoint_email`, quindi probabili).
+- **Smoke mai eseguito**: chiamare `POST /api/admin/ciak/onboarding-email/resend` su un indirizzo di
+  test e **aprire la mail**. I test provano la struttura HTML, non il rendering su un client vero.
+- **Da far firmare a Claudio**: un fallimento nella creazione del magic link del Blueprint non
+  finisce più in `ciak_client_access_recovery` (ora è nel log + `/gaps`). Cambio di comportamento
+  emerso dalla fix wave, non richiesto dai finding.
+- **Terza attivazione manuale scoperta**: `POST /api/ciak/clients/start/activate`
+  (`ciak_clients.py:448`) concede `ACCESS_START` **senza inviare l'email**. Non è un difetto di
+  questo branch, ma il piano dichiara di coprire l'attivazione manuale e questa resta fuori.
+- **Debito test del repo, da chiudere a parte**: i 4 file rossi falliscono per `JWT_SECRET_KEY` (2),
+  un path sbagliato (`backend/backend/routers/partner_rewards.py`) e `REACT_APP_BACKEND_URL`. Un
+  `conftest.py` con `JWT_SECRET_KEY`+`MONGO_URL`+`DB_NAME` ne sistemerebbe 2 e toglierebbe i
+  `setdefault` duplicati nei nuovi file di test.
+
+---
+
 ### 2026-07-30 (sera) · Claude Code (Luca) · docs/ciak-start-erogazione — spec RISCRITTA: area unica a livelli
 
 **FATTO**
