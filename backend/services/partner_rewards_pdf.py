@@ -218,18 +218,17 @@ def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
     fase_attuale = _safe(payload.get("fase_attuale"), "In preparazione")
     sections = payload.get("sections") or []
 
-    # Copertina come da design approvato il 01/07/2026
-    # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md):
-    # logo, nome partner, progetto, data inizio, FASE ATTUALE e il claim
-    # "Il tuo modello digitale prende forma".
+    # Fallback usato solo se il render HTML ufficiale non e' disponibile
+    # (services/project_book_html.py). Stessi titoli e metadati dello standard
+    # `memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md`, resa piu' povera.
     story = [
         Spacer(1, 0.8 * cm),
         _paragraph("CIAK.io · PROTOCOLLO EVO™", styles["CiakSmall"]),
         Spacer(1, 0.4 * cm),
         HRFlowable(width="100%", thickness=14, color=HexColor("#FACC15"), spaceBefore=4, spaceAfter=14),
-        _paragraph("Libretto di Progetto Ciak", styles["CiakTitle"]),
+        _paragraph("WORKBOOK STRATEGICO", styles["CiakTitle"]),
         HRFlowable(width="100%", thickness=1, color=HexColor("#E2E8F0"), spaceBefore=4, spaceAfter=14),
-        _paragraph("Il tuo modello digitale prende forma", styles["CiakSubtitle"]),
+        _paragraph("Una guida esclusiva per la realizzazione di accademie digitali di successo", styles["CiakSubtitle"]),
         Spacer(1, 1.2 * cm),
         _paragraph_html(f"<b>Preparato per:</b> {escape(nome)}", styles["CiakBody"]),
         _paragraph_html(f"<b>Progetto / Accademia:</b> {escape(project_name)}", styles["CiakBody"]),
