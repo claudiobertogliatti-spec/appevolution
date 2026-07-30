@@ -90,6 +90,7 @@ jobs:
           tests/test_partner_journey_auth_unittest.py
           tests/test_no_shadow_routes.py
           tests/test_admin_endpoints_auth.py
+          tests/test_auth_public_surface.py
           tests/test_proposta_security.py
 
   frontend:

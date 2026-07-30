@@ -19,7 +19,7 @@ import asyncio
 import logging
 import json
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 import uuid
 from bson import ObjectId
@@ -1140,16 +1140,41 @@ async def login(request: LoginRequest):
     
     return token
 
+class PublicRegisterRequest(BaseModel):
+    """Payload della registrazione PUBBLICA.
+
+    Deliberatamente privo di `role`, `partner_id` e `admin_type`: fino al
+    2026-07-30 questo endpoint accettava un `RegisterRequest` completo, in cui
+    `role` era una stringa libera scritta nel DB senza filtro. Chiunque poteva
+    quindi registrarsi con role="admin"/"superadmin", fare login e ottenere un
+    token valido che superava tutte le guardie amministrative. Il ruolo ora non
+    e' esprimibile dal client: non esiste come campo, quindi non c'e' un filtro
+    da aggirare. La creazione di account privilegiati passa dai soli percorsi
+    interni (seed in auth.py, endpoint admin protetti).
+    """
+    email: EmailStr
+    password: str
+    name: str
+
+
 @api_router.post("/auth/register")
-async def register(request: RegisterRequest):
+async def register(request: PublicRegisterRequest):
     """Register a new partner user and send welcome email"""
     global auth_service
     if not auth_service:
         auth_service = AuthService(db)
-    
+
     try:
+        # Ruolo imposto lato server: la registrazione pubblica crea SEMPRE e SOLO
+        # un partner. Non ereditare mai il ruolo da input del client.
+        request = RegisterRequest(
+            email=request.email,
+            password=request.password,
+            name=request.name,
+            role="partner",
+        )
         user = await auth_service.create_user(request)
-        
+
         # Create partner record if role is partner
         if request.role == "partner":
             partner_id = str(uuid.uuid4())
@@ -4392,10 +4417,23 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     
     return {"valid": True, "user_id": token_data.user_id, "role": token_data.role}
 
+# Campi esposti da /auth/users. Lista POSITIVA per scelta: la versione precedente
+# usava l'esclusione {"hashed_password": 0}, ma il campo realmente salvato si
+# chiama `password_hash` — l'esclusione non filtrava nulla e l'endpoint, per di
+# piu' senza autenticazione, restituiva gli hash bcrypt di tutti gli utenti.
+# Con una lista positiva un campo sensibile nuovo resta fuori per default.
+_USER_PUBLIC_FIELDS = {
+    "_id": 0,
+    "id": 1, "email": 1, "name": 1, "role": 1, "admin_type": 1,
+    "partner_id": 1, "evolution_id": 1, "phase": 1,
+    "is_active": 1, "created_at": 1, "last_login": 1,
+}
+
+
 @api_router.get("/auth/users")
-async def list_users():
+async def list_users(_admin=Depends(require_admin_role)):
     """List all users (admin only)"""
-    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    users = await db.users.find({}, _USER_PUBLIC_FIELDS).to_list(100)
     return {"users": users, "count": len(users)}
 
 # =============================================================================
