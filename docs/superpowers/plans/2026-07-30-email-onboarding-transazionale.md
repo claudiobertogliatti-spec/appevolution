@@ -16,6 +16,35 @@ Verificato il 30/7 in produzione e in Systeme: `_deliver_client_access_link` (`r
 
 Spec di riferimento: `docs/superpowers/specs/2026-07-30-ciak-start-erogazione-design.md` (blocco 1-bis dell'ordine di implementazione).
 
+## ⚠️ Correzioni post-esecuzione (30/7) — il codice di questo piano conteneva 3 difetti verificati
+
+Il piano è stato eseguito il 30/7 in `.worktrees/ciak-onboarding-email` (branch
+`feat/ciak-onboarding-email`). Le review hanno trovato tre difetti **nel codice scritto in questo
+documento**, tutti confermati eseguendo il codice, non rileggendolo. Chi riesegue il piano non deve
+copiare i blocchi originali alla lettera: **la fonte corretta è l'implementazione nel branch.**
+
+1. **Task 1, `_html_body`: il saluto veniva stampato due volte** in ogni email HTML. Il blocco
+   derivava i paragrafi splittando il testo semplice e filtrava solo il blocco con l'URL, quindi il
+   primo blocco (il saluto) non veniva mai escluso, e finiva sotto al saluto già hardcodato.
+2. **Task 1, stessa funzione: i tre passi numerati collassavano su una riga**, perché i `\n` interni
+   al blocco restavano letterali e l'HTML li comprime in spazi. Serve la conversione in `<br>`.
+   → Fix per 1 e 2: un helper che salta il saluto **e** il blocco con l'URL e converte i `\n` interni
+   in `<br>`, sul modello di `_html_paragraphs()` in `services/ciak_checkpoint_email.py:240-263`.
+3. **Task 2, `test_async_send_records_failure_with_error`: il test dorme 60 secondi veri.** Fa
+   fallire il sender ma non fissa `_RETRY_DELAY_S`, quindi entra nel ramo di retry e attende il
+   default. Le asserzioni passano comunque perché guardano solo la riga del primo tentativo, il che
+   nasconde il difetto. Sintomo diagnostico: la suite gira in ~61s invece di millisecondi.
+   → Ogni test che raggiunge il ramo di retry **deve** fare `monkeypatch.setattr(onboarding,
+   "_RETRY_DELAY_S", 0)`.
+4. **Task 2, `send_onboarding_email_async`: `asyncio.to_thread(...)` va avvolto in `try/except`.**
+   Senza, il contratto "non solleva mai" dipende dal fatto che il sender interno catturi tutto: è
+   una garanzia latente, non enforced, su una funzione chiamata dai webhook Stripe.
+
+**Lezione trasferibile** (vale per ogni piano futuro): il codice che costruisce markup o formatta
+output non si valida rileggendolo. Nel piano originale il test `test_no_em_dash_in_any_template`
+attraversava il codice bacato senza accorgersene, perché controllava solo i trattini. Un test che
+passa sul codice sbagliato è peggio di nessun test.
+
 ## Global Constraints
 
 - **Mai credenziali via email.** Solo magic link che porta a impostare la password (LOCK 17/5/2026).
