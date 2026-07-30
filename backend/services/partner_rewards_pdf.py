@@ -215,25 +215,31 @@ def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
     nome = _safe(payload.get("partner_name"), "Partner Ciak")
     project_name = _safe(payload.get("project_name"), "Il tuo modello digitale")
     start_date = _safe(payload.get("start_date"), "Data in preparazione")
+    fase_attuale = _safe(payload.get("fase_attuale"), "In preparazione")
     sections = payload.get("sections") or []
 
+    # Copertina come da design approvato il 01/07/2026
+    # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md):
+    # logo, nome partner, progetto, data inizio, FASE ATTUALE e il claim
+    # "Il tuo modello digitale prende forma".
     story = [
         Spacer(1, 0.8 * cm),
         _paragraph("CIAK.io · PROTOCOLLO EVO™", styles["CiakSmall"]),
         Spacer(1, 0.4 * cm),
         HRFlowable(width="100%", thickness=14, color=HexColor("#FACC15"), spaceBefore=4, spaceAfter=14),
-        _paragraph("WORKBOOK STRATEGICO", styles["CiakTitle"]),
+        _paragraph("Libretto di Progetto Ciak", styles["CiakTitle"]),
         HRFlowable(width="100%", thickness=1, color=HexColor("#E2E8F0"), spaceBefore=4, spaceAfter=14),
-        _paragraph("Una guida esclusiva per la realizzazione di accademie digitali di successo", styles["CiakSubtitle"]),
+        _paragraph("Il tuo modello digitale prende forma", styles["CiakSubtitle"]),
         Spacer(1, 1.2 * cm),
         _paragraph_html(f"<b>Preparato per:</b> {escape(nome)}", styles["CiakBody"]),
         _paragraph_html(f"<b>Progetto / Accademia:</b> {escape(project_name)}", styles["CiakBody"]),
         _paragraph_html(f"<b>Data Inizio Lavori:</b> {escape(start_date)}", styles["CiakBody"]),
+        _paragraph_html(f"<b>Fase attuale:</b> {escape(fase_attuale)}", styles["CiakBody"]),
         _paragraph_html("<b>Tutor Strategico:</b> Claudio Bertogliatti &amp; Team CIAK.io", styles["CiakBody"]),
         Spacer(1, 1.5 * cm),
         _paragraph(
-            "Questo documento raccoglie in formato Business Plan, fase dopo fase, "
-            "gli asset, la strategia e il modello di business dell'Accademia Digitale.",
+            "Qui raccogliamo, fase dopo fase, le caratteristiche del modello digitale "
+            "che stiamo costruendo insieme.",
             styles["CiakSmall"],
         ),
         PageBreak(),
