@@ -24,6 +24,7 @@ import { BoosterEvoPage } from "./sections/BoosterEvoPage";
 import { ServiziExtraPage } from "./sections/ServiziExtraPage";
 import { TeamSupportoPage } from "./sections/TeamSupportoPage";
 import { EvoSPage } from "./sections/EvoSPage";
+import { CambiaPasswordPage } from "./sections/CambiaPasswordPage";
 import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
@@ -410,6 +411,9 @@ export default function CiakPartnerApp() {
         <Route path="rinnovo" element={<EvoSPage partnerId={partnerId} />} />
         <Route path="continua-scalare" element={<EvoSPage partnerId={partnerId} />} />
         <Route path="evo-s" element={<EvoSPage partnerId={partnerId} />} />
+
+        {/* Cambio password self-service (utente loggato → /api/auth/change-password) */}
+        <Route path="cambia-password" element={<CambiaPasswordPage />} />
 
         {/* Compatibilità vecchi URL */}
         <Route path="workspace" element={<Navigate to="/partner/materiali" replace />} />

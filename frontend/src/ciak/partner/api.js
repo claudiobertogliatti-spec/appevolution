@@ -96,3 +96,42 @@ export async function apiGet(path) {
   if (!res.ok) throw new Error(`Errore ${res.status}`);
   return res.json();
 }
+
+/**
+ * Cambio password self-service dell'utente loggato.
+ * POST /api/auth/change-password → { current_password, new_password }.
+ *
+ * NB: NON usa authFetch di proposito. L'endpoint restituisce 401 anche quando
+ * la password ATTUALE è errata ("Password attuale errata"); authFetch
+ * interpreterebbe OGNI 401 come sessione scaduta e sloggherebbe l'utente.
+ * Qui gestiamo la risposta in modo esplicito e mostriamo l'errore inline.
+ *
+ * Ritorna { ok, error? }.
+ */
+export async function changePassword(currentPassword, newPassword) {
+  try {
+    const res = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      /* corpo non-JSON: lasciamo data vuoto */
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.detail || data.error || "Errore durante il cambio password.",
+      };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Errore di rete. Riprova." };
+  }
+}
