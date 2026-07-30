@@ -24,6 +24,48 @@ Regole:
 
 ---
 
+### 2026-07-31 · Codex + Claude Code (Luca) · feat/ciak-onboarding-email — review esterna FAIL, 3 bloccanti corretti
+
+**FATTO**
+- Review esterna di **Codex** sul branch (richiesta da Claudio): **verdetto FAIL**, 3 rilievi
+  bloccanti. Tutti e 3 confermati leggendo il codice, tutti e 3 corretti (`03957a15..72d5b61a`).
+- Il branch è ora a **25 commit**. Verificato rieseguendo: **71 test verdi in 6,52s** sui 6 file
+  interessati.
+
+**VERIFICATO — cosa ci era sfuggito**
+1. **Uscite silenziose quando manca l'indirizzo email** (`stripe_webhook.py:466` con
+   `if not email: return`, `checkout.py:547` che creava il task solo `if client.get("email")`).
+   Un cliente poteva risultare pagante e attivato **senza riga di audit e senza log**: è
+   esattamente il contratto che questo branch esiste per garantire, violato da noi.
+2. **`/gaps` confondeva Blueprint e Start.** La query non proiettava nemmeno `tier` e aggregava
+   per sola email: un Blueprint consegnato mascherava uno Start fallito, e un token Blueprint
+   già usato lo faceva sparire del tutto dal report. Falso negativo **sul percorso di upgrade
+   Blueprint → Start**, cioè quello su cui poggia il modello commerciale.
+3. **Il resend restituiva `access_url`**, cioè un token che fa entrare *come il cliente*, valido
+   48h, a ogni utente `admin`. Impersonazione concessa implicitamente. Decisione di Claudio:
+   **rimosso dalla risposta**.
+- Ripristinata anche la scrittura in `ciak_client_access_recovery` per il Blueprint: un log e un
+  report non sono una coda durevole con il contesto Stripe.
+- ⚠️ **Correzione a un punto della review Codex:** afferma che i commit arretrati toccano anche
+  `checkout.py`, `ciak_admin.py`, `stripe_webhook.py`. Non è così — `git log --name-only
+  95b95ddb..origin/main` mostra `auth.py`, `server.py`, `clienti.py`, `contract.py`,
+  `partner_documents.py`, `posizionamento_approval.py`, `proposta.py`, `servizi_extra.py` e i test.
+  L'unico file condiviso col branch resta `server.py`, su hunk lontani: **il rebase resta semplice**.
+  Sul conteggio ha ragione lui: 4 commit indietro, non 3.
+
+**APERTO**
+- `/gaps` valuta i clienti con `access_level = partner` senza distinzione di tier (non esiste
+  ancora un'email di onboarding per la partnership).
+- La recovery entry è stata ripristinata **solo** per il Blueprint: il percorso equivalente di
+  Ciak Start non ha ancora una coda durevole.
+- I task lanciati con `create_task` non sono conservati: nessuna eccezione non osservata trovata,
+  ma la consegna non è durevole durante uno shutdown o un deploy. Da valutare un registry o una
+  coda persistente.
+- Restano validi i punti della voce precedente: rebase, `CIAK_BASE_URL` da verificare su Cloud Run,
+  e lo smoke con apertura reale della mail.
+
+---
+
 ### 2026-07-30 (notte) · Claude Code (Luca) · feat/ciak-onboarding-email — email di onboarding IMPLEMENTATA
 
 **FATTO**
