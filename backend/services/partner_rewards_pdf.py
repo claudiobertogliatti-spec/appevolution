@@ -129,6 +129,24 @@ def _paragraph(text: str, style):
     return Paragraph(escape(text), style)
 
 
+def _paragraph_html(text: str, style):
+    """Paragrafo con markup reportlab (<b>, <i>) interpretato.
+
+    `_paragraph` escapa tutto: passandogli un'etichetta in grassetto si finiva per
+    stampare i tag come testo ("<b>Preparato per:</b> Daniele Andolfi" in copertina,
+    rilevato il 30/07/2026). Il chiamante deve escapare i valori dinamici.
+    """
+    from reportlab.platypus import Paragraph
+
+    return Paragraph(text, style)
+
+
+def _paragraphs(text: str, style) -> list:
+    """Un body su piu' righe diventa piu' paragrafi, invece di un blocco unico."""
+    blocchi = [b.strip() for b in str(text).split("\n") if b.strip()]
+    return [_paragraph(b, style) for b in blocchi] or [_paragraph(str(text), style)]
+
+
 def render_certificate_pdf(payload: dict[str, Any]) -> bytes:
     from reportlab.platypus import Spacer
     from reportlab.lib.units import cm
@@ -187,6 +205,7 @@ def render_bonus_pdf(payload: dict[str, Any]) -> bytes:
 
 
 def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
+    from xml.sax.saxutils import escape
     from reportlab.platypus import PageBreak, Spacer, HRFlowable
     from reportlab.lib.units import cm
     from reportlab.lib.colors import HexColor
@@ -207,10 +226,10 @@ def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
         HRFlowable(width="100%", thickness=1, color=HexColor("#E2E8F0"), spaceBefore=4, spaceAfter=14),
         _paragraph("Una guida esclusiva per la realizzazione di accademie digitali di successo", styles["CiakSubtitle"]),
         Spacer(1, 1.2 * cm),
-        _paragraph(f"<b>Preparato per:</b> {nome}", styles["CiakBody"]),
-        _paragraph(f"<b>Progetto / Accademia:</b> {project_name}", styles["CiakBody"]),
-        _paragraph(f"<b>Data Inizio Lavori:</b> {start_date}", styles["CiakBody"]),
-        _paragraph("<b>Tutor Strategico:</b> Claudio Bertogliatti & Team CIAK.io", styles["CiakBody"]),
+        _paragraph_html(f"<b>Preparato per:</b> {escape(nome)}", styles["CiakBody"]),
+        _paragraph_html(f"<b>Progetto / Accademia:</b> {escape(project_name)}", styles["CiakBody"]),
+        _paragraph_html(f"<b>Data Inizio Lavori:</b> {escape(start_date)}", styles["CiakBody"]),
+        _paragraph_html("<b>Tutor Strategico:</b> Claudio Bertogliatti &amp; Team CIAK.io", styles["CiakBody"]),
         Spacer(1, 1.5 * cm),
         _paragraph(
             "Questo documento raccoglie in formato Business Plan, fase dopo fase, "
@@ -224,7 +243,10 @@ def render_project_book_pdf(payload: dict[str, Any]) -> bytes:
         num_title = f"{idx}.0 {section.get('title', 'Sezione Progetto')}"
         story.append(_paragraph(num_title, styles["CiakSection"]))
         story.append(HRFlowable(width="100%", thickness=1, color=HexColor("#CBD5E1"), spaceBefore=2, spaceAfter=8))
-        story.append(_paragraph(_safe(section.get("body"), "Questa sezione si completera' nella prossima fase del percorso."), styles["CiakBody"]))
+        story.extend(_paragraphs(
+            _safe(section.get("body"), "Questa sezione si completera' nella prossima fase del percorso."),
+            styles["CiakBody"],
+        ))
         story.append(Spacer(1, 0.6 * cm))
 
     story.append(Spacer(1, 0.8 * cm))

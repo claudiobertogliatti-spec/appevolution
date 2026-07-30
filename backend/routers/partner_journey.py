@@ -3234,6 +3234,26 @@ async def activate_launch(
 # PROGRESS OVERVIEW ENDPOINT
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _videocorso_completato(videocorso: dict | None) -> bool:
+    """Il videocorso e' completo quando ci sono lezioni e sono tutte approvate.
+
+    Il flag `completed` sulla collection non viene quasi mai scritto: senza questa
+    deduzione un corso con 32 lezioni approvate risultava "non completato"
+    (rilevato su Andolfi il 30/07/2026).
+    """
+    if not videocorso:
+        return False
+    if videocorso.get("completed"):
+        return True
+    lessons = videocorso.get("lessons") or {}
+    if not isinstance(lessons, dict) or not lessons:
+        return False
+    return all(
+        isinstance(l, dict) and (l.get("video_approved") or l.get("pipeline_status") == "approved")
+        for l in lessons.values()
+    )
+
+
 @router.get("/progress/{partner_id}")
 async def get_partner_journey_progress(
     partner_id: str,
@@ -3245,7 +3265,10 @@ async def get_partner_journey_progress(
     
     # Recupera tutti gli stati
     posizionamento = await db.partner_posizionamento.find_one({"partner_id": partner_id}, {"_id": 0})
-    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    # La masterclass vive in `masterclass_factory`: `partner_masterclass` non esiste e
+    # restituiva sempre None, per cui il progresso mostrava "masterclass mai iniziata"
+    # anche a video approvato e pubblicato (rilevato su Andolfi il 30/07/2026).
+    masterclass = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
     funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
     lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
@@ -3258,15 +3281,18 @@ async def get_partner_journey_progress(
         },
         "masterclass": {
             "started": masterclass is not None,
-            "script_completed": masterclass.get("script_completed", False) if masterclass else False,
-            "video_uploaded": masterclass.get("video_uploaded", False) if masterclass else False,
-            "video_approved": masterclass.get("video_approved", False) if masterclass else False,
-            "completed": masterclass.get("video_approved", False) if masterclass else False
+            "script_completed": bool(masterclass.get("script_completed") or masterclass.get("script_approved")) if masterclass else False,
+            # `video_uploaded` non e' un campo di masterclass_factory: il video caricato
+            # si riconosce dal sorgente o dall'embed pubblicato.
+            "video_uploaded": bool(masterclass.get("video_raw_url") or masterclass.get("video_embed_url")) if masterclass else False,
+            "video_approved": bool(masterclass.get("video_approved") or masterclass.get("video_pipeline_status") == "approved") if masterclass else False,
+            "completed": bool(masterclass.get("video_approved") or masterclass.get("video_pipeline_status") == "approved") if masterclass else False
         },
         "videocorso": {
             "started": videocorso is not None,
             "lessons_uploaded": len(videocorso.get("lessons", {})) if videocorso else 0,
-            "completed": videocorso.get("completed", False) if videocorso else False
+            # `completed` non viene quasi mai scritto: si deduce dalle lezioni approvate.
+            "completed": _videocorso_completato(videocorso),
         },
         "funnel": {
             "started": funnel is not None,
@@ -6183,7 +6209,24 @@ async def get_operativo_state(
         s["label"] = meta.get("label", s["step_id"])
         s["macro_phase"] = meta.get("macro_phase", "attivazione")
 
-    current_step = next((s for s in steps if s["status"] == "in_progress"), None)
+    # Il punto in cui si trova il partner e' il FRONTE del percorso: il primo step
+    # aperto DOPO l'ultimo completato. Prendendo il primo `in_progress` in assoluto,
+    # un singolo step lasciato aperto a meta' strada riportava indietro la vista di
+    # tutto il journey: Andolfi, con 12 step su 17 completati, vedeva il percorso
+    # fermo al quinto ("La tua storia"). E' lo stesso effetto per cui un partner che
+    # ha gia' lanciato apre Ciak e trova la fase iniziale. (30/07/2026)
+    ultimo_done = max(
+        (i for i, s in enumerate(steps) if s["status"] == "done"),
+        default=-1,
+    )
+    current_step = next(
+        (s for s in steps[ultimo_done + 1:] if s["status"] in ("in_progress", "pending")),
+        None,
+    )
+    if not current_step:
+        # Nessuno step aperto dopo l'ultimo completato: se ne e' rimasto qualcuno
+        # indietro lo si mostra comunque, altrimenti il journey e' finito.
+        current_step = next((s for s in steps if s["status"] == "in_progress"), None)
     if not current_step:
         # Tutti done -> partner ha completato il journey
         current_step = steps[-1] if steps else None
