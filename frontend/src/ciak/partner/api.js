@@ -81,6 +81,33 @@ export async function login(email, password) {
   }
 }
 
+/**
+ * "Password dimenticata": chiede al backend di mandare via email il magic link
+ * per rimpostare la password. POST /api/partner/forgot-password.
+ *
+ * NB: il backend risponde SEMPRE ok, anche se l'indirizzo non è registrato
+ * (niente user enumeration). Quindi anche qui il messaggio mostrato è sempre
+ * lo stesso: non promettere all'utente che "l'email è partita", dire che
+ * arriverà SE l'indirizzo è quello giusto.
+ *
+ * Ritorna { ok, error? } — error solo per problemi di rete.
+ */
+export async function requestPasswordReset(email) {
+  try {
+    const res = await fetch("/api/partner/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    if (!res.ok) {
+      return { ok: false, error: "Errore del servizio. Riprova tra un minuto." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Errore di rete. Riprova." };
+  }
+}
+
 /** True se l'utente è admin/superadmin (vista admin dell'area partner). */
 export function isAdminUser(user) {
   return !!user && (user.role === "admin" || user.role === "superadmin");
