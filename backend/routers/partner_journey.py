@@ -173,6 +173,36 @@ async def get_partner_or_404(partner_id: str):
     logging.info(f"[PARTNER_JOURNEY] Partner trovato: {partner.get('name')}")
     return partner
 
+def _ritaglia_json(testo: str) -> str:
+    """Tiene solo il JSON: dal primo '{' all'ultima '}'.
+
+    I modelli premettono spesso una riga di cortesia o chiudono con un commento;
+    il taglio sui soli fence ```json non bastava.
+    """
+    testo = (testo or "").strip()
+    inizio, fine = testo.find("{"), testo.rfind("}")
+    return testo[inizio:fine + 1] if inizio != -1 and fine > inizio else testo
+
+
+async def _registra_errore_generazione(collection, partner_id: str, cosa: str, errore, grezzo: str):
+    """Salva l'esito fallito di una generazione AI, per poterla diagnosticare dopo."""
+    try:
+        await collection.update_one(
+            {"partner_id": partner_id},
+            {"$set": {"generation_error": {
+                "cosa": cosa,
+                "errore": str(errore),
+                "lunghezza_risposta": len(grezzo or ""),
+                "risposta_troncata": not (grezzo or "").rstrip().endswith("}"),
+                "estratto_finale": (grezzo or "")[-400:],
+                "at": datetime.now(timezone.utc).isoformat(),
+            }}},
+            upsert=True,
+        )
+    except Exception as _e:  # la diagnosi non deve mai rompere la risposta all'utente
+        logging.warning(f"[generazione] impossibile registrare l'errore: {_e}")
+
+
 async def get_llm_chat(session_id: str = None, system_message: str = None):
     """Helper per ottenere istanza LLM con Emergent Key"""
     from services.ciak_llm import LlmChat, UserMessage
@@ -2672,7 +2702,7 @@ REGOLE:
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
 
-        blueprint = json.loads(response_text)
+        blueprint = json.loads(_ritaglia_json(response_text))
 
         await db.partner_funnel.update_one(
             {"partner_id": request.partner_id},
@@ -2682,6 +2712,7 @@ REGOLE:
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "content": blueprint.get("landing_sections", {}),
                 "email_sequence": blueprint.get("email_sequence", []),
+                "generation_error": None,
             }}
         )
 
@@ -2691,8 +2722,17 @@ REGOLE:
         }
 
     except json.JSONDecodeError as e:
+        # La risposta grezza va conservata: buttarla rendeva impossibile capire
+        # perche' il blueprint non arrivava (di solito e' troncata dal limite token).
+        await _registra_errore_generazione(
+            db.partner_funnel, request.partner_id, "blueprint", e, locals().get("response_text", "")
+        )
         logging.error(f"Blueprint JSON parse error: {e}")
-        raise HTTPException(status_code=500, detail="Errore nel parsing del blueprint generato")
+        raise HTTPException(
+            status_code=500,
+            detail="La generazione non ha prodotto un JSON valido (risposta probabilmente troncata). "
+                   "Dettagli salvati in partner_funnel.generation_error.",
+        )
     except Exception as e:
         logging.error(f"Blueprint generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Errore generazione blueprint: {str(e)}")
@@ -3061,7 +3101,7 @@ REGOLE IMPORTANTI:
             response_text = response_text[json_start:json_end].strip()
 
         import re
-        response_text = re.sub(r',\s*([}\]])', r'\1', response_text)
+        response_text = re.sub(r',\s*([}\]])', r'\1', _ritaglia_json(response_text))
 
         plan_data = json.loads(response_text)
 
@@ -3092,8 +3132,15 @@ REGOLE IMPORTANTI:
         }
 
     except json.JSONDecodeError as e:
+        await _registra_errore_generazione(
+            db.partner_lancio, request.partner_id, "piano_lancio", e, locals().get("response_text", "")
+        )
         logging.error(f"JSON parse error in lancio plan: {e}")
-        raise HTTPException(status_code=500, detail="Errore nel parsing del piano generato")
+        raise HTTPException(
+            status_code=500,
+            detail="La generazione non ha prodotto un JSON valido (risposta probabilmente troncata). "
+                   "Dettagli salvati in partner_lancio.generation_error.",
+        )
     except Exception as e:
         logging.error(f"Error generating lancio plan: {e}")
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
