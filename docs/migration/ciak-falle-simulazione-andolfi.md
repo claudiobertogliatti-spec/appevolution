@@ -70,6 +70,34 @@ in_progress a metà percorso riporta indietro la vista di tutto il journey.**
 È lo stesso fenomeno segnalato su Michele Baggio (fase 3 EVO, Ciak mostra F1): non è un dato
 sbagliato del partner, **è come il sistema calcola dove sei.**
 
+## 🔴 J — La pipeline di editing è ferma perché gli ID Drive salvati sono MORTI
+`videocorso.editing_batch_status = "pilot_blocked_drive_access"` e `pipeline_error: "Drive access
+blocked"` sembravano un problema di permessi. Non lo sono: **i file a quegli ID non esistono più.**
+
+Verificato il 30/07 con l'API Drive sull'account di Claudio:
+| ID salvato in Ciak | esito |
+|---|---|
+| `1IgfzkPtG7GY7S7QvzSZ2DF-hHLpXe_aM` (m1_l1, `video_raw_url`) | *Requested entity was not found* |
+| `12xZrqRy-Y_Wwrynk8ZK5SJPUwvHRONMn` (m1_l1, `drive_file_id`) | *not found* |
+| `1D-bY9ubsenvGCkeBF7V2Ne7uASz_c0r6` (m2_l1) | *not found* |
+| `1MXdOiDpiFq122RnAzZnl8c6rPVbjl04B` (m5_l1) | *not found* |
+
+I file però **ci sono**, con ID nuovi creati il **20-21/07/2026** — la riorganizzazione in cui i
+video sono stati *copiati* invece che spostati:
+`Modulo1_L1_pilotaautomatico.mp4` → `1FT7fDHf3QX2mgo8m27RQzLBLu7vjXTSe` ·
+`Modulo5_L1_respiro di pancia.mp4` → `1BrJl2dAT3b3pxl2EV1ikY7ww1a-pKoPn` ·
+`Modulo2_L1_...` esiste in **due copie byte-identiche** (950.018.649 B), una di `andolfi3275@gmail.com`
+e una di Claudio.
+
+⚠️ Inoltre in **6 lezioni su 32** `drive_file_id` e l'ID dentro `video_raw_url` sono **diversi tra
+loro**: due riferimenti scritti in momenti diversi, entrambi ora orfani.
+
+👉 Conseguenze: la pipeline di editing non potrà partire finché i riferimenti non vengono
+riallineati, e il problema **non è di Andolfi** — riguarda ogni partner i cui file sono stati
+riorganizzati in quei giorni. Il riallineamento è fattibile (cercare per nome, scartando le copie
+sotto `05 - DA ELIMINARE`), ma va fatto come passata dedicata, non a mano lezione per lezione.
+ℹ️ Il corso resta comunque fruibile: gli embed YouTube delle 32 lezioni funzionano.
+
 ---
 
 ## Cosa dice questo collaudo
