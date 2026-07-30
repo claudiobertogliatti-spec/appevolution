@@ -200,6 +200,77 @@ da Antonella o dal cliente, mai una call di Claudio.
 8. Readiness: PDF finale + attestato + dispensa + proposta upgrade €2.291 col credito già scalato.
 9. Se compra: `tier="partnership"`. Stessa area, stesso percorso, lucchetti aperti.
 
+## Email di onboarding: la consegna dell'accesso esce da Systeme
+
+### La falla trovata il 30/7
+
+`_deliver_client_access_link` (`routers/checkout.py:93-125`) **non invia alcuna email**: scrive il
+campo `client_access_url` sul contatto Systeme ed emette il tag `ciak_client_access_ready`. L'invio
+dipende interamente da un workflow configurato **dentro Systeme.io**.
+
+Nel censimento dei workflow Systeme (17/5) i tag attivi sono `ciak_bought_67` e
+`partner_setup_pending`, e l'unico custom field creato è `partner_setup_url`:
+**`ciak_client_access_ready` e `client_access_url` non risultano**. Se è ancora così, un cliente che
+paga il Blueprint €27 non riceve l'accesso: il magic link viene generato e salvato in
+`ciak_clients.last_magic_login_url`, ma non raggiunge nessuno.
+
+Aggravante: entrambe le chiamate sono best-effort con `logger.warning`, quindi il webhook risponde
+200 comunque. **Il fallimento è silenzioso**: nessun allarme, nessun contatore, nessun test — la
+logica di consegna vive in una configurazione che git non vede.
+⚠️ Lo stato attuale della config Systeme **va verificato nella sessione di Claudio** (Claude non ha
+accesso alle credenziali). La decisione sotto non dipende da quella verifica.
+
+### Decisione
+
+**L'email che consegna l'accesso è transazionale e la manda il backend via SMTP**, con esito
+registrato. Systeme resta per marketing e nurturing, non per la chiave d'accesso. Perché:
+1. se non parte dobbiamo accorgercene noi, non dal cliente che non si è mai visto;
+2. un template nel repo è testabile e revisionabile, un workflow Systeme no;
+3. limite già documentato: l'editor Systeme non accetta merge tag negli `href` → il link arriva come
+   testo che *forse* il client email rende cliccabile. Per la chiave d'accesso "forse" non basta.
+
+Infrastruttura già in casa da riusare: `services/ciak_checkpoint_email.py` (template HTML +
+`send_checkpoint_email_sync`, SMTP `smtp.register.it`, sender `info@evolution-pro.it`) e
+`services/ciak_analisi_delivery.py` (invio con link e con allegato).
+
+### Nessuna credenziale via email
+
+Non esistono password in chiaro e non si spediscono. Vale il pattern già in LOCK dal 17/5: **link di
+accesso che porta dentro e fa impostare la password**. Per il cliente è meno attrito di
+utente+password da copiare.
+
+### Contenuto (`services/ciak_onboarding_email.py`, nuovo)
+
+Un template, parametrico sul livello (`blueprint` | `start`). Target poco digitalizzato → **una sola
+azione in alto**, il resto sotto (vedi il pattern low-literacy già adottato per i wizard).
+
+1. Una frase: cosa hai comprato, cosa succede adesso.
+2. **Un solo pulsante: "Entra e scegli la tua password"** + URL in chiaro sotto come rete di sicurezza.
+3. **I prossimi passi numerati**, con il tempo che prende ciascuno. Per `start`: le 3 consegne con le
+   date reali calcolate dalla data di pagamento (sett. 1 posizionamento e brand · sett. 2 profili e
+   vetrina · sett. 3 contenuti e calendario).
+4. Cosa aspettarsi da noi e quando: approvazioni ≤48h lavorative, call di kickoff da fissare.
+5. A chi scrivere se il link non funziona.
+
+### Trigger
+
+| Evento | Oggi | Target |
+|---|---|---|
+| Pagamento Blueprint €27 | solo campo+tag Systeme (`checkout.py:516-526`) | email SMTP livello `blueprint` |
+| Pagamento Start €499 (checkout) | **niente** (`process_ciak_start_payment` non invia nulla) | email SMTP livello `start` |
+| Attivazione Start manuale (Payment Link) | **niente** | stessa email, dall'endpoint di attivazione |
+
+### Osservabilità (la parte che oggi manca del tutto)
+
+- Collection `onboarding_emails`: `email`, `tier`, `magic_link_id`, `sent_at`, `status`
+  (`sent` | `failed`), `error`. Un pagamento senza riga corrispondente è un allarme.
+- Retry: un tentativo differito in caso di errore SMTP, poi resta `failed` e visibile.
+- **Fallback admin**: pagina/endpoint per rigenerare e reinviare l'accesso a un'email — vale anche
+  come recovery per chi ha pagato prima di questo fix.
+- **Controllo una volta sola sui già paganti:** contare i `ciak_clients` con
+  `last_magic_link_created_at` valorizzato e token mai usato → sono clienti che hanno pagato e non
+  sono mai entrati. Da fare appena il fix è in produzione, e da recuperare a mano.
+
 ## Dipendenza dalla migrazione partner (da coordinare, non ignorare)
 
 La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel modello attuale
@@ -246,6 +317,9 @@ upgrade simulato → gli asset Start sono ancora lì e visibili. Mai su dati di 
 ## Ordine di implementazione
 
 1. Merge di `ag/ciak-start-activate` (superato il gate Codex) — senza questo non esiste attivazione.
+1-bis. **Email di onboarding transazionale + osservabilità.** Sale in cima insieme al punto 1: un
+   cliente che paga e non riceve l'accesso è il danno peggiore del sistema, e oggi accade in
+   silenzio. Include il controllo sui già paganti mai entrati.
 2. `min_tier` + `entitlements.py` + gate backend e sidebar. È la spina dorsale: prima di tutto il resto.
 3. `start-attivazione` + `start-readiness` (chiudono la promessa del credito).
 4. `start-profili` + `start-contenuti` (riuso alto, valore immediato).
