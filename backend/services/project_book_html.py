@@ -148,8 +148,11 @@ def render_project_book_html(payload: dict[str, Any]) -> str:
                     f'<div class="tutor-note-body">{_esc(extra.get("testo"))}</div></div>'
                 )
             elif extra.get("tipo") == "script":
+                # Il titolo si costruisce fuori dalla f-string: il container gira
+                # Python 3.11, dove un backslash dentro l'espressione e' un SyntaxError.
+                titolo_box = _esc(extra.get("titolo") or "SCRIPT PRONTO ALL'USO")
                 blocchi_extra += (
-                    f'<div class="script-box"><div class="script-header"><span>&#128196; {_esc(extra.get("titolo") or "SCRIPT PRONTO ALL\'USO")}</span>'
+                    f'<div class="script-box"><div class="script-header"><span>&#128196; {titolo_box}</span>'
                     f'<span style="color:#D97706;">Copia &amp; Incolla</span></div>'
                     f'<div class="script-content">{_esc(extra.get("testo"))}</div></div>'
                 )
