@@ -67,9 +67,25 @@ Divisione di responsabilità, senza fondere le collection (fonderle toccherebbe 
 | `partners` | record **operativo**: journey, brand kit, materiali, asset |
 | `partners.tier` | **l'unico asse di accesso**: `blueprint` → `start` → `partnership` → `evo_s` |
 
-Il record operativo si crea **al primo pagamento che dà accesso all'area, cioè dal Blueprint €27**.
-`ensure_client_for_blueprint` (`checkout.py:504`) è già l'unico punto del sistema che crea un
-account: diventa il punto che crea *l'*account, con `tier="blueprint"`.
+Il record operativo si crea **al primo pagamento, qualunque sia il livello** — non solo dal basso.
+⚠️ **Correzione del 30/7 sera:** la prima stesura diceva "nasce dal Blueprint €27", perché
+`ensure_client_for_blueprint` (`checkout.py:504`) è l'unico punto che crea account oggi. **È
+sbagliato:** il partner Luigi Calafiore è entrato acquistando **direttamente la partnership**, senza
+passare dall'analisi. Se il modello assume l'ingresso dal basso, chi entra dall'alto ricade nello
+stesso buco che stiamo chiudendo.
+
+**Il `tier` non è una scala da percorrere: è un livello che si assegna.** I tre ingressi devono
+creare l'account allo stesso modo, con `tier` diverso:
+
+| Ingresso | Account oggi | Email con l'accesso oggi |
+|---|---|---|
+| Blueprint €27 | sì, `ciak_clients` (`checkout.py:504`) | ❌ canale inesistente (verificato 30/7) |
+| Start €499 | no: solo attivazione manuale | ❌ niente |
+| **Partnership diretta** | sì, `partners` via `proposta.py` | ✅ workflow Systeme `516732` attivo, campo `partner_setup_url` |
+
+Per i partner il canale **esiste**: Calafiore è quindi il primo test reale del pattern magic-link.
+**Da verificare: ha ricevuto l'email di setup password ed è riuscito a entrare?** Se no, l'email
+transazionale serve anche per la partnership, non solo per Blueprint e Start.
 
 ### Una sola area
 
@@ -231,10 +247,12 @@ logica di consegna vive in una configurazione che git non vede.
 **Nessun cliente è rimasto fuori: in admin `CLIENTI CIAK = 0` e `BLUEPRINT ACQUISTATI = 0`.** Il
 danno è potenziale, non ancora avvenuto → l'email va scritta prima della prima vendita, non dopo.
 
-⚠️ **Discrepanza aperta:** 2 contatti taggati `ciak_bought_67` in Systeme contro 0 clienti in Ciak.
-Due letture, entrambe da chiudere guardando i due indirizzi: se sono `+test` il tag è stato applicato
-a mano e va tutto bene; se sono **persone reali**, hanno pagato €27 e non esistono nel sistema →
-ricostruire da Stripe.
+✅ **Discrepanza CHIUSA (30/7):** i 2 contatti taggati `ciak_bought_67` sono **Andrea Fredi e Daniele
+Andolfi**, entrambi **partner**. Hanno acquistato l'analisi al **vecchio prezzo €67**, quando l'area
+cliente Ciak non esisteva, e sono poi proseguiti in partnership: il loro record vive in `partners`,
+non in `ciak_clients`. **Nessun cliente da recuperare.**
+🔴 Corollario più duro: `ciak_bought_27 = 0` → **il Blueprint al prezzo attuale non è mai stato
+acquistato da nessuno.** La catena del €27 non si è rotta: non è mai partita.
 
 ### 🔴 Conseguenza più grave: la catena del €27 non è mai stata percorsa
 Con `ciak_clients = 0`, **nessuno ha mai completato** pagamento → account → magic link → accesso. Il
