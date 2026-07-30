@@ -1,6 +1,7 @@
 """Partner rewards: certificates, project book and bonus PDFs."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -13,6 +14,7 @@ from services.partner_rewards_pdf import (
     render_certificate_pdf,
     render_project_book_pdf,
 )
+from services.project_book_html import genera_project_book_pdf
 
 
 router = APIRouter(prefix="/api/partner-rewards", tags=["partner-rewards"])
@@ -415,8 +417,7 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
         mc_righe.append("Video registrato e approvato.")
     if _primo(mc.get("video_youtube_url"), mc.get("video_embed_url")):
         mc_righe.append(f"Online: {_primo(mc.get('video_youtube_url'), mc.get('video_embed_url'))}")
-    if mc.get("script"):
-        mc_righe.append("\n" + _estratto(_pulisci_markdown(str(mc["script"])), 900))
+    # Lo script non va nel corpo: ha il suo box monospaziato (vedi sotto).
 
     corso_righe = []
     if corso:
@@ -448,20 +449,37 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     # "Problema" e "Promessa" sono due sezioni distinte, cosi' come "Offerta e prezzo"
     # e "Webinar/live"; gli script delle videolezioni non fanno parte del libretto.
     ATTESA = "Questa sezione si completera' nella prossima fase del percorso."
+
+    # Gli script pronti all'uso non sono una sezione: vanno nel box "Script & Output AI"
+    # previsto dallo standard (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
+    script_lez = _primo(
+        ((steps.get("07-script-videolezioni") or {}).get("data") or {}).get("script_videolezioni"),
+        ((ctx.get("videocorso") or {}).get("production_kit") or {}).get("script_lez"),
+    )
+    box_corso = [{"tipo": "script", "titolo": "SCRIPT VIDEOLEZIONI PRONTO ALL'USO",
+                  "testo": _estratto(_pulisci_markdown(script_lez), 1400)}] if script_lez else []
+    nota_operativa = _primo((ctx.get("videocorso") or {}).get("operational_note"))
+    if nota_operativa:
+        box_corso.append({"tipo": "tutor", "testo": nota_operativa})
+
+    script_mc = _primo(mc.get("script"))
+    box_mc = [{"tipo": "script", "titolo": "SCRIPT MASTERCLASS",
+               "testo": _estratto(_pulisci_markdown(script_mc), 1400)}] if script_mc else []
+
     return [
-        {"title": "Identita' professionale", "body": identita or ATTESA},
-        {"title": "Target", "body": target or ATTESA},
+        {"title": "Executive Summary & Identita'", "body": identita or ATTESA},
+        {"title": "Target & ICP", "body": target or ATTESA},
         {"title": "Problema che risolvi", "body": problema or ATTESA},
         {"title": "Promessa", "body": promessa or ATTESA},
-        {"title": "Posizionamento", "body": "\n".join(posizionamento_righe) or ATTESA},
-        {"title": "Tono e stile del brand", "body": "\n".join(brand_righe) or ATTESA},
-        {"title": "Struttura masterclass", "body": "\n".join(mc_righe) or ATTESA},
-        {"title": "Struttura corso", "body": "\n".join(corso_righe) or ATTESA},
-        {"title": "Offerta e prezzo", "body": _sezione_offerta(ctx)},
-        {"title": "Sistema di vendita", "body": "\n".join(vendita_righe) or ATTESA},
-        {"title": "Calendario di lancio", "body": _estratto(_pulisci_markdown(str(calendario))) if calendario else ATTESA},
-        {"title": "Webinar / live", "body": "\n".join(webinar_righe) or ATTESA},
-        {"title": "Prossimi obiettivi post-lancio", "body": _primo(ott.get("summary"), launch.get("report")) or ATTESA},
+        {"title": "Posizionamento Strategico", "body": "\n".join(posizionamento_righe) or ATTESA},
+        {"title": "Brand Kit", "body": "\n".join(brand_righe) or ATTESA},
+        {"title": "Struttura Masterclass", "body": "\n".join(mc_righe) or ATTESA, "boxes": box_mc},
+        {"title": "Struttura Corso", "body": "\n".join(corso_righe) or ATTESA, "boxes": box_corso},
+        {"title": "Offerta & Pricing", "body": _sezione_offerta(ctx)},
+        {"title": "Sistema di Vendita", "body": "\n".join(vendita_righe) or ATTESA},
+        {"title": "Calendario di Lancio", "body": _estratto(_pulisci_markdown(str(calendario))) if calendario else ATTESA},
+        {"title": "Webinar & Live", "body": "\n".join(webinar_righe) or ATTESA},
+        {"title": "Obiettivi Post-Lancio", "body": _primo(ott.get("summary"), launch.get("report")) or ATTESA},
     ]
 
 
@@ -536,13 +554,21 @@ async def download_bonus(partner_id: str, phase: str):
 @router.get("/{partner_id}/project-book")
 async def download_project_book(partner_id: str):
     ctx = await _load_context(partner_id)
-    pdf = render_project_book_pdf({
+    payload = {
         "partner_name": _partner_name(ctx["partner"]),
         "project_name": _project_name(ctx),
         "start_date": _start_date(ctx),
         "fase_attuale": _fase_attuale(ctx),
         "sections": _project_sections(ctx),
-    })
+    }
+    # Standard ufficiale: HTML brandizzato -> Playwright (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
+    # Se chromium non e' disponibile si ripiega sul render reportlab, cosi' il partner
+    # riceve comunque il documento invece di un errore.
+    try:
+        pdf = await genera_project_book_pdf(payload)
+    except Exception:
+        logging.exception("[project-book] render HTML fallito, fallback reportlab")
+        pdf = render_project_book_pdf(payload)
     return Response(
         content=pdf,
         media_type="application/pdf",
