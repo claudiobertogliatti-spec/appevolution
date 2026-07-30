@@ -240,3 +240,30 @@ Antigravity ha completato l'elaborazione di Cosimo Filieri (ID `13`) e l'allinea
 
 - **Prossimi partner in lavorazione**: Michele Baggio, Mariantonietta Tornello, Daniele Andolfi, Marco Lamanna, Andrea Fredi, Eva Gugliucciello, Sara Stella Duè.
 
+
+## Daniele Andolfi (ID 23) — migrazione chiusa 2026-07-30
+
+Secondo partner completato col protocollo (dopo il pilota Sarah Arensi). Dettaglio in
+`docs/migration/partner-daniele-andolfi-ciak.md`; backup pre/post reali in
+`storage/migration-backups/daniele-andolfi-*-2026-07-30.json`.
+
+Scritto in produzione e riletto alla fonte:
+- `la-tua-storia` da 7 a **21/21** risposte (13 dai suoi vocali + S08 composta da noi).
+- Offerta nell'hub: `offerName` "Sabai Academy", `offerPrice` "297€ (listino 497€)",
+  `offerIncludes` (4 livelli + 12 moduli). `offerGuarantee` lasciato **vuoto per scelta** (regola 6).
+- Fase corretta **F2 -> F6**: F2 era sbagliata, gli step dicevano tutt'altro.
+- Videocorso: nessun lavoro necessario, erano gia' presenti 32 lezioni con 32 URL Drive e
+  32 embed YouTube distinti, tutte `video_approved`.
+- `la-tua-storia` lasciata **in_progress** apposta: S08 e' l'unica frase non uscita dalla sua
+  bocca e le 7 vecchie non sono mai state confermate da lui. Si chiude a validazione sua (regola 7).
+
+### Regola 18 — prima di aprire il browser, provare l'API in chiaro
+Tre canali usati per questa migrazione **non hanno richiesto alcun token**:
+- `GET  /api/admin/partner/{id}/full-data` (lettura completa, unica vista sugli `answers`)
+- `PATCH /api/admin/partner/{id}/step/{step_id}` body `{"answers": {...}}` — **merge non
+  distruttivo lato server** (`server.py:3631`), non tocca mai `status`. E' il canale giusto per
+  le risposte dei wizard: **non** `save-draft`, che sostituisce `answers` in blocco.
+- `PATCH /api/partner-hub/{id}/field?field=X&value=Y` e
+  `PATCH /api/admin/partner/{id}/journey` (`collection: partners`) per la fase.
+Il 29/7 si era perso un giro sull'automazione Chrome (l'admin React congela la tab) per prendere
+un token che non serviva. Sono endpoint aperti: e' anche un tema di sicurezza da valutare a parte.
