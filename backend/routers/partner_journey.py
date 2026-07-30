@@ -2475,6 +2475,18 @@ async def generate_funnel(
     # mai un default del prompt. Prima il blueprint usciva con "€297/€197" inventati
     # e con "Soddisfatti o rimborsati entro 30 giorni" anche per chi non da' garanzia.
     hub = await db.partner_hub.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
+
+    # La storia del partner (step `la-tua-storia`, fino a 21 risposte) e' la fonte piu'
+    # ricca che abbiamo: senza, il modello inventa bio e credenziali. Su Andolfi aveva
+    # scritto "oltre 15 anni di esperienza" e "centinaia di persone" quando la sua
+    # storia dice trent'anni di arti marziali, insegnamento dal 2005 e Qi Gong dal 2010.
+    step_storia = await db.partner_journey_steps.find_one(
+        {"partner_id": request.partner_id, "step_id": "la-tua-storia"}, {"_id": 0}
+    ) or {}
+    storia = ((step_storia.get("data") or {}).get("answers") or {})
+    storia_txt = "\n".join(
+        f"- {k}: {str(v).strip()}" for k, v in sorted(storia.items()) if str(v).strip()
+    ) or "Non ancora raccolta"
     offer_name = (hub.get("offerName") or "").strip()
     offer_price = (hub.get("offerPrice") or "").strip()
     offer_includes = (hub.get("offerIncludes") or "").strip()
@@ -2517,6 +2529,9 @@ POSIZIONAMENTO:
 - Risultato: {positioning.get('risultato_promesso', 'N/D')}
 - Differenziazione: {positioning.get('differenziazione', 'N/D')}
 - Posizionamento finale: {positioning.get('posizionamento_finale', 'N/D')}
+
+STORIA DEL PARTNER (parole sue: usala per bio, storytelling del fondatore e dati di autorevolezza):
+{storia_txt}
 
 MASTERCLASS INPUT:
 - Risultato principale: {mc_answers.get('risultato_principale', 'N/D')}
@@ -2683,6 +2698,8 @@ REGOLE:
 - Le FAQ devono essere realistiche per questo tipo di corso
 - La bio deve essere professionale e autorevole
 - Se la bio del partner non e' fornita, ricavala dal posizionamento e dalla sua storia
+- ⛔ NON inventare numeri: anni di esperienza, clienti seguiti, risultati e certificazioni si
+  prendono SOLO dalla storia o dal posizionamento qui sopra. Se un numero non c'e', non citarlo
 - Mantieni la SEQUENZA delle sezioni del template: non aggiungerne, non toglierne, non riordinarle
 - Prezzo e offerta sono quelli dell'OFFERTA UFFICIALE qui sopra: non inventarne altri
 - Se non c'e' garanzia, NON scrivere una sezione garanzia
