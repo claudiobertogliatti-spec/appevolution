@@ -11,6 +11,7 @@ import stripe
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from routers.ciak_admin import require_ciak_admin
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -942,7 +943,7 @@ async def genera_calendario_manuale(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/admin/stats")
-async def get_admin_stats():
+async def get_admin_stats(_admin=Depends(require_ciak_admin)):
     """Statistiche servizi extra per admin"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
@@ -996,7 +997,7 @@ async def get_admin_stats():
 
 
 @router.put("/admin/servizi/{servizio_id}")
-async def update_servizio_admin(servizio_id: str, attivo: bool = None, prezzo: int = None):
+async def update_servizio_admin(servizio_id: str, attivo: bool = None, prezzo: int = None, _admin=Depends(require_ciak_admin)):
     """Aggiorna servizio (toggle attivo, modifica prezzo)"""
     # Questo modifica solo il catalogo locale
     # Per modificare prezzi Stripe serve API separata

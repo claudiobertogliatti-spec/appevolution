@@ -3,7 +3,8 @@ Contract Signing Router - Evolution PRO
 Gestione firma digitale contratto di partnership
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from routers.ciak_admin import require_ciak_admin
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
@@ -1573,7 +1574,13 @@ async def delete_custom_pdf(partner_id: str):
 # ADMIN ENDPOINTS - Personalizzazione Contratto
 # ═══════════════════════════════════════════════════════════════════════════════
 
-admin_router = APIRouter(prefix="/api/admin/partners", tags=["admin-contract"])
+# Dipendenza sul COSTRUTTORE: protegge ogni route di questo router, comprese
+# quelle che verranno aggiunte in futuro. Espone corrispettivo e piano rate.
+admin_router = APIRouter(
+    prefix="/api/admin/partners",
+    tags=["admin-contract"],
+    dependencies=[Depends(require_ciak_admin)],
+)
 
 
 @admin_router.get("/{partner_id}/contract-params")

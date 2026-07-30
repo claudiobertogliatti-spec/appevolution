@@ -3,7 +3,8 @@ Partner Documents Router - Evolution PRO
 Upload e verifica documenti onboarding partner
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from routers.ciak_admin import require_ciak_admin
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -13,7 +14,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/documents", tags=["partner-documents"])
-admin_router = APIRouter(prefix="/api/admin/partners", tags=["admin-documents"])
+# Dipendenza sul COSTRUTTORE: protegge ogni route del router admin (documenti
+# d'identita' dei partner + verifica/rifiuto), comprese quelle future.
+admin_router = APIRouter(
+    prefix="/api/admin/partners",
+    tags=["admin-documents"],
+    dependencies=[Depends(require_ciak_admin)],
+)
 
 # MongoDB connection - use same pattern as contract.py
 mongo_url = os.environ.get('MONGO_URL', '')

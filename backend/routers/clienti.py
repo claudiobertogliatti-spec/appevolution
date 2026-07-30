@@ -584,7 +584,7 @@ async def get_cliente(cliente_id: str):
 
 # Admin routes
 @router.get("/admin/list")
-async def list_clienti(status: Optional[str] = None, has_paid: Optional[bool] = None):
+async def list_clienti(status: Optional[str] = None, has_paid: Optional[bool] = None, _admin=Depends(require_ciak_admin)):
     """List all clienti (admin)"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -599,7 +599,7 @@ async def list_clienti(status: Optional[str] = None, has_paid: Optional[bool] = 
     return [serialize_cliente(c) for c in clienti]
 
 @router.put("/admin/{cliente_id}/status")
-async def update_cliente_status(cliente_id: str, data: UpdateStatus):
+async def update_cliente_status(cliente_id: str, data: UpdateStatus, _admin=Depends(require_ciak_admin)):
     """Update cliente status (admin)"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -773,7 +773,7 @@ QUESTION_CONTEXT = {
 }
 
 @router.post("/admin/{cliente_id}/generate-analysis")
-async def generate_analysis(cliente_id: str):
+async def generate_analysis(cliente_id: str, _admin=Depends(require_ciak_admin)):
     """Generate AI-powered strategic analysis document"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -835,7 +835,7 @@ async def generate_analysis(cliente_id: str):
         raise HTTPException(status_code=500, detail=f"Errore generazione analisi: {str(e)}")
 
 @router.get("/admin/{cliente_id}/analysis")
-async def get_analysis(cliente_id: str):
+async def get_analysis(cliente_id: str, _admin=Depends(require_ciak_admin)):
     """Get stored analysis for a cliente"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -859,7 +859,7 @@ async def get_analysis(cliente_id: str):
 
 
 @router.get("/admin/{cliente_id}/analysis/pdf")
-async def download_analysis_pdf(cliente_id: str):
+async def download_analysis_pdf(cliente_id: str, _admin=Depends(require_ciak_admin)):
     """Download analysis as branded PDF"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -902,7 +902,7 @@ async def download_analysis_pdf(cliente_id: str):
 # ============================================================================
 
 @router.get("/admin/analisi-da-revisionare")
-async def get_analisi_da_revisionare():
+async def get_analisi_da_revisionare(_admin=Depends(require_ciak_admin)):
     """Get all analyses ready for review (stato = analisi_pronta and not reviewed)"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -919,7 +919,7 @@ async def get_analisi_da_revisionare():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/admin/{cliente_id}/approva-analisi")
-async def approva_analisi(cliente_id: str):
+async def approva_analisi(cliente_id: str, _admin=Depends(require_ciak_admin)):
     """Approve an analysis (mark as reviewed) and send email to client"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
