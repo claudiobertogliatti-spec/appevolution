@@ -74,6 +74,34 @@ sbagliato:** il partner Luigi Calafiore è entrato acquistando **direttamente la
 passare dall'analisi. Se il modello assume l'ingresso dal basso, chi entra dall'alto ricade nello
 stesso buco che stiamo chiudendo.
 
+### Entitlement e pagamento sono due cose diverse (requisito emerso il 30/7)
+
+Caso reale: per Luigi Calafiore l'analisi **non è stata pagata** — Claudio l'ha offerta in trattativa
+come leva per chiudere la partnership — e per dargli l'accesso è stato usato l'endpoint di acquisto
+manuale (`ciak_admin.py:590-663`).
+
+Cosa fa quell'endpoint, verificato: scrive **solo** su `diagnostic_sessions` (transizione a
+`purchased_67`, evento con `manual: True`, `marked_by`, `metodo`, `note`, blocco `manual_purchase`).
+**Nessuna riga in `payments` / `payment_transactions`** → nessun incasso fittizio in contabilità,
+nessun rischio fiscale, e la forzatura è tracciata. Lo strumento è corretto.
+
+Il difetto è nel suo stesso docstring: *"così il lead compare in GET /transactions e nei conteggi
+acquisti_67"*. **L'omaggio entra nei conteggi degli acquisti** → si legge "1 Blueprint acquistato" e
+si pensa a €27 incassati. Innocuo su un caso, falsante su dieci.
+
+**Requisito:** l'omaggio è un caso di **prima classe**, non una forzatura. Separare i due assi:
+
+| Campo | Significato |
+|---|---|
+| `tier` | cosa può vedere — **si assegna** |
+| `grant_reason` | `paid` · `omaggio_trattativa` · `incluso_partnership` · `recovery` |
+| `amount_paid_cents` | 0 quando non c'è incasso |
+
+I conteggi di **cassa** filtrano `grant_reason = paid`; quelli di **accesso/uso** contano tutti.
+Beneficio commerciale, oggi assente: l'omaggio diventa **misurabile** — quante analisi regalate e
+quante hanno chiuso una partnership. Se il tasso è alto non è un costo, è lo strumento di chiusura
+migliore che abbiamo.
+
 **Il `tier` non è una scala da percorrere: è un livello che si assegna.** I tre ingressi devono
 creare l'account allo stesso modo, con `tier` diverso:
 
@@ -348,6 +376,8 @@ La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel
 - `build_editorial_calendar(mode="start")`: 90 giorni senza outline corso.
 - Conteggi partner: un account `tier=blueprint`/`start` non compare tra i partner né nei 2 check
   diagnostici; con `tier=partnership` **compare**.
+- `grant_reason`: un accesso `omaggio_trattativa` **non** entra nei conteggi di cassa e **sì** in
+  quelli di accesso; `amount_paid_cents = 0` non viene mai sommato al fatturato.
 
 **Integrazione**
 - Attivazione idempotente: crea account + journey; seconda chiamata non duplica.
