@@ -272,31 +272,49 @@ class AuthService:
         )
     
     async def seed_default_users(self):
-        """Create default admin users if they don't exist"""
+        """Crea l'admin di bootstrap se il database e' vuoto.
+
+        Fino al 2026-07-30 questa funzione conteneva TRE account con le password
+        in chiaro nel sorgente ("Evolution2026!" e "Evoluzione74"). Due problemi:
+
+        1. Le password erano leggibili da chiunque avesse accesso al repository.
+           Nello stesso periodo /api/auth/users esponeva pubblicamente gli hash
+           bcrypt di tutti gli utenti: con i candidati in chiaro sottomano, la
+           verifica era immediata: non serviva forzare nulla.
+        2. Il seed ricrea gli account mancanti a ogni avvio. Cancellare un account
+           dal database non aveva quindi effetto duraturo: al primo riavvio
+           tornava, con la password nota.
+
+        Ora l'unico account di bootstrap prende la password da SEED_ADMIN_PASSWORD.
+        Senza quella variabile il seed NON crea nulla: meglio un database senza
+        admin (si rimedia impostando la variabile e riavviando) che un account
+        con credenziali prevedibili, o un account con password casuale che
+        occuperebbe l'email senza che nessuno possa entrarci.
+
+        Gli account @evolutionpro.it sono stati rimossi su richiesta di Claudio:
+        erano duplicati inutilizzati (ultimo accesso 20/07 e 02/07) degli account
+        realmente operativi, che restano claudio.bertogliatti@gmail.com e
+        antonella.rossi.ar28@gmail.com, entrambi con l'admin_type corretto.
+        """
+        seed_password = os.environ.get("SEED_ADMIN_PASSWORD")
+        if not seed_password:
+            logger.info(
+                "seed_default_users: SEED_ADMIN_PASSWORD non impostata, nessun "
+                "admin di bootstrap creato (comportamento atteso a regime, con "
+                "gli account gia' presenti nel database)."
+            )
+            return
+
         default_admins = [
-            {
-                "email": "claudio@evolutionpro.it",
-                "name": "Claudio Bertogliatti",
-                "password": "Evolution2026!",
-                "role": "admin",
-                "admin_type": "claudio"
-            },
-            {
-                "email": "antonella@evolutionpro.it", 
-                "name": "Antonella Rossi",
-                "password": "Evolution2026!",
-                "role": "admin",
-                "admin_type": "antonella"
-            },
             {
                 "email": "claudio.bertogliatti@gmail.com",
                 "name": "Claudio Bertogliatti",
-                "password": "Evoluzione74",
+                "password": seed_password,
                 "role": "admin",
                 "admin_type": "claudio"
             }
         ]
-        
+
         for admin in default_admins:
             existing = await self.get_user_by_email(admin["email"])
             if not existing:
