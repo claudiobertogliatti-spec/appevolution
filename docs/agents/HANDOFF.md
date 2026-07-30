@@ -24,6 +24,37 @@ Regole:
 
 ---
 
+### 2026-07-30 · Claude Code (Luca) · docs/ciak-start-erogazione — spec erogazione Ciak Start
+
+**FATTO**
+- Scritta la spec `docs/superpowers/specs/2026-07-30-ciak-start-erogazione-design.md`: come rendere
+  erogabile Ciak Start €499 riusando la Fase 1 EVO (Esamina) come "partner light".
+- Decisioni di Claudio registrate nella spec: erogazione su area EVO, vetrina su dominio proprio
+  del cliente, 21 giorni con 3 consegne datate e 1 sola call, calendario a 90 giorni.
+
+**VERIFICATO — perché oggi Ciak Start non è erogabile**
+- `POST /api/admin/ciak-start/activate` esiste **solo** su `origin/ag/ciak-start-activate`
+  (`ciak_admin.py:3664`). Su `origin/main`: `git grep "ciak-start" origin/main -- backend/routers/ciak_admin.py backend/server.py` → **zero match**. In produzione non c'è.
+- **Nessun endpoint del repo scrive `start_progress`**: solo creazione col default in 3 punti
+  (`ciak_client_accounts.py:66`, `ciak_clients.py:463`, `stripe_webhook.py:457,510`). Gli step non
+  possono avanzare, né da cliente né da admin.
+- L'account cliente nasce solo dal Blueprint €27 (`checkout.py:499-507`); l'admin UI
+  (`ClientiCiak.jsx`) ha solo il bottone offer-decision.
+- Il gate dell'area partner risolve `partner_id` da `users` (`partner_journey.py:28-46`) → un
+  cliente Start richiede un record `partners`. Da qui la scelta `partners.tier = "start"`.
+
+**APERTO**
+- **Gate del merge**: `ag/ciak-start-activate` va mergiato per primo, è il prerequisito di tutto
+  (TASK B/C Codex ancora in attesa).
+- Filtro `tier != "start"` sui conteggi partner e sui 2 check di `admin_diagnostics.py`: va nello
+  stesso commit della definizione step, altrimenti i numeri del cockpit diventano inaffidabili.
+- Valore corretto di `users.role` per un cliente Start: verificare il ramo non-admin della guardia.
+- Non toccati in questo branch: `docs/migration/partner-daniele-andolfi-ciak.md` e
+  `memory/CIAK_MIGRATION_MEMORY.md` risultano modificati dal lavoro precedente e restano
+  non committati.
+
+---
+
 ### 2026-07-29 · Antigravity · ag/diagnostics-partners — TASK D: endpoint diagnostico partner
 
 **FATTO**
