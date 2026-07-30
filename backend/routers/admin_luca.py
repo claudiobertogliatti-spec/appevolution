@@ -24,6 +24,7 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/luca", tags=["admin-luca"])
 security = HTTPBearer(auto_error=False)
+from report_key_auth import require_admin_or_report_key
 
 db = None
 def set_db(database):
@@ -453,7 +454,7 @@ async def clear_chat_history(
 # ─── Report unico A+D (Acquisizione + Delivery) per Luca/Claudio ─────────────
 
 @router.get("/daily-report")
-async def luca_daily_report(token_data=Depends(require_admin)):
+async def luca_daily_report(token_data=Depends(require_admin_or_report_key)):
     """
     Report giornaliero UNICO che tiene insieme Acquisizione e Delivery.
 

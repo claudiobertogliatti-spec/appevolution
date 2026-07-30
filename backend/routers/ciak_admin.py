@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak", tags=["ciak-admin"])
 security = HTTPBearer(auto_error=False)
+from report_key_auth import require_admin_or_report_key
 
 # Iniettato da server.py via set_db()
 db = None
@@ -721,7 +722,7 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
 
 
 @router.get("/acquisizione-command-center")
-async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
+async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)):
     """
     CRM operativo Acquisizione.
 
