@@ -293,6 +293,8 @@ La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel
 | Cliente senza dominio | non blocca la consegna: sottodominio nostro, si sposta quando compra il dominio |
 | Pagamento da link statico | cieco per il webhook (nessun `metadata.tipo`): attivazione manuale. Debito: creare i Payment Link con metadata via API |
 | Generazione AI fallita | fallback deterministico, come già fa `editorial_calendar`. Mai una pagina vuota al cliente |
+| **Workflow Systeme dell'accesso esistente e attivo** | al go-live dell'email transazionale va **disattivato**, altrimenti il cliente riceve due email di accesso. Da verificare prima del rilascio, non dopo |
+| Verifiche dietro login | sia la config Systeme sia `/api/ciak/admin/clienti-ciak` (JWT admin, `ciak_admin.py:45-53`) richiedono una sessione autenticata di Claudio: delegabili a un agente non-codice **con mandato di sola lettura** |
 
 ## Test
 
