@@ -297,18 +297,6 @@ def _sezione_offerta(ctx: dict[str, Any]) -> str:
         righe.append("L'offerta non e' ancora stata definita: nome, prezzo e contenuto vanno decisi prima del lancio.")
 
     if isinstance(strategia, dict):
-        web = strategia.get("webinar") or {}
-        if web.get("titolo"):
-            durata = web.get("durata_min")
-            righe.append(f"\nWebinar: {web['titolo']}" + (f" ({durata} minuti)" if durata else ""))
-        for fase in (web.get("fasi") or []):
-            if not isinstance(fase, dict):
-                continue
-            titolo = _primo(fase.get("fase"), "Fase")
-            minuti = _primo(fase.get("minuti"))
-            obiettivo = _primo(fase.get("obiettivo"))
-            righe.append(f"- {titolo}{f' ({minuti})' if minuti else ''}: {obiettivo}")
-
         prezzo_traccia = strategia.get("prezzo") or {}
         listino_traccia = _primo(prezzo_traccia.get("listino"))
         promo_traccia = _primo(prezzo_traccia.get("promo_webinar"), prezzo_traccia.get("promo"))
@@ -331,6 +319,34 @@ def _sezione_offerta(ctx: dict[str, Any]) -> str:
     return "\n".join(righe)
 
 
+def _sezione_webinar(ctx: dict[str, Any]) -> list[str]:
+    """Traccia della live: titolo, durata e fasi. Il prezzo sta nella sezione Offerta."""
+    strategia = ((ctx["steps_by_id"].get("12-prezzo-webinar") or {}).get("data") or {}).get("strategia")
+    if not isinstance(strategia, dict):
+        return []
+    web = strategia.get("webinar") or {}
+    righe: list[str] = []
+    if web.get("titolo"):
+        durata = web.get("durata_min")
+        righe.append(f"{web['titolo']}" + (f" ({durata} minuti)" if durata else ""))
+    for fase in (web.get("fasi") or []):
+        if not isinstance(fase, dict):
+            continue
+        titolo = _primo(fase.get("fase"), "Fase")
+        minuti = _primo(fase.get("minuti"))
+        obiettivo = _primo(fase.get("obiettivo"))
+        righe.append(f"- {titolo}{f' ({minuti})' if minuti else ''}: {obiettivo}")
+    return righe
+
+
+def _fase_attuale(ctx: dict[str, Any]) -> str:
+    """La macro-fase EVO in corso, per la copertina del libretto."""
+    for phase in ("esamina", "valida", "ottimizza"):
+        if not _phase_unlocked(ctx, phase):
+            return PHASE_META[phase]["label"]
+    return "Percorso completato"
+
+
 def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     steps = ctx["steps_by_id"]
     partner = ctx["partner"]
@@ -343,7 +359,6 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     pos = _answers(steps.get("04-posizionamento"))
     story = _answers(steps.get("la-tua-storia"))
     brand_step = (steps.get("03-brand-kit") or {}).get("data") or {}
-    scripts = (steps.get("07-script-videolezioni") or {}).get("data") or {}
     vendita = (steps.get("10-sistema-vendita") or {}).get("data") or {}
     calendar = (steps.get("11-calendario-30gg") or {}).get("data") or {}
     launch = (steps.get("13-lancio") or {}).get("data") or {}
@@ -354,20 +369,44 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
         identita = (identita + "\n\n" + str(story["S18"])).strip() if identita else str(story["S18"])
 
     target = _primo(hub.get("targetAudience"), pos.get("nicchia"), pos.get("momento_di_vita"), pos.get("desideri_avatar"))
-    promessa = _primo(hub.get("problem"), pos.get("promessa"), pos.get("costo_del_no"))
-    if _primo(hub.get("solution"), pos.get("trasformazione_90gg")):
-        promessa = (promessa + "\n\n" + _primo(hub.get("solution"), pos.get("trasformazione_90gg"))).strip()
+    problema = _primo(hub.get("problem"), pos.get("costo_del_no"), pos.get("paure_avatar"))
+    promessa = _primo(hub.get("solution"), pos.get("promessa"), pos.get("trasformazione_90gg"), hub.get("pitch"))
 
+    posizionamento_righe = []
+    for etichetta, valore in (
+        ("Nicchia", _primo(hub.get("niche"), pos.get("nicchia"))),
+        ("Metodo", _primo(pos.get("metodo_nome"))),
+        ("Differenziatore", _primo(hub.get("differentiator"), pos.get("differenza_riconoscibile"))),
+        ("Pitch", _primo(hub.get("pitch"))),
+        ("Trasformazione a 90 giorni", _primo(pos.get("trasformazione_90gg"))),
+        ("Prova concreta", _primo(pos.get("prova_sociale_concreta"))),
+    ):
+        if valore:
+            posizionamento_righe.append(f"{etichetta}: {valore}")
+
+    # Il brand kit compilato nel Percorso vive nello step `03-brand-kit.data`, con
+    # `colors` (lista), `tone_of_voice`, `logo_url`, `parole_chiave`: leggendo solo
+    # l'hub e la collection brand kit la sezione usciva vuota anche a brand completo
+    # (rilevato in produzione su Andolfi il 30/07/2026).
+    colori_step = brand_step.get("colors") if isinstance(brand_step.get("colors"), list) else []
+    palette = " · ".join(filter(None, [
+        _primo(hub.get("primaryColor"), brand_kit.get("primary_color"), colori_step[0] if colori_step else ""),
+        _primo(hub.get("accentColor"), brand_kit.get("accent_color"), colori_step[1] if len(colori_step) > 1 else ""),
+    ]))
+    parole = brand_step.get("parole_chiave")
     brand_righe = []
     for etichetta, valore in (
-        ("Palette", " · ".join(filter(None, [hub.get("primaryColor") or brand_kit.get("primary_color"),
-                                             hub.get("accentColor") or brand_kit.get("accent_color")]))),
-        ("Font", " / ".join(filter(None, [hub.get("fontPrimary"), hub.get("fontSecondary")]))),
-        ("Tono di voce", _primo(hub.get("toneOfVoice"), brand_step.get("tono"))),
-        ("Logo", "presente" if _primo(hub.get("logo"), brand_kit.get("logo")) else ""),
+        ("Palette", palette),
+        ("Font", " / ".join(filter(None, [hub.get("fontPrimary"), hub.get("fontSecondary"),
+                                          brand_kit.get("font_primary")]))),
+        ("Parole chiave", ", ".join(parole) if isinstance(parole, list) else _primo(parole)),
+        ("Tono di voce", _primo(hub.get("toneOfVoice"), brand_step.get("tone_of_voice"), brand_step.get("tono"))),
+        ("Logo", "presente" if _primo(hub.get("logo"), brand_kit.get("logo"), brand_step.get("logo_url")) else ""),
     ):
         if valore:
             brand_righe.append(f"{etichetta}: {valore}")
+
+    webinar_righe = _sezione_webinar(ctx)
 
     mc_righe = []
     if _primo(mc.get("titolo"), mc.get("script_title")):
@@ -404,19 +443,25 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
 
     calendario = _primo(calendar.get("calendario"), calendar.get("summary"), calendar.get("piano"))
 
+    # Le 13 sezioni, nell'ordine del design approvato il 01/07/2026
+    # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md).
+    # "Problema" e "Promessa" sono due sezioni distinte, cosi' come "Offerta e prezzo"
+    # e "Webinar/live"; gli script delle videolezioni non fanno parte del libretto.
+    ATTESA = "Questa sezione si completera' nella prossima fase del percorso."
     return [
-        {"title": "Identita' professionale", "body": identita or "Questa sezione si completera' nella fase Esamina."},
-        {"title": "Target", "body": target or "Stiamo definendo il pubblico piu' adatto al progetto."},
-        {"title": "Problema e promessa", "body": promessa or "La promessa centrale verra' aggiornata dal posizionamento."},
-        {"title": "Brand", "body": "\n".join(brand_righe) or "Logo, colori e stile saranno raccolti qui."},
-        {"title": "Masterclass", "body": "\n".join(mc_righe) or "La masterclass si completera' nella fase Valida."},
-        {"title": "Corso", "body": "\n".join(corso_righe) or "La struttura del corso verra' aggiunta dopo l'outline."},
-        {"title": "Script videolezioni", "body": _estratto(_pulisci_markdown(_primo(scripts.get("summary"), scripts.get("script_videolezioni"),
-                                                                                   (ctx.get("videocorso") or {}).get("production_kit", {}).get("script_lez")))) or "Gli script delle videolezioni saranno raccolti qui."},
-        {"title": "Sistema di vendita", "body": "\n".join(vendita_righe) or "Subaccount, dominio, legal pages, funnel e checkout saranno raccolti qui."},
-        {"title": "Calendario di lancio", "body": _estratto(_pulisci_markdown(str(calendario))) if calendario else "Il piano contenuti verra' aggiunto quando generato."},
-        {"title": "Webinar e offerta", "body": _sezione_offerta(ctx)},
-        {"title": "Ottimizzazione", "body": _primo(ott.get("summary"), launch.get("report")) or "Qui entreranno dati reali, vendite, prossime azioni e miglioramenti dopo il lancio."},
+        {"title": "Identita' professionale", "body": identita or ATTESA},
+        {"title": "Target", "body": target or ATTESA},
+        {"title": "Problema che risolvi", "body": problema or ATTESA},
+        {"title": "Promessa", "body": promessa or ATTESA},
+        {"title": "Posizionamento", "body": "\n".join(posizionamento_righe) or ATTESA},
+        {"title": "Tono e stile del brand", "body": "\n".join(brand_righe) or ATTESA},
+        {"title": "Struttura masterclass", "body": "\n".join(mc_righe) or ATTESA},
+        {"title": "Struttura corso", "body": "\n".join(corso_righe) or ATTESA},
+        {"title": "Offerta e prezzo", "body": _sezione_offerta(ctx)},
+        {"title": "Sistema di vendita", "body": "\n".join(vendita_righe) or ATTESA},
+        {"title": "Calendario di lancio", "body": _estratto(_pulisci_markdown(str(calendario))) if calendario else ATTESA},
+        {"title": "Webinar / live", "body": "\n".join(webinar_righe) or ATTESA},
+        {"title": "Prossimi obiettivi post-lancio", "body": _primo(ott.get("summary"), launch.get("report")) or ATTESA},
     ]
 
 
@@ -495,6 +540,7 @@ async def download_project_book(partner_id: str):
         "partner_name": _partner_name(ctx["partner"]),
         "project_name": _project_name(ctx),
         "start_date": _start_date(ctx),
+        "fase_attuale": _fase_attuale(ctx),
         "sections": _project_sections(ctx),
     })
     return Response(
