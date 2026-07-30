@@ -217,8 +217,33 @@ paga il Blueprint €27 non riceve l'accesso: il magic link viene generato e sal
 Aggravante: entrambe le chiamate sono best-effort con `logger.warning`, quindi il webhook risponde
 200 comunque. **Il fallimento è silenzioso**: nessun allarme, nessun contatore, nessun test — la
 logica di consegna vive in una configurazione che git non vede.
-⚠️ Lo stato attuale della config Systeme **va verificato nella sessione di Claudio** (Claude non ha
-accesso alle credenziali). La decisione sotto non dipende da quella verifica.
+
+### ✅ VERIFICATO IN SYSTEME il 30/7 (sessione di Claudio, sola lettura) — la falla è confermata
+- Campo `client_access_url`: **non esiste** (l'unico campo affine è `Partner Setup URL`).
+- Tag `ciak_client_access_ready`: **non esiste**, 0 contatti.
+- **Nessun workflow** su quel tag: verificati tutti gli 8 flussi di lavoro attivi e le 8 regole di
+  automazione. Nessuna riguarda l'accesso cliente.
+- Workflow `Ciak Bought 67` (516729), attivo, 3 email: puntano a `/ciak-blueprint/grazie` (pagina
+  **statica, uguale per tutti**) e a Cal.com. **Nessun link personale per entrare in piattaforma**,
+  nessun uso di un campo di accesso.
+- Tag `ciak_bought_67`: **2 contatti**. `ciak_bought_27` e `ciak_bought_499`: 0.
+
+**Nessun cliente è rimasto fuori: in admin `CLIENTI CIAK = 0` e `BLUEPRINT ACQUISTATI = 0`.** Il
+danno è potenziale, non ancora avvenuto → l'email va scritta prima della prima vendita, non dopo.
+
+⚠️ **Discrepanza aperta:** 2 contatti taggati `ciak_bought_67` in Systeme contro 0 clienti in Ciak.
+Due letture, entrambe da chiudere guardando i due indirizzi: se sono `+test` il tag è stato applicato
+a mano e va tutto bene; se sono **persone reali**, hanno pagato €27 e non esistono nel sistema →
+ricostruire da Stripe.
+
+### 🔴 Conseguenza più grave: la catena del €27 non è mai stata percorsa
+Con `ciak_clients = 0`, **nessuno ha mai completato** pagamento → account → magic link → accesso. Il
+27/7 era stata verificata la *creazione* della Checkout Session (`cs_live_...`), non un pagamento
+andato a termine. Impatto sul piano: il **piano B3** (aprire gli ~8.400 warm verso il Blueprint €27)
+si appoggia all'assunto "chi compra il Blueprint ha l'account e il checkout €499 self-service
+funziona" — assunto **non validato da nessun pagamento reale**.
+→ **Gate prima di qualunque invio massivo verso il €27: un pagamento vero end-to-end** (carta di
+Claudio, l'incasso rientra) con verifica che nascano `ciak_clients`, magic link e accesso.
 
 ### Decisione
 
@@ -293,7 +318,7 @@ La migrazione dei dati partner è **in corso in un'altra sessione** e scrive nel
 | Cliente senza dominio | non blocca la consegna: sottodominio nostro, si sposta quando compra il dominio |
 | Pagamento da link statico | cieco per il webhook (nessun `metadata.tipo`): attivazione manuale. Debito: creare i Payment Link con metadata via API |
 | Generazione AI fallita | fallback deterministico, come già fa `editorial_calendar`. Mai una pagina vuota al cliente |
-| **Workflow Systeme dell'accesso esistente e attivo** | al go-live dell'email transazionale va **disattivato**, altrimenti il cliente riceve due email di accesso. Da verificare prima del rilascio, non dopo |
+| **Sequenza Systeme `Ciak Bought 67`** | ✅ verificato 30/7: **non manda l'accesso**, quindi nessun doppione di credenziali. Ma le sue 3 email mandano il cliente alle 8 Domande e a Cal.com: **va riallineata**, non spenta, o lo stesso giorno riceve due messaggi che dicono cose diverse |
 | Verifiche dietro login | sia la config Systeme sia `/api/ciak/admin/clienti-ciak` (JWT admin, `ciak_admin.py:45-53`) richiedono una sessione autenticata di Claudio: delegabili a un agente non-codice **con mandato di sola lettura** |
 
 ## Test
