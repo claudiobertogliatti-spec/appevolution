@@ -11,7 +11,10 @@ stesso documento. Il PDF si ottiene con `ciak_pdf.html_to_pdf` (Playwright).
 """
 from __future__ import annotations
 
+import base64
 import html as _html
+import os
+from functools import lru_cache
 from typing import Any
 
 from .ciak_pdf import html_to_pdf
@@ -21,14 +24,25 @@ def _esc(s: Any) -> str:
     return _html.escape(str(s or ""))
 
 
-# Stesso logo SVG del Piano Operativo: nitido in PDF, nessuna dipendenza di rete.
-_CIAK_LOGO_SVG = """<svg width="180" height="42" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28.5 12C36.5 12 43 18.5 43 26.5" stroke="#FACC15" stroke-width="5.5" stroke-linecap="round"/>
-  <path d="M12 28.5C12 20.5 18.5 14 26.5 14" stroke="#94A3B8" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M12 28.5C12 36.5 18.5 43 26.5 43" stroke="#64748B" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M28.5 45C36.5 45 43 38.5 43 30.5" stroke="#334155" stroke-width="4.5" stroke-linecap="round"/>
-  <text x="56" y="38" fill="#FFFFFF" font-family="'Plus Jakarta Sans', 'Poppins', sans-serif" font-weight="800" font-size="30" letter-spacing="-0.5">Ciak<tspan fill="#FACC15">.io</tspan></text>
-</svg>"""
+_LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "ciak-logo.webp")
+
+
+@lru_cache(maxsize=1)
+def _logo_tag() -> str:
+    """Logo reale CIAK incorporato come data URI.
+
+    Il logo ufficiale e' navy con payoff: su fondo scuro sparisce, per questo la
+    copertina e' chiara. Incorporato in base64 perche' Playwright riceve l'HTML
+    con `set_content` e non risolverebbe un percorso relativo.
+    """
+    try:
+        with open(_LOGO_PATH, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        return f'<img class="logo" src="data:image/webp;base64,{b64}" alt="Ciak.io">'
+    except OSError:
+        # Fallback testuale in colori brand, cosi' la copertina resta leggibile.
+        return ('<span style="font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:800;'
+                'font-size:30px;color:#0F172A;">Ciak<span style="color:#FACC15">.io</span></span>')
 
 _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
@@ -41,18 +55,20 @@ _CSS = """
 body { font-family:'Plus Jakarta Sans', sans-serif; color:var(--navy); line-height:1.6; background:#fff; }
 .container { max-width:900px; margin:0 auto; background:#fff; }
 
-.cover-header { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#fff; padding:50px 50px 40px; }
-.brand-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:30px; }
-.validation-seal { background: rgba(250,204,21,0.15); border:1px solid var(--yellow); color:var(--yellow); padding:6px 16px; border-radius:999px; font-size:12px; font-weight:700; display:flex; align-items:center; gap:8px; }
+/* Copertina chiara: il logo ufficiale CIAK e' navy e su fondo scuro non si legge. */
+.cover-header { background:#fff; color:var(--navy); padding:46px 50px 34px; border-bottom:4px solid var(--yellow); }
+.brand-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+.logo { height:64px; width:auto; display:block; }
+.validation-seal { background:var(--yellow-light); border:1px solid var(--yellow-border); color:#854D0E; padding:6px 16px; border-radius:999px; font-size:12px; font-weight:700; display:flex; align-items:center; gap:8px; }
 .seal-dot { width:8px; height:8px; background:var(--emerald); border-radius:50%; display:inline-block; }
 .title-banner { background:var(--yellow); color:var(--navy); padding:10px 20px; border-radius:8px; font-weight:800; font-size:20px; letter-spacing:1px; margin-bottom:12px; display:inline-block; }
-.subtitle { font-size:16px; color:#E2E8F0; font-weight:500; }
+.subtitle { font-size:16px; color:var(--slate-600); font-weight:500; }
 
-.partner-meta-box { margin-top:30px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1); display:flex; align-items:flex-end; justify-content:space-between; }
-.meta-grid { display:grid; gap:4px; font-size:13px; color:#CBD5E1; }
-.meta-grid strong { color:#fff; font-weight:700; }
+.partner-meta-box { margin-top:26px; padding-top:20px; border-top:1px solid var(--slate-200); display:flex; align-items:flex-end; justify-content:space-between; }
+.meta-grid { display:grid; gap:4px; font-size:13px; color:var(--slate-600); }
+.meta-grid strong { color:var(--navy); font-weight:700; }
 .meta-label { color:var(--slate-400); }
-.tutor-badge { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:8px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); }
+.tutor-badge { display:flex; align-items:center; gap:10px; background:var(--slate-50); padding:8px 16px; border-radius:12px; border:1px solid var(--slate-200); }
 .tutor-avatar { width:34px; height:34px; border-radius:50%; background:var(--yellow); color:var(--navy); font-weight:800; display:flex; align-items:center; justify-content:center; font-size:12px; }
 
 .index-section { padding:30px 50px; background:var(--slate-50); border-bottom:1px solid var(--slate-200); }
@@ -151,7 +167,7 @@ def render_project_book_html(payload: dict[str, Any]) -> str:
   <div class="container">
     <div class="cover-header">
       <div class="brand-row">
-        <div>{_CIAK_LOGO_SVG}</div>
+        <div>{_logo_tag()}</div>
         <div class="validation-seal"><span class="seal-dot"></span> VALIDATO DAL TEAM CIAK + METODO EVO</div>
       </div>
       <div class="title-banner">WORKBOOK STRATEGICO</div>
@@ -166,8 +182,8 @@ def render_project_book_html(payload: dict[str, Any]) -> str:
         <div class="tutor-badge">
           <div class="tutor-avatar">{iniziali}</div>
           <div>
-            <strong style="font-size:12px; color:white; display:block;">{_esc(tutor)}</strong>
-            <span style="font-size:11px; color:#94A3B8;">Tutor Strategico CIAK.io</span>
+            <strong style="font-size:12px; color:#0F172A; display:block;">{_esc(tutor)}</strong>
+            <span style="font-size:11px; color:#64748B;">Tutor Strategico CIAK.io</span>
           </div>
         </div>
       </div>
