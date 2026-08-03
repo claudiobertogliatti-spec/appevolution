@@ -167,7 +167,10 @@ async function apriFile(file) {
   }
 }
 
-export function PartnerFilesPage({ partnerId }) {
+export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
+  // MaterialiPage passa `partner={{ id }}`, altri call site passano `partnerId`:
+  // finche' i file erano finti nessuno se n'era accorto, perche' l'id non serviva.
+  const partnerId = partnerIdProp || partner?.id;
   // Niente file d'esempio: fino al 03/08/2026 qui c'era il vault demo di
   // "Mario Rossi" con url "#", e ogni partner vedeva i documenti di un altro
   // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
