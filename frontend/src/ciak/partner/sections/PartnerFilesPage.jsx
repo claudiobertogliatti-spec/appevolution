@@ -3,7 +3,8 @@
  * Organizzazione in Cartelle a Menu a Tendina (FAQ Accordion Style)
  * con ampio respiro visivo e lista orizzontale dei file allineata.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { authHeaders } from "../api";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
   FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
@@ -127,12 +128,98 @@ const INITIAL_VAULT_FILES = [
   }
 ];
 
+/**
+ * Scarica un file passando dal token del partner: gli endpoint PDF rispondono
+ * 401 a un <a href> nudo, ed e' il motivo per cui il tasto "Scarica" non
+ * faceva niente. Qui la risposta diventa un blob e poi un download vero.
+ */
+async function scaricaFile(file) {
+  if (!file?.url || file.url === "#") return;
+  if (file.esterno) { window.open(file.url, "_blank", "noopener"); return; }
+  try {
+    const r = await fetch(file.url, { headers: authHeaders() });
+    if (!r.ok) { alert(`Il file non è disponibile in questo momento (errore ${r.status}).`); return; }
+    const blob = await r.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 10000);
+  } catch {
+    alert("Non è stato possibile scaricare il file. Riprova tra poco.");
+  }
+}
+
+async function apriFile(file) {
+  if (!file?.url || file.url === "#") return;
+  if (file.esterno) { window.open(file.url, "_blank", "noopener"); return; }
+  try {
+    const r = await fetch(file.url, { headers: authHeaders() });
+    if (!r.ok) { alert(`Il file non è disponibile in questo momento (errore ${r.status}).`); return; }
+    const href = URL.createObjectURL(await r.blob());
+    window.open(href, "_blank", "noopener");
+    setTimeout(() => URL.revokeObjectURL(href), 60000);
+  } catch {
+    alert("Non è stato possibile aprire il file.");
+  }
+}
+
 export function PartnerFilesPage({ partnerId }) {
-  const [files, setFiles] = useState(INITIAL_VAULT_FILES);
+  // Niente file d'esempio: fino al 03/08/2026 qui c'era il vault demo di
+  // "Mario Rossi" con url "#", e ogni partner vedeva i documenti di un altro
+  // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
+  const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+
+  // Documenti REALI del partner. Nessun video: i montaggi in produzione sono
+  // ancora quelli vecchi (sottotitoli, pause e errori non tagliati) e non vanno
+  // mostrati finche' non sono rifatti.
+  useEffect(() => {
+    if (!partnerId) return undefined;
+    let annullato = false;
+    (async () => {
+      const reali = [
+        {
+          id: "r-libretto", folderId: "master_pdf",
+          name: "Libretto_di_Progetto_Ciak.pdf", category: "Libretto di Progetto",
+          size: "PDF", date: "sempre aggiornato", owner: "⚙️ CIAK", type: "pdf",
+          icon: Award, iconColor: "text-amber-600",
+          url: `/api/partner-rewards/${partnerId}/project-book`,
+        },
+        {
+          id: "r-piano", folderId: "master_pdf",
+          name: "Piano_Operativo_Strategico_EVO.pdf", category: "Piano Master PDF",
+          size: "PDF", date: "sempre aggiornato", owner: "⚙️ CIAK", type: "pdf",
+          icon: FileText, iconColor: "text-blue-600",
+          url: `/api/partner-journey/piano-operativo-pdf/${partnerId}`,
+        },
+      ];
+      try {
+        const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
+        if (r.ok) {
+          const d = await r.json();
+          const drive = d?.posizionamento?.drive_folder_url;
+          if (drive) {
+            reali.push({
+              id: "r-drive", folderId: "brand_kit",
+              name: "Cartella Drive del progetto", category: "Documenti e materiali",
+              size: "Google Drive", date: "—", owner: "⚙️ CIAK", type: "link",
+              icon: FolderOpen, iconColor: "text-emerald-600",
+              url: drive, esterno: true,
+            });
+          }
+        }
+      } catch { /* la cartella Drive semplicemente non compare */ }
+      if (!annullato) setFiles(reali);
+    })();
+    return () => { annullato = true; };
+  }, [partnerId]);
   const [previewFileModal, setPreviewFileModal] = useState(null);
 
   // Stato espansione menu a tendina cartelle (tutte aperte di default)
@@ -348,20 +435,18 @@ export function PartnerFilesPage({ partnerId }) {
                             {/* TASTI AZIONE */}
                             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                               <button
-                                onClick={() => setPreviewFileModal(file)}
+                                onClick={() => apriFile(file)}
                                 className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
                               >
-                                <Eye className="h-3.5 w-3.5 text-amber-600" /> Anteprima
+                                <Eye className="h-3.5 w-3.5 text-amber-600" /> Apri
                               </button>
 
-                              <a
-                                href={file.url !== "#" ? file.url : `javascript:alert('Download ${file.name}')`}
-                                target={file.url !== "#" ? "_blank" : "_self"}
-                                rel="noreferrer"
+                              <button
+                                onClick={() => scaricaFile(file)}
                                 className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 hover:bg-slate-800 transition"
                               >
                                 <Download className="h-3.5 w-3.5" /> Scarica
-                              </a>
+                              </button>
                             </div>
                           </div>
                         );
