@@ -776,14 +776,32 @@ Evolution PRO) -> `gcloud secrets versions add youtube-user-credentials
 - Testi sintetizzati fedelmente dai documenti Drive di ciascun partner: "DOCUMENTO DI POSIZIONAMENTO <Nome>" (questionario 46 domande) oppure "<Nome> Pos" (Piano Operativo Strategico). Mappatura questionario → campi: Q17→Chi sei · Q11→Per chi lavori · Q12→Problema · Q18/19→Soluzione · Q23 condensato→Pitch · Q20/24→Differenziatore.
 
 ### Metodo veloce per scrivere/leggere il Posizionamento (USARE QUESTO, non la UI campo-per-campo)
-Endpoint SENZA autenticazione (verificato giu 2026):
-- `GET /api/partners` — lista partner con id
+
+⚠️ **Dal 2026-07-30 questi endpoint RICHIEDONO autenticazione.** Prima erano aperti a
+chiunque: `GET /api/partner-hub/{id}` restituiva l'anagrafica completa e
+`PATCH .../field` scriveva qualunque campo, senza token. Ora passano solo admin/superadmin
+(su qualunque partner) e il partner stesso (solo sul proprio `partner_id`).
+
 - `GET /api/partner-hub/{partner_id}` — profilo hub completo
 - `PUT /api/partner-hub/{partner_id}` — upsert (body JSON, solo campi non-null)
 - `PATCH /api/partner-hub/{partner_id}/field?field=X&value=Y` — singolo campo (stessa chiamata delle matite UI)
 
-Campi: `whoYouAre, targetAudience, problem, solution, pitch, differentiator` (+ offerName, offerPrice, offerIncludes, offerGuarantee).
-Eseguire le fetch dalla console del browser su una pagina di ciak-frontend.vercel.app (origin corretto). ~100× più veloce della UI; la tab Posizionamento storicamente bloccava gli screenshot CDP.
+Campi ammessi: `whoYouAre, targetAudience, problem, solution, pitch, differentiator`
+(+ offerName, offerPrice, offerIncludes, offerGuarantee). `PATCH .../field` accetta **solo**
+i campi del modello `PartnerProfileHub`; qualunque altro nome → 422.
+
+Dalla console del browser, loggati come admin su www.ciak.io, va aggiunto l'header:
+
+```js
+const t = localStorage.getItem("ciak_admin_token");
+const H = { Authorization: `Bearer ${t}`, "Content-Type": "application/json" };
+await fetch(`/api/partner-hub/${id}`, { headers: H }).then(r => r.json());
+await fetch(`/api/partner-hub/${id}/field?field=pitch&value=${encodeURIComponent(v)}`,
+            { method: "PATCH", headers: H });
+```
+
+Resta ~100× più veloce della UI; la tab Posizionamento storicamente bloccava gli screenshot CDP.
+`GET /api/partners` (lista partner con id) è su un altro prefisso e non è toccato da questa modifica.
 
 Vista admin dell'area partner senza passare dal selettore: `localStorage.setItem('ciak_partner_view_id', JSON.stringify({id,name}))` poi navigare su /partner/mio-spazio.
 
@@ -1092,7 +1110,21 @@ Idea: la pipeline si ferma DOPO la trascrizione; chi revisiona legge il testo co
 Campi DB nuovi (su masterclass_factory): review_transcript, review_words, review_cut_segments[{id,start,end,type(filler/silence/smart),reason,word,enabled}], review_filler_report, review_note, video_reviewed. Stati pipeline nuovi: da_revisionare, montaggio.
 
 ### 4. INFRA — scoperte critiche (LEGGERE prima di deployare il backend)
-- IL DEPLOY BACKEND NON E AUTOMATICO DA GITHUB: NON esiste trigger Cloud Build (gcloud builds triggers list = 0 items). Si deploya con `gcloud run deploy evolution-pro-backend --source ./backend --region europe-west1 --project gen-lang-client-0744698012`, che builda dalla CARTELLA LOCALE. La copia locale era 41 commit indietro -> per settimane i commit backend fatti via GitHub NON arrivavano in produzione. PROCEDURA CORRETTA OBBLIGATORIA: 1) cd C:\\Users\\berto\\Desktop\\appevolution 2) git fetch origin 3) git reset --hard origin/main 4) gcloud run deploy ... --source ./backend. Se reset da errore index.lock: Remove-Item C:\\Users\\berto\\Desktop\\appevolution\\.git\\index.lock -Force prima. DA VALUTARE: mettere un trigger Cloud Build da main per evitare il problema.
+- ⚠️ **SUPERATO (verificato 2026-07-30): IL DEPLOY BACKEND ORA È AUTOMATICO.** Il testo qui
+  sotto descriveva la situazione di giugno 2026 ed è obsoleto — si conserva solo come
+  storico. Oggi esiste `.github/workflows/deploy-backend.yml`: su push a `main` che tocca
+  `backend/**` deploya via Workload Identity sia `evolution-pro-backend` sia
+  `evolution-pro-worker`, punta il traffico all'ultima revisione e fa uno smoke test su
+  `/api/health`. **Non serve nessun `gcloud run deploy` manuale, e soprattutto non si
+  deploya più dalla cartella locale**: il workflow builda da `origin/main`, quindi non è
+  più possibile mandare in produzione una copia stale. Esiste anche `.github/workflows/ci.yml`
+  (gitleaks + compileall + flake8 E9/F821 + unit test + build frontend) su ogni PR e push.
+  *(Storico, NON più valido: «IL DEPLOY BACKEND NON E AUTOMATICO DA GITHUB: NON esiste
+  trigger Cloud Build. Si deploya con `gcloud run deploy evolution-pro-backend --source
+  ./backend`, che builda dalla CARTELLA LOCALE. La copia locale era 41 commit indietro ->
+  per settimane i commit backend fatti via GitHub NON arrivavano in produzione.»
+  La procedura che indicava di deployare da `C:\Users\berto\Desktop\appevolution` era
+  doppiamente sbagliata: quella è la copia ritirata vietata in cima a questo file.)*
 - Le build Cloud Run sono REGIONALI: gcloud builds list (global) mostra solo build vecchie; usare --region=europe-west1.
 - Il worker Celery gira IN-PROCESS nel backend (GET /api/celery/status -> worker_running true, beat_running true). Il servizio separato evolution-pro-worker NON e il consumer attivo dei video: basta deployare evolution-pro-backend. Flag VIDEO_REVIEW_ENABLED=true messo su backend + worker (le env var persistono tra i deploy da source).
 - Frontend: deploya da solo via Vercel su push a main (nessun gcloud).

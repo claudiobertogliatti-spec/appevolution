@@ -25,6 +25,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
+from routers.ciak_admin import require_ciak_admin
 from services.posizionamento_pdf_renderer import genera_posizionamento_pdf
 from services.posizionamento_statement import (
     build_brand_positioning_statement,
@@ -35,7 +36,13 @@ from services.posizionamento_storage import upload_posizionamento_pdf
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/posizionamento", tags=["partner-posizionamento"])
-admin_router = APIRouter(prefix="/api/admin/approvazioni", tags=["admin-approvazioni"])
+# Dipendenza sul COSTRUTTORE: protegge ogni route del router admin (coda di
+# approvazione, approve/reject), comprese quelle future.
+admin_router = APIRouter(
+    prefix="/api/admin/approvazioni",
+    tags=["admin-approvazioni"],
+    dependencies=[Depends(require_ciak_admin)],
+)
 security = HTTPBearer(auto_error=False)
 
 mongo_url = os.environ.get("MONGO_URL", "")

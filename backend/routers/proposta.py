@@ -5,7 +5,8 @@ firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 """
 
 import asyncio
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File
+from routers.ciak_admin import require_ciak_admin
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -658,7 +659,7 @@ async def upload_documenti(token: str, background_tasks: BackgroundTasks, files:
 # ADMIN: Lista bonifici in attesa di conferma
 # ─────────────────────────────────────────────────
 @router.get("/admin/bonifici-in-attesa")
-async def bonifici_in_attesa():
+async def bonifici_in_attesa(_admin=Depends(require_ciak_admin)):
     """Lista proposte con distinta bonifico caricata ma pagamento non ancora confermato."""
     items = await db.proposte.find({
         "distinta_bonifico_url": {"$exists": True, "$ne": None},
@@ -857,7 +858,7 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
 # ADMIN: Lista proposte
 # ─────────────────────────────────────────────────
 @router.get("/admin/lista")
-async def lista_proposte():
+async def lista_proposte(_admin=Depends(require_ciak_admin)):
     proposte = await db.proposte.find({}, {"_id": 0}).sort("creato_at", -1).to_list(100)
     return {"items": proposte, "count": len(proposte)}
 

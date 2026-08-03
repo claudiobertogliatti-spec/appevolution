@@ -64,7 +64,9 @@ export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraf
     if (!partnerId) return;
     (async () => {
       try {
-        const r = await fetch(`${API}/api/partner-hub/${partnerId}`);
+        const r = await fetch(`${API}/api/partner-hub/${partnerId}`, {
+          headers: authHeaders(),
+        });
         if (!r.ok) return;
         const p = await r.json();
         setData((prev) => ({

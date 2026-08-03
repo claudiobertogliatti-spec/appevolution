@@ -19,7 +19,7 @@ import asyncio
 import logging
 import json
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 import uuid
 from bson import ObjectId
@@ -1062,6 +1062,59 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer(auto_error=False)
 auth_service = None  # Will be initialized after db connection
 
+
+# ─── Guardie di autorizzazione ──────────────────────────────────────────────
+# Definite QUI, subito dopo `security`, e non piu' in basso accanto a
+# verify_admin (riga ~4300): `Depends(X)` e' valutato alla decorazione, cioe'
+# all'import del modulo, quindi la dipendenza deve esistere PRIMA del primo
+# endpoint che la usa (il primo e' a ~2550). Stessa implementazione di
+# routers/ciak_admin.py::require_ciak_admin, senza dipendere da
+# get_current_user/auth_service (non ancora inizializzati a questo punto).
+
+async def require_admin_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Consente il passaggio ai soli ruoli admin/superadmin. Ritorna il TokenData."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    if token_data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return token_data
+
+
+async def require_partner_or_admin(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Autorizza l'accesso ai dati di UN partner.
+
+    Admin/superadmin supervisionano qualunque partner (vista admin dell'area
+    partner). Un partner accede solo al proprio partner_id, risolto dal record
+    users. Stesso contratto di
+    routers/partner_journey.py::require_partner_or_admin_for_partner.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    if token_data.role in ("admin", "superadmin"):
+        return token_data
+
+    if token_data.role != "partner":
+        raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
+
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0, "partner_id": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    if str(user.get("partner_id") or "") != str(partner_id):
+        raise HTTPException(status_code=403, detail="Partner non autorizzato")
+
+    return token_data
+
 @api_router.on_event("startup")
 async def init_auth():
     global auth_service
@@ -1087,16 +1140,41 @@ async def login(request: LoginRequest):
     
     return token
 
+class PublicRegisterRequest(BaseModel):
+    """Payload della registrazione PUBBLICA.
+
+    Deliberatamente privo di `role`, `partner_id` e `admin_type`: fino al
+    2026-07-30 questo endpoint accettava un `RegisterRequest` completo, in cui
+    `role` era una stringa libera scritta nel DB senza filtro. Chiunque poteva
+    quindi registrarsi con role="admin"/"superadmin", fare login e ottenere un
+    token valido che superava tutte le guardie amministrative. Il ruolo ora non
+    e' esprimibile dal client: non esiste come campo, quindi non c'e' un filtro
+    da aggirare. La creazione di account privilegiati passa dai soli percorsi
+    interni (seed in auth.py, endpoint admin protetti).
+    """
+    email: EmailStr
+    password: str
+    name: str
+
+
 @api_router.post("/auth/register")
-async def register(request: RegisterRequest):
+async def register(request: PublicRegisterRequest):
     """Register a new partner user and send welcome email"""
     global auth_service
     if not auth_service:
         auth_service = AuthService(db)
-    
+
     try:
+        # Ruolo imposto lato server: la registrazione pubblica crea SEMPRE e SOLO
+        # un partner. Non ereditare mai il ruolo da input del client.
+        request = RegisterRequest(
+            email=request.email,
+            password=request.password,
+            name=request.name,
+            role="partner",
+        )
         user = await auth_service.create_user(request)
-        
+
         # Create partner record if role is partner
         if request.role == "partner":
             partner_id = str(uuid.uuid4())
@@ -2543,7 +2621,7 @@ async def save_questionario_cliente(request: QuestionarioRequest):
 # ═══════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/admin/clienti-analisi")
-async def get_clienti_analisi_admin():
+async def get_clienti_analisi_admin(_admin=Depends(require_admin_role)):
     """
     Restituisce tutti i clienti analisi per il pannello admin.
     """
@@ -2586,7 +2664,7 @@ async def get_clienti_analisi_admin():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/admin/approvazioni/count")
-async def get_approvazioni_count():
+async def get_approvazioni_count(_admin=Depends(require_admin_role)):
     """
     Conta gli elementi che richiedono approvazione admin:
     - analisi generate ma non ancora inviate al cliente
@@ -2613,7 +2691,7 @@ async def get_approvazioni_count():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/admin/stats")
-async def get_admin_stats():
+async def get_admin_stats(_admin=Depends(require_admin_role)):
     """
     Statistiche generali admin dashboard.
     """
@@ -2658,7 +2736,7 @@ async def get_admin_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/admin/prospect-pipeline")
-async def get_prospect_pipeline():
+async def get_prospect_pipeline(_admin=Depends(require_admin_role)):
     """
     Tabella unificata flusso clienti con join su proposte.
     Restituisce tutti i clienti_analisi con tutti gli step del funnel.
@@ -2761,7 +2839,7 @@ async def delete_prospect(prospect_id: str, credentials: HTTPAuthorizationCreden
 
 
 @api_router.get("/admin/clienti-analisi/{user_id}")
-async def get_cliente_analisi_detail(user_id: str):
+async def get_cliente_analisi_detail(user_id: str, _admin=Depends(require_admin_role)):
     """
     Restituisce i dettagli di un singolo cliente analisi.
     """
@@ -2797,7 +2875,7 @@ async def get_cliente_analisi_detail(user_id: str):
 
 
 @api_router.post("/admin/clienti-analisi/{user_id}/notebooklm")
-async def salva_notebooklm_cliente(user_id: str, request: Request):
+async def salva_notebooklm_cliente(user_id: str, request: Request, _admin=Depends(require_admin_role)):
     """Salva o aggiorna i dati NotebookLM per un cliente (notebook_id, share_url, audio_url)."""
     body = await request.json()
     now = datetime.now(timezone.utc).isoformat()
@@ -3015,7 +3093,7 @@ STILE:
 - Non fare promesse esagerate"""
 
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi-ai")
-async def genera_analisi_ai(user_id: str):
+async def genera_analisi_ai(user_id: str, _admin=Depends(require_admin_role)):
     """
     Genera l'Analisi Strategica completa usando AI (Claude).
     Struttura professionale con punteggio di fattibilità e raccomandazione finale.
@@ -3207,7 +3285,7 @@ Rispondi SOLO con un JSON valido in questo formato esatto:
     }
 
 @api_router.post("/admin/clienti-analisi/{user_id}/salva-analisi")
-async def salva_analisi_cliente(user_id: str, analisi_testo: str = None):
+async def salva_analisi_cliente(user_id: str, analisi_testo: str = None, _admin=Depends(require_admin_role)):
     """
     Salva l'analisi generata nel database del cliente.
     Aggiunge tag 'analisi_pronta' in Systeme.io per triggerare email automatica.
@@ -3277,7 +3355,7 @@ async def salva_analisi_cliente(user_id: str, analisi_testo: str = None):
 
 # Endpoint per inviare email reminder (chiamato da cron o scheduler)
 @api_router.post("/admin/clienti-analisi/send-reminders")
-async def send_reminder_emails():
+async def send_reminder_emails(_admin=Depends(require_admin_role)):
     """
     Invia reminder tramite Systeme.io ai clienti con analisi pronta da più di 24 ore
     che non hanno ancora prenotato la call.
@@ -3336,7 +3414,7 @@ async def send_reminder_emails():
     }
 
 @api_router.post("/admin/clienti-analisi/{user_id}/stato-call")
-async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
+async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare", _admin=Depends(require_admin_role)):
     """
     Aggiorna lo stato della call strategica.
     """
@@ -3368,7 +3446,7 @@ async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
 
 
 @api_router.post("/admin/clienti-analisi/{user_id}/segna-pagamento-manuale")
-async def segna_pagamento_manuale_cliente(user_id: str, body: dict = None):
+async def segna_pagamento_manuale_cliente(user_id: str, body: dict = None, _admin=Depends(require_admin_role)):
     """
     Segna manualmente che un cliente ha effettuato il pagamento dell'analisi (es. bonifico).
     Questo permette di generare l'analisi anche senza passare da Stripe.
@@ -3426,7 +3504,7 @@ async def segna_pagamento_manuale_cliente(user_id: str, body: dict = None):
 
 
 @api_router.post("/admin/clienti-analisi/{user_id}/modifica-stato")
-async def modifica_stato_cliente(user_id: str, body: dict = None):
+async def modifica_stato_cliente(user_id: str, body: dict = None, _admin=Depends(require_admin_role)):
     """
     Modifica manualmente lo stato di un cliente (admin override).
     Permette di attivare/disattivare: questionario_compilato, pagamento_analisi, analisi_generata
@@ -3500,7 +3578,7 @@ async def modifica_stato_cliente(user_id: str, body: dict = None):
 
 
 @api_router.patch("/admin/clienti-analisi/{user_id}/dati")
-async def update_cliente_dati(user_id: str, body: dict):
+async def update_cliente_dati(user_id: str, body: dict, _admin=Depends(require_admin_role)):
     """Admin modifica anagrafica, questionario e stato funnel di un cliente."""
     cliente = await db.users.find_one({"id": user_id, "user_type": "cliente_analisi"})
     if not cliente:
@@ -3549,7 +3627,7 @@ def _sub_collection_query(partner_id: str) -> dict:
 
 
 @api_router.get("/admin/partner/{partner_id}/full-data")
-async def get_partner_full_data(partner_id: str):
+async def get_partner_full_data(partner_id: str, _admin=Depends(require_admin_role)):
     """Carica tutti i dati journey di un partner per l'editor admin."""
     partner = await db.partners.find_one(_partner_id_query(partner_id), {"_id": 0, "password": 0})
     if not partner:
@@ -3584,7 +3662,7 @@ async def get_partner_full_data(partner_id: str):
 
 
 @api_router.patch("/admin/partner/{partner_id}/journey")
-async def update_partner_journey(partner_id: str, body: dict):
+async def update_partner_journey(partner_id: str, body: dict, _admin=Depends(require_admin_role)):
     """
     Admin override per dati journey partner.
     Body: { "collection": "masterclass_factory"|"partner_posizionamento"|"partner_videocorso"|"partner_funnel"|"partners",
@@ -3629,7 +3707,7 @@ async def update_partner_journey(partner_id: str, body: dict):
 
 
 @api_router.patch("/admin/partner/{partner_id}/step/{step_id}")
-async def update_partner_step_answers(partner_id: str, step_id: str, body: dict):
+async def update_partner_step_answers(partner_id: str, step_id: str, body: dict, _admin=Depends(require_admin_role)):
     """
     Admin override per le risposte dei questionari di step (la-tua-storia,
     burocrazia, ...).
@@ -3707,7 +3785,7 @@ async def update_partner_step_answers(partner_id: str, step_id: str, body: dict)
 
 
 @api_router.post("/admin/partner/{partner_id}/files/register")
-async def register_partner_drive_files(partner_id: str, body: dict):
+async def register_partner_drive_files(partner_id: str, body: dict, _admin=Depends(require_admin_role)):
     """
     Registra metadati file Drive nell'app senza upload fisico.
     Body: { "files": [ { "name": str, "url": str, "category": str,
@@ -3758,7 +3836,7 @@ async def register_partner_drive_files(partner_id: str, body: dict):
 
 
 @api_router.delete("/admin/clienti-analisi/{user_id}")
-async def delete_cliente_analisi(user_id: str):
+async def delete_cliente_analisi(user_id: str, _admin=Depends(require_admin_role)):
     """
     Elimina un cliente analisi e tutti i suoi dati associati.
     Azione irreversibile - solo per admin.
@@ -3801,7 +3879,7 @@ async def delete_cliente_analisi(user_id: str):
 
 
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-script-call")
-async def genera_script_call(user_id: str):
+async def genera_script_call(user_id: str, _admin=Depends(require_admin_role)):
     """
     Genera uno Script Call personalizzato per la call strategica.
     Lo script è diviso in 8 blocchi operativi per guidare Claudio durante la call.
@@ -3964,7 +4042,7 @@ Rispondi SOLO con il JSON, senza commenti aggiuntivi."""
 
 
 @api_router.post("/admin/clienti-analisi/{user_id}/salva-script-call")
-async def salva_script_call(user_id: str, script_testo: str = None):
+async def salva_script_call(user_id: str, script_testo: str = None, _admin=Depends(require_admin_role)):
     """
     Salva lo script call generato nel database del cliente.
     """
@@ -3986,7 +4064,7 @@ async def salva_script_call(user_id: str, script_testo: str = None):
     return {"success": True, "message": "Script call salvato"}
 
 @api_router.get("/admin/clienti-analisi/{user_id}/analisi-pdf")
-async def scarica_analisi_pdf(user_id: str):
+async def scarica_analisi_pdf(user_id: str, _admin=Depends(require_admin_role)):
     """
     Genera e restituisce l'analisi in formato PDF.
     """
@@ -4099,7 +4177,7 @@ async def scarica_analisi_pdf(user_id: str):
     )
 
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi")
-async def genera_analisi_cliente(user_id: str):
+async def genera_analisi_cliente(user_id: str, _admin=Depends(require_admin_role)):
     """
     Imposta analisi_generata = true per un cliente (metodo legacy).
     """
@@ -4313,9 +4391,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     )
 
 async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verifica che il chiamante sia un admin autenticato. Ritorna l'utente o solleva 401/403."""
+    """Verifica che il chiamante sia un admin autenticato. Ritorna l'utente o solleva 401/403.
+
+    Accetta admin e superadmin: il login admin del frontend (ciak/admin/api.js)
+    fa entrare entrambi i ruoli, e tutte le altre guardie del repo
+    (require_admin_role, require_ciak_admin, require_admin_token) accettano
+    entrambi. Prima qui passava il solo "admin", unica divergenza del repo.
+    """
     user = await get_current_user(credentials)
-    if getattr(user, "role", None) != "admin":
+    if getattr(user, "role", None) not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli amministratori")
     return user
 
@@ -4333,10 +4417,23 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     
     return {"valid": True, "user_id": token_data.user_id, "role": token_data.role}
 
+# Campi esposti da /auth/users. Lista POSITIVA per scelta: la versione precedente
+# usava l'esclusione {"hashed_password": 0}, ma il campo realmente salvato si
+# chiama `password_hash` — l'esclusione non filtrava nulla e l'endpoint, per di
+# piu' senza autenticazione, restituiva gli hash bcrypt di tutti gli utenti.
+# Con una lista positiva un campo sensibile nuovo resta fuori per default.
+_USER_PUBLIC_FIELDS = {
+    "_id": 0,
+    "id": 1, "email": 1, "name": 1, "role": 1, "admin_type": 1,
+    "partner_id": 1, "evolution_id": 1, "phase": 1,
+    "is_active": 1, "created_at": 1, "last_login": 1,
+}
+
+
 @api_router.get("/auth/users")
-async def list_users():
+async def list_users(_admin=Depends(require_admin_role)):
     """List all users (admin only)"""
-    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    users = await db.users.find({}, _USER_PUBLIC_FIELDS).to_list(100)
     return {"users": users, "count": len(users)}
 
 # =============================================================================
@@ -4685,7 +4782,7 @@ class PartnerProfileHub(BaseModel):
     currentStep: Optional[int] = None
 
 @api_router.get("/partner-hub/{partner_id}")
-async def get_partner_hub(partner_id: str):
+async def get_partner_hub(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get complete partner hub profile - all data Andrea needs"""
     # Get base partner data
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
@@ -4825,7 +4922,11 @@ async def get_partner_hub(partner_id: str):
     return result
 
 @api_router.put("/partner-hub/{partner_id}")
-async def update_partner_hub(partner_id: str, data: PartnerProfileHub):
+async def update_partner_hub(
+    partner_id: str,
+    data: PartnerProfileHub,
+    _auth=Depends(require_partner_or_admin),
+):
     """Update partner hub profile"""
     # Check partner exists
     partner = await db.partners.find_one({"id": partner_id})
@@ -4854,13 +4955,24 @@ async def update_partner_hub(partner_id: str, data: PartnerProfileHub):
     return await get_partner_hub(partner_id)
 
 @api_router.patch("/partner-hub/{partner_id}/field")
-async def update_partner_hub_field(partner_id: str, field: str, value: str):
+async def update_partner_hub_field(
+    partner_id: str,
+    field: str,
+    value: str,
+    _auth=Depends(require_partner_or_admin),
+):
     """Update a single field in partner hub profile"""
+    # `field` arriva dalla query string e finiva dritto in un $set: senza filtro
+    # si poteva scrivere QUALUNQUE chiave nel documento partner_hub. Si accettano
+    # solo i campi dichiarati nel modello (whitelist derivata, resta allineata da sola).
+    if field not in PartnerProfileHub.model_fields:
+        raise HTTPException(status_code=422, detail=f"Campo non ammesso: {field}")
+
     # Check partner exists
     partner = await db.partners.find_one({"id": partner_id})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
-    
+
     # Update the specific field
     await db.partner_hub.update_one(
         {"partner_id": partner_id},
@@ -5205,7 +5317,7 @@ class PartnerDataOverride(BaseModel):
 
 
 @api_router.post("/admin/partners/{partner_id}/override-data")
-async def admin_override_partner_data(partner_id: str, data: PartnerDataOverride):
+async def admin_override_partner_data(partner_id: str, data: PartnerDataOverride, _admin=Depends(require_admin_role)):
     """
     Admin endpoint to override/insert real partner data.
     Allows setting any field without going through the full onboarding flow.
@@ -5280,7 +5392,7 @@ async def admin_override_partner_data(partner_id: str, data: PartnerDataOverride
 
 
 @api_router.get("/admin/partners/{partner_id}/full-data")
-async def admin_get_partner_full_data(partner_id: str):
+async def admin_get_partner_full_data(partner_id: str, _admin=Depends(require_admin_role)):
     """
     Get complete partner data from all collections for admin review.
     """
@@ -5964,7 +6076,7 @@ async def update_partner_onboarding_status(partner_id: str):
     )
 
 @api_router.get("/admin/onboarding-documents/pending")
-async def get_pending_onboarding_documents():
+async def get_pending_onboarding_documents(_admin=Depends(require_admin_role)):
     """Get all pending onboarding documents for Admin review"""
     documents = await db.onboarding_documents.find(
         {"status": "uploaded"},
@@ -6008,7 +6120,7 @@ async def get_tracking_config():
     }
 
 @api_router.get("/admin/tracking/config")
-async def get_admin_tracking_config():
+async def get_admin_tracking_config(_admin=Depends(require_admin_role)):
     """Restituisce la configurazione completa di tracking per l'admin."""
     config = await db.app_settings.find_one({"key": "tracking"}, {"_id": 0})
     if not config:
@@ -6022,7 +6134,7 @@ class TrackingConfigUpdate(BaseModel):
     meta_enabled: Optional[bool] = False
 
 @api_router.patch("/admin/tracking/config")
-async def update_tracking_config(body: TrackingConfigUpdate):
+async def update_tracking_config(body: TrackingConfigUpdate, _admin=Depends(require_admin_role)):
     """Aggiorna la configurazione di tracking."""
     now = datetime.now(timezone.utc).isoformat()
     await db.app_settings.update_one(
@@ -10156,7 +10268,7 @@ async def rename_partner_file(file_id: str, name: str):
 
 
 @api_router.post("/admin/repair-pdf/{file_id}")
-async def repair_pdf_extension(file_id: str):
+async def repair_pdf_extension(file_id: str, _admin=Depends(require_admin_role)):
     """Ripara un file PDF 'raw' su Cloudinary il cui URL legacy non finisce in
     .pdf (generato prima del fix estensione): ri-carica gli stessi byte con
     public_id .pdf e aggiorna il record in db.files. Idempotente."""
@@ -16603,7 +16715,7 @@ async def api_get_celery_status():
 
 
 @api_router.post("/admin/partner/{partner_id}/retrigger-video")
-async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "masterclass", lesson_id: str = None):
+async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "masterclass", lesson_id: str = None, _admin=Depends(require_admin_role)):
     """Admin endpoint: retrigger pipeline video. Supporta masterclass, videocorso, lesson (con lesson_id)."""
     try:
         if video_type == "masterclass":
@@ -16694,7 +16806,7 @@ async def internal_pipeline_watchdog(request: Request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/admin/email-templates")
-async def api_list_email_templates():
+async def api_list_email_templates(_admin=Depends(require_admin_role)):
     """List all email templates (default + custom)"""
     from email_templates import get_email_template_manager
     manager = get_email_template_manager(db)
@@ -16703,7 +16815,7 @@ async def api_list_email_templates():
 
 
 @api_router.get("/admin/email-templates/{template_id}")
-async def api_get_email_template(template_id: str):
+async def api_get_email_template(template_id: str, _admin=Depends(require_admin_role)):
     """Get a specific email template"""
     from email_templates import get_email_template_manager
     manager = get_email_template_manager(db)
@@ -16714,7 +16826,7 @@ async def api_get_email_template(template_id: str):
 
 
 @api_router.put("/admin/email-templates/{template_id}")
-async def api_update_email_template(template_id: str, request: Request):
+async def api_update_email_template(template_id: str, request: Request, _admin=Depends(require_admin_role)):
     """Update an email template"""
     from email_templates import get_email_template_manager
     body = await request.json()
@@ -16732,7 +16844,7 @@ async def api_update_email_template(template_id: str, request: Request):
 
 
 @api_router.post("/admin/email-templates/{template_id}/reset")
-async def api_reset_email_template(template_id: str):
+async def api_reset_email_template(template_id: str, _admin=Depends(require_admin_role)):
     """Reset a template to its default version"""
     from email_templates import get_email_template_manager
     manager = get_email_template_manager(db)
@@ -16745,7 +16857,7 @@ async def api_reset_email_template(template_id: str):
 
 
 @api_router.post("/admin/email-templates/{template_id}/preview")
-async def api_preview_email_template(template_id: str, request: Request):
+async def api_preview_email_template(template_id: str, request: Request, _admin=Depends(require_admin_role)):
     """Preview a template with sample variables"""
     from email_templates import get_email_template_manager
     body = await request.json()
@@ -16776,7 +16888,7 @@ async def api_preview_email_template(template_id: str, request: Request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/admin/piano-continuita")
-async def admin_get_all_piano_continuita():
+async def admin_get_all_piano_continuita(_admin=Depends(require_admin_role)):
     """
     Admin: Lista tutti i partner con Piano Continuità attivo.
     Include storico pagamenti e prossime scadenze.
@@ -16835,7 +16947,7 @@ async def admin_get_all_piano_continuita():
 
 
 @api_router.get("/admin/piano-continuita/{partner_id}/payments")
-async def admin_get_piano_payments(partner_id: str):
+async def admin_get_piano_payments(partner_id: str, _admin=Depends(require_admin_role)):
     """Admin: Storico pagamenti Piano Continuità per un partner"""
     payments = await db.piano_continuita_payments.find(
         {"partner_id": partner_id},
@@ -16846,7 +16958,7 @@ async def admin_get_piano_payments(partner_id: str):
 
 
 @api_router.post("/admin/piano-continuita/{partner_id}/trigger-gaia-check")
-async def admin_trigger_gaia_check(partner_id: str):
+async def admin_trigger_gaia_check(partner_id: str, _admin=Depends(require_admin_role)):
     """Admin: Trigger manuale GAIA check per un partner specifico"""
     partner = await db.partners.find_one({"id": partner_id})
     if not partner:
@@ -16882,7 +16994,7 @@ async def admin_trigger_gaia_check(partner_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/admin/partners/export-csv")
-async def admin_export_partners_csv():
+async def admin_export_partners_csv(_admin=Depends(require_admin_role)):
     """
     Export CSV completo dei partner.
     Include: nome, fase, nicchia, revenue, piano continuità, data contratto, giorni dall'ultimo aggiornamento.

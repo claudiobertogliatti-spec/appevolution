@@ -10,12 +10,15 @@
  * e qui nascondiamo la barra dei tab interna. Senza `section` resta standalone
  * con i suoi tab.
  *
- * Endpoint backend invariati:
+ * Endpoint backend:
  *  GET   /api/partner-hub/:partnerId
  *  PATCH /api/partner-hub/:partnerId/field?field=&value=
+ * Dal 2026-07-30 richiedono autenticazione (partner sui propri dati, admin su
+ * tutti): le chiamate passano da authFetch, che aggiunge il token partner.
  */
 import { useState, useEffect } from "react";
 import { Edit2, Upload, Trash2 } from "lucide-react";
+import { authFetch } from "../api";
 
 export function PartnerProfileHub({ partner, section }) {
   const [internalTab, setInternalTab] = useState("identity");
@@ -81,7 +84,7 @@ export function PartnerProfileHub({ partner, section }) {
   const loadProfile = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/partner-hub/${partnerId}`);
+      const response = await authFetch(`/api/partner-hub/${partnerId}`);
       if (response.ok) {
         const data = await response.json();
         setProfileData((prev) => ({ ...prev, ...data }));
@@ -101,7 +104,7 @@ export function PartnerProfileHub({ partner, section }) {
   const saveEdit = async (field) => {
     setIsSaving(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(editValue)}`,
         { method: "PATCH" }
       );
@@ -126,7 +129,7 @@ export function PartnerProfileHub({ partner, section }) {
     if (!window.confirm(`Eliminare "${label || field}"?`)) return;
     setIsSaving(true);
     try {
-      const r = await fetch(
+      const r = await authFetch(
         `/api/partner-hub/${partnerId}/field?field=${field}&value=`,
         { method: "PATCH" }
       );

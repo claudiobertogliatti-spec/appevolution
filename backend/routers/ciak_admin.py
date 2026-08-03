@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak", tags=["ciak-admin"])
 security = HTTPBearer(auto_error=False)
+from report_key_auth import require_admin_or_report_key
 
 # Iniettato da server.py via set_db()
 db = None
@@ -721,7 +722,7 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
 
 
 @router.get("/acquisizione-command-center")
-async def acquisizione_command_center(admin=Depends(require_ciak_admin)):
+async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)):
     """
     CRM operativo Acquisizione.
 
@@ -2027,6 +2028,7 @@ async def partner_setup_pending(
         "partner_setup_expires_at": 1,
         "partner_setup_created_at": 1,
         "partner_setup_consumed_at": 1,
+        "partner_setup_reason": 1,
     }).sort("partner_setup_created_at", -1).limit(100):
         token = u.get("partner_setup_token") or ""
         # Censura visuale del token: xxxxxx, ma URL completo nei dati
@@ -2041,6 +2043,10 @@ async def partner_setup_pending(
             "expires_at": u.get("partner_setup_expires_at"),
             "consumed_at": u.get("partner_setup_consumed_at"),
             "status": "consumed" if u.get("partner_setup_consumed_at") else "pending",
+            # "onboarding" = primo accesso post-pagamento; "password_reset" = il
+            # partner ha usato "Password dimenticata". Senza questo, un reset si
+            # legge come "non è mai entrato" e fa perdere tempo a chi guarda.
+            "reason": u.get("partner_setup_reason") or "onboarding",
         })
 
     # Conta pending vs consumed per stat top

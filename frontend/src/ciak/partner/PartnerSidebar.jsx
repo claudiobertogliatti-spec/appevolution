@@ -6,6 +6,7 @@ import {
   Users,
   Sparkles,
   RefreshCw,
+  KeyRound,
   LogOut,
 } from "lucide-react";
 
@@ -84,6 +85,19 @@ export function PartnerSidebar({ user, onLogout }) {
               <span className="text-[11px] text-slate-500 block truncate">Accademia Partner</span>
             </div>
           </div>
+          <NavLink
+            to="/partner/cambia-password"
+            className={({ isActive }) =>
+              `w-full flex items-center justify-center gap-2 px-3.5 py-2 mb-2 rounded-xl border text-xs font-bold transition ${
+                isActive
+                  ? "bg-slate-950 text-yellow-400 border-slate-950"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+              }`
+            }
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Cambia password</span>
+          </NavLink>
           <button
             onClick={onLogout}
             className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-bold transition"
