@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowRight, Clock, Sparkles, ShieldCheck, MessageCircle, PlayCircle,
   FileText, CheckCircle2, Home, Map, FolderOpen, Users, RefreshCw,
@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { AGENTS, getAgentForStep } from "./agents";
 import { PHASE_CONFIG } from "./phases";
 import ProjectBookCard from "../rewards/ProjectBookCard";
+import { authHeaders } from "../api";
 
 function firstName(name) {
   return (name || "").split(" ")[0] || "Partner";
@@ -80,6 +81,35 @@ export default function GuidedHome({
   const [promessaValue, setPromessaValue] = useState("");
   const [noteValue, setNoteValue] = useState("");
   const [isApproved, setIsApproved] = useState(false);
+
+  // Il posizionamento del partner esiste gia' in `partner_posizionamento` (spesso
+  // compilato in fase di migrazione dal Drive) ma questa schermata non lo leggeva:
+  // mostrava due valori d'esempio hardcoded. Qui lo carichiamo davvero.
+  // inputs.target    -> "Target individuato"
+  // inputs.risultato -> "Promessa di Trasformazione differenziante"
+  useEffect(() => {
+    if (!partnerId) return undefined;
+    let annullato = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, {
+          headers: authHeaders(),
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        const inputs = (d && d.posizionamento && d.posizionamento.inputs) || {};
+        if (annullato) return;
+        if (inputs.target) setTargetValue(inputs.target);
+        if (inputs.risultato) setPromessaValue(inputs.risultato);
+      } catch {
+        // Nessun dato o rete assente: i campi restano vuoti col loro placeholder,
+        // che e' comunque meglio del posizionamento di un altro partner.
+      }
+    })();
+    return () => {
+      annullato = true;
+    };
+  }, [partnerId]);
 
   return (
     <div className="space-y-6 font-[Poppins,system-ui,sans-serif] text-slate-900">
