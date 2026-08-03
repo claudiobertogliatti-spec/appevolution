@@ -23,6 +23,16 @@ che 6 min mutilati.
 > ma una **slide di copertina** (logo del partner + "Modulo X · Lezione Y" + titolo della
 > lezione, fondo brand) con **voiceover della "voce narrante Evolution"** (una voce maschile
 > UNICA per tutti i partner e tutte le lezioni) che introduce brevemente gli argomenti.
+> 🎙️ **Voce chiusa il 30/7/2026: `en-US-AndrewMultilingualNeural`, rate -2%** (Edge-TTS, via
+> libreria Python — il CLI non applica la voce). Si è scelta una volta: non si ridiscute per
+> lezione, o il corso suona incoerente.
+>
+> 🗣️ **La copertina deve usare il VOCABOLARIO DEL PARTNER, non il nostro.** Prima di scrivere
+> "Modulo X", contare come lo chiama lui nel girato: Daniele dice **"capitolo"** in **32 lezioni
+> su 32**, quindi la copertina dice *Capitolo*. Con "Modulo" la voce narrante annunciava
+> "Modulo sei" e tre secondi dopo il partner apriva con *"benvenuto alla seconda lezione del
+> sesto capitolo"* — una stonatura all'inizio di ogni lezione. **Vale per ogni partner:
+> `grep` sul trascritto prima di scegliere la parola.**
 > **NESSUNA sigla e NESSUN outro/finale** — al contrario della masterclass. Le lezioni sono
 > talking-head puliti (niente sottotitoli impressi).
 1. **Intro (10–20s)** — "In questa lezione impari X e a cosa ti serve." (motivazione).
@@ -59,33 +69,52 @@ che 6 min mutilati.
 > - **Tutto il blocco tra apertura e chiusura — silenzi inclusi — è INTOCCABILE.**
 > Nel dubbio su una pausa lunga: se è dentro un contesto di esercizio guidato → **PRESERVA sempre.**
 
-## 4. Grafica & testo a schermo (a servizio della comprensione)
-- **Capitoli/marker per concetto** (navigabilità e ripasso).
-- **Lower-third** per termini, definizioni, numeri dei passi ("Passo 2 di 4").
-- **Sottotitoli** (accessibilità + comprensione; utile per chi guarda in contesti diversi).
-- **Card takeaway** a fine lezione con i punti chiave e l'**azione da fare**.
-- **Intro/outro brandizzati** coerenti (colore/logo del partner) su TUTTE le lezioni.
+## 4. Grafica & testo a schermo — ⛔ NIENTE (deciso da Claudio il 30/7/2026)
+La lezione è **solo**: slide di copertina con voce narrante → talking-head pulito. Nient'altro.
+- ❌ **NIENTE sottotitoli** (né impressi né a file).
+- ❌ **NIENTE musica**, da nessuna parte.
+- ❌ Niente sigla, niente outro, niente card finale.
+- ❌ Niente lower-third, niente capitoli, niente overlay: *"talking-head puliti"* (§2).
+- ✅ **L'intro CI VA**: copertina + **voce narrante Evolution** (§2). È l'unico elemento aggiunto.
+
+> 📌 **Perché questa sezione era da riscrivere.** Fino al 30/7 il §4 e il QC gate §7 pretendevano
+> sottotitoli, capitoli, lower-third, card takeaway e intro/outro brandizzati, mentre il §2
+> (standard Claudio del 17/7) diceva l'opposto: nessuna sigla, nessun outro, niente sottotitoli
+> impressi. **Il gate non poteva passare per costruzione.** Claudio ha arbitrato il 30/7 —
+> "nelle video lezioni non si inseriscono sottotitoli e musica ma ci va l'intro con la voce
+> Andrew" — e §4/§7 sono stati allineati al §2.
 
 ## 5. Audio & resa
 - **Studio sound** / denoise, voce chiara e livellata (la chiarezza audio è pedagogia).
-- Musica solo su intro/outro, mai sotto la spiegazione.
+- ❌ **Nessuna musica**, in nessun punto della lezione.
+- 🔊 **Pareggiare la voce narrante al girato in LUFS** prima di unirli: misurare l'*integrated
+  loudness* dei due pezzi e applicare alla voce un **guadagno fisso** pari alla differenza.
+  Usare `volume=<n>dB`, **non** `loudnorm` (comprime e cambia il timbro della voce).
+  Sul pilota Andolfi: girato -18,5 LUFS, voce -20,5 → +2,0 dB, entrambi a -18,5.
+- ⚙️ Il girato già montato/approvato va **concatenato senza ricodifica** (`-c copy`): si codifica
+  solo il segmento di copertina, con gli stessi parametri del girato (profilo, livello, pix_fmt,
+  fps, timescale, campionamento e canali audio), altrimenti il concat fallisce o tronca il file.
 
 ## 6. Prompt operativo (da dare a video-use / Descript agent)
-> "Monta questo grezzo come **video lezione didattica**. Trascrivi. Rimuovi SOLO filler,
-> false partenze e ripetizioni involontarie — **non tagliare spiegazioni, passaggi o
-> esempi**. Struttura: intro (cosa impari) → obiettivo → contenuto completo → recap +
-> azione. Aggiungi capitoli per concetto, lower-third per termini/passi, sottotitoli,
-> intro/outro brandizzati (colore/logo {BRAND}), e una card takeaway finale con i punti
-> chiave e l'azione da fare. Priorità: chiarezza e completezza, non la durata."
+> "Monta questo grezzo come **video lezione didattica**. Trascrivi word-level. Rimuovi SOLO
+> filler, false partenze e pause morte >1,3s — **non tagliare spiegazioni, passaggi o esempi**,
+> e **non toccare MAI i silenzi dentro un esercizio guidato** (§3). Anteponi una **slide di
+> copertina** col logo {BRAND}, 'Modulo X · Lezione Y' e il titolo, con **voce narrante
+> Evolution** (Andrew) che dice in 10-20s cosa si impara — copione derivato dal trascritto
+> reale, **nessuna parola inglese, nemmeno il nome del brand**. Poi il talking-head, pulito.
+> **NIENTE** sottotitoli, musica, sigla, outro, capitoli, lower-third o card finali.
+> Priorità: chiarezza e completezza, non la durata."
 
 ## 7. QC gate (tutte devono passare prima della pubblicazione)
-- [ ] L'intro dice cosa si impara e perché conta.
+- [ ] L'intro dice cosa si impara e perché conta (10-20s).
+- [ ] La voce narrante parla **italiano dalla prima parola**: nessuna parola inglese, brand
+      incluso — le voci `en-*` leggono all'inglese qualunque cosa gli somigli.
+      **Verifica obbligatoria: ritrascrivere la traccia generata e rileggerla**, non fidarsi del copione.
 - [ ] Nessuna spiegazione/esempio tagliato a metà.
-- [ ] Capitoli presenti e coerenti coi concetti.
-- [ ] Termini/passi chiave hanno il lower-third.
-- [ ] Sottotitoli presenti e sincronizzati.
-- [ ] Recap + azione concreta a fine lezione.
-- [ ] Intro/outro brandizzati coerenti con le altre lezioni.
+- [ ] Nessun taglio dentro un esercizio guidato (respiro/meditazione/ascolto).
+- [ ] Copertina col brand del partner corretto (logo, colori, font del BrandKit).
+- [ ] Voce narrante e girato **allineati in LUFS** (§5).
+- [ ] Assenti: sottotitoli, musica, sigla, outro, capitoli, lower-third, card.
 - [ ] Audio pulito e chiaro.
 - **Gate umano:** Claudio/Antonella approvano prima del publish.
 
