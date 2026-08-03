@@ -69,8 +69,28 @@ export function MetodoEvoPage({ partnerId }) {
     setOpenFaq(openFaq === id ? null : id);
   };
 
+  // Stato REALE degli step, dal backend. Gli `status` scritti in
+  // PERCORSO_MACRO_PHASES sono solo un fallback per quando il dato non c'e':
+  // finche' non venivano sovrascritti, ogni partner vedeva la stessa sequenza
+  // finta (primi 5 completati, il 6° in corso, il resto in coda) a prescindere
+  // da dove fosse davvero — con la masterclass gia' su YouTube e le lezioni
+  // caricate marcate come "In Coda".
+  const statoReale = React.useMemo(() => {
+    const m = {};
+    for (const s of state?.steps || []) if (s && s.step_id) m[s.step_id] = s.status;
+    return m;
+  }, [state]);
+
+  const statoDi = (step) => {
+    const reale = statoReale[step.id];
+    if (!reale) return step.status;          // step non presente a sistema: resta il default
+    if (reale === "done") return "done";
+    if (reale === "in_progress") return "in_progress";
+    return "todo";                            // pending, skipped
+  };
+
   // Calcolo avanzamento
-  const completedCount = state?.completed_count || 5;
+  const completedCount = state?.completed_count ?? 5;
   const totalSteps = 14;
   const progressPercent = Math.round((completedCount / totalSteps) * 100);
 
@@ -259,8 +279,9 @@ export function MetodoEvoPage({ partnerId }) {
               {/* LISTA STEP NELLA MACRO FASE */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {macro.steps.map((step) => {
-                  const isDone = step.status === "done";
-                  const isInProgress = step.status === "in_progress";
+                  const stato = statoDi(step);
+                  const isDone = stato === "done";
+                  const isInProgress = stato === "in_progress";
 
                   return (
                     <div 
