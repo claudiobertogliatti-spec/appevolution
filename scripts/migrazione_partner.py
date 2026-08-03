@@ -61,8 +61,20 @@ CAMPI_OFFERTA = ("offerName", "offerPrice", "offerIncludes", "offerGuarantee")
 
 
 def _call(method: str, path: str, body=None):
+    # Dal 30/07/2026 (commit fa110052) TUTTI gli endpoint admin/partner-hub richiedono
+    # un JWT admin, anche in lettura: senza header ogni chiamata torna 401. Il token
+    # non sta nel repo — si esporta prima di lanciare:
+    #   export CIAK_ADMIN_TOKEN="<jwt>"     (PowerShell: $env:CIAK_ADMIN_TOKEN = "<jwt>")
+    token = os.environ.get("CIAK_ADMIN_TOKEN", "").strip()
+    if not token:
+        raise SystemExit(
+            "CIAK_ADMIN_TOKEN non impostato: dal 30/07/2026 gli endpoint admin "
+            "richiedono un JWT admin anche in lettura.\n"
+            'PowerShell:  $env:CIAK_ADMIN_TOKEN = "<jwt>"'
+        )
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = urllib.request.Request(BASE + path, data=data, method=method)
+    req.add_header("Authorization", token if token.lower().startswith("bearer ") else f"Bearer {token}")
     if data:
         req.add_header("Content-Type", "application/json")
     with urllib.request.urlopen(req, timeout=60) as r:

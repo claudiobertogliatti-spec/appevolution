@@ -71,8 +71,13 @@ export default function GuidedHome({
 
   // Stato interattivo scheda azione
   const [isEditing, setIsEditing] = useState(false);
-  const [targetValue, setTargetValue] = useState("Professionisti e lavoratori d'ufficio (35-55 anni) affetti da dolori posturali cronici da scrivania.");
-  const [promessaValue, setPromessaValue] = useState('"Elimina il mal di schiena da scrivania e ritrova la tua postura corretta in 90 giorni, senza farmaci."');
+  // NON precompilare con testo d'esempio: questo componente e' l'area partner REALE.
+  // Fino al 03/08/2026 qui c'erano il target e la promessa del seed demo (Mario Rossi,
+  // "mal di schiena da scrivania") e ogni partner vedeva il progetto di un altro
+  // presentato come la propria bozza da approvare. Campi vuoti = "non ancora fatto";
+  // campi col progetto sbagliato = "non hanno neanche guardato il mio".
+  const [targetValue, setTargetValue] = useState("");
+  const [promessaValue, setPromessaValue] = useState("");
   const [noteValue, setNoteValue] = useState("");
   const [isApproved, setIsApproved] = useState(false);
 
@@ -360,11 +365,14 @@ export default function GuidedHome({
                   <textarea
                     value={targetValue}
                     onChange={(e) => setTargetValue(e.target.value)}
+                    placeholder="Chi è il tuo studente ideale: chi è, cosa fa, cosa sta cercando."
                     className="w-full p-3 rounded-xl border border-amber-300 text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
                     rows={2}
                   />
                 ) : (
-                  <p className="text-xs sm:text-sm font-normal text-slate-900">{targetValue}</p>
+                  <p className={`text-xs sm:text-sm font-normal ${targetValue ? "text-slate-900" : "text-slate-400 italic"}`}>
+                    {targetValue || "Da definire insieme al tuo agente di fase."}
+                  </p>
                 )}
               </div>
 
@@ -382,11 +390,14 @@ export default function GuidedHome({
                   <textarea
                     value={promessaValue}
                     onChange={(e) => setPromessaValue(e.target.value)}
+                    placeholder="La trasformazione che prometti, in una frase."
                     className="w-full p-3 rounded-xl border border-amber-300 text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
                     rows={2}
                   />
                 ) : (
-                  <p className="text-xs sm:text-sm font-normal text-amber-700">{promessaValue}</p>
+                  <p className={`text-xs sm:text-sm font-normal ${promessaValue ? "text-amber-700" : "text-slate-400 italic"}`}>
+                    {promessaValue || "Da definire insieme al tuo agente di fase."}
+                  </p>
                 )}
               </div>
 
