@@ -5,7 +5,7 @@ Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocors
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 import os
@@ -942,8 +942,15 @@ async def update_posizionamento_inputs_partial(
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     if request.approvato_dal_partner is not None:
+        # `None` = salvataggio semplice, non tocca l'approvazione. True/False la cambiano.
+        # La data si scrive nel campo giusto: con un solo `approvato_at` scritto anche in
+        # revoca, il documento direbbe "approvato il <data della revoca>".
         update_fields["approvato_dal_partner"] = request.approvato_dal_partner
-        update_fields["approvato_at"] = datetime.now(timezone.utc).isoformat()
+        adesso = datetime.now(timezone.utc).isoformat()
+        if request.approvato_dal_partner:
+            update_fields["approvato_at"] = adesso
+        else:
+            update_fields["approvazione_revocata_at"] = adesso
 
     await db.partner_posizionamento.update_one(
         {"partner_id": partner_id},

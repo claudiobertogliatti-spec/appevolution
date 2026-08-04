@@ -80,6 +80,8 @@ export default function GuidedHome({
   const [targetValue, setTargetValue] = useState("");
   const [promessaValue, setPromessaValue] = useState("");
   const [isApproved, setIsApproved] = useState(false);
+  const [salvato, setSalvato] = useState(false);
+  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
 
   // Il posizionamento del partner esiste gia' in `partner_posizionamento` (spesso
   // compilato in fase di migrazione dal Drive) ma questa schermata non lo leggeva:
@@ -118,11 +120,20 @@ export default function GuidedHome({
     partnerUser?.is_admin
   );
 
-  const handleSaveOrApprove = async (approve = false) => {
-    if (isAdminView && approve) {
+  // Tre azioni distinte sullo stesso endpoint, e vanno tenute distinte:
+  //   approvazione === undefined -> salva soltanto i campi (l'admin puo' farlo: serve
+  //                                 per la migrazione dei partner dal Drive)
+  //   approvazione === true      -> il partner approva
+  //   approvazione === false     -> il partner revoca l'approvazione
+  // `undefined` NON viene serializzato da JSON.stringify: e' cosi' che il salvataggio
+  // semplice lascia intatto lo stato di approvazione sul server, mentre `false` viaggia
+  // e revoca davvero (il backend distingue None da False).
+  const handleSalvaPosizionamento = async (approvazione) => {
+    if (isAdminView && approvazione !== undefined) {
       alert("L'approvazione è riservata al partner.");
       return;
     }
+    setSalvataggioInCorso(true);
     try {
       const res = await fetch(`/api/partner-journey/posizionamento/${partnerId}/inputs`, {
         method: "PATCH",
@@ -135,7 +146,7 @@ export default function GuidedHome({
             target: targetValue,
             risultato: promessaValue,
           },
-          approvato_dal_partner: approve ? true : undefined,
+          ...(approvazione === undefined ? {} : { approvato_dal_partner: approvazione }),
         }),
       });
       if (!res.ok) {
@@ -143,11 +154,19 @@ export default function GuidedHome({
         alert(`Impossibile salvare il posizionamento: ${errText}`);
         return;
       }
-      if (approve) {
-        setIsApproved(true);
+      if (approvazione !== undefined) {
+        setIsApproved(approvazione);
       }
+      // Il partner deve vedere che il salvataggio e' avvenuto: un salvataggio muto e'
+      // indistinguibile da un salvataggio fallito, ed e' l'equivoco che questa
+      // schermata ha gia' prodotto una volta.
+      setIsEditing(false);
+      setSalvato(true);
+      setTimeout(() => setSalvato(false), 2500);
     } catch (err) {
       alert(`Errore durante il salvataggio: ${err.message}`);
+    } finally {
+      setSalvataggioInCorso(false);
     }
   };
 
@@ -480,22 +499,41 @@ export default function GuidedHome({
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
+                {salvato && (
+                  <span className="text-xs font-bold text-emerald-700 inline-flex items-center gap-1.5 shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                    Salvato
+                  </span>
+                )}
+
+                {/* Salvare NON e' approvare: senza questo bottone il partner che scrive
+                    la sua promessa e non approva perde tutto al refresh, che era il bug
+                    di partenza. L'admin puo' salvare (serve alla migrazione), non approvare. */}
+                <button
+                  onClick={() => handleSalvaPosizionamento(undefined)}
+                  disabled={salvataggioInCorso}
+                  className="w-full sm:w-auto px-5 py-3 text-xs font-bold rounded-2xl transition inline-flex items-center justify-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {salvataggioInCorso ? "Salvataggio…" : "Salva"}
+                </button>
+
                 {isApproved ? (
                   <button
-                    onClick={() => handleSaveOrApprove(false)}
-                    disabled={isAdminView}
+                    onClick={() => handleSalvaPosizionamento(false)}
+                    disabled={isAdminView || salvataggioInCorso}
                     title={isAdminView ? "L'approvazione è riservata al partner" : ""}
                     className={`w-full sm:w-auto px-5 py-3 text-xs font-bold rounded-2xl transition inline-flex items-center justify-center gap-2 ${
                       isAdminView ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Modifica Approvazione
+                    Revoca Approvazione
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleSaveOrApprove(true)}
-                    disabled={isAdminView}
+                    onClick={() => handleSalvaPosizionamento(true)}
+                    disabled={isAdminView || salvataggioInCorso}
                     title={isAdminView ? "L'approvazione è riservata al partner" : ""}
                     className={`w-full sm:w-auto px-7 py-3.5 text-xs font-extrabold rounded-2xl transition shadow-md inline-flex items-center justify-center gap-2 ${
                       isAdminView ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" : "bg-amber-400 text-slate-950 hover:bg-amber-300"
