@@ -47,6 +47,35 @@ MACRO_PHASES_DEFINITION: list[dict[str, Any]] = [
     {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali",            "icon": "📈", "agent": "MARCO",     "step_ids": []},  # post-lancio, gestita da OperativoContinuo
 ]
 
+# OPZIONE A (Metodo EVO): Step bloccanti (obbligatori) e non bloccanti (opzionali/in corso) per ciascuna macro-fase.
+#
+# Per Esamina:
+#   - Bloccanti: "02-discovery-video", "burocrazia", "03-brand-kit", "04-posizionamento"
+#   - Non bloccanti:
+#       * "la-tua-storia": Resta volutamente in_progress finché il partner non valida la sua storia narrativa;
+#         non deve bloccare il sblocco del certificato/bonus di Esamina quando il posizionamento e il brand kit sono pronti.
+#       * "obiettivo": Definizione obiettivi intermedi che non deve bloccare il rilascio.
+#
+# Per Valida:
+#   - Bloccanti: "05-script-masterclass", "06-outline-lezioni", "07-script-videolezioni", "08-registra-masterclass",
+#                "09-registra-lezioni", "10-sistema-vendita", "11-calendario-30gg", "12-prezzo-webinar"
+#   - Non bloccanti:
+#       * "13-lancio": Rimosso dal core di Valida per evitare il doppio sblocco sull'evento del go-live (Ottimizza ha già il proprio ramo dedicato al lancio).
+REQUIRED_STEP_IDS_BY_PHASE: dict[str, list[str]] = {
+    "esamina": ["02-discovery-video", "burocrazia", "03-brand-kit", "04-posizionamento"],
+    "valida": [
+        "05-script-masterclass",
+        "06-outline-lezioni",
+        "07-script-videolezioni",
+        "08-registra-masterclass",
+        "09-registra-lezioni",
+        "10-sistema-vendita",
+        "11-calendario-30gg",
+        "12-prezzo-webinar",
+    ],
+    "ottimizza": [],
+}
+
 # "Avvio" deprecato: contratto e discovery sono ora dentro la fase Esamina.
 # Mantenuto vuoto per compatibilità con get_operativo_state (niente chip Avvio).
 AVVIO_STEP_IDS: list[str] = []

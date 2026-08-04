@@ -920,6 +920,54 @@ async def save_posizionamento_inputs(request: PosizionamentoInputs):
     return {"success": True, "message": "Input salvati"}
 
 
+class UpdatePosizionamentoInputsRequest(BaseModel):
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    approvato_dal_partner: Optional[bool] = None
+
+
+@router.patch("/posizionamento/{partner_id}/inputs")
+async def update_posizionamento_inputs_partial(
+    partner_id: str,
+    request: UpdatePosizionamentoInputsRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Aggiorna in modo non distruttivo le sole chiavi specificate in inputs senza cancellare gli altri campi."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    partner = await get_partner_or_404(partner_id)
+
+    update_fields = {}
+    for k, v in request.inputs.items():
+        update_fields[f"inputs.{k}"] = v
+
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    if request.approvato_dal_partner is not None:
+        update_fields["approvato_dal_partner"] = request.approvato_dal_partner
+        update_fields["approvato_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.partner_posizionamento.update_one(
+        {"partner_id": partner_id},
+        {
+            "$set": update_fields,
+            "$setOnInsert": {
+                "partner_id": partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        },
+        upsert=True,
+    )
+
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    return {
+        "success": True,
+        "message": "Input di posizionamento aggiornati senza sovrascrittura",
+        "posizionamento": posizionamento,
+    }
+
+
 @router.post("/posizionamento/generate-positioning")
 async def generate_positioning(request: GenerateCourseStructureRequest):
     """Genera il posizionamento usando AI basandosi sui 7 input del partner"""
@@ -2512,6 +2560,23 @@ async def generate_funnel(
         upsert=True
     )
 
+    partner_posizionamento_doc = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    ) or {}
+    pos_inputs = partner_posizionamento_doc.get("inputs") or {}
+    raw_vietate = pos_inputs.get("esclusioni") or partner_posizionamento_doc.get("parole_vietate") or partner.get("parole_vietate") or []
+    if isinstance(raw_vietate, str):
+        parole_vietate = [p.strip() for p in raw_vietate.split(",") if p.strip()]
+    elif isinstance(raw_vietate, list):
+        parole_vietate = [str(p).strip() for p in raw_vietate if str(p).strip()]
+    else:
+        parole_vietate = []
+
+    parole_vietate_rule = (
+        f"- \u26d4 PAROLE VIETATE DAL PARTNER: Evita tassativamente di usare queste parole/concetti nel copy generato: {', '.join(parole_vietate)}."
+        if parole_vietate else ""
+    )
+
     # Costruisci il moduli summary per il prompt
     moduli_summary = ""
     for m in course.get("moduli", []):
@@ -2694,11 +2759,13 @@ Genera un JSON con questa struttura ESATTA:
 REGOLE:
 - Copy persuasivo, specifico per la nicchia del partner
 - Linguaggio diretto, orientato ai risultati
+- \u26d4 NEMICO DEL POSIZIONAMENTO: Il nemico/antagonista deve essere un meccanismo errato, una credenza limitante, una cattiva abitudine o uno stato di cose (es. 'metodi generici', 'sforzo improduttivo'). NON indicare MAI come nemico la categoria professionale del partner ne' i suoi colleghi o la sua professione (es. se il partner e' coach, trainer o terapeuta, non dire mai 'senza dipendere da coach/terapeuti').
+{parole_vietate_rule}
 - Ogni email deve avere un corpo COMPLETO (non placeholder)
 - Le FAQ devono essere realistiche per questo tipo di corso
 - La bio deve essere professionale e autorevole
 - Se la bio del partner non e' fornita, ricavala dal posizionamento e dalla sua storia
-- ⛔ NON inventare numeri: anni di esperienza, clienti seguiti, risultati e certificazioni si
+- \u26d4 NON inventare numeri: anni di esperienza, clienti seguiti, risultati e certificazioni si
   prendono SOLO dalla storia o dal posizionamento qui sopra. Se un numero non c'e', non citarlo
 - Mantieni la SEQUENZA delle sezioni del template: non aggiungerne, non toglierne, non riordinarle
 - Prezzo e offerta sono quelli dell'OFFERTA UFFICIALE qui sopra: non inventarne altri
@@ -2721,6 +2788,34 @@ REGOLE:
 
         blueprint = json.loads(_ritaglia_json(response_text))
 
+        # Scanner post-generazione per parole vietate (senza alterare il testo generato)
+        avvisi_parole_vietate = []
+        if parole_vietate:
+            def _scan_obj(val: Any, path: str = ""):
+                if isinstance(val, str):
+                    val_lower = val.lower()
+                    for w in parole_vietate:
+                        if w.lower() in val_lower:
+                            idx = val_lower.find(w.lower())
+                            start = max(0, idx - 35)
+                            end = min(len(val), idx + len(w) + 35)
+                            snippet = ("..." if start > 0 else "") + val[start:end] + ("..." if end < len(val) else "")
+                            avvisi_parole_vietate.append({
+                                "parola_vietata": w,
+                                "campo": path,
+                                "contesto": snippet
+                            })
+                elif isinstance(val, dict):
+                    for k, v in val.items():
+                        _scan_obj(v, f"{path}.{k}" if path else k)
+                elif isinstance(val, list):
+                    for i, item in enumerate(val):
+                        _scan_obj(item, f"{path}[{i}]")
+
+            _scan_obj(blueprint)
+
+        blueprint["avvisi_parole_vietate"] = avvisi_parole_vietate
+
         await db.partner_funnel.update_one(
             {"partner_id": request.partner_id},
             {"$set": {
@@ -2729,6 +2824,7 @@ REGOLE:
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "content": blueprint.get("landing_sections", {}),
                 "email_sequence": blueprint.get("email_sequence", []),
+                "avvisi_parole_vietate": avvisi_parole_vietate,
                 "generation_error": None,
             }}
         )
@@ -6893,6 +6989,12 @@ async def get_piano_operativo_data(
 
     completed_count = sum(1 for s in steps if s.get("status") in ("done", "completed"))
 
+    steps_by_id = {s.get("step_id"): s for s in steps}
+    ctx = {"steps": steps, "steps_by_id": steps_by_id}
+    from routers.partner_rewards import _phase_unlocked
+    esamina_unlocked = _phase_unlocked(ctx, "esamina")
+    valida_unlocked = _phase_unlocked(ctx, "valida")
+
     return {
         "success": True,
         "partner": {
@@ -6904,6 +7006,8 @@ async def get_piano_operativo_data(
         },
         "is_launched": is_launched,
         "is_unlocked": is_launched or is_admin,
+        "esamina_unlocked": esamina_unlocked,
+        "valida_unlocked": valida_unlocked,
         "completed_count": completed_count,
         "total_steps": len(steps) if steps else 14,
         "steps": steps,

@@ -228,12 +228,19 @@ async def save_landing_page(partner_id: str, body: LandingPageRequest):
 @router.post("/{partner_id}/genera-ai")
 async def genera_ai(partner_id: str):
     """
-    Genera automaticamente i campi copy della landing page usando Claude AI,
-    basandosi sui dati del profilo partner (nome, nicchia, bio, fase).
+    DEPRECATO / RITIRATO (HTTP 410 Gone).
+    
+    Motivo: Questo generatore orfano ordinava esplicitamente all'AI di inventare statistiche e percentuali non verificate
+    (es. STAT_1_NUMERO: "statistica rilevante per la nicchia (es. '87%')").
+    
+    Usare il generatore ufficiale protetto da guardie contro le allucinazioni dei dati:
+    POST /api/partner-journey/funnel/generate (in backend/routers/partner_journey.py).
     """
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
-    if not partner:
-        raise HTTPException(status_code=404, detail="Partner non trovato")
+    # Il file funnel_builder.py viene mantenuto come riferimento per il template HTML e la struttura.
+    raise HTTPException(
+        status_code=410,
+        detail="Endpoint deprecato e ritirato (inventava statistiche non verificate). Usare POST /api/partner-journey/funnel/generate."
+    )
 
     api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:

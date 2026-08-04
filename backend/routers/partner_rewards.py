@@ -8,7 +8,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
-from models.partner_journey_step import MACRO_PHASES_DEFINITION
+from models.partner_journey_step import MACRO_PHASES_DEFINITION, REQUIRED_STEP_IDS_BY_PHASE
 from services.partner_rewards_pdf import (
     render_bonus_pdf,
     render_certificate_pdf,
@@ -138,11 +138,11 @@ def _is_step_done(step: dict[str, Any] | None) -> bool:
 def _phase_unlocked(ctx: dict[str, Any], phase: str) -> bool:
     phase = _normalize_phase(phase)
     steps_by_id = ctx["steps_by_id"]
-    ids = _phase_step_ids(phase)
     if phase == "ottimizza":
         step = steps_by_id.get("13-lancio")
         return _is_step_done(step) and bool((step.get("data") or {}).get("launched_at") or step.get("completed_at"))
-    return bool(ids) and all(_is_step_done(steps_by_id.get(sid)) for sid in ids)
+    required_ids = REQUIRED_STEP_IDS_BY_PHASE.get(phase, _phase_step_ids(phase))
+    return bool(required_ids) and all(_is_step_done(steps_by_id.get(sid)) for sid in required_ids)
 
 
 def _phase_days(ctx: dict[str, Any], phase: str) -> Optional[int]:
@@ -369,6 +369,11 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     identita = _primo(hub.get("whoYouAre"), hub.get("bio"), partner.get("bio"), story.get("S01"))
     if story.get("S18"):
         identita = (identita + "\n\n" + str(story["S18"])).strip() if identita else str(story["S18"])
+
+    if not identita:
+        identita = "Identità e storia del partner in corso di definizione e validazione narrativa."
+    elif not _is_step_done(steps.get("la-tua-storia")):
+        identita = identita + "\n\n(Nota: La storia e l'identità dettagliata verranno aggiornate a completamento dello step La Tua Storia)"
 
     target = _primo(hub.get("targetAudience"), pos.get("nicchia"), pos.get("momento_di_vita"), pos.get("desideri_avatar"))
     problema = _primo(hub.get("problem"), pos.get("costo_del_no"), pos.get("paure_avatar"))

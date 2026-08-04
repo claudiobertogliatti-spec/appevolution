@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { AGENTS, getAgentForStep } from "./agents";
 import { PHASE_CONFIG } from "./phases";
 import ProjectBookCard from "../rewards/ProjectBookCard";
-import { authHeaders } from "../api";
+import { authHeaders, getPartnerUser } from "../api";
 
 function firstName(name) {
   return (name || "").split(" ")[0] || "Partner";
@@ -79,7 +79,6 @@ export default function GuidedHome({
   // campi col progetto sbagliato = "non hanno neanche guardato il mio".
   const [targetValue, setTargetValue] = useState("");
   const [promessaValue, setPromessaValue] = useState("");
-  const [noteValue, setNoteValue] = useState("");
   const [isApproved, setIsApproved] = useState(false);
 
   // Il posizionamento del partner esiste gia' in `partner_posizionamento` (spesso
@@ -101,15 +100,56 @@ export default function GuidedHome({
         if (annullato) return;
         if (inputs.target) setTargetValue(inputs.target);
         if (inputs.risultato) setPromessaValue(inputs.risultato);
+        if (d?.posizionamento?.approvato_dal_partner) setIsApproved(true);
       } catch {
-        // Nessun dato o rete assente: i campi restano vuoti col loro placeholder,
-        // che e' comunque meglio del posizionamento di un altro partner.
+        // Nessun dato o rete assente: i campi restano vuoti col loro placeholder
       }
     })();
     return () => {
       annullato = true;
     };
   }, [partnerId]);
+
+  const partnerUser = getPartnerUser();
+  const isAdminView = Boolean(
+    localStorage.getItem("ciak_admin_token") ||
+    partnerUser?.role === "admin" ||
+    partnerUser?.role === "superadmin" ||
+    partnerUser?.is_admin
+  );
+
+  const handleSaveOrApprove = async (approve = false) => {
+    if (isAdminView && approve) {
+      alert("L'approvazione è riservata al partner.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/partner-journey/posizionamento/${partnerId}/inputs`, {
+        method: "PATCH",
+        headers: {
+          ...authHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: {
+            target: targetValue,
+            risultato: promessaValue,
+          },
+          approvato_dal_partner: approve ? true : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        alert(`Impossibile salvare il posizionamento: ${errText}`);
+        return;
+      }
+      if (approve) {
+        setIsApproved(true);
+      }
+    } catch (err) {
+      alert(`Errore durante il salvataggio: ${err.message}`);
+    }
+  };
 
   return (
     <div className="space-y-6 font-[Poppins,system-ui,sans-serif] text-slate-900">
@@ -431,45 +471,38 @@ export default function GuidedHome({
                 )}
               </div>
 
-              {/* SEZIONE NOTE DEL PARTNER */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <PlusCircle className="w-3.5 h-3.5 text-amber-600" />
-                  Aggiungi indicazioni o note per {activeAgent.name}:
-                </label>
-                <input
-                  type="text"
-                  value={noteValue}
-                  onChange={(e) => setNoteValue(e.target.value)}
-                  placeholder="Es: Vorrei porre maggiore enfasi sul programma di 90 giorni..."
-                  className="w-full p-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                />
-              </div>
-
             </div>
 
             {/* BARRA PULSANTI DI APPROVAZIONE */}
             <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs text-slate-500 font-medium">
-                Approvando questo passaggio, consentirai al team di passare alla fase successiva.
+                Approvando questo passaggio, consentirai al team di registrare l'avvenuta validazione del posizionamento.
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 {isApproved ? (
                   <button
-                    onClick={() => setIsApproved(false)}
-                    className="w-full sm:w-auto px-5 py-3 bg-slate-100 text-slate-700 font-bold text-xs rounded-2xl hover:bg-slate-200 transition inline-flex items-center justify-center gap-2"
+                    onClick={() => handleSaveOrApprove(false)}
+                    disabled={isAdminView}
+                    title={isAdminView ? "L'approvazione è riservata al partner" : ""}
+                    className={`w-full sm:w-auto px-5 py-3 text-xs font-bold rounded-2xl transition inline-flex items-center justify-center gap-2 ${
+                      isAdminView ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     Modifica Approvazione
                   </button>
                 ) : (
                   <button
-                    onClick={() => setIsApproved(true)}
-                    className="w-full sm:w-auto px-7 py-3.5 bg-amber-400 text-slate-950 font-extrabold text-xs rounded-2xl hover:bg-amber-300 transition shadow-md inline-flex items-center justify-center gap-2"
+                    onClick={() => handleSaveOrApprove(true)}
+                    disabled={isAdminView}
+                    title={isAdminView ? "L'approvazione è riservata al partner" : ""}
+                    className={`w-full sm:w-auto px-7 py-3.5 text-xs font-extrabold rounded-2xl transition shadow-md inline-flex items-center justify-center gap-2 ${
+                      isAdminView ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" : "bg-amber-400 text-slate-950 hover:bg-amber-300"
+                    }`}
                   >
                     <Check className="w-4 h-4 text-slate-950" />
-                    Approva e Procedi con {activeAgent.name}
+                    Approva Posizionamento
                   </button>
                 )}
               </div>

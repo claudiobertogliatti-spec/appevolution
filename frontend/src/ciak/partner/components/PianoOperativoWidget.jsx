@@ -5,12 +5,14 @@
  */
 import React, { useState, useEffect } from "react";
 import {
-  FileText, Download, Lock, CheckCircle2, Award, Sparkles, Eye, X, ShieldCheck
+  FileText, Download, Lock, CheckCircle2, Award, Sparkles, Eye, X, ShieldCheck, AlertTriangle
 } from "lucide-react";
+import { authHeaders } from "../api";
 
 export function PianoOperativoWidget({ partnerId, partnerName }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -48,18 +50,45 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
       setLoading(false);
       return;
     }
-    fetch(`/api/partner-journey/piano-operativo-data/${partnerId}`)
-      .then((res) => (res.ok ? res.json() : null))
+    fetch(`/api/partner-journey/piano-operativo-data/${partnerId}`, {
+      headers: authHeaders(),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((json) => {
         if (json && json.success) {
           setData(json);
+          setError(false);
+        } else {
+          setError(true);
         }
       })
-      .catch((err) => console.warn("Failed to fetch piano operativo data:", err))
+      .catch((err) => {
+        console.warn("Failed to fetch piano operativo data:", err);
+        setError(true);
+      })
       .finally(() => setLoading(false));
   }, [partnerId]);
 
   if (loading) return null;
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-900 rounded-2xl p-6 shadow-sm mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="h-6 w-6 text-red-600 shrink-0" />
+          <div>
+            <h4 className="font-bold text-sm">Impossibile caricare il tuo piano operativo</h4>
+            <p className="text-xs text-red-700">Verifica la connessione o effettua nuovamente l'accesso.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const partner = data?.partner || {};
   const isLaunched = data?.is_launched || partner.is_launched;
@@ -67,20 +96,60 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
   const totalSteps = data?.total_steps || 14;
   const steps = data?.steps || [];
 
-  // Check macro-phase completion status for certificates
-  const esaminaDone = completedCount >= 6; // Macro-fase 1
-  const validaDone = completedCount >= 13;  // Macro-fase 2
+  // Check macro-phase completion status for certificates using backend flags with fallback
+  const esaminaDone = data?.esamina_unlocked !== undefined ? Boolean(data.esamina_unlocked) : completedCount >= 6;
+  const validaDone = data?.valida_unlocked !== undefined ? Boolean(data.valida_unlocked) : completedCount >= 13;
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!isLaunched && !data?.is_unlocked) {
       alert("Il Piano Operativo Strategico scaricabile in PDF si sbloccherà automaticamente a lancio avvenuto.");
       return;
     }
-    window.open(`/api/partner-journey/piano-operativo-pdf/${partnerId}`, "_blank");
+    try {
+      const res = await fetch(`/api/partner-journey/piano-operativo-pdf/${partnerId}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        alert(`Errore durante il download del Piano Operativo (HTTP ${res.status}): ${errText || "Impossibile scaricare il file"}`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Piano_Operativo_Strategico_${partnerId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(`Errore di rete durante il download: ${err.message}`);
+    }
   };
 
-  const handleDownloadCert = (macroFase) => {
-    window.open(`/api/partner-journey/certificato-pdf/${partnerId}/${macroFase}`, "_blank");
+  const handleDownloadCert = async (macroFase) => {
+    try {
+      const res = await fetch(`/api/partner-journey/certificato-pdf/${partnerId}/${macroFase}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        alert(`Errore durante il download del Certificato (HTTP ${res.status}): ${errText || "Impossibile scaricare il certificato"}`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Certificato_${macroFase}_${partnerId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(`Errore di rete durante il download del certificato: ${err.message}`);
+    }
   };
 
   return (
