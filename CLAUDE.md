@@ -38,6 +38,52 @@ tirando a indovinare? → fermarsi e correggere, o dichiarare il limite.
 **Regola d'oro**: una risposta incompleta ma vera vale più di una risposta completa e
 inventata. Un report che inventa righe è peggio di nessun report.
 
+## 🎨 DIRETTIVA DESIGN — Brand-Lock First (2026-08-05)
+
+Vale per **ogni agente** (Claude Code, Codex, Antigravity). Standard estetico di
+riferimento: Apple, Stripe, Linear, Vercel. Ma su questo repo l'estetica è **subordinata
+al brand**: qui si produce il deliverable venduto €499, e un funnel fuori brand non è
+"meno bello", è un prodotto rotto.
+
+### 1. Gerarchia di precedenza — inviolabile
+1. **Brand kit definitivo** → PRIORITÀ ASSOLUTA. Ciak/Evolution PRO: font **Poppins**,
+   palette `#0F172A` `#64748B` `#E5E7EB` `#FACC15` (fonte: `docs/brand/ciak-brand-kit.md`
+   v1.0, confermata definitiva il 18/5/2026). Per i partner: token da `partner_brand_kits`.
+2. **Direttiva design generica** (bento grid, glassmorphism, micro-interazioni, palette
+   sofisticate, font display tipo Syne/Satoshi/Inter) → valida **solo dove non esiste un
+   brand lock**: nuovi clienti (es. SlimAmour), concept, mockup esplorativi.
+
+⛔ Non sostituire Poppins con un font "più di carattere". ⛔ Non scartare `#E5E7EB`
+perché "grigio piatto": è un colore ufficiale. In caso di conflitto → **proporre**
+l'alternativa a Claudio, mai applicarla di nascosto.
+
+### 2. Verifica dipendenze prima di animare
+Stato verificato il 5/8/2026: `evolution-pro-site` ha `framer-motion@12.42.2`;
+`frontend/` (app Ciak/partner) **non ha né framer-motion né gsap**. Aggiungere una
+libreria di motion dove non c'è è una **decisione da far approvare**, non un dettaglio
+implementativo da infilare in un commit.
+Dove il motion è disponibile: fisica spring (`stiffness:300, damping:25`) invece di
+durate fisse, `whileHover`/`whileTap`, scroll reveal `viewport:{once:true}`,
+`staggerChildren:0.1`. ⚠️ Il pubblico Ciak è poco digitalizzato: rispettare
+`prefers-reduced-motion` e non nascondere contenuto critico dietro un'animazione.
+
+### 3. Onestà sui dati nel funnel builder
+Si copia il **livello visivo** di Lovable/Linear, non la disinvoltura sui dati.
+⛔ Mai generare recensioni, testimonianze, percentuali o claim di guadagno inventati:
+è illecito (Codice del Consumo artt. 21-23, direttiva Omnibus). È il motivo per cui
+`POST /funnel/{id}/genera-ai` è stato ritirato con **HTTP 410**.
+
+### 4. Stato dei sorgenti: verificare, non ricordare
+Prima di affermare che un file usa una certa palette o un certo template, **aprirlo**.
+Verificato il 5/8/2026 su `main`, la palette datata è ancora in produzione e va oltre
+il singolo file:
+- `backend/routers/funnel_builder.py:32-34` → `#1a1a2e` / `#e94560` / `#f5a623`
+  (+ righe 617, 621, 668, 737)
+- `backend/funnel_export_service.py` → 6 occorrenze di `#1a1a2e`
+- `backend/routers/contract.py:1720` → `DARK = colors.HexColor('#1a1a2e')`
+- 🪤 `backend/tests/test_funnel_builder.py:117` **asserisce** `#1a1a2e` nell'HTML:
+  correggere la palette **rompe il test** se non si aggiorna anche l'asserzione.
+
 ## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
 
 Il prodotto 'Ciak Blueprint' costa **27€ IVA inclusa** (checkout.py `unit_amount: 2700`, lockato 2026-05-12). Ogni riferimento a '67€', '6700', stato `purchased_67`/`clicked_67`, tag `ciak_bought_67`/`ciak_clicked_67` è **nomenclatura legacy mai rinominata**, NON il prezzo. Non propagare '67€' come prezzo corrente. (Fix default mark-purchased 6700→2700 applicato 2026-07-05.)
