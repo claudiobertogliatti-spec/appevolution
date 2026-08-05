@@ -101,11 +101,32 @@ mai come accento decorativo — l'accento resta `#FACC15`.
   mancante lascia il placeholder letterale nell'HTML (`{COLORE_PRIMARIO}`) → CSS invalido,
   non "colore di default".
 
-### 5. Hex fuori brand ancora presenti (decisione aperta)
-Non toccati il 5/8 perché fuori dal perimetro concordato — da decidere con Claudio:
-- `backend/routers/contract.py:1719` → `YELLOW = '#FFD24D'` (il brand è `#FACC15`)
-- `backend/funnel_export_service.py:123` → `background: #F2C418` (idem)
-- I 3 template legali usano `font-family:'Segoe UI',system-ui` → il brand è **Poppins**.
+### 5. Gialli fuori brand — 3 risolti, 23 ancora aperti
+✅ Sistemati il 5/8 (commit `c7f56d5e`): `contract.py:1719` (`#FFD24D`) e
+`funnel_export_service.py:123,271` (`#F2C418`) → tutti `#FACC15`.
+
+⛔ **Restano 23 occorrenze di `#FFD24D`/`#F2C418` in 12 file** — il problema è diffuso,
+non era confinato ai due punti trovati per primi:
+`email_templates.py` (7), `server.py` (4), `analisi_consulenziale.py` (2),
+`ciak_partnership_email.py` (2), e 1 ciascuno in `remotion_client.py`,
+`flusso_analisi.py`, `partner_journey.py`, `workspace_valida.py`,
+`agent_dispatcher.py`, `ciak_checkpoint_email.py`, `ciak_sollecito_email.py`,
+`pdf_generator.py`.
+Comando per riverificare il conteggio:
+```bash
+grep -rni "FFD24D\|F2C418" backend/ --include=*.py | wc -l
+```
+🪤 **Non fare un replace globale.** Sono le email ai partner e i PDF dell'analisi: dove il
+giallo è applicato a **testo** (non a bordi/sfondi), `#FACC15` su bianco ha contrasto
+troppo basso e il brand kit vieta esplicitamente il giallo per il testo. Va controllato
+caso per caso.
+
+⚠️ Non è un giallo fuori brand ma un **colore semantico**: `#F59E0B` in
+`funnel_export_service.py:155,178` marca lo stato *pending*. Non toccarlo.
+
+### 6. Font fuori brand (aperto)
+I 3 template legali in `funnel_builder.py` usano `font-family:'Segoe UI',system-ui`;
+`funnel_export_service.py:104` idem. Il brand è **Poppins**.
 
 ## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
 
