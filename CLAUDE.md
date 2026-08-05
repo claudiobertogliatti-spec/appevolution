@@ -101,28 +101,31 @@ mai come accento decorativo — l'accento resta `#FACC15`.
   mancante lascia il placeholder letterale nell'HTML (`{COLORE_PRIMARIO}`) → CSS invalido,
   non "colore di default".
 
-### 5. Gialli fuori brand — 3 risolti, 23 ancora aperti
-✅ Sistemati il 5/8 (commit `c7f56d5e`): `contract.py:1719` (`#FFD24D`) e
-`funnel_export_service.py:123,271` (`#F2C418`) → tutti `#FACC15`.
+### 5. Gialli fuori brand — ✅ CHIUSO il 5/8/2026
+`#FFD24D` e `#F2C418` **non esistono più** in `backend/`: 26 occorrenze in 14 file, tutte
+sistemate (commit `c7f56d5e` per contract/export, `1029e6ce` per le altre 23).
+Riverifica: `grep -rni "FFD24D\|F2C418" backend/ --include=*.py` → 0.
 
-⛔ **Restano 23 occorrenze di `#FFD24D`/`#F2C418` in 12 file** — il problema è diffuso,
-non era confinato ai due punti trovati per primi:
-`email_templates.py` (7), `server.py` (4), `analisi_consulenziale.py` (2),
-`ciak_partnership_email.py` (2), e 1 ciascuno in `remotion_client.py`,
-`flusso_analisi.py`, `partner_journey.py`, `workspace_valida.py`,
-`agent_dispatcher.py`, `ciak_checkpoint_email.py`, `ciak_sollecito_email.py`,
-`pdf_generator.py`.
-Comando per riverificare il conteggio:
-```bash
-grep -rni "FFD24D\|F2C418" backend/ --include=*.py | wc -l
-```
-🪤 **Non fare un replace globale.** Sono le email ai partner e i PDF dell'analisi: dove il
-giallo è applicato a **testo** (non a bordi/sfondi), `#FACC15` su bianco ha contrasto
-troppo basso e il brand kit vieta esplicitamente il giallo per il testo. Va controllato
-caso per caso.
+🪤 **Non è stato un replace globale, e non deve esserlo se ricapita.** Lo stesso hex aveva
+tre ruoli, con due destinazioni diverse:
+| Ruolo | Destinazione | Perché |
+|---|---|---|
+| Testo su fondo scuro (`#0F172A`, `#1A1F24`) | `#FACC15` | contrasto ok |
+| Testo su fondo chiaro (`#FAFAF7`, bianco PDF) | **`#0F172A`** | il giallo su bianco non passa il contrasto — il brand kit vieta il giallo per il testo |
+| Sfondi, bordi, linee, token | `#FACC15` | non è testo |
 
-⚠️ Non è un giallo fuori brand ma un **colore semantico**: `#F59E0B` in
-`funnel_export_service.py:155,178` marca lo stato *pending*. Non toccarlo.
+I 5 casi della riga centrale erano link nelle email ai partner (`email_templates.py:33`,
+`server.py:4223`) e titoli di sezione nei PDF dell'analisi (`analisi_consulenziale.py:897,981`,
+`flusso_analisi.py:1940`). Convertirli in giallo brand avrebbe **peggiorato** un problema di
+accessibilità già presente.
+
+⚠️ Non sono gialli fuori brand ma **colori semantici** — non toccarli:
+`#F59E0B` in `funnel_export_service.py:155,178` (stato *pending*),
+`#F43F5E` (urgenza/errori, vedi §4).
+
+⛔ Restano altri hex non-brand mai censiti (`#FADA5E`, `#FFF8DC`, `#FEF9E7`, `#1a1f24`,
+`#2D3038`, `#16213e` nei template email). Nessuno è un giallo di marca usato male: sono
+sfondi tenui e neutri. Da valutare solo se si fa un riallineamento completo dei template email.
 
 ### 6. Font fuori brand (aperto)
 I 3 template legali in `funnel_builder.py` usano `font-family:'Segoe UI',system-ui`;

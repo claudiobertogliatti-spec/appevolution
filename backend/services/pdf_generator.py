@@ -17,7 +17,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
-YELLOW     = HexColor("#FFD24D")
+YELLOW     = HexColor("#FACC15")
 YELLOW_BG  = HexColor("#FFF8E1")
 DARK       = HexColor("#1A1F24")
 MUTED      = HexColor("#6B7280")

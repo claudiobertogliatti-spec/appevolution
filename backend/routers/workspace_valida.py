@@ -175,7 +175,7 @@ def _kit_to_html(title: str, body: str, partner_name: str) -> str:
 <style>
   body {{ font-family: 'Poppins', Arial, sans-serif; color:#1A1F24; margin:0; padding:40px; }}
   .hd {{ background:#1A1F24; color:#fff; padding:24px 28px; border-radius:12px; }}
-  .hd .tag {{ color:#FFD24D; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }}
+  .hd .tag {{ color:#FACC15; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }}
   .hd h1 {{ margin:6px 0 0; font-size:22px; }}
   .hd .who {{ color:#9aa3ad; font-size:13px; margin-top:4px; }}
   .body {{ margin-top:24px; font-size:14px; line-height:1.7; }}

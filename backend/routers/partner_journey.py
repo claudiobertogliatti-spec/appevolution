@@ -4389,7 +4389,7 @@ END:VEVENT
             
             table = Table(data, colWidths=[50, 150, 80, 200])
             table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2C418')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FACC15')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),

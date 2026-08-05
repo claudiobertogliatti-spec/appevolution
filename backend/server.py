@@ -4210,7 +4210,7 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
     <html>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #0F172A 0%, #2D3038 100%); padding: 30px; text-align: center;">
-            <h1 style="color: #F2C418; margin: 0;">Piattaforma Systeme.io</h1>
+            <h1 style="color: #FACC15; margin: 0;">Piattaforma Systeme.io</h1>
         </div>
         
         <div style="padding: 30px; background: #fff;">
@@ -4220,12 +4220,12 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
             
             <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
                 <h3 style="color: #0F172A; margin-top: 0;">🔐 Credenziali Systeme.io</h3>
-                <p><strong>URL:</strong> <a href="https://systeme.io/dashboard" style="color: #F2C418;">https://systeme.io/dashboard</a></p>
+                <p><strong>URL:</strong> <a href="https://systeme.io/dashboard" style="color: #0F172A;">https://systeme.io/dashboard</a></p>
                 <p><strong>Email:</strong> {systeme_email or email}</p>
                 <p><strong>Password:</strong> {systeme_password or "[Ti verrà comunicata separatamente]"}</p>
             </div>
             
-            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FACC15;">
                 <h3 style="color: #0F172A; margin-top: 0;">📖 Cosa è Systeme.io?</h3>
                 <p>Systeme.io è la piattaforma dove:</p>
                 <ul style="margin: 0; padding-left: 20px;">
@@ -4825,7 +4825,7 @@ async def get_partner_hub(partner_id: str, _auth=Depends(require_partner_or_admi
         "offerGuarantee": "",
         "logo": None,
         "primaryColor": "#2C5F8A",
-        "accentColor": "#F2C418",
+        "accentColor": "#FACC15",
         "textColor": "#0F172A",
         "bgColor": "#FAFAF7",
         "fontPrimary": "Nunito Bold",

@@ -64,7 +64,7 @@ async def render_partner_video(
     output_path: str,
     outro_cta_text: str = "Scopri il corso completo",
     outro_cta_url: str = "evolution-pro.it",
-    primary_color: str = "#FFD24D",
+    primary_color: str = "#FACC15",
     music_volume: float = 0.12,
     show_subtitles: bool = True,
     show_music: bool = True,

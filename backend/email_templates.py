@@ -17,7 +17,7 @@ DEFAULT_TEMPLATES = {
         "body_html": """
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+    <div style="background: linear-gradient(135deg, #FACC15 0%, #FADA5E 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
         <h1 style="color: #0F172A; margin: 0; font-size: 24px;">Benvenuto in Evolution PRO!</h1>
     </div>
     
@@ -26,11 +26,11 @@ DEFAULT_TEMPLATES = {
         
         <p>Hai ora accesso a <strong>due strumenti</strong> che lavorano insieme per costruire la tua Accademia Digitale:</p>
         
-        <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+        <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FACC15;">
             <h3 style="color: #0F172A; margin-top: 0;">📱 App Evolution PRO</h3>
             <p style="margin-bottom: 0;">È il tuo <strong>pannello di controllo</strong>. Qui trovi il tuo percorso, i materiali, il supporto del team e monitori i tuoi progressi.</p>
             <p style="margin-top: 10px; margin-bottom: 0;"><strong>Accedi con:</strong> {{email}} e la password che hai scelto</p>
-            <p style="margin-top: 10px;"><a href="https://ciak.io" style="color: #F2C418; font-weight: bold;">→ Accedi all'App</a></p>
+            <p style="margin-top: 10px;"><a href="https://ciak.io" style="color: #0F172A; font-weight: bold;">→ Accedi all'App</a></p>
         </div>
         
         <div style="background: #FFF8E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
@@ -51,7 +51,7 @@ DEFAULT_TEMPLATES = {
     
     <div style="background: #0F172A; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
         <p style="margin: 0;">© 2026 Evolution PRO - Tutti i diritti riservati</p>
-        <p style="margin: 5px 0 0 0; color: #F2C418;">Claudio Bertogliatti & Team</p>
+        <p style="margin: 5px 0 0 0; color: #FACC15;">Claudio Bertogliatti & Team</p>
     </div>
 </body>
 </html>
@@ -81,7 +81,7 @@ DEFAULT_TEMPLATES = {
             <p><a href="{{bonus_link}}" style="color: #667eea; font-weight: bold;">→ Accedi al Bonus</a></p>
         </div>
         
-        <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+        <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FACC15;">
             <h3 style="color: #0F172A; margin-top: 0;">📞 Prenota la tua Videocall</h3>
             <p>Tra 48 ore potrai prenotare una videocall strategica con il nostro team per discutere la tua analisi.</p>
             <p style="color: #666; font-size: 14px;">Il link sarà attivo dal {{booking_available_date}}.</p>
@@ -159,7 +159,7 @@ DEFAULT_TEMPLATES = {
         
         <p>Non perché manchino le competenze, ma perché manca un <strong>sistema</strong> per trasformare quella expertise in un asset scalabile.</p>
         
-        <div style="background: #F3F4F6; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+        <div style="background: #F3F4F6; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FACC15;">
             <p style="margin: 0;"><strong>La domanda è:</strong> preferisci continuare a scambiare tempo per soldi... o vuoi costruire qualcosa che lavori anche quando tu non lavori?</p>
         </div>
         
@@ -273,7 +273,7 @@ DEFAULT_TEMPLATES = {
         <p>È un investimento minimo per capire se e quanto puoi guadagnare dalla tua expertise.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{{link_checkout}}" style="display: inline-block; background: #F2C418; color: #0F172A; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
+            <a href="{{link_checkout}}" style="display: inline-block; background: #FACC15; color: #0F172A; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
                 → Ottieni la tua Analisi Strategica
             </a>
         </div>

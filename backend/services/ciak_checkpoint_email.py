@@ -220,7 +220,7 @@ def _build_html(nome: str, stato: int, tracking_token: Optional[str] = None) -> 
       {body_paragraphs}
     </div>
     <div style="text-align:center;margin:32px 0 8px;">
-      <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#ffd24d;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
+      <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#FACC15;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
         Prenota la tua Analisi Strategica (67€) →
       </a>
     </div>

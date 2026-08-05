@@ -81,7 +81,7 @@ def _wrap_html(title: str, body_html: str, cta_label: str, cta_url: str, trackin
       {body_html}
     </div>
     <div style="text-align:center;margin:32px 0 8px;">
-      <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#ffd24d;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
+      <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#FACC15;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
         {cta_label}
       </a>
     </div>
@@ -207,7 +207,7 @@ Le tue credenziali per l'area partner ciak.io/partner:
 Al primo accesso ti chiederemo di cambiare la password.
 """
         creds_html = (
-            f"<div style='background:#fef9e7;border:1px solid #ffd24d;border-radius:8px;padding:16px;margin:16px 0;'>"
+            f"<div style='background:#fef9e7;border:1px solid #FACC15;border-radius:8px;padding:16px;margin:16px 0;'>"
             f"<p style='margin:0 0 8px;font-weight:600;color:#92400e;'>Le tue credenziali area partner</p>"
             f"<p style='margin:0 0 4px;font-family:Menlo,Consolas,monospace;font-size:14px;'><strong>Email:</strong> {partner_email}</p>"
             f"<p style='margin:0 0 4px;font-family:Menlo,Consolas,monospace;font-size:14px;'><strong>Password:</strong> {password}</p>"

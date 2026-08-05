@@ -894,7 +894,7 @@ async def export_script_call_pdf(user_id: str):
         
         # Stili personalizzati
         title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, spaceAfter=20)
-        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=14, spaceAfter=10, textColor=colors.HexColor('#F2C418'))
+        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=14, spaceAfter=10, textColor=colors.HexColor('#0F172A'))
         body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, leading=14, spaceAfter=8)
         note_style = ParagraphStyle('Note', parent=styles['Normal'], fontSize=9, leading=12, textColor=colors.gray, spaceAfter=6)
         
@@ -978,7 +978,7 @@ async def export_analisi_finale_pdf(user_id: str):
         # Stili
         cover_title = ParagraphStyle('CoverTitle', parent=styles['Title'], fontSize=28, alignment=TA_CENTER, spaceAfter=20)
         cover_sub = ParagraphStyle('CoverSub', parent=styles['Normal'], fontSize=14, alignment=TA_CENTER, textColor=colors.gray)
-        section_title = ParagraphStyle('SectionTitle', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#F2C418'), spaceAfter=12)
+        section_title = ParagraphStyle('SectionTitle', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#0F172A'), spaceAfter=12)
         body = ParagraphStyle('Body', parent=styles['Normal'], fontSize=11, leading=16, alignment=TA_JUSTIFY, spaceAfter=10)
         
         # COPERTINA

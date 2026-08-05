@@ -23,7 +23,7 @@ AGENT_PROFILES: dict[str, dict] = {
         "name": "Valentina",
         "role": "Strategia e onboarding",
         "description": "Ti guida nella fase Esamina: dati, brand e posizionamento, le basi del tuo progetto.",
-        "color": "#F2C418",
+        "color": "#FACC15",
         "emoji": "🟡",
     },
     "ANDREA": {

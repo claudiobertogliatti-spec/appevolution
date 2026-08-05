@@ -1937,7 +1937,7 @@ async def download_analisi_pdf(user_id: str):
         
         # Stili
         title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=24, alignment=TA_CENTER, spaceAfter=30)
-        section_title = ParagraphStyle('SectionTitle', parent=styles['Heading1'], fontSize=14, textColor=colors.HexColor('#F2C418'), spaceAfter=12)
+        section_title = ParagraphStyle('SectionTitle', parent=styles['Heading1'], fontSize=14, textColor=colors.HexColor('#0F172A'), spaceAfter=12)
         body = ParagraphStyle('Body', parent=styles['Normal'], fontSize=11, leading=16, alignment=TA_JUSTIFY, spaceAfter=10)
         
         # Titolo

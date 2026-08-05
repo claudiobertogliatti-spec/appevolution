@@ -112,7 +112,7 @@ Ciak. Una direzione strategica per la tua competenza professionale.
         body_html=(
             f"<p style='margin:0 0 16px;'>Ciao {nome_safe},</p>"
             f"<p style='margin:0 0 16px;'>{lead_html}</p>"
-            f"<div style='background:#fef9e7;border:1px solid #ffd24d;border-radius:8px;padding:16px;margin:16px 0;'>"
+            f"<div style='background:#fef9e7;border:1px solid #FACC15;border-radius:8px;padding:16px;margin:16px 0;'>"
             f"<p style='margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#92400e;'>Il tuo prossimo passo</p>"
             f"<p style='margin:0;font-size:16px;font-weight:600;color:#1a1f24;'>{azione}</p>"
             f"</div>"
