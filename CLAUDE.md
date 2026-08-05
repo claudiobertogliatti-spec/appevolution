@@ -103,7 +103,7 @@ mai come accento decorativo — l'accento resta `#FACC15`.
 
 ### 5. Gialli fuori brand — ✅ CHIUSO il 5/8/2026
 `#FFD24D` e `#F2C418` **non esistono più** in `backend/`: 26 occorrenze in 14 file, tutte
-sistemate (commit `c7f56d5e` per contract/export, `1029e6ce` per le altre 23).
+sistemate (commit `c7f56d5e` per contract/export, `e43de35f` per le altre 23).
 Riverifica: `grep -rni "FFD24D\|F2C418" backend/ --include=*.py` → 0.
 
 🪤 **Non è stato un replace globale, e non deve esserlo se ricapita.** Lo stesso hex aveva
