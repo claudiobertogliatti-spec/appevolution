@@ -1640,7 +1640,18 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                                 "enabled": True,
                             })
                     _review_now = datetime.now(timezone.utc).isoformat()
+                    # edit_project (spec 2026-07-11): scritto IN AGGIUNTA ai campi legacy,
+                    # mai al loro posto — la UI di revisione legge ancora i campi piatti.
+                    from services import ciak_edit_project as _ceep
                     if video_type == "masterclass":
+                        _ep_doc = await db.masterclass_factory.find_one({"partner_id": partner_id}) or {}
+                        _ep_set = _ceep.safe_set_fields(
+                            _ceep.project_from_pipeline,
+                            doc=_ep_doc, video_url=video_url, raw_duration_s=int(raw_dur),
+                            transcript=transcript, words=words, filler_report=filler_report,
+                            cut_segments=_cut_rev, pipeline_status="da_revisionare",
+                            updated_at=_review_now,
+                        )
                         await db.masterclass_factory.update_one(
                             {"partner_id": partner_id},
                             {"$set": {
@@ -1653,11 +1664,21 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                                 "review_filler_report": filler_report,
                                 "review_created_at": _review_now,
                                 "updated_at": _review_now,
+                                **_ep_set,
                             }},
                             upsert=True,
                         )
                     else:
                         _lk = f"lessons.{lesson_id}"
+                        _vc_doc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+                        _ep_doc = ((_vc_doc.get("lessons") or {}).get(lesson_id)) or {}
+                        _ep_set = _ceep.safe_set_fields(
+                            _ceep.project_from_pipeline, lesson_key=_lk,
+                            doc=_ep_doc, video_url=video_url, raw_duration_s=int(raw_dur),
+                            transcript=transcript, words=words, filler_report=filler_report,
+                            cut_segments=_cut_rev, pipeline_status="da_revisionare",
+                            updated_at=_review_now,
+                        )
                         await db.partner_videocorso.update_one(
                             {"partner_id": partner_id},
                             {"$set": {
@@ -1670,6 +1691,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                                 f"{_lk}.review_filler_report": filler_report,
                                 f"{_lk}.review_created_at": _review_now,
                                 "updated_at": _review_now,
+                                **_ep_set,
                             }},
                             upsert=True,
                         )
@@ -2195,11 +2217,18 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                 "video_reviewed": True,
                 "pipeline_completed_at": now_iso,
             }
+            from services import ciak_edit_project as _ceep
+            _ep_set = _ceep.safe_set_fields(
+                _ceep.project_after_montage, lesson_key=lk,
+                doc=src, gcs_path=_public_url, ciak_url=_ciak_url,
+                final_duration_s=final_dur, montaged_at=now_iso, version=_version,
+            )
             await db.partner_videocorso.update_one(
                 {"partner_id": partner_id},
                 {"$set": {**{f"{lk}.{k}": v for k, v in _final_fields.items()},
                           f"{lk}.pipeline_status": "ready_for_review",
-                          "updated_at": now_iso}},
+                          "updated_at": now_iso,
+                          **_ep_set}},
                 upsert=True,
             )
             try:
@@ -2236,11 +2265,18 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                 "video_reviewed": True,
                 "pipeline_completed_at": now_iso,
             }
+            from services import ciak_edit_project as _ceep
+            _ep_set = _ceep.safe_set_fields(
+                _ceep.project_after_montage,
+                doc=src, gcs_path=None, ciak_url=embed_url,
+                final_duration_s=final_dur, montaged_at=now_iso,
+            )
             await db.masterclass_factory.update_one(
                 {"partner_id": partner_id},
                 {"$set": {**_final_fields,
                           "video_pipeline_status": "ready_for_review",
-                          "updated_at": now_iso}},
+                          "updated_at": now_iso,
+                          **_ep_set}},
                 upsert=True,
             )
             try:
