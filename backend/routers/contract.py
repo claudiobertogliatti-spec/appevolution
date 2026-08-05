@@ -1716,7 +1716,7 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         from reportlab.lib.utils import ImageReader
 
         LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "logo_evolutionpro.png")
-        YELLOW = colors.HexColor('#FFD24D')
+        YELLOW = colors.HexColor('#FACC15')
         DARK = colors.HexColor('#0F172A')
         GREY = colors.HexColor('#999999')
 

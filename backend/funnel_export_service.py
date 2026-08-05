@@ -120,7 +120,7 @@ class FunnelExportService:
         .header p {{ opacity: 0.8; font-size: 14px; }}
         .header .badge {{
             display: inline-block;
-            background: #F2C418;
+            background: #FACC15;
             color: #0F172A;
             padding: 6px 16px;
             border-radius: 20px;
@@ -268,7 +268,7 @@ class FunnelExportService:
         /* Copy button hint */
         .copy-hint {{
             background: #FFF8DC;
-            border: 1px dashed #F2C418;
+            border: 1px dashed #FACC15;
             padding: 15px 20px;
             border-radius: 10px;
             margin-bottom: 20px;
