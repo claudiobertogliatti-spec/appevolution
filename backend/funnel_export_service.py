@@ -103,14 +103,14 @@ class FunnelExportService:
         body {{ 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background: #f8f9fa; 
-            color: #1a1a2e; 
+            color: #0F172A; 
             line-height: 1.6;
         }}
         .container {{ max-width: 900px; margin: 0 auto; padding: 40px 20px; }}
         
         /* Header */
         .header {{
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
             color: white;
             padding: 40px;
             border-radius: 16px;
@@ -121,7 +121,7 @@ class FunnelExportService:
         .header .badge {{
             display: inline-block;
             background: #F2C418;
-            color: #1a1a2e;
+            color: #0F172A;
             padding: 6px 16px;
             border-radius: 20px;
             font-size: 12px;
@@ -141,7 +141,7 @@ class FunnelExportService:
         .partner-info .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }}
         .partner-info .item {{ }}
         .partner-info .label {{ font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }}
-        .partner-info .value {{ font-weight: 600; color: #1a1a2e; margin-top: 4px; }}
+        .partner-info .value {{ font-weight: 600; color: #0F172A; margin-top: 4px; }}
         
         /* Section */
         .section {{
@@ -198,7 +198,7 @@ class FunnelExportService:
         }}
         .content-value {{
             font-size: 15px;
-            color: #1a1a2e;
+            color: #0F172A;
         }}
         .content-value.headline {{
             font-size: 20px;
@@ -275,7 +275,7 @@ class FunnelExportService:
             font-size: 13px;
             color: #8B7500;
         }}
-        .copy-hint strong {{ color: #1a1a2e; }}
+        .copy-hint strong {{ color: #0F172A; }}
         
         /* Print styles */
         @media print {{

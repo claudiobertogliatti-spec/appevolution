@@ -29,9 +29,11 @@ class LandingPageParams(BaseModel):
     PARTNER_NICCHIA: str = ""
     PARTNER_BIO: str = ""
     PARTNER_FOTO_URL: str = ""
-    COLORE_PRIMARIO: str = "#1a1a2e"
-    COLORE_SECONDARIO: str = "#e94560"
-    COLORE_ACCENT: str = "#f5a623"
+    # Brand kit Evolution/Ciak (docs/brand/ciak-brand-kit.md v1.0) — vedi CLAUDE.md "Brand-Lock First".
+    # SECONDARIO è il quinto colore semantico (urgenza/errori), non un colore di marca.
+    COLORE_PRIMARIO: str = "#0F172A"
+    COLORE_SECONDARIO: str = "#F43F5E"
+    COLORE_ACCENT: str = "#FACC15"
     URGENCY_TEXT: str = ""
     HEADLINE_PRINCIPALE: str = ""
     HEADLINE_SPAN: str = ""
@@ -614,11 +616,11 @@ h1{{font-size:28px;font-weight:800;margin-bottom:8px}}
 h2{{font-size:18px;font-weight:700;margin:32px 0 12px;padding-top:16px;border-top:1px solid #eee}}
 p{{margin-bottom:14px;font-size:15px;color:#374151}}
 table{{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}}
-th{{background:#1a1a2e;color:#fff;padding:10px 14px;text-align:left}}
+th{{background:#0F172A;color:#fff;padding:10px 14px;text-align:left}}
 td{{padding:10px 14px;border-bottom:1px solid #e5e7eb}}
 tr:nth-child(even){{background:#f9fafb}}
 .data{{font-size:13px;color:#6b7280;margin-bottom:32px}}
-a{{color:#e94560}}
+a{{color:#0F172A}}
 </style>
 </head>
 <body>
@@ -665,7 +667,7 @@ h2{{font-size:18px;font-weight:700;margin:32px 0 12px;padding-top:16px;border-to
 p,li{{margin-bottom:12px;font-size:15px;color:#374151}}
 ul{{padding-left:20px;margin-bottom:16px}}
 .data{{font-size:13px;color:#6b7280;margin-bottom:32px}}
-a{{color:#e94560}}
+a{{color:#0F172A}}
 .box{{background:#f0f9ff;border-left:4px solid #0ea5e9;padding:16px 20px;border-radius:4px;margin:20px 0}}
 </style>
 </head>
@@ -734,7 +736,7 @@ h2{{font-size:18px;font-weight:700;margin:32px 0 12px;padding-top:16px;border-to
 p,li{{margin-bottom:12px;font-size:15px;color:#374151}}
 ul{{padding-left:20px;margin-bottom:16px}}
 .data{{font-size:13px;color:#6b7280;margin-bottom:32px}}
-a{{color:#e94560}}
+a{{color:#0F172A}}
 .box{{background:#fffbeb;border-left:4px solid #f59e0b;padding:16px 20px;border-radius:4px;margin:20px 0;font-size:14px}}
 </style>
 </head>

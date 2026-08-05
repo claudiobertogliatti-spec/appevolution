@@ -1717,7 +1717,7 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
 
         LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "logo_evolutionpro.png")
         YELLOW = colors.HexColor('#FFD24D')
-        DARK = colors.HexColor('#1a1a2e')
+        DARK = colors.HexColor('#0F172A')
         GREY = colors.HexColor('#999999')
 
         # ---- Carta intestata (header + footer) disegnata su ogni pagina ----

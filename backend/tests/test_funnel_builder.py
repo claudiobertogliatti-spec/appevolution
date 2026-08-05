@@ -91,9 +91,9 @@ class TestFunnelBuilderLandingPage:
                 "CORSO_PREZZO": "497",
                 "CORSO_PREZZO_ORIGINALE": "997",
                 "INCLUSO_1": "Accesso a vita",
-                "COLORE_PRIMARIO": "#1a1a2e",
-                "COLORE_SECONDARIO": "#e94560",
-                "COLORE_ACCENT": "#f5a623"
+                "COLORE_PRIMARIO": "#0F172A",
+                "COLORE_SECONDARIO": "#F43F5E",
+                "COLORE_ACCENT": "#FACC15"
             },
             "genera_html": True
         }
@@ -114,7 +114,7 @@ class TestFunnelBuilderLandingPage:
         assert "<!DOCTYPE html>" in html, "HTML should contain DOCTYPE"
         assert "Arianna Aceto" in html, "HTML should contain partner name"
         assert "Trasforma la tua vita" in html, "HTML should contain headline"
-        assert "#1a1a2e" in html, "HTML should contain primary color"
+        assert "#0F172A" in html, "HTML should contain primary color"
         
         print(f"✓ POST landing-page generates HTML ({len(html)} chars)")
     

@@ -75,14 +75,37 @@ Si copia il **livello visivo** di Lovable/Linear, non la disinvoltura sui dati.
 
 ### 4. Stato dei sorgenti: verificare, non ricordare
 Prima di affermare che un file usa una certa palette o un certo template, **aprirlo**.
-Verificato il 5/8/2026 su `main`, la palette datata è ancora in produzione e va oltre
-il singolo file:
-- `backend/routers/funnel_builder.py:32-34` → `#1a1a2e` / `#e94560` / `#f5a623`
-  (+ righe 617, 621, 668, 737)
-- `backend/funnel_export_service.py` → 6 occorrenze di `#1a1a2e`
-- `backend/routers/contract.py:1720` → `DARK = colors.HexColor('#1a1a2e')`
-- 🪤 `backend/tests/test_funnel_builder.py:117` **asserisce** `#1a1a2e` nell'HTML:
-  correggere la palette **rompe il test** se non si aggiorna anche l'asserzione.
+
+✅ **Palette allineata al brand il 5/8/2026.** La vecchia (`#1a1a2e`/`#e94560`/`#f5a623`)
+non esiste più in `backend/` (grep: 0 occorrenze). Mapping applicato:
+| Vecchio | Nuovo | Dove |
+|---|---|---|
+| `#1a1a2e` | `#0F172A` | ovunque (slate-900 brand) |
+| `#f5a623` | `#FACC15` | accento landing |
+| `#e94560` | `#F43F5E` **solo nella landing** (`COLORE_SECONDARIO` = quinto colore semantico, urgenza/errori) | |
+| `#e94560` | `#0F172A` **nei 3 documenti legali** (link e header tabella: sobri, brand-puri) | |
+| `#16213e` | `#1E293B` | gradient header export |
+
+⚠️ Il quinto colore `#F43F5E` **non è un colore di marca**: usarlo solo per urgenza/errori,
+mai come accento decorativo — l'accento resta `#FACC15`.
+
+🪤 **Errori di lettura da non ripetere** (commessi il 5/8 e corretti):
+- `test_funnel_builder.py` è un test **e2e HTTP** (`requests.post` a `BASE_URL`), non un
+  unit test: **invia** i colori nel payload e poi asserisce quelli. Cambiare i default NON
+  lo rompe. Non dedurre l'effetto di un'asserzione senza leggere come il test costruisce
+  l'input.
+- `LandingPageParams` **non è usata** in `funnel_builder.py` oltre alla definizione: il
+  percorso `POST /{partner_id}/landing-page` passa il dict grezzo a `_render`, quindi lì i
+  default non si applicano. Chi li applica è `funnel_factory.py:57`.
+- `_render` (`funnel_builder.py:132`) sostituisce **solo le chiavi presenti**: una chiave
+  mancante lascia il placeholder letterale nell'HTML (`{COLORE_PRIMARIO}`) → CSS invalido,
+  non "colore di default".
+
+### 5. Hex fuori brand ancora presenti (decisione aperta)
+Non toccati il 5/8 perché fuori dal perimetro concordato — da decidere con Claudio:
+- `backend/routers/contract.py:1719` → `YELLOW = '#FFD24D'` (il brand è `#FACC15`)
+- `backend/funnel_export_service.py:123` → `background: #F2C418` (idem)
+- I 3 template legali usano `font-family:'Segoe UI',system-ui` → il brand è **Poppins**.
 
 ## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
 
