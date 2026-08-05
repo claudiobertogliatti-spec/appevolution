@@ -12,6 +12,32 @@ Le tre regole che vengono violate più spesso:
 2. **Niente è "fatto" senza prova** (comando+output, URL, risposta API, screenshot).
 3. **Mai `git add .`** — si aggiungono i file per nome.
 
+## ⛔ DIRETTIVA TASSATIVA — Verifica al 100%, zero allucinazioni (2026-08-05)
+
+Vale per **ogni agente** su questo repo (Claude Code, Codex, Antigravity) e per ogni
+risposta. Estende la regola 2 qui sopra ("niente è fatto senza prova") a monte: non solo
+le azioni, ma anche le **affermazioni** vanno provate.
+
+**1. No-guessing.** Mai assumere l'esistenza di file, percorsi, firme di funzione,
+librerie, variabili o endpoint senza averli letti o interrogati direttamente. Prima di
+proporre una modifica: leggere il sorgente reale, non lo snippet parziale né il ricordo
+di sessioni precedenti. ⚠️ Su questo repo l'errore costa: vedi `server.py` (shadow
+routes — grep prima di toccare) e il doppio campo hash password.
+
+**2. Incertezza dichiarata.** Se manca l'accesso o lo strumento per verificare al 100%,
+dirlo invece di produrre la risposta plausibile. Se la richiesta è ambigua, chiedere.
+Etichettare sempre in modo esplicito:
+- ✅ **fatto verificato** (con la prova a fianco: comando+output, URL, risposta API)
+- 🔎 **deduzione logica** (dichiarata come tale)
+- ⛔ **dato mancante / non verificabile** (evidenziato subito)
+
+**3. Checklist pre-risposta.** Ho verificato ogni nome di file/funzione/variabile nel
+codice reale? Sto rispondendo solo su ciò che posso dimostrare? C'è un punto in cui sto
+tirando a indovinare? → fermarsi e correggere, o dichiarare il limite.
+
+**Regola d'oro**: una risposta incompleta ma vera vale più di una risposta completa e
+inventata. Un report che inventa righe è peggio di nessun report.
+
 ## ⚠️ Prezzo Ciak Blueprint = 27€ (2700), non 67€. I nomi *_67 sono LEGACY (2026-07-05)
 
 Il prodotto 'Ciak Blueprint' costa **27€ IVA inclusa** (checkout.py `unit_amount: 2700`, lockato 2026-05-12). Ogni riferimento a '67€', '6700', stato `purchased_67`/`clicked_67`, tag `ciak_bought_67`/`ciak_clicked_67` è **nomenclatura legacy mai rinominata**, NON il prezzo. Non propagare '67€' come prezzo corrente. (Fix default mark-purchased 6700→2700 applicato 2026-07-05.)
