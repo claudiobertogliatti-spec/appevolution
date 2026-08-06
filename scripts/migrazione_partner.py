@@ -297,17 +297,31 @@ def _prove_step(fd: dict, hub: dict) -> dict:
     fun = fd.get("funnel") or {}
 
     def ans(sid: str) -> dict:
-        return ((steps.get(sid) or {}).get("data") or {}).get("answers") or {}
+        """Contenuto di uno step. ⚠️ NON basta `data.answers`: i wizard scrivono
+        li', ma diversi step tengono il loro output come chiavi dirette dentro
+        `data` (es. `data.script_videolezioni`, letto da partner_rewards.py:461).
+        Guardando solo `answers` il 6/8/2026 questo collaudo ha dato tre falsi
+        'DONE SENZA PROVA' su Andolfi. E' la trappola gia' nota di Ciak: il dato
+        c'e', chi lo cerca guarda nel posto sbagliato."""
+        d = (steps.get(sid) or {}).get("data") or {}
+        if not isinstance(d, dict):
+            return {}
+        risposte = d.get("answers")
+        if isinstance(risposte, dict) and risposte:
+            return risposte
+        return {k: v for k, v in d.items() if k != "answers"}
 
     con_video = sum(1 for v in lez.values()
                     if isinstance(v, dict) and (v.get("video_embed_url") or v.get("video_raw_url")))
-    con_script = sum(1 for v in lez.values()
-                     if isinstance(v, dict) and str(v.get("script") or "").strip())
-    anagrafica = sum(1 for c in ("codice_fiscale", "partita_iva", "iban") if str(p.get(c) or "").strip())
+    # I dati fiscali NON stanno sui campi di primo livello del partner: lo step
+    # `burocrazia` li rispecchia in `partner.dati_burocrazia.*`
+    # (partner_journey.py:6604). Cercarli sul partner nudo da' sempre 0/3.
+    buro = p.get("dati_burocrazia") if isinstance(p.get("dati_burocrazia"), dict) else {}
+    anagrafica = sum(1 for c in ("codice_fiscale", "partita_iva", "iban") if str(buro.get(c) or "").strip())
     mc_video = mc.get("youtube_url") or mc.get("video_url") or mc.get("video_embed_url")
 
     return {
-        "02-discovery-video":    (f"{len(ans('02-discovery-video'))} risposte", bool(ans("02-discovery-video"))),
+        "02-discovery-video":    (f"{_n(ans('02-discovery-video'))} campi", bool(ans("02-discovery-video"))),
         "burocrazia":            (f"{anagrafica}/3 dati fiscali", anagrafica >= 3),
         "03-brand-kit":          (f"{_n(ans('03-brand-kit'))} campi", bool(ans("03-brand-kit"))),
         "la-tua-storia":         (f"{len(ans('la-tua-storia'))}/21 risposte", len(ans("la-tua-storia")) >= 21),
@@ -316,7 +330,12 @@ def _prove_step(fd: dict, hub: dict) -> dict:
         "05-script-masterclass": ("script presente" if str(mc.get("script") or "").strip() else "script assente",
                                   bool(str(mc.get("script") or "").strip())),
         "06-outline-lezioni":    (f"{len(lez)} lezioni in outline", len(lez) > 0),
-        "07-script-videolezioni": (f"{con_script}/{len(lez)} lezioni con script", bool(lez) and con_script == len(lez)),
+        # Il deliverable e' `data.script_videolezioni` (partner_rewards.py:461),
+        # non un campo `script` sulla singola lezione: quello non esiste.
+        "07-script-videolezioni": (
+            "script presente" if str((ans("07-script-videolezioni") or {}).get("script_videolezioni") or "").strip()
+            else f"nessuno script ({_n(ans('07-script-videolezioni'))} altri campi)",
+            bool(str((ans("07-script-videolezioni") or {}).get("script_videolezioni") or "").strip())),
         "08-registra-masterclass": ("video presente" if mc_video else "nessun video", bool(mc_video)),
         "09-registra-lezioni":   (f"{con_video}/{len(lez)} lezioni con video", bool(lez) and con_video == len(lez)),
         "10-sistema-vendita":    (f"{_n(fun)} campi funnel", _n(fun) > 0),
