@@ -72,13 +72,38 @@ def _call(method: str, path: str, body=None):
             "richiedono un JWT admin anche in lettura.\n"
             'PowerShell:  $env:CIAK_ADMIN_TOKEN = "<jwt>"'
         )
+    # Un JWT ha tre parti separate da punto. Senza questo controllo un token
+    # sbagliato arriva al server e torna 401, che si legge come "non ho i
+    # permessi" invece di "non hai copiato un token". Caso reale (6/8/2026):
+    # `copy(localStorage.ciak_admin_token)` su una chiave inesistente mette
+    # negli appunti la stringa "undefined", e da li' il 401.
+    _grezzo = token[7:].strip() if token.lower().startswith("bearer ") else token
+    if _grezzo.count(".") != 2:
+        raise SystemExit(
+            f"CIAK_ADMIN_TOKEN non sembra un JWT (valore di {len(_grezzo)} caratteri, "
+            f"{_grezzo.count('.')} punti invece di 2).\n"
+            "Se hai usato copy() dalla console: la chiave letta non esiste e negli "
+            "appunti e' finita la stringa 'undefined'. Trova il nome giusto con:\n"
+            "  Object.keys(localStorage)"
+        )
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = urllib.request.Request(BASE + path, data=data, method=method)
     req.add_header("Authorization", token if token.lower().startswith("bearer ") else f"Bearer {token}")
     if data:
         req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        # Il 401 qui non e' quasi mai "non hai i permessi": e' il token admin
+        # scaduto (dura poco). Senza questo messaggio si legge come dato mancante.
+        if e.code == 401:
+            raise SystemExit(
+                f"401 su {path}: il token e' scaduto o non e' di un utente admin.\n"
+                "Rifallo: apri www.ciak.io/admin loggato, F12 -> Console -> copia il "
+                "token da localStorage, poi $env:CIAK_ADMIN_TOKEN = Get-Clipboard"
+            ) from None
+        raise
 
 
 class Partner:
