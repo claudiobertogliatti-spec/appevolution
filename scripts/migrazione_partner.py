@@ -396,6 +396,13 @@ def _cli():
         if nome == "verifica":
             s.add_argument("--da", help="path del backup 'before' da confrontare")
     sub.add_parser("gap")
+    # `fase` e' l'unica scrittura esposta da CLI: e' una correzione, non una
+    # decisione. Il valore giusto lo calcola il sistema stesso (fase_attesa
+    # dall'ultimo step `done`), quindi non c'e' niente da inventare.
+    f = sub.add_parser("fase")
+    f.add_argument("partner_id")
+    f.add_argument("valore", help="F1..F7 | LIVE. Ometti per usare la fase attesa dagli step.",
+                   nargs="?", default=None)
     a = ap.parse_args()
 
     if a.cmd == "gap":
@@ -425,6 +432,25 @@ def _cli():
         rotti = [s for s in r["step"] if s["esito"] in ("DONE SENZA PROVA", "PRONTO, NON SEGNATO")]
         print(f"\n{len(rotti)} step da guardare: "
               + (", ".join(s['step'] for s in rotti) if rotti else "nessuno"))
+        return
+
+    if a.cmd == "fase":
+        p = Partner(a.partner_id)
+        fd = p.full_data()
+        prima = (fd.get("partner") or {}).get("phase")
+        attesa = fase_attesa(fd.get("steps", []))
+        nuova = a.valore or attesa
+        if not nuova:
+            raise SystemExit("nessuno step `done`: la fase attesa non e' calcolabile, passala a mano.")
+        if nuova == prima:
+            print(f"fase gia' {prima}: niente da scrivere.")
+            return
+        print(f"{(fd.get('partner') or {}).get('name')}: {prima} -> {nuova}"
+              f"{'' if a.valore else f' (attesa dagli step: {attesa})'}")
+        p.scrivi_fase(nuova)
+        # Regola 17: si rilegge, non ci si fida della risposta della PATCH.
+        dopo = (p.full_data().get("partner") or {}).get("phase")
+        print(f"riletto alla fonte: {dopo}" + ("  OK" if dopo == nuova else "  <-- NON SCRITTA"))
         return
 
     p = Partner(a.partner_id)
