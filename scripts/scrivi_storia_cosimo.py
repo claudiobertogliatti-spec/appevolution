@@ -34,6 +34,19 @@ SORGENTE = os.path.join(
 )
 
 
+def _risposte_step(fd: dict, step_id: str) -> dict:
+    """Le risposte gia' presenti su uno step.
+
+    ⚠️ `full-data` restituisce `steps` come LISTA (`server.py:3648`), non come
+    dizionario indicizzato per `step_id`: il vecchio
+    `fd.get("steps").get(step_id)` alzava `AttributeError` e lo script moriva
+    prima di scrivere qualsiasi cosa."""
+    for s in fd.get("steps") or []:
+        if isinstance(s, dict) and s.get("step_id") == step_id:
+            return ((s.get("data") or {}).get("answers")) or {}
+    return {}
+
+
 def main():
     with open(SORGENTE, encoding="utf-8") as f:
         sorgente = json.load(f)
@@ -55,7 +68,7 @@ def main():
     if "Cosimo" not in nome:
         raise SystemExit("STOP: l'id 13 non e' Cosimo Filieri. Verificare prima di scrivere.")
 
-    esistenti = (((fd.get("steps") or {}).get(STEP_ID) or {}).get("data") or {}).get("answers") or {}
+    esistenti = _risposte_step(fd, STEP_ID)
     print(f"Risposte gia' presenti su '{STEP_ID}': {len(esistenti)} -> {sorted(esistenti)}")
     sovrascritte = sorted(k for k in answers if k in esistenti and esistenti[k] != answers[k])
     if sovrascritte:
@@ -73,7 +86,7 @@ def main():
     print("  " + "\n  ".join(p.backup("after-storia")))
 
     fd2 = p.full_data()
-    dopo = (((fd2.get("steps") or {}).get(STEP_ID) or {}).get("data") or {}).get("answers") or {}
+    dopo = _risposte_step(fd2, STEP_ID)
     mancanti = [k for k in [f"S{n:02d}" for n in range(1, 22)] if not (dopo.get(k) or "").strip()]
     print(f"\nVERIFICA — storia: {21 - len(mancanti)}/21")
     print(f"Ancora da raccogliere da Cosimo: {mancanti}")
