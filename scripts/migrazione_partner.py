@@ -240,10 +240,111 @@ def report_gap() -> list[dict]:
     return righe
 
 
+# ---------------- collaudo del percorso EVO, step per step ----------------
+# Ogni step del Metodo EVO dovrebbe PRODURRE qualcosa. Qui, per ciascuno, si
+# confronta lo `status` dichiarato con la prova che quel qualcosa esista davvero
+# nei dati. Serve a far emergere le due facce dello stesso difetto:
+#   - "done" senza prova            -> regola 7: fase marcata completa a vuoto;
+#   - prova presente ma non "done"  -> il dato c'e' e nessuno lo legge.
+# `01-contratto` non e' nel percorso: la firma avviene prima, quando il cliente
+# decide di diventare partner (Claudio, 06/08/2026). Si mostra come contesto.
+def _n(v) -> int:
+    """Quanti elementi non vuoti, qualunque sia il contenitore."""
+    if isinstance(v, dict):
+        return sum(1 for x in v.values() if x not in (None, "", [], {}))
+    if isinstance(v, list):
+        return sum(1 for x in v if x not in (None, "", [], {}))
+    return 1 if str(v or "").strip() else 0
+
+
+def _lezioni(fd: dict) -> dict:
+    lez = ((fd.get("videocorso") or {}).get("lessons") or {})
+    return lez if isinstance(lez, dict) else {}
+
+
+def _prove_step(fd: dict, hub: dict) -> dict:
+    """step_id -> (descrizione della prova, presente | None se non verificabile)."""
+    steps = {s.get("step_id"): s for s in fd.get("steps", [])}
+    p = fd.get("partner") or {}
+    pos = (fd.get("posizionamento") or {}).get("inputs") or {}
+    mc = fd.get("masterclass") or {}
+    lez = _lezioni(fd)
+    fun = fd.get("funnel") or {}
+
+    def ans(sid: str) -> dict:
+        return ((steps.get(sid) or {}).get("data") or {}).get("answers") or {}
+
+    con_video = sum(1 for v in lez.values()
+                    if isinstance(v, dict) and (v.get("video_embed_url") or v.get("video_raw_url")))
+    con_script = sum(1 for v in lez.values()
+                     if isinstance(v, dict) and str(v.get("script") or "").strip())
+    anagrafica = sum(1 for c in ("codice_fiscale", "partita_iva", "iban") if str(p.get(c) or "").strip())
+    mc_video = mc.get("youtube_url") or mc.get("video_url") or mc.get("video_embed_url")
+
+    return {
+        "02-discovery-video":    (f"{len(ans('02-discovery-video'))} risposte", bool(ans("02-discovery-video"))),
+        "burocrazia":            (f"{anagrafica}/3 dati fiscali", anagrafica >= 3),
+        "03-brand-kit":          (f"{_n(ans('03-brand-kit'))} campi", bool(ans("03-brand-kit"))),
+        "la-tua-storia":         (f"{len(ans('la-tua-storia'))}/21 risposte", len(ans("la-tua-storia")) >= 21),
+        "obiettivo":             (f"{len(ans('obiettivo'))} risposte", bool(ans("obiettivo"))),
+        "04-posizionamento":     (f"{_n(pos)} campi compilati", _n(pos) >= 10),
+        "05-script-masterclass": ("script presente" if str(mc.get("script") or "").strip() else "script assente",
+                                  bool(str(mc.get("script") or "").strip())),
+        "06-outline-lezioni":    (f"{len(lez)} lezioni in outline", len(lez) > 0),
+        "07-script-videolezioni": (f"{con_script}/{len(lez)} lezioni con script", bool(lez) and con_script == len(lez)),
+        "08-registra-masterclass": ("video presente" if mc_video else "nessun video", bool(mc_video)),
+        "09-registra-lezioni":   (f"{con_video}/{len(lez)} lezioni con video", bool(lez) and con_video == len(lez)),
+        "10-sistema-vendita":    (f"{_n(fun)} campi funnel", _n(fun) > 0),
+        "11-calendario-30gg":    (f"{_n(ans('11-calendario-30gg'))} campi", bool(ans("11-calendario-30gg"))),
+        "12-prezzo-webinar":     (f"offerPrice={hub.get('offerPrice') or '-'}", bool(str(hub.get("offerPrice") or "").strip())),
+        "13-lancio":             ("launched_at presente" if ((steps.get("13-lancio") or {}).get("data") or {}).get("launched_at") else "mai lanciato",
+                                  bool(((steps.get("13-lancio") or {}).get("data") or {}).get("launched_at"))),
+    }
+
+
+def collaudo(partner_id: str) -> dict:
+    """Sola lettura. Non esegue i generatori: dice quali step hanno un output vero."""
+    p = Partner(partner_id)
+    fd, hub = p.full_data(), p.hub()
+    steps = {s.get("step_id"): s for s in fd.get("steps", [])}
+    prove = _prove_step(fd, hub)
+
+    righe = []
+    for sid in ORDINE_STEP:
+        if sid == "01-contratto":
+            continue  # a monte del percorso, non e' uno step EVO
+        st = (steps.get(sid) or {}).get("status") or "assente"
+        prova, presente = prove.get(sid, ("-", None))
+        fatto = st in ("done", "skipped")
+        if presente is None:
+            esito = "?"
+        elif fatto and presente:
+            esito = "ok"
+        elif fatto and not presente:
+            esito = "DONE SENZA PROVA"
+        elif presente:
+            esito = "PRONTO, NON SEGNATO"
+        else:
+            esito = "da fare"
+        righe.append({"step": sid, "fase": STEP_FASE[sid], "status": st,
+                      "prova": prova, "esito": esito})
+
+    dichiarata = (fd.get("partner") or {}).get("phase")
+    attesa = fase_attesa(fd.get("steps", []))
+    return {
+        "partner_id": partner_id,
+        "nome": (fd.get("partner") or {}).get("name"),
+        "fase_dichiarata": dichiarata,
+        "fase_attesa_dagli_step": attesa,
+        "fase_incoerente": bool(attesa and dichiarata and attesa != dichiarata),
+        "step": righe,
+    }
+
+
 def _cli():
     ap = argparse.ArgumentParser(description="Migrazione partner Drive -> Ciak")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for nome in ("stato", "backup", "verifica"):
+    for nome in ("stato", "backup", "verifica", "collaudo"):
         s = sub.add_parser(nome)
         s.add_argument("partner_id")
         if nome == "backup":
@@ -265,6 +366,21 @@ def _cli():
             print(f"{r['id']:>4}  {(r['nome'] or '')[:28]:28} {r['fase'] or '-':5} "
                   f"{r['fase_attesa'] or '-':6} {r['storia']:7} {r['offerta']:8} "
                   f"{r['lezioni_video']:9} {r['masterclass']}{flag}")
+        return
+
+    if a.cmd == "collaudo":
+        r = collaudo(a.partner_id)
+        print(f"{r['nome']} (id {r['partner_id']})")
+        print(f"fase dichiarata: {r['fase_dichiarata']}  |  fase attesa dagli step: "
+              f"{r['fase_attesa_dagli_step']}"
+              f"{'   <-- INCOERENTE' if r['fase_incoerente'] else ''}")
+        intest = f"{'STEP':24} {'FASE':5} {'STATUS':12} {'PROVA':30} ESITO"
+        print(); print(intest); print("-" * len(intest))
+        for s in r["step"]:
+            print(f"{s['step']:24} {s['fase']:5} {s['status']:12} {s['prova'][:30]:30} {s['esito']}")
+        rotti = [s for s in r["step"] if s["esito"] in ("DONE SENZA PROVA", "PRONTO, NON SEGNATO")]
+        print(f"\n{len(rotti)} step da guardare: "
+              + (", ".join(s['step'] for s in rotti) if rotti else "nessuno"))
         return
 
     p = Partner(a.partner_id)
