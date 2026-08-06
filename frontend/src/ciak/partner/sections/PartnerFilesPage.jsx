@@ -207,6 +207,26 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
         if (r.ok) {
           const d = await r.json();
+          // Materiali prodotti da Ciak per questo partner (documenti di fase,
+          // script, analisi): vivono in partner_posizionamento.materiali, cosi'
+          // valgono per qualunque partner e non sono cablati nel frontend.
+          for (const m of d?.posizionamento?.materiali || []) {
+            if (!m?.url || !m?.nome) continue;
+            reali.push({
+              id: `m-${reali.length}`,
+              folderId: m.cartella || "brand_kit",
+              name: m.nome,
+              category: m.categoria || "Documento",
+              size: m.fonte || "Documento",
+              date: m.data || "—",
+              owner: m.owner || "⚙️ CIAK",
+              type: "pdf",
+              icon: FileText,
+              iconColor: "text-blue-600",
+              url: m.url,
+              esterno: /^https?:/i.test(m.url),
+            });
+          }
           const drive = d?.posizionamento?.drive_folder_url;
           if (drive) {
             reali.push({
