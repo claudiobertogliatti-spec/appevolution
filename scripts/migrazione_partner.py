@@ -392,6 +392,52 @@ def collaudo(partner_id: str) -> dict:
     }
 
 
+def ripristina(partner_id: str, step_id: str, backup: str, chiavi: list[str]) -> dict:
+    """Rimette alcune risposte com'erano in un backup. È il motivo per cui la
+    regola 12 impone i backup pre/post: una scrittura che sostituisce un testo
+    migliore con uno peggiore si annulla, non si ridiscute.
+
+    Caso che l'ha resa necessaria (6/8/2026, Cosimo Filieri): il payload del 4/8
+    conteneva per `S08 S18 S19 S20` estratti grezzi del documento di
+    posizionamento, e ha sovrascritto risposte già formate — su `S20` per giunta
+    la risposta a un'ALTRA domanda. `S18` è una delle due sole chiavi lette dal
+    Libretto (`partner_rewards.py:369-371`)."""
+    with open(backup, encoding="utf-8") as f:
+        dati = json.load(f)
+    vecchie = {}
+    for s in dati.get("steps") or []:
+        if isinstance(s, dict) and s.get("step_id") == step_id:
+            vecchie = ((s.get("data") or {}).get("answers")) or {}
+            break
+    if not vecchie:
+        raise SystemExit(f"nel backup non ci sono risposte per lo step '{step_id}'.")
+    mancanti = [k for k in chiavi if not str(vecchie.get(k) or "").strip()]
+    if mancanti:
+        raise SystemExit(f"il backup non contiene {mancanti}: niente da ripristinare, si fermerebbe a meta'.")
+
+    p = Partner(partner_id)
+    attuali = {}
+    for s in p.full_data().get("steps") or []:
+        if isinstance(s, dict) and s.get("step_id") == step_id:
+            attuali = ((s.get("data") or {}).get("answers")) or {}
+            break
+    da_scrivere = {k: vecchie[k] for k in chiavi}
+    for k in chiavi:
+        stato = "identica, salto" if str(attuali.get(k) or "").strip() == str(vecchie[k]).strip() else \
+                f"{len(str(attuali.get(k) or ''))} car. -> {len(str(vecchie[k]))} car."
+        print(f"  {k}: {stato}")
+    p.scrivi_risposte(step_id, da_scrivere)
+
+    dopo = {}
+    for s in p.full_data().get("steps") or []:
+        if isinstance(s, dict) and s.get("step_id") == step_id:
+            dopo = ((s.get("data") or {}).get("answers")) or {}
+            break
+    ko = [k for k in chiavi if str(dopo.get(k) or "").strip() != str(vecchie[k]).strip()]
+    print(("RIPRISTINATE tutte: " + ", ".join(chiavi)) if not ko else f"NON RIPRISTINATE: {ko}")
+    return {"ripristinate": [k for k in chiavi if k not in ko], "fallite": ko}
+
+
 def _cli():
     ap = argparse.ArgumentParser(description="Migrazione partner Drive -> Ciak")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -410,6 +456,11 @@ def _cli():
     f.add_argument("partner_id")
     f.add_argument("valore", help="F1..F7 | LIVE. Ometti per usare la fase attesa dagli step.",
                    nargs="?", default=None)
+    r = sub.add_parser("ripristina")
+    r.add_argument("partner_id")
+    r.add_argument("step_id")
+    r.add_argument("--da", required=True, help="backup da cui rileggere le risposte")
+    r.add_argument("--chiavi", required=True, help="elenco separato da virgole, es. S08,S18,S19,S20")
     a = ap.parse_args()
 
     if a.cmd == "gap":
@@ -439,6 +490,11 @@ def _cli():
         rotti = [s for s in r["step"] if s["esito"] in ("DONE SENZA PROVA", "PRONTO, NON SEGNATO")]
         print(f"\n{len(rotti)} step da guardare: "
               + (", ".join(s['step'] for s in rotti) if rotti else "nessuno"))
+        return
+
+    if a.cmd == "ripristina":
+        ripristina(a.partner_id, a.step_id, a.da,
+                   [k.strip() for k in a.chiavi.split(",") if k.strip()])
         return
 
     if a.cmd == "fase":
