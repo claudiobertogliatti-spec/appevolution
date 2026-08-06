@@ -154,10 +154,17 @@ class Partner:
         return esito
 
     def scrivi_fase(self, fase: str) -> dict:
+        """⚠️ La fase vive su DUE campi del record partner, `phase` e `fase`, e
+        vanno scritti insieme. Scrivendo solo `phase` (com'era fino al 6/8/2026)
+        i due divergono in silenzio: su Andolfi si e' ritrovato `phase=F6` e
+        `fase=F2`. Non e' innocuo — `server.py:2706` e `:10571` contano i partner
+        attivi guardando ANCHE `fase`, `operations.py:89-91` riconcilia i due solo
+        quando uno dei due manca (mai quando sono diversi), e il frontend Ciak
+        legge `.phase` 28 volte e `.fase` 19."""
         if fase not in ("F1", "F2", "F3", "F4", "F5", "F6", "F7", "LIVE"):
             raise ValueError(f"fase fuori scala: {fase}")
         return _call("PATCH", f"/admin/partner/{self.id}/journey",
-                     {"collection": "partners", "data": {"phase": fase}})
+                     {"collection": "partners", "data": {"phase": fase, "fase": fase}})
 
     # ---------------- verifica (regola 17) ----------------
     def verifica(self, backup_before: str | None = None) -> dict:
@@ -437,20 +444,26 @@ def _cli():
     if a.cmd == "fase":
         p = Partner(a.partner_id)
         fd = p.full_data()
-        prima = (fd.get("partner") or {}).get("phase")
+        pt = fd.get("partner") or {}
+        prima, prima_it = pt.get("phase"), pt.get("fase")
         attesa = fase_attesa(fd.get("steps", []))
         nuova = a.valore or attesa
         if not nuova:
             raise SystemExit("nessuno step `done`: la fase attesa non e' calcolabile, passala a mano.")
-        if nuova == prima:
-            print(f"fase gia' {prima}: niente da scrivere.")
+        if nuova == prima == prima_it:
+            print(f"fase gia' {prima} su entrambi i campi: niente da scrivere.")
             return
-        print(f"{(fd.get('partner') or {}).get('name')}: {prima} -> {nuova}"
+        disallineati = " (i due campi erano gia' divergenti)" if prima != prima_it else ""
+        print(f"{pt.get('name')}: phase={prima} fase={prima_it} -> {nuova}{disallineati}"
               f"{'' if a.valore else f' (attesa dagli step: {attesa})'}")
         p.scrivi_fase(nuova)
         # Regola 17: si rilegge, non ci si fida della risposta della PATCH.
-        dopo = (p.full_data().get("partner") or {}).get("phase")
-        print(f"riletto alla fonte: {dopo}" + ("  OK" if dopo == nuova else "  <-- NON SCRITTA"))
+        # Si controllano ENTRAMBI i campi: e' scrivendone uno solo che il 6/8
+        # Andolfi si e' ritrovato phase=F6 e fase=F2.
+        dopo = p.full_data().get("partner") or {}
+        ok = dopo.get("phase") == nuova and dopo.get("fase") == nuova
+        print(f"riletto alla fonte: phase={dopo.get('phase')} fase={dopo.get('fase')}"
+              + ("  OK" if ok else "  <-- NON ALLINEATI"))
         return
 
     p = Partner(a.partner_id)
