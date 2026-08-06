@@ -4143,6 +4143,35 @@ async def get_calendario_lancio(
     }
 
 
+async def _rispecchia_calendario_su_step(partner_id: str, calendario: list, fallback: bool = False):
+    """Il calendario generato vive in `partner_lancio`, ma il Libretto di Progetto
+    lo legge dallo STEP `11-calendario-30gg` (`partner_rewards.py:365` e `:450`,
+    che cerca `data.calendario | data.summary | data.piano`). Senza questo ponte
+    la sezione del Libretto resta vuota anche dopo aver generato, e il collaudo
+    del percorso vede lo step a 0 campi (verificato su Andolfi il 06/08/2026).
+
+    Si scrive TESTO, non la lista grezza: `_primo()` fa `str()` sul valore, quindi
+    una lista di dict finirebbe nel PDF come letterale Python.
+    Lo `status` non si tocca: generare non e' approvare (regola 7 del protocollo).
+    Nessun upsert: se lo step non esiste non lo si inventa."""
+    righe = [
+        f"Giorno {g.get('giorno', '?')} - {g.get('tipo', '')} ({g.get('formato', '')}): {g.get('idea', '')}".strip()
+        for g in (calendario or []) if isinstance(g, dict)
+    ]
+    if not righe:
+        return
+    now = datetime.utcnow()
+    await db.partner_journey_steps.update_one(
+        {"partner_id": str(partner_id), "step_id": "11-calendario-30gg"},
+        {"$set": {
+            "data.calendario": "\n".join(righe),
+            "data.calendario_generated_at": now.isoformat(),
+            "data.calendario_fallback": fallback,
+            "updated_at": now,
+        }},
+    )
+
+
 @router.post("/lancio/genera-calendario")
 async def genera_calendario_lancio(
     request: GeneraCalendarioRequest,
@@ -4225,12 +4254,13 @@ Rispondi SOLO in formato JSON con questa struttura:
             },
             upsert=True
         )
-        
+        await _rispecchia_calendario_su_step(request.partner_id, calendario)
+
         return {
             "success": True,
             "calendario": calendario
         }
-        
+
     except Exception as e:
         logging.error(f"Calendario generation error: {e}")
         # Fallback con calendario generico
@@ -4253,7 +4283,8 @@ Rispondi SOLO in formato JSON con questa struttura:
             },
             upsert=True
         )
-        
+        await _rispecchia_calendario_su_step(request.partner_id, fallback_calendario, fallback=True)
+
         return {
             "success": True,
             "calendario": fallback_calendario,
