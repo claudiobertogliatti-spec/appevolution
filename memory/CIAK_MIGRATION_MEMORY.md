@@ -251,7 +251,15 @@ Scritto in produzione e riletto alla fonte:
 - `la-tua-storia` da 7 a **21/21** risposte (13 dai suoi vocali + S08 composta da noi).
 - Offerta nell'hub: `offerName` "Sabai Academy", `offerPrice` "297€ (listino 497€)",
   `offerIncludes` (4 livelli + 12 moduli). `offerGuarantee` lasciato **vuoto per scelta** (regola 6).
-- Fase corretta **F2 -> F6**: F2 era sbagliata, gli step dicevano tutt'altro.
+- ~~Fase corretta **F2 -> F6**~~ 🔴 **FALSO, verificato in produzione il 6/8/2026:**
+  `GET /api/partners/23` (endpoint aperto) risponde `fase = "F2"` **e** `phase = "F2"`,
+  `updated_at 2026-07-30T08:51`, `journey_current_step = "obiettivo"`. La `PATCH` sulla fase
+  non e' mai andata a segno. Causa non specifica di Andolfi: `partners.phase` (scala F1..F13,
+  `agent_hub_service.py:90`) e gli step EVO (`fase_legacy` F1..F7) sono **due sistemi che
+  nessuno allinea** — su Andrea Fredi lo stesso difetto al contrario (`phase F1`,
+  `journey_current_step 05-script-masterclass`, che e' uno step di Valida).
+  👉 **Regola 19: per sapere dove sta un partner si leggono gli STEP, mai `phase`.**
+  `scripts/migrazione_partner.py collaudo <id>` lo verifica step per step.
 - Videocorso: nessun lavoro necessario, erano gia' presenti 32 lezioni con 32 URL Drive e
   32 embed YouTube distinti, tutte `video_approved`.
 - `la-tua-storia` lasciata **in_progress** apposta: S08 e' l'unica frase non uscita dalla sua
