@@ -24,6 +24,51 @@ Regole:
 
 ---
 
+### 2026-08-11 · Claude Code · claude/evolution-memoria-analysis-6fvbw8 — CLAUDE.md potato da 1320 a 350 righe + guardia in CI
+
+**FATTO**
+- `CLAUDE.md` riscritto: solo regole in vigore, 12 sezioni numerate, ~20 KB (era 102 KB).
+  Nessuna regola viva persa: le sezioni chiuse sono ridotte a una riga con la prova.
+- Cronaca spostata in `docs/agents/DIARIO-2026.md` (18 sezioni, 722 righe) con intestazione
+  che dichiara il file **non normativo** ed elenca i path ormai inesistenti.
+- Tre workflow lunghi diventati runbook: `docs/runbooks/backend-problemi-noti.md`,
+  `funnel-systeme-partner.md`, `standard-editing-video.md`.
+- Nuovo `backend/tests/test_docs_coerenza.py` (14 test, in CI): peso del file, esistenza dei
+  path citati, assenza di credenziali nei file normativi.
+- `docs/deploy-playbook.md`: `git add .` -> `git add <file>`. Era in **conflitto diretto** con
+  `PROTOCOL.md §3.1`, che vieta `git add .`. Un agente che seguiva il playbook violava il protocollo.
+
+**VERIFICATO**
+- Path morti citati da `CLAUDE.md`, tutti confermati inesistenti con `ls`: `frontend/src/App.js`,
+  `components/` e i 5 file sotto (`MasterclassPage.jsx`, `AdminPartnerJourneyEditor.jsx`,
+  `AdminSidebarLight.jsx`, `stepConfig.js`, `StepPageWrapper.jsx`, `IntroQuestionario.jsx`).
+- Regole confermate vere prima di riscriverle: `checkout.py:256` -> `unit_amount: 2700`;
+  `funnel_builder.py:243` -> `410`; grep su `backend/` -> 0 occorrenze di palette vecchia,
+  gialli fuori brand e `app.evolution-pro.it`; `frontend/` senza framer-motion/gsap.
+- ⛔ ancora aperto e confermato: `'Segoe UI'` in `funnel_builder.py` (438, 614, 664, 733) e
+  `funnel_export_service.py:104` — il brand e' Poppins.
+- Test nuovo: **RED provato** su tutte e 3 le invarianti (aggiunti a `CLAUDE.md` un path
+  inesistente, una chiave e 20 righe -> 3 failed, messaggi corretti), **GREEN dopo ripristino
+  -> 14 passed**. Il test ha subito trovato 3 riferimenti rotti veri, di cui 1 corretto
+  (`routers/partner_journey.py` -> `backend/routers/partner_journey.py` nel runbook).
+- `python -m compileall backend` -> exit 0. Lista test della CI: baseline senza il file nuovo
+  **113 passed**, con il file nuovo **127 passed** (113 + 14), nessuna regressione.
+
+**APERTO**
+- Le 3 chiavi API in chiaro (AssemblyAI, Shotstack, Systeme) **non sono state ruotate** su
+  richiesta di Claudio: erano in `CLAUDE.md:215-218` su repo **pubblico** dal 30/7/2026.
+  Non sono piu' nel file riscritto, ma **restano nella storia git**: finche' non si ruotano
+  vanno considerate compromesse. Gitleaks in CI non le intercettava.
+- Non fatto in questa sessione (proposto e non ancora approvato): hook `.claude/settings.json`
+  che blocchi `git add .` a livello di tool, `SessionStart` che stampi stato branch/CI/handoff,
+  `Stop` che ricordi di aggiornare questo file. Il repo non ha ancora una cartella `.claude/`.
+- `memory/` contiene 12 file mai censiti in questa passata (`SYSTEM_OVERVIEW.md` 19 KB,
+  `ciak_admin_crm_vision.md`, ecc.): non si sa quali siano ancora normativi.
+- ⛔ Da verificare alla fonte: se `POST /api/admin/backfill-evolution-ids` sia mai stato
+  eseguito (la memoria si contraddiceva) e il numero reale di partner (memoria 24, probe 26).
+
+---
+
 ### 2026-08-11 · Claude Code (Luca) · cc/deploy-safe — 23 endpoint aperti chiusi + buco da 2.790 EUR
 
 **FATTO**

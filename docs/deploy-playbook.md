@@ -103,10 +103,11 @@ Nota importante: in locale il comando `vercel` puo' non essere installato. In qu
 .\scripts\predeploy-check.ps1
 ```
 
-2. Se passa, committa:
+2. Se passa, committa **aggiungendo i file per nome** (mai `git add .`: il repo contiene
+   artefatti locali e file di credenziali — `PROTOCOL.md §3.1`):
 
 ```powershell
-git add .
+git add <file> <file>
 git commit -m "deploy: <descrizione>"
 ```
 
