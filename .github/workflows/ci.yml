@@ -93,6 +93,11 @@ jobs:
           tests/test_auth_public_surface.py
           tests/test_proposta_security.py
           tests/test_partner_forgot_password.py
+          tests/test_partner_journey_auth_coverage.py
+          tests/test_proposta_client_identity.py
+          tests/test_proposta_payment_gate.py
+          tests/test_proposta_finalization_race.py
+          tests/test_webhook_signature_enforcement.py
 
   frontend:
     name: Frontend (build smoke)

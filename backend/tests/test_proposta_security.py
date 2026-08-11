@@ -16,13 +16,73 @@ SPEC.loader.exec_module(proposta)
 pytestmark = pytest.mark.unit
 
 
+def _dotted_get(doc, path):
+    """Legge `a.b.c` come fa Mongo, restituendo None se il cammino si interrompe."""
+    current = doc
+    for part in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+    return current
+
+
+def _dotted_set(doc, path, value):
+    parts = path.split(".")
+    current = doc
+    for part in parts[:-1]:
+        nxt = current.get(part)
+        if not isinstance(nxt, dict):
+            nxt = {}
+            current[part] = nxt
+        current = nxt
+    current[parts[-1]] = value
+
+
+def _match_condition(actual, condition):
+    if not isinstance(condition, dict) or not any(
+        k.startswith("$") for k in condition
+    ):
+        return actual == condition
+    for operator, operand in condition.items():
+        if operator == "$ne" and actual == operand:
+            return False
+        if operator == "$nin" and actual in operand:
+            return False
+        if operator == "$in" and actual not in operand:
+            return False
+        if operator == "$exists" and (actual is not None) != operand:
+            return False
+        if operator == "$lt" and not (actual is not None and actual < operand):
+            return False
+        if operator == "$gt" and not (actual is not None and actual > operand):
+            return False
+    return True
+
+
+def _matches(doc, query):
+    """Sottoinsieme del matching Mongo sufficiente ai percorsi sotto test.
+
+    Supporta cammini con punto, $or e gli operatori usati dal claim atomico
+    della finalizzazione. Senza questo, una query con operatori non matcherebbe
+    mai e i test darebbero un falso verde.
+    """
+    for key, condition in query.items():
+        if key == "$or":
+            if not any(_matches(doc, sub) for sub in condition):
+                return False
+            continue
+        if not _match_condition(_dotted_get(doc, key), condition):
+            return False
+    return True
+
+
 class FakeCollection:
     def __init__(self, docs=None):
         self.docs = [dict(doc) for doc in (docs or [])]
 
     async def find_one(self, query, projection=None):
         for doc in self.docs:
-            if all(doc.get(key) == value for key, value in query.items()):
+            if _matches(doc, query):
                 data = dict(doc)
                 if projection and projection.get("_id") == 0:
                     data.pop("_id", None)
@@ -31,13 +91,14 @@ class FakeCollection:
 
     async def update_one(self, query, update, upsert=False):
         for doc in self.docs:
-            if all(doc.get(key) == value for key, value in query.items()):
+            if _matches(doc, query):
                 for key, value in update.get("$set", {}).items():
-                    doc[key] = value
+                    _dotted_set(doc, key, value)
                 return type("Result", (), {"matched_count": 1, "modified_count": 1})()
         if upsert:
-            doc = dict(query)
-            doc.update(update.get("$set", {}))
+            doc = {k: v for k, v in query.items() if not k.startswith("$")}
+            for key, value in update.get("$set", {}).items():
+                _dotted_set(doc, key, value)
             self.docs.append(doc)
             return type("Result", (), {"matched_count": 0, "modified_count": 0})()
         return type("Result", (), {"matched_count": 0, "modified_count": 0})()

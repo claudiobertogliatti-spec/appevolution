@@ -49,6 +49,9 @@ def set_db(database):
 SCADENZA_GIORNI = 7
 BASE_URL = os.environ.get('BASE_URL', os.environ.get('FRONTEND_URL', 'https://www.ciak.io'))
 MAX_SIGNATURE_BYTES = 512_000
+# Oltre questa soglia un effetto di finalizzazione rimasto "running" viene
+# considerato orfano (processo terminato a meta') e puo' essere ripreso.
+STALE_CLAIM_SECONDS = 300
 
 
 def _admin_identity(admin) -> dict:
@@ -131,13 +134,57 @@ async def resolve_canonical_client_identity(email: str) -> dict:
         user_doc = await db.users.find_one({"id": client_doc["user_id"]}, {"_id": 0})
     if not client_doc and not user_doc:
         raise HTTPException(404, "Cliente qualificato non trovato")
-    user_id = (user_doc or {}).get("id")
     client_id = (client_doc or {}).get("id")
-    canonical_id = user_id or (client_doc or {}).get("user_id") or client_id
+
+    # Il Blueprint crea solo `ciak_clients` e nessuno scrive `ciak_clients.user_id`:
+    # senza questo passaggio la proposta nascerebbe con partner_id = id di
+    # ciak_clients, e alla finalizzazione l'update su `users` non troverebbe
+    # nulla (nessun upsert). Il cliente pagherebbe la Partnership senza account,
+    # senza magic link e senza comparire in /admin/ciak/partner-setup-pending.
+    if not user_doc:
+        user_doc = await _create_user_for_client(normalized, client_doc or {})
+
+    user_id = user_doc.get("id")
+    if client_id and (client_doc or {}).get("user_id") != user_id:
+        await db.ciak_clients.update_one(
+            {"id": client_id}, {"$set": {"user_id": user_id}}
+        )
+
     return {
-        "canonical_id": canonical_id, "client_id": client_id,
+        "canonical_id": user_id, "client_id": client_id,
         "user_id": user_id, "email": normalized,
     }
+
+
+async def _create_user_for_client(email: str, client_doc: dict) -> dict:
+    """Crea il record `users` mancante per un cliente gia' pagante.
+
+    Nasce SENZA password: l'accesso passa dal magic link
+    (`partner_setup_token`) generato alla finalizzazione del pagamento, che e'
+    il pattern lockato il 17/5/2026. Il ruolo resta `cliente` finche' il
+    pagamento della Partnership non lo promuove a `partner`.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    user = {
+        "id": str(uuid.uuid4()),
+        "evolution_id": "EVO-" + uuid.uuid4().hex[:8].upper(),
+        "email": email,
+        "name": client_doc.get("name") or email,
+        "role": "cliente",
+        "is_active": True,
+        "created_at": now,
+        "created_from": "proposta_partnership",
+        "ciak_client_id": client_doc.get("id"),
+        "hashed_password": None,
+        "password_hash": None,
+        "must_change_password": False,
+    }
+    await db.users.insert_one(dict(user))
+    logger.info(
+        "[PROPOSTA] Creato record users per cliente Blueprint %s (id=%s)",
+        email, user["id"],
+    )
+    return user
 
 
 # ─────────────────────────────────────────────────
@@ -402,6 +449,22 @@ async def pagamento_stripe(token: str, request: Request):
     if not proposta:
         raise HTTPException(404, "Proposta non trovata")
 
+    # Lo stato va verificato PRIMA di aprire il checkout. Farlo solo in
+    # finalize_partnership_payment significa incassare e poi rifiutare: soldi
+    # presi, partner non attivato, webhook in errore e Stripe che ritenta per
+    # giorni. L'ordine firma -> pagamento era imposto solo dalla UI.
+    if proposta.get("pagamento_completato"):
+        raise HTTPException(409, "Pagamento gia' completato per questa proposta")
+    if not proposta.get("contratto_firmato_at"):
+        raise HTTPException(409, "Il contratto deve essere firmato prima del pagamento")
+    scadenza = proposta.get("scadenza")
+    if scadenza:
+        try:
+            if datetime.now(timezone.utc) > datetime.fromisoformat(scadenza):
+                raise HTTPException(410, "Proposta scaduta")
+        except (ValueError, TypeError):
+            pass
+
     corrispettivo = proposta.get("contract_params", {}).get("corrispettivo", 2790.0)
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
@@ -561,8 +624,20 @@ async def _activate_partner_account_and_notify(
 
     user = await db.users.find_one({"id": partner_id}, {"_id": 0})
     if not user:
-        logger.warning("[PROPOSTA] _activate_partner: user %s non trovato", partner_id)
-        return
+        # Mai uscire in silenzio qui: il pagamento e' gia' incassato. Un `return`
+        # faceva marcare l'effetto "account" come riuscito e restituiva
+        # success:true a fronte di un partner senza alcun accesso. Sollevando,
+        # lo stato per-effetto in `finalizzazione_partnership` registra il
+        # fallimento, la finalizzazione resta ritentabile e l'errore e' visibile.
+        logger.error(
+            "[PROPOSTA] _activate_partner: nessun record users per %s (%s) — "
+            "attivazione interrotta, pagamento gia' incassato",
+            partner_id, prospect_email,
+        )
+        raise HTTPException(
+            409,
+            "Account cliente mancante: impossibile attivare la Partnership",
+        )
 
     # Se l'utente ha già password ATTIVA (non auto-generated e non in setup pending),
     # non rigeneriamo il magic link — è un upgrade da cliente esistente che sa
@@ -825,12 +900,33 @@ async def finalize_partnership_payment(proposta: dict, method: str, reference: s
         ("notification", lambda: _notify_telegram(f"Pagamento Partnership verificato — {nome} — {method}")),
     ]
     for effect, operation in effects:
-        if state.get(effect) == "done":
+        field = f"finalizzazione_partnership.{effect}"
+        claimed_at = f"{field}_claimed_at"
+        # Claim atomico. Lo stato NON si legge dal documento ricevuto dal
+        # chiamante: webhook Stripe e ritorno del browser arrivano quasi
+        # insieme e leggevano entrambi prima che l'altro scrivesse, eseguendo
+        # due volte ogni effetto. Su `account` questo significa due
+        # partner_setup_token, con il primo — gia' spedito al cliente — morto.
+        # Un claim "running" piu' vecchio di STALE_CLAIM_SECONDS viene ripreso:
+        # altrimenti un processo ucciso a meta' bloccherebbe l'effetto per sempre.
+        stale_cutoff = (
+            datetime.now(timezone.utc) - timedelta(seconds=STALE_CLAIM_SECONDS)
+        ).isoformat()
+        claim = await db.proposte.update_one(
+            {
+                "token": token,
+                field: {"$ne": "done"},
+                "$or": [{field: {"$ne": "running"}}, {claimed_at: {"$lt": stale_cutoff}}],
+            },
+            {"$set": {field: "running", claimed_at: now}},
+        )
+        if not getattr(claim, "modified_count", 0):
+            # Gia' completato, oppure in corso in un'altra finalizzazione.
             continue
         try:
             await operation()
             state[effect] = "done"
-            await db.proposte.update_one({"token": token}, {"$set": {f"finalizzazione_partnership.{effect}": "done"}})
+            await db.proposte.update_one({"token": token}, {"$set": {field: "done"}})
         except Exception as exc:
             state[effect] = "failed"
             await db.proposte.update_one({"token": token}, {"$set": {
