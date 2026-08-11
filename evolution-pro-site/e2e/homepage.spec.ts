@@ -25,7 +25,7 @@ test('homepage completa, accessibile e senza errori runtime', async ({ page }, t
   await expect(page.locator('.vite-error-overlay, #webpack-dev-server-client-overlay')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await page.locator('html').innerHTML()).not.toContain('app.evolution-pro.it');
-  await expect(page.locator('#hero a.button--primary')).toHaveAttribute('href', 'https://www.ciak.io');
+  await expect(page.locator('#hero a.button--primary')).toHaveAttribute('href', 'https://www.ciak.io/masterclass');
 
   for (const [label, id] of [['Metodo EVO', 'metodo-evo'], ['Piattaforma', 'ciak'], ['Testimonianze', 'testimonianze'], ['FAQ', 'faq']] as const) {
     const anchor = page.getByRole('link', { name: label, exact: true });

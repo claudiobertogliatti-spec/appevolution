@@ -62,7 +62,7 @@ describe("MasterclassLanding lead capture", () => {
     jest.restoreAllMocks();
   });
 
-  test("registra il lead, traccia una sola volta e apre il bridge canonico", async () => {
+  test("registra il lead, traccia una sola volta e apre il viewer della masterclass", async () => {
     document.cookie = "_fbp=fb.1.123; path=/";
     document.cookie = "_fbc=fb.1.456; path=/";
     global.fetch.mockResolvedValue({ ok: true });
@@ -99,7 +99,7 @@ describe("MasterclassLanding lead capture", () => {
     expect(localStorage.getItem("ciak_lead_email")).toBe("claudio@example.net");
     expect(localStorage.getItem("ciak_lead_name")).toBe("Claudio");
     expect(localStorage.getItem("ciak_lead_nome")).toBe("Claudio");
-    expect(navigate).toHaveBeenCalledWith("/blueprint?source=masterclass_optin");
+    expect(navigate).toHaveBeenCalledWith("/masterclass/guarda");
   });
 
   test("non invia cookie Meta né traccia Lead senza consenso marketing", async () => {
@@ -116,7 +116,7 @@ describe("MasterclassLanding lead capture", () => {
     const payload = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(payload).toMatchObject({ marketing_consent: false, fbp: null, fbc: null });
     expect(trackLead).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith("/blueprint?source=masterclass_optin");
+    expect(navigate).toHaveBeenCalledWith("/masterclass/guarda");
   });
 
   test("non traccia né naviga quando il backend rifiuta l'opt-in", async () => {

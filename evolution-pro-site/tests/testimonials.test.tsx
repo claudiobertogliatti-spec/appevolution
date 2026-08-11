@@ -103,6 +103,6 @@ describe('FaqAccordion', () => {
 
 it('usa il dominio Ciak nella CTA finale', () => {
   render(<FinalCta />);
-  expect(screen.getByRole('link')).toHaveAttribute('href', 'https://www.ciak.io');
+  expect(screen.getByRole('link')).toHaveAttribute('href', 'https://www.ciak.io/masterclass');
   expect(screen.getByRole('img', { name: /direzione strategica/i })).toBeInTheDocument();
 });

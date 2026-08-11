@@ -28,7 +28,7 @@ describe('homepage shell', () => {
     render(<App />);
 
     for (const link of screen.getAllByRole('link', { name: /masterclass gratuita/i })) {
-      expect(link).toHaveAttribute('href', 'https://www.ciak.io');
+      expect(link).toHaveAttribute('href', 'https://www.ciak.io/masterclass');
     }
   });
 

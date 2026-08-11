@@ -8,10 +8,6 @@
  * Ciak Blueprint. Il backend ha già emesso tag Systeme ciak_bought_67 + transizione
  * state machine purchased_67.
  *
- * NB (riordino 2026-05-27): le 8 Domande Ciak sono ora PRE-pagamento (lead magnet
- * dopo la masterclass). A questo punto l'utente le ha già fatte → qui il next step
- * è SOLO prenotare la call. Niente più link/polling alle 8 domande.
- *
  * Titolo lockato: "Hai accesso al tuo Ciak Blueprint." (NON "è attivo" — tono SaaS).
  */
 import { useEffect, useState } from "react";
@@ -63,8 +59,8 @@ export function CiakGrazie() {
           </h1>
           <p className="text-base md:text-lg text-slate-300 leading-relaxed">
             Il prossimo passo è prenotare la tua sessione strategica con Claudio.
-            Le risposte che hai dato alle 8 Domande Ciak alimentano l'analisi
-            preliminare prima della call.
+            Useremo la call per mettere a fuoco il punto di partenza e preparare
+            la Roadmap Operativa.
           </p>
         </div>
       </section>
@@ -94,13 +90,17 @@ export function CiakGrazie() {
                 </a>
               ) : (
                 <p className="mt-3 text-xs text-slate-400 italic">
-                  Calendario in arrivo — riceverai il link via email entro pochi minuti.
+                  Il calendario non è disponibile in questo momento. Scrivi a{" "}
+                  <a href="mailto:assistenza@evolution-pro.it" className="underline">
+                    assistenza@evolution-pro.it
+                  </a>{" "}
+                  per ricevere supporto nella prenotazione.
                 </p>
               )}
             </div>
             <div className="border-l-2 border-gray-200 pl-6">
               <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
-                02 — Sessione + Roadmap
+                02 — Preparazione della sessione + Roadmap
               </p>
               <p className="text-slate-600 leading-relaxed">
                 60 minuti di analisi guidata. Entro 72 ore ricevi la Roadmap Operativa scritta.
@@ -123,7 +123,11 @@ export function CiakGrazie() {
               </a>
             ) : (
               <p className="text-slate-300 text-sm leading-relaxed">
-                Riceverai entro pochi minuti un'email con il link per prenotare la call.
+                Il calendario non è disponibile in questo momento. Scrivi a{" "}
+                <a href="mailto:assistenza@evolution-pro.it" className="underline hover:text-yellow-400">
+                  assistenza@evolution-pro.it
+                </a>{" "}
+                per ricevere supporto nella prenotazione.
               </p>
             )}
             <p className="text-xs text-slate-400 mt-6 leading-relaxed">

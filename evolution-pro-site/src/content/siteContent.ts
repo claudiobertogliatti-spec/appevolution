@@ -55,7 +55,7 @@ export const siteContent: SiteContent = {
   platform: 'Ciak',
   primaryCta: {
     label: 'Guarda la masterclass gratuita',
-    href: 'https://www.ciak.io',
+    href: 'https://www.ciak.io/masterclass',
   },
   agents: [
     {

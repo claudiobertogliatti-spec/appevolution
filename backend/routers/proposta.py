@@ -16,6 +16,8 @@ import uuid
 import secrets
 import logging
 import httpx
+import base64
+import binascii
 
 from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields
 from services.ciak_partnership_email import (
@@ -46,6 +48,64 @@ def set_db(database):
 
 SCADENZA_GIORNI = 7
 BASE_URL = os.environ.get('BASE_URL', os.environ.get('FRONTEND_URL', 'https://www.ciak.io'))
+MAX_SIGNATURE_BYTES = 512_000
+
+
+def _admin_identity(admin) -> dict:
+    if isinstance(admin, dict):
+        return {"id": admin.get("id"), "email": admin.get("email")}
+    return {"id": getattr(admin, "id", None), "email": getattr(admin, "email", None)}
+
+
+def validate_signature_payload(value: Optional[str]) -> bytes:
+    if not value or not isinstance(value, str) or not value.startswith("data:image/png;base64,"):
+        raise HTTPException(422, "Firma PNG mancante o non valida")
+    encoded = value.split(",", 1)[1]
+    if not encoded or len(encoded) > (MAX_SIGNATURE_BYTES * 4 // 3 + 8):
+        raise HTTPException(422, "Firma vuota o troppo grande")
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(422, "Firma non decodificabile")
+    if len(raw) > MAX_SIGNATURE_BYTES or not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(422, "Il contenuto della firma non è un PNG valido")
+    return raw
+
+
+def _trusted_client_ip(request: Request) -> str:
+    if os.environ.get("TRUST_PROXY_HEADERS", "").lower() == "true":
+        forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+        if forwarded:
+            return forwarded
+    return request.client.host if request.client else "unknown"
+
+
+def _proposal_amount_cents(proposta: dict) -> int:
+    amount = proposta.get("contract_params", {}).get("corrispettivo", 2790)
+    try:
+        return int(round(float(amount) * 100))
+    except (TypeError, ValueError):
+        raise HTTPException(409, "Importo proposta non valido")
+
+
+def validate_partnership_stripe_session(session, proposta: dict, requested_session_id: str) -> None:
+    def field(name, default=None):
+        return session.get(name, default) if isinstance(session, dict) else getattr(session, name, default)
+    metadata = dict(field("metadata", {}) or {})
+    expected_session = proposta.get("stripe_session_id_partnership")
+    checks = [
+        (field("id") == requested_session_id == expected_session, "Sessione Stripe non associata alla proposta"),
+        (metadata.get("tipo") == "partnership", "Tipo pagamento Stripe non valido"),
+        (metadata.get("token") == proposta.get("token"), "Token proposta Stripe non valido"),
+        (metadata.get("partner_id") == proposta.get("partner_id"), "Identità cliente Stripe non valida"),
+        (field("amount_total") == _proposal_amount_cents(proposta), "Importo Stripe non valido"),
+        (str(field("currency", "")).lower() == "eur", "Valuta Stripe non valida"),
+        (field("payment_status") == "paid", "Pagamento Stripe non completato"),
+        (field("mode") == "payment", "Modalità Stripe non valida"),
+    ]
+    for valid, message in checks:
+        if not valid:
+            raise HTTPException(409, message)
 
 
 class GeneraPropostaRequest(BaseModel):
@@ -56,16 +116,42 @@ class GeneraPropostaRequest(BaseModel):
     contract_params: Optional[dict] = None
 
 
+class GeneraPropostaClienteRequest(BaseModel):
+    email: str
+    diagnostic_session_id: Optional[str] = None
+
+
+async def resolve_canonical_client_identity(email: str) -> dict:
+    normalized = (email or "").strip().lower()
+    if not normalized:
+        raise HTTPException(422, "Email cliente mancante")
+    client_doc = await db.ciak_clients.find_one({"email": normalized}, {"_id": 0})
+    user_doc = await db.users.find_one({"email": normalized}, {"_id": 0})
+    if client_doc and not user_doc and client_doc.get("user_id"):
+        user_doc = await db.users.find_one({"id": client_doc["user_id"]}, {"_id": 0})
+    if not client_doc and not user_doc:
+        raise HTTPException(404, "Cliente qualificato non trovato")
+    user_id = (user_doc or {}).get("id")
+    client_id = (client_doc or {}).get("id")
+    canonical_id = user_id or (client_doc or {}).get("user_id") or client_id
+    return {
+        "canonical_id": canonical_id, "client_id": client_id,
+        "user_id": user_id, "email": normalized,
+    }
+
+
 # ─────────────────────────────────────────────────
 # ADMIN: Genera proposta per un partner
 # ─────────────────────────────────────────────────
 @router.post("/genera/{partner_id}")
-async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None):
+async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None, admin=Depends(require_ciak_admin)):
     """Genera token proposta e salva in MongoDB."""
     # Cerca in entrambe le collection (users/clienti per il flusso analisi, o partners)
     prospect = await db.users.find_one({"id": partner_id}, {"_id": 0})
     if not prospect:
         prospect = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not prospect:
+        prospect = await db.ciak_clients.find_one({"id": partner_id}, {"_id": 0})
     if not prospect:
         raise HTTPException(404, "Prospect non trovato")
 
@@ -110,6 +196,8 @@ async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None):
         "documenti_identita_url": [],
         "distinta_bonifico_url": None,
         "stato": "inviata",
+        "generata_da": _admin_identity(admin),
+        "generata_at": now.isoformat(),
         "scadenza": (now + timedelta(days=SCADENZA_GIORNI)).isoformat()
     }
 
@@ -124,6 +212,22 @@ async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None):
         "url": f"{BASE_URL}/proposta/{token}",
         "message": "Proposta generata"
     }
+
+
+@router.post("/admin/genera-cliente")
+async def genera_proposta_cliente(
+    payload: GeneraPropostaClienteRequest,
+    admin=Depends(require_ciak_admin),
+):
+    identity = await resolve_canonical_client_identity(payload.email)
+    result = await genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), admin)
+    await db.proposte.update_one({"token": result["token"]}, {"$set": {
+        "ciak_client_id": identity.get("client_id"),
+        "user_id": identity.get("user_id"),
+        "diagnostic_session_id": payload.diagnostic_session_id,
+        "identity_email": identity["email"],
+    }})
+    return {**result, "status": "esistente" if result.get("message") == "Proposta esistente" else "generata"}
 
 
 # ─────────────────────────────────────────────────
@@ -189,14 +293,24 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
         raise HTTPException(404, "Proposta non trovata")
 
     body = await request.json()
+    if body.get("clausole_vessatorie_approved") is not True:
+        raise HTTPException(422, "Le clausole vessatorie devono essere approvate")
+    if proposta.get("stato") not in ("accettata", "contratto_firmato") and not proposta.get("accettato_at"):
+        raise HTTPException(409, "La proposta deve essere accettata prima della firma")
+    scadenza = proposta.get("scadenza")
+    if scadenza and datetime.now(timezone.utc) > datetime.fromisoformat(scadenza):
+        raise HTTPException(410, "Proposta scaduta")
+    if proposta.get("contratto_firmato_at"):
+        return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
+    validate_signature_payload(body.get("signature_base64"))
     now = datetime.now(timezone.utc)
 
     contract_data = {
         "version": "v1.0",
         "signed_at": now.isoformat(),
         "signature_base64": body.get("signature_base64", ""),
-        "ip_address": request.client.host if request.client else "unknown",
-        "clausole_vessatorie_approved": body.get("clausole_vessatorie_approved", False)
+        "ip_address": _trusted_client_ip(request),
+        "clausole_vessatorie_approved": True
     }
 
     # Aggiorna proposta (pdf_url persistito più sotto, dopo la generazione)
@@ -671,66 +785,93 @@ async def bonifici_in_attesa(_admin=Depends(require_ciak_admin)):
 # ─────────────────────────────────────────────────
 # ADMIN: Conferma bonifico → attiva partner
 # ─────────────────────────────────────────────────
+async def finalize_partnership_payment(proposta: dict, method: str, reference: str, actor: Optional[dict] = None) -> dict:
+    """Finalizzazione unica e ritentabile, condivisa da Stripe e bonifico."""
+    if not proposta.get("contratto_firmato_at"):
+        raise HTTPException(409, "Contratto firmato mancante")
+    token = proposta["token"]
+    partner_id = proposta.get("partner_id")
+    if not partner_id:
+        raise HTTPException(409, "Identità cliente mancante")
+    now = datetime.now(timezone.utc).isoformat()
+    state = dict(proposta.get("finalizzazione_partnership") or {})
+    email = proposta.get("prospect_email", "")
+    nome = proposta.get("prospect_nome", "")
+
+    await db.proposte.update_one({"token": token}, {"$set": {
+        "pagamento_completato": True,
+        "pagamento_completato_at": proposta.get("pagamento_completato_at") or now,
+        "pagamento_metodo": method,
+        "pagamento_riferimento": reference,
+        "stato": "finalizzazione_in_corso",
+    }})
+    await db.users.update_one({"id": partner_id}, {"$set": {
+        "role": "partner", "partnership_pagata": True,
+        "stato_funnel": "pagamento_completato", "pagamento_partnership_at": now,
+    }})
+    await db.partners.update_one({"id": partner_id}, {"$set": {
+        "name": nome, "email": email, "tier": "partnership", "active": True,
+        "stato_funnel": "pagamento_completato", "pagamento_partnership_at": now,
+        "partnership_pagata": True, "partnership_data_pagamento": now,
+        "partnership_metodo": method, "documents_status": "pending",
+    }}, upsert=True)
+
+    effects = [
+        ("account", lambda: _activate_partner_account_and_notify(partner_id, email, nome)),
+        ("journey", lambda: _seed_operativo_journey_from_funnel(
+            partner_id, contract_signed_at=proposta.get("contratto_firmato_at"),
+            contract_pdf_url=proposta.get("contratto_pdf_url"), payment_metodo=method, payment_at=now)),
+        ("tags", lambda: _finalization_tags(email)),
+        ("notification", lambda: _notify_telegram(f"Pagamento Partnership verificato — {nome} — {method}")),
+    ]
+    for effect, operation in effects:
+        if state.get(effect) == "done":
+            continue
+        try:
+            await operation()
+            state[effect] = "done"
+            await db.proposte.update_one({"token": token}, {"$set": {f"finalizzazione_partnership.{effect}": "done"}})
+        except Exception as exc:
+            state[effect] = "failed"
+            await db.proposte.update_one({"token": token}, {"$set": {
+                f"finalizzazione_partnership.{effect}": "failed",
+                f"finalizzazione_partnership.{effect}_error": type(exc).__name__,
+                "finalizzazione_partnership.last_error_at": now,
+            }})
+            logger.exception("[PROPOSTA] Finalizzazione fallita token=%s effetto=%s", token[:8], effect)
+            raise HTTPException(503, f"Pagamento verificato; finalizzazione incompleta: {effect}")
+
+    await db.proposte.update_one({"token": token}, {"$set": {
+        "stato": "pagamento_completato", "finalizzazione_partnership.complete": True,
+        "finalizzazione_partnership.completed_at": now,
+    }})
+    await db.partnership_payment_audit.update_one(
+        {"token": token, "method": method, "reference": reference},
+        {"$set": {"partner_id": partner_id, "actor": actor, "completed_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "complete": True, "partner_id": partner_id, "role": "partner"}
+
+
+async def _finalization_tags(email: str) -> None:
+    for tag in ("acquisto_partnership", "partner_attivo", "pagamento_2790", "onboarding_avviato"):
+        await _add_systeme_tag(email, tag)
+
+
 @router.post("/{token}/conferma-bonifico")
-async def conferma_bonifico(token: str):
+async def conferma_bonifico(token: str, admin=Depends(require_ciak_admin)):
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
     if not proposta:
         raise HTTPException(404, "Proposta non trovata")
 
-    now = datetime.now(timezone.utc).isoformat()
-    await db.proposte.update_one({"token": token}, {"$set": {
-        "pagamento_completato": True,
-        "pagamento_completato_at": now,
-        "stato": "pagamento_completato"
-    }})
-
-    partner_id = proposta.get("partner_id")
-    prospect_email = proposta.get("prospect_email", "")
-    prospect_nome = proposta.get("prospect_nome", "")
-
-    if partner_id:
-        # Cambia ruolo a "partner" e avvia onboarding
-        await db.users.update_one({"id": partner_id}, {"$set": {
-            "role": "partner",
-            "stato_funnel": "pagamento_completato",
-            "pagamento_partnership_at": now
-        }})
-        await db.partners.update_one(
-            {"id": partner_id},
-            {"$set": {
-                "stato_funnel": "pagamento_completato",
-                "pagamento_partnership_at": now,
-                "phase": "F1",
-                "documents_status": "pending",
-                "partnership_pagata": True,
-                "partnership_data_pagamento": now,
-                "partnership_metodo": "bonifico"
-            }},
-            upsert=True
-        )
-
-    await _add_systeme_tag(prospect_email, "contratto_firmato")
-    await _add_systeme_tag(prospect_email, "onboarding_avviato")
-
-    # Auto-attivazione account partner + email Benvenuto Ciak con credenziali
-    await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
-
-    # Seed flusso Operativo: step 1 pre-completo, partner parte dal Discovery video
-    await _seed_operativo_journey_from_funnel(
-        partner_id,
-        contract_signed_at=proposta.get("contratto_firmato_at"),
-        contract_pdf_url=proposta.get("contratto_pdf_url"),
-        payment_metodo="bonifico",
-        payment_at=now,
+    if not proposta.get("distinta_bonifico_url"):
+        raise HTTPException(409, "Distinta bonifico mancante")
+    if proposta.get("pagamento_metodo") not in (None, "bonifico"):
+        raise HTTPException(409, "Metodo di pagamento incoerente")
+    return await finalize_partnership_payment(
+        proposta, method="bonifico", reference=proposta.get("distinta_bonifico_url"),
+        actor=_admin_identity(admin),
     )
-
-    await _notify_telegram(
-        f"✅ Bonifico confermato — {prospect_nome} è ora PARTNER\n"
-        f"📧 {prospect_email}\n"
-        f"🚀 Onboarding avviato"
-    )
-
-    return {"success": True, "partner_id": partner_id}
 
 
 
@@ -755,102 +896,25 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
     if not proposta:
         raise HTTPException(404, "Proposta non trovata")
 
-    # Se già confermato, ritorna successo idempotente
-    if proposta.get("pagamento_completato"):
-        return {
-            "success": True,
-            "already_confirmed": True,
-            "partner_id": proposta.get("partner_id")
-        }
-
-    now = datetime.now(timezone.utc).isoformat()
-
-    # 1) Verifica sessione Stripe: senza conferma "paid" non attiviamo mai il partner.
-    stripe_verified = False
+    if not body.session_id:
+        raise HTTPException(422, "Sessione Stripe mancante")
     try:
         stripe_key = os.environ.get('STRIPE_API_KEY')
-        if stripe_key and body.session_id:
-            import stripe
-            stripe.api_key = stripe_key
-            session = stripe.checkout.Session.retrieve(body.session_id)
-            stripe_verified = session.payment_status == "paid"
+        if not stripe_key:
+            raise HTTPException(503, "Stripe non configurato")
+        import stripe
+        stripe.api_key = stripe_key
+        session = stripe.checkout.Session.retrieve(body.session_id)
+        validate_partnership_stripe_session(session, proposta, body.session_id)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"[PROPOSTA] Stripe verification failed: {e}")
-
-    if not stripe_verified:
-        # Se Stripe dice esplicitamente che non è pagato, non confermiamo
         return {"success": False, "error": "Pagamento non confermato da Stripe"}
-
-    # 2) Aggiorna proposta
-    await db.proposte.update_one({"token": token}, {"$set": {
-        "pagamento_completato": True,
-        "pagamento_completato_at": now,
-        "pagamento_metodo": "stripe",
-        "stripe_session_id_conferma": body.session_id,
-        "stato": "pagamento_completato"
-    }})
-
-    partner_id = proposta.get("partner_id")
-    prospect_email = proposta.get("prospect_email", "")
-    prospect_nome = proposta.get("prospect_nome", "")
-
-    # 3) Promuovi utente a partner
-    if partner_id:
-        await db.users.update_one({"id": partner_id}, {"$set": {
-            "role": "partner",
-            "partnership_pagata": True,
-            "stato_funnel": "pagamento_completato",
-            "pagamento_partnership_at": now
-        }})
-
-        # 4) Upsert partner record
-        await db.partners.update_one(
-            {"id": partner_id},
-            {"$set": {
-                "name": prospect_nome,
-                "email": prospect_email,
-                "stato_funnel": "pagamento_completato",
-                "pagamento_partnership_at": now,
-                "phase": "F1",
-                "active": True,
-                "documents_status": "pending",
-                "partnership_pagata": True,
-                "partnership_data_pagamento": now,
-                "partnership_metodo": "stripe"
-            }},
-            upsert=True
-        )
-
-    # 5) Tag Systeme.io
-    await _add_systeme_tag(prospect_email, "acquisto_partnership")
-    await _add_systeme_tag(prospect_email, "partner_attivo")
-    await _add_systeme_tag(prospect_email, "pagamento_2790")
-
-    # 6) Auto-attivazione account partner + email Benvenuto Ciak con credenziali
-    await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
-
-    # 6b) Seed flusso Operativo: step 1 pre-completo, partner parte dal Discovery video
-    await _seed_operativo_journey_from_funnel(
-        partner_id,
-        contract_signed_at=proposta.get("contratto_firmato_at"),
-        contract_pdf_url=proposta.get("contratto_pdf_url"),
-        payment_metodo="stripe",
-        payment_at=now,
+    return await finalize_partnership_payment(
+        proposta, method="stripe", reference=body.session_id,
+        actor={"type": "frontend_confirmation"},
     )
-
-    # 7) Notifica Telegram
-    await _notify_telegram(
-        f"Pagamento Stripe confermato — {prospect_nome} è ora PARTNER\n"
-        f"{prospect_email}\nOnboarding avviato"
-    )
-
-    logger.info(f"[PROPOSTA] Conferma Stripe completata — token={token}, partner={partner_id}")
-
-    return {
-        "success": True,
-        "partner_id": partner_id,
-        "role": "partner"
-    }
 
 
 
@@ -901,51 +965,25 @@ async def partnership_email_opened_pixel(token: str):
 # ─────────────────────────────────────────────────
 # WEBHOOK: gestione pagamento partnership (chiamata dal webhook Stripe in server.py)
 # ─────────────────────────────────────────────────
-async def gestisci_pagamento_partnership(session_id: str, metadata: dict):
+async def gestisci_pagamento_partnership(session_id: str, metadata: dict, session=None):
     """Chiamata dal webhook Stripe quando tipo=partnership."""
     token = metadata.get("token")
     if not token:
         logger.warning("[PROPOSTA] Webhook partnership senza token")
         return
 
-    now = datetime.now(timezone.utc).isoformat()
-    await db.proposte.update_one({"token": token}, {"$set": {
-        "pagamento_completato": True,
-        "pagamento_completato_at": now,
-        "stato": "pagamento_completato"
-    }})
-
-    partner_id = metadata.get("partner_id")
-    if partner_id:
-        await db.users.update_one({"id": partner_id}, {"$set": {
-            "role": "partner",
-            "stato_funnel": "pagamento_completato",
-            "pagamento_partnership_at": now
-        }})
-        await db.partners.update_one(
-            {"id": partner_id},
-            {"$set": {
-                "stato_funnel": "pagamento_completato",
-                "pagamento_partnership_at": now,
-                "phase": "F1",
-                "documents_status": "pending",
-                "partnership_pagata": True,
-                "partnership_data_pagamento": now,
-                "partnership_metodo": "stripe"
-            }},
-            upsert=True
-        )
-
-    email = metadata.get("prospect_email", "")
-    nome = metadata.get("prospect_nome", "")
-    await _add_systeme_tag(email, "contratto_firmato")
-    await _add_systeme_tag(email, "onboarding_avviato")
-    await _notify_telegram(
-        f"✅ Pagamento Stripe partnership — {nome} è ora PARTNER\n"
-        f"📧 {email}\n🚀 Onboarding avviato"
+    proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
+    if not proposta:
+        raise HTTPException(404, "Proposta non trovata per il webhook")
+    if metadata.get("tipo") != "partnership" or metadata.get("partner_id") != proposta.get("partner_id"):
+        raise HTTPException(409, "Metadata webhook non coerenti con la proposta")
+    if session is None:
+        raise HTTPException(409, "Sessione Stripe webhook mancante")
+    validate_partnership_stripe_session(session, proposta, session_id)
+    return await finalize_partnership_payment(
+        proposta, method="stripe", reference=session_id,
+        actor={"type": "stripe_webhook"},
     )
-
-    logger.info(f"[PROPOSTA] Pagamento partnership completato — token={token}, partner={partner_id}")
 
 
 # ─────────────────────────────────────────────────

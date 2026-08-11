@@ -11,7 +11,7 @@ describe('contratto dei contenuti istituzionali', () => {
 
   it('indirizza la CTA primaria solo alla piattaforma Ciak attiva', () => {
     expect(JSON.stringify(siteContent)).not.toContain('app.evolution-pro.it');
-    expect(siteContent.primaryCta.href).toMatch(/^https:\/\/www\.ciak\.io/);
+    expect(siteContent.primaryCta.href).toBe('https://www.ciak.io/masterclass');
     expect(siteContent.primaryCta.label).toBe('Guarda la masterclass gratuita');
   });
 

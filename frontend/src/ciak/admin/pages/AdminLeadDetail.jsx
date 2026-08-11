@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiGet, apiPost } from "../api";
+import { apiGet, apiPost, adminFetch } from "../api";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -45,6 +45,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [marking, setMarking] = useState(false);
   const [markMsg, setMarkMsg] = useState(null);
+  const [proposal, setProposal] = useState(null);
+  const [generatingProposal, setGeneratingProposal] = useState(false);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -69,6 +71,28 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setMarkMsg("Errore: " + e.message);
     } finally {
       setMarking(false);
+    }
+  }
+
+  async function generateProposal() {
+    setGeneratingProposal(true);
+    setMarkMsg(null);
+    try {
+      const response = await adminFetch("/api/proposta/admin/genera-cliente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          diagnostic_session_id: latest_diagnostic?.id || latest_diagnostic?._id || null,
+        }),
+      });
+      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      setProposal(await response.json());
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setMarkMsg("Errore generazione proposta: " + e.message);
+    } finally {
+      setGeneratingProposal(false);
     }
   }
 
@@ -102,19 +126,21 @@ export function AdminLeadDetail({ onAuthExpired }) {
             Proposta Partnership €2.790.
           </p>
           <button
-            onClick={() =>
-              alert(
-                "Handoff Proposta Partnership.\n\n" +
-                  "Il flusso /api/proposta/genera/{partner_id} è pronto lato Evolution. " +
-                  "Resta da cablare il passaggio diagnostic_session → partner_id " +
-                  "(vedi memory: bridge Ciak → Partnership, punto 2). " +
-                  "Per ora generare la proposta dall'admin Evolution PRO."
-              )
-            }
+            onClick={generateProposal}
+            disabled={generatingProposal}
             className="px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm"
           >
-            Genera Proposta Partnership
+            {generatingProposal ? "Generazione..." : "Genera Proposta Partnership"}
           </button>
+          {proposal?.url && (
+            <div className="mt-4 rounded-xl border border-slate-700 p-4">
+              <p className="text-sm text-slate-200 mb-2">Proposta {proposal.status}: {proposal.url}</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => navigator.clipboard.writeText(proposal.url)} className="text-sm text-yellow-400">Copia URL</button>
+                <a href={proposal.url} target="_blank" rel="noopener noreferrer" className="text-sm text-yellow-400">Apri proposta</a>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

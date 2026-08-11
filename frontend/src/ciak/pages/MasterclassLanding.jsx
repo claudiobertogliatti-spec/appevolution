@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, ShieldCheck, Play, Sparkles, Users, Clock, Aw
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
-import { blueprintBridgeUrl } from "../lib/funnelRouting";
+import { masterclassOptinDestination } from "../lib/funnelRouting";
 
 const INITIAL_FORM = { nome: "", email: "" };
 const NON_DELIVERABLE_DOMAINS = new Set([
@@ -173,7 +173,7 @@ export function MasterclassLanding() {
       localStorage.setItem("ciak_lead_email", email);
       localStorage.setItem("ciak_lead_name", nome);
       localStorage.setItem("ciak_lead_nome", nome);
-      navigate(blueprintBridgeUrl());
+      navigate(masterclassOptinDestination());
     } catch {
       setError("Errore di rete. Riprova.");
     } finally {

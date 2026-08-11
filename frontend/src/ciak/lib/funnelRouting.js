@@ -22,6 +22,10 @@ export function masterclassSkipUrl() {
   return "/masterclass/guarda";
 }
 
+export function masterclassOptinDestination() {
+  return masterclassSkipUrl();
+}
+
 export function normalizeAttributionSource(source) {
   return ALLOWED_ATTRIBUTION_SOURCES.has(source)
     ? source

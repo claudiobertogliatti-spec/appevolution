@@ -241,11 +241,9 @@ async def _dispatch_checkout_completed(db, session: dict, session_id: str, metad
         # Check if this is a proposta-based payment (has token in metadata)
         token = metadata.get('token')
         if token:
-            try:
-                from routers.proposta import gestisci_pagamento_partnership
-                await gestisci_pagamento_partnership(session_id, metadata)
-            except Exception as e:
-                logger.error(f"[STRIPE_WEBHOOK] Proposta partnership handler error: {e}")
+            from routers.proposta import gestisci_pagamento_partnership
+            await gestisci_pagamento_partnership(session_id, metadata, session)
+            return
         # Also run the standard partnership flow
         partner_id = metadata.get('partner_id') or user_id
         if partner_id:

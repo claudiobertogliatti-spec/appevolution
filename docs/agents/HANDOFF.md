@@ -24,6 +24,36 @@ Regole:
 
 ---
 
+### 2026-08-11 · Codex · codex/commercial-path-e2e — percorso commerciale e sicurezza proposta
+
+**FATTO**
+- CTA Evolution PRO corretta su `https://www.ciak.io/masterclass`; opt-in Ciak porta al viewer
+  `/masterclass/guarda`; pagina `/blueprint/grazie` ripulita da presupposti sulle 8 Domande e da
+  promesse email/calendario non garantite.
+- Collegato il lead qualificato alla generazione reale e idempotente della proposta, riusando
+  `users`/`ciak_clients` esistenti senza creare identità duplicate; UI con URL, copia e apertura.
+- Protetti con `require_ciak_admin` generazione proposta e conferma bonifico. Firma vincolata a
+  proposta accettata/non scaduta, clausole approvate e PNG reale entro 512 KB; idempotenza firma.
+- Conferma Stripe vincolata a session ID, tipo/token/cliente, importo server-side, EUR, paid e mode.
+  Webhook e redirect condividono una finalizzazione ritentabile con stato per effetto e audit;
+  rimosso il doppio passaggio nel vecchio handler partnership per le proposte tokenizzate.
+
+**VERIFICATO**
+- RED sito: 5 test fallivano perché ricevevano `https://www.ciak.io`; GREEN: `vitest` mirato,
+  **27 passed / 5 file**, exit 0.
+- Backend: `pytest backend/tests/test_proposta_security.py -q` → **11 passed**, exit 0.
+- Python: runtime bundled `python -m py_compile` su `proposta.py`, `stripe_webhook.py` e test → exit 0.
+- Build sito: `npm run build` → TypeScript + Vite, **2206 moduli**, exit 0.
+- Parse Babel dei 7 file JS/JSX modificati e test → **7 PARSE_OK**.
+
+**APERTO**
+- La build CRA completa del frontend Ciak non ha restituito errori ma è scaduta due volte (184s e
+  604s) lasciando processi `craco build`; processi terminati per PID. La CI resta il gate autorevole.
+- Da eseguire dopo push: CI, deploy backend/frontend/sito, revisioni/traffico, health e probe live
+  anonime. Nessun pagamento o firma reale deve essere eseguito.
+
+---
+
 ### 2026-07-31 · Codex + Claude Code (Luca) · feat/ciak-onboarding-email — review esterna FAIL, 3 bloccanti corretti
 
 **FATTO**

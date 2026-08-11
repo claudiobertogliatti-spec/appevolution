@@ -2,6 +2,7 @@ import {
   blueprintBridgeUrl,
   isMasterclassOptinBridge,
   masterclassSkipUrl,
+  masterclassOptinDestination,
   normalizeAttributionSource,
 } from "./funnelRouting";
 
@@ -19,6 +20,10 @@ describe("funnel routing contract", () => {
 
   test("uses the canonical masterclass viewer as the bridge skip URL", () => {
     expect(masterclassSkipUrl()).toBe("/masterclass/guarda");
+  });
+
+  test("sends a successful opt-in directly to the promised masterclass", () => {
+    expect(masterclassOptinDestination()).toBe("/masterclass/guarda");
   });
 
   test.each(["direct", "masterclass_optin", "retargeting"])(
