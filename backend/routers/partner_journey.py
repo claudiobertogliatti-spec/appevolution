@@ -71,6 +71,31 @@ async def require_admin_token(credentials: HTTPAuthorizationCredentials):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
     return token_data
 
+
+async def require_caso_studio_access(
+    caso_studio_id: str,
+    credentials: HTTPAuthorizationCredentials,
+):
+    """Autorizza la lettura di un caso studio.
+
+    Un caso studio contiene il risultato di uno studente del partner: e' dato di
+    terzi, non materiale pubblico. Il documento non ha un partner_id nel path,
+    quindi lo si risolve dal record e si riusa la guardia partner-scoped. Se il
+    caso studio non e' associato a nessun partner resta riservato agli admin.
+    """
+    caso = await db.casi_studio.find_one(
+        {"id": caso_studio_id}, {"_id": 0, "partner_id": 1}
+    )
+    if not caso:
+        # Non si distingue "inesistente" da "non autorizzato" prima di aver
+        # verificato il token: altrimenti l'endpoint diventa un oracolo di ID.
+        await require_admin_token(credentials)
+        raise HTTPException(status_code=404, detail="Caso studio non trovato")
+    partner_id = caso.get("partner_id")
+    if not partner_id:
+        return await require_admin_token(credentials)
+    return await require_partner_or_admin_for_partner(partner_id, credentials)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODELS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -256,8 +281,12 @@ async def notify_telegram(message: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/posizionamento/{partner_id}")
-async def get_posizionamento(partner_id: str):
+async def get_posizionamento(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera i dati di posizionamento del partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     posizionamento = await db.partner_posizionamento.find_one(
@@ -275,8 +304,12 @@ async def get_posizionamento(partner_id: str):
     }
 
 @router.post("/posizionamento/save-step")
-async def save_posizionamento_step(request: PosizionamentoSaveRequest):
+async def save_posizionamento_step(
+    request: PosizionamentoSaveRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva un singolo step del wizard di posizionamento"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     step_field = f"step_{request.step_number}"
@@ -319,8 +352,12 @@ async def save_posizionamento_step(request: PosizionamentoSaveRequest):
     }
 
 @router.post("/posizionamento/save-all")
-async def save_posizionamento_all(request: PosizionamentoData):
+async def save_posizionamento_all(
+    request: PosizionamentoData,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva tutti i dati di posizionamento in una volta"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     posizionamento_data = {
@@ -348,8 +385,12 @@ async def save_posizionamento_all(request: PosizionamentoData):
     }
 
 @router.post("/posizionamento/generate-structure")
-async def generate_course_structure(request: GenerateCourseStructureRequest):
+async def generate_course_structure(
+    request: GenerateCourseStructureRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera la struttura del corso usando AI basandosi sul posizionamento"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Recupera posizionamento
@@ -446,8 +487,12 @@ La struttura deve seguire una progressione logica che porta lo studente dal prob
         raise HTTPException(status_code=500, detail=f"Errore generazione struttura: {str(e)}")
 
 @router.post("/posizionamento/approve-structure")
-async def approve_course_structure(partner_id: str):
+async def approve_course_structure(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva la struttura del corso e completa la fase Posizionamento"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     posizionamento = await db.partner_posizionamento.find_one(
@@ -893,8 +938,12 @@ async def update_funnel_distribution(
 
 
 @router.post("/posizionamento/save-inputs")
-async def save_posizionamento_inputs(request: PosizionamentoInputs):
+async def save_posizionamento_inputs(
+    request: PosizionamentoInputs,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Salva i 7 input del partner per il posizionamento AI-driven"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     await db.partner_posizionamento.update_one(
@@ -986,8 +1035,12 @@ async def update_posizionamento_inputs_partial(
 
 
 @router.post("/posizionamento/generate-positioning")
-async def generate_positioning(request: GenerateCourseStructureRequest):
+async def generate_positioning(
+    request: GenerateCourseStructureRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera il posizionamento usando AI basandosi sui 7 input del partner"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
 
     posizionamento = await db.partner_posizionamento.find_one(
@@ -1094,8 +1147,12 @@ Produci SOLO questo JSON (nessun altro testo, nessun markdown):
 
 
 @router.post("/posizionamento/approve-positioning")
-async def approve_positioning(partner_id: str):
+async def approve_positioning(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Approva il posizionamento generato e completa la fase"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
 
     posizionamento = await db.partner_posizionamento.find_one(
@@ -4121,8 +4178,12 @@ async def crea_caso_studio(
 
 
 @router.get("/ottimizzazione/caso-studio/{caso_studio_id}")
-async def get_caso_studio(caso_studio_id: str):
+async def get_caso_studio(
+    caso_studio_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera i dettagli di un caso studio"""
+    await require_caso_studio_access(caso_studio_id, credentials)
     caso = await db.casi_studio.find_one({"id": caso_studio_id}, {"_id": 0})
 
     if not caso:
@@ -4536,8 +4597,12 @@ class GeneraWebinarRequest(BaseModel):
     partner_id: str
 
 @router.get("/webinar/{partner_id}")
-async def get_webinar(partner_id: str):
+async def get_webinar(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Recupera i dati del webinar mensile"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     webinar = await db.partner_webinar.find_one(
@@ -4553,8 +4618,12 @@ async def get_webinar(partner_id: str):
 
 
 @router.post("/webinar/genera")
-async def genera_webinar(request: GeneraWebinarRequest):
+async def genera_webinar(
+    request: GeneraWebinarRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera titolo, scaletta e contenuti promozionali del webinar"""
+    await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
     # Recupera posizionamento e corso
@@ -5166,7 +5235,10 @@ class AdminFunnelUnlockRequest(BaseModel):
 
 
 @router.post("/funnel/admin-unlock")
-async def admin_unlock_funnel(request: AdminFunnelUnlockRequest):
+async def admin_unlock_funnel(
+    request: AdminFunnelUnlockRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """
     Admin endpoint to quickly unlock a funnel:
     - Replace test domain with real domain
@@ -5174,6 +5246,7 @@ async def admin_unlock_funnel(request: AdminFunnelUnlockRequest):
     - Generate legal docs if missing
     - Optionally set as published
     """
+    await require_admin_token(credentials)
     partner = await get_partner_or_404(request.partner_id)
     partner_name = partner.get("name", "Partner")
     
@@ -5271,8 +5344,12 @@ async def admin_unlock_funnel(request: AdminFunnelUnlockRequest):
 
 
 @router.get("/funnel/legal-pdf/{partner_id}/{page_id}")
-async def download_legal_pdf(partner_id: str, page_id: str):
+async def download_legal_pdf(
+    partner_id: str, page_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Genera e scarica il PDF di una pagina legale"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     funnel = await db.partner_funnel.find_one(
@@ -5363,9 +5440,11 @@ async def get_partner_leads(
     funnel_origin: Optional[str] = None,
     status: Optional[str] = None,
     page: int = 1,
-    limit: int = 50
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Recupera tutti i lead del partner con filtri opzionali"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Build query
@@ -5432,8 +5511,12 @@ async def get_partner_leads(
 
 
 @router.post("/leads/export-csv/{partner_id}")
-async def export_leads_csv(partner_id: str):
+async def export_leads_csv(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Esporta tutti i lead in formato CSV"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     # Get all leads
@@ -5479,8 +5562,12 @@ async def export_leads_csv(partner_id: str):
 
 
 @router.post("/leads/update-status")
-async def update_lead_status(partner_id: str, lead_id: str, status: str):
+async def update_lead_status(
+    partner_id: str, lead_id: str, status: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Aggiorna lo status di un lead"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     
     valid_statuses = ["new", "contacted", "qualified", "converted", "lost"]
@@ -5504,8 +5591,12 @@ async def update_lead_status(partner_id: str, lead_id: str, status: str):
 
 
 @router.post("/leads/add-note")
-async def add_lead_note(partner_id: str, lead_id: str, note: str):
+async def add_lead_note(
+    partner_id: str, lead_id: str, note: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Aggiunge una nota a un lead"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await get_partner_or_404(partner_id)
     
     result = await db.partner_leads.update_one(
@@ -5911,8 +6002,11 @@ def get_suggested_action(risk, phase, days_in_step, execution_level):
 
 
 @router.get("/dashboard-operativa")
-async def get_dashboard_operativa():
+async def get_dashboard_operativa(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Dashboard operativa per il team: stato di tutti i partner"""
+    await require_admin_token(credentials)
     partners = await db.partners.find({}, {"_id": 0}).to_list(200)
 
     # Fetch journey data for each partner
@@ -6045,8 +6139,12 @@ async def get_dashboard_operativa():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/webinar/{partner_id}")
-async def get_webinar_data(partner_id: str):
+async def get_webinar_data(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Restituisce i dati del webinar per il partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     doc = await db.webinar_data.find_one({"partner_id": str(partner_id)}, {"_id": 0})
@@ -6058,8 +6156,12 @@ async def get_webinar_data(partner_id: str):
 
 
 @router.post("/webinar/save")
-async def save_webinar_data(partner_id: str, data: Dict[str, Any]):
+async def save_webinar_data(
+    partner_id: str, data: Dict[str, Any],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin salva/aggiorna i dati del webinar per un partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
     
     data["partner_id"] = str(partner_id)
@@ -6086,8 +6188,12 @@ class NotificaManuale(BaseModel):
     messaggio: Optional[str] = None
 
 @router.get("/notifiche/{partner_id}")
-async def get_notification_log(partner_id: str, limit: int = 20):
+async def get_notification_log(
+    partner_id: str, limit: int = 20,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Restituisce lo storico notifiche per un partner"""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     cursor = db.notification_log.find(
         {"partner_id": str(partner_id)}, {"_id": 0}
     ).sort("sent_at", -1).limit(limit)
@@ -6097,8 +6203,12 @@ async def get_notification_log(partner_id: str, limit: int = 20):
 
 
 @router.post("/notifiche/invia")
-async def send_manual_notification(req: NotificaManuale):
+async def send_manual_notification(
+    req: NotificaManuale,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Admin invia una notifica manuale al partner"""
+    await require_admin_token(credentials)
     from services.notifications import (
         notify_step_pronto, notify_azione_richiesta, notify_sistema_attivo, notify_step_in_lavorazione
     )
