@@ -2955,12 +2955,21 @@ async def generate_lancio_plan(
     partner = await get_partner_or_404(request.partner_id)
     
     # Raccogli tutto il contesto del partner
-    positioning = await db.partner_positioning.find_one({"partner_id": request.partner_id}, {"_id": 0})
-    masterclass = await db.partner_masterclass.find_one({"partner_id": request.partner_id}, {"_id": 0})
+    # Le collection sono `partner_posizionamento` (italiano) e `masterclass_factory`:
+    # prima si leggeva `partner_positioning` e `partner_masterclass`, che nessuno popola
+    # (6 occorrenze contro 32, e la masterclass vera sta in masterclass_factory).
+    # Effetto: pos_data e mc_data restavano vuoti e il piano di lancio usciva con
+    # "Target: N/D · Problema: N/D · Risultato: N/D" per QUALUNQUE partner.
+    # Stesso bug gia' corretto in /funnel/generate il 30/07/2026, mai portato qui.
+    positioning = await db.partner_posizionamento.find_one({"partner_id": request.partner_id}, {"_id": 0})
+    masterclass = await db.masterclass_factory.find_one({"partner_id": request.partner_id}, {"_id": 0})
     videocorso = await db.partner_videocorso.find_one({"partner_id": request.partner_id}, {"_id": 0})
     funnel = await db.partner_funnel.find_one({"partner_id": request.partner_id}, {"_id": 0})
 
-    pos_data = positioning.get("generated_positioning", {}) if positioning else {}
+    # Il documento espone le risposte sotto `positioning_output` (verificato su Andolfi:
+    # target_ideale, problema_principale, risultato_promesso, differenziazione,
+    # posizionamento_finale — le stesse chiavi che il prompt qui sotto si aspetta).
+    pos_data = positioning.get("positioning_output", {}) if positioning else {}
     mc_data = masterclass.get("answers", {}) if masterclass else {}
     course = videocorso.get("course_data", {}) if videocorso else {}
     blueprint = funnel.get("blueprint", {}) if funnel else {}
