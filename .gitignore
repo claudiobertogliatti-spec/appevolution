@@ -392,4 +392,8 @@ backend/graphify-out/
 evolution-pro-site/playwright-artifacts/
 evolution-pro-site/playwright-report/
 evolution-pro-site/tsconfig.tsbuildinfo
-.claude/
+# Config Claude Code: si versiona SOLO settings.json (hook condivisi da tutto il team e
+# dalle sessioni web, che clonano il repo da zero). Tutto il resto della cartella --
+# settings.local.json, cache, preferenze personali -- resta fuori.
+.claude/*
+!.claude/settings.json

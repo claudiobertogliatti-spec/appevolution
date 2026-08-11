@@ -73,6 +73,21 @@ non una delibera.
    e ci si ferma.
 5. **Mai committare chiavi, token, `.env`, `client_secret.json`.**
 
+### 3-bis. Le regole applicate dalla macchina (Claude Code)
+
+Dall'11/8/2026 tre di queste regole non dipendono più dalla buona volontà di chi legge.
+`.claude/settings.json` collega tre hook, con la logica in `scripts/hooks/`:
+
+| Quando | Cosa fa | Regola che applica |
+|---|---|---|
+| Prima di ogni comando Bash | **Rifiuta** `git add .` / `git add -A`, anche dentro un comando composto (`cd x && git add .`). `git add <file>` passa. | §3.1 |
+| All'avvio della sessione | Stampa branch, ultimo commit, stato del working tree e **l'ultima voce di HANDOFF.md**. | §1, §6 |
+| Alla chiusura della sessione | Se ci sono commit oltre `origin/main` e **nessuno tocca HANDOFF.md**, ricorda di aggiornare la staffetta. Non blocca. | §1 |
+
+Valgono solo per Claude Code: **Codex e Antigravity non li hanno**, e per loro queste
+restano regole da rispettare a mano. Se modifichi un hook, provalo prima di committarlo —
+un hook rotto è peggio di nessun hook, perché dà l'illusione della guardia.
+
 ---
 
 ## 4. Il gate di evidenza

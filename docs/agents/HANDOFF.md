@@ -24,6 +24,49 @@ Regole:
 
 ---
 
+### 2026-08-11 (2) · Claude Code · claude/evolution-memoria-analysis-6fvbw8 — tre regole del protocollo diventano hook
+
+**FATTO**
+- Creata `.claude/settings.json` (il repo non aveva una cartella `.claude/`), con tre hook.
+  La logica sta in `scripts/hooks/`, non dentro la stringa JSON: leggibile, testabile, correggibile.
+- `blocca-git-add-tutto.py` (PreToolUse/Bash): rifiuta `git add .` / `-A` / `--all` / flag corti
+  con la A, anche dentro comandi composti. Nessun `if` sul matcher: un prefix-match
+  `Bash(git add *)` non avrebbe intercettato `cd backend && git add .`, che e' il caso vero.
+- `stato-sessione.py` (SessionStart): branch, ultimo commit, working tree e ultima voce di
+  HANDOFF.md, troncata a 14 righe. Corto di proposito: se stampa mezza pagina smette di essere letto.
+- `promemoria-handoff.py` (Stop): avvisa solo se ci sono commit oltre `origin/main` e nessuno
+  tocca HANDOFF.md. Non blocca mai, e tace quando non serve.
+- `PROTOCOL.md` §3-bis documenta i tre hook e dice a chiare lettere che **valgono solo per
+  Claude Code**: Codex e Antigravity restano alle regole a mano.
+- `.gitignore` ignorava `.claude/` in blocco: gli hook non sarebbero mai finiti in un clone
+  fresco, quindi **mai nelle sessioni web**, che clonano da zero. Ristretto a `.claude/*` con
+  `!.claude/settings.json`: si versiona il file condiviso, `settings.local.json` resta fuori.
+
+**VERIFICATO**
+- Guardia `git add`: **6 casi bloccati** (`git add .`, `-A`, `--all`, `cd backend && git add .`,
+  `-Av`, `git status; git add . ; git commit`) e **7 casi passati** (`git add CLAUDE.md`,
+  `./backend/server.py`, `.gitignore`, due file insieme, `git status --short`, `git log --all`,
+  `npm add .`). Nessun falso positivo, nessun falso negativo.
+- Stop hook, RED e GREEN su branch usa-e-getta creato da `origin/main`: con 1 commit che non
+  tocca la staffetta -> avviso corretto; dopo un commit che la tocca -> silenzio. Branch cancellato.
+- SessionStart provato: stampa branch, commit, working tree e la voce giusta di HANDOFF.
+- `jq -e` su tutti e tre gli eventi -> exit 0: JSON valido e annidamento corretto.
+- Il comando **esatto** scritto in settings.json, estratto con `jq -r` ed eseguito: nega
+  `git add .` e lascia passare `git add CLAUDE.md`.
+- `test_docs_coerenza.py` ancora **14 passed** dopo la modifica a PROTOCOL.md.
+
+**APERTO**
+- ⚠️ **Gli hook non sono attivi in questa sessione.** Il watcher della configurazione guarda
+  solo le cartelle che avevano un file di settings all'avvio, e `.claude/` non esisteva.
+  Provato con `git add --dry-run -A`: il comando e' passato (nulla in stage, era un dry-run).
+  Si attivano alla prossima sessione, o aprendo `/hooks` una volta.
+- Gli hook richiedono `python3` o `python` nel PATH. Su Windows serve Git Bash (il comando usa
+  `command -v`). Da provare sulla macchina di Claudio: qui e' verificato solo su Linux.
+- Restano dalla voce precedente: chiavi API da ruotare, `memory/` mai censita, backfill
+  evolution_id e numero reale di partner da verificare alla fonte.
+
+---
+
 ### 2026-08-11 · Claude Code · claude/evolution-memoria-analysis-6fvbw8 — CLAUDE.md potato da 1320 a 350 righe + guardia in CI
 
 **FATTO**
