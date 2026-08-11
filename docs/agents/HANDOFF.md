@@ -24,6 +24,46 @@ Regole:
 
 ---
 
+### 2026-08-11 · Claude Code (Luca) · cc/deploy-safe — 23 endpoint aperti chiusi + buco da 2.790 EUR
+
+**FATTO**
+- Guardie su 23 endpoint di `partner_journey.py` che non dichiaravano `credentials`
+  (18 partner-scoped, 3 admin, 1 doc-scoped). `leads/webhook/{partner_id}` resta pubblico:
+  lo chiamano i funnel dei partner. Unica voce dell'allowlist, motivata nel test.
+- `resolve_canonical_client_identity` crea e collega il record `users` mancante;
+  `_activate_partner_account_and_notify` solleva invece di uscire in silenzio.
+- Gate di stato su `pagamento_stripe` (firma, scadenza, doppio pagamento).
+- Claim atomico per effetto in `finalize_partnership_payment`, con ripresa dei claim
+  orfani dopo 300s.
+- I 4 nuovi file di test entrano nella allowlist della CI.
+
+**VERIFICATO**
+- RED prima delle correzioni: guardie 3 failed; identita' 3 failed con log
+  `[PROPOSTA] _activate_partner: user partner-inesistente non trovato`;
+  race `assert 2 == 1` (due magic link, il primo gia' spedito muore).
+- Probe anonime in produzione PRIMA del fix: `GET /api/partner-journey/dashboard-operativa`
+  -> 200 con 26 partner reali (nome, nicchia, fase); `posizionamento/2` -> 200, 2804 byte.
+- GREEN dopo: 62 test sulle aree toccate; lista esatta della CI **96 passed**, identico a
+  `origin/main` prima dell'intervento: nessuna regressione.
+- `py_compile` sui moduli modificati, `git diff --check` e scansione segreti: puliti.
+- Il frontend inviava gia' `Authorization: Bearer` (`partner/api.js:34`): verificato prima
+  di aggiungere le guardie, l'area partner non cambia comportamento.
+
+**APERTO**
+- ⛔ **I due webhook non firmati NON sono in questo deploy.** `/api/checkout/webhook` e
+  `/api/booking/webhook` accettano tuttora payload falsificati (verificato: 200 con firma
+  fasulla). La correzione e' pronta sul branch `cc/security-and-money-path` (commit
+  `beb9c81a`) ma richiede `STRIPE_CIAK_WEBHOOK_SECRET` e `CALCOM_WEBHOOK_SECRET` su Cloud
+  Run **prima** del deploy, altrimenti i pagamenti Blueprint da 27 EUR si fermano.
+- Restano: lancio verificato (oggi flag + URL `systeme.io/funnel/{id}` simulato, e
+  `Step13Lancio` non chiama nemmeno `activate_launch`), vista admin sulle finalizzazioni
+  fallite, `bozza_errore` senza lettori, ramo Ciak Start 499 senza checkout ne' credenziali,
+  `feat/ciak-onboarding-email` mai mergiato (25 commit), deploy manuale del sito Evolution PRO.
+- ⚠️ `codex/partnership-payment-to-launch` resta da riconciliare: il suo working tree e'
+  partito da `644332a7` e non contiene le protezioni di `444d627a`. Vedi la voce di Codex.
+
+---
+
 ### 2026-08-11 · Codex · codex/commercial-path-e2e — percorso commerciale e sicurezza proposta
 
 **FATTO**
