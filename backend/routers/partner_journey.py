@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 import os
+import asyncio
 import uuid
 import logging
 import json
@@ -3210,71 +3211,125 @@ REGOLE IMPORTANTI:
 - Scrivi tutto in ITALIANO
 - Rispondi SOLO con il JSON, senza commenti o markdown"""
 
-    try:
-        chat = await get_llm_chat(
-            session_id=f"lancio-plan-{request.partner_id}-{uuid.uuid4()}",
-            system_message="Sei un esperto di digital marketing e lanci di corsi online. Generi piani di lancio operativi e completi. Rispondi SOLO in JSON valido."
-        )
-
-        response = await chat.send_message(UserMessage(text=prompt))
-        response_text = response.strip()
-
-        # Estrai JSON dalla risposta
-        if "```json" in response_text:
-            json_start = response_text.find("```json") + 7
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        elif "```" in response_text:
-            json_start = response_text.find("```") + 3
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-
-        import re
-        response_text = re.sub(r',\s*([}\]])', r'\1', _ritaglia_json(response_text))
-
-        plan_data = json.loads(response_text)
-
-        # Salva nel database
-        await db.partner_lancio.update_one(
-            {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "plan_data": plan_data,
-                    "plan_generated": True,
-                    "plan_generated_at": datetime.now(timezone.utc).isoformat(),
-                    "plan_approved": False,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
+    # ── Generazione ASINCRONA ────────────────────────────────────────────────
+    # La chiamata al modello dura minuti: tenuta dentro la richiesta HTTP faceva
+    # scadere il gateway e il partner riceveva 502 (verificato su Andolfi 11/08/2026).
+    # Ora si risponde subito e il lavoro prosegue in background; lo stato si legge
+    # da partner_lancio.plan_generation_status (running | done | error).
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.partner_lancio.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {"plan_generation_status": "running", "plan_generation_started_at": now_iso},
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": now_iso,
             },
-            upsert=True
-        )
+        },
+        upsert=True,
+    )
 
-        return {
-            "success": True,
-            "plan_data": plan_data,
-            "message": "Piano di lancio generato!"
-        }
+    async def _genera_piano_in_background():
+        try:
+            try:
+                chat = await get_llm_chat(
+                    session_id=f"lancio-plan-{request.partner_id}-{uuid.uuid4()}",
+                    system_message="Sei un esperto di digital marketing e lanci di corsi online. Generi piani di lancio operativi e completi. Rispondi SOLO in JSON valido."
+                )
 
-    except json.JSONDecodeError as e:
-        await _registra_errore_generazione(
-            db.partner_lancio, request.partner_id, "piano_lancio", e, locals().get("response_text", "")
-        )
-        logging.error(f"JSON parse error in lancio plan: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="La generazione non ha prodotto un JSON valido (risposta probabilmente troncata). "
-                   "Dettagli salvati in partner_lancio.generation_error.",
-        )
-    except Exception as e:
-        logging.error(f"Error generating lancio plan: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
+                response = await chat.send_message(UserMessage(text=prompt))
+                response_text = response.strip()
+
+                # Estrai JSON dalla risposta
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    response_text = response_text[json_start:json_end].strip()
+                elif "```" in response_text:
+                    json_start = response_text.find("```") + 3
+                    json_end = response_text.find("```", json_start)
+                    response_text = response_text[json_start:json_end].strip()
+
+                import re
+                response_text = re.sub(r',\s*([}\]])', r'\1', _ritaglia_json(response_text))
+
+                plan_data = json.loads(response_text)
+
+                # Salva nel database
+                await db.partner_lancio.update_one(
+                    {"partner_id": request.partner_id},
+                    {
+                        "$set": {
+                            "plan_data": plan_data,
+                            "plan_generated": True,
+                            "plan_generated_at": datetime.now(timezone.utc).isoformat(),
+                            "plan_approved": False,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        },
+                        "$setOnInsert": {
+                            "partner_id": request.partner_id,
+                            "partner_name": partner.get("name"),
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    },
+                    upsert=True
+                )
+
+                return {
+                    "success": True,
+                    "plan_data": plan_data,
+                    "message": "Piano di lancio generato!"
+                }
+
+            except json.JSONDecodeError as e:
+                await _registra_errore_generazione(
+                    db.partner_lancio, request.partner_id, "piano_lancio", e, locals().get("response_text", "")
+                )
+                logging.error(f"JSON parse error in lancio plan: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="La generazione non ha prodotto un JSON valido (risposta probabilmente troncata). "
+                           "Dettagli salvati in partner_lancio.generation_error.",
+                )
+            except Exception as e:
+                logging.error(f"Error generating lancio plan: {e}")
+                raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
+        except Exception as _err:
+            logging.exception("Generazione piano di lancio fallita per %s", request.partner_id)
+            await db.partner_lancio.update_one(
+                {"partner_id": request.partner_id},
+                {"$set": {"plan_generation_status": "error", "plan_generation_error": str(_err)[:500]}},
+            )
+        else:
+            await db.partner_lancio.update_one(
+                {"partner_id": request.partner_id},
+                {"$set": {"plan_generation_status": "done"}},
+            )
+
+    asyncio.create_task(_genera_piano_in_background())
+    return {
+        "success": True,
+        "queued": True,
+        "message": "Generazione avviata: il piano sara' pronto tra qualche minuto.",
+    }
 
 
+@router.get("/lancio/plan-status/{partner_id}")
+async def get_lancio_plan_status(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Stato della generazione del piano di lancio (per il polling del frontend)."""
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    doc = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    return {
+        "status": doc.get("plan_generation_status") or ("done" if doc.get("plan_generated") else "idle"),
+        "plan_generated": bool(doc.get("plan_generated")),
+        "plan_generated_at": doc.get("plan_generated_at"),
+        "error": doc.get("plan_generation_error"),
+        "plan_data": doc.get("plan_data") if doc.get("plan_generated") else None,
+    }
 @router.post("/lancio/approve-plan")
 async def approve_lancio_plan(
     partner_id: str,
