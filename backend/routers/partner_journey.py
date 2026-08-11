@@ -204,22 +204,31 @@ async def _registra_errore_generazione(collection, partner_id: str, cosa: str, e
         logging.warning(f"[generazione] impossibile registrare l'errore: {_e}")
 
 
-async def get_llm_chat(session_id: str = None, system_message: str = None):
-    """Helper per ottenere istanza LLM con Emergent Key"""
+async def get_llm_chat(session_id: str = None, system_message: str = None, max_tokens: int = None):
+    """Helper per ottenere istanza LLM con Emergent Key.
+
+    `max_tokens` serve alle generazioni lunghe (piano di lancio, outline): oltre il
+    default l'output si tronca a meta' e il JSON non e' piu' parsabile — l'errore che
+    si vede e' "risposta probabilmente troncata", non un limite di token, quindi e'
+    facile cercarlo nel posto sbagliato.
+    """
     from services.ciak_llm import LlmChat, UserMessage
     import uuid
-    
+
     api_key = os.environ.get('EMERGENT_LLM_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
-    
+
     if session_id is None:
         session_id = str(uuid.uuid4())
-    
+
     if system_message is None:
         system_message = "Sei un assistente AI professionale per Evolution PRO. Rispondi in italiano."
-    
-    return LlmChat(api_key=api_key, session_id=session_id, system_message=system_message)
+
+    chat = LlmChat(api_key=api_key, session_id=session_id, system_message=system_message)
+    if max_tokens:
+        chat = chat.with_max_tokens(max_tokens)
+    return chat
 
 # Import UserMessage for use in LLM calls
 try:
@@ -3235,7 +3244,8 @@ REGOLE IMPORTANTI:
             try:
                 chat = await get_llm_chat(
                     session_id=f"lancio-plan-{request.partner_id}-{uuid.uuid4()}",
-                    system_message="Sei un esperto di digital marketing e lanci di corsi online. Generi piani di lancio operativi e completi. Rispondi SOLO in JSON valido."
+                    system_message="Sei un esperto di digital marketing e lanci di corsi online. Generi piani di lancio operativi e completi. Rispondi SOLO in JSON valido.",
+                    max_tokens=32000,
                 )
 
                 response = await chat.send_message(UserMessage(text=prompt))
