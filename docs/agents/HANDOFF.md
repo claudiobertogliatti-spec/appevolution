@@ -24,6 +24,39 @@ Regole:
 
 ---
 
+### 2026-08-11 (3) · Claude Code · claude/evolution-memoria-analysis-6fvbw8 — installate 13 skill di design (taste-skill)
+
+**FATTO**
+- `npx skills add Leonxlnx/taste-skill` (CLI `skills` di vercel-labs, manutentore `rauchg`).
+  13 SKILL.md in `.agents/skills/` + `skills-lock.json` con un hash per skill; i symlink in
+  `.claude/skills/` restano ignorati da git (li ricrea il CLI, e i symlink in git si rompono su Windows).
+- `CLAUDE.md` §3.1: le skill sono **subordinate al brand lock**, per nome. Su Ciak/Evolution PRO
+  non decidono font e colori — al massimo spaziatura, gerarchia e struttura. §3.3: `gpt-taste`
+  presuppone GSAP, che `frontend/` non ha; aggiungerlo resta una decisione da far approvare.
+
+**VERIFICATO**
+- Ispezionate **prima** di installare, sul clone in `/workspace/leonxlnx/taste-skill`: MIT,
+  ultimo commit 23/7/2026. `grep` per `curl|wget|eval|base64 -d|child_process|.env|API_KEY|
+  credential|~/.ssh|settings.json|npm i|pip install` -> solo riferimenti legittimi a design token
+  e pacchetti npm ufficiali (Fluent, Material, Atlaskit). Nessuna chiamata di rete, nessun accesso
+  a credenziali. `skill.sh` e' una tabella di lookup di 25 righe.
+- Provenienza del CLI verificata alla fonte: `npm view skills` -> `vercel-labs/skills`, `rauchg`.
+- Entrate **15 file** e nient'altro (`git add --dry-run`): 14 markdown + il lockfile, 384 KB.
+- `test_docs_coerenza.py` **14 passed** e CLAUDE.md di nuovo a **350 righe**: le due regole nuove
+  sono state pagate potando altrove, non alzando il limite.
+- ⛔ `www.tasteskill.dev` **non ispezionato**: bloccato dal proxy di egress di questo ambiente.
+  Verificato solo il repo GitHub, che e' la fonte reale del pacchetto.
+
+**APERTO**
+- Dopo un clone fresco i file ci sono ma i symlink no: serve `npx skills experimental_install`
+  per ricrearli da `skills-lock.json`. Da valutare se metterlo nel setup di sessione.
+- `full-output-enforcement` modifica il comportamento di troncamento del modello: e' la piu'
+  invasiva delle 13 e non e' legata al design. Se da fastidio si toglie con `npx skills remove`.
+- Restano dalle voci precedenti: chiavi API da ruotare, `memory/` mai censita, backfill
+  evolution_id e numero reale di partner da verificare alla fonte.
+
+---
+
 ### 2026-08-11 (2) · Claude Code · claude/evolution-memoria-analysis-6fvbw8 — tre regole del protocollo diventano hook
 
 **FATTO**

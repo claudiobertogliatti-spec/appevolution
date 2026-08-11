@@ -70,13 +70,10 @@ agenti è una raccomandazione, non una delibera. Il piano commerciale ha la prec
 lavoro di piattaforma: se stai per costruire qualcosa che non è stato chiesto, fermati e
 scrivilo in `HANDOFF.md` invece di costruirlo.
 
-### 1.5 Comunicazione
-**Parlare sempre in italiano con Claudio**, in ogni risposta.
-
-### 1.6 Autorizzazione operativa
-Claude è autorizzato a committare e pushare senza chiedere conferma a ogni operazione, e a
-operare in autonomia sul repository. **Non dare mai a Claudio comandi da eseguire a mano**:
-si esegue direttamente.
+### 1.5 Comunicazione e autorizzazione operativa
+**Parlare sempre in italiano con Claudio**, in ogni risposta. Claude è autorizzato a
+committare e pushare senza chiedere conferma a ogni operazione, e a operare in autonomia sul
+repository. **Non dare mai a Claudio comandi da eseguire a mano**: si esegue direttamente.
 
 ---
 
@@ -112,7 +109,11 @@ subordinata al brand**: si produce il deliverable venduto, e un funnel fuori bra
    palette `#0F172A` `#64748B` `#E5E7EB` `#FACC15` (fonte `docs/brand/ciak-brand-kit.md` v1.0,
    confermata definitiva il 18/5/2026). Per i partner: token da `partner_brand_kits`.
 2. **Direttiva design generica** (bento grid, glassmorphism, micro-interazioni, font display)
-   → valida **solo dove non esiste un brand lock**: nuovi clienti, concept, mockup.
+   e le **skill di `.agents/skills/`** — `design-taste-frontend`, `industrial-brutalist-ui`,
+   `minimalist-ui`, `high-end-visual-design` e le altre installate l'11/8/2026 da
+   `Leonxlnx/taste-skill` → valide **solo dove non esiste un brand lock**: nuovi clienti,
+   concept, mockup. Su Ciak/Evolution PRO il brand lock c'è: quelle skill **non decidono
+   font e colori**, al massimo spaziatura, gerarchia e struttura.
 
 ⛔ Non sostituire Poppins con un font "più di carattere". ⛔ Non scartare `#E5E7EB` perché
 "grigio piatto": è un colore ufficiale. In caso di conflitto → **proporre** a Claudio, mai
@@ -128,9 +129,9 @@ contrasto); sfondi/bordi/linee/token → `#FACC15`.
 ### 3.3 Verifica dipendenze prima di animare
 ✅ Verificato 11/8/2026: `evolution-pro-site` ha `framer-motion@12.42.2`; **`frontend/` non ha
 né framer-motion né gsap**. Aggiungere una libreria di motion dove non c'è è una **decisione
-da far approvare**, non un dettaglio da infilare in un commit. Il pubblico Ciak è poco
-digitalizzato: rispettare `prefers-reduced-motion`, non nascondere contenuto critico dietro
-un'animazione.
+da far approvare** (vale anche quando la chiede una skill: `gpt-taste` presuppone GSAP). Il
+pubblico Ciak è poco digitalizzato: rispettare `prefers-reduced-motion`, non nascondere
+contenuto critico dietro un'animazione.
 
 ### 3.4 Onestà sui dati
 ⛔ Mai generare recensioni, testimonianze, percentuali o claim di guadagno inventati: è
@@ -325,8 +326,7 @@ Regole generalizzate da bug reali. Ognuna è costata tempo almeno una volta.
    Cloud Run. Un URL senza prefisso cade sulla SPA e restituisce `index.html`.
 6. **Emergent AI non esiste più.** `EMERGENT_LLM_KEY` è una chiave Anthropic Claude. Non
    ragionare su "Emergent gestisce il backend".
-7. **`gcloud run services describe` stampa tutte le secret in chiaro.** Filtrare sempre la
-   sola chiave necessaria.
+7. **`gcloud run services describe` stampa le secret in chiaro.** Filtrare sempre la sola chiave.
 8. **PowerShell**: `&&` non funziona, usare `;`. Git si esegue da `C:\Users\berto\appevolution`
    — le copie su Desktop sono **ritirate**.
 
@@ -341,8 +341,8 @@ Perché questo file era diventato illeggibile: ci si scriveva la **cronaca** inv
    si è arrivati va in `HANDOFF.md` o in `DIARIO-2026.md`.
 2. **Niente hash di commit, niente "Sessione del …", niente TODO personali** qui dentro: i
    TODO stanno in `HANDOFF.md` sotto **APERTO**.
-3. Quando una cosa è **chiusa**, la voce si **cancella** o si riduce a una riga con la prova.
-   Non si lascia il racconto della chiusura.
+3. Quando una cosa è **chiusa**, la voce si **cancella** o si riduce a una riga con la prova:
+   non si lascia il racconto della chiusura.
 4. Quando una cosa è **superata**, si scrive ⛔ e si dice cosa fare *invece*.
 5. Un workflow lungo (>20 righe) diventa un **runbook** in `docs/runbooks/` con un puntatore qui.
 6. **Massimo 350 righe.** Lo verifica la CI: `backend/tests/test_docs_coerenza.py` fallisce
