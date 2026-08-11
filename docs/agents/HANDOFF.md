@@ -45,12 +45,28 @@ Regole:
 - Python: runtime bundled `python -m py_compile` su `proposta.py`, `stripe_webhook.py` e test → exit 0.
 - Build sito: `npm run build` → TypeScript + Vite, **2206 moduli**, exit 0.
 - Parse Babel dei 7 file JS/JSX modificati e test → **7 PARSE_OK**.
+- Commit codice `444d627a34eedc475a618daeb31859c54d515ce6`, push fast-forward
+  `644332a7..444d627a` su `main`.
+- GitHub Actions: CI `31505032663` verde (backend compile/lint/unit, frontend build smoke,
+  Gitleaks); deploy backend `31505032730` verde (backend + worker + traffico + smoke).
+- Cloud Run: `evolution-pro-backend-00536-cq5` e `evolution-pro-worker-00114-xc4`, entrambe
+  latest ready e 100% traffico. `https://www.ciak.io/api/health` → 200 `healthy`.
+- Live Ciak: `/masterclass`, `/masterclass/guarda`, `/blueprint`, `/blueprint/grazie` → 200;
+  bundle `main.c00ef52f.js` contiene `/masterclass/guarda` e non contiene il redirect opt-in
+  Blueprint né il copy obsoleto «Le risposte che hai dato alle 8 Domande Ciak».
+- Probe anonime POST su `/api/proposta/genera/anonymous-probe`,
+  `/api/proposta/anonymous-probe/conferma-bonifico` e `/api/proposta/admin/genera-cliente`
+  → tutte **401**.
 
 **APERTO**
 - La build CRA completa del frontend Ciak non ha restituito errori ma è scaduta due volte (184s e
   604s) lasciando processi `craco build`; processi terminati per PID. La CI resta il gate autorevole.
-- Da eseguire dopo push: CI, deploy backend/frontend/sito, revisioni/traffico, health e probe live
-  anonime. Nessun pagamento o firma reale deve essere eseguito.
+- `https://www.evolution-pro.it` risponde 200 ma serve ancora il bundle
+  `assets/index-Clw7jAzb.js`, che non contiene `https://www.ciak.io/masterclass`: deploy sito
+  Evolution PRO non propagato. Nessun check/workflow Vercel è associato al commit e nel repo non
+  è disponibile una configurazione/CLI autenticata per forzarlo in sicurezza.
+- Non eseguiti per vincolo: pagamento reale €27/€2.790 e firma reale. Il 403 live con token di
+  ruolo non-admin non è stato provato perché lo smoke doveva restare anonimo e senza credenziali.
 
 ---
 
