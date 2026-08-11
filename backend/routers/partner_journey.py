@@ -3229,7 +3229,11 @@ REGOLE IMPORTANTI:
     await db.partner_lancio.update_one(
         {"partner_id": request.partner_id},
         {
-            "$set": {"plan_generation_status": "running", "plan_generation_started_at": now_iso},
+            "$set": {
+                "plan_generation_status": "running",
+                "plan_generation_started_at": now_iso,
+                "plan_generation_error": None,
+            },
             "$setOnInsert": {
                 "partner_id": request.partner_id,
                 "partner_name": partner.get("name"),
