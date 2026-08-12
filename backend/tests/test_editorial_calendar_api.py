@@ -27,7 +27,7 @@ class FakeCollection:
         self.docs = [dict(doc) for doc in (docs or [])]
 
     async def find_one(self, query, projection=None, sort=None):
-        matches = [doc for doc in self.docs if all(doc.get(key) == value for key, value in query.items())]
+        matches = [doc for doc in self.docs if self._matches(doc, query)]
         if sort:
             field, direction = sort[0]
             matches.sort(key=lambda doc: doc.get(field, 0), reverse=direction < 0)
@@ -40,7 +40,7 @@ class FakeCollection:
 
     async def find_one_and_update(self, query, update, upsert=False, return_document=None):
         for doc in self.docs:
-            if all(doc.get(key) == value for key, value in query.items()):
+            if self._matches(doc, query):
                 for key, value in update.get("$inc", {}).items():
                     doc[key] = doc.get(key, 0) + value
                 for key, value in update.get("$set", {}).items():
@@ -57,6 +57,17 @@ class FakeCollection:
             doc.setdefault(key, value)
         self.docs.append(doc)
         return dict(doc)
+
+    @staticmethod
+    def _matches(doc, query):
+        for key, value in query.items():
+            actual = doc.get(key)
+            if isinstance(value, dict):
+                if "$lte" in value and not (actual is not None and actual <= value["$lte"]):
+                    return False
+            elif actual != value:
+                return False
+        return True
 
     async def insert_one(self, document):
         document["_id"] = f"mongo-{len(self.docs) + 1}"
@@ -81,6 +92,8 @@ class FakeDb:
         self.partner_launch_calendar_versions = FakeCollection()
         self.partner_launch_calendar_counters = FakeCollection()
         self.partner_launch_calendar_notification_recovery = FakeCollection()
+        self.alerts = FakeCollection()
+        self.partners = FakeCollection([{"id": "p1", "name": "Partner Uno"}])
         self.versions = self.partner_launch_calendar_versions.docs
 
 
@@ -312,12 +325,10 @@ def test_submit_rejects_draft_without_https_destinations(client, partner_token):
 def test_partner_submit_moves_draft_to_pending_review_and_notifies_admin(
     client, partner_token, fake_db, monkeypatch
 ):
-    notifications = []
+    async def telegram_ok(_message):
+        return None
 
-    async def record_notification(*args, **kwargs):
-        notifications.append((args, kwargs))
-
-    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", record_notification)
+    monkeypatch.setattr(partner_journey, "notify_telegram", telegram_ok)
     created = client.post(
         "/api/partner/calendar/p1/versions",
         headers=_headers(partner_token),
@@ -331,9 +342,8 @@ def test_partner_submit_moves_draft_to_pending_review_and_notifies_admin(
     assert response.json()["status"] == "pending_review"
     assert response.json()["partner_confirmed_at"]
     assert fake_db.versions[0]["partner_confirmed_by"] == "partner-user"
-    assert notifications == [
-        (("p1", "ha confermato il calendario di lancio v1"), {"requires_approval": True})
-    ]
+    assert len(fake_db.alerts.docs) == 1
+    assert fake_db.alerts.docs[0]["requires_approval"] is True
     assert response.json()["checksum"] != created["checksum"]
     assert response.json()["calendar"]["partner_confirmation"]["calendar_checksum"] == response.json()["checksum"]
 
@@ -573,16 +583,16 @@ def test_notification_failure_is_durable_and_identical_retry_resolves_it(
 ):
     attempts = []
 
-    async def flaky_notification(*args, **kwargs):
+    async def flaky_in_app_alert(*args, **kwargs):
         attempts.append((args, kwargs))
         if len(attempts) == 1:
             raise RuntimeError(
                 f"Bearer SENSITIVE_PASSWORD password=NON_PERSISTERE api_{'key'}=NON_PERSISTERE "
                 "notifica non raggiungibile"
             )
-        return True
+        return "best_effort_attempted"
 
-    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", flaky_notification)
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", flaky_in_app_alert)
     created = client.post(
         "/api/partner/calendar/p1/versions",
         headers=_headers(partner_token),
@@ -607,13 +617,10 @@ def test_notification_failure_is_durable_and_identical_retry_resolves_it(
 def test_identical_submit_does_not_duplicate_successful_admin_notification(
     client, partner_token, fake_db, monkeypatch
 ):
-    notifications = []
+    async def telegram_ok(_message):
+        return None
 
-    async def delivered_once(*args, **kwargs):
-        notifications.append((args, kwargs))
-        return True
-
-    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", delivered_once)
+    monkeypatch.setattr(partner_journey, "notify_telegram", telegram_ok)
     created = client.post(
         "/api/partner/calendar/p1/versions",
         headers=_headers(partner_token),
@@ -625,11 +632,63 @@ def test_identical_submit_does_not_duplicate_successful_admin_notification(
     retry = _submit(client, partner_token, created)
 
     assert first.status_code == retry.status_code == 200
-    assert len(notifications) == 1
+    assert len(fake_db.alerts.docs) == 1
+    assert fake_db.alerts.docs[0]["id"] == fake_db.partner_launch_calendar_notification_recovery.docs[0]["event_key"]
     assert len(fake_db.partner_launch_calendar_notification_recovery.docs) == 1
     event = fake_db.partner_launch_calendar_notification_recovery.docs[0]
     assert event["status"] == "sent"
     assert event["checksum"] == first.json()["checksum"]
+    assert event["delivery_contract"] == "in_app_alert"
+    assert event["telegram_status"] == "best_effort_attempted"
+
+
+@pytest.mark.asyncio
+async def test_expired_sending_lease_is_reclaimed_after_cancelled_delivery(fake_db, monkeypatch):
+    monkeypatch.setattr(editorial_calendar, "db", fake_db)
+    attempts = []
+
+    async def cancelled_once(*args, **kwargs):
+        attempts.append((args, kwargs))
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", cancelled_once)
+    with pytest.raises(asyncio.CancelledError):
+        await editorial_calendar._notify_pending_review_or_record_recovery("p1", 1, "abc")
+
+    recovery = fake_db.partner_launch_calendar_notification_recovery.docs[0]
+    assert recovery["status"] == "sending"
+    recovery["lease_expires_at"] = "2000-01-01T00:00:00+00:00"
+
+    async def delivered(*args, **kwargs):
+        attempts.append((args, kwargs))
+        return "best_effort_attempted"
+
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", delivered)
+    await editorial_calendar._notify_pending_review_or_record_recovery("p1", 1, "abc")
+
+    assert len(attempts) == 2
+    assert recovery["status"] == "sent"
+    assert recovery["telegram_status"] == "best_effort_attempted"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://127.0.0.1/live",
+        "https://[::1]/live",
+        "https://10.1.2.3/live",
+        "https://192.0.2.25/live",
+        "https://0.0.0.0/live",
+        "https://localhost/live",
+        "https://[fe80::1]/live",
+        "https://[2001:db8::1]/live",
+        "https://[::]/live",
+        "https://[ff02::1]/live",
+        "https://224.0.0.1/live",
+    ],
+)
+def test_review_destination_rejects_non_public_ip_or_local_hostname(url):
+    assert editorial_calendar._is_real_review_destination(url) is False
 
 
 def test_calendar_transition_auth_uses_401_for_missing_or_invalid_and_403_for_roles(

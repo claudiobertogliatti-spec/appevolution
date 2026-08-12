@@ -13,11 +13,14 @@ La generazione non blocca mai: il servizio ricade su uno scheletro deterministic
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import timedelta
+import ipaddress
 import logging
 import os
 from datetime import date, datetime, timezone
 from typing import Literal
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -177,17 +180,30 @@ async def _require_calendar_admin(credentials: HTTPAuthorizationCredentials):
 
 
 def _is_real_review_destination(value: object) -> bool:
-    """La review non puo' attestare host riservati ai fixture/test."""
+    """La review non fa rete e non attesta host/IP non pubblici o fixture."""
     try:
         hostname = (urlparse(str(value)).hostname or "").lower()
     except ValueError:
         return False
-    return bool(hostname) and not (
+    if not hostname or (
         hostname == "localhost"
         or hostname.endswith(".localhost")
         or hostname.endswith(".test")
         or hostname.endswith(".invalid")
-    )
+    ):
+        return False
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return True
+    return address.is_global and not any((
+        address.is_private,
+        address.is_loopback,
+        address.is_link_local,
+        address.is_reserved,
+        address.is_multicast,
+        address.is_unspecified,
+    ))
 
 
 def _partner_confirmation_is_consistent(document: dict, calendar: dict) -> bool:
@@ -245,15 +261,19 @@ async def _claim_pending_review_notification(
     version: int,
     checksum: str,
 ) -> dict | None:
-    """Crea l'outbox una volta e consente un solo sender per stato pending."""
+    """Claim con lease: i sender morti restano recuperabili dopo la scadenza."""
     from pymongo import ReturnDocument
 
-    now = datetime.now(timezone.utc).isoformat()
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    lease_expires_at = (now_dt + timedelta(minutes=5)).isoformat()
+    owner = uuid4().hex
     event_key = _notification_event_key(partner_id, version, checksum)
     await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key},
         {
             "$setOnInsert": {
+                "event_key": event_key,
                 "partner_id": partner_id,
                 "version": version,
                 "checksum": checksum,
@@ -265,11 +285,72 @@ async def _claim_pending_review_notification(
         upsert=True,
         return_document=ReturnDocument.AFTER,
     )
-    return await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+    claim = await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key, "status": "pending"},
-        {"$set": {"status": "sending", "claimed_at": now}},
+        {"$set": {
+            "status": "sending",
+            "lease_owner": owner,
+            "claimed_at": now,
+            "lease_expires_at": lease_expires_at,
+        }},
         return_document=ReturnDocument.AFTER,
     )
+    if claim:
+        return claim
+    return await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+        {"_id": event_key, "status": "sending", "lease_expires_at": {"$lte": now}},
+        {"$set": {
+            "lease_owner": owner,
+            "claimed_at": now,
+            "lease_expires_at": lease_expires_at,
+            "reclaimed_at": now,
+        }},
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+async def _write_pending_review_in_app_alert(
+    partner_id: str,
+    version: int,
+    event_key: str,
+) -> str:
+    """Consegna garantita: alert in-app idempotente. Telegram e' solo best-effort."""
+    from pymongo import ReturnDocument
+    from routers.partner_journey import notify_telegram
+
+    partner = await db.partners.find_one(
+        {"id": partner_id}, {"_id": 0, "name": 1, "email": 1}
+    )
+    name = (partner or {}).get("name") or f"Partner {partner_id}"
+    now = datetime.now(timezone.utc)
+    alert = {
+        "_id": event_key,
+        "id": event_key,
+        "event_key": event_key,
+        "agent": "STEFANIA",
+        "type": "CONSEGNA",
+        "msg": f"{name} ha confermato il calendario di lancio v{version} — da approvare",
+        "time": now.strftime("%d/%m %H:%M"),
+        "partner": name,
+        "partner_id": partner_id,
+        "kind": "partner_activity",
+        "requires_approval": True,
+        "resolved": False,
+        "created_at": now.isoformat(),
+        "link": f"/admin/partner?id={partner_id}",
+    }
+    await db.alerts.find_one_and_update(
+        {"_id": event_key},
+        {"$setOnInsert": alert},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    try:
+        await notify_telegram(f"📥 {name} ha confermato il calendario di lancio v{version} (da approvare)")
+        return "best_effort_attempted"
+    except Exception:
+        logger.warning("Telegram calendario non consegnato per %s v%s", partner_id, version)
+        return "best_effort_failed"
 
 
 async def _notify_pending_review_or_record_recovery(
@@ -279,24 +360,18 @@ async def _notify_pending_review_or_record_recovery(
 ) -> None:
     """Invia una sola volta; solo un recovery ``pending`` puo' essere ritentato."""
     from pymongo import ReturnDocument
-    from routers.partner_journey import _notify_admin_partner_activity
-
     claim = await _claim_pending_review_notification(partner_id, version, checksum)
     if not claim:
         return
     event_key = _notification_event_key(partner_id, version, checksum)
     now = datetime.now(timezone.utc).isoformat()
     try:
-        delivered = await _notify_admin_partner_activity(
-            partner_id,
-            f"ha confermato il calendario di lancio v{version}",
-            requires_approval=True,
+        telegram_status = await _write_pending_review_in_app_alert(
+            partner_id, version, event_key
         )
-        if delivered is False:
-            raise RuntimeError("notifica admin non consegnata")
     except Exception:
         await db.partner_launch_calendar_notification_recovery.find_one_and_update(
-            {"_id": event_key, "status": "sending"},
+            {"_id": event_key, "status": "sending", "lease_owner": claim["lease_owner"]},
             {
                 "$set": {
                     "status": "pending",
@@ -309,8 +384,13 @@ async def _notify_pending_review_or_record_recovery(
         return
 
     await db.partner_launch_calendar_notification_recovery.find_one_and_update(
-        {"_id": event_key, "status": "sending"},
-        {"$set": {"status": "sent", "sent_at": now}},
+        {"_id": event_key, "status": "sending", "lease_owner": claim["lease_owner"]},
+        {"$set": {
+            "status": "sent",
+            "sent_at": now,
+            "delivery_contract": "in_app_alert",
+            "telegram_status": telegram_status,
+        }},
         return_document=ReturnDocument.AFTER,
     )
 
