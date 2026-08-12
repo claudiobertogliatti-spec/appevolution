@@ -1,5 +1,10 @@
 # Ricetta di montaggio — VIDEO LEZIONE (taglio che INSEGNA)
 
+> **Implementazione attiva:** skill [`ciak-video-lesson-editor`](../../skills/ciak-video-lesson-editor/SKILL.md)
+> + motore `backend/services/ciak_lesson_standard.py`, standard auditabile
+> `ciak-lesson-v1`. Il caricamento partner produce automaticamente il montato e
+> lo porta a `ready_for_review`; l'approvazione finale resta umana.
+
 > **Regola discriminante:** taglia **solo** ciò che non insegna. Preserva le
 > spiegazioni intere. Chiarezza e completezza prima della brevità. È l'**opposto**
 > della masterclass: qui non si vende, si fa **imparare e trasformare**.
@@ -116,9 +121,14 @@ La lezione è **solo**: slide di copertina con voce narrante → talking-head pu
 - [ ] Voce narrante e girato **allineati in LUFS** (§5).
 - [ ] Assenti: sottotitoli, musica, sigla, outro, capitoli, lower-third, card.
 - [ ] Audio pulito e chiaro.
-- **Gate umano:** Claudio/Antonella approvano prima del publish.
+- **Gate partner:** il partner guarda il montaggio nel Workspace Corso e approva la versione
+  visualizzata oppure richiede una modifica motivata. L'admin supervisiona ma non impersona l'ok.
 
 ## 8. Output
 File montato → lezione nel **videocorso** (area cliente del partner).
 Nome asset: `lezione_{partner}_{numero}_v{n}`. Mantieni intro/outro identici su tutte
 le lezioni dello stesso partner per coerenza di corso.
+
+Il render riuscito entra in `ready_for_review`. La decisione del partner è legata a
+`output_version`; ogni nuovo montaggio azzera il consenso precedente. Una richiesta di modifica
+salva nota, autore, data e versione e porta la lezione in `revision_requested`.

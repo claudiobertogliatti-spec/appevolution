@@ -739,8 +739,8 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
     keep = []
     cursor = 0.0
     for seg in sorted(filler_segs, key=lambda x: x["start"]):
-        cut_start = seg["start"] + PADDING
-        cut_end = seg["end"] - PADDING
+        cut_start = seg["start"] if seg.get("exact") else seg["start"] + PADDING
+        cut_end = seg["end"] if seg.get("exact") else seg["end"] - PADDING
         if cut_end <= cut_start:
             continue
         if cut_start > cursor + 0.05:
@@ -1409,6 +1409,50 @@ async def telegram(msg: str):
         pass
 
 
+async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
+                                     lesson_id: str, transcript: str,
+                                     body_path: str, tmp_dir: Path) -> tuple[str, dict]:
+    """Applica lo standard approvato solo alle videolezioni.
+
+    Se fallisce, solleva: non pubblicare silenziosamente una lezione priva della
+    copertina/audio richiesti presentandola come montaggio completo.
+    """
+    from services.ciak_lesson_standard import brand_profile, intro_fallback, render_standard_lesson
+
+    vc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+    lesson = ((vc.get("lessons") or {}).get(lesson_id)) or {}
+    title = lesson.get("title") or lesson.get("titolo") or f"Lezione {lesson_id}"
+    hub = await db.partner_hub.find_one({"partner_id": partner_id}) or {}
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "03-brand-kit"}
+    ) or {}
+    brand = brand_profile(partner, hub, step)
+    intro_text = intro_fallback(title)
+    try:
+        from services.ciak_llm import LlmChat, UserMessage
+        prompt = (
+            "Scrivi UNA sola frase italiana di 20-35 parole per introdurre una videolezione. "
+            "Inizia con 'In questa lezione'. Spiega cosa si impara e perché serve. "
+            "Niente inglese, slogan, saluti o promesse inventate. Usa solo titolo e trascrizione.\n"
+            f"Titolo: {title}\nTrascrizione: {(transcript or '')[:6000]}"
+        )
+        chat = LlmChat(session_id=f"lesson-intro-{partner_id}-{lesson_id}",
+                       system_message="Sei la voce narrante editoriale di un videocorso italiano.")
+        generated = (await chat.send_message(UserMessage(text=prompt)) or "").strip().strip('"')
+        if generated.lower().startswith("in questa lezione") and 12 <= len(generated.split()) <= 45:
+            intro_text = generated
+    except Exception as intro_err:
+        logger.warning(f"[LESSON-STANDARD] intro AI fallback: {intro_err}")
+
+    output_path = str(tmp_dir / "lesson-standard.mp4")
+    report = await render_standard_lesson(
+        body_path=body_path, output_path=output_path, tmp_dir=tmp_dir,
+        title=title, intro_text=intro_text, brand=brand,
+    )
+    report.update({"title": title, "intro_text": intro_text})
+    return output_path, report
+
+
 # ═══════════════════════════════════════════════════════════════════
 # CELERY TASK
 # ═══════════════════════════════════════════════════════════════════
@@ -1574,6 +1618,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         audio_ok = await _loop.run_in_executor(None, extract_audio_for_whisper, raw_path, audio_path)
         filler_report = {"count": 0, "segments": [], "time_saved_s": 0}
         smart_edit_report = {"count": 0, "segments": [], "time_saved_s": 0}
+        lesson_standard_report = None
         transcript = ""
         words = []
         silence_saved = 0.0
@@ -1600,11 +1645,28 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         logger.warning(f"[VIDEO-PIPE] Smart edit error: {se}")
                 all_segs = filler_segs + silence_segs + smart_segs
                 all_segs.sort(key=lambda x: x["start"])
+                if video_type == "videocorso" and lesson_id:
+                    from services.ciak_lesson_standard import enforce_lesson_policy
+                    _policy = enforce_lesson_policy(all_segs, words, raw_dur)
+                    all_segs = _policy["cuts"]
+                    lesson_standard_report = {
+                        "standard_version": _policy["standard_version"],
+                        "protected_ranges": _policy["protected_ranges"],
+                        "rejected_cut_count": len(_policy["rejected"]),
+                        "approved_cut_count": len(_policy["cuts"]),
+                    }
+                    logger.info(
+                        "[LESSON-STANDARD] %s tagli approvati, %s respinti, %s zone protette",
+                        len(_policy["cuts"]), len(_policy["rejected"]), len(_policy["protected_ranges"]),
+                    )
                 # ── CHECKPOINT REVISIONE TESTO (stile Descript) ─────────────
                 # Se attivo, NON taglia: salva trascrizione + parole + tagli proposti
                 # e si ferma a "da_revisionare" per la revisione umana sul testo.
                 # Gated (default OFF) e solo masterclass: il path normale resta intatto.
-                if VIDEO_REVIEW_ENABLED and (video_type == "masterclass" or (video_type == "videocorso" and lesson_id)):
+                # Le videolezioni vengono montate automaticamente con lo standard Ciak
+                # e revisionate sul risultato finale. Il checkpoint preventivo resta
+                # solo per le masterclass, che seguono una grammatica commerciale diversa.
+                if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
                     try:
                         from services.ciak_cut_engine import build_prompt, assemble_cuts
                         # Normalizza words a secondi se AssemblyAI le dà in ms
@@ -1732,11 +1794,28 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         else:
             logger.info("[VIDEO-PIPE] AssemblyAI non config — upload video raw")
             shutil.copy(raw_path, final_path)
+        # Lo standard videolezione richiede trascrizione word-level: senza non è
+        # possibile distinguere pause morte, enfasi ed esercizi protetti. Fermare
+        # con errore recuperabile invece di pubblicare il grezzo come "montato".
+        if video_type == "videocorso" and lesson_id and (not transcript or not words):
+            await set_status("error_transcription", {
+                "video_pipeline_error": "Trascrizione word-level non disponibile: montaggio standard non eseguito",
+                "lesson_standard_report": {
+                    "standard_version": "ciak-lesson-v1",
+                    "completed": False,
+                    "failure_stage": "transcription",
+                },
+            })
+            await telegram(
+                f"⚠️ <b>Videolezione non montata</b>\n👤 {name} — {label}\n"
+                "Trascrizione non disponibile. Il grezzo è preservato: ritentare la pipeline."
+            )
+            return
         # SICUREZZA REVISIONE: in modalita revisione la pipeline non deve MAI
         # pubblicare in automatico. Se siamo qui (trascrizione fallita o assente),
         # il checkpoint principale non e scattato: fermati comunque a da_revisionare
         # invece di tagliare/pubblicare il grezzo.
-        if VIDEO_REVIEW_ENABLED and (video_type == "masterclass" or (video_type == "videocorso" and lesson_id)):
+        if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
             _cn = datetime.now(timezone.utc).isoformat()
             _note = "Trascrizione non disponibile (timeout/errore): rivedi o ritrascrivi prima di montare."
             if video_type == "masterclass":
@@ -1800,6 +1879,16 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 shutil.move(delayed_path, final_path)
             logger.info(f"[VIDEO-PIPE] audio_delay_ms={audio_delay_ms}, applied={audio_delay_applied}")
 
+        if video_type == "videocorso" and lesson_id:
+            await set_status("rendering_lesson_standard")
+            standard_path, _render_report = await apply_ciak_lesson_standard(
+                db, partner=partner or {}, partner_id=partner_id, lesson_id=lesson_id,
+                transcript=transcript, body_path=final_path, tmp_dir=tmp_dir,
+            )
+            shutil.move(standard_path, final_path)
+            lesson_standard_report = {**(lesson_standard_report or {}), **_render_report}
+            logger.info(f"[LESSON-STANDARD] render completato: {lesson_standard_report}")
+
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
@@ -1809,7 +1898,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         # intro/outro/sub/music/zoom manualmente a valle.
         remotion_rendered = False
         youtube_source_path = final_path
-        if VIDEO_ENHANCE_ENABLED and transcript and words:
+        # Lo standard videolezione ha già applicato l'unica copertina ammessa.
+        # Remotion (intro/outro/highlight) resta esclusivamente masterclass.
+        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and transcript and words:
             await set_status("rendering")
             niche = (partner.get("niche") or partner.get("partner_niche") or "") if partner else ""
 
@@ -1922,7 +2013,56 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 except Exception:
                     pass
 
-        # 6. YouTube upload
+        # 6a. Videolezioni: pubblica il montato in GCS dietro URL permanente Ciak.
+        # La playlist YouTube resta per la masterclass; il partner revisiona il file
+        # finale prodotto dall'agente, non un checkpoint di testo intermedio.
+        if video_type == "videocorso" and lesson_id:
+            from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet
+            await set_status("uploading_gcs")
+            _vcdoc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+            _lesson = ((_vcdoc.get("lessons") or {}).get(lesson_id)) or {}
+            _version = int(_lesson.get("output_version") or 0) + 1
+            _subpath = edited_gcs_subpath(partner_id, lesson_id, _version)
+            _public_url = _gcs_upload_public(youtube_source_path, _subpath, "video/mp4")
+            _ciak_url = ciak_lesson_url(partner_id, lesson_id)
+            _now = datetime.now(timezone.utc).isoformat()
+            _fields = {
+                "output_gcs_url": _public_url,
+                "output_version": _version,
+                "video_embed_url": _ciak_url,
+                "video_ciak_url": _ciak_url,
+                "video_systeme_embed": embed_snippet(_ciak_url),
+                "video_raw_url": video_url,
+                "video_transcript": transcript[:5000],
+                "video_filler_report": filler_report,
+                "video_smart_edit_report": smart_edit_report,
+                "video_raw_duration_s": int(raw_dur),
+                "video_final_duration_s": int(final_dur),
+                "video_time_saved_s": int(total_saved),
+                "lesson_standard_report": lesson_standard_report,
+                "video_approved": False,
+                "partner_approved": False,
+                "partner_review_status": "pending",
+                "partner_review_version": _version,
+                "partner_revision_note": None,
+                "pipeline_completed_at": _now,
+            }
+            lk = f"lessons.{lesson_id}"
+            await db.partner_videocorso.update_one(
+                {"partner_id": partner_id},
+                {"$set": {**{f"{lk}.{k}": v for k, v in _fields.items()},
+                          f"{lk}.pipeline_status": "ready_for_review",
+                          f"{lk}.status": "ready_for_review", "updated_at": _now}},
+                upsert=True,
+            )
+            await telegram(
+                f"🎬 <b>Videolezione montata dall'agente Ciak</b>\n"
+                f"👤 {name} — {label}\n✂️ {int(total_saved)}s rimossi\n🔗 {_ciak_url}"
+            )
+            logger.info(f"[LESSON-STANDARD] DONE {name}/{lesson_id} v{_version} — {_ciak_url}")
+            return
+
+        # 6b. Masterclass: YouTube upload
         await set_status("uploading_youtube")
         # Titolo = nome del file caricato dall'admin (richiesta Antonella: niente
         # "rename" generico). Fallback allo schema storico se il nome non c'e'.
@@ -1969,6 +2109,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 "video_remotion_rendered": remotion_rendered,
                 "audio_delay_ms": audio_delay_ms,
                 "audio_delay_applied": audio_delay_applied,
+                "lesson_standard_report": lesson_standard_report,
                 "video_approved": False,
                 "video_pipeline_error": "YouTube upload fallito: credenziali OAuth da rinnovare",
                 "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
@@ -2026,6 +2167,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             "video_remotion_rendered": remotion_rendered,
             "audio_delay_ms": audio_delay_ms,
             "audio_delay_applied": audio_delay_applied,
+            "lesson_standard_report": lesson_standard_report,
             "video_approved": False,
             "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -2173,11 +2315,24 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         segs = [s for s in (src.get("review_cut_segments") or []) if s.get("enabled")]
         segs.sort(key=lambda x: x.get("start", 0))
         transcript = src.get("review_transcript", "")
+        review_words = src.get("review_words") or []
         filler_report = src.get("review_filler_report") or {"count": 0, "segments": [], "time_saved_s": 0}
 
         await _set("downloading")
         await download_video(video_url, raw_path)
         raw_dur = get_video_duration(raw_path)
+
+        lesson_standard_report = None
+        if is_lesson:
+            from services.ciak_lesson_standard import enforce_lesson_policy
+            _policy = enforce_lesson_policy(segs, review_words, raw_dur)
+            segs = _policy["cuts"]
+            lesson_standard_report = {
+                "standard_version": _policy["standard_version"],
+                "protected_ranges": _policy["protected_ranges"],
+                "rejected_cut_count": len(_policy["rejected"]),
+                "approved_cut_count": len(_policy["cuts"]),
+            }
 
         await _set("cutting_fillers")
         _loop = asyncio.get_event_loop()
@@ -2185,13 +2340,21 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
             await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, segs, raw_dur)
         else:
             shutil.copy(raw_path, final_path)
+        if is_lesson:
+            await _set("rendering_lesson_standard")
+            standard_path, _render_report = await apply_ciak_lesson_standard(
+                db, partner=partner or {}, partner_id=partner_id, lesson_id=lesson_id,
+                transcript=transcript, body_path=final_path, tmp_dir=tmp_dir,
+            )
+            shutil.move(standard_path, final_path)
+            lesson_standard_report = {**(lesson_standard_report or {}), **_render_report}
         final_dur = get_video_duration(final_path)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         if is_lesson:
             # --- Fase 1B: pubblicazione lezione videocorso su GCS servita da Ciak (niente YouTube) ---
-            # Il link nei "I Miei File" del partner viene scritto solo all'approvazione
-            # finale admin (/videocorso/approve-video), non qui al montaggio.
+            # Il link e' revisionabile nel workspace; la consegna definitiva richiede
+            # l'ok esplicito del partner sulla specifica output_version.
             from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet
             await _set("uploading_gcs")
             les_title = src.get("title") or src.get("titolo") or f"Lezione {lesson_id}"
@@ -2213,8 +2376,13 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
                 "video_raw_duration_s": int(raw_dur),
                 "video_final_duration_s": int(final_dur),
                 "video_time_saved_s": int(raw_dur - final_dur),
-                "video_approved": False,
-                "video_reviewed": True,
+                  "video_approved": False,
+                  "partner_approved": False,
+                  "partner_review_status": "pending",
+                  "partner_review_version": _version,
+                  "partner_revision_note": None,
+                  "video_reviewed": True,
+                "lesson_standard_report": lesson_standard_report,
                 "pipeline_completed_at": now_iso,
             }
             from services import ciak_edit_project as _ceep

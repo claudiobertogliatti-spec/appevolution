@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ciak Video Lesson Editor"
+  short_description: "Monta automaticamente le videolezioni Ciak"
+  default_prompt: "Usa $ciak-video-lesson-editor per trasformare un video grezzo partner in una videolezione Ciak pronta per la revisione."
