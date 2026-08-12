@@ -12,7 +12,7 @@ Regole:
 
 ---
 
-### 2026-08-12 · Codex · codex/ciak-video-archive-release — revisioni video + archivio step, pre-deploy
+### 2026-08-12 · Codex · main — revisioni video + archivio step, rilasciati
 
 **FATTO**
 - Standard automatico videolezioni Ciak con copertina Andrew, policy tagli didattici e output versionato.
@@ -24,10 +24,13 @@ Regole:
 - `pytest test_ciak_lesson_review + test_partner_step_materials + test_ciak_lesson_standard + test_ciak_publish`: 25 passed.
 - `py_compile` dei servizi/router/pipeline/server modificati e `git diff --check`: exit 0.
 - `npm run build`: exit 0, bundle `main.daeaad33.js`; restano soli warning ESLint preesistenti in file estranei.
-- Suite auth router locale bloccata prima della collection da incompatibilita FastAPI/Pydantic preesistente (`cannot import name PYDANTIC_V2`); CI resta il gate autoritativo.
+- Commit applicativo finale `d9c615b5` su `origin/main`; CI GitHub `31592517444` verde: backend, frontend e Gitleaks.
+- Deploy GitHub `31592517517` verde sullo stesso SHA: backend `00539-ldz` e worker `00120-4bz`, entrambi Ready e al 100% del traffico.
+- Vercel production `dpl_AEayQEjLU4KPPPqYYeouZkAiXfaF` Ready e alias `www.ciak.io`/`ciak.io`; manifest live con archivio materiali nel main bundle e revisioni nel chunk `226.ec50b71d.js`.
+- `GET https://www.ciak.io/api/health` -> `healthy`; gli endpoint nuovi compaiono nell'OpenAPI Cloud Run e i probe anonimi materiali/revisioni restituiscono 401.
+- Suite auth router locale bloccata prima della collection da incompatibilita FastAPI/Pydantic preesistente (`cannot import name PYDANTIC_V2`); la CI autoritativa e' verde.
 
 **APERTO**
-- Push/CI/deploy/smoke live e aggiornamento memoria ancora da eseguire.
 - Il collegamento diretto al sub-account Systeme.io e la generazione del Workbook finale sono esplicitamente fuori ambito e richiedono design separato.
 
 ## Formato
