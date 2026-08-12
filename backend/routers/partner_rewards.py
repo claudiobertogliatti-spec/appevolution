@@ -28,6 +28,12 @@ def set_db(database):
     db = database
 
 
+async def _latest_document(partner_id: str, kind: str):
+    return await db.partner_document_versions.find_one(
+        {"partner_id": partner_id, "kind": kind}, {"_id": 0}, sort=[("version", -1)]
+    )
+
+
 async def _require_partner_access(partner_id: str, credentials):
     # Import lazy: partner_journey usa a sua volta gli helper rewards per gli
     # sblocchi, quindi un import top-level creerebbe un ciclo durante il boot.
@@ -497,6 +503,45 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     ]
 
 
+async def archive_final_documents(partner_id: str) -> dict:
+    """Genera e archivia F-18/F-19; i retry sulla stessa versione sono idempotenti."""
+    from services.partner_document_versions import archive_document_version
+
+    ctx = await _load_context(partner_id)
+    launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    source_version = str(launch.get("launched_at") or launch.get("probe_verified_at") or "launch")
+    meta = PHASE_META["valida"]
+    certificate_pdf = render_certificate_pdf({
+        "partner_name": _partner_name(ctx["partner"]), "phase_label": meta["label"],
+        "days": _phase_days(ctx, "valida"), "result": meta["result"], "next_step": meta["next_step"],
+    })
+    certificate = await archive_document_version(
+        db, partner_id, "certificate_valida", source_version, certificate_pdf
+    )
+    payload = {
+        "partner_name": _partner_name(ctx["partner"]), "project_name": _project_name(ctx),
+        "start_date": _start_date(ctx), "fase_attuale": _fase_attuale(ctx),
+        "sections": _project_sections(ctx),
+    }
+    try:
+        workbook_pdf = await genera_project_book_pdf(payload)
+    except Exception:
+        logging.exception("[project-book] render finale HTML fallito, fallback reportlab")
+        workbook_pdf = render_project_book_pdf(payload)
+    workbook = await archive_document_version(db, partner_id, "workbook_final", source_version, workbook_pdf)
+
+    from routers.partner_journey import _OperativoCompleteBody, _complete_operativo_step_unchecked
+    for step_id in ("18-certificato-valida", "19-workbook-finale"):
+        current = await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "step_id": step_id}, {"_id": 0, "status": 1}
+        )
+        if current and current.get("status") != "done":
+            await _complete_operativo_step_unchecked(
+                partner_id, step_id, _OperativoCompleteBody(data={})
+            )
+    return {"certificate_version": certificate.version, "workbook_version": workbook.version}
+
+
 @router.get("/{partner_id}/state")
 async def get_rewards_state(
     partner_id: str,
@@ -506,6 +551,7 @@ async def get_rewards_state(
     ctx = await _load_context(partner_id)
     ctx["partner_id"] = partner_id
     phases = _reward_state(ctx)
+    workbook = await _latest_document(partner_id, "workbook_final")
     return {
         "success": True,
         "partner_id": partner_id,
@@ -518,6 +564,8 @@ async def get_rewards_state(
             "unlocked_sections": _sezioni_compilate(ctx),
             "total_sections": len(_project_sections(ctx)),
             "fasi_sbloccate": sum(1 for phase in phases if phase["unlocked"]),
+            "version": (workbook or {}).get("version"),
+            "archived_at": (workbook or {}).get("created_at"),
         },
         "phases": phases,
     }
@@ -533,11 +581,12 @@ async def download_certificate(
     phase = _normalize_phase(phase)
     if phase not in PHASE_META:
         raise HTTPException(404, "Fase non valida")
+    archived = await _latest_document(partner_id, "certificate_valida") if phase == "valida" else None
     ctx = await _load_context(partner_id)
     if not _phase_unlocked(ctx, phase):
         raise HTTPException(403, "Attestato non ancora sbloccato")
     meta = PHASE_META[phase]
-    pdf = render_certificate_pdf({
+    pdf = archived.get("content") if archived else render_certificate_pdf({
         "partner_name": _partner_name(ctx["partner"]),
         "phase_label": meta["label"],
         "days": _phase_days(ctx, phase),
@@ -585,6 +634,12 @@ async def download_project_book(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     await _require_partner_access(partner_id, credentials)
+    archived = await _latest_document(partner_id, "workbook_final")
+    if archived:
+        return Response(
+            content=archived["content"], media_type="application/pdf",
+            headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
+        )
     ctx = await _load_context(partner_id)
     payload = {
         "partner_name": _partner_name(ctx["partner"]),

@@ -87,6 +87,11 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
                 La vedi gia adesso, poi si arricchisce fase dopo fase: Esamina aggiunge le fondamenta,
                 Valida aggiunge masterclass, corso, script, sistema di vendita e lancio, Ottimizza aggiunge dati e miglioramenti.
               </p>
+              {remote?.project_book?.version && (
+                <p className="text-xs font-semibold text-emerald-700 mt-2">
+                  Workbook finale archiviato · versione {remote.project_book.version}
+                </p>
+              )}
             </div>
             <button
               type="button"

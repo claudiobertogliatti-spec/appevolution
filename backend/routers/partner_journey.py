@@ -3768,7 +3768,12 @@ async def activate_launch(
 
     lancio = await db.partner_lancio.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
     if lancio.get("launched") and lancio.get("probe_verified"):
-        return {"success": True, "already_launched": True, "launched_at": lancio.get("launched_at")}
+        from routers.partner_rewards import archive_final_documents
+        documents = await archive_final_documents(request.partner_id)
+        return {
+            "success": True, "already_launched": True,
+            "launched_at": lancio.get("launched_at"), "documents": documents,
+        }
 
     funnel = await db.partner_funnel.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
     funnel_url = lancio.get("funnel_url") or funnel.get("funnel_url") or funnel.get("vendita_url")
@@ -3819,6 +3824,11 @@ async def activate_launch(
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
+
+    # Certificato e Workbook sono effetti versionati: solo dopo l'archiviazione
+    # si chiudono F-18/F-19 e l'auto-avanzamento apre F-20.
+    from routers.partner_rewards import archive_final_documents
+    await archive_final_documents(request.partner_id)
     
     # Notifica
     await notify_telegram(
@@ -7062,6 +7072,16 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
     if step_id == "13-lancio":
         launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
         return {"launch_verified": bool(launch.get("launched") and launch.get("probe_verified"))}
+    if step_id == "18-certificato-valida":
+        document = await db.partner_document_versions.find_one(
+            {"partner_id": partner_id, "kind": "certificate_valida"}, {"_id": 0, "checksum": 1}
+        )
+        return {"certificate_archived": bool((document or {}).get("checksum"))}
+    if step_id == "19-workbook-finale":
+        document = await db.partner_document_versions.find_one(
+            {"partner_id": partner_id, "kind": "workbook_final"}, {"_id": 0, "checksum": 1}
+        )
+        return {"workbook_archived": bool((document or {}).get("checksum"))}
     return {}
 
 

@@ -16,6 +16,12 @@ class CompletionResult:
 _STEP_BY_ID = {step["step_id"]: step for step in JOURNEY_STEPS_DEFINITION}
 
 
+def can_unlock_f20(status_by_step: dict[str, str]) -> bool:
+    return all(status_by_step.get(step_id) == "done" for step_id in (
+        "13-lancio", "18-certificato-valida", "19-workbook-finale"
+    ))
+
+
 def masterclass_current_version_approved(video: dict[str, Any] | None) -> bool:
     if not video or video.get("active_revision_id"):
         return False
