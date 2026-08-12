@@ -7068,6 +7068,15 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
     if step_id == "10-sistema-vendita":
         report = await _load_sales_readiness(partner_id)
         return {"sales_system_ready": report.ready}
+    if step_id == "11-calendario-30gg":
+        from services.journey_completion import approved_launch_calendar_context
+
+        calendar = await db.partner_launch_calendar_versions.find_one(
+            {"partner_id": partner_id, "status": "approved"},
+            {"_id": 0},
+            sort=[("version", -1)],
+        )
+        return approved_launch_calendar_context(calendar)
     if step_id == "16-readiness-lancio":
         report = await _load_launch_readiness(partner_id)
         return {"launch_readiness_verified": report.ready}
@@ -7085,6 +7094,45 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
         )
         return {"workbook_archived": bool((document or {}).get("checksum"))}
     return {}
+
+
+async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
+    """Chiude F-14 usando solo i riferimenti della versione approved nel DB."""
+    trusted = await _trusted_completion_context(partner_id, "11-calendario-30gg")
+    from services.journey_completion import evaluate_step_completion
+
+    completion = evaluate_step_completion("11-calendario-30gg", trusted)
+    if not completion.ok:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": completion.code,
+                "message": completion.message,
+                "evidence": completion.evidence,
+            },
+        )
+    evidence = {
+        key: trusted.get(key)
+        for key in ("calendar_version", "calendar_checksum", "approved_at")
+        if trusted.get(key) is not None
+    }
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+    )
+    if current and current.get("status") == "done" and all(
+        (current.get("data") or {}).get(key) == value for key, value in evidence.items()
+    ):
+        return {
+            "success": True,
+            "completed_step": "11-calendario-30gg",
+            "next_step": None,
+            "idempotent": True,
+        }
+    return await _complete_operativo_step_unchecked(
+        partner_id,
+        "11-calendario-30gg",
+        _OperativoCompleteBody(data=evidence),
+    )
 
 
 async def _load_sales_readiness(partner_id: str):

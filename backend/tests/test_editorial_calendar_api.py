@@ -7,7 +7,7 @@ import os
 from types import SimpleNamespace
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
@@ -15,7 +15,7 @@ os.environ.setdefault("MONGO_URL", "mongodb://calendar-test.invalid:27017")
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET_KEY", "calendar-test-secret-not-for-production")
 
-from routers import editorial_calendar, partner_journey
+from routers import editorial_calendar, partner_journey, partner_rewards
 from db_indexes import CriticalIndexError, ensure_indexes
 from services.editorial_calendar import _deterministic
 
@@ -81,6 +81,19 @@ class FakeCollection:
         self.docs.append(deepcopy(document))
         return SimpleNamespace(inserted_id=len(self.docs))
 
+    async def update_one(self, query, update, upsert=False):
+        for doc in self.docs:
+            if self._matches(doc, query):
+                for key, value in update.get("$set", {}).items():
+                    doc[key] = value
+                return SimpleNamespace(matched_count=1, modified_count=1)
+        if upsert:
+            document = dict(query)
+            document.update(update.get("$set", {}))
+            self.docs.append(document)
+            return SimpleNamespace(matched_count=0, modified_count=0, upserted_id=len(self.docs))
+        return SimpleNamespace(matched_count=0, modified_count=0)
+
 
 class FakeCursor:
     def __init__(self, docs):
@@ -89,8 +102,9 @@ class FakeCursor:
     def sort(self, _field, _direction):
         return self
 
-    async def to_list(self, limit):
-        return self.docs[:limit]
+    async def to_list(self, limit=None, length=None):
+        size = length if length is not None else limit
+        return self.docs[:size]
 
 
 class FakeDb:
@@ -106,12 +120,25 @@ class FakeDb:
                 "data": {"answers": {"nicchia": "consulenti"}},
             },
             {"partner_id": "p1", "step_id": "06-outline-lezioni", "data": {}},
+            {
+                "_id": "step-f14",
+                "partner_id": "p1",
+                "step_id": "11-calendario-30gg",
+                "step_number": 14,
+                "status": "in_progress",
+                "data": {"summary": "CALENDARIO INVENTATO NELLO STEP"},
+            },
         ])
         self.partner_launch_calendar_versions = FakeCollection()
         self.partner_launch_calendar_counters = FakeCollection()
         self.partner_launch_calendar_notification_recovery = FakeCollection()
         self.alerts = FakeCollection()
         self.partners = FakeCollection([{"id": "p1", "name": "Partner Uno"}])
+        self.partner_hub = FakeCollection()
+        self.masterclass_factory = FakeCollection()
+        self.partner_videocorso = FakeCollection()
+        self.partner_brand_kits = FakeCollection()
+        self.partner_funnel = FakeCollection()
         self.versions = self.partner_launch_calendar_versions.docs
 
 
@@ -120,6 +147,16 @@ def fake_db(monkeypatch):
     fake = FakeDb()
     monkeypatch.setattr(editorial_calendar, "db", fake)
     monkeypatch.setattr(partner_journey, "db", fake)
+    monkeypatch.setattr(partner_rewards, "db", fake)
+
+    async def no_notification(*_args, **_kwargs):
+        return True
+
+    async def no_projection(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", no_notification)
+    monkeypatch.setattr(partner_journey, "_project_legacy_phase", no_projection)
     return fake
 
 
@@ -158,6 +195,7 @@ def client(fake_db, monkeypatch):
     monkeypatch.setattr(editorial_calendar, "build_editorial_calendar", deterministic_calendar)
     app = FastAPI()
     app.include_router(editorial_calendar.router)
+    app.include_router(partner_journey.router)
     with TestClient(app) as test_client:
         yield test_client
 
@@ -217,6 +255,117 @@ def _submit(client, partner_token, calendar_version, partner_confirmed=True):
             "expected_checksum": calendar_version["checksum"],
         },
     )
+
+
+def _f14_step(fake_db):
+    return next(
+        step
+        for step in fake_db.partner_journey_steps.docs
+        if step.get("step_id") == "11-calendario-30gg"
+    )
+
+
+def test_client_calendar_payload_cannot_complete_f14_without_approved_version(
+    client, partner_token, fake_db
+):
+    response = client.post(
+        "/api/partner-journey/operativo/complete/p1/11-calendario-30gg",
+        headers=_headers(partner_token),
+        json={
+            "data": {
+                "launch_calendar_approved": True,
+                "calendar": {"days": [{"day": 1, "theme": "Inventato dal client"}]},
+            }
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "launch_calendar_not_approved"
+    assert _f14_step(fake_db)["status"] == "in_progress"
+
+
+@pytest.mark.asyncio
+async def test_auto_completion_helper_refuses_done_step_without_approved_db_evidence(fake_db):
+    _f14_step(fake_db)["status"] = "done"
+
+    with pytest.raises(HTTPException) as error:
+        await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert getattr(error.value, "status_code", None) == 409
+    assert error.value.detail["code"] == "launch_calendar_not_approved"
+
+
+def test_positive_review_completes_f14_once_with_db_evidence(
+    client, partner_token, admin_token, fake_db
+):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    ready = _with_ready_review_resources(client, partner_token, created)
+    submitted = _submit(client, partner_token, ready)
+    assert submitted.status_code == 200
+
+    payload = {"decision": "approve", "note": "Calendario verificato"}
+    approved = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json=payload,
+    )
+
+    assert approved.status_code == 200
+    step = _f14_step(fake_db)
+    assert step["status"] == "done"
+    assert step["data"]["calendar_version"] == 1
+    assert step["data"]["calendar_checksum"] == approved.json()["checksum"]
+    assert step["data"]["approved_at"] == approved.json()["approved_at"]
+    completed_at = step["completed_at"]
+
+    retry = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json=payload,
+    )
+
+    assert retry.status_code == 200
+    assert _f14_step(fake_db)["completed_at"] == completed_at
+
+
+@pytest.mark.asyncio
+async def test_workbook_reads_only_the_approved_calendar_snapshot(
+    client, partner_token, admin_token, fake_db
+):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    approved_calendar = deepcopy(created["calendar"])
+    approved_calendar["days"][0]["theme"] = "Tema approvato e immutabile"
+    updated = client.put(
+        "/api/partner/calendar/p1/versions/1/draft",
+        headers=_headers(partner_token),
+        json={"expected_checksum": created["checksum"], "calendar": approved_calendar},
+    ).json()
+    ready = _with_ready_review_resources(client, partner_token, updated)
+    assert _submit(client, partner_token, ready).status_code == 200
+    assert client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "OK"},
+    ).status_code == 200
+
+    _f14_step(fake_db)["data"] = {"summary": "BOZZA INVENTATA DOPO APPROVAZIONE"}
+    context = await partner_rewards._load_context("p1")
+    calendar_section = next(
+        section for section in partner_rewards._project_sections(context)
+        if section["title"] == "Calendario di Lancio"
+    )
+
+    assert context["launch_calendar_version"] == 1
+    assert "Tema approvato e immutabile" in calendar_section["body"]
+    assert "BOZZA INVENTATA" not in calendar_section["body"]
 
 
 def test_generate_creates_version_one(client, partner_token, fake_db):

@@ -64,6 +64,38 @@ def _required_flag(context, flag: str, code: str, message: str) -> CompletionRes
     return CompletionResult(value, "ready" if value else code, "Pronto" if value else message, {flag: value})
 
 
+def approved_launch_calendar_context(document: dict[str, Any] | None) -> dict[str, Any]:
+    """Deriva il gate F-14 solo da una versione approved integra e attestata."""
+    document = document or {}
+    calendar = document.get("calendar")
+    checksum = document.get("checksum")
+    review = document.get("admin_review") or {}
+    approved_at = document.get("approved_at")
+    version = document.get("version")
+
+    if not isinstance(calendar, dict) or not isinstance(checksum, str) or not checksum:
+        return {"launch_calendar_approved": False}
+
+    from services.launch_calendar import calendar_checksum
+
+    valid = (
+        document.get("status") == "approved"
+        and version is not None
+        and bool(approved_at)
+        and review.get("decision") == "approve"
+        and review.get("approved_checksum") == checksum
+        and calendar_checksum(calendar) == checksum
+    )
+    if not valid:
+        return {"launch_calendar_approved": False}
+    return {
+        "launch_calendar_approved": True,
+        "calendar_version": version,
+        "calendar_checksum": checksum,
+        "approved_at": approved_at,
+    }
+
+
 def evaluate_step_completion(step_id: str, context: dict[str, Any]) -> CompletionResult:
     definition = _STEP_BY_ID.get(step_id)
     if not definition:
@@ -74,6 +106,7 @@ def evaluate_step_completion(step_id: str, context: dict[str, Any]) -> Completio
         "masterclass_current_version_approved": ("masterclass_approved", "masterclass_not_approved", "La masterclass definitiva deve essere approvata"),
         "all_required_lessons_current_version_approved": ("lessons_approved", "lessons_not_approved", "Tutte le lezioni previste devono essere approvate"),
         "sales_system_ready": ("sales_system_ready", "sales_system_not_ready", "Il sistema di vendita non è ancora verificato"),
+        "launch_calendar_approved": ("launch_calendar_approved", "launch_calendar_not_approved", "Il calendario di lancio deve essere confermato e approvato"),
         "launch_readiness_verified": ("launch_readiness_verified", "launch_not_ready", "La verifica pre-lancio non è completa"),
         "launch_verified": ("launch_verified", "launch_not_verified", "Il lancio non è ancora verificato"),
         "valida_certificate_archived": ("certificate_archived", "certificate_not_archived", "Il certificato non è ancora archiviato"),
@@ -81,7 +114,18 @@ def evaluate_step_completion(step_id: str, context: dict[str, Any]) -> Completio
         "optimization_active": ("optimization_unlocked", "optimization_locked", "Ottimizza non è ancora sbloccata"),
     }
     if policy in governed:
-        return _required_flag(context, *governed[policy])
+        result = _required_flag(context, *governed[policy])
+        if policy == "launch_calendar_approved" and result.ok:
+            evidence = {
+                **result.evidence,
+                **{
+                    key: context[key]
+                    for key in ("calendar_version", "calendar_checksum", "approved_at")
+                    if context.get(key) is not None
+                },
+            }
+            return CompletionResult(result.ok, result.code, result.message, evidence)
+        return result
 
     # Gli step dichiarativi restano compatibili con i moduli esistenti; le
     # relative policy verranno rese strutturate senza bloccare il journey storico.

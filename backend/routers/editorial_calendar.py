@@ -140,6 +140,7 @@ def _response_document(document: dict) -> dict:
         "created_by",
         "partner_confirmed_at",
         "admin_review",
+        "approved_at",
         "approval_resources",
         "updated_at",
         "updated_by",
@@ -797,6 +798,10 @@ async def review_calendar_version(
             and existing_review.get("note") == body.note
             and existing_review.get("reviewed_by") == _actor_id(actor)
         ):
+            if target_status == "approved":
+                from routers.partner_journey import _complete_approved_launch_calendar_step
+
+                await _complete_approved_launch_calendar_step(partner_id)
             return _response_document(existing)
         raise HTTPException(409, "La review gia' registrata non corrisponde alla richiesta")
     if existing.get("status") != "pending_review":
@@ -865,6 +870,14 @@ async def review_calendar_version(
             and winner_review.get("note") == body.note
             and winner_review.get("reviewed_by") == _actor_id(actor)
         ):
+            if target_status == "approved":
+                from routers.partner_journey import _complete_approved_launch_calendar_step
+
+                await _complete_approved_launch_calendar_step(partner_id)
             return _response_document(winner)
         raise HTTPException(409, "La review e' gia' stata registrata o la versione e' cambiata")
+    if target_status == "approved":
+        from routers.partner_journey import _complete_approved_launch_calendar_step
+
+        await _complete_approved_launch_calendar_step(partner_id)
     return _response_document(document)

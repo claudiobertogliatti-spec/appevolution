@@ -1,6 +1,7 @@
 import pytest
 
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION
+from services.journey_completion import evaluate_step_completion
 
 
 pytestmark = pytest.mark.unit
@@ -72,3 +73,18 @@ def test_valida_keeps_legacy_phase_projection_ordered():
     assert _step("08-registra-masterclass")["fase_legacy"] == "F4"
     assert _step("10-sistema-vendita")["fase_legacy"] == "F5"
     assert _step("11-calendario-30gg")["fase_legacy"] == "F6"
+
+
+def test_launch_calendar_policy_is_governed():
+    failed = evaluate_step_completion(
+        "11-calendario-30gg", {"launch_calendar_approved": False}
+    )
+
+    assert failed.ok is False
+    assert failed.code == "launch_calendar_not_approved"
+
+    passed = evaluate_step_completion(
+        "11-calendario-30gg", {"launch_calendar_approved": True}
+    )
+
+    assert passed.ok is True

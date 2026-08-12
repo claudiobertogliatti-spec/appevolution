@@ -123,6 +123,18 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     brand_kit = await db.partner_brand_kits.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    launch_calendar_document = await db.partner_launch_calendar_versions.find_one(
+        {"partner_id": partner_id, "status": "approved"},
+        {"_id": 0},
+        sort=[("version", -1)],
+    ) or {}
+    from services.journey_completion import approved_launch_calendar_context
+    launch_calendar_evidence = approved_launch_calendar_context(launch_calendar_document)
+    launch_calendar = (
+        launch_calendar_document.get("calendar")
+        if launch_calendar_evidence.get("launch_calendar_approved")
+        else {}
+    )
 
     return {
         "partner": partner,
@@ -133,6 +145,10 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
         "videocorso": videocorso,
         "brand_kit": brand_kit,
         "funnel": funnel,
+        "launch_calendar": launch_calendar,
+        "launch_calendar_version": launch_calendar_evidence.get("calendar_version"),
+        "launch_calendar_checksum": launch_calendar_evidence.get("calendar_checksum"),
+        "launch_calendar_approved_at": launch_calendar_evidence.get("approved_at"),
     }
 
 
@@ -386,7 +402,7 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     story = _answers(steps.get("la-tua-storia"))
     brand_step = (steps.get("03-brand-kit") or {}).get("data") or {}
     vendita = (steps.get("10-sistema-vendita") or {}).get("data") or {}
-    calendar = (steps.get("11-calendario-30gg") or {}).get("data") or {}
+    calendar = ctx.get("launch_calendar") or {}
     launch = (steps.get("13-lancio") or {}).get("data") or {}
     ott = partner.get("ottimizzazione") or {}
 
@@ -472,6 +488,12 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
         vendita_righe.append(_primo(vendita.get("note_sistema_vendita"), vendita.get("headline"), vendita.get("descrizione")))
 
     calendario = _primo(calendar.get("calendario"), calendar.get("summary"), calendar.get("piano"))
+    if not calendario and calendar.get("days"):
+        calendario = "\n".join(
+            f"Giorno {day.get('day')} · {day.get('format')}: {day.get('theme')} — CTA: {day.get('cta')}"
+            for day in calendar["days"]
+            if isinstance(day, dict)
+        )
 
     # Le 13 sezioni, nell'ordine del design approvato il 01/07/2026
     # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md).
