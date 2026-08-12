@@ -45,6 +45,34 @@ Regole:
 
 ---
 
+### 2026-08-12 · Claude Code (Luca) · cc/blueprint-delivery-recovery — la consegna Blueprint non sparisce piu' in silenzio
+
+**FATTO**
+- `_deliver_client_access_link` propaga il fallimento del tag Systeme (e' quello che fa partire
+  l'email; il custom field resta best-effort). Nuovo `_deliver_access_or_record_recovery` che
+  scrive in `ciak_client_access_recovery` quando la consegna non riesce.
+- Accesso e analisi passano da `asyncio.create_task` a `BackgroundTasks`.
+
+**VERIFICATO**
+- RED prima: 5 test falliti, fra cui "Systeme giu' => nessuna voce di recovery".
+- Il difetto era doppio: `create_task` ritorna subito, quindi le eccezioni non arrivavano mai al
+  `try/except` che scrive la recovery; e `_deliver_client_access_link` le inghiottiva gia' in un
+  `logger.warning`. Con Systeme irraggiungibile il cliente pagava 27 EUR, non riceveva il link e
+  il sistema risultava a posto.
+- GREEN: 6 test nuovi + 9 di `test_checkout_trigger.py`; **131 passed** sulla suite CI locale.
+- Un test verifica che il magic link NON finisca nella coda di recovery: fa entrare come il
+  cliente per 48h e si rigenera, non si parcheggia.
+
+**APERTO**
+- Il Purchase Meta CAPI resta `create_task` di proposito: perdere un evento di analytics non e'
+  perdere una consegna.
+- ⛔ Restano i due webhook non firmati. Riprovato oggi: `/api/checkout/webhook` e
+  `/api/booking/webhook` rispondono ancora **200 con firma fasulla** — i secret non sono stati
+  configurati. Il commit e' pronto su `cc/security-and-money-path`, ma deployarlo prima dei
+  secret ferma i pagamenti da 27 EUR.
+
+---
+
 ### 2026-08-12 · Claude Code (Luca) · cc/admin-recovery — schermata "Consegne mancate"
 
 **FATTO**
