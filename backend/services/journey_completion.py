@@ -133,6 +133,7 @@ def final_workbook_journey_source(
 def approved_calendar_workbook_binding(
     context: dict[str, Any],
     journey_source: dict[str, Any] | None = None,
+    renderer_source: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Identita' immutabile del Workbook costruito sul calendario approved corrente."""
     if context.get("launch_calendar_approved") is not True:
@@ -141,18 +142,36 @@ def approved_calendar_workbook_binding(
     checksum = context.get("calendar_checksum")
     approved_at = context.get("approved_at")
     journey_checksum = (journey_source or {}).get("journey_source_checksum")
-    if version is None or not checksum or not approved_at or not journey_checksum:
+    renderer_checksum = (renderer_source or {}).get("renderer_source_checksum")
+    if (
+        version is None
+        or not checksum
+        or not approved_at
+        or not journey_checksum
+        or not renderer_checksum
+    ):
         return None
     provenance = {
         "calendar_version": version,
         "calendar_checksum": checksum,
         "calendar_approved_at": approved_at,
         **journey_source,
+        **renderer_source,
     }
     return {
-        "source_version": f"launch-calendar:{version}:{checksum}:journey:{journey_checksum}",
+        "source_version": (
+            f"launch-calendar:{version}:{checksum}:renderer:{renderer_checksum}"
+        ),
         "provenance": provenance,
     }
+
+
+def workbook_renderer_source(payload: dict[str, Any]) -> dict[str, str]:
+    """Hash canonico di tutti e soli gli input passati al renderer Workbook."""
+    serialized = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False
+    ).encode("utf-8")
+    return {"renderer_source_checksum": hashlib.sha256(serialized).hexdigest()}
 
 
 def evaluate_step_completion(step_id: str, context: dict[str, Any]) -> CompletionResult:

@@ -151,10 +151,27 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
     }
 
 
-def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
+def _workbook_payload(ctx: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {**section, "filled": not _e_segnaposto(section.get("body", ""))}
+        for section in _project_sections(ctx)
+    ]
+    return {
+        "partner_name": _partner_name(ctx["partner"]),
+        "project_name": _project_name(ctx),
+        "start_date": _start_date(ctx),
+        "fase_attuale": _fase_attuale(ctx),
+        "sections": sections,
+    }
+
+
+def _workbook_binding(
+    ctx: dict[str, Any], payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
     from services.journey_completion import (
         approved_calendar_workbook_binding,
         final_workbook_journey_source,
+        workbook_renderer_source,
     )
 
     calendar_context = {
@@ -172,7 +189,10 @@ def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
             },
         )
     journey_source = final_workbook_journey_source(ctx.get("steps_by_id") or {})
-    binding = approved_calendar_workbook_binding(calendar_context, journey_source)
+    renderer_source = workbook_renderer_source(payload or _workbook_payload(ctx))
+    binding = approved_calendar_workbook_binding(
+        calendar_context, journey_source, renderer_source
+    )
     if not binding:
         raise HTTPException(
             status_code=409,
@@ -185,7 +205,13 @@ def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _approved_workbook(ctx: dict[str, Any], partner_id: str):
-    binding = _workbook_binding(ctx)
+    f19_status = ((ctx.get("steps_by_id") or {}).get("19-workbook-finale") or {}).get(
+        "status"
+    )
+    if f19_status not in ("in_progress", "done"):
+        return None
+    payload = _workbook_payload(ctx)
+    binding = _workbook_binding(ctx, payload)
     return await db.partner_document_versions.find_one(
         {
             "partner_id": partner_id,
@@ -199,22 +225,37 @@ async def _approved_workbook(ctx: dict[str, Any], partner_id: str):
 async def _ensure_approved_workbook(ctx: dict[str, Any], partner_id: str):
     from services.partner_document_versions import archive_document_version
 
-    binding = _workbook_binding(ctx)
-    existing = await _approved_workbook(ctx, partner_id)
+    payload = _workbook_payload(ctx)
+    binding = _workbook_binding(ctx, payload)
+    f19_status = ((ctx.get("steps_by_id") or {}).get("19-workbook-finale") or {}).get(
+        "status"
+    )
+    if f19_status not in ("in_progress", "done"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_not_ready",
+                "message": "F-19 deve essere in corso prima di generare il Workbook finale",
+            },
+        )
+    existing = await db.partner_document_versions.find_one(
+        {
+            "partner_id": partner_id,
+            "kind": "workbook_final",
+            "source_version": binding["source_version"],
+        },
+        {"_id": 0},
+    )
     if existing:
         return existing
-
-    sections = [
-        {**section, "filled": not _e_segnaposto(section.get("body", ""))}
-        for section in _project_sections(ctx)
-    ]
-    payload = {
-        "partner_name": _partner_name(ctx["partner"]),
-        "project_name": _project_name(ctx),
-        "start_date": _start_date(ctx),
-        "fase_attuale": _fase_attuale(ctx),
-        "sections": sections,
-    }
+    if f19_status == "done":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_state_inconsistent",
+                "message": "F-19 risulta completato senza il Workbook della source corrente",
+            },
+        )
     try:
         workbook_pdf = await genera_project_book_pdf(payload)
     except Exception:

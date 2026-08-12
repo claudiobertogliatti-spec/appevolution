@@ -74,6 +74,8 @@ class FakeCollection:
             if isinstance(value, dict):
                 if "$lte" in value and not (actual is not None and actual <= value["$lte"]):
                     return False
+                if "$gt" in value and not (actual is not None and actual > value["$gt"]):
+                    return False
             elif actual != value:
                 return False
         return True
@@ -136,6 +138,15 @@ class FakeDb:
                 "step_number": 14,
                 "status": "in_progress",
                 "data": {"summary": "CALENDARIO INVENTATO NELLO STEP"},
+            },
+            {
+                "_id": "scaffold-step-f15",
+                "partner_id": "p1",
+                "step_id": "12-prezzo-webinar",
+                "step_number": 15,
+                "status": "pending",
+                "data": {},
+                "_test_scaffold": True,
             },
         ])
         self.partner_launch_calendar_versions = FakeCollection()
@@ -292,11 +303,30 @@ def _approve_calendar(client, partner_token, admin_token, version=1):
     assert created["version"] == version
     ready = _with_ready_review_resources(client, partner_token, created)
     assert _submit(client, partner_token, ready).status_code == 200
+    test_db = editorial_calendar.db
+    temporary_f15 = not any(
+        step.get("partner_id") == "p1" and step.get("step_id") == "12-prezzo-webinar"
+        for step in test_db.partner_journey_steps.docs
+    )
+    if temporary_f15:
+        test_db.partner_journey_steps.docs.append({
+            "_id": "temporary-step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        })
     approved = client.post(
         f"/api/partner/calendar/p1/versions/{version}/review",
         headers=_headers(admin_token),
         json={"decision": "approve", "note": f"Calendario v{version} verificato"},
     )
+    test_db.partner_journey_steps.docs[:] = [
+        step
+        for step in test_db.partner_journey_steps.docs
+        if step.get("_id") != "temporary-step-f15" and not step.get("_test_scaffold")
+    ]
     assert approved.status_code == 200
     return approved.json()
 
@@ -665,7 +695,7 @@ async def test_f14_completion_arriving_after_claim_cannot_steal_it(
 
         async def update_one(self, query, update, upsert=False):
             result = await super().update_one(query, update, upsert)
-            if "calendar_completion_claim_id" in update.get("$set", {}) and result.matched_count:
+            if update.get("$set", {}).get("calendar_completion_claim_id") and result.matched_count:
                 self.claim_updates += 1
                 if self.claim_updates == 1:
                     self.claim_set.set()
@@ -697,6 +727,25 @@ async def test_f14_completion_arriving_after_claim_cannot_steal_it(
 
 
 @pytest.mark.asyncio
+async def test_done_f14_with_active_effects_claim_reports_in_progress(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({
+        "status": "done",
+        "calendar_completion_claim_id": "current-owner",
+        "calendar_completion_claimed_at": datetime.now(timezone.utc),
+    })
+    step.pop("calendar_completion_effects_applied_at", None)
+
+    result = await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert result["completion_in_progress"] is True
+    assert step["calendar_completion_claim_id"] == "current-owner"
+
+
+@pytest.mark.asyncio
 async def test_failed_f14_claim_is_released_for_retry(
     client, partner_token, admin_token, fake_db, monkeypatch
 ):
@@ -706,17 +755,25 @@ async def test_failed_f14_claim_is_released_for_retry(
     step.pop("calendar_completion_effects_applied_at", None)
     step.pop("calendar_completion_claim_id", None)
     step.pop("calendar_completion_claimed_at", None)
-    original = partner_journey._complete_operativo_step_unchecked
+    fake_db.partner_journey_steps.docs.append({
+        "_id": "step-f15",
+        "partner_id": "p1",
+        "step_id": "12-prezzo-webinar",
+        "step_number": 15,
+        "status": "pending",
+        "data": {},
+    })
+    original = partner_journey._complete_f14_step_fenced
 
     async def fail_after_claim(*_args, **_kwargs):
         raise RuntimeError("temporary completion failure")
 
-    monkeypatch.setattr(partner_journey, "_complete_operativo_step_unchecked", fail_after_claim)
+    monkeypatch.setattr(partner_journey, "_complete_f14_step_fenced", fail_after_claim)
     with pytest.raises(RuntimeError, match="temporary completion failure"):
         await partner_journey._complete_approved_launch_calendar_step("p1")
 
     assert step.get("calendar_completion_claim_id") is None
-    monkeypatch.setattr(partner_journey, "_complete_operativo_step_unchecked", original)
+    monkeypatch.setattr(partner_journey, "_complete_f14_step_fenced", original)
     retried = await partner_journey._complete_approved_launch_calendar_step("p1")
     assert retried["completed_step"] == "11-calendario-30gg"
     assert step["status"] == "done"
@@ -734,6 +791,14 @@ async def test_stale_f14_claim_is_reclaimed_after_lease(
         "completed_at": None,
         "calendar_completion_claim_id": "crashed-worker",
         "calendar_completion_claimed_at": datetime.now(timezone.utc) - timedelta(minutes=30),
+    })
+    fake_db.partner_journey_steps.docs.append({
+        "_id": "step-f15",
+        "partner_id": "p1",
+        "step_id": "12-prezzo-webinar",
+        "step_number": 15,
+        "status": "pending",
+        "data": {},
     })
 
     result = await partner_journey._complete_approved_launch_calendar_step("p1")
@@ -753,6 +818,14 @@ async def test_v2_approved_during_v1_claim_is_reconciled_to_latest_evidence(
     step.pop("calendar_completion_effects_applied_at", None)
     step.pop("calendar_completion_claim_id", None)
     step.pop("calendar_completion_claimed_at", None)
+    fake_db.partner_journey_steps.docs.append({
+        "_id": "step-f15",
+        "partner_id": "p1",
+        "step_id": "12-prezzo-webinar",
+        "step_number": 15,
+        "status": "pending",
+        "data": {},
+    })
 
     class PausedClaimSteps(FakeCollection):
         def __init__(self, docs):
@@ -801,6 +874,86 @@ async def test_v2_approved_during_v1_claim_is_reconciled_to_latest_evidence(
 
 
 @pytest.mark.asyncio
+async def test_reclaimed_f14_claim_fences_old_owner_before_any_side_effect(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({"status": "in_progress", "data": {}, "completed_at": None})
+    step.pop("calendar_completion_effects_applied_at", None)
+    step.pop("calendar_completion_claim_id", None)
+    step.pop("calendar_completion_claimed_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    class ReclaimedClaimSteps(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.claim_count = 0
+            self.old_claimed = asyncio.Event()
+            self.new_claimed = asyncio.Event()
+            self.release_old = asyncio.Event()
+            self.release_new = asyncio.Event()
+
+        async def update_one(self, query, update, upsert=False):
+            result = await super().update_one(query, update, upsert)
+            claim_id = update.get("$set", {}).get("calendar_completion_claim_id")
+            if claim_id and result.matched_count:
+                self.claim_count += 1
+                if self.claim_count == 1:
+                    self.old_claimed.set()
+                    await self.release_old.wait()
+                elif self.claim_count == 2:
+                    self.new_claimed.set()
+                    await self.release_new.wait()
+            return result
+
+    steps = ReclaimedClaimSteps(fake_db.partner_journey_steps.docs)
+    fake_db.partner_journey_steps = steps
+    old_owner = asyncio.create_task(
+        partner_journey._complete_approved_launch_calendar_step("p1")
+    )
+    await steps.old_claimed.wait()
+    claimed_step = next(doc for doc in steps.docs if doc.get("_id") == "step-f14")
+    claimed_step["calendar_completion_claimed_at"] = (
+        datetime.now(timezone.utc) - timedelta(minutes=30)
+    )
+    new_owner = asyncio.create_task(
+        partner_journey._complete_approved_launch_calendar_step("p1")
+    )
+    await steps.new_claimed.wait()
+
+    steps.release_old.set()
+    with pytest.raises(HTTPException) as lost:
+        await old_owner
+    assert lost.value.detail["code"] == "launch_calendar_completion_claim_lost"
+    assert claimed_step["status"] == "in_progress"
+    assert next(doc for doc in steps.docs if doc.get("_id") == "step-f15")["status"] == "pending"
+
+    steps.release_new.set()
+    await new_owner
+    assert claimed_step["status"] == "done"
+    assert next(doc for doc in steps.docs if doc.get("_id") == "step-f15")["status"] == "in_progress"
+    assert next(doc for doc in steps.docs if doc.get("_id") == "step-f16")["status"] == "pending"
+
+
+@pytest.mark.asyncio
 async def test_partial_f14_recovery_repairs_stale_partner_pointer_before_marker(
     client, partner_token, admin_token, fake_db
 ):
@@ -836,6 +989,88 @@ async def test_partial_f14_recovery_repairs_stale_partner_pointer_before_marker(
     retried = await partner_journey._complete_approved_launch_calendar_step("p1")
     assert retried["effects_recovered"] is True
     assert fake_db.partners.docs[0]["journey_current_step"] == "12-prezzo-webinar"
+    assert step["calendar_completion_effects_applied_at"]
+
+
+@pytest.mark.asyncio
+async def test_partial_f14_recovery_requires_canonical_f15_document(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.pop("calendar_completion_effects_applied_at", None)
+
+    with pytest.raises(HTTPException) as missing:
+        await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert missing.value.detail["code"] == "launch_calendar_next_step_missing"
+    assert "calendar_completion_effects_applied_at" not in step
+
+
+@pytest.mark.asyncio
+async def test_partial_f14_recovery_points_to_advanced_in_progress_step(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.pop("calendar_completion_effects_applied_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "done",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "in_progress",
+            "data": {},
+        },
+    ])
+    fake_db.partners.docs[0]["journey_current_step"] = "11-calendario-30gg"
+
+    await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert fake_db.partners.docs[0]["journey_current_step"] == "16-readiness-lancio"
+    assert step["calendar_completion_effects_applied_at"]
+
+
+@pytest.mark.asyncio
+async def test_partial_f14_recovery_never_regresses_pointer_during_race(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.pop("calendar_completion_effects_applied_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "in_progress",
+            "data": {},
+        },
+    ])
+    fake_db.partners.docs[0]["journey_current_step"] = "16-readiness-lancio"
+
+    await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert fake_db.partners.docs[0]["journey_current_step"] == "16-readiness-lancio"
+    assert next(doc for doc in fake_db.partner_journey_steps.docs if doc.get("_id") == "step-f15")["status"] == "pending"
     assert step["calendar_completion_effects_applied_at"]
 
 
@@ -961,6 +1196,12 @@ def test_workbook_download_waits_until_f19_is_eligible(
     client, partner_token, admin_token, fake_db
 ):
     _approve_calendar(client, partner_token, admin_token, version=1)
+    _make_workbook_eligible(fake_db)
+    f19 = next(
+        step for step in fake_db.partner_journey_steps.docs
+        if step.get("step_id") == "19-workbook-finale"
+    )
+    f19["status"] = "pending"
 
     early = client.get(
         "/api/partner-rewards/p1/project-book",
@@ -971,7 +1212,7 @@ def test_workbook_download_waits_until_f19_is_eligible(
     assert early.json()["detail"]["code"] == "final_workbook_not_ready"
     assert fake_db.partner_document_versions.docs == []
 
-    _make_workbook_eligible(fake_db)
+    f19["status"] = "in_progress"
     ready = client.get(
         "/api/partner-rewards/p1/project-book",
         headers=_headers(partner_token),
@@ -995,7 +1236,7 @@ def test_workbook_relevant_journey_evidence_creates_new_append_only_version(
         step for step in fake_db.partner_journey_steps.docs
         if step.get("step_id") == "12-prezzo-webinar"
     )
-    f15["data"]["evidence_version"] = 2
+    f15["data"]["strategia"] = "Strategia prezzo V2"
     assert client.get(
         "/api/partner-rewards/p1/project-book", headers=_headers(partner_token)
     ).status_code == 200
@@ -1005,6 +1246,32 @@ def test_workbook_relevant_journey_evidence_creates_new_append_only_version(
     assert [first["version"], second["version"]] == [1, 2]
     assert first["source_version"] != second["source_version"]
     assert first["provenance"]["journey_source_checksum"] != second["provenance"]["journey_source_checksum"]
+
+
+def test_workbook_hub_renderer_input_change_creates_new_version(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    _make_workbook_eligible(fake_db)
+    fake_db.partner_hub.docs.append({
+        "partner_id": "p1",
+        "whoYouAre": "Identita V1",
+    })
+    assert client.get(
+        "/api/partner-rewards/p1/project-book", headers=_headers(partner_token)
+    ).status_code == 200
+    first = deepcopy(fake_db.partner_document_versions.docs[0])
+
+    fake_db.partner_hub.docs[0]["whoYouAre"] = "Identita V2"
+    assert client.get(
+        "/api/partner-rewards/p1/project-book", headers=_headers(partner_token)
+    ).status_code == 200
+
+    assert len(fake_db.partner_document_versions.docs) == 2
+    second = fake_db.partner_document_versions.docs[1]
+    assert [first["version"], second["version"]] == [1, 2]
+    assert first["source_version"] != second["source_version"]
+    assert first["provenance"]["renderer_source_checksum"] != second["provenance"]["renderer_source_checksum"]
 
 
 def test_generate_creates_version_one(client, partner_token, fake_db):
