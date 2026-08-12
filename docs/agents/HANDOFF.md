@@ -12,6 +12,28 @@ Regole:
 
 ---
 
+### 2026-08-12 · Codex · main — journey EVO F-1/F-20, documenti progressivi e lancio
+
+**FATTO**
+- Il percorso partner usa 20 step canonici (`F-1`...`F-20`) distribuiti in tre fasi: Esamina, Valida, Ottimizza. Rimossa la quarta fase dalla UI partner.
+- Le chiusure critiche non sono piu' checkbox: F-11 richiede l'approvazione partner della masterclass corrente; F-12 tutte le lezioni pianificate approvate; F-13 sette controlli reali; F-16 readiness aggregata; F-17 probe pubblico del funnel.
+- F-18 certificato e F-19 workbook sono generati e archiviati in modo append-only con versione/checksum e retry idempotente; completato il lancio, F-20 viene aperto automaticamente.
+- Gli endpoint reward/documento richiedono autenticazione partner/admin e i download frontend inviano il bearer token.
+- Aggiunta migrazione conservativa `backend/scripts/migrate_journey_f20.py`: inserisce solo step mancanti e non aggiorna o cancella lo storico.
+
+**VERIFICATO**
+- Commit applicativo `cb014425` su `origin/main`; GitHub CI `31602192136` verde e deploy Cloud Run `31602192105` verde sullo stesso SHA.
+- Backend `evolution-pro-backend-00542-sk4` e worker `evolution-pro-worker-00126-sgd`: Ready, 100% traffico. `GET https://www.ciak.io/api/health` -> 200 healthy.
+- Migrazione produzione applicata su 26 partner; secondo dry-run: `remaining=0`. Nessun update/delete eseguito.
+- Vercel production `dpl_34CrGf8FW65kT1NjDDBxAQUni4TG` Ready e alias `www.ciak.io`; live bundle `main.4901a714.js` contiene `F-20` e `3 fasi`, non contiene `Fase 4: Marco`.
+- Probe anonimi live su state/project-book/certificate/bonus -> 401. Test mirati backend: 46 passed; build frontend verde. La suite backend locale completa resta bloccata in collection dalla nota incompatibilita FastAPI/Pydantic, mentre la CI con dipendenze pulite e' verde.
+
+**APERTO**
+- Eseguire un collaudo visuale autenticato con un partner reale quando e' disponibile una sessione autorizzata; non e' stato usato o persistito alcun token partner in questa release.
+- Il collegamento diretto al sub-account Systeme.io resta un'iniziativa separata da progettare.
+
+Dettagli operativi: [`docs/migration/journey-f20-release.md`](../migration/journey-f20-release.md).
+
 ### 2026-08-12 · Codex · main — revisioni video + archivio step, rilasciati
 
 **FATTO**
