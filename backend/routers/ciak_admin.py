@@ -3843,7 +3843,6 @@ async def retry_consegna_start(
 class AttivaStartRequest(BaseModel):
     email: str
     name: Optional[str] = None
-    amount_cents: int = Field(default=49900, ge=1, le=49900)
     riferimento: Optional[str] = None
 
 
@@ -3856,7 +3855,8 @@ async def attiva_ciak_start(
     import uuid
 
     from services.ciak_client_accounts import (
-        build_start_payment_updates,
+        START_AMOUNT_CENTS,
+        build_start_entitlement_updates,
         ensure_client_for_direct_start,
         has_start_entitlement,
     )
@@ -3880,25 +3880,19 @@ async def attiva_ciak_start(
     reference = (body.riferimento or "").strip() or f"admin:{uuid.uuid4().hex}"
     actor = getattr(admin, "email", None) or "admin"
 
-    # Se il piano e' gia' saldato la riattivazione non e' un errore: e' il caso
-    # «non mi e' arrivata la mail». Si riconsegna l'accesso senza sommare nulla.
-    try:
-        updates = build_start_payment_updates(
-            client,
-            amount_cents=body.amount_cents,
-            reference_id=reference,
-            kind="attivazione_admin",
-            now=now,
-        ) or {}
-    except ValueError:
-        updates = {}
+    # Su chi e' gia' attivo non si riscrive niente e non si registra un secondo
+    # incasso: quella chiamata e' il caso «non mi e' arrivata la mail», e l'unica
+    # cosa che serve e' un link nuovo.
+    updates = {} if already_active else (
+        build_start_entitlement_updates(client, reference_id=reference, now=now) or {}
+    )
     incasso_da_registrare = bool(updates)
     events = [dict(item) for item in (client.get("events") or [])]
     events.append({
         "event": "ciak_start_activated_by_admin",
         "timestamp": now,
         "reference_id": reference,
-        "amount_cents": body.amount_cents,
+        "amount_cents": START_AMOUNT_CENTS if incasso_da_registrare else 0,
         "by": actor,
     })
     await db.ciak_clients.update_one(
@@ -3911,7 +3905,7 @@ async def attiva_ciak_start(
             db,
             session_id=reference,
             tipo="ciak_start",
-            amount_cents=body.amount_cents,
+            amount_cents=START_AMOUNT_CENTS,
             email=email,
             client_id=client["id"],
         )

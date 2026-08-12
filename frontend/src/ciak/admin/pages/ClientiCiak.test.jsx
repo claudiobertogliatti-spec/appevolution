@@ -44,7 +44,6 @@ test("conferma l'attivazione solo quando l'email di accesso e' partita davvero",
   await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/attiva", {
     email: "ko@example.it",
     name: null,
-    amount_cents: 49900,
     riferimento: null,
   }));
   expect(await screen.findByText(/account creato ora/i)).toBeTruthy();
