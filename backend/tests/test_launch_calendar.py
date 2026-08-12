@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 
 import pytest
 
-from services.editorial_calendar import _deterministic
+from services import editorial_calendar
+from services.editorial_calendar import _deterministic, build_editorial_calendar
 from services.launch_calendar import (
     calendar_checksum,
     evaluate_launch_calendar,
@@ -114,14 +116,18 @@ def _ready_calendar() -> dict:
             },
             "commercial_terms": {
                 "version": "launch-terms-v1",
+                "contract_duration_months": 12,
+                "contract_start_anchor": "payment_completed",
                 "price": {
                     "price_id": "price-authoritative-v1",
                     "amount_cent": 2700,
                     "currency": "EUR",
                 },
                 "bonus": {
+                    "bonus_id": "bonus-authoritative-v1",
+                    "version": "bonus-v1",
                     "name": "Sessione di orientamento",
-                    "expires_at": "2026-09-30T23:59:59+02:00",
+                    "expires_at": "2026-10-01T23:59:59+02:00",
                 },
             },
             "version": "calendar-v1",
@@ -180,6 +186,8 @@ def test_normalize_requires_exactly_thirty_unique_days():
 
     assert [item["day"] for item in out["days"]] == list(range(1, 31))
     assert out["days"][27]["date"] == "2026-09-28"
+    assert out["main_contents"] == [day for day in out["days"] if day["main_content"]]
+    assert all("date" in story for story in out["stories"])
 
 
 def test_normalize_rejects_missing_or_duplicate_days():
@@ -390,6 +398,17 @@ def test_readiness_rejects_routine_that_differs_from_authoritative_snapshot():
     assert "organic_routine" in result.failed_codes
 
 
+@pytest.mark.parametrize("routine", [None, {}])
+def test_readiness_requires_authoritative_organic_routine_snapshot(routine):
+    calendar = _ready_calendar()
+    resources = _ready_resources(calendar)
+    resources["organic_routine"] = routine
+
+    result = evaluate_launch_calendar(calendar, resources)
+
+    assert "organic_routine" in result.failed_codes
+
+
 def test_readiness_rejects_detached_or_incoherent_cadence_lists():
     calendar = _ready_calendar()
     calendar["main_contents"][0] = {**calendar["main_contents"][0], "format": "stories"}
@@ -471,3 +490,105 @@ def test_recovery_action_policy_does_not_depend_on_italian_call_copy():
     result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
 
     assert result.ready is True
+
+
+@pytest.mark.parametrize(
+    "invalid_url",
+    ["https://[::1", "https://example .test/path", "https://example.test/\npath", "https://example.test:99999"],
+)
+def test_https_url_validation_fails_closed_for_malformed_hosts_and_ports(invalid_url):
+    calendar = _ready_calendar()
+    resources = _ready_resources(calendar)
+    calendar["days"][0]["destination_url"] = invalid_url
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, resources)
+
+    assert "https_destination_urls" in result.failed_codes
+    assert "verified_destination_urls" in result.failed_codes
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("channel", "tiktok"), ("format", "live"), ("owner", "admin")],
+)
+def test_readiness_rejects_values_outside_canonical_enums(field, value):
+    calendar = _ready_calendar()
+    calendar["days"][0][field] = value
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "canonical_enums" in result.failed_codes
+
+
+@pytest.mark.parametrize(
+    ("story_patch", "expected_code"),
+    [
+        ({"cta": "vai al checkout"}, "content_cadence"),
+        ({"action_kind": "recovery_call", "audience_condition": "live_absent"}, "content_cadence"),
+        ({"destination_url": "https://not-verified.test/story"}, "content_cadence"),
+    ],
+)
+def test_readiness_rejects_story_that_diverges_from_canonical_day(story_patch, expected_code):
+    calendar = _ready_calendar()
+    calendar["stories"][0].update(story_patch)
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert expected_code in result.failed_codes
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("contract_duration_months",), 6),
+        (("contract_start_anchor",), "contract_signed"),
+        (("bonus", "bonus_id"), ""),
+        (("bonus", "version"), ""),
+        (("bonus", "expires_at"), "2026-09-30T23:59:59+02:00"),
+    ],
+)
+def test_readiness_rejects_incomplete_or_premature_commercial_terms(path, value):
+    calendar = _ready_calendar()
+    target = calendar["commercial_terms"]
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "bonus_deadline" in result.failed_codes
+
+
+def test_normalize_regenerates_complete_views_from_deterministic_output_without_fixture_repairs():
+    generated = _deterministic({}, None)
+    normalized = normalize_launch_calendar(generated, date(2026, 9, 1), date(2026, 9, 28))
+
+    result = evaluate_launch_calendar(normalized, {})
+
+    assert "content_cadence" not in result.failed_codes
+    assert normalized["main_contents"] == [day for day in normalized["days"] if day["main_content"]]
+    assert all(story["date"] == normalized["days"][story["day"] - 1]["date"] for story in normalized["stories"])
+
+
+def test_build_normalize_accepts_valid_ai_output(monkeypatch):
+    monkeypatch.setattr(editorial_calendar, "_call_claude", lambda _answers, _outline: _raw_days())
+
+    generated = asyncio.run(build_editorial_calendar({}, None))
+    normalized = normalize_launch_calendar(generated, date(2026, 9, 1), date(2026, 9, 28))
+
+    assert generated["source"] == "ai"
+    assert "content_cadence" not in evaluate_launch_calendar(normalized, {}).failed_codes
+
+
+def test_build_normalize_falls_back_for_invalid_ai_output(monkeypatch):
+    monkeypatch.setattr(editorial_calendar, "_call_claude", lambda _answers, _outline: {"days": []})
+
+    generated = asyncio.run(build_editorial_calendar({}, None))
+    normalized = normalize_launch_calendar(generated, date(2026, 9, 1), date(2026, 9, 28))
+
+    assert generated["source"] == "fallback"
+    assert "content_cadence" not in evaluate_launch_calendar(normalized, {}).failed_codes

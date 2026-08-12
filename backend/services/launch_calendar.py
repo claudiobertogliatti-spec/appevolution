@@ -72,16 +72,36 @@ def normalize_launch_calendar(raw: dict, start_date: date, live_date: date) -> d
     return {
         **raw,
         "days": normalized,
+        **_derived_content_views(normalized),
         "start_date": start_date.isoformat(),
         "live_date": live_date.isoformat(),
+    }
+
+
+def _derived_content_views(days: list[dict]) -> dict:
+    """Rigenera le viste ridondanti solo dai giorni canonici normalizzati."""
+    return {
+        "main_contents": [day for day in days if day.get("main_content") is True],
+        "stories": [
+            {**day, "format": "stories", "main_content": False}
+            for day in days
+            if day["day"] not in (28, 30)
+        ],
     }
 
 
 def _is_https_url(value: Any) -> bool:
     if not isinstance(value, str) or not value.strip():
         return False
-    parsed = urlparse(value.strip())
-    return parsed.scheme == "https" and bool(parsed.netloc)
+    if any(character.isspace() or ord(character) < 32 for character in value):
+        return False
+    try:
+        parsed = urlparse(value)
+        hostname = parsed.hostname
+        _ = parsed.port
+    except (TypeError, ValueError):
+        return False
+    return parsed.scheme == "https" and bool(hostname)
 
 
 def _is_consecutive_dates(days: list[Any]) -> bool:
@@ -186,9 +206,16 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
     expires_at = bonus.get("expires_at") if isinstance(bonus, dict) else None
     evaluated_at = _parse_datetime(resources.get("evaluated_at"))
     expires = _parse_datetime(expires_at)
+    days = calendar.get("days")
+    try:
+        day_thirty_date = date.fromisoformat(days[29]["date"])
+    except (IndexError, KeyError, TypeError, ValueError):
+        return False
     return (
         isinstance(version, str)
         and bool(version.strip())
+        and terms.get("contract_duration_months") == 12
+        and terms.get("contract_start_anchor") == "payment_completed"
         and isinstance(price, dict)
         and isinstance(price.get("price_id"), str)
         and bool(price["price_id"].strip())
@@ -200,11 +227,16 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
         and price["currency"].isalpha()
         and price["currency"] == price["currency"].upper()
         and isinstance(bonus, dict)
+        and isinstance(bonus.get("bonus_id"), str)
+        and bool(bonus["bonus_id"].strip())
+        and isinstance(bonus.get("version"), str)
+        and bool(bonus["version"].strip())
         and isinstance(bonus.get("name"), str)
         and bool(bonus["name"].strip())
         and expires is not None
         and evaluated_at is not None
         and expires > evaluated_at
+        and expires.date() > day_thirty_date
     )
 
 
@@ -236,10 +268,13 @@ def _has_expected_cadence(calendar: dict) -> bool:
         and all(1 <= day <= 30 for day in story_days)
         and all(
             isinstance(item, dict)
-            and item.get("format") == "stories"
-            and item.get("main_content") is False
             and canonical_by_day.get(int(item["day"])) is not None
-            and item.get("theme") == canonical_by_day[int(item["day"])].get("theme")
+            and item
+            == {
+                **canonical_by_day[int(item["day"])],
+                "format": "stories",
+                "main_content": False,
+            }
             for item in stories
         )
     )
@@ -297,7 +332,7 @@ def _has_funnel_sequence(days: list[Any]) -> bool:
 def _has_organic_routine(calendar: dict, resources: dict) -> bool:
     routine = calendar.get("organic_routine")
     resource_routine = resources.get("organic_routine")
-    if resource_routine is not None and routine != resource_routine:
+    if not isinstance(resource_routine, dict) or routine != resource_routine:
         return False
     if not isinstance(routine, dict) or routine.get("daily_minutes") != 30:
         return False
@@ -309,6 +344,17 @@ def _has_organic_routine(calendar: dict, resources: dict) -> bool:
     return isinstance(actions, dict) and all(
         isinstance(actions.get(key), str) and bool(actions[key].strip())
         for key in action_keys
+    )
+
+
+def _has_canonical_enums(days: list[Any]) -> bool:
+    allowed_formats = {"reel", "carousel", "post", "stories"}
+    return all(
+        isinstance(item, dict)
+        and item.get("channel") == "instagram"
+        and item.get("format") in allowed_formats
+        and item.get("owner") == "partner"
+        for item in days
     )
 
 
@@ -334,6 +380,7 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
         {"code": "consecutive_dates", "ok": _is_consecutive_dates(days)},
         {"code": "live_day_28", "ok": live_day_28},
         {"code": "day_fields", "ok": _has_day_fields(days)},
+        {"code": "canonical_enums", "ok": _has_canonical_enums(days)},
         {"code": "https_destination_urls", "ok": bool(days) and all(isinstance(item, dict) and _is_https_url(item.get("destination_url")) for item in days)},
         {"code": "verified_destination_urls", "ok": _verified_destination_urls(days, resources)},
         {"code": "organic_routine", "ok": _has_organic_routine(calendar, resources)},
