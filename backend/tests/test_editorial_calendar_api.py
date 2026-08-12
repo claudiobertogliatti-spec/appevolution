@@ -730,6 +730,51 @@ def test_admin_can_drain_failed_notification_without_resubmitting(
     assert len(fake_db.alerts.docs) == 1
 
 
+def test_drain_reconciles_pending_review_after_submit_claim_error(
+    client, partner_token, admin_token, fake_db, monkeypatch
+):
+    """Una failure post-CAS non puo' lasciare una review senza outbox recuperabile."""
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_https_destinations(client, partner_token, created)
+    original_claim = editorial_calendar._claim_pending_review_notification
+
+    async def claim_down(*args, **kwargs):
+        raise RuntimeError("outbox collection temporarily unavailable")
+
+    monkeypatch.setattr(editorial_calendar, "_claim_pending_review_notification", claim_down)
+    with TestClient(client.app, raise_server_exceptions=False) as non_raising_client:
+        submitted = _submit(non_raising_client, partner_token, created)
+
+    assert submitted.status_code == 200
+    assert fake_db.versions[0]["status"] == "pending_review"
+    assert fake_db.partner_launch_calendar_notification_recovery.docs == []
+
+    async def alert_ok(partner_id, version, event_key):
+        await fake_db.alerts.find_one_and_update(
+            {"_id": event_key},
+            {"$setOnInsert": {"_id": event_key, "id": event_key, "partner_id": partner_id, "version": version}},
+            upsert=True,
+        )
+        return "best_effort_attempted"
+
+    monkeypatch.setattr(editorial_calendar, "_claim_pending_review_notification", original_claim)
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", alert_ok)
+    drained = client.post(
+        "/api/partner/calendar/admin/notification-recovery/drain",
+        headers=_headers(admin_token),
+        json={"limit": 5},
+    )
+
+    assert drained.status_code == 200
+    assert drained.json() == {"claimed": 1, "sent": 1, "pending": 0}
+    assert fake_db.partner_launch_calendar_notification_recovery.docs[0]["status"] == "sent"
+    assert len(fake_db.alerts.docs) == 1
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -740,6 +785,7 @@ def test_admin_can_drain_failed_notification_without_resubmitting(
         "https://0.0.0.0/live",
         "https://localhost/live",
         "https://[fe80::1]/live",
+        "https://[fec0::1]/live",
         "https://[2001:db8::1]/live",
         "https://[::]/live",
         "https://[ff02::1]/live",
@@ -765,6 +811,7 @@ def test_review_destination_accepts_canonical_public_hostname_without_dns():
         ("https://127.1/live", 409),
         ("https://user:pass@www.ciak.io/live", 409),
         ("https://intranet/live", 409),
+        ("https://[fec0::1]/live", 409),
         ("https://www.ciak.io/live", 200),
     ],
 )

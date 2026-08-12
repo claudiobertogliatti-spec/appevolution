@@ -236,6 +236,7 @@ def _canonical_public_review_host(value: object) -> str | None:
         address.is_loopback,
         address.is_link_local,
         address.is_reserved,
+        getattr(address, "is_site_local", False),
         address.is_multicast,
         address.is_unspecified,
     )):
@@ -298,6 +299,34 @@ def _notification_event_key(partner_id: str, version: int, checksum: str) -> str
     return f"calendar-pending-review:{partner_id}:{version}:{checksum}"
 
 
+async def _ensure_pending_review_notification_outbox(
+    partner_id: str,
+    version: int,
+    checksum: str,
+) -> str:
+    """Materializza l'outbox deterministico senza eseguire alcun side effect."""
+    from pymongo import ReturnDocument
+
+    event_key = _notification_event_key(partner_id, version, checksum)
+    await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+        {"_id": event_key},
+        {
+            "$setOnInsert": {
+                "event_key": event_key,
+                "partner_id": partner_id,
+                "version": version,
+                "checksum": checksum,
+                "event": "pending_review",
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return event_key
+
+
 async def _claim_pending_review_notification(
     partner_id: str,
     version: int,
@@ -310,22 +339,8 @@ async def _claim_pending_review_notification(
     now = now_dt.isoformat()
     lease_expires_at = (now_dt + timedelta(minutes=5)).isoformat()
     owner = uuid4().hex
-    event_key = _notification_event_key(partner_id, version, checksum)
-    await db.partner_launch_calendar_notification_recovery.find_one_and_update(
-        {"_id": event_key},
-        {
-            "$setOnInsert": {
-                "event_key": event_key,
-                "partner_id": partner_id,
-                "version": version,
-                "checksum": checksum,
-                "event": "pending_review",
-                "status": "pending",
-                "created_at": now,
-            },
-        },
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
+    event_key = await _ensure_pending_review_notification_outbox(
+        partner_id, version, checksum
     )
     claim = await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key, "status": "pending"},
@@ -417,6 +432,22 @@ async def _notify_pending_review_or_record_recovery(
     await _deliver_pending_review_notification_claim(claim)
 
 
+async def _attempt_pending_review_notification(
+    partner_id: str,
+    version: int,
+    checksum: str,
+) -> None:
+    """Il submit resta deterministico: il drain riconciliera' un outbox non creato."""
+    try:
+        await _notify_pending_review_or_record_recovery(partner_id, version, checksum)
+    except Exception:
+        logger.warning(
+            "Outbox calendario non creato per %s v%s; verra' riconciliato dal drain",
+            partner_id,
+            version,
+        )
+
+
 async def _deliver_pending_review_notification_claim(claim: dict) -> bool:
     """Consegna l'alert in-app per un claim; il lease resta recuperabile se il processo muore."""
     from pymongo import ReturnDocument
@@ -460,6 +491,18 @@ async def _deliver_pending_review_notification_claim(claim: dict) -> bool:
 
 async def _drain_calendar_notification_recovery(limit: int = 25) -> dict:
     """Consumer schedulabile: recupera alert pending o lease scaduti una sola volta."""
+    pending_reviews = await db.partner_launch_calendar_versions.find(
+        {"status": "pending_review"}, {"_id": 0}
+    ).sort("created_at", 1).to_list(limit)
+    for document in pending_reviews:
+        calendar = document.get("calendar") or {}
+        if _partner_confirmation_is_consistent(document, calendar):
+            await _ensure_pending_review_notification_outbox(
+                str(document["partner_id"]),
+                int(document["version"]),
+                str(document["checksum"]),
+            )
+
     now = datetime.now(timezone.utc).isoformat()
     candidates = await db.partner_launch_calendar_notification_recovery.find(
         {
@@ -658,7 +701,7 @@ async def submit_calendar_version(
             and existing.get("partner_confirmed_expected_checksum") == body.expected_checksum
             and body.partner_confirmed is True
         ):
-            await _notify_pending_review_or_record_recovery(
+            await _attempt_pending_review_notification(
                 partner_id, version, existing.get("checksum") or ""
             )
             return _response_document(existing)
@@ -717,13 +760,13 @@ async def submit_calendar_version(
             and winner.get("partner_confirmed_expected_checksum") == body.expected_checksum
             and body.partner_confirmed is True
         ):
-            await _notify_pending_review_or_record_recovery(
+            await _attempt_pending_review_notification(
                 partner_id, version, winner.get("checksum") or ""
             )
             return _response_document(winner)
         raise HTTPException(409, "La bozza e' stata modificata altrove")
 
-    await _notify_pending_review_or_record_recovery(partner_id, version, document["checksum"])
+    await _attempt_pending_review_notification(partner_id, version, document["checksum"])
     return _response_document(document)
 
 
