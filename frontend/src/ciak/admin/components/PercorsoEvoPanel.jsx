@@ -1,9 +1,9 @@
 /**
- * Ciak Admin — Percorso EVO del partner (vista macro-fasi + 14 step).
+ * Ciak Admin — Percorso EVO del partner (vista macro-fasi + 20 step).
  *
  * Sostituisce il vecchio selettore fase legacy F1–F9. Legge lo stato reale del
  * journey da GET /api/partner-journey/operativo/state/{id} (le stesse 3 macro-fasi
- * Esamina/Valida/Ottimizza e i 14 step che vede il partner) e permette all'admin di:
+ * Esamina/Valida/Ottimizza e i 20 step che vede il partner) e permette all'admin di:
  *   - cambiare lo stato di uno step (Da fare / In corso / Fatto / Saltato)
  *   - caricare un documento sullo step
  *   - scrivere una nota interna

@@ -88,7 +88,7 @@ export const HUMAN_TEAM = [
     avatar: "/team/claudio.webp",
     initial: "CB",
     badge: "🧑 Team Evolution Pro",
-    description: "Direzione strategica dei progetti, supervisione master delle 14 Fasi ed analisi dei KPI dell'Accademia.",
+    description: "Direzione strategica dei progetti, supervisione dei 20 passaggi ed analisi dei KPI dell'Accademia.",
   },
   {
     id: "STEFANIA_HUMAN",

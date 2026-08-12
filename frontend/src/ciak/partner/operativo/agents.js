@@ -92,7 +92,11 @@ export const STEP_TO_AGENT = {
   "10-sistema-vendita":      "GAIA",
   "11-calendario-30gg":      "MARCO",
   "12-prezzo-webinar":       "MARCO",
+  "16-readiness-lancio":     "MARCO",
   "13-lancio":               "MARCO",
+  "18-certificato-valida":   "STEFANIA",
+  "19-workbook-finale":      "STEFANIA",
+  "20-ottimizzazione":       "MARCO",
 };
 
 /**

@@ -1799,7 +1799,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </button>
                 </div>
 
-                {/* Percorso EVO — macro-fasi + 14 step (sostituisce il selettore fase legacy) */}
+                {/* Percorso EVO — macro-fasi + 20 step (sostituisce il selettore fase legacy) */}
                 <div className="pt-6 border-t">
                   <PercorsoEvoPanel partner={partner} />
                 </div>

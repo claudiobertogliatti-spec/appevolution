@@ -20,6 +20,7 @@ const STEP_COPY = {
   "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },
   "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
   "la-tua-storia": { title: "La tua storia", desc: "I momenti veri che rendono il tuo racconto credibile." },
+  "obiettivo": { title: "Il tuo obiettivo", desc: "Il risultato concreto che guiderà il progetto." },
   "04-posizionamento": { title: "Il tuo posizionamento", desc: "Poche domande per mettere a fuoco il tuo messaggio." },
   "05-script-masterclass": { title: "Lo script della masterclass", desc: "Ti prepariamo la traccia: tu la validi e la porti con la tua voce." },
   "06-outline-lezioni": { title: "La scaletta delle lezioni", desc: "Ti proponiamo l'indice del corso: tu controlli che rispecchi il tuo metodo." },
@@ -30,6 +31,10 @@ const STEP_COPY = {
   "11-calendario-30gg": { title: "Il piano 30 giorni", desc: "Calendario incluso; contenuti pronti come servizio extra." },
   "12-prezzo-webinar": { title: "Prezzo e diretta", desc: "Quanto vendi e come lo presenti." },
   "13-lancio": { title: "Il lancio", desc: "Online e pronto a vendere. Ce l'hai fatta." },
+  "16-readiness-lancio": { title: "Verifica pre-lancio", desc: "Controlliamo che ogni elemento sia davvero pronto." },
+  "18-certificato-valida": { title: "Certificato Valida", desc: "Archiviamo il traguardo raggiunto." },
+  "19-workbook-finale": { title: "Workbook finale", desc: "Raccogliamo l'intero progetto in un unico documento." },
+  "20-ottimizzazione": { title: "Ottimizzazione continua", desc: "Miglioriamo il sistema sulla base dei dati reali." },
 };
 
 const STEP_ICON = {
@@ -38,6 +43,7 @@ const STEP_ICON = {
   "burocrazia": Contact,
   "03-brand-kit": Palette,
   "la-tua-storia": BookOpen,
+  "obiettivo": Target,
   "04-posizionamento": Target,
   "05-script-masterclass": Mic,
   "06-outline-lezioni": ListChecks,
@@ -48,6 +54,10 @@ const STEP_ICON = {
   "11-calendario-30gg": CalendarDays,
   "12-prezzo-webinar": Tag,
   "13-lancio": Rocket,
+  "16-readiness-lancio": ListChecks,
+  "18-certificato-valida": FileText,
+  "19-workbook-finale": BookOpen,
+  "20-ottimizzazione": Rocket,
 };
 
 function PhaseAvatar({ agent, size = 40 }) {
@@ -218,7 +228,7 @@ export default function JourneyMap({ state, partnerName, onOpenStep }) {
                     <StepTile
                       key={sid}
                       status={st}
-                      num={gi > -1 ? gi + 1 : null}
+                      num={step.code || (gi > -1 ? `F-${gi + 1}` : null)}
                       title={copy.title}
                       icon={STEP_ICON[sid]}
                       inReview={st === "done" && step.approval_status === "pending_review"}

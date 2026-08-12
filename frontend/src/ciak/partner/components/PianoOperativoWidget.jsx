@@ -1,6 +1,6 @@
 /**
  * Widget Piano Operativo Strategico & Certificati EVO per l'Area Partner.
- * Mostra lo stato di avanzamento delle 14 Fasi, i Certificati di Fase scaricabili
+ * Mostra lo stato di avanzamento dei 20 passaggi, i Certificati di Fase scaricabili
  * ed il pulsante di download del PDF Master (sbloccato a lancio avvenuto).
  */
 import React, { useState, useEffect } from "react";
@@ -163,7 +163,7 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">
-                  Protocollo EVO · 14 Fasi
+                  Protocollo EVO · F-1–F-20
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
                   ✓ Step {completedCount}/{totalSteps}
@@ -190,7 +190,7 @@ export function PianoOperativoWidget({ partnerId, partnerName }) {
                 className="px-5 py-2.5 rounded-xl bg-slate-950 text-yellow-400 hover:bg-slate-800 font-bold text-xs inline-flex items-center gap-2 transition shadow-md"
               >
                 <Download className="h-4 w-4 text-yellow-400" />
-                Scarica Master PDF (14 Fasi)
+                Scarica Workbook del percorso
               </button>
             ) : (
               <div className="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-semibold text-xs inline-flex items-center gap-2">

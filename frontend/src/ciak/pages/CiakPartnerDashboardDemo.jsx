@@ -23,7 +23,7 @@ export function CiakPartnerDashboardDemo() {
   // Stato simulatore accesso: "first_access" (1° Accesso) vs "returning" (Dal 2° Accesso in poi)
   const [accessMode, setAccessMode] = useState("first_access");
 
-  // Selettore della Fase del Partner nel 2° Accesso
+  // Selettore di alcuni passaggi del journey nel 2° accesso.
   const [currentPhase, setCurrentPhase] = useState("posizionamento"); // "posizionamento" | "video" | "funnel" | "lancio"
 
   // Stato interattivo per l'Azione Focalizzata
@@ -39,32 +39,32 @@ export function CiakPartnerDashboardDemo() {
       name: "Valentina",
       role: "Senior Brand & Posizionamento",
       avatar: "/agents/valentina.jpg",
-      badge: "🤖 Agente Assegnato · Fase 01",
-      stepTitle: "Fase 01 · Definizione Promessa Unica & Nicchia Target",
+      badge: "🤖 Agente Assegnato · F-7",
+      stepTitle: "F-7 · Definizione Promessa Unica & Nicchia Target",
       message: "In questa fase ti seguo direttamente io per definire la promessa differenziante della tua Accademia. Revisiona la bozza preparata e dammi la tua approvazione.",
     },
     video: {
       name: "Andrea",
       role: "Coach Video & Teleprompter",
       avatar: "/agents/andrea.jpg",
-      badge: "🤖 Agente Assegnato · Fase 02",
-      stepTitle: "Fase 02 · Script Masterclass & Registrazione Video",
+      badge: "🤖 Agente Assegnato · F-11",
+      stepTitle: "F-11 · Masterclass definitiva",
       message: "Ora che il posizionamento è approvato, ti guido nella registrazione della Masterclass. Ho preparato la scaletta degli script pronta per il teleprompter.",
     },
     funnel: {
       name: "Gaia",
       role: "Tech Lead & Funnel Stripe",
       avatar: "/agents/gaia.jpg",
-      badge: "🤖 Agente Assegnato · Fase 03",
-      stepTitle: "Fase 03 · Configurazione Funnel Web & Cassa Stripe",
+      badge: "🤖 Agente Assegnato · F-13",
+      stepTitle: "F-13 · Configurazione Funnel Web & Cassa Stripe",
       message: "Sto configurando la struttura tecnologica della tua pagina di vendita ed il collegamento automatico incassi su Stripe.",
     },
     lancio: {
       name: "Marco",
       role: "Launch Manager & Strategy",
       avatar: "/agents/marco.jpg",
-      badge: "🤖 Agente Assegnato · Fase 04",
-      stepTitle: "Fase 04 · Calendario di Lancio & Webinar Live",
+      badge: "🤖 Agente Assegnato · F-17",
+      stepTitle: "F-17 · Lancio verificato",
       message: "Siamo pronti per andare online! Ho impostato il calendario delle dirette a 30 giorni ed il piano di acquisizione contatti.",
     },
   };
@@ -204,7 +204,7 @@ export function CiakPartnerDashboardDemo() {
                       </div>
 
                       <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
-                        Il mio ruolo è guidarti giorno per giorno lungo le <strong>14 Fasi del Protocollo EVO</strong>. Non dovrai mai preoccuparti degli aspetti tecnici o organizzativi: sarò io ad assegnarti la prossima azione esatta da compiere e a coordinare il lavoro del team specialistico per te.
+                        Il mio ruolo è guidarti giorno per giorno lungo i <strong>20 passaggi del Protocollo EVO</strong>. Non dovrai mai preoccuparti degli aspetti tecnici o organizzativi: sarò io ad assegnarti la prossima azione esatta da compiere e a coordinare il lavoro del team specialistico per te.
                       </p>
 
                       <div className="bg-amber-50/80 border-2 border-amber-200/80 rounded-2xl p-4 sm:p-5 space-y-2">
@@ -311,7 +311,7 @@ export function CiakPartnerDashboardDemo() {
                 
                 {/* BARRA DI TEST PER CAMBIARE LA FASE ED OSSERVARE IL CAMBIO AGENTE */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold">
-                  <span className="text-slate-700 font-bold">Simula Progresso Partner (Cambio Agente di Fase):</span>
+                  <span className="text-slate-700 font-bold">Simula passaggi del percorso (cambio agente):</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => setCurrentPhase("posizionamento")}
@@ -321,7 +321,7 @@ export function CiakPartnerDashboardDemo() {
                           : "bg-white text-slate-600 border-slate-200"
                       }`}
                     >
-                      Fase 1: Valentina (Brand)
+                      F-7: Valentina (Brand)
                     </button>
                     <button
                       onClick={() => setCurrentPhase("video")}
@@ -331,7 +331,7 @@ export function CiakPartnerDashboardDemo() {
                           : "bg-white text-slate-600 border-slate-200"
                       }`}
                     >
-                      Fase 2: Andrea (Video)
+                      F-11: Andrea (Video)
                     </button>
                     <button
                       onClick={() => setCurrentPhase("funnel")}
@@ -341,7 +341,7 @@ export function CiakPartnerDashboardDemo() {
                           : "bg-white text-slate-600 border-slate-200"
                       }`}
                     >
-                      Fase 3: Gaia (Tech)
+                      F-13: Gaia (Tech)
                     </button>
                     <button
                       onClick={() => setCurrentPhase("lancio")}
@@ -351,7 +351,7 @@ export function CiakPartnerDashboardDemo() {
                           : "bg-white text-slate-600 border-slate-200"
                       }`}
                     >
-                      Fase 4: Marco (Lancio)
+                      F-17: Marco (Lancio)
                     </button>
                   </div>
                 </div>

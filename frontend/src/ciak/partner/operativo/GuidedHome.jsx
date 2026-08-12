@@ -5,50 +5,13 @@ import {
   Pencil, PlusCircle, Check, RotateCcw, Video, UserCheck, Bot, Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { AGENTS, getAgentForStep } from "./agents";
-import { PHASE_CONFIG } from "./phases";
+import { activeAgentForStep } from "./journeyPresentation";
 import ProjectBookCard from "../rewards/ProjectBookCard";
 import { authHeaders, getPartnerUser } from "../api";
 
 function firstName(name) {
   return (name || "").split(" ")[0] || "Partner";
 }
-
-// Mappa Agenti per le Fasi dal 2° Accesso in poi
-const PHASE_AGENTS = {
-  posizionamento: {
-    name: "Valentina",
-    role: "Senior Brand & Posizionamento",
-    avatar: "/agents/valentina.jpg",
-    badge: "🤖 Agente Assegnato · Fase 01",
-    stepTitle: "Fase 01 · Definizione Promessa Unica & Nicchia Target",
-    message: "In questa fase ti seguo direttamente io per definire la promessa differenziante della tua Accademia. Revisiona la bozza preparata e dammi la tua approvazione.",
-  },
-  video: {
-    name: "Andrea",
-    role: "Coach Video & Teleprompter",
-    avatar: "/agents/andrea.jpg",
-    badge: "🤖 Agente Assegnato · Fase 02",
-    stepTitle: "Fase 02 · Script Masterclass & Registrazione Video",
-    message: "Ora che il posizionamento è approvato, ti guido nella registrazione della Masterclass. Ho preparato la scaletta degli script pronta per il teleprompter.",
-  },
-  funnel: {
-    name: "Gaia",
-    role: "Tech Lead & Funnel Stripe",
-    avatar: "/agents/gaia.jpg",
-    badge: "🤖 Agente Assegnato · Fase 03",
-    stepTitle: "Fase 03 · Configurazione Funnel Web & Cassa Stripe",
-    message: "Sto configurando la struttura tecnologica della tua pagina di vendita ed il collegamento automatico incassi su Stripe.",
-  },
-  lancio: {
-    name: "Marco",
-    role: "Launch Manager & Strategy",
-    avatar: "/agents/marco.jpg",
-    badge: "🤖 Agente Assegnato · Fase 04",
-    stepTitle: "Fase 04 · Calendario di Lancio & Webinar Live",
-    message: "Siamo pronti per andare online! Ho impostato il calendario delle dirette a 30 giorni ed il piano di acquisizione contatti.",
-  },
-};
 
 export default function GuidedHome({
   state,
@@ -66,9 +29,15 @@ export default function GuidedHome({
   const [forcedAccessMode, setForcedAccessMode] = useState(null);
   const accessMode = forcedAccessMode || (completed === 0 || !current || current.step_id === "esamina_1" || current.title === "Benvenuto" ? "first_access" : "returning");
 
-  // Selettore della Fase nel 2° Accesso
-  const [currentPhase, setCurrentPhase] = useState("posizionamento");
-  const activeAgent = PHASE_AGENTS[currentPhase] || PHASE_AGENTS.posizionamento;
+  const currentAgent = activeAgentForStep(current);
+  const activeAgent = {
+    ...currentAgent,
+    badge: `🤖 Agente assegnato · ${current?.code || "percorso EVO"}`,
+    stepTitle: `${current?.code || "Prossimo passo"} · ${current?.label || "Continua il percorso"}`,
+    message: current?.label
+      ? `Ti accompagno nel passaggio “${current.label}”. Qui trovi ciò che serve e la prossima azione da completare.`
+      : currentAgent.description,
+  };
 
   // Stato interattivo scheda azione
   const [isEditing, setIsEditing] = useState(false);
@@ -236,7 +205,7 @@ export default function GuidedHome({
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
-                  Il mio ruolo è guidarti giorno per giorno lungo le <strong>14 Fasi del Protocollo EVO</strong>. Non dovrai mai preoccuparti degli aspetti tecnici o organizzativi: sarò io ad assegnarti la prossima azione esatta da compiere e a coordinare il lavoro del team specialistico per te.
+                  Il mio ruolo è guidarti giorno per giorno lungo i <strong>20 passaggi del Protocollo EVO</strong>. Non dovrai mai preoccuparti degli aspetti tecnici o organizzativi: sarò io ad assegnarti la prossima azione esatta da compiere e a coordinare il lavoro del team specialistico per te.
                 </p>
 
                 <div className="bg-amber-50/80 border-2 border-amber-200/80 rounded-2xl p-4 sm:p-5 space-y-2">
@@ -338,53 +307,6 @@ export default function GuidedHome({
         /* VISTA 2: DAL SECONDO ACCESSO IN POI (PERCORSO DINAMICO + CAMBIO AGENTE IN CARTELLA ORIZZONTALE) */
         <div className="space-y-8">
           
-          {/* BARRA DI TEST PER CAMBIARE LA FASE ED OSSERVARE IL CAMBIO AGENTE */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold">
-            <span className="text-slate-700 font-bold">Simula Progresso Partner (Cambio Agente di Fase):</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setCurrentPhase("posizionamento")}
-                className={`px-3 py-1.5 rounded-xl border transition ${
-                  currentPhase === "posizionamento"
-                    ? "bg-slate-950 text-yellow-400 font-bold border-slate-950"
-                    : "bg-white text-slate-600 border-slate-200"
-                }`}
-              >
-                Fase 1: Valentina (Brand)
-              </button>
-              <button
-                onClick={() => setCurrentPhase("video")}
-                className={`px-3 py-1.5 rounded-xl border transition ${
-                  currentPhase === "video"
-                    ? "bg-slate-950 text-yellow-400 font-bold border-slate-950"
-                    : "bg-white text-slate-600 border-slate-200"
-                }`}
-              >
-                Fase 2: Andrea (Video)
-              </button>
-              <button
-                onClick={() => setCurrentPhase("funnel")}
-                className={`px-3 py-1.5 rounded-xl border transition ${
-                  currentPhase === "funnel"
-                    ? "bg-slate-950 text-yellow-400 font-bold border-slate-950"
-                    : "bg-white text-slate-600 border-slate-200"
-                }`}
-              >
-                Fase 3: Gaia (Tech)
-              </button>
-              <button
-                onClick={() => setCurrentPhase("lancio")}
-                className={`px-3 py-1.5 rounded-xl border transition ${
-                  currentPhase === "lancio"
-                    ? "bg-slate-950 text-yellow-400 font-bold border-slate-950"
-                    : "bg-white text-slate-600 border-slate-200"
-                }`}
-              >
-                Fase 4: Marco (Lancio)
-              </button>
-            </div>
-          </div>
-
           {/* 1. HEADER ORIZZONTALE AGENTE ASSEGNATO ALLA FASE ATTUALE */}
           <section className="bg-white border-2 border-slate-200/80 rounded-3xl p-6 sm:p-7 shadow-sm">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
