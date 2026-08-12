@@ -45,6 +45,37 @@ Regole:
 
 ---
 
+### 2026-08-12 · Claude Code (Luca) · cc/admin-recovery — schermata "Consegne mancate"
+
+**FATTO**
+- `services/ciak_delivery_gaps.py` (regole pure), `GET /api/admin/ciak/consegne-mancate`,
+  `POST /api/admin/ciak/consegne-mancate/retry-partnership`, pagina `/admin/consegne-mancate`.
+
+**VERIFICATO**
+- Il problema che chiude: `finalizzazione_partnership.<effetto>="failed"`, `bozza_errore`,
+  `ciak_client_access_recovery` e `ciak_orphan_purchases` erano persistiti ma con **zero lettori**
+  (grep esaustivo su `backend/` e `frontend/src`). Un cliente poteva pagare 2.790 EUR, risultare
+  attivo in `partners` e non avere account: unica traccia una riga di log. Non compariva nemmeno
+  in `/api/admin/ciak/partner-setup-pending`, che filtra su `users.role`.
+- 12 test sulle regole pure (RED prima), 6 test sulla pagina, **125 passed** sulla suite CI locale.
+- Il retry si identifica per **email, non per token**: il token della proposta e' una credenziale
+  (apre firma e pagamento). Un test verifica che nessun token/magic link/access URL esca dalla
+  risposta — stessa regola per cui il 31/7 `access_url` e' stato tolto dal resend.
+- Prova visiva: HTML reale del componente reso con Chrome headless. Ha fatto emergere un difetto
+  invisibile nel codice: l'importo a rischio era `text-yellow-500` su bianco, ~2,2:1 di contrasto,
+  sotto WCAG. Corretto in `amber-700` (4,6:1). Nel design system il giallo `#FACC15` sta sempre su
+  fondo scuro.
+
+**APERTO**
+- Il retry automatico copre solo la Partnership. Analisi non consegnata e accesso mancante hanno
+  l'azione indicata ma manuale: la rigenerazione passa da `ciak_analisi_delivery`, che ha ancora
+  la consegna affidata a `asyncio.create_task` (non durevole a un riciclo del worker).
+- ⛔ Restano fuori i due webhook non firmati (`/api/checkout/webhook`, `/api/booking/webhook`):
+  commit pronto su `cc/security-and-money-path`, serve prima `STRIPE_CIAK_WEBHOOK_SECRET` e
+  `CALCOM_WEBHOOK_SECRET` su Cloud Run o si fermano i pagamenti da 27 EUR.
+
+---
+
 ### 2026-08-11 · Claude Code (Luca) · cc/deploy-safe — 23 endpoint aperti chiusi + buco da 2.790 EUR
 
 **FATTO**
