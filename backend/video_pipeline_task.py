@@ -18,6 +18,7 @@ import logging
 import asyncio
 import subprocess
 import shutil
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
