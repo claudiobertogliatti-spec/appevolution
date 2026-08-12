@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -22,7 +23,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
 from services.editorial_calendar import build_editorial_calendar
-from services.launch_calendar import calendar_checksum, normalize_launch_calendar
+from services.launch_calendar import (
+    calendar_checksum,
+    evaluate_launch_calendar,
+    normalize_launch_calendar,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +55,27 @@ class CreateCalendarVersionBody(BaseModel):
 class UpdateCalendarDraftBody(BaseModel):
     expected_checksum: str
     calendar: dict
+
+
+class SubmitCalendarVersionBody(BaseModel):
+    partner_confirmed: bool
+
+
+class ReviewCalendarVersionBody(BaseModel):
+    decision: Literal["approve", "reject"]
+    note: str
+
+
+_STRUCTURAL_READINESS_CODES = {
+    "exactly_30_days",
+    "consecutive_dates",
+    "live_day_28",
+    "day_fields",
+    "canonical_enums",
+    "https_destination_urls",
+    "content_cadence",
+    "funnel_sequence",
+}
 
 
 async def _step_data(partner_id: str, step_id: str) -> dict:
@@ -106,6 +132,30 @@ def _response_document(document: dict) -> dict:
         "updated_by",
     )
     return {field: document[field] for field in public_fields if field in document}
+
+
+def _structural_readiness_failures(calendar: dict) -> list[str]:
+    """Valida la struttura prima della conferma, senza fingere prove esterne.
+
+    Le verifiche di URL, condizioni commerciali e approvazione finale sono
+    attestazioni separate: qui il partner puo' presentare soltanto un calendario
+    semanticamente coerente al team per la review.
+    """
+    readiness = evaluate_launch_calendar(calendar, {})
+    return [
+        code for code in readiness.failed_codes
+        if code in _STRUCTURAL_READINESS_CODES
+    ]
+
+
+def _raise_calendar_not_ready(failed_checks: list[str]) -> None:
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "launch_calendar_not_ready",
+            "failed_checks": failed_checks,
+        },
+    )
 
 
 @router.post("/generate")
@@ -239,4 +289,122 @@ async def update_calendar_draft(
     )
     if not document:
         raise HTTPException(409, "La bozza e' stata modificata altrove")
+    return _response_document(document)
+
+
+@router.post("/{partner_id}/versions/{version}/submit")
+async def submit_calendar_version(
+    partner_id: str,
+    version: int,
+    body: SubmitCalendarVersionBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Il partner conferma una bozza strutturalmente pronta per la review admin."""
+    from pymongo import ReturnDocument
+    from routers.partner_journey import require_partner_or_admin_for_partner
+
+    actor = await require_partner_or_admin_for_partner(partner_id, credentials)
+    if getattr(actor, "role", None) != "partner":
+        raise HTTPException(403, "La conferma deve essere effettuata dal partner")
+
+    existing = await db.partner_launch_calendar_versions.find_one(
+        {"partner_id": partner_id, "version": version},
+        {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(404, "Versione del calendario non trovata")
+    if existing.get("status") != "draft":
+        raise HTTPException(409, "La versione non e' piu' una bozza modificabile")
+    if not body.partner_confirmed:
+        _raise_calendar_not_ready(["partner_confirmation"])
+
+    failed_checks = _structural_readiness_failures(existing.get("calendar") or {})
+    if failed_checks:
+        _raise_calendar_not_ready(failed_checks)
+
+    confirmed_at = datetime.now(timezone.utc).isoformat()
+    document = await db.partner_launch_calendar_versions.find_one_and_update(
+        {
+            "partner_id": partner_id,
+            "version": version,
+            "status": "draft",
+            "checksum": existing.get("checksum"),
+        },
+        {
+            "$set": {
+                "status": "pending_review",
+                "partner_confirmed_at": confirmed_at,
+                "partner_confirmed_by": _actor_id(actor),
+            }
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not document:
+        raise HTTPException(409, "La bozza e' stata modificata altrove")
+
+    try:
+        from routers.partner_journey import _notify_admin_partner_activity
+
+        await _notify_admin_partner_activity(
+            partner_id,
+            f"ha confermato il calendario di lancio v{version}",
+            requires_approval=True,
+        )
+    except Exception:
+        logger.exception("Notifica review calendario fallita dopo la persistenza")
+    return _response_document(document)
+
+
+@router.post("/{partner_id}/versions/{version}/review")
+async def review_calendar_version(
+    partner_id: str,
+    version: int,
+    body: ReviewCalendarVersionBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Registra una sola decisione admin sulla versione confermata dal partner."""
+    from pymongo import ReturnDocument
+    from routers.partner_journey import require_admin_token
+
+    actor = await require_admin_token(credentials)
+    existing = await db.partner_launch_calendar_versions.find_one(
+        {"partner_id": partner_id, "version": version},
+        {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(404, "Versione del calendario non trovata")
+
+    reviewed_at = datetime.now(timezone.utc).isoformat()
+    review = {
+        "decision": body.decision,
+        "note": body.note,
+        "reviewed_at": reviewed_at,
+        "reviewed_by": _actor_id(actor),
+    }
+    review_updates = {
+        "status": "approved" if body.decision == "approve" else "rejected",
+        "admin_review": review,
+    }
+    if body.decision == "approve":
+        review["approved_checksum"] = existing.get("checksum")
+        review_updates.update(
+            {
+                "approved_checksum": existing.get("checksum"),
+                "approved_at": reviewed_at,
+                "approved_by": _actor_id(actor),
+            }
+        )
+
+    document = await db.partner_launch_calendar_versions.find_one_and_update(
+        {
+            "partner_id": partner_id,
+            "version": version,
+            "status": "pending_review",
+            "checksum": existing.get("checksum"),
+        },
+        {"$set": review_updates},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not document:
+        raise HTTPException(409, "La review e' gia' stata registrata o la versione e' cambiata")
     return _response_document(document)

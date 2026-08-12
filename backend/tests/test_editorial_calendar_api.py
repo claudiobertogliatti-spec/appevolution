@@ -93,9 +93,18 @@ def partner_token(monkeypatch):
     monkeypatch.setattr(
         auth,
         "decode_token",
-        lambda _token: SimpleNamespace(user_id="partner-user", role="partner"),
+        lambda token: (
+            SimpleNamespace(user_id="admin-user", role="admin")
+            if token == "admin-token"
+            else SimpleNamespace(user_id="partner-user", role="partner")
+        ),
     )
     return "partner-token"
+
+
+@pytest.fixture
+def admin_token(partner_token):
+    return "admin-token"
 
 
 @pytest.fixture
@@ -116,6 +125,19 @@ def _headers(partner_token):
 
 def _generation_payload():
     return {"start_date": "2026-09-01", "live_date": "2026-09-28"}
+
+
+def _with_https_destinations(client, partner_token, calendar_version):
+    calendar = deepcopy(calendar_version["calendar"])
+    for day in calendar["days"]:
+        day["destination_url"] = f"https://calendar.test/{day['destination_kind']}"
+    response = client.put(
+        "/api/partner/calendar/p1/versions/1/draft",
+        headers=_headers(partner_token),
+        json={"expected_checksum": calendar_version["checksum"], "calendar": calendar},
+    )
+    assert response.status_code == 200
+    return response.json()
 
 
 def test_generate_creates_version_one(client, partner_token, fake_db):
@@ -207,6 +229,161 @@ def test_draft_update_preserves_server_side_source(client, partner_token):
     assert updated.status_code == 200
     assert updated.json()["source"] == created["source"] == "fallback"
     assert updated.json()["calendar"]["source"] == "fallback"
+
+
+def test_submit_requires_partner_confirmation_and_ready_structure(client, partner_token):
+    client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    )
+
+    response = client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": False},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "launch_calendar_not_ready"
+    assert response.json()["detail"]["failed_checks"] == ["partner_confirmation"]
+
+
+def test_submit_rejects_draft_without_https_destinations(client, partner_token):
+    client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    )
+
+    response = client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": True},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "launch_calendar_not_ready",
+        "failed_checks": ["https_destination_urls"],
+    }
+
+
+def test_partner_submit_moves_draft_to_pending_review_and_notifies_admin(
+    client, partner_token, fake_db, monkeypatch
+):
+    notifications = []
+
+    async def record_notification(*args, **kwargs):
+        notifications.append((args, kwargs))
+
+    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", record_notification)
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_https_destinations(client, partner_token, created)
+
+    response = client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending_review"
+    assert response.json()["partner_confirmed_at"]
+    assert fake_db.versions[0]["partner_confirmed_by"] == "partner-user"
+    assert notifications == [
+        (("p1", "ha confermato il calendario di lancio v1"), {"requires_approval": True})
+    ]
+    assert response.json()["checksum"] == created["checksum"]
+
+
+def test_only_admin_can_approve(client, partner_token, admin_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    _with_https_destinations(client, partner_token, created)
+    client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": True},
+    )
+    payload = {"decision": "approve", "note": "Calendario verificato"}
+
+    partner_response = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(partner_token),
+        json=payload,
+    )
+    admin_response = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json=payload,
+    )
+
+    assert partner_response.status_code == 403
+    assert admin_response.status_code == 200
+    assert admin_response.json()["status"] == "approved"
+    assert admin_response.json()["admin_review"]["approved_checksum"] == admin_response.json()["checksum"]
+
+
+def test_approved_version_is_immutable(client, partner_token, admin_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_https_destinations(client, partner_token, created)
+    client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": True},
+    )
+    client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "OK"},
+    )
+
+    response = client.put(
+        "/api/partner/calendar/p1/versions/1/draft",
+        headers=_headers(partner_token),
+        json={"calendar": created["calendar"], "expected_checksum": created["checksum"]},
+    )
+
+    assert response.status_code == 409
+
+
+def test_review_compare_and_set_rejects_second_decision(client, partner_token, admin_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    _with_https_destinations(client, partner_token, created)
+    client.post(
+        "/api/partner/calendar/p1/versions/1/submit",
+        headers=_headers(partner_token),
+        json={"partner_confirmed": True},
+    )
+    first = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "OK"},
+    )
+    second = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "reject", "note": "Troppo tardi"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 409
 
 
 def test_current_version_response_whitelists_public_fields(client, partner_token, fake_db):
