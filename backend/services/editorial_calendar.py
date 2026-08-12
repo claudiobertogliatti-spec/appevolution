@@ -1,10 +1,9 @@
 """Calendario editoriale dei 30 giorni di lancio organico (Step11 — Valida, agente Andrea).
 
 Strategia bloccata (Calendario 1 = Mese 1, lancio organico):
-  - 4 settimane: Presenza → Autorevolezza → Annuncio webinar → Consolidamento+ponte
-  - obiettivo del mese: creare audience + convogliarli al webinar promo. NESSUNA vendita.
-  - CTA in scala: segui → guarda la masterclass → iscriviti al webinar
-  - mix ~3 reel + 2 caroselli + 2 post a settimana
+  - flusso: contenuti + DM → masterclass → live → checkout.
+  - 4 contenuti principali a settimana e storie quasi quotidiane.
+  - la call è solo recupero di chi non ha visto la live.
   - ogni giorno porta una cue "come_farlo" eseguibile anche da un partner poco digitale
 
 Deliverable BASE = il calendario (il piano editoriale), NON i contenuti.
@@ -37,23 +36,17 @@ _TOTAL_DAYS = sum(n for _, n in _WEEKS)  # 30
 
 _SYSTEM = (
     "Sei Andrea, il produttore di contenuti di Evolution PRO. Costruisci per un "
-    "partner il CALENDARIO EDITORIALE dei suoi primi 30 giorni di lancio organico "
-    "(il Mese 1).\n"
-    "OBIETTIVO DEL MESE (non negoziabile): creare audience da zero e convogliarla "
-    "verso il webinar promo di fine Mese 2. In questo mese NON si vende: nessuna CTA "
-    "'compra'. La CTA sale per fasi: prima 'Segui', poi 'Guarda la masterclass', "
-    "infine 'Iscriviti al webinar'.\n"
+    "partner il CALENDARIO EDITORIALE dei suoi primi 30 giorni di lancio organico.\n"
+    "OBIETTIVO DEL MESE (non negoziabile): contenuti e conversazioni DM portano alla "
+    "masterclass, poi alla live, poi al checkout. Una call è ammessa solo come recupero "
+    "per chi non ha visto la live.\n"
     "STRUTTURA (4 settimane fisse):\n"
-    "- Settimana 1 — Presenza: esisti, nomina il problema. CTA prevalente: Segui; "
-    "verso fine settimana introduci 'Guarda la masterclass'.\n"
-    "- Settimana 2 — Autorevolezza: dimostra il metodo, mini-prove, cattura nel "
-    "funnel. CTA prevalente: Guarda la masterclass.\n"
-    "- Settimana 3 — Annuncio webinar: annuncia il webinar live gratuito e apri le "
-    "iscrizioni. CTA prevalente: Iscriviti al webinar.\n"
-    "- Settimana 4 — Consolidamento: tieni valore, ricorda il webinar, fai il ponte "
-    "al Mese 2 ('il corso sta arrivando'). CTA prevalente: Iscriviti al webinar.\n"
-    "MIX per settimana: circa 3 Reel + 2 Carosello + 2 Post (la settimana 4 è più "
-    "lunga, aggiungi anche qualche Storie).\n"
+    "- Giorni 1-7 — riconoscimento: contenuti + DM, CTA commento o DM.\n"
+    "- Giorni 8-14 — autorevolezza: invia e fai guardare la masterclass.\n"
+    "- Giorni 15-27 — invito: iscrizione alla live e follow-up DM.\n"
+    "- Giorno 28 — live. Giorni 29-30 — follow-up verso checkout; call solo al "
+    "giorno 30 per chi non ha visto la live.\n"
+    "CADENZA: 4 contenuti principali per settimana e storie quasi quotidiane.\n"
     "REGOLE DI SCRITTURA (brand voice Ciak, non negoziabili):\n"
     "- Italiano semplice e diretto, zero fuffa.\n"
     "- Niente superlativi assoluti (mai 'potente', 'incredibile', '10x', 'il migliore').\n"
@@ -61,8 +54,7 @@ _SYSTEM = (
     "- 'how_to' = istruzione esecutiva semplicissima per un partner poco pratico "
     "(es. 'Parla a camera 30 secondi', '6 slide con testo grande', '1 foto + testo'). "
     "Per i caroselli indica il numero di slide.\n"
-    "- 'cta' = una tra: segui · guarda la masterclass · iscriviti al webinar · "
-    "Commenta · Salva + segui · Scrivimi.\n"
+    "- 'cta' deve rispettare la fase del flusso: DM/commento → masterclass → live → checkout.\n"
     "- 'channel' è sempre 'instagram'; 'format' è uno tra reel, carousel, post, stories.\n"
     "- 'destination_url' è null finché il team non ha confermato un URL HTTPS reale.\n"
     "- 'owner' è sempre 'partner'. 'phase' è recognition (1-7), authority (8-14), "
@@ -81,8 +73,9 @@ _DAY_SCHEMA = {
         "destination_url": {"type": ["string", "null"]},
         "owner": {"type": "string", "enum": ["partner"]},
         "phase": {"type": "string"},
+        "dm_action": {"type": "string"},
     },
-    "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "owner", "phase"],
+    "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "owner", "phase", "dm_action"],
 }
 
 _SCHEMA = {
@@ -152,43 +145,84 @@ def _phase_for_day(day: int) -> str:
     return "follow_up"
 
 
+_PRIMARY_CONTENT_DAYS = frozenset((1, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 21, 22, 24, 26, 28))
+_STORY_DAYS = frozenset(day for day in range(1, 31) if day not in (28, 30))
+
+
+def _cta_for_day(day: int) -> str:
+    if day <= 7:
+        return "commenta o scrivimi in DM"
+    if day <= 14:
+        return "richiedi la masterclass in DM"
+    if day <= 27:
+        return "iscriviti alla live"
+    if day == 28:
+        return "entra nella live"
+    return "vai al checkout"
+
+
+def _dm_action_for_day(day: int) -> str:
+    if day <= 7:
+        return "Rispondi ai commenti e avvia 10 conversazioni utili in DM."
+    if day <= 14:
+        return "Invia la masterclass in DM a chi ha chiesto dettagli e chiedi se l'ha vista."
+    if day <= 27:
+        return "Ricontatta in DM chi ha visto la masterclass e invitalo alla live."
+    if day == 28:
+        return "Scrivi in DM a chi ha interagito: ricordagli che la live è iniziata."
+    if day == 29:
+        return "Segui in DM chi ha visto la live e invia il passaggio al checkout."
+    return "Proponi una call di recupero solo a chi non ha visto la live."
+
+
 def _canonical_day(day: int, source: dict) -> dict:
     return {
         "day": day,
         "channel": "instagram",
-        "format": _coerce_format(source.get("format") or source.get("formato")),
+        "format": _coerce_format(source.get("format") or source.get("formato")) if day in _PRIMARY_CONTENT_DAYS else "stories",
         "theme": _clean(source.get("theme") or source.get("tema")),
         "how_to": _clean(source.get("how_to") or source.get("come_farlo")),
-        "cta": _clean(source.get("cta")).lower() or "segui",
+        "cta": _cta_for_day(day),
         "destination_url": source.get("destination_url"),
         "owner": "partner",
         "phase": _phase_for_day(day),
+        "dm_action": _dm_action_for_day(day),
+        "main_content": day in _PRIMARY_CONTENT_DAYS,
     }
 
 
-def _calendar(days: list[dict], source: str) -> dict:
-    return {
+def _calendar(days: list[dict], source: str, commercial_terms: dict | None = None) -> dict:
+    calendar = {
         "strategy": "hybrid_launch_v1",
         "days": days,
+        "main_contents": [day for day in days if day["main_content"]],
+        "stories": [
+            {**days[day - 1], "format": "stories", "main_content": False}
+            for day in sorted(_STORY_DAYS)
+        ],
         "organic_routine": {"daily_minutes": 30, "outreach_target": 10},
-        "bonus": {
-            "name": "Sessione di orientamento",
-            "expires_at": "2026-09-30T23:59:59+02:00",
-        },
         "source": source,
     }
+    if isinstance(commercial_terms, dict):
+        calendar["commercial_terms"] = commercial_terms
+    return calendar
 
 
-def _normalize(out: dict) -> dict:
+def _normalize(out: dict, commercial_terms: dict | None = None) -> dict:
     """Porta l'output AI nel contratto canonico del lancio F-14."""
     days = sorted(out.get("days") or [], key=lambda item: int(item["day"]))
     return _calendar(
         [_canonical_day(day, item) for day, item in enumerate(days, start=1)],
         "ai",
+        commercial_terms,
     )
 
 
-def _deterministic(answers: dict, outline: dict | None) -> dict:
+def _deterministic(
+    answers: dict,
+    outline: dict | None,
+    commercial_terms: dict | None = None,
+) -> dict:
     """Fallback senza AI: i 30 giorni dalla struttura bloccata, con i temi presi
     (dove possibile) dai titoli delle lezioni dell'outline. Non si blocca mai."""
     nicchia = _t(answers, "nicchia", "il tuo cliente ideale")
@@ -250,6 +284,7 @@ def _deterministic(answers: dict, outline: dict | None) -> dict:
     return _calendar(
         [_canonical_day(day, item) for day, item in enumerate(raw_days, start=1)],
         "fallback",
+        commercial_terms,
     )
 
 
@@ -326,7 +361,11 @@ def _valid(out: Any) -> bool:
     return True
 
 
-async def build_editorial_calendar(answers: dict, outline: dict | None = None) -> dict:
+async def build_editorial_calendar(
+    answers: dict,
+    outline: dict | None = None,
+    commercial_terms: dict | None = None,
+) -> dict:
     """Ritorna il calendario canonico di lancio con esattamente 30 giorni.
 
     Prova la sintesi AI; in caso di qualunque errore o output incompleto ricade
@@ -335,8 +374,8 @@ async def build_editorial_calendar(answers: dict, outline: dict | None = None) -
     try:
         out = await asyncio.to_thread(_call_claude, answers, outline)
         if _valid(out):
-            return _normalize(out)
+            return _normalize(out, commercial_terms)
         logger.warning("[CALENDAR] Calendario AI incompleto — uso scheletro deterministico")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[CALENDAR] Calendario AI fallito ({e}) — uso scheletro deterministico")
-    return _deterministic(answers, outline)
+    return _deterministic(answers, outline, commercial_terms)

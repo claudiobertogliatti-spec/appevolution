@@ -27,6 +27,7 @@ def _raw_days(destination_url: str | None = "https://example.test/masterclass") 
                 "destination_url": destination_url,
                 "owner": "partner",
                 "phase": "recognition",
+                "dm_action": "Rispondi ai commenti e avvia 10 conversazioni utili.",
             }
             for day in range(1, 31)
         ]
@@ -40,15 +41,46 @@ def _ready_calendar() -> dict:
     calendar.update(
         {
             "organic_routine": {"daily_minutes": 30, "outreach_target": 10},
-            "bonus": {
-                "name": "Sessione di orientamento",
-                "expires_at": "2026-09-30T23:59:59+02:00",
+            "commercial_terms": {
+                "version": "launch-terms-v1",
+                "bonus": {
+                    "name": "Sessione di orientamento",
+                    "expires_at": "2026-09-30T23:59:59+02:00",
+                },
             },
             "partner_confirmed_at": "2026-08-30T10:00:00+02:00",
-            "admin_approval": {"approved_at": "2026-08-30T11:00:00+02:00"},
+            "version": "calendar-v1",
         }
     )
+    calendar["admin_approval"] = {
+        "admin_id": "admin-123",
+        "approved_at": "2026-08-30T11:00:00+02:00",
+        "calendar_version": calendar["version"],
+        "calendar_checksum": calendar_checksum(calendar),
+    }
+    main_days = (1, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 21, 22, 24, 26, 28)
+    calendar["main_contents"] = [calendar["days"][day - 1] for day in main_days]
+    calendar["stories"] = [
+        {**calendar["days"][day - 1], "format": "stories"}
+        for day in range(1, 31)
+        if day not in (28, 30)
+    ]
+    calendar["admin_approval"]["calendar_checksum"] = calendar_checksum(
+        {key: value for key, value in calendar.items() if key != "admin_approval"}
+    )
     return calendar
+
+
+def _ready_resources(calendar: dict) -> dict:
+    destination_urls = {day["destination_url"] for day in calendar["days"]}
+    return {
+        "verified_destinations": {
+            url: {"verified": True, "verified_at": "2026-08-30T09:00:00+02:00"}
+            for url in destination_urls
+        },
+        "commercial_terms": calendar["commercial_terms"],
+        "evaluated_at": "2026-08-30T12:00:00+02:00",
+    }
 
 
 def test_normalize_requires_exactly_thirty_unique_days():
@@ -83,7 +115,8 @@ def test_readiness_rejects_missing_destination_and_routine():
 
 
 def test_readiness_accepts_complete_calendar():
-    result = evaluate_launch_calendar(_ready_calendar(), {})
+    calendar = _ready_calendar()
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
 
     assert result.ready is True
     assert result.failed_codes == []
@@ -109,3 +142,102 @@ def test_deterministic_editorial_calendar_has_all_launch_phases():
     assert calendar["days"][26]["phase"] == "gate"
     assert calendar["days"][27]["phase"] == "live"
     assert calendar["days"][28]["phase"] == "follow_up"
+
+
+def test_deterministic_calendar_models_main_content_and_stories_separately():
+    calendar = _deterministic({}, None)
+    main_by_week = [
+        [item for item in calendar["main_contents"] if start <= item["day"] <= end]
+        for start, end in ((1, 7), (8, 14), (15, 21), (22, 30))
+    ]
+
+    assert [len(items) for items in main_by_week] == [4, 4, 4, 4]
+    assert len(calendar["stories"]) >= 28
+    assert len({item["day"] for item in calendar["stories"]}) >= 28
+
+
+def test_deterministic_calendar_follows_content_dm_masterclass_live_checkout_flow():
+    calendar = _deterministic({}, None)
+    days = calendar["days"]
+
+    assert all("dm" in day["cta"] or "comment" in day["cta"] for day in days[:7])
+    assert all("masterclass" in day["cta"] for day in days[7:14])
+    assert all("live" in day["cta"] for day in days[14:27])
+    assert days[27]["cta"] == "entra nella live"
+    assert all("checkout" in day["cta"] for day in days[28:])
+    assert all("call" not in day["cta"] for day in days)
+    assert all("call" not in day["dm_action"].lower() for day in days[:29])
+    assert "call" in days[29]["dm_action"].lower()
+
+
+@pytest.mark.parametrize(
+    "approval",
+    [True, "approved", {"approved_at": "2026-08-30T11:00:00+02:00"}],
+)
+def test_readiness_rejects_unattested_or_client_side_admin_approval(approval):
+    calendar = _ready_calendar()
+    calendar["admin_approval"] = approval
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "admin_approval" in result.failed_codes
+
+
+def test_readiness_rejects_unverified_https_destination():
+    calendar = _ready_calendar()
+    resources = _ready_resources(calendar)
+    resources["verified_destinations"] = {}
+
+    result = evaluate_launch_calendar(calendar, resources)
+
+    assert "verified_destination_urls" in result.failed_codes
+
+
+def test_readiness_rejects_missing_content_cadence():
+    calendar = _ready_calendar()
+    calendar["stories"] = []
+    calendar["admin_approval"]["calendar_checksum"] = calendar_checksum(
+        {key: value for key, value in calendar.items() if key != "admin_approval"}
+    )
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "content_cadence" in result.failed_codes
+
+
+@pytest.mark.parametrize(
+    "expires_at",
+    ["not-a-date", "2026-08-29T23:59:59+02:00"],
+)
+def test_readiness_rejects_invalid_or_expired_commercial_deadline(expires_at):
+    calendar = _ready_calendar()
+    calendar["commercial_terms"]["bonus"]["expires_at"] = expires_at
+    calendar["admin_approval"]["calendar_checksum"] = calendar_checksum(
+        {key: value for key, value in calendar.items() if key != "admin_approval"}
+    )
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "bonus_deadline" in result.failed_codes
+
+
+def test_deterministic_calendar_does_not_invent_commercial_terms():
+    calendar = _deterministic({}, None)
+
+    assert "commercial_terms" not in calendar
+
+
+def test_deterministic_calendar_carries_versioned_server_terms_into_checksum():
+    terms = {
+        "version": "launch-terms-v7",
+        "bonus": {
+            "name": "Materiale di preparazione",
+            "expires_at": "2026-09-30T23:59:59+02:00",
+        },
+    }
+    calendar = _deterministic({}, None, terms)
+    changed_terms = {**terms, "version": "launch-terms-v8"}
+    changed = _deterministic({}, None, changed_terms)
+
+    assert calendar["commercial_terms"] == terms
+    assert calendar_checksum(calendar) != calendar_checksum(changed)

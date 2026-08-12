@@ -6,7 +6,7 @@ calendario verificabile prima che venga approvato o pubblicato.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import hashlib
 import json
 from typing import Any
@@ -24,6 +24,7 @@ _REQUIRED_DAY_FIELDS = (
     "destination_url",
     "owner",
     "phase",
+    "dm_action",
 )
 
 
@@ -99,20 +100,103 @@ def _has_day_fields(days: list[Any]) -> bool:
     )
 
 
-def _has_admin_approval(value: Any) -> bool:
-    if value is True:
-        return True
-    if isinstance(value, dict):
-        return bool(value.get("approved_at") or value.get("approved_by"))
-    return bool(value)
+def _parse_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else None
+
+
+def _calendar_without_approval(calendar: dict) -> dict:
+    return {
+        key: value
+        for key, value in calendar.items()
+        if key != "admin_approval"
+    }
+
+
+def _has_admin_approval(calendar: dict) -> bool:
+    approval = calendar.get("admin_approval")
+    if not isinstance(approval, dict):
+        return False
+    required = ("admin_id", "approved_at", "calendar_version", "calendar_checksum")
+    if not all(isinstance(approval.get(field), str) and approval[field].strip() for field in required):
+        return False
+    return (
+        _parse_datetime(approval["approved_at"]) is not None
+        and approval["calendar_version"] == calendar.get("version")
+        and approval["calendar_checksum"] == calendar_checksum(_calendar_without_approval(calendar))
+    )
+
+
+def _verified_destination_urls(days: list[Any], resources: dict) -> bool:
+    registry = resources.get("verified_destinations")
+    if not isinstance(registry, dict) or not days:
+        return False
+    for item in days:
+        if not isinstance(item, dict):
+            return False
+        url = item.get("destination_url")
+        evidence = registry.get(url)
+        if not (
+            isinstance(evidence, dict)
+            and evidence.get("verified") is True
+            and _parse_datetime(evidence.get("verified_at")) is not None
+        ):
+            return False
+    return True
+
+
+def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
+    terms = calendar.get("commercial_terms")
+    resource_terms = resources.get("commercial_terms")
+    if not isinstance(terms, dict) or terms != resource_terms:
+        return False
+    version = terms.get("version")
+    bonus = terms.get("bonus")
+    expires_at = bonus.get("expires_at") if isinstance(bonus, dict) else None
+    evaluated_at = _parse_datetime(resources.get("evaluated_at"))
+    expires = _parse_datetime(expires_at)
+    return (
+        isinstance(version, str)
+        and bool(version.strip())
+        and isinstance(bonus, dict)
+        and isinstance(bonus.get("name"), str)
+        and bool(bonus["name"].strip())
+        and expires is not None
+        and evaluated_at is not None
+        and expires > evaluated_at
+    )
+
+
+def _has_expected_cadence(calendar: dict) -> bool:
+    main_contents = calendar.get("main_contents")
+    stories = calendar.get("stories")
+    if not isinstance(main_contents, list) or not isinstance(stories, list):
+        return False
+    weeks = ((1, 7), (8, 14), (15, 21), (22, 30))
+    try:
+        main_days = [int(item["day"]) for item in main_contents]
+        story_days = [int(item["day"]) for item in stories]
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        len(main_days) == 16
+        and len(set(main_days)) == 16
+        and all(sum(start <= day <= end for day in main_days) == 4 for start, end in weeks)
+        and len(set(story_days)) >= 28
+        and all(1 <= day <= 30 for day in story_days)
+    )
 
 
 def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarReadiness:
     """Restituisce tutti i gate leggibili, senza eccezioni per dati incompleti.
 
-    ``resources`` resta nel contratto del dominio per i gate che verranno
-    collegati agli asset pubblici nei task successivi; i controlli di questo task
-    verificano il calendario autosufficiente che viene approvato.
+    Le prove URL e i termini commerciali arrivano come snapshot server-side in
+    ``resources``. Il dominio ne valuta l'attestazione, ma non fa rete.
     """
     calendar = calendar if isinstance(calendar, dict) else {}
     resources = resources if isinstance(resources, dict) else {}
@@ -133,23 +217,18 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
         and isinstance(routine.get("outreach_target"), int)
         and routine["outreach_target"] > 0
     )
-    bonus = calendar.get("bonus") or resources.get("bonus")
-    bonus_deadline = (
-        isinstance(bonus, dict)
-        and bool(bonus.get("name"))
-        and isinstance(bonus.get("expires_at"), str)
-        and bool(bonus["expires_at"].strip())
-    )
     checks = [
         {"code": "exactly_30_days", "ok": exactly_thirty_days},
         {"code": "consecutive_dates", "ok": _is_consecutive_dates(days)},
         {"code": "live_day_28", "ok": live_day_28},
         {"code": "day_fields", "ok": _has_day_fields(days)},
         {"code": "https_destination_urls", "ok": bool(days) and all(isinstance(item, dict) and _is_https_url(item.get("destination_url")) for item in days)},
+        {"code": "verified_destination_urls", "ok": _verified_destination_urls(days, resources)},
         {"code": "organic_routine", "ok": organic_routine},
-        {"code": "bonus_deadline", "ok": bonus_deadline},
+        {"code": "content_cadence", "ok": _has_expected_cadence(calendar)},
+        {"code": "bonus_deadline", "ok": _has_valid_commercial_terms(calendar, resources)},
         {"code": "partner_confirmation", "ok": bool(calendar.get("partner_confirmed_at"))},
-        {"code": "admin_approval", "ok": _has_admin_approval(calendar.get("admin_approval"))},
+        {"code": "admin_approval", "ok": _has_admin_approval(calendar)},
     ]
     return LaunchCalendarReadiness(
         ready=all(check["ok"] for check in checks),
