@@ -4,6 +4,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from pymongo.errors import DuplicateKeyError
+
 
 @dataclass(frozen=True)
 class DocumentVersion:
@@ -42,5 +44,13 @@ async def archive_document_version(
     }
     if provenance is not None:
         document["provenance"] = provenance
-    await db.partner_document_versions.insert_one(document)
+    try:
+        await db.partner_document_versions.insert_one(document)
+    except DuplicateKeyError:
+        existing = await db.partner_document_versions.find_one(identity, {"_id": 0})
+        if not existing:
+            raise
+        return DocumentVersion(
+            existing["document_id"], existing["version"], existing["checksum"], False
+        )
     return DocumentVersion(document_id, version, checksum, True)

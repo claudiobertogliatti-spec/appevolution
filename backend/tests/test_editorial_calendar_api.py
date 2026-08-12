@@ -484,6 +484,205 @@ def test_review_retry_recovers_partial_first_completion_without_opening_f16(
     assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f16")["status"] == "pending"
 
 
+def test_approved_v2_recovers_partial_v1_effects_after_refreshing_evidence(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    completed_at = step["completed_at"]
+    step.pop("calendar_completion_effects_applied_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    approved_v2 = _approve_calendar(client, partner_token, admin_token, version=2)
+
+    assert step["data"]["calendar_version"] == 2
+    assert step["data"]["calendar_checksum"] == approved_v2["checksum"]
+    assert step["completed_at"] == completed_at
+    assert step["calendar_completion_effects_applied_at"]
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f15")["status"] == "in_progress"
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f16")["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_f14_completion_claim_advances_only_f15(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({"status": "in_progress", "data": {}, "completed_at": None})
+    step.pop("calendar_completion_effects_applied_at", None)
+    step.pop("calendar_completion_claim_id", None)
+    step.pop("calendar_completion_claimed_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    class BarrierSteps(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.initial_reads = 0
+            self.two_readers = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            is_initial_f14 = (
+                query == {"partner_id": "p1", "step_id": "11-calendario-30gg"}
+                and self.initial_reads < 2
+            )
+            if is_initial_f14:
+                result = await super().find_one(query, projection, sort)
+                self.initial_reads += 1
+                if self.initial_reads == 2:
+                    self.two_readers.set()
+                await self.two_readers.wait()
+                return result
+            return await super().find_one(query, projection, sort)
+
+    fake_db.partner_journey_steps = BarrierSteps(fake_db.partner_journey_steps.docs)
+
+    await asyncio.gather(
+        partner_journey._complete_approved_launch_calendar_step("p1"),
+        partner_journey._complete_approved_launch_calendar_step("p1"),
+    )
+
+    statuses = {
+        item["step_id"]: item["status"]
+        for item in fake_db.partner_journey_steps.docs
+        if item.get("step_id") in ("11-calendario-30gg", "12-prezzo-webinar", "16-readiness-lancio")
+    }
+    assert statuses == {
+        "11-calendario-30gg": "done",
+        "12-prezzo-webinar": "in_progress",
+        "16-readiness-lancio": "pending",
+    }
+
+
+@pytest.mark.asyncio
+async def test_f14_completion_arriving_after_claim_cannot_steal_it(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({"status": "in_progress", "data": {}, "completed_at": None})
+    step.pop("calendar_completion_effects_applied_at", None)
+    step.pop("calendar_completion_claim_id", None)
+    step.pop("calendar_completion_claimed_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    class PausedClaimSteps(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.claim_set = asyncio.Event()
+            self.release_first = asyncio.Event()
+            self.claim_updates = 0
+
+        async def update_one(self, query, update, upsert=False):
+            result = await super().update_one(query, update, upsert)
+            if "calendar_completion_claim_id" in update.get("$set", {}) and result.matched_count:
+                self.claim_updates += 1
+                if self.claim_updates == 1:
+                    self.claim_set.set()
+                    await self.release_first.wait()
+            return result
+
+    steps = PausedClaimSteps(fake_db.partner_journey_steps.docs)
+    fake_db.partner_journey_steps = steps
+    first = asyncio.create_task(
+        partner_journey._complete_approved_launch_calendar_step("p1")
+    )
+    await steps.claim_set.wait()
+
+    second = await partner_journey._complete_approved_launch_calendar_step("p1")
+    steps.release_first.set()
+    await first
+
+    assert second["completion_in_progress"] is True
+    assert steps.claim_updates == 1
+    statuses = {
+        item["step_id"]: item["status"]
+        for item in steps.docs
+        if item.get("step_id") in ("12-prezzo-webinar", "16-readiness-lancio")
+    }
+    assert statuses == {
+        "12-prezzo-webinar": "in_progress",
+        "16-readiness-lancio": "pending",
+    }
+
+
+@pytest.mark.asyncio
+async def test_failed_f14_claim_is_released_for_retry(
+    client, partner_token, admin_token, fake_db, monkeypatch
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({"status": "in_progress", "data": {}, "completed_at": None})
+    step.pop("calendar_completion_effects_applied_at", None)
+    step.pop("calendar_completion_claim_id", None)
+    step.pop("calendar_completion_claimed_at", None)
+    original = partner_journey._complete_operativo_step_unchecked
+
+    async def fail_after_claim(*_args, **_kwargs):
+        raise RuntimeError("temporary completion failure")
+
+    monkeypatch.setattr(partner_journey, "_complete_operativo_step_unchecked", fail_after_claim)
+    with pytest.raises(RuntimeError, match="temporary completion failure"):
+        await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert step.get("calendar_completion_claim_id") is None
+    monkeypatch.setattr(partner_journey, "_complete_operativo_step_unchecked", original)
+    retried = await partner_journey._complete_approved_launch_calendar_step("p1")
+    assert retried["completed_step"] == "11-calendario-30gg"
+    assert step["status"] == "done"
+
+
 @pytest.mark.asyncio
 async def test_workbook_reads_only_the_approved_calendar_snapshot(
     client, partner_token, admin_token, fake_db
@@ -1473,7 +1672,56 @@ def test_calendar_version_index_is_unique_per_partner_and_version():
         [("partner_id", 1), ("version", 1)],
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ) in calls
-    assert result["total"] == 21
+    assert result["total"] == 22
+
+
+def test_workbook_source_index_is_unique_critical_and_excludes_legacy_documents():
+    calls = []
+
+    class IndexCollection:
+        async def create_index(self, fields, **options):
+            calls.append((fields, options))
+
+    class IndexDb:
+        def __getitem__(self, _name):
+            return IndexCollection()
+
+    result = asyncio.run(ensure_indexes(IndexDb()))
+
+    assert (
+        [
+            ("partner_id", 1),
+            ("kind", 1),
+            ("provenance.calendar_version", 1),
+            ("provenance.calendar_checksum", 1),
+        ],
+        {
+            "unique": True,
+            "name": "partner_document_versions_workbook_calendar_unique",
+            "partialFilterExpression": {
+                "provenance.calendar_version": {"$exists": True},
+                "provenance.calendar_checksum": {"$exists": True},
+            },
+        },
+    ) in calls
+    assert result["total"] == 22
+
+
+def test_workbook_unique_index_failure_is_fatal():
+    class IndexCollection:
+        def __init__(self, name):
+            self.name = name
+
+        async def create_index(self, fields, **options):
+            if self.name == "partner_document_versions":
+                raise RuntimeError("workbook unique index unavailable")
+
+    class IndexDb:
+        def __getitem__(self, name):
+            return IndexCollection(name)
+
+    with pytest.raises(CriticalIndexError, match="partner_document_versions_workbook_calendar_unique"):
+        asyncio.run(ensure_indexes(IndexDb()))
 
 
 def test_calendar_version_index_failure_is_fatal_but_hot_indexes_stay_best_effort():
@@ -1510,4 +1758,4 @@ def test_hot_index_failure_stays_best_effort_when_critical_index_succeeds():
 
     result = asyncio.run(ensure_indexes(IndexDb()))
 
-    assert result == {"ok": 19, "failed": 2, "total": 21}
+    assert result == {"ok": 20, "failed": 2, "total": 22}

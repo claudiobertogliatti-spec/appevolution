@@ -49,6 +49,23 @@ _CRITICAL_COMPOUND_INDEXES = [
         [("partner_id", 1), ("version", 1)],
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ),
+    (
+        "partner_document_versions",
+        [
+            ("partner_id", 1),
+            ("kind", 1),
+            ("provenance.calendar_version", 1),
+            ("provenance.calendar_checksum", 1),
+        ],
+        {
+            "unique": True,
+            "name": "partner_document_versions_workbook_calendar_unique",
+            "partialFilterExpression": {
+                "provenance.calendar_version": {"$exists": True},
+                "provenance.calendar_checksum": {"$exists": True},
+            },
+        },
+    ),
 ]
 
 async def ensure_indexes(db):
@@ -67,8 +84,10 @@ async def ensure_indexes(db):
             await db[coll].create_index(fields, **options)
             created += 1
         except Exception as exc:
+            index_name = options.get("name", "compound index")
+            label = "calendar version index" if coll == "partner_launch_calendar_versions" else index_name
             raise CriticalIndexError(
-                f"Impossibile creare l'indice critico calendar version index {coll}.{fields}"
+                f"Impossibile creare l'indice critico {label} {coll}.{fields}"
             ) from exc
     total = len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
     logger.info(f"[INDEXES] ensure_indexes: {created} ok, {failed} falliti su {total}")

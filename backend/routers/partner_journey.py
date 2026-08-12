@@ -7045,6 +7045,8 @@ async def complete_operativo_step(
     Merge del payload `data` con quello esistente (autosave drafts non si perdono).
     """
     await require_partner_or_admin_for_partner(partner_id, credentials)
+    if step_id == "11-calendario-30gg":
+        return await _complete_approved_launch_calendar_step(partner_id)
     return await _complete_operativo_step_unchecked(partner_id, step_id, body)
 
 
@@ -7128,6 +7130,8 @@ async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
     current = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
     )
+    if not current:
+        raise HTTPException(404, f"Step 11-calendario-30gg non trovato per partner {partner_id}")
     if current and current.get("status") == "done":
         for _attempt in range(3):
             current_data = dict(current.get("data") or {})
@@ -7157,6 +7161,15 @@ async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
                 {"$set": {"data": refreshed_data, "updated_at": datetime.now(timezone.utc)}},
             )
             if result.matched_count:
+                if not current.get("calendar_completion_effects_applied_at"):
+                    await _reconcile_launch_calendar_completion_effects(partner_id)
+                    return {
+                        "success": True,
+                        "completed_step": "11-calendario-30gg",
+                        "next_step": None,
+                        "evidence_refreshed": True,
+                        "effects_recovered": True,
+                    }
                 return {
                     "success": True,
                     "completed_step": "11-calendario-30gg",
@@ -7175,11 +7188,63 @@ async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
                 "message": "Lo step F-14 e' cambiato durante l'aggiornamento dell'evidenza",
             },
         )
-    result = await _complete_operativo_step_unchecked(
-        partner_id,
-        "11-calendario-30gg",
-        _OperativoCompleteBody(data=evidence),
+    claim_id = uuid.uuid4().hex
+    claimed = await db.partner_journey_steps.update_one(
+        {
+            "partner_id": partner_id,
+            "step_id": "11-calendario-30gg",
+            "status": current.get("status"),
+            "calendar_completion_claim_id": None,
+        },
+        {
+            "$set": {
+                "calendar_completion_claim_id": claim_id,
+                "calendar_completion_claimed_at": datetime.now(timezone.utc),
+            }
+        },
     )
+    if not claimed.matched_count:
+        current = await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+        )
+        if current and current.get("status") == "done":
+            return await _complete_approved_launch_calendar_step(partner_id)
+        if current and current.get("calendar_completion_claim_id"):
+            return {
+                "success": True,
+                "completed_step": None,
+                "next_step": None,
+                "completion_in_progress": True,
+                "idempotent": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_completion_claim_conflict",
+                "message": "Il completamento F-14 e' cambiato durante il claim",
+            },
+        )
+    try:
+        result = await _complete_operativo_step_unchecked(
+            partner_id,
+            "11-calendario-30gg",
+            _OperativoCompleteBody(data=evidence),
+        )
+    except BaseException:
+        await db.partner_journey_steps.update_one(
+            {
+                "partner_id": partner_id,
+                "step_id": "11-calendario-30gg",
+                "calendar_completion_claim_id": claim_id,
+            },
+            {
+                "$set": {
+                    "calendar_completion_claim_id": None,
+                    "calendar_completion_claimed_at": None,
+                }
+            },
+        )
+        raise
     await _mark_launch_calendar_completion_effects_applied(partner_id)
     return result
 
