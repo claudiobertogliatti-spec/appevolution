@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("EDITORIAL_CALENDAR_MODEL", "claude-sonnet-4-6")
 
-FORMATI = ["Reel", "Carosello", "Post", "Storie"]
+FORMATI = ["reel", "carousel", "post", "stories"]
 
 # Le 4 settimane sono FISSE (strategia bloccata): obiettivo + numero di giorni.
 _WEEKS = [
@@ -57,55 +57,46 @@ _SYSTEM = (
     "REGOLE DI SCRITTURA (brand voice Ciak, non negoziabili):\n"
     "- Italiano semplice e diretto, zero fuffa.\n"
     "- Niente superlativi assoluti (mai 'potente', 'incredibile', '10x', 'il migliore').\n"
-    "- 'tema' = l'hook/argomento del contenuto, concreto e breve.\n"
-    "- 'fonte' = da quale lezione/modulo/masterclass del partner nasce il contenuto "
-    "(usa i titoli che ti do; se è strutturale scrivi es. 'Annuncio webinar').\n"
-    "- 'come_farlo' = istruzione esecutiva semplicissima per un partner poco pratico "
+    "- 'theme' = l'hook/argomento del contenuto, concreto e breve.\n"
+    "- 'how_to' = istruzione esecutiva semplicissima per un partner poco pratico "
     "(es. 'Parla a camera 30 secondi', '6 slide con testo grande', '1 foto + testo'). "
     "Per i caroselli indica il numero di slide.\n"
-    "- 'cta' = una tra: Segui · Guarda la masterclass · Iscriviti al webinar · "
+    "- 'cta' = una tra: segui · guarda la masterclass · iscriviti al webinar · "
     "Commenta · Salva + segui · Scrivimi.\n"
-    "- I formati ammessi sono solo: Reel, Carosello, Post, Storie."
+    "- 'channel' è sempre 'instagram'; 'format' è uno tra reel, carousel, post, stories.\n"
+    "- 'destination_url' è null finché il team non ha confermato un URL HTTPS reale.\n"
+    "- 'owner' è sempre 'partner'. 'phase' è recognition (1-7), authority (8-14), "
+    "invitation (15-21), conversion (22-26), gate (27), live (28), follow_up (29-30)."
 )
 
 _DAY_SCHEMA = {
     "type": "object",
     "properties": {
-        "formato": {"type": "string", "enum": FORMATI},
-        "tema": {"type": "string", "description": "Hook/argomento del contenuto, breve e concreto."},
-        "fonte": {"type": "string", "description": "Da quale lezione/modulo/masterclass nasce (o 'strutturale')."},
-        "come_farlo": {"type": "string", "description": "Istruzione esecutiva semplice per il partner."},
+        "day": {"type": "integer", "minimum": 1, "maximum": 30},
+        "channel": {"type": "string", "enum": ["instagram"]},
+        "format": {"type": "string", "enum": FORMATI},
+        "theme": {"type": "string", "description": "Hook/argomento del contenuto, breve e concreto."},
+        "how_to": {"type": "string", "description": "Istruzione esecutiva semplice per il partner."},
         "cta": {"type": "string", "description": "La call to action del giorno."},
+        "destination_url": {"type": ["string", "null"]},
+        "owner": {"type": "string", "enum": ["partner"]},
+        "phase": {"type": "string"},
     },
-    "required": ["formato", "tema", "fonte", "come_farlo", "cta"],
-}
-
-_WEEK_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "obiettivo": {"type": "string", "description": "Obiettivo della settimana."},
-        "giorni": {
-            "type": "array",
-            "items": _DAY_SCHEMA,
-            "minItems": 6,
-            "maxItems": 10,
-        },
-    },
-    "required": ["obiettivo", "giorni"],
+    "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "owner", "phase"],
 }
 
 _SCHEMA = {
     "type": "object",
     "properties": {
-        "weeks": {
+        "days": {
             "type": "array",
-            "items": _WEEK_SCHEMA,
-            "minItems": 4,
-            "maxItems": 4,
-            "description": "Esattamente 4 settimane, nell'ordine Presenza/Autorevolezza/Annuncio webinar/Consolidamento.",
+            "items": _DAY_SCHEMA,
+            "minItems": 30,
+            "maxItems": 30,
+            "description": "Esattamente i giorni 1-30, senza duplicati.",
         },
     },
-    "required": ["weeks"],
+    "required": ["days"],
 }
 
 # Chiavi del Posizionamento che orientano i temi.
@@ -138,31 +129,63 @@ def _lesson_titles(outline: dict | None) -> list[str]:
     return titoli
 
 
-def _coerce_formato(v: Any) -> str:
-    s = _clean(v)
-    return s if s in FORMATI else "Reel"
+def _coerce_format(v: Any) -> str:
+    normalized = _clean(v).lower()
+    aliases = {"carosello": "carousel", "storie": "stories", "story": "stories"}
+    normalized = aliases.get(normalized, normalized)
+    return normalized if normalized in FORMATI else "reel"
+
+
+def _phase_for_day(day: int) -> str:
+    if day <= 7:
+        return "recognition"
+    if day <= 14:
+        return "authority"
+    if day <= 21:
+        return "invitation"
+    if day <= 26:
+        return "conversion"
+    if day == 27:
+        return "gate"
+    if day == 28:
+        return "live"
+    return "follow_up"
+
+
+def _canonical_day(day: int, source: dict) -> dict:
+    return {
+        "day": day,
+        "channel": "instagram",
+        "format": _coerce_format(source.get("format") or source.get("formato")),
+        "theme": _clean(source.get("theme") or source.get("tema")),
+        "how_to": _clean(source.get("how_to") or source.get("come_farlo")),
+        "cta": _clean(source.get("cta")).lower() or "segui",
+        "destination_url": source.get("destination_url"),
+        "owner": "partner",
+        "phase": _phase_for_day(day),
+    }
+
+
+def _calendar(days: list[dict], source: str) -> dict:
+    return {
+        "strategy": "hybrid_launch_v1",
+        "days": days,
+        "organic_routine": {"daily_minutes": 30, "outreach_target": 10},
+        "bonus": {
+            "name": "Sessione di orientamento",
+            "expires_at": "2026-09-30T23:59:59+02:00",
+        },
+        "source": source,
+    }
 
 
 def _normalize(out: dict) -> dict:
-    """Porta l'output AI nella forma del frontend: 4 settimane fisse, giorni numerati 1..30."""
-    weeks_in = out.get("weeks") or []
-    weeks = []
-    giorno = 1
-    for wi, (obiettivo_fix, _n) in enumerate(_WEEKS):
-        src = weeks_in[wi] if wi < len(weeks_in) else {}
-        giorni = []
-        for d in (src.get("giorni") or []):
-            giorni.append({
-                "giorno": giorno,
-                "formato": _coerce_formato(d.get("formato")),
-                "tema": _clean(d.get("tema")),
-                "fonte": _clean(d.get("fonte")) or "—",
-                "come_farlo": _clean(d.get("come_farlo")),
-                "cta": _clean(d.get("cta")) or "Segui",
-            })
-            giorno += 1
-        weeks.append({"obiettivo": obiettivo_fix, "giorni": giorni})
-    return {"weeks": weeks, "source": "ai"}
+    """Porta l'output AI nel contratto canonico del lancio F-14."""
+    days = sorted(out.get("days") or [], key=lambda item: int(item["day"]))
+    return _calendar(
+        [_canonical_day(day, item) for day, item in enumerate(days, start=1)],
+        "ai",
+    )
 
 
 def _deterministic(answers: dict, outline: dict | None) -> dict:
@@ -217,22 +240,17 @@ def _deterministic(answers: dict, outline: dict | None) -> dict:
         d("Post", "Una storia di trasformazione", "Case", "Foto o screenshot + storia", "Iscriviti al webinar"),
         d("Reel", "Cosa cambia dopo il webinar", "Teaser offerta", "A camera", "Iscriviti al webinar"),
         d("Carosello", "Riepilogo errori + soluzione", "Masterclass", "5 slide", "Iscriviti al webinar"),
-        d("Storie", "Sondaggio pre-live", "Engagement", "A camera + sticker sondaggio", "Iscriviti al webinar"),
-        d("Reel", "Ci vediamo al live", "Mix", "A camera, tono caldo", "Iscriviti al webinar"),
-        d("Post", "Il corso sta arrivando: resta connesso", "Ponte Mese 2", "1 foto + testo", "Iscriviti al webinar"),
-        d("Reel", "Cosa ti aspetta il mese prossimo", "Ponte Mese 2", "A camera, 30 secondi", "Segui"),
+        d("Storie", "Controllo finale: iscrizioni e promemoria", "Gate pre-live", "A camera + sticker sondaggio", "Iscriviti al webinar"),
+        d("Reel", "Siamo live oggi: entra ora", "Webinar live", "A camera, ora e link a schermo", "Iscriviti al webinar"),
+        d("Post", "Grazie per il live: ecco il prossimo passo", "Follow-up webinar", "1 foto + testo con il riepilogo", "Scrivimi"),
+        d("Reel", "Risposta a una domanda emersa dal live", "Follow-up webinar", "A camera, 30 secondi", "Segui"),
     ]
 
-    weeks = []
-    giorno = 1
-    for (obiettivo, _n), giorni_src in zip(_WEEKS, [s1, s2, s3, s4]):
-        giorni = []
-        for g in giorni_src:
-            giorni.append({"giorno": giorno, **g})
-            giorno += 1
-        weeks.append({"obiettivo": obiettivo, "giorni": giorni})
-
-    return {"weeks": weeks, "source": "fallback"}
+    raw_days = [item for week in [s1, s2, s3, s4] for item in week]
+    return _calendar(
+        [_canonical_day(day, item) for day, item in enumerate(raw_days, start=1)],
+        "fallback",
+    )
 
 
 def _call_claude(answers: dict, outline: dict | None) -> dict:
@@ -259,10 +277,10 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
 
     user = (
         f"Posizionamento del partner:\n{pos}{blocco_corso}\n\n"
-        f"Genera il calendario editoriale dei 30 giorni di lancio (Mese 1) in 4 "
-        f"settimane (rispettivamente {', '.join(str(n) for _, n in _WEEKS)} giorni), "
-        "seguendo la struttura e le regole. Ogni giorno: formato, tema, fonte, "
-        "come_farlo, cta."
+        "Genera il calendario editoriale dei 30 giorni di lancio (Mese 1), "
+        "seguendo la struttura e le regole. Restituisci esattamente i giorni 1-30 "
+        "con i campi day, channel, format, theme, how_to, cta, destination_url, "
+        "owner e phase."
     )
 
     from .agent_deliverable import system_blocks
@@ -291,23 +309,25 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
 def _valid(out: Any) -> bool:
     if not isinstance(out, dict):
         return False
-    weeks = out.get("weeks")
-    if not isinstance(weeks, list) or len(weeks) != 4:
+    days = out.get("days")
+    if not isinstance(days, list) or len(days) != 30:
         return False
-    total = 0
-    for w in weeks:
-        if not isinstance(w, dict):
+    try:
+        numbers = [int(day["day"]) for day in days]
+    except (KeyError, TypeError, ValueError):
+        return False
+    if numbers != list(range(1, 31)):
+        return False
+    for day in days:
+        if not isinstance(day, dict):
             return False
-        giorni = w.get("giorni")
-        if not isinstance(giorni, list) or not giorni:
+        if not _clean(day.get("theme")) or not _clean(day.get("how_to")):
             return False
-        total += len(giorni)
-    # tolleranza: tra 24 e 36 giorni totali (poi normalizziamo la numerazione)
-    return 24 <= total <= 36
+    return True
 
 
 async def build_editorial_calendar(answers: dict, outline: dict | None = None) -> dict:
-    """Ritorna il calendario strutturato {weeks:[{obiettivo, giorni:[...]}], source}.
+    """Ritorna il calendario canonico di lancio con esattamente 30 giorni.
 
     Prova la sintesi AI; in caso di qualunque errore o output incompleto ricade
     sullo scheletro deterministico. Non solleva mai: lo step non deve mai bloccarsi.
