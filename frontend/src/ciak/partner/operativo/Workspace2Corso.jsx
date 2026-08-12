@@ -4,6 +4,7 @@ import { API } from "../../../utils/api-config";
 import { uploadVideoResumable } from "../../lib/gcsResumableUpload";
 import { AGENTS } from "./agents";
 import { authHeaders } from "../api";
+import LessonRevisionPanel from "./LessonRevisionPanel";
 
 /**
  * WORKSPACE 2 — "Organizziamo il tuo Corso" (Fase Valida, agente Andrea).
@@ -124,19 +125,6 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     finally { setBusy(null); setProgress(0); setStatusMsg(null); }
   };
 
-  const approveLesson = async (lessonId) => {
-    setBusy(`approve-${lessonId}`);
-    setErr(null);
-    try {
-      const r = await fetch(`${API}/api/partner-journey/videocorso/approve-lesson?partner_id=${encodeURIComponent(partnerId)}&lesson_id=${encodeURIComponent(lessonId)}`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await load();
-    } catch (e) { setErr(String(e.message || e)); } finally { setBusy(null); }
-  };
-
   if (loading) return <div className="p-8 text-center text-slate-500 font-[Poppins,system-ui,sans-serif]">Carico il workspace…</div>;
   if (!state) return <div className="p-8 text-center text-red-600 font-[Poppins,system-ui,sans-serif]">Errore: {err || "stato non disponibile"}</div>;
 
@@ -152,6 +140,7 @@ export default function Workspace2Corso({ partnerId, onBack }) {
 
   const cd = state.course_data;
   const allRecorded = state.lessons_planned > 0 && state.lessons_uploaded >= state.lessons_planned;
+  const allApproved = state.lessons_planned > 0 && state.lessons_approved >= state.lessons_planned;
 
   let primary = null;
   if (!state.has_course) {
@@ -165,6 +154,9 @@ export default function Workspace2Corso({ partnerId, onBack }) {
   } else if (!allRecorded) {
     primary = { label: "Carica le tue lezioni qui sotto", onClick: () => {}, disabled: true,
                 hint: `Registra e carica ogni lezione (${state.lessons_uploaded}/${state.lessons_planned || "?"}).` };
+  } else if (!allApproved) {
+    primary = { label: "Guarda e approva i montaggi qui sotto", onClick: () => {}, disabled: true,
+                hint: `Il corso si completa dopo il tuo ok su ogni video (${state.lessons_approved}/${state.lessons_planned}).` };
   } else {
     primary = { label: "Workspace completato ✓", onClick: onBack, disabled: false,
                 hint: "Il corso è pronto. Passa al prossimo workspace." };
@@ -197,21 +189,7 @@ export default function Workspace2Corso({ partnerId, onBack }) {
       {state.course_approved && (state.lessons || []).length > 0 && (
         <div className="border border-slate-200 rounded-xl p-4 mb-6">
           <div className="text-[13px] font-semibold text-slate-900 mb-2">Le tue lezioni</div>
-          {state.lessons.map((l) => (
-            <div key={l.lesson_id} className="flex items-center gap-2 py-1.5 text-[13px] border-b border-slate-100 last:border-0">
-              <span className="flex-1">{l.title}</span>
-              {l.approved ? (
-                <span className="text-green-600 text-[12px]">✓ approvata</span>
-              ) : l.ready_for_review ? (
-                <button onClick={() => approveLesson(l.lesson_id)} disabled={busy === `approve-${l.lesson_id}`}
-                        className="text-[12px] px-3 py-1 rounded-md bg-green-500 text-white hover:bg-green-600 disabled:opacity-40">
-                  {busy === `approve-${l.lesson_id}` ? "…" : "Approva"}
-                </button>
-              ) : (
-                <span className="text-slate-400 text-[12px]">in lavorazione</span>
-              )}
-            </div>
-          ))}
+          <div className="space-y-3">{state.lessons.map((l) => <LessonRevisionPanel key={l.lesson_id} partnerId={partnerId} lesson={l} onUpdated={load} />)}</div>
         </div>
       )}
     </>

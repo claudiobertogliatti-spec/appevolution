@@ -12,6 +12,24 @@ Regole:
 
 ---
 
+### 2026-08-12 · Codex · codex/ciak-video-archive-release — revisioni video + archivio step, pre-deploy
+
+**FATTO**
+- Standard automatico videolezioni Ciak con copertina Andrew, policy tagli didattici e output versionato.
+- Gate partner: player, approvazione della versione o lista strutturata di modifiche generali/a timestamp; rischio verde-giallo-rosso, terzo ciclo sempre team, audit e coda admin Video Review.
+- Archivio materiali per step: endpoint centralizzato, preview/download autenticati, dati whitelist, mappa storica, playlist YouTube e nuovo modal Percorso. Rimossa la sintesi finta; URL Drive/GCS non esposti.
+- Nuovi output Brand Kit, Storia, Posizionamento e Script Masterclass registrano lo step canonico.
+
+**VERIFICATO**
+- `pytest test_ciak_lesson_review + test_partner_step_materials + test_ciak_lesson_standard + test_ciak_publish`: 25 passed.
+- `py_compile` dei servizi/router/pipeline/server modificati e `git diff --check`: exit 0.
+- `npm run build`: exit 0, bundle `main.daeaad33.js`; restano soli warning ESLint preesistenti in file estranei.
+- Suite auth router locale bloccata prima della collection da incompatibilita FastAPI/Pydantic preesistente (`cannot import name PYDANTIC_V2`); CI resta il gate autoritativo.
+
+**APERTO**
+- Push/CI/deploy/smoke live e aggiornamento memoria ancora da eseguire.
+- Il collegamento diretto al sub-account Systeme.io e la generazione del Workbook finale sono esplicitamente fuori ambito e richiedono design separato.
+
 ## Formato
 
 ```

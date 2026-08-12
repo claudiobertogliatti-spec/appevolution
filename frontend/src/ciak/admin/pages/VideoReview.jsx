@@ -414,6 +414,7 @@ function PipelineHealthCard({ onAuthExpired }) {
 
 export function VideoReview({ onAuthExpired }) {
   const [videos, setVideos] = useState([]);
+  const [partnerRevisions, setPartnerRevisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending"); // pending | all
   const [cleaningErrors, setCleaningErrors] = useState(false);
@@ -421,10 +422,14 @@ export function VideoReview({ onAuthExpired }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await adminFetch(`/api/admin/video-review`);
+        const [res, revisionRes] = await Promise.all([
+          adminFetch(`/api/admin/video-review`),
+          adminFetch(`/api/partner-journey/videocorso/revisions/pending`),
+        ]);
         if (!res.ok) throw new Error(`Errore ${res.status}`);
         const data = await res.json();
         setVideos(data.videos || []);
+        if (revisionRes.ok) setPartnerRevisions((await revisionRes.json()).revisions || []);
       } catch (e) {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
         else console.error("Video review load error:", e);
@@ -463,6 +468,17 @@ export function VideoReview({ onAuthExpired }) {
     } finally {
       setCleaningErrors(false);
     }
+  };
+
+  const takeRevision = async (revision) => {
+    try {
+      const res = await adminFetch(`/api/partner-journey/videocorso/revisions/${revision.revision_id}/team-status`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "in_progress" }),
+      });
+      if (!res.ok) throw new Error("Errore presa in carico");
+      setPartnerRevisions((old) => old.map((r) => r.revision_id === revision.revision_id ? { ...r, status: "team_in_progress" } : r));
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired?.(); else console.error(e); }
   };
 
   const PIPELINE_STATUSES = ["queued", "downloading", "cleaning", "transcribing", "cutting_fillers", "uploading_youtube"];
@@ -534,6 +550,16 @@ export function VideoReview({ onAuthExpired }) {
       <PipelineHealthCard onAuthExpired={onAuthExpired} />
 
       <div className="max-w-3xl space-y-8">
+
+        {partnerRevisions.length > 0 && <div>
+          <div className="flex items-center gap-2 mb-3"><List className="w-4 h-4" style={{ color: C.purple }} /><span className="text-xs font-black uppercase tracking-wider" style={{ color: C.purple }}>Modifiche richieste dai partner ({partnerRevisions.length})</span></div>
+          <div className="space-y-3">{partnerRevisions.map((revision) => <div key={revision.revision_id} className="rounded-xl border p-4" style={{ background: "#F5F3FF", borderColor: "#DDD6FE" }}>
+            <div className="flex items-start gap-3"><div className="flex-1"><div className="font-black text-sm">Partner {revision.partner_id} · Lezione {revision.lesson_id}</div><div className="text-xs mt-1" style={{ color: C.muted }}>Versione {revision.source_output_version} · ciclo {revision.cycle} · rischio {revision.risk}</div></div><StatusBadge status={revision.status} /></div>
+            <ol className="mt-3 space-y-1 text-xs">{(revision.items || []).map((item, i) => <li key={item.item_id}>{i + 1}. <strong>{item.action.replaceAll("_", " ")}</strong>{item.intensity ? ` · ${item.intensity}` : ""}{item.scope === "timestamp" ? ` · ${fmtDur(Math.round(item.timestamp_s))}` : " · intero video"}{item.note ? ` — ${item.note}` : ""}</li>)}</ol>
+            {revision.status === "team_review" && <button onClick={() => takeRevision(revision)} className="mt-3 px-4 py-2 rounded-lg text-xs font-black" style={{ background: C.text, color: C.yellow }}>Prendi in carico</button>}
+            {revision.status === "team_in_progress" && <p className="mt-3 text-xs font-bold" style={{ color: C.purple }}>In lavorazione dal team. Dopo il nuovo upload potrai chiudere la revisione via API/admin.</p>}
+          </div>)}</div>
+        </div>}
 
         {/* DA REVISIONARE — taglio testo (stile Descript) */}
         {toReview.length > 0 && (
