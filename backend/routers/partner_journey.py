@@ -6979,6 +6979,8 @@ async def complete_operativo_step(
 
 async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body: _OperativoCompleteBody):
     """Logica interna di completamento step, usata anche dai ponti PDF/asset."""
+    from services.journey_completion import evaluate_step_completion
+
     now = datetime.utcnow()
 
     current = await db.partner_journey_steps.find_one(
@@ -6988,6 +6990,16 @@ async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body
         raise HTTPException(404, f"Step {step_id} non trovato per partner {partner_id}")
 
     merged_data = {**current.get("data", {}), **(body.data or {})}
+
+    # I flag governati non vengono mai accettati dal body del client: saranno
+    # valorizzati esclusivamente dai resolver DB/evidenze dei rispettivi gate.
+    completion_context = {"data": merged_data}
+    completion = evaluate_step_completion(step_id, completion_context)
+    if not completion.ok:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": completion.code, "message": completion.message, "evidence": completion.evidence},
+        )
 
     await db.partner_journey_steps.update_one(
         {"partner_id": partner_id, "step_id": step_id},
