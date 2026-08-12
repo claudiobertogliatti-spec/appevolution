@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Award, BookOpen, Download, Lock, Sparkles } from "lucide-react";
+import { authHeaders } from "../api";
 import { buildRewardPhases, nextLockedReward } from "./rewardUtils";
+import { downloadProtectedDocument } from "./protectedDownload";
 
 function PhaseDot({ phase }) {
   return (
@@ -13,11 +15,13 @@ function PhaseDot({ phase }) {
 
 export default function ProjectBookCard({ partnerId, state, compact = false }) {
   const [remote, setRemote] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     let alive = true;
     if (!partnerId) return () => {};
-    fetch(`/api/partner-rewards/${partnerId}/state`)
+    fetch(`/api/partner-rewards/${partnerId}/state`, { headers: authHeaders() })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (alive && data) setRemote(data);
@@ -36,6 +40,18 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
   const nextReward = nextLockedReward(phases);
   const bookUrl = remote?.project_book?.download_url || `/api/partner-rewards/${partnerId}/project-book`;
   const projectName = remote?.project_book?.project_name || "Il tuo modello digitale";
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      await downloadProtectedDocument(bookUrl, "Libretto_di_Progetto_Ciak.pdf");
+    } catch {
+      setDownloadError("Download non riuscito. Riprova tra poco.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <section className={`bg-white border border-yellow-200 rounded-xl shadow-[0_0_24px_rgba(250,204,21,0.14)] overflow-hidden ${compact ? "" : "mt-5"}`}>
@@ -72,16 +88,17 @@ export default function ProjectBookCard({ partnerId, state, compact = false }) {
                 Valida aggiunge masterclass, corso, script, sistema di vendita e lancio, Ottimizza aggiunge dati e miglioramenti.
               </p>
             </div>
-            <a
-              href={bookUrl}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
-              Scarica dispensa
-            </a>
+              {downloading ? "Preparazione..." : "Scarica dispensa"}
+            </button>
           </div>
+          {downloadError && <p className="mt-2 text-sm text-red-600">{downloadError}</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
             {phases.map((phase) => (

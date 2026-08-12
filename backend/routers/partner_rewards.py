@@ -5,8 +5,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from models.partner_journey_step import MACRO_PHASES_DEFINITION, REQUIRED_STEP_IDS_BY_PHASE
 from services.partner_rewards_pdf import (
@@ -18,12 +19,20 @@ from services.project_book_html import genera_project_book_pdf
 
 
 router = APIRouter(prefix="/api/partner-rewards", tags=["partner-rewards"])
+security = HTTPBearer(auto_error=False)
 db = None
 
 
 def set_db(database):
     global db
     db = database
+
+
+async def _require_partner_access(partner_id: str, credentials):
+    # Import lazy: partner_journey usa a sua volta gli helper rewards per gli
+    # sblocchi, quindi un import top-level creerebbe un ciclo durante il boot.
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    return await require_partner_or_admin_for_partner(partner_id, credentials)
 
 
 PHASE_META = {
@@ -489,7 +498,11 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
 
 
 @router.get("/{partner_id}/state")
-async def get_rewards_state(partner_id: str):
+async def get_rewards_state(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await _require_partner_access(partner_id, credentials)
     ctx = await _load_context(partner_id)
     ctx["partner_id"] = partner_id
     phases = _reward_state(ctx)
@@ -511,7 +524,12 @@ async def get_rewards_state(partner_id: str):
 
 
 @router.get("/{partner_id}/certificate/{phase}")
-async def download_certificate(partner_id: str, phase: str):
+async def download_certificate(
+    partner_id: str,
+    phase: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await _require_partner_access(partner_id, credentials)
     phase = _normalize_phase(phase)
     if phase not in PHASE_META:
         raise HTTPException(404, "Fase non valida")
@@ -535,7 +553,12 @@ async def download_certificate(partner_id: str, phase: str):
 
 
 @router.get("/{partner_id}/bonus/{phase}")
-async def download_bonus(partner_id: str, phase: str):
+async def download_bonus(
+    partner_id: str,
+    phase: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await _require_partner_access(partner_id, credentials)
     phase = _normalize_phase(phase)
     if phase not in PHASE_META:
         raise HTTPException(404, "Fase non valida")
@@ -557,7 +580,11 @@ async def download_bonus(partner_id: str, phase: str):
 
 
 @router.get("/{partner_id}/project-book")
-async def download_project_book(partner_id: str):
+async def download_project_book(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await _require_partner_access(partner_id, credentials)
     ctx = await _load_context(partner_id)
     payload = {
         "partner_name": _partner_name(ctx["partner"]),

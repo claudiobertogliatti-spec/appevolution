@@ -94,6 +94,7 @@ jobs:
           tests/test_proposta_security.py
           tests/test_partner_forgot_password.py
           tests/test_partner_journey_auth_coverage.py
+          tests/test_partner_rewards_auth.py
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py

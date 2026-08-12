@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Award, BookOpen, Download } from "lucide-react";
+import { downloadProtectedDocument } from "../../rewards/protectedDownload";
 
 /**
  * Schermata celebrativa che appare la prima volta dopo che il partner
@@ -7,6 +8,21 @@ import { Award, BookOpen, Download } from "lucide-react";
  * il container monta OperativoContinuo.
  */
 export default function StepFinaleCelebrativa({ partnerId, onDismissCelebrazione }) {
+  const [downloading, setDownloading] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+
+  async function handleDownload(kind, url, filename) {
+    setDownloading(kind);
+    setDownloadError("");
+    try {
+      await downloadProtectedDocument(url, filename);
+    } catch {
+      setDownloadError("Download non riuscito. Riprova tra poco.");
+    } finally {
+      setDownloading("");
+    }
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-md p-10 md:p-14 text-center">
       <div className="text-6xl mb-5">🎬</div>
@@ -30,34 +46,35 @@ export default function StepFinaleCelebrativa({ partnerId, onDismissCelebrazione
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto mt-6">
-        <a
-          href={`/api/partner-rewards/${partnerId}/certificate/golive`}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={() => handleDownload("certificate", `/api/partner-rewards/${partnerId}/certificate/golive`, "Attestato_Ciak.pdf")}
+          disabled={Boolean(downloading)}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
         >
           <Award className="w-4 h-4" />
-          Scarica attestato
-        </a>
-        <a
-          href={`/api/partner-rewards/${partnerId}/project-book`}
-          target="_blank"
-          rel="noreferrer"
+          {downloading === "certificate" ? "Preparazione..." : "Scarica attestato"}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDownload("book", `/api/partner-rewards/${partnerId}/project-book`, "Libretto_di_Progetto_Ciak.pdf")}
+          disabled={Boolean(downloading)}
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
         >
           <BookOpen className="w-4 h-4" />
-          Libretto completo
-        </a>
+          {downloading === "book" ? "Preparazione..." : "Libretto completo"}
+        </button>
       </div>
-      <a
-        href={`/api/partner-rewards/${partnerId}/bonus/golive`}
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => handleDownload("bonus", `/api/partner-rewards/${partnerId}/bonus/golive`, "Piano_90_Giorni_Ciak.pdf")}
+        disabled={Boolean(downloading)}
         className="mt-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-700"
       >
         <Download className="w-4 h-4" />
-        Scarica anche il Piano 90 Giorni
-      </a>
+        {downloading === "bonus" ? "Preparazione..." : "Scarica anche il Piano 90 Giorni"}
+      </button>
+      {downloadError && <p className="mt-3 text-sm text-red-600">{downloadError}</p>}
       <div className="border-t border-gray-200 pt-8 mt-10 max-w-md mx-auto">
         <p className="text-sm text-slate-900 italic">Grazie a te per la fiducia.</p>
         <p className="text-xs text-slate-500 mt-1">
