@@ -606,4 +606,3 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
     assert len(tasks.calls) == 1
     assert tasks.calls[0][0] is stripe_webhook.send_partnership_welcome_email
     assert tasks.calls[0][1] == ("user-1",)
-

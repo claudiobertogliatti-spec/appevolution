@@ -266,4 +266,3 @@ async def test_verify_magic_login_token_rejects_replay_after_first_use():
     assert len(failures) == 1
     assert isinstance(failures[0], ValueError)
     assert str(failures[0]) == "token non valido"
-
