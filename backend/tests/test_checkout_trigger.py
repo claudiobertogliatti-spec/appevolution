@@ -82,6 +82,16 @@ class FakeBackgroundTasks:
     def add_task(self, func, *args, **kwargs):
         self.calls.append((func, args, kwargs))
 
+    async def run_all(self):
+        """Esegue le task come fa FastAPI dopo aver risposto al webhook.
+
+        Serve nei test che verificano gli EFFETTI della consegna: da quando
+        accesso e analisi sono BackgroundTask e non piu' `create_task`, non
+        partono da sole durante la chiamata.
+        """
+        for func, args, kwargs in list(self.calls):
+            await func(*args, **kwargs)
+
 
 @pytest.mark.asyncio
 async def test_handle_checkout_triggers_delivery(monkeypatch):
@@ -118,11 +128,12 @@ async def test_handle_checkout_triggers_delivery(monkeypatch):
         captured["delivery_args"] = (session_token, email, nome)
     monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", fake_processa)
 
+    bg = FakeBackgroundTasks()
     await checkout._handle_checkout_completed({
         "id": "cs_1", "amount_total": 6700,
         "metadata": {"tipo": "ciak_blueprint", "diagnostic_session_token": "tok"},
         "customer_email": "c@x.it",
-    })
+    }, bg)
     # Must have scheduled at least 2 tasks: Systeme event + analisi delivery
     assert len(captured["tasks"]) >= 2, (
         f"Expected ≥2 create_task calls (Systeme + delivery), got {len(captured['tasks'])}"
@@ -252,6 +263,7 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
     monkeypatch.setattr("services.ciak_systeme.ciak_set_contact_fields", fake_set_contact_fields)
     monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
 
+    bg = FakeBackgroundTasks()
     await checkout._handle_checkout_completed(
         {
             "id": "cs_blueprint_1",
@@ -259,11 +271,14 @@ async def test_handle_checkout_completed_creates_client_access_and_magic_token(m
             "currency": "eur",
             "metadata": {"tipo": "ciak_blueprint", "diagnostic_session_token": "tok-blueprint"},
             "customer_email": "user@example.com",
-        }
+        },
+        bg,
     )
     await asyncio.gather(*captured["tasks"])
 
     assert len(fake_db.ciak_clients.docs) == 1
+    await bg.run_all()
+
     client = fake_db.ciak_clients.docs[0]
     assert client["email"] == "user@example.com"
     assert client["access_level"] == "cliente_blueprint"
@@ -309,6 +324,7 @@ async def test_handle_checkout_completed_cold_direct_creates_diagnostic_client_a
     monkeypatch.setattr("services.ciak_systeme.ciak_emit_event", lambda **k: _noop())
     monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
 
+    bg = FakeBackgroundTasks()
     await checkout._handle_checkout_completed(
         {
             "id": "cs_cold_direct_1",
@@ -317,7 +333,8 @@ async def test_handle_checkout_completed_cold_direct_creates_diagnostic_client_a
             "metadata": {"tipo": "ciak_blueprint", "stato": "2"},
             "customer_email": "cold@example.com",
             "customer_details": {"email": "cold@example.com", "name": "Cold Buyer"},
-        }
+        },
+        bg,
     )
 
     assert fake_db.ciak_orphan_purchases.docs == []
@@ -365,6 +382,7 @@ async def test_handle_checkout_completed_records_recovery_when_client_access_cre
     monkeypatch.setattr("services.ciak_analisi_delivery.processa_acquisto", lambda **k: _noop())
     monkeypatch.setattr("services.ciak_client_accounts.ensure_client_for_blueprint", boom)
 
+    bg = FakeBackgroundTasks()
     await checkout._handle_checkout_completed(
         {
             "id": "cs_cold_direct_fail",
@@ -373,7 +391,8 @@ async def test_handle_checkout_completed_records_recovery_when_client_access_cre
             "metadata": {"tipo": "ciak_blueprint", "stato": "2"},
             "customer_email": "recover@example.com",
             "customer_details": {"email": "recover@example.com", "name": "Recover Buyer"},
-        }
+        },
+        bg,
     )
 
     assert len(fake_db.ciak_client_access_recovery.docs) == 1

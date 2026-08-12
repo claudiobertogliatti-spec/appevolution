@@ -29,7 +29,7 @@ from typing import Optional
 from uuid import uuid4
 
 import stripe
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from services.ciak_state_machine import (
@@ -102,27 +102,64 @@ async def _deliver_client_access_link(
 
     from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields
 
+    # Il custom field da solo non consegna nulla: e' il tag che fa partire il
+    # workflow Systeme con il link. Se fallisce si annota e si prosegue.
     try:
         await ciak_set_contact_fields(
             email=email,
             fields={"client_access_url": magic_link},
             first_name=name,
         )
-    except Exception as exc:  # noqa: BLE001 - best effort per webhook
+    except Exception as exc:  # noqa: BLE001 - il tag sotto puo' ancora riuscire
         logger.warning("[CIAK_WEBHOOK] Systeme client access field failed for %s: %s", email, exc)
 
+    # Questo invece E' la consegna. Prima l'eccezione veniva inghiottita in un
+    # warning: il cliente pagava 27 EUR, non riceveva il link e il sistema
+    # risultava a posto. Ora propaga, e il chiamante registra la recovery.
+    await ciak_emit_event(
+        email=email,
+        event_name="ciak_client_access_ready",
+        first_name=name,
+        metadata={
+            "client_access_url": magic_link,
+            "expires_at": expires_at,
+        },
+    )
+
+
+async def _deliver_access_or_record_recovery(
+    *,
+    data: dict,
+    diagnostic: dict | None,
+    email: str,
+    name: str | None,
+    magic_link: str,
+    expires_at: str,
+) -> None:
+    """Consegna il link di accesso; se non riesce, lascia una traccia recuperabile.
+
+    Gira come BackgroundTask, non come `create_task`: Cloud Run attende il
+    completamento delle background task prima di riciclare la worker, mentre un
+    task orfano sparisce insieme al processo senza lasciare nulla.
+
+    Nella coda di recovery finisce CHI va recuperato, mai il magic link: quel
+    link fa entrare come il cliente per 48 ore e si rigenera, non si conserva.
+    """
     try:
-        await ciak_emit_event(
-            email=email,
-            event_name="ciak_client_access_ready",
-            first_name=name,
-            metadata={
-                "client_access_url": magic_link,
-                "expires_at": expires_at,
-            },
+        await _deliver_client_access_link(
+            email=email, name=name, magic_link=magic_link, expires_at=expires_at,
         )
-    except Exception as exc:  # noqa: BLE001 - best effort per webhook
-        logger.warning("[CIAK_WEBHOOK] Systeme client access event failed for %s: %s", email, exc)
+    except Exception as exc:  # noqa: BLE001 - la consegna non deve rompere il webhook
+        logger.error("[CIAK_WEBHOOK] consegna accesso fallita per %s: %s", email, exc)
+        try:
+            await _record_client_access_recovery(
+                data=data, diagnostic=diagnostic, customer_email=email, error=exc,
+            )
+        except Exception as recovery_exc:  # noqa: BLE001
+            logger.error(
+                "[CIAK_WEBHOOK] impossibile registrare la recovery per %s: %s",
+                email, recovery_exc,
+            )
 
 
 def _customer_details(data: dict) -> tuple[str, str | None]:
@@ -354,7 +391,7 @@ async def get_session_status(session_id: str):
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post("/webhook", status_code=status.HTTP_200_OK)
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Stripe webhook per Ciak Blueprint.
     Filtra solo eventi con metadata.tipo in {"ciak_blueprint", "ciak_analisi"}.
@@ -405,7 +442,7 @@ async def stripe_webhook(request: Request):
         return {"status": "ignored", "reason": "non-ciak"}
 
     if event_type == "checkout.session.completed":
-        await _handle_checkout_completed(data)
+        await _handle_checkout_completed(data, background_tasks)
     elif event_type == "charge.refunded":
         await _handle_charge_refunded(data)
     else:
@@ -414,7 +451,7 @@ async def stripe_webhook(request: Request):
     return {"status": "ok"}
 
 
-async def _handle_checkout_completed(data: dict) -> None:
+async def _handle_checkout_completed(data: dict, background_tasks: BackgroundTasks) -> None:
     """Pagamento riuscito → transizione purchased_67."""
     metadata = data.get("metadata", {}) or {}
     session_token = metadata.get("diagnostic_session_token")
@@ -514,15 +551,14 @@ async def _handle_checkout_completed(data: dict) -> None:
             },
         )
         if client.get("email"):
-            import asyncio as _asyncio
-
-            _asyncio.create_task(
-                _deliver_client_access_link(
-                    email=client["email"],
-                    name=diagnostic.get("user_name") or client.get("name"),
-                    magic_link=magic_link,
-                    expires_at=login["expires_at"],
-                )
+            background_tasks.add_task(
+                _deliver_access_or_record_recovery,
+                data=data,
+                diagnostic=diagnostic,
+                email=client["email"],
+                name=diagnostic.get("user_name") or client.get("name"),
+                magic_link=magic_link,
+                expires_at=login["expires_at"],
             )
     except Exception as exc:
         logger.error("[CIAK_WEBHOOK] client access creation failed: %s", exc)
@@ -553,14 +589,18 @@ async def _handle_checkout_completed(data: dict) -> None:
             },
         ))
 
-        # Plan B: genera + invia la bozza analisi in background (idempotente, non blocca il webhook).
+        # Consegna dell'analisi: idempotente (bozza_inviata_at) e non blocca il
+        # webhook, ma come BackgroundTask invece che come task orfano. Con
+        # `create_task` un riciclo del worker fra la risposta a Stripe e
+        # l'esecuzione faceva sparire la consegna senza lasciare traccia.
         from services import ciak_analisi_delivery
         ciak_analisi_delivery.set_db(db)
-        _asyncio.create_task(ciak_analisi_delivery.processa_acquisto(
+        background_tasks.add_task(
+            ciak_analisi_delivery.processa_acquisto,
             session_token=diagnostic.get("session_token"),
             email=_user_email,
             nome=diagnostic.get("user_name"),
-        ))
+        )
 
 
 async def _handle_charge_refunded(data: dict) -> None:
