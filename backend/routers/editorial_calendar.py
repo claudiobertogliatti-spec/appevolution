@@ -25,7 +25,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from services.editorial_calendar import build_editorial_calendar
 from services.launch_calendar import (
@@ -70,6 +70,12 @@ class SubmitCalendarVersionBody(BaseModel):
 class ReviewCalendarVersionBody(BaseModel):
     decision: Literal["approve", "reject"]
     note: str
+
+
+class DrainCalendarNotificationRecoveryBody(BaseModel):
+    """Limite esplicito per il consumer amministrativo della recovery alert."""
+
+    limit: int = Field(default=25, ge=1, le=100)
 
 
 _STRUCTURAL_READINESS_CODES = {
@@ -179,31 +185,67 @@ async def _require_calendar_admin(credentials: HTTPAuthorizationCredentials):
     return actor
 
 
-def _is_real_review_destination(value: object) -> bool:
-    """La review non fa rete e non attesta host/IP non pubblici o fixture."""
+def _canonical_public_review_host(value: object) -> str | None:
+    """Restituisce solo host HTTPS canonici e pubblici, senza alcuna risoluzione DNS."""
+    if not isinstance(value, str):
+        return None
     try:
-        hostname = (urlparse(str(value)).hostname or "").lower()
+        parsed = urlparse(value)
+        # Accedere a ``port`` forza anche la validazione delle porte malformate.
+        _ = parsed.port
     except ValueError:
-        return False
-    if not hostname or (
-        hostname == "localhost"
-        or hostname.endswith(".localhost")
-        or hostname.endswith(".test")
-        or hostname.endswith(".invalid")
+        return None
+    if (
+        parsed.scheme != "https"
+        or parsed.username is not None
+        or parsed.password is not None
+        or not parsed.hostname
     ):
-        return False
+        return None
+    hostname = parsed.hostname
+    # I nomi FQDN con il punto finale sono semanticamente equivalenti, ma qui non
+    # sono una forma canonica: la review deve fissare un URL univoco e pubblico.
+    if hostname.endswith("."):
+        return None
     try:
-        address = ipaddress.ip_address(hostname)
+        canonical = hostname.encode("idna").decode("ascii").lower()
+    except UnicodeError:
+        return None
+    if (
+        not canonical
+        or canonical == "localhost"
+        or canonical.endswith(".localhost")
+        or canonical.endswith(".test")
+        or canonical.endswith(".invalid")
+    ):
+        return None
+    try:
+        address = ipaddress.ip_address(canonical)
     except ValueError:
-        return True
-    return address.is_global and not any((
+        labels = canonical.split(".")
+        # Non interpretiamo mai le forme IPv4 legacy: abbreviazioni, interi,
+        # esadecimali e ottali sono host ambigui e possono aggirare i controlli.
+        if "." not in canonical or all(
+            label.isdigit() or label.lower().startswith("0x")
+            for label in labels
+        ):
+            return None
+        return canonical
+    if not address.is_global or any((
         address.is_private,
         address.is_loopback,
         address.is_link_local,
         address.is_reserved,
         address.is_multicast,
         address.is_unspecified,
-    ))
+    )):
+        return None
+    return canonical
+
+
+def _is_real_review_destination(value: object) -> bool:
+    """La review non fa rete e non attesta host/IP non pubblici o fixture."""
+    return _canonical_public_review_host(value) is not None
 
 
 def _partner_confirmation_is_consistent(document: dict, calendar: dict) -> bool:
@@ -287,24 +329,34 @@ async def _claim_pending_review_notification(
     )
     claim = await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key, "status": "pending"},
-        {"$set": {
-            "status": "sending",
-            "lease_owner": owner,
-            "claimed_at": now,
-            "lease_expires_at": lease_expires_at,
-        }},
+        {
+            "$set": {
+                "status": "sending",
+                "lease_owner": owner,
+                "claimed_at": now,
+                "lease_expires_at": lease_expires_at,
+                "last_attempt_at": now,
+                "last_attempt_status": "sending",
+            },
+            "$inc": {"attempt_count": 1},
+        },
         return_document=ReturnDocument.AFTER,
     )
     if claim:
         return claim
     return await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key, "status": "sending", "lease_expires_at": {"$lte": now}},
-        {"$set": {
-            "lease_owner": owner,
-            "claimed_at": now,
-            "lease_expires_at": lease_expires_at,
-            "reclaimed_at": now,
-        }},
+        {
+            "$set": {
+                "lease_owner": owner,
+                "claimed_at": now,
+                "lease_expires_at": lease_expires_at,
+                "reclaimed_at": now,
+                "last_attempt_at": now,
+                "last_attempt_status": "sending",
+            },
+            "$inc": {"attempt_count": 1},
+        },
         return_document=ReturnDocument.AFTER,
     )
 
@@ -359,11 +411,19 @@ async def _notify_pending_review_or_record_recovery(
     checksum: str,
 ) -> None:
     """Invia una sola volta; solo un recovery ``pending`` puo' essere ritentato."""
-    from pymongo import ReturnDocument
     claim = await _claim_pending_review_notification(partner_id, version, checksum)
     if not claim:
         return
-    event_key = _notification_event_key(partner_id, version, checksum)
+    await _deliver_pending_review_notification_claim(claim)
+
+
+async def _deliver_pending_review_notification_claim(claim: dict) -> bool:
+    """Consegna l'alert in-app per un claim; il lease resta recuperabile se il processo muore."""
+    from pymongo import ReturnDocument
+
+    partner_id = str(claim["partner_id"])
+    version = int(claim["version"])
+    event_key = str(claim["event_key"])
     now = datetime.now(timezone.utc).isoformat()
     try:
         telegram_status = await _write_pending_review_in_app_alert(
@@ -377,22 +437,64 @@ async def _notify_pending_review_or_record_recovery(
                     "status": "pending",
                     "error_code": "admin_notification_failed",
                     "last_failed_at": now,
+                    "last_attempt_status": "pending",
                 }
             },
             return_document=ReturnDocument.AFTER,
         )
-        return
+        return False
 
-    await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+    sent = await db.partner_launch_calendar_notification_recovery.find_one_and_update(
         {"_id": event_key, "status": "sending", "lease_owner": claim["lease_owner"]},
         {"$set": {
             "status": "sent",
             "sent_at": now,
             "delivery_contract": "in_app_alert",
             "telegram_status": telegram_status,
+            "last_attempt_status": "sent",
         }},
         return_document=ReturnDocument.AFTER,
     )
+    return sent is not None
+
+
+async def _drain_calendar_notification_recovery(limit: int = 25) -> dict:
+    """Consumer schedulabile: recupera alert pending o lease scaduti una sola volta."""
+    now = datetime.now(timezone.utc).isoformat()
+    candidates = await db.partner_launch_calendar_notification_recovery.find(
+        {
+            "$or": [
+                {"status": "pending"},
+                {"status": "sending", "lease_expires_at": {"$lte": now}},
+            ]
+        },
+        {"_id": 0},
+    ).sort("created_at", 1).to_list(limit)
+    result = {"claimed": 0, "sent": 0, "pending": 0}
+    for candidate in candidates:
+        claim = await _claim_pending_review_notification(
+            str(candidate["partner_id"]),
+            int(candidate["version"]),
+            str(candidate["checksum"]),
+        )
+        if not claim:
+            continue
+        result["claimed"] += 1
+        if await _deliver_pending_review_notification_claim(claim):
+            result["sent"] += 1
+        else:
+            result["pending"] += 1
+    return result
+
+
+@router.post("/admin/notification-recovery/drain")
+async def drain_calendar_notification_recovery(
+    body: DrainCalendarNotificationRecoveryBody,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Retry amministrabile per l'outbox alert; adatto anche a un job schedulato."""
+    await _require_calendar_admin(credentials)
+    return await _drain_calendar_notification_recovery(body.limit)
 
 
 @router.post("/generate")

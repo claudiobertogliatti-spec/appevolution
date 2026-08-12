@@ -61,6 +61,10 @@ class FakeCollection:
     @staticmethod
     def _matches(doc, query):
         for key, value in query.items():
+            if key == "$or":
+                if not any(FakeCollection._matches(doc, condition) for condition in value):
+                    return False
+                continue
             actual = doc.get(key)
             if isinstance(value, dict):
                 if "$lte" in value and not (actual is not None and actual <= value["$lte"]):
@@ -69,10 +73,24 @@ class FakeCollection:
                 return False
         return True
 
+    def find(self, query, projection=None):
+        return FakeCursor([doc for doc in self.docs if self._matches(doc, query)])
+
     async def insert_one(self, document):
         document["_id"] = f"mongo-{len(self.docs) + 1}"
         self.docs.append(deepcopy(document))
         return SimpleNamespace(inserted_id=len(self.docs))
+
+
+class FakeCursor:
+    def __init__(self, docs):
+        self.docs = [dict(doc) for doc in docs]
+
+    def sort(self, _field, _direction):
+        return self
+
+    async def to_list(self, limit):
+        return self.docs[:limit]
 
 
 class FakeDb:
@@ -671,6 +689,47 @@ async def test_expired_sending_lease_is_reclaimed_after_cancelled_delivery(fake_
     assert recovery["telegram_status"] == "best_effort_attempted"
 
 
+def test_admin_can_drain_failed_notification_without_resubmitting(
+    client, partner_token, admin_token, fake_db, monkeypatch
+):
+    async def alert_down(*args, **kwargs):
+        raise RuntimeError("in-app alert down")
+
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", alert_down)
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_https_destinations(client, partner_token, created)
+    submitted = _submit(client, partner_token, created)
+    assert submitted.status_code == 200
+    recovery = fake_db.partner_launch_calendar_notification_recovery.docs[0]
+    assert recovery["status"] == "pending"
+
+    async def alert_ok(partner_id, version, event_key):
+        await fake_db.alerts.find_one_and_update(
+            {"_id": event_key},
+            {"$setOnInsert": {"_id": event_key, "id": event_key, "partner_id": partner_id, "version": version}},
+            upsert=True,
+        )
+        return "best_effort_attempted"
+
+    monkeypatch.setattr(editorial_calendar, "_write_pending_review_in_app_alert", alert_ok)
+    drained = client.post(
+        "/api/partner/calendar/admin/notification-recovery/drain",
+        headers=_headers(admin_token),
+        json={"limit": 5},
+    )
+
+    assert drained.status_code == 200
+    assert drained.json() == {"claimed": 1, "sent": 1, "pending": 0}
+    assert recovery["status"] == "sent"
+    assert recovery["attempt_count"] == 2
+    assert recovery["last_attempt_status"] == "sent"
+    assert len(fake_db.alerts.docs) == 1
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -685,10 +744,61 @@ async def test_expired_sending_lease_is_reclaimed_after_cancelled_delivery(fake_
         "https://[::]/live",
         "https://[ff02::1]/live",
         "https://224.0.0.1/live",
+        "https://localhost./live",
+        "https://127.1/live",
+        "https://user:pass@www.ciak.io/live",
+        "https://intranet/live",
     ],
 )
 def test_review_destination_rejects_non_public_ip_or_local_hostname(url):
     assert editorial_calendar._is_real_review_destination(url) is False
+
+
+def test_review_destination_accepts_canonical_public_hostname_without_dns():
+    assert editorial_calendar._is_real_review_destination("https://www.ciak.io/live") is True
+
+
+@pytest.mark.parametrize(
+    ("url", "expected_status"),
+    [
+        ("https://localhost./live", 409),
+        ("https://127.1/live", 409),
+        ("https://user:pass@www.ciak.io/live", 409),
+        ("https://intranet/live", 409),
+        ("https://www.ciak.io/live", 200),
+    ],
+)
+def test_review_endpoint_enforces_canonical_public_destinations(
+    client, partner_token, admin_token, url, expected_status
+):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_ready_review_resources(client, partner_token, created)
+    if url != "https://www.ciak.io/live":
+        calendar = deepcopy(created["calendar"])
+        for day in calendar["days"]:
+            day["destination_url"] = url
+        updated = client.put(
+            "/api/partner/calendar/p1/versions/1/draft",
+            headers=_headers(partner_token),
+            json={"expected_checksum": created["checksum"], "calendar": calendar},
+        )
+        assert updated.status_code == 200
+        created = updated.json()
+
+    assert _submit(client, partner_token, created).status_code == 200
+    response = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "Review manuale"},
+    )
+
+    assert response.status_code == expected_status
+    if expected_status == 409:
+        assert "verified_destination_urls" in response.json()["detail"]["failed_checks"]
 
 
 def test_calendar_transition_auth_uses_401_for_missing_or_invalid_and_403_for_roles(
