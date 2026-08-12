@@ -12,10 +12,12 @@ La generazione non blocca mai: il servizio ricade su uno scheletro deterministic
 """
 from __future__ import annotations
 
+from copy import deepcopy
 import logging
 import os
 from datetime import date, datetime, timezone
 from typing import Literal
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -59,6 +61,7 @@ class UpdateCalendarDraftBody(BaseModel):
 
 class SubmitCalendarVersionBody(BaseModel):
     partner_confirmed: bool
+    expected_checksum: str
 
 
 class ReviewCalendarVersionBody(BaseModel):
@@ -128,6 +131,7 @@ def _response_document(document: dict) -> dict:
         "created_by",
         "partner_confirmed_at",
         "admin_review",
+        "approval_resources",
         "updated_at",
         "updated_by",
     )
@@ -155,6 +159,141 @@ def _raise_calendar_not_ready(failed_checks: list[str]) -> None:
             "code": "launch_calendar_not_ready",
             "failed_checks": failed_checks,
         },
+    )
+
+
+async def _require_calendar_admin(credentials: HTTPAuthorizationCredentials):
+    """Distinzione locale: token assente/non valido e' 401, ruolo errato 403."""
+    from auth import decode_token
+
+    if not credentials:
+        raise HTTPException(401, "Token non fornito")
+    actor = decode_token(credentials.credentials)
+    if not actor:
+        raise HTTPException(401, "Token non valido o scaduto")
+    if getattr(actor, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+    return actor
+
+
+def _is_real_review_destination(value: object) -> bool:
+    """La review non puo' attestare host riservati ai fixture/test."""
+    try:
+        hostname = (urlparse(str(value)).hostname or "").lower()
+    except ValueError:
+        return False
+    return bool(hostname) and not (
+        hostname == "localhost"
+        or hostname.endswith(".localhost")
+        or hostname.endswith(".test")
+        or hostname.endswith(".invalid")
+    )
+
+
+def _partner_confirmation_is_consistent(document: dict, calendar: dict) -> bool:
+    confirmation = calendar.get("partner_confirmation")
+    return (
+        isinstance(confirmation, dict)
+        and confirmation.get("partner_id") == document.get("partner_id")
+        and confirmation.get("confirmed_at") == document.get("partner_confirmed_at")
+        and confirmation.get("calendar_version") == document.get("partner_confirmed_version")
+        and confirmation.get("calendar_checksum") == document.get("partner_confirmed_checksum")
+        and confirmation.get("calendar_checksum") == document.get("checksum")
+        and calendar.get("version") == document.get("partner_confirmed_version")
+        and calendar_checksum(calendar) == document.get("checksum")
+    )
+
+
+def _admin_review_resources(calendar: dict, reviewed_at: str) -> tuple[dict, list[str]]:
+    """Snapshot esclusivamente dal documento pending e dall'atto admin corrente."""
+    destinations: dict[str, dict] = {}
+    invalid_destinations = False
+    for day in calendar.get("days") or []:
+        if not isinstance(day, dict):
+            invalid_destinations = True
+            continue
+        url = day.get("destination_url")
+        destination_kind = day.get("destination_kind")
+        if not _is_real_review_destination(url) or not isinstance(destination_kind, str):
+            invalid_destinations = True
+            continue
+        evidence = {
+            "verified": True,
+            "verified_at": reviewed_at,
+            "purpose": destination_kind,
+            "destination_kind": destination_kind,
+        }
+        if url in destinations and destinations[url]["destination_kind"] != destination_kind:
+            invalid_destinations = True
+            continue
+        destinations[url] = evidence
+    return {
+        "verified_destinations": destinations,
+        "organic_routine": deepcopy(calendar.get("organic_routine")),
+        "commercial_terms": deepcopy(calendar.get("commercial_terms")),
+        "evaluated_at": reviewed_at,
+    }, ["verified_destination_urls"] if invalid_destinations else []
+
+
+def _recovery_id(partner_id: str, version: int) -> str:
+    return f"calendar-pending-review:{partner_id}:{version}"
+
+
+def _sanitized_notification_error(error: Exception) -> str:
+    """La recovery e' operativa: non ci finiscono URL, token o trace completi."""
+    message = str(error).replace("\n", " ").strip()
+    if "http://" in message or "https://" in message or "token" in message.lower():
+        return "notifica admin non consegnata"
+    return (message or "notifica admin non consegnata")[:240]
+
+
+async def _record_notification_recovery(
+    partner_id: str,
+    version: int,
+    error: Exception,
+) -> None:
+    from pymongo import ReturnDocument
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+        {"_id": _recovery_id(partner_id, version)},
+        {
+            "$set": {
+                "partner_id": partner_id,
+                "version": version,
+                "event": "pending_review",
+                "status": "pending",
+                "error": _sanitized_notification_error(error),
+                "updated_at": now,
+            },
+            "$setOnInsert": {"created_at": now},
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+async def _notify_pending_review_or_record_recovery(partner_id: str, version: int) -> None:
+    """Ogni fallimento di notifica resta recuperabile, incluso un retry identico."""
+    from pymongo import ReturnDocument
+    from routers.partner_journey import _notify_admin_partner_activity
+
+    try:
+        delivered = await _notify_admin_partner_activity(
+            partner_id,
+            f"ha confermato il calendario di lancio v{version}",
+            requires_approval=True,
+        )
+        if delivered is False:
+            raise RuntimeError("notifica admin non consegnata")
+    except Exception as exc:
+        await _record_notification_recovery(partner_id, version, exc)
+        return
+
+    await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+        {"_id": _recovery_id(partner_id, version), "status": "pending"},
+        {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat()}},
+        return_document=ReturnDocument.AFTER,
     )
 
 
@@ -313,8 +452,19 @@ async def submit_calendar_version(
     )
     if not existing:
         raise HTTPException(404, "Versione del calendario non trovata")
+    if existing.get("status") == "pending_review":
+        if (
+            existing.get("partner_confirmed_by") == _actor_id(actor)
+            and existing.get("partner_confirmed_expected_checksum") == body.expected_checksum
+            and body.partner_confirmed is True
+        ):
+            await _notify_pending_review_or_record_recovery(partner_id, version)
+            return _response_document(existing)
+        raise HTTPException(409, "La conferma gia' registrata non corrisponde alla richiesta")
     if existing.get("status") != "draft":
         raise HTTPException(409, "La versione non e' piu' una bozza modificabile")
+    if existing.get("checksum") != body.expected_checksum:
+        raise HTTPException(409, "La bozza e' stata modificata altrove")
     if not body.partner_confirmed:
         _raise_calendar_not_ready(["partner_confirmation"])
 
@@ -323,18 +473,32 @@ async def submit_calendar_version(
         _raise_calendar_not_ready(failed_checks)
 
     confirmed_at = datetime.now(timezone.utc).isoformat()
+    calendar = deepcopy(existing.get("calendar") or {})
+    calendar["version"] = str(version)
+    confirmed_checksum = calendar_checksum(calendar)
+    calendar["partner_confirmation"] = {
+        "partner_id": partner_id,
+        "confirmed_at": confirmed_at,
+        "calendar_version": str(version),
+        "calendar_checksum": confirmed_checksum,
+    }
     document = await db.partner_launch_calendar_versions.find_one_and_update(
         {
             "partner_id": partner_id,
             "version": version,
             "status": "draft",
-            "checksum": existing.get("checksum"),
+            "checksum": body.expected_checksum,
         },
         {
             "$set": {
                 "status": "pending_review",
+                "calendar": calendar,
+                "checksum": confirmed_checksum,
                 "partner_confirmed_at": confirmed_at,
                 "partner_confirmed_by": _actor_id(actor),
+                "partner_confirmed_version": str(version),
+                "partner_confirmed_checksum": confirmed_checksum,
+                "partner_confirmed_expected_checksum": body.expected_checksum,
             }
         },
         return_document=ReturnDocument.AFTER,
@@ -342,16 +506,7 @@ async def submit_calendar_version(
     if not document:
         raise HTTPException(409, "La bozza e' stata modificata altrove")
 
-    try:
-        from routers.partner_journey import _notify_admin_partner_activity
-
-        await _notify_admin_partner_activity(
-            partner_id,
-            f"ha confermato il calendario di lancio v{version}",
-            requires_approval=True,
-        )
-    except Exception:
-        logger.exception("Notifica review calendario fallita dopo la persistenza")
+    await _notify_pending_review_or_record_recovery(partner_id, version)
     return _response_document(document)
 
 
@@ -364,15 +519,28 @@ async def review_calendar_version(
 ) -> dict:
     """Registra una sola decisione admin sulla versione confermata dal partner."""
     from pymongo import ReturnDocument
-    from routers.partner_journey import require_admin_token
 
-    actor = await require_admin_token(credentials)
+    actor = await _require_calendar_admin(credentials)
     existing = await db.partner_launch_calendar_versions.find_one(
         {"partner_id": partner_id, "version": version},
         {"_id": 0},
     )
     if not existing:
         raise HTTPException(404, "Versione del calendario non trovata")
+
+    target_status = "approved" if body.decision == "approve" else "rejected"
+    existing_review = existing.get("admin_review") or {}
+    if existing.get("status") in ("approved", "rejected"):
+        if (
+            existing.get("status") == target_status
+            and existing_review.get("decision") == body.decision
+            and existing_review.get("note") == body.note
+            and existing_review.get("reviewed_by") == _actor_id(actor)
+        ):
+            return _response_document(existing)
+        raise HTTPException(409, "La review gia' registrata non corrisponde alla richiesta")
+    if existing.get("status") != "pending_review":
+        raise HTTPException(409, "La versione non e' in attesa di review")
 
     reviewed_at = datetime.now(timezone.utc).isoformat()
     review = {
@@ -382,14 +550,33 @@ async def review_calendar_version(
         "reviewed_by": _actor_id(actor),
     }
     review_updates = {
-        "status": "approved" if body.decision == "approve" else "rejected",
+        "status": target_status,
         "admin_review": review,
     }
     if body.decision == "approve":
-        review["approved_checksum"] = existing.get("checksum")
+        calendar = deepcopy(existing.get("calendar") or {})
+        if not _partner_confirmation_is_consistent(existing, calendar):
+            _raise_calendar_not_ready(["partner_confirmation"])
+        approved_checksum = calendar_checksum(calendar)
+        admin_approval = {
+            "admin_id": _actor_id(actor),
+            "approved_at": reviewed_at,
+            "calendar_version": calendar.get("version"),
+            "calendar_checksum": approved_checksum,
+        }
+        calendar["admin_approval"] = admin_approval
+        resources, resource_failures = _admin_review_resources(calendar, reviewed_at)
+        readiness = evaluate_launch_calendar(calendar, resources)
+        failed_checks = sorted(set(resource_failures + readiness.failed_codes))
+        if failed_checks:
+            _raise_calendar_not_ready(failed_checks)
+        review["approved_checksum"] = approved_checksum
         review_updates.update(
             {
-                "approved_checksum": existing.get("checksum"),
+                "calendar": calendar,
+                "checksum": approved_checksum,
+                "approval_resources": resources,
+                "approved_checksum": approved_checksum,
                 "approved_at": reviewed_at,
                 "approved_by": _actor_id(actor),
             }

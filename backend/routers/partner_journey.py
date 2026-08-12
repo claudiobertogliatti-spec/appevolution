@@ -7028,8 +7028,10 @@ async def _notify_admin_partner_activity(
         await notify_telegram(
             f"📥 {nome} {msg}" + (" (da approvare)" if requires_approval else "")
         )
+        return True
     except Exception as e:
         logging.warning(f"[OPERATIVO] notifica admin fallita per {partner_id}: {e}")
+        return False
 
 
 @router.post("/operativo/complete/{partner_id}/{step_id}")
