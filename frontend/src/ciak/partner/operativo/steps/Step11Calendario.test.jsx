@@ -46,7 +46,16 @@ function validCalendar(days = 30) {
       },
     },
     commercial_terms: {
-      bonus: { title: "Bonus di lancio", expires_at: "2026-09-28T23:59:59+02:00" },
+      version: "catalogo-lancio-v1",
+      contract_duration_months: 12,
+      contract_start_anchor: "payment_completed",
+      price: { price_id: "price-corso-v1", amount_cent: 2700, currency: "EUR" },
+      bonus: {
+        bonus_id: "bonus-orientamento-v1",
+        name: "Sessione di orientamento",
+        version: "bonus-v1",
+        expires_at: "2026-10-01T23:59:59+02:00",
+      },
     },
   };
 }
@@ -65,6 +74,12 @@ function versionDocument(overrides = {}) {
 
 function renderStep(step = { data: {} }) {
   return render(<Step11Calendario step={step} partnerId="p1" />);
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((next) => { resolve = next; });
+  return { promise, resolve };
 }
 
 beforeEach(() => {
@@ -131,4 +146,64 @@ test("rigenera creando una nuova versione senza sovrascrivere quella corrente", 
     )
   );
   expect(await screen.findByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
+});
+
+test("dopo un errore di caricamento non propone di creare una versione", async () => {
+  axios.get.mockRejectedValueOnce({ response: { status: 503, data: { detail: "Servizio non disponibile" } } });
+  renderStep();
+
+  expect(await screen.findByText("Servizio non disponibile")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /riprova/i })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /crea il calendario/i })).toBeNull();
+});
+
+test("mostra un messaggio operativo per i controlli strutturati rifiutati", async () => {
+  mockApi.current = () => versionDocument();
+  axios.post.mockRejectedValueOnce({
+    response: {
+      status: 409,
+      data: { detail: { code: "launch_calendar_not_ready", failed_checks: ["https_destination_urls", "bonus_deadline"] } },
+    },
+  });
+  renderStep();
+
+  fireEvent.click(await screen.findByRole("button", { name: /invia a marco/i }));
+
+  expect(await screen.findByText(/inserisci un URL https valido/i)).toBeTruthy();
+  expect(screen.getByText(/completa prezzo, bonus e scadenza/i)).toBeTruthy();
+});
+
+test("blocca la seconda mutazione finche la nuova versione non e' confermata dal server", async () => {
+  mockApi.current = () => versionDocument();
+  const creation = deferred();
+  axios.post.mockImplementationOnce(() => creation.promise);
+  renderStep();
+
+  const regenerate = await screen.findByRole("button", { name: /rigenera nuova versione/i });
+  fireEvent.click(regenerate);
+  fireEvent.click(regenerate);
+
+  expect(axios.post).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("textbox", { name: /^tema del giorno 1$/i }).disabled).toBe(true);
+
+  creation.resolve({ data: versionDocument({ version: 2, checksum: "checksum-v2" }) });
+  expect(await screen.findByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
+});
+
+test("ignora il caricamento precedente quando cambia il partner", async () => {
+  const first = deferred();
+  const second = deferred();
+  axios.get.mockReset();
+  axios.get.mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
+  const view = render(<Step11Calendario step={{ data: {} }} partnerId="p1" />);
+
+  await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(1));
+  view.rerender(<Step11Calendario step={{ data: {} }} partnerId="p2" />);
+  await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(2));
+  second.resolve({ data: versionDocument({ partner_id: "p2", version: 2, checksum: "checksum-p2" }) });
+  expect(await screen.findByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
+
+  first.resolve({ data: versionDocument({ partner_id: "p1", version: 1, checksum: "checksum-p1" }) });
+  await waitFor(() => expect(screen.getByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy());
+  expect(screen.queryByText((_, element) => element?.textContent === "Versione 1")).toBeNull();
 });
