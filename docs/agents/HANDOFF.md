@@ -12,7 +12,7 @@ Regole:
 
 ---
 
-### 2026-08-12 · Codex · codex/ciak-start-payment-delivery — fix pagamento Start in verifica
+### 2026-08-12 · Codex · main — pagamento Ciak Start completo e live
 
 **FATTO**
 - Il webhook Ciak Start valida importo/valuta e fallisce in modo retriable se manca l'identita cliente.
@@ -24,10 +24,13 @@ Regole:
 - RED osservato su consegna email mancante, client inesistente trattato come successo, classificazione recovery Start e retry admin assente.
 - Test backend mirati: `27 passed`; `py_compile` e `git diff --check`: exit 0.
 - Build frontend produzione: exit 0, con soli warning ESLint preesistenti in file estranei.
+- Commit `b8ea9298` su `main`; CI `31608580817` verde e deploy `31608580773` verde con smoke post-deploy.
+- Backend `evolution-pro-backend-00543-rs8` e worker `evolution-pro-worker-00128-745`: Ready, 100% traffico. Health live 200.
+- Route live retry Start: 401 anonimo (esiste ed e' protetta); webhook senza firma: 400. Bundle live `main.2c246034.js` contiene conferma pagamento e retry Start.
 
 **APERTO**
-- Commit/push, CI, deploy e smoke live ancora da eseguire.
-- Jest nel worktree sotto `.worktrees` non indicizza alcun test; la compilazione produzione copre il JSX ma il nuovo test UI deve passare in CI dal checkout standard.
+- Nessun acquisto reale e' stato creato per lo smoke: la produzione contava zero sessioni/pagamenti Start prima del rilascio. Il primo acquisto reale va seguito in `Consegne mancate` e nei registri Stripe senza intervenire sul pagamento.
+- Jest nel worktree sotto `.worktrees` non indicizza alcun test; CI ha verificato il build frontend, non la nuova spec Jest isolata.
 
 ### 2026-08-12 · Codex · main — journey EVO F-1/F-20, documenti progressivi e lancio
 
