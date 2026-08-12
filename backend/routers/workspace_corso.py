@@ -148,15 +148,23 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
     planned = _planned_lessons(cd)
     n_planned = len(planned)
     uploaded = []
+    from services.ciak_lesson_review import is_partner_approved
     for lid, l in lessons.items():
         lesson_status = l.get("pipeline_status") or l.get("status") or ""
+        partner_approved = is_partner_approved(l)
         uploaded.append({
             "lesson_id": lid,
             "title": l.get("title") or l.get("original_name") or lid,
             "pipeline_status": lesson_status,
             "ready_for_review": lesson_status in ("ready_for_review", "ready_for_review_gcs", "approved"),
-            "approved": bool(l.get("video_approved")) or (l.get("status") == "approved"),
-            "embed_url": l.get("video_embed_url") or "",
+            "approved": partner_approved,
+            "partner_approved": partner_approved,
+            "partner_review_status": l.get("partner_review_status") or "pending",
+            "output_version": int(l.get("output_version") or 0),
+            "video_duration_s": float(l.get("video_final_duration_s") or 0),
+            "active_revision_id": l.get("active_revision_id"),
+            "revision_cycle": int(l.get("revision_cycle") or 0),
+            "embed_url": l.get("video_ciak_url") or l.get("video_embed_url") or l.get("video_youtube_url") or "",
         })
     n_uploaded = len(uploaded)
     n_approved = sum(1 for u in uploaded if u["approved"])
@@ -178,6 +186,9 @@ async def _build_state(partner_id: str) -> Dict[str, Any]:
          "status": "completata" if all_recorded else ("da_iniziare" if course_approved else "bloccata")},
         {"id": "caricare", "label": "Caricare ogni video",
          "status": "completata" if all_recorded else ("da_iniziare" if course_approved else "bloccata")},
+        {"id": "approvare_video", "label": f"Guardare e approvare i video editati ({n_approved}/{n_planned or '?'})",
+         "status": "completata" if n_planned > 0 and n_approved >= n_planned else
+                   ("da_iniziare" if n_uploaded else "bloccata")},
     ]
 
     # Deliverable

@@ -2488,3 +2488,110 @@ def run_apply_background(partner_id: str, video_type: str = "masterclass", lesso
         logger.error(f"[VIDEO-APPLY] Background failed: {exc}", exc_info=True)
     finally:
         loop.close()
+
+
+async def _process_lesson_revision(revision_id: str):
+    """Applica solo trasformazioni globali reversibili classificate verdi."""
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.environ.get("MONGO_URL", os.environ.get("MONGODB_URL", "mongodb://localhost:27017"))
+    if not mongo_url or "customer-apps" in mongo_url:
+        mongo_url = os.environ.get("MONGO_ATLAS_URL", mongo_url)
+    mongo = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+    database = mongo[os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))]
+    tmp_dir = Path(tempfile.mkdtemp(prefix="ciak-revision-"))
+    try:
+        revision = await database.lesson_video_revisions.find_one({"revision_id": revision_id})
+        if not revision or revision.get("status") != "queued":
+            return
+        claimed = await database.lesson_video_revisions.update_one(
+            {"revision_id": revision_id, "status": "queued"},
+            {"$set": {"status": "processing", "started_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        if not claimed.modified_count:
+            return
+        partner_id, lesson_id = revision["partner_id"], revision["lesson_id"]
+        vc = await database.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+        lesson = ((vc.get("lessons") or {}).get(lesson_id)) or {}
+        if int(lesson.get("output_version") or 0) != int(revision["source_output_version"]):
+            raise ValueError("La versione sorgente non e' piu corrente")
+        source = lesson.get("output_gcs_url")
+        if not source:
+            raise ValueError("Sorgente montata non disponibile")
+
+        supported = {"increase_pace", "slow_down", "raise_voice", "normalize_volume"}
+        if any(item["action"] not in supported or item.get("scope") != "global" for item in revision["items"]):
+            await database.lesson_video_revisions.update_one(
+                {"revision_id": revision_id},
+                {"$set": {"status": "team_review", "requires_team_review": True,
+                          "automation_error": "La lista contiene interventi editoriali"}},
+            )
+            return
+
+        input_path, output_path = str(tmp_dir / "input.mp4"), str(tmp_dir / "output.mp4")
+        await download_video(source, input_path)
+        speed, gain, normalize = 1.0, 0.0, False
+        for item in revision["items"]:
+            action, intensity = item["action"], item.get("intensity")
+            if action == "increase_pace": speed *= 1.03
+            elif action == "slow_down": speed *= 0.98
+            elif action == "raise_voice": gain += {"light": 1.0, "medium": 2.0}.get(intensity, 1.0)
+            elif action == "normalize_volume": normalize = True
+        speed = max(0.95, min(1.05, speed))
+        vf = f"setpts=PTS/{speed:.5f}" if speed != 1.0 else "null"
+        af = []
+        if speed != 1.0: af.append(f"atempo={speed:.5f}")
+        if gain: af.append(f"volume={gain:.2f}dB")
+        if normalize: af.append("loudnorm=I=-18:TP=-1.5:LRA=11")
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-vf", vf]
+        if af: cmd += ["-af", ",".join(af)]
+        cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", output_path]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr[-1000:])
+        from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet
+        version = int(revision["target_output_version"])
+        public_url = _gcs_upload_public(output_path, edited_gcs_subpath(partner_id, lesson_id, version), "video/mp4")
+        if not public_url:
+            raise RuntimeError("Upload GCS fallito")
+        now = datetime.now(timezone.utc).isoformat()
+        ciak_url = ciak_lesson_url(partner_id, lesson_id)
+        lk = f"lessons.{lesson_id}"
+        await database.partner_videocorso.update_one(
+            {"partner_id": partner_id, f"{lk}.output_version": revision["source_output_version"]},
+            {"$set": {f"{lk}.output_gcs_url": public_url, f"{lk}.output_version": version,
+                      f"{lk}.video_ciak_url": ciak_url, f"{lk}.video_embed_url": ciak_url,
+                      f"{lk}.video_systeme_embed": embed_snippet(ciak_url),
+                      f"{lk}.pipeline_status": "ready_for_review", f"{lk}.status": "ready_for_review",
+                      f"{lk}.partner_review_status": "pending", f"{lk}.partner_approved": False,
+                      f"{lk}.video_approved": False, f"{lk}.partner_review_version": version,
+                      f"{lk}.active_revision_id": None, "updated_at": now}},
+        )
+        await database.lesson_video_revisions.update_one(
+            {"revision_id": revision_id},
+            {"$set": {"status": "completed", "completed_at": now, "produced_output_version": version,
+                      "items.$[].result": "applied"}},
+        )
+        await telegram(f"🎬 <b>Nuova versione videolezione pronta</b>\nPartner {partner_id} · {lesson_id} · v{version}")
+    except Exception as exc:
+        logger.error("[LESSON-REVISION] %s", exc, exc_info=True)
+        await database.lesson_video_revisions.update_one(
+            {"revision_id": revision_id},
+            {"$set": {"status": "team_review", "requires_team_review": True,
+                      "automation_error": str(exc)[:500]}},
+        )
+    finally:
+        shutil.rmtree(str(tmp_dir), ignore_errors=True)
+        mongo.close()
+
+
+@celery_app.task(name="process_lesson_revision", bind=True, acks_late=True,
+                 reject_on_worker_lost=True, max_retries=1, soft_time_limit=7200, time_limit=7500)
+def process_lesson_revision(self, revision_id: str):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_process_lesson_revision(revision_id))
+    except Exception as exc:
+        raise self.retry(exc=exc)
+    finally:
+        loop.close()

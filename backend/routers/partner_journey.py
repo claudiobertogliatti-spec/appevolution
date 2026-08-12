@@ -2280,6 +2280,197 @@ async def approve_videocorso_video(
     return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 
+class PartnerLessonReviewRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+    decision: str
+    output_version: int
+    note: Optional[str] = None
+
+
+class PartnerLessonRevisionRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+    output_version: int
+    items: List[Dict[str, Any]]
+
+
+class TeamRevisionStatusRequest(BaseModel):
+    status: str
+    note: Optional[str] = None
+
+
+@router.post("/videocorso/partner-review")
+async def review_videocorso_video_by_partner(
+    request: PartnerLessonReviewRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    actor = await require_partner_or_admin_for_partner(request.partner_id, credentials)
+    if getattr(actor, "role", None) != "partner":
+        raise HTTPException(403, "Questa conferma deve essere data dal partner")
+    partner = await get_partner_or_404(request.partner_id)
+    vc = await db.partner_videocorso.find_one({"partner_id": request.partner_id}) or {}
+    lesson = ((vc.get("lessons") or {}).get(request.lesson_id)) or None
+    if not lesson:
+        raise HTTPException(404, "Lezione non trovata")
+    from services.ciak_lesson_review import build_partner_review_update
+    try:
+        review = build_partner_review_update(
+            lesson, decision=request.decision, output_version=request.output_version,
+            note=request.note, actor_id=str(getattr(actor, "user_id", "partner")),
+        )
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    lk = f"lessons.{request.lesson_id}"
+    result = await db.partner_videocorso.update_one(
+        {"partner_id": request.partner_id, f"{lk}.output_version": request.output_version,
+         f"{lk}.pipeline_status": {"$in": ["ready_for_review", "ready_for_review_gcs"]},
+         f"{lk}.active_revision_id": {"$in": [None, ""]}},
+        {"$set": {**{f"{lk}.{k}": v for k, v in review["fields"].items()},
+                  "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$push": {f"{lk}.partner_review_history": review["history"]}},
+    )
+    if not result.matched_count:
+        raise HTTPException(409, "Il video e' cambiato: ricarica la pagina")
+    await notify_telegram(
+        f"✅ VIDEOLEZIONE APPROVATA DAL PARTNER\n\n👤 {partner.get('name', request.partner_id)}\n"
+        f"🎬 {lesson.get('title') or request.lesson_id} — v{request.output_version}"
+    )
+    return {"success": True, "partner_review_status": "approved", "message": "Video approvato"}
+
+
+@router.post("/videocorso/revisions")
+async def create_videocorso_revision(
+    request: PartnerLessonRevisionRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    actor = await require_partner_or_admin_for_partner(request.partner_id, credentials)
+    if getattr(actor, "role", None) != "partner":
+        raise HTTPException(403, "La revisione deve essere inviata dal partner")
+    partner = await get_partner_or_404(request.partner_id)
+    vc = await db.partner_videocorso.find_one({"partner_id": request.partner_id}) or {}
+    lesson = ((vc.get("lessons") or {}).get(request.lesson_id)) or None
+    if not lesson:
+        raise HTTPException(404, "Lezione non trovata")
+    from services.ciak_lesson_review import build_revision_package
+    try:
+        package = build_revision_package(
+            lesson, partner_id=request.partner_id, lesson_id=request.lesson_id,
+            output_version=request.output_version, items=request.items,
+            actor_id=str(getattr(actor, "user_id", "partner")),
+        )
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    lk = f"lessons.{request.lesson_id}"
+    claimed = await db.partner_videocorso.update_one(
+        {"partner_id": request.partner_id, f"{lk}.output_version": request.output_version,
+         f"{lk}.pipeline_status": {"$in": ["ready_for_review", "ready_for_review_gcs"]},
+         f"{lk}.active_revision_id": {"$in": [None, ""]}},
+        {"$set": {
+            f"{lk}.revision_cycle": package["cycle"],
+            f"{lk}.active_revision_id": package["revision_id"],
+            f"{lk}.partner_review_status": "revision_requested",
+            f"{lk}.partner_approved": False, f"{lk}.video_approved": False,
+            f"{lk}.pipeline_status": "revision_team_review" if package["requires_team_review"] else "revision_processing",
+            f"{lk}.status": "revision_requested", "updated_at": package["submitted_at"],
+        }},
+    )
+    if not claimed.modified_count:
+        raise HTTPException(409, "Questa versione ha gia una revisione attiva")
+    try:
+        await db.lesson_video_revisions.insert_one({**package})
+    except Exception:
+        await db.partner_videocorso.update_one(
+            {"partner_id": request.partner_id, f"{lk}.active_revision_id": package["revision_id"]},
+            {"$set": {f"{lk}.pipeline_status": "ready_for_review", f"{lk}.status": "ready_for_review",
+                      f"{lk}.partner_review_status": "pending"}, "$unset": {f"{lk}.active_revision_id": ""}},
+        )
+        raise
+    if not package["requires_team_review"]:
+        try:
+            from video_pipeline_task import process_lesson_revision
+            process_lesson_revision.delay(package["revision_id"])
+        except Exception as exc:
+            await db.lesson_video_revisions.update_one(
+                {"revision_id": package["revision_id"]},
+                {"$set": {"status": "team_review", "requires_team_review": True,
+                          "automation_error": str(exc)[:500]}},
+            )
+    await notify_telegram(
+        f"🔁 MODIFICHE VIDEOLEZIONE RICHIESTE\n\n👤 {partner.get('name', request.partner_id)}\n"
+        f"🎬 {lesson.get('title') or request.lesson_id} — v{request.output_version}\n"
+        f"📋 {len(package['items'])} richieste · rischio {package['risk']}"
+    )
+    return {"success": True, "revision": {k: v for k, v in package.items() if k != "partner_id"}}
+
+
+@router.post("/videocorso/revisions/{revision_id}/cancel")
+async def cancel_videocorso_revision(
+    revision_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    revision = await db.lesson_video_revisions.find_one({"revision_id": revision_id}, {"_id": 0})
+    if not revision:
+        raise HTTPException(404, "Revisione non trovata")
+    actor = await require_partner_or_admin_for_partner(revision["partner_id"], credentials)
+    if getattr(actor, "role", None) != "partner":
+        raise HTTPException(403, "La revisione puo essere annullata solo dal partner")
+    if revision.get("status") != "queued":
+        raise HTTPException(409, "L'elaborazione e' gia iniziata")
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.lesson_video_revisions.update_one(
+        {"revision_id": revision_id, "status": "queued"},
+        {"$set": {"status": "cancelled", "cancelled_at": now}},
+    )
+    if not result.modified_count:
+        raise HTTPException(409, "L'elaborazione e' gia iniziata")
+    lk = f"lessons.{revision['lesson_id']}"
+    await db.partner_videocorso.update_one(
+        {"partner_id": revision["partner_id"], f"{lk}.active_revision_id": revision_id},
+        {"$set": {f"{lk}.pipeline_status": "ready_for_review", f"{lk}.status": "ready_for_review",
+                  f"{lk}.partner_review_status": "pending", "updated_at": now},
+         "$unset": {f"{lk}.active_revision_id": ""}},
+    )
+    return {"success": True, "status": "cancelled"}
+
+
+@router.get("/videocorso/revisions/pending")
+async def list_pending_videocorso_revisions(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await require_admin_token(credentials)
+    rows = await db.lesson_video_revisions.find(
+        {"status": {"$in": ["team_review", "processing", "error"]}}, {"_id": 0}
+    ).sort("submitted_at", 1).to_list(length=200)
+    return {"success": True, "revisions": rows}
+
+
+@router.post("/videocorso/revisions/{revision_id}/team-status")
+async def update_videocorso_revision_team_status(
+    revision_id: str,
+    request: TeamRevisionStatusRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    actor = await require_admin_token(credentials)
+    if request.status not in ("in_progress", "completed", "rejected"):
+        raise HTTPException(400, "Stato team non valido")
+    revision = await db.lesson_video_revisions.find_one({"revision_id": revision_id}, {"_id": 0})
+    if not revision:
+        raise HTTPException(404, "Revisione non trovata")
+    now = datetime.now(timezone.utc).isoformat()
+    fields = {"status": f"team_{request.status}", "team_note": (request.note or "").strip() or None,
+              "team_actor_id": str(getattr(actor, "user_id", "admin")), "team_updated_at": now}
+    if request.status == "completed":
+        vc = await db.partner_videocorso.find_one({"partner_id": revision["partner_id"]}) or {}
+        lesson = ((vc.get("lessons") or {}).get(revision["lesson_id"])) or {}
+        if int(lesson.get("output_version") or 0) <= int(revision["source_output_version"]):
+            raise HTTPException(409, "Carica prima la nuova versione del montaggio")
+        fields.update({"status": "completed", "completed_at": now,
+                       "produced_output_version": lesson.get("output_version")})
+    await db.lesson_video_revisions.update_one({"revision_id": revision_id}, {"$set": fields})
+    return {"success": True, **fields}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # VIDEOCORSO AI-DRIVEN ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3599,10 +3790,8 @@ def _videocorso_completato(videocorso: dict | None) -> bool:
     lessons = videocorso.get("lessons") or {}
     if not isinstance(lessons, dict) or not lessons:
         return False
-    return all(
-        isinstance(l, dict) and (l.get("video_approved") or l.get("pipeline_status") == "approved")
-        for l in lessons.values()
-    )
+    from services.ciak_lesson_review import is_partner_approved
+    return all(isinstance(l, dict) and is_partner_approved(l) for l in lessons.values())
 
 
 @router.get("/progress/{partner_id}")

@@ -235,6 +235,7 @@ async def finalize_posizionamento(
         "public_id": upload["public_id"],
         "status": "approved",
         "step_ref": STEP_ID,
+        "step_id": STEP_ID,
         "rejection_note": None,
         "approved_by": None,
         "approved_at": None,

@@ -17251,6 +17251,10 @@ from routers.workspace_corso import router as workspace_corso_router, set_db as 
 set_workspace_corso_db(db)
 app.include_router(workspace_corso_router)
 
+from routers.partner_step_materials import router as partner_step_materials_router, set_db as set_partner_step_materials_db
+set_partner_step_materials_db(db)
+app.include_router(partner_step_materials_router)
+
 # Workspace 3 — Sistema di Vendita (Gaia)
 from routers.workspace_vendita import router as workspace_vendita_router, set_db as set_workspace_vendita_db
 set_workspace_vendita_db(db)

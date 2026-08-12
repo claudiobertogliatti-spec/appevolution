@@ -150,6 +150,7 @@ async def finalize_storia(
         "public_id": upload["public_id"],
         "status": "final",          # nessuna approvazione: definitivo
         "step_ref": STEP_ID,
+        "step_id": STEP_ID,
         "superseded": False,
         "uploaded_at": now.isoformat(),
         "size": len(pdf_bytes),
