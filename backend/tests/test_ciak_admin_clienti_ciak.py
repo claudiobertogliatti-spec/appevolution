@@ -211,3 +211,23 @@ def test_clienti_ciak_omits_stale_partner_flags_without_canonical_user(client_ap
     assert items["client-2"]["access_level"] == "cliente_start"
     assert "partnership_attiva" not in items["client-2"]
     assert "stato_cliente" not in items["client-2"]
+
+
+def test_proposal_button_requires_call_done_and_explicit_partnership_decision():
+    paid_call = {
+        "current_state": "call_done",
+        "events": [{"event": "stripe_payment_completed"}],
+    }
+    delivered = {"bozza_inviata_at": "2026-08-12T10:00:00+00:00"}
+    partnership = {"offer_decision": "partnership"}
+
+    assert ciak_admin._qualified_for_partnership_proposal(paid_call, partnership, delivered) is True
+    assert ciak_admin._qualified_for_partnership_proposal(
+        {**paid_call, "current_state": "call_booked"}, partnership, delivered
+    ) is False
+    assert ciak_admin._qualified_for_partnership_proposal(
+        paid_call, {"offer_decision": None}, delivered
+    ) is False
+    assert ciak_admin._qualified_for_partnership_proposal(
+        paid_call, partnership, {"bozza_inviata_at": None}
+    ) is False

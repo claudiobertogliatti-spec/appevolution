@@ -1460,6 +1460,10 @@ async def get_decisione_data(user_id: str):
 @router.post("/firma-contratto")
 async def firma_contratto(request: FirmaContrattoRequest):
     """Cliente accetta e firma il contratto di partnership"""
+    raise HTTPException(
+        status_code=410,
+        detail="Percorso dismesso: usa la proposta Partnership personale",
+    )
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     

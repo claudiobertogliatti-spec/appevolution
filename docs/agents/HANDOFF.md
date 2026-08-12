@@ -12,6 +12,21 @@ Regole:
 
 ---
 
+### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
+
+**FATTO**
+- La proposta Partnership richiede ora pagamento Blueprint verificato, analisi consegnata, `call_done` e decisione esplicita `partnership`, anche passando dall'endpoint admin diretto.
+- Il flag UI `qualified_for_proposta` usa gli stessi quattro gate; `call_booked` non e' piu' sufficiente.
+- I tre endpoint legacy autenticati di firma/checkout/bonifico e la firma pubblica `flusso-analisi` rispondono `410` prima di leggere o scrivere dati commerciali.
+- `/api/proposta/{token}` resta l'unico percorso autorevole per accettazione, firma PNG e pagamento.
+
+**VERIFICATO**
+- RED osservato sui gate proposta mancanti e sui quattro endpoint legacy ancora operativi.
+- Regressione mirata: `87 passed, 15 skipped`; `py_compile` e `git diff --check`: exit 0.
+
+**APERTO**
+- Verificare CI, deploy e probe live `410`/`401` dopo il push su `main`.
+
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — connessione Blueprint → Start
 
 **FATTO**

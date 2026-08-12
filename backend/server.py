@@ -2024,6 +2024,11 @@ async def firma_contratto_cliente(request: Request, credentials: HTTPAuthorizati
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido")
 
+    raise HTTPException(
+        status_code=410,
+        detail="Percorso dismesso: usa la proposta Partnership personale",
+    )
+
     body = await request.json()
     firma_base64 = body.get("firma_base64", "")
     articoli_confermati = body.get("articoli_confermati", [])
@@ -2053,6 +2058,11 @@ async def partnership_checkout(request: Request, credentials: HTTPAuthorizationC
     token_data = decode_token(credentials.credentials)
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido")
+
+    raise HTTPException(
+        status_code=410,
+        detail="Percorso dismesso: il pagamento parte dalla proposta firmata",
+    )
 
     user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
     if not user:
@@ -2105,6 +2115,11 @@ async def partnership_bonifico(credentials: HTTPAuthorizationCredentials = Depen
     token_data = decode_token(credentials.credentials)
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido")
+
+    raise HTTPException(
+        status_code=410,
+        detail="Percorso dismesso: il bonifico parte dalla proposta firmata",
+    )
 
     user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
     if not user:

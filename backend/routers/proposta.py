@@ -124,6 +124,37 @@ class GeneraPropostaClienteRequest(BaseModel):
     diagnostic_session_id: Optional[str] = None
 
 
+async def require_partnership_proposal_eligibility(email: str) -> dict:
+    """Impone il percorso Blueprint completo prima di creare una proposta."""
+    normalized = (email or "").strip().lower()
+    client = await db.ciak_clients.find_one({"email": normalized}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Blueprint non trovato")
+
+    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    session = None
+    analysis = None
+    if session_token:
+        session = await db.diagnostic_sessions.find_one(
+            {"session_token": session_token}, {"_id": 0}
+        )
+        analysis = await db.ciak_analisi.find_one(
+            {"session_token": session_token}, {"_id": 0}
+        )
+    session = session or {}
+    analysis = analysis or {}
+
+    if not any(e.get("event") == "stripe_payment_completed" for e in session.get("events", [])):
+        raise HTTPException(409, "Pagamento Blueprint non verificato")
+    if not analysis.get("bozza_inviata_at"):
+        raise HTTPException(409, "Analisi Blueprint non ancora consegnata")
+    if session.get("current_state") != "call_done":
+        raise HTTPException(409, "Call Blueprint non ancora completata")
+    if client.get("offer_decision") != "partnership":
+        raise HTTPException(409, "Decisione Partnership non registrata")
+    return client
+
+
 async def resolve_canonical_client_identity(email: str) -> dict:
     normalized = (email or "").strip().lower()
     if not normalized:
@@ -190,8 +221,7 @@ async def _create_user_for_client(email: str, client_doc: dict) -> dict:
 # ─────────────────────────────────────────────────
 # ADMIN: Genera proposta per un partner
 # ─────────────────────────────────────────────────
-@router.post("/genera/{partner_id}")
-async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None, admin=Depends(require_ciak_admin)):
+async def _genera_proposta(partner_id: str, body: GeneraPropostaRequest, admin):
     """Genera token proposta e salva in MongoDB."""
     # Cerca in entrambe le collection (users/clienti per il flusso analisi, o partners)
     prospect = await db.users.find_one({"id": partner_id}, {"_id": 0})
@@ -261,13 +291,31 @@ async def genera_proposta(partner_id: str, body: GeneraPropostaRequest = None, a
     }
 
 
+@router.post("/genera/{partner_id}")
+async def genera_proposta(
+    partner_id: str,
+    body: GeneraPropostaRequest = None,
+    admin=Depends(require_ciak_admin),
+):
+    prospect = await db.users.find_one({"id": partner_id}, {"_id": 0})
+    if not prospect:
+        prospect = await db.ciak_clients.find_one({"id": partner_id}, {"_id": 0})
+    if not prospect or not prospect.get("email"):
+        raise HTTPException(404, "Cliente Blueprint non trovato")
+    await require_partnership_proposal_eligibility(prospect["email"])
+    return await _genera_proposta(
+        partner_id, body or GeneraPropostaRequest(), admin
+    )
+
+
 @router.post("/admin/genera-cliente")
 async def genera_proposta_cliente(
     payload: GeneraPropostaClienteRequest,
     admin=Depends(require_ciak_admin),
 ):
+    await require_partnership_proposal_eligibility(payload.email)
     identity = await resolve_canonical_client_identity(payload.email)
-    result = await genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), admin)
+    result = await _genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), admin)
     await db.proposte.update_one({"token": result["token"]}, {"$set": {
         "ciak_client_id": identity.get("client_id"),
         "user_id": identity.get("user_id"),

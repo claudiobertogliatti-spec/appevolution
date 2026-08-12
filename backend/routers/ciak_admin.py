@@ -84,6 +84,26 @@ def _state_ts(doc: dict, state: str) -> Optional[str]:
     return None
 
 
+def _qualified_for_partnership_proposal(
+    diagnostic: Optional[dict],
+    client: Optional[dict],
+    analysis: Optional[dict],
+) -> bool:
+    diagnostic = diagnostic or {}
+    client = client or {}
+    analysis = analysis or {}
+    paid = any(
+        event.get("event") == "stripe_payment_completed"
+        for event in diagnostic.get("events", [])
+    )
+    return bool(
+        paid
+        and diagnostic.get("current_state") == "call_done"
+        and analysis.get("bozza_inviata_at")
+        and client.get("offer_decision") == "partnership"
+    )
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -1150,17 +1170,16 @@ async def ciak_lead_detail(
     if not lead and not diagnostics and not checkpoints:
         raise HTTPException(404, "Lead non trovato")
 
-    # Lead "qualificato" per la Proposta Partnership: ha fatto la call (call_done)
-    # ed è Stato 3-4. Il bottone "Genera Proposta" nel frontend usa questo flag.
-    qualified_for_proposta = False
     latest_diag = diagnostics[0] if diagnostics else None
-    if latest_diag:
-        st = latest_diag.get("current_state")
-        stato_finale = (latest_diag.get("scoring", {}) or {}).get("stato_finale")
-        qualified_for_proposta = (
-            st in ("call_done", "call_booked")
-            and stato_finale in (3, 4)
-        )
+    client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
+    session_token = (latest_diag or {}).get("session_token")
+    analysis = (
+        await db.ciak_analisi.find_one({"session_token": session_token}, {"_id": 0})
+        if session_token else None
+    )
+    qualified_for_proposta = _qualified_for_partnership_proposal(
+        latest_diag, client, analysis
+    )
 
     return {
         "email": email,

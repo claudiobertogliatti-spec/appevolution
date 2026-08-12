@@ -39,9 +39,11 @@ pytestmark = pytest.mark.unit
 class IdentityDb:
     """Solo le collection toccate dalla risoluzione dell'identita'."""
 
-    def __init__(self, clients=None, users=None):
+    def __init__(self, clients=None, users=None, diagnostics=None, analyses=None):
         self.ciak_clients = FakeCollection(clients or [])
         self.users = FakeCollection(users or [])
+        self.diagnostic_sessions = FakeCollection(diagnostics or [])
+        self.ciak_analisi = FakeCollection(analyses or [])
 
 
 BLUEPRINT_ONLY = [
@@ -132,3 +134,68 @@ async def test_activation_fails_loudly_when_user_is_missing(monkeypatch):
         )
 
     assert err.value.status_code >= 400
+
+
+def _eligible_partnership_db(**client_overrides):
+    client = {
+        "id": "client-blueprint-1",
+        "email": "mario@example.com",
+        "session_token": "diag-1",
+        "offer_decision": "partnership",
+        **client_overrides,
+    }
+    return IdentityDb(
+        clients=[client],
+        diagnostics=[{
+            "session_token": "diag-1",
+            "current_state": "call_done",
+            "events": [{"event": "stripe_payment_completed"}],
+        }],
+        analyses=[{"session_token": "diag-1", "bozza_inviata_at": "2026-08-12T10:00:00+00:00"}],
+    )
+
+
+@pytest.mark.asyncio
+async def test_partnership_proposal_requires_the_complete_blueprint_path(monkeypatch):
+    cases = [
+        ("pagamento", lambda db: db.diagnostic_sessions.docs[0].update(events=[])),
+        ("analisi", lambda db: db.ciak_analisi.docs[0].update(bozza_inviata_at=None)),
+        ("call", lambda db: db.diagnostic_sessions.docs[0].update(current_state="call_booked")),
+        ("decisione", lambda db: db.ciak_clients.docs[0].update(offer_decision=None)),
+    ]
+    for expected_gate, mutate in cases:
+        db = _eligible_partnership_db()
+        mutate(db)
+        monkeypatch.setattr(proposta, "db", db)
+
+        with pytest.raises(HTTPException) as err:
+            await proposta.require_partnership_proposal_eligibility("mario@example.com")
+
+        assert err.value.status_code == 409
+        assert expected_gate in str(err.value.detail).lower()
+
+
+@pytest.mark.asyncio
+async def test_partnership_proposal_accepts_only_the_explicit_partnership_decision(monkeypatch):
+    db = _eligible_partnership_db()
+    monkeypatch.setattr(proposta, "db", db)
+
+    client = await proposta.require_partnership_proposal_eligibility("mario@example.com")
+
+    assert client["id"] == "client-blueprint-1"
+
+
+@pytest.mark.asyncio
+async def test_direct_admin_proposal_route_cannot_bypass_the_call_gate(monkeypatch):
+    db = _eligible_partnership_db()
+    db.diagnostic_sessions.docs[0]["current_state"] = "call_booked"
+    db.users.docs.append({"id": "user-1", "email": "mario@example.com"})
+    monkeypatch.setattr(proposta, "db", db)
+
+    with pytest.raises(HTTPException) as err:
+        await proposta.genera_proposta(
+            "user-1", proposta.GeneraPropostaRequest(), {"email": "admin@example.com"}
+        )
+
+    assert err.value.status_code == 409
+    assert "call" in str(err.value.detail).lower()
