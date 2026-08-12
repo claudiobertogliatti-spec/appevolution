@@ -12,6 +12,132 @@ Regole:
 
 ---
 
+### 2026-08-12 · Claude Code (Luca) · cc/ciak-start-identity-bridge — Blocco 1: il cliente Start entra nei motori che esistono già
+
+**IL PROBLEMA CHE CHIUDE**
+Il cliente Ciak Start pagava 499 EUR e trovava sette etichette in sola lettura. I due
+deliverable che ha comprato esistono già e servono i partner — brand kit (`03-brand-kit`) e
+posizionamento (`04-posizionamento`) — ma girano su `partner_journey_steps` dietro
+`require_partner_or_admin_for_partner`, che vuole un token `role="partner"` e un record
+`partners`. Il cliente Start non aveva né l'uno né l'altro.
+
+**FATTO**
+- `backend/services/start_partner_bridge.py` (nuovo): `ensure_start_partner_bridge(db, client)`,
+  idempotente. Crea `partners` con lo **stesso id del cliente**, `tier="start"`, nicchia dalla
+  diagnostic session (stessa mappatura del pre-fill posizionamento), e collega `users`.
+- `backend/models/start_journey.py` (nuovo): definizione journey del tier start, **separata**
+  dai 20 canonici. `JOURNEY_STEPS_DEFINITION` non è toccato.
+- `partner_journey.py`: guardia estesa (opzione B, vedi sotto) + gate `min_tier` su
+  complete/save-draft + `get_operativo_state` tier-aware.
+- `journey_seed.py`: `seed_partner_journey(..., tier=None)`. Default `None` = comportamento
+  storico, che è quello dei 26 partner in produzione (il campo `tier` non ce l'hanno).
+- `only_real_partners()` applicato a **28 letture** di `partners` in 8 moduli
+  (server, agent_hub, admin_luca, admin_stefania, journey_automation, operations,
+  admin_diagnostics, partner_journey).
+- `StartPage.jsx` legge la journey vera; `start_progress` resta nel DB ma non è più letto lì.
+
+**LA DECISIONE DI DESIGN — scelta (b), e perché**
+Scartata la (a) — emettere un JWT `role="partner"` al magic-login. Era più semplice di una riga,
+ma quel token non apre *lo step posizionamento*: apre **tutte** le guardie dell'area partner,
+comprese le 23 chiuse l'11/8, a un cliente da 499 EUR. Il perimetro sarebbe tornato aperto per
+costruzione, non per errore.
+Fatta la (b): la guardia condivisa accetta anche il token `ciak_client`, ma solo se `sub` è
+**esattamente** il partner_id richiesto e solo con entitlement Start verificato sul database.
+Nota tecnica emersa leggendo il codice: i due token non usano lo stesso segreto —
+`auth.decode_token` usa `JWT_SECRET_KEY`, `ciak_clients._jwt_secret()` prova prima `JWT_SECRET`
+e `SECRET_KEY`. Se in produzione differiscono, `decode_token` su un token cliente ritorna `None`:
+per questo il ramo Start non sta dopo un `if role != partner`, ma è un tentativo separato.
+
+**PASSWORD — la domanda del prompt, risposta verificata**
+Il ponte **non scrive nessuno dei due campi hash**. Il cliente Start entra con magic link, che
+emette il JWT direttamente da `ciak_clients` senza passare da `users`. `auth.py:211` legge
+`hashed_password or password_hash`: scriverne uno solo è il modo documentato per lasciare
+l'utente fuori senza errori — qui non se ne scrive nessuno. `users.role` resta `cliente`.
+Due test lo bloccano.
+
+**VERIFICATO**
+- RED osservato prima di ogni pezzo:
+  - `ModuleNotFoundError: No module named 'models.start_journey'`, poi `services.start_partner_bridge`;
+  - guardia: 5 failed / 12 passed — i 12 sono le regressioni partner, verdi *prima* della modifica: è il punto;
+  - stato journey: **`AssertionError: assert 24 == 6`**. È il difetto vero e non era nel prompt:
+    l'auto-heal di `get_operativo_state` (`partner_journey.py:6886`) inseriva **tutti** i 20 step
+    canonici mancanti. Un cliente Start che apriva l'area si sarebbe visto seedare l'intera journey
+    partner e sarebbe finito nei conteggi come partner;
+  - conteggi: la scansione AST ha elencato **31 letture** di `partners` senza filtro.
+- **La prova che chiude il blocco.** Cliente con entitlement Start creato a mano, risposte
+  compilate, `finalize_posizionamento` eseguito con Playwright/Chromium veri, nessuno stub sul
+  render: **PDF di 924.719 byte, `%PDF-1.4`, 7 pagine**, in
+  `C:\tmp\posizionamento_pdfs\posizionamento-client-start-e2e-20260812-210256.pdf`.
+  Nessun 403, nessun 400. Prima pagina renderizzata e ispezionata: logo Ciak reale, Poppins,
+  `#0F172A` con accento `#FACC15`, footer «pag. 1 / 7». Brand kit rispettato.
+- **Il test di accettazione è onesto**: passava al primo colpo, quindi ho disattivato il ramo
+  Start nella guardia e rieseguito → **5 failed**, tutte con
+  `HTTPException: 403: Accesso riservato ai partner`. File ripristinato, `diff` identico.
+- Lista CI esatta (36 file, i 30 preesistenti + 6 nuovi): **236 passed**.
+  Solo i 30 preesistenti: **162 passed** — nessuna regressione.
+- `python -m compileall -q backend`: exit 0. `git diff --check`: exit 0.
+- **`flake8 --select=E9,F821` ha trovato un bug vero che i test non coprivano**:
+  `only_real_partners` usato in `partner_journey.py` senza import — `NameError` in produzione su
+  `/operativo/dashboard-operativa`. Corretto; ora F821 = **0**.
+- Frontend: `PARSE_OK` su `api.js` e `StartPage.jsx` (Babel); le 4 icone lucide usate esistono.
+  Il build completo resta alla CI (nel worktree non c'è `node_modules`).
+
+**DICHIARATO (non verificato)**
+- L'upgrade additivo è provato dai test sul seed, **non** su un partner reale che è salito
+  davvero da Start a Partnership: quel percorso non esiste ancora end-to-end.
+- Nessun cliente Start reale esiste in produzione: tutto è girato su DB in memoria.
+
+**⚠️ PER CHI MERGE PER SECONDO — le due righe di aggancio**
+Il ponte è scritto ma **non è ancora chiamato da nessuno**: di proposito. I due punti stanno nei
+file del Blocco 0 (`cc/ciak-start-attivazione-manuale`), che non ho toccato.
+
+1. `backend/routers/stripe_webhook.py`, dentro `process_ciak_start_payment` (riga 444 su
+   `origin/main`), **subito dopo** `await db.ciak_clients.update_one(...)` che imposta
+   `access_level = ACCESS_START` e **prima** di `deliver_start_access`:
+   ```python
+   from services.start_partner_bridge import ensure_start_partner_bridge
+   await ensure_start_partner_bridge(db, {**client, **updates})
+   ```
+   `{**client, **updates}` e non `client`: il documento letto all'inizio non ha ancora
+   l'entitlement, e il ponte rifiuta per progetto un cliente senza entitlement Start.
+
+2. `backend/routers/ciak_admin.py`, nell'endpoint di attivazione manuale del Blocco 0, subito
+   dopo aver impostato `access_level = ACCESS_START` sul cliente, con il documento **aggiornato**:
+   ```python
+   from services.start_partner_bridge import ensure_start_partner_bridge
+   await ensure_start_partner_bridge(db, client_aggiornato)
+   ```
+
+Il ponte è idempotente e non declassa chi è già `partnership`: chiamarlo due volte non fa danni.
+
+**APERTO**
+- ⛔ **Il blocco non produce ancora effetti in produzione** finché le due righe sopra non sono
+  applicate. Fino ad allora nessun cliente Start ottiene il record `partners`.
+- **Da decidere, Claudio:** l'ordine mostrato al cliente è quello canonico — brand kit (F-4) prima
+  del posizionamento (F-7) — mentre il percorso venduto elenca «posizionamento, brand». Ho tenuto
+  l'ordine canonico per non divergere dai partner. È una scelta di copy, non di codice.
+- **Da decidere, Claudio:** i 7 servizi venduti diventano 6 step — «strategia contenuti» e
+  «calendario» confluiscono in `start-contenuti-90`. Se in vendita devono restare due voci
+  distinte, si separa: è una riga nella definizione.
+- Gli step `start-profili`, `start-vetrina`, `start-contenuti-90`, `start-readiness` esistono
+  come **contenitori**: hanno label, owner e stato, ma **nessun motore che produca il
+  deliverable**. Sono il Blocco 2, non un buco di questo.
+- 🔎 **Correzione a un punto del prompt**: `services/academy_metrics.py` non legge mai
+  `db.partners` (verificato: `grep -in partner` restituisce solo una riga di docstring). Non
+  serviva nessun filtro lì.
+- 4 letture di `partners` restano senza filtro **di proposito**, con motivazione nell'allowlist
+  di `test_partner_tier_counts.py`: seed dev-mode, backfill `evolution_id`, endpoint di debug e
+  una join per id espliciti.
+- `start_progress` non è più letto dal frontend ma **resta nel DB e continua a essere scritto**
+  in 3 punti. La rimozione è un lavoro a sé, come da prompt.
+- L'unificazione vera degli id (`users.id == ciak_clients.id`) vale **solo per i clienti Start
+  nuovi**, dove il ponte crea `users` con l'id del cliente. Per i Blueprint già esistenti con un
+  `users` creato da `_create_user_for_client` gli id restano divergenti: il ponte collega
+  `users.partner_id`, che è ciò che serve alla guardia. Il resto è il lavoro strutturale aperto
+  dal 30/7.
+
+---
+
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 
 **FATTO**
