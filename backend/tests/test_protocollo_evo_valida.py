@@ -1,4 +1,9 @@
+import pytest
+
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION
+
+
+pytestmark = pytest.mark.unit
 
 
 def _step(step_id):
@@ -17,8 +22,40 @@ def test_valida_contains_definitive_evo_sequence():
         "10-sistema-vendita",
         "11-calendario-30gg",
         "12-prezzo-webinar",
+        "16-readiness-lancio",
         "13-lancio",
+        "18-certificato-valida",
+        "19-workbook-finale",
     ]
+
+
+def test_journey_has_exactly_twenty_canonical_codes():
+    assert len(JOURNEY_STEPS_DEFINITION) == 20
+    assert [step["code"] for step in JOURNEY_STEPS_DEFINITION] == [
+        f"F-{number}" for number in range(1, 21)
+    ]
+    assert len({step["step_id"] for step in JOURNEY_STEPS_DEFINITION}) == 20
+
+
+def test_only_three_macro_phases_cover_the_approved_ranges():
+    assert [phase["id"] for phase in MACRO_PHASES_DEFINITION] == [
+        "esamina", "valida", "ottimizza"
+    ]
+    steps_by_id = {step["step_id"]: step for step in JOURNEY_STEPS_DEFINITION}
+    codes_by_phase = {
+        phase["id"]: [steps_by_id[step_id]["code"] for step_id in phase["step_ids"]]
+        for phase in MACRO_PHASES_DEFINITION
+    }
+    assert codes_by_phase["esamina"] == [f"F-{number}" for number in range(1, 8)]
+    assert codes_by_phase["valida"] == [f"F-{number}" for number in range(8, 20)]
+    assert codes_by_phase["ottimizza"] == ["F-20"]
+
+
+def test_every_step_exposes_operational_metadata():
+    for step in JOURNEY_STEPS_DEFINITION:
+        assert step["owner"]
+        assert step["completion_policy"]
+        assert isinstance(step["material_categories"], list)
 
 
 def test_valida_steps_name_the_non_negotiable_operational_blocks():

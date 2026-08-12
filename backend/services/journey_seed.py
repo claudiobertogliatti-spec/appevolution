@@ -1,5 +1,5 @@
 """
-Servizio per seedare i 13 step iniziali per un partner che entra
+Servizio per seedare i 20 step iniziali per un partner che entra
 per la prima volta nell'Operativo Stefania.
 
 Idempotente: re-run non duplica record (check su partner_id + step_id).
@@ -18,7 +18,7 @@ async def seed_partner_journey(
     partner_id: str,
     start_step_number: int = 1,
 ) -> int:
-    """Seeda i 13 step per un partner. Marca come done gli step < start_step_number,
+    """Seeda i 20 step per un partner. Marca come done gli step < start_step_number,
     in_progress lo step start_step_number, pending il resto.
 
     Ritorna il numero di step creati (0 se erano già tutti seedati).
@@ -54,6 +54,11 @@ async def seed_partner_journey(
             "step_id": definition["step_id"],
             "step_number": definition["step_number"],
             "fase_legacy": definition["fase_legacy"],
+            "code": definition["code"],
+            "macro_phase": definition["macro_phase"],
+            "owner": definition["owner"],
+            "completion_policy": definition["completion_policy"],
+            "material_categories": definition["material_categories"],
             "status": status.value,
             "started_at": started_at,
             "completed_at": completed_at,

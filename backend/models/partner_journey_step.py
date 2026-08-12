@@ -42,9 +42,9 @@ class PartnerJourneyStep(BaseModel):
 # Stefania resta voce narrante trasversale (non assegnata a una singola fase).
 # La fase "ottimizza" è post-lancio (subentra OperativoContinuo).
 MACRO_PHASES_DEFINITION: list[dict[str, Any]] = [
-    {"id": "esamina",   "label": "Esamina",   "tagline": "Chiariamo chi sei e a chi parli",      "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "burocrazia", "03-brand-kit", "la-tua-storia", "obiettivo", "04-posizionamento"]},
-    {"id": "valida",    "label": "Valida",    "tagline": "Costruiamo una prima versione vendibile e pubblicabile", "icon": "🚀", "agent": "ANDREA",    "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-script-videolezioni", "08-registra-masterclass", "09-registra-lezioni", "10-sistema-vendita", "11-calendario-30gg", "12-prezzo-webinar", "13-lancio"]},
-    {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali",            "icon": "📈", "agent": "MARCO",     "step_ids": []},  # post-lancio, gestita da OperativoContinuo
+    {"id": "esamina", "label": "Esamina", "tagline": "Chiariamo chi sei e a chi parli", "icon": "🎯", "agent": "VALENTINA", "step_ids": ["02-discovery-video", "01-contratto", "burocrazia", "03-brand-kit", "la-tua-storia", "obiettivo", "04-posizionamento"]},
+    {"id": "valida", "label": "Valida", "tagline": "Costruiamo una prima versione vendibile e pubblicabile", "icon": "🚀", "agent": "ANDREA", "step_ids": ["05-script-masterclass", "06-outline-lezioni", "07-script-videolezioni", "08-registra-masterclass", "09-registra-lezioni", "10-sistema-vendita", "11-calendario-30gg", "12-prezzo-webinar", "16-readiness-lancio", "13-lancio", "18-certificato-valida", "19-workbook-finale"]},
+    {"id": "ottimizza", "label": "Ottimizza", "tagline": "Miglioriamo su dati reali", "icon": "📈", "agent": "MARCO", "step_ids": ["20-ottimizzazione"]},
 ]
 
 # OPZIONE A (Metodo EVO): Step bloccanti (obbligatori) e non bloccanti (opzionali/in corso) per ciascuna macro-fase.
@@ -72,8 +72,12 @@ REQUIRED_STEP_IDS_BY_PHASE: dict[str, list[str]] = {
         "10-sistema-vendita",
         "11-calendario-30gg",
         "12-prezzo-webinar",
+        "16-readiness-lancio",
+        "13-lancio",
+        "18-certificato-valida",
+        "19-workbook-finale",
     ],
-    "ottimizza": [],
+    "ottimizza": ["20-ottimizzazione"],
 }
 
 # "Avvio" deprecato: contratto e discovery sono ora dentro la fase Esamina.
@@ -84,24 +88,27 @@ AVVIO_STEP_IDS: list[str] = []
 _MACRO_BY_STEP = {sid: mp["id"] for mp in MACRO_PHASES_DEFINITION for sid in mp["step_ids"]}
 
 
-# Definizione canonica dei 14 step. Usata da seed_partner_journey e dalle UI.
-# Gli slug mantengono il prefisso numerico storico (stabile per il registry frontend);
-# l'ordine reale è dato da step_number. "burocrazia" è lo step nuovo inserito al n.3.
+# Definizione canonica dei 20 step. Gli step_id storici restano invariati per
+# non spezzare dati e registry frontend; `code` e `step_number` sono l'ordine EVO.
 JOURNEY_STEPS_DEFINITION: list[dict[str, Any]] = [
-    {"step_id": "01-contratto",           "step_number": 2,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Contratto + distinta"},
-    {"step_id": "02-discovery-video",     "step_number": 1,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "Benvenuto"},
-    {"step_id": "burocrazia",             "step_number": 3,  "fase_legacy": "F1", "macro_phase": "esamina",   "label": "I tuoi dati"},
-    {"step_id": "03-brand-kit",           "step_number": 4,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Brand kit"},
-    {"step_id": "la-tua-storia",         "step_number": 5,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "La tua storia"},
-    {"step_id": "obiettivo",              "step_number": 5.5, "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Il tuo obiettivo"},
-    {"step_id": "04-posizionamento",      "step_number": 6,  "fase_legacy": "F2", "macro_phase": "esamina",   "label": "Posizionamento"},
-    {"step_id": "05-script-masterclass",  "step_number": 7,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Script masterclass"},
-    {"step_id": "06-outline-lezioni",     "step_number": 8,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Outline lezioni"},
-    {"step_id": "07-script-videolezioni", "step_number": 9,  "fase_legacy": "F3", "macro_phase": "valida",    "label": "Script videolezioni"},
-    {"step_id": "08-registra-masterclass","step_number": 10, "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra masterclass"},
-    {"step_id": "09-registra-lezioni",    "step_number": 11, "fase_legacy": "F4", "macro_phase": "valida",    "label": "Registra lezioni"},
-    {"step_id": "10-sistema-vendita",     "step_number": 12, "fase_legacy": "F5", "macro_phase": "valida",    "label": "Subaccount, dominio, legal e funnel"},
-    {"step_id": "11-calendario-30gg",     "step_number": 13, "fase_legacy": "F6", "macro_phase": "valida",    "label": "Calendario lancio 30gg"},
-    {"step_id": "12-prezzo-webinar",      "step_number": 14, "fase_legacy": "F6", "macro_phase": "valida",    "label": "Prezzo + webinar"},
-    {"step_id": "13-lancio",              "step_number": 15, "fase_legacy": "F7", "macro_phase": "valida",    "label": "Lancio"},
+    {"step_id": "02-discovery-video", "step_number": 1, "code": "F-1", "fase_legacy": "F1", "macro_phase": "esamina", "label": "Benvenuto", "owner": "STEFANIA", "completion_policy": "discovery_completed", "material_categories": ["briefing"]},
+    {"step_id": "01-contratto", "step_number": 2, "code": "F-2", "fase_legacy": "F1", "macro_phase": "esamina", "label": "Contratto + distinta", "owner": "STEFANIA", "completion_policy": "contract_approved", "material_categories": ["contratto"]},
+    {"step_id": "burocrazia", "step_number": 3, "code": "F-3", "fase_legacy": "F1", "macro_phase": "esamina", "label": "I tuoi dati", "owner": "STEFANIA", "completion_policy": "partner_data_completed", "material_categories": ["dati_partner"]},
+    {"step_id": "03-brand-kit", "step_number": 4, "code": "F-4", "fase_legacy": "F2", "macro_phase": "esamina", "label": "Brand kit", "owner": "VALENTINA", "completion_policy": "brand_kit_approved", "material_categories": ["brand_kit"]},
+    {"step_id": "la-tua-storia", "step_number": 5, "code": "F-5", "fase_legacy": "F2", "macro_phase": "esamina", "label": "La tua storia", "owner": "VALENTINA", "completion_policy": "story_approved", "material_categories": ["storia"]},
+    {"step_id": "obiettivo", "step_number": 6, "code": "F-6", "fase_legacy": "F2", "macro_phase": "esamina", "label": "Il tuo obiettivo", "owner": "VALENTINA", "completion_policy": "objective_confirmed", "material_categories": ["obiettivi"]},
+    {"step_id": "04-posizionamento", "step_number": 7, "code": "F-7", "fase_legacy": "F2", "macro_phase": "esamina", "label": "Posizionamento", "owner": "VALENTINA", "completion_policy": "positioning_approved", "material_categories": ["posizionamento"]},
+    {"step_id": "05-script-masterclass", "step_number": 8, "code": "F-8", "fase_legacy": "F3", "macro_phase": "valida", "label": "Script masterclass", "owner": "ANDREA", "completion_policy": "masterclass_script_approved", "material_categories": ["script_masterclass"]},
+    {"step_id": "06-outline-lezioni", "step_number": 9, "code": "F-9", "fase_legacy": "F3", "macro_phase": "valida", "label": "Outline lezioni", "owner": "ANDREA", "completion_policy": "course_outline_approved", "material_categories": ["outline_corso"]},
+    {"step_id": "07-script-videolezioni", "step_number": 10, "code": "F-10", "fase_legacy": "F3", "macro_phase": "valida", "label": "Script videolezioni", "owner": "ANDREA", "completion_policy": "lesson_scripts_approved", "material_categories": ["script_videolezioni"]},
+    {"step_id": "08-registra-masterclass", "step_number": 11, "code": "F-11", "fase_legacy": "F4", "macro_phase": "valida", "label": "Masterclass definitiva", "owner": "ANDREA", "completion_policy": "masterclass_current_version_approved", "material_categories": ["video_masterclass"]},
+    {"step_id": "09-registra-lezioni", "step_number": 12, "code": "F-12", "fase_legacy": "F4", "macro_phase": "valida", "label": "Videolezioni definitive", "owner": "ANDREA", "completion_policy": "all_required_lessons_current_version_approved", "material_categories": ["video_lezioni"]},
+    {"step_id": "10-sistema-vendita", "step_number": 13, "code": "F-13", "fase_legacy": "F5", "macro_phase": "valida", "label": "Subaccount, dominio, legal e funnel", "owner": "GAIA", "completion_policy": "sales_system_ready", "material_categories": ["funnel", "legal", "checkout"]},
+    {"step_id": "11-calendario-30gg", "step_number": 14, "code": "F-14", "fase_legacy": "F6", "macro_phase": "valida", "label": "Calendario lancio 30gg", "owner": "MARCO", "completion_policy": "launch_calendar_approved", "material_categories": ["calendario_lancio"]},
+    {"step_id": "12-prezzo-webinar", "step_number": 15, "code": "F-15", "fase_legacy": "F6", "macro_phase": "valida", "label": "Prezzo + webinar", "owner": "MARCO", "completion_policy": "price_webinar_approved", "material_categories": ["prezzo", "webinar"]},
+    {"step_id": "16-readiness-lancio", "step_number": 16, "code": "F-16", "fase_legacy": "F6", "macro_phase": "valida", "label": "Verifica pre-lancio", "owner": "MARCO", "completion_policy": "launch_readiness_verified", "material_categories": ["readiness_lancio"]},
+    {"step_id": "13-lancio", "step_number": 17, "code": "F-17", "fase_legacy": "F7", "macro_phase": "valida", "label": "Lancio", "owner": "MARCO", "completion_policy": "launch_verified", "material_categories": ["lancio"]},
+    {"step_id": "18-certificato-valida", "step_number": 18, "code": "F-18", "fase_legacy": "F7", "macro_phase": "valida", "label": "Certificato Valida", "owner": "STEFANIA", "completion_policy": "valida_certificate_archived", "material_categories": ["certificato"]},
+    {"step_id": "19-workbook-finale", "step_number": 19, "code": "F-19", "fase_legacy": "F7", "macro_phase": "valida", "label": "Workbook finale", "owner": "STEFANIA", "completion_policy": "final_workbook_archived", "material_categories": ["workbook"]},
+    {"step_id": "20-ottimizzazione", "step_number": 20, "code": "F-20", "fase_legacy": "LIVE", "macro_phase": "ottimizza", "label": "Ottimizzazione continua", "owner": "MARCO", "completion_policy": "optimization_active", "material_categories": ["metriche", "ottimizzazioni"]},
 ]

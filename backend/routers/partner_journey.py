@@ -6795,7 +6795,7 @@ async def get_operativo_state(
         # qui ci arrivano solo i legacy senza step.
         partner_doc = await db.partners.find_one({"id": partner_id}, {"_id": 0, "phase": 1})
         phase = (partner_doc or {}).get("phase") or "F1"
-        _PHASE_START = {"F1": 2, "F2": 5, "F3": 7, "F4": 10, "F5": 12, "F6": 13, "F7": 15}
+        _PHASE_START = {"F1": 2, "F2": 5, "F3": 8, "F4": 11, "F5": 13, "F6": 14, "F7": 17}
         start_step = _PHASE_START.get(phase, 1)
         await seed_partner_journey(db, partner_id, start_step_number=start_step)
         if phase in ("F7", "LIVE", "OTTIMIZZAZIONE"):
@@ -6819,19 +6819,26 @@ async def get_operativo_state(
         _now = datetime.utcnow()
         await db.partner_journey_steps.insert_many([{
             "partner_id": partner_id, "step_id": d["step_id"], "step_number": d["step_number"],
-            "fase_legacy": d.get("fase_legacy", "F1"), "status": "pending", "data": {},
+            "fase_legacy": d.get("fase_legacy", "F1"), "code": d["code"],
+            "macro_phase": d["macro_phase"], "owner": d["owner"],
+            "completion_policy": d["completion_policy"],
+            "material_categories": d["material_categories"], "status": "pending", "data": {},
             "updated_at": _now,
         } for d in _missing])
         steps = await db.partner_journey_steps.find(
             {"partner_id": partner_id}, {"_id": 0}
         ).sort("step_number", 1).to_list(length=30)
 
-    # Arricchisci ogni step con label + macro_phase da JOURNEY_STEPS_DEFINITION
-    enrichment = {d["step_id"]: {"label": d["label"], "macro_phase": d["macro_phase"]} for d in JOURNEY_STEPS_DEFINITION}
+    # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
+    enrichment = {d["step_id"]: d for d in JOURNEY_STEPS_DEFINITION}
     for s in steps:
         meta = enrichment.get(s["step_id"], {})
         s["label"] = meta.get("label", s["step_id"])
         s["macro_phase"] = meta.get("macro_phase", "attivazione")
+        s["code"] = meta.get("code")
+        s["owner"] = meta.get("owner")
+        s["completion_policy"] = meta.get("completion_policy")
+        s["material_categories"] = meta.get("material_categories", [])
 
     # Il punto in cui si trova il partner e' il FRONTE del percorso: il primo step
     # aperto DOPO l'ultimo completato. Prendendo il primo `in_progress` in assoluto,
@@ -6864,10 +6871,7 @@ async def get_operativo_state(
     )
 
     # Calcola progresso per macro-fase
-    # NOTE: "ottimizzazione-servizio" non ha step_ids (è post-lancio).
-    # Status: pending finché ultimo step (13-lancio) non è done, poi in_progress.
-    lancio_done = any(s["step_id"] == "13-lancio" and s["status"] == "done" for s in steps)
-
+    # Ottimizza ha il proprio step F-20; resta pending finché non viene sbloccato.
     macro_phases_status = []
     for mp in MACRO_PHASES_DEFINITION:
         mp_steps = [s for s in steps if s["step_id"] in mp["step_ids"]]
@@ -6875,11 +6879,7 @@ async def get_operativo_state(
         in_progress = any(s["status"] == "in_progress" for s in mp_steps)
         total = len(mp_steps)
 
-        if mp["id"] == "ottimizza":
-            mp_status = "in_progress" if lancio_done else "pending"
-            done_count = 0
-            total = 0
-        elif done_count == total and total > 0:
+        if done_count == total and total > 0:
             mp_status = "done"
         elif in_progress or done_count > 0:
             mp_status = "in_progress"
