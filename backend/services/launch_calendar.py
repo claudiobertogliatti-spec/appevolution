@@ -22,9 +22,12 @@ _REQUIRED_DAY_FIELDS = (
     "how_to",
     "cta",
     "destination_url",
+    "destination_kind",
     "owner",
     "phase",
     "dm_action",
+    "action_kind",
+    "audience_condition",
 )
 
 
@@ -110,14 +113,6 @@ def _parse_datetime(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo else None
 
 
-def _calendar_without_attestations(calendar: dict) -> dict:
-    return {
-        key: value
-        for key, value in calendar.items()
-        if key not in {"admin_approval", "partner_confirmation"}
-    }
-
-
 def _has_admin_approval(calendar: dict) -> bool:
     approval = calendar.get("admin_approval")
     if not isinstance(approval, dict):
@@ -128,7 +123,7 @@ def _has_admin_approval(calendar: dict) -> bool:
     return (
         _parse_datetime(approval["approved_at"]) is not None
         and approval["calendar_version"] == calendar.get("version")
-        and approval["calendar_checksum"] == calendar_checksum(_calendar_without_attestations(calendar))
+        and approval["calendar_checksum"] == calendar_checksum(calendar)
     )
 
 
@@ -142,9 +137,18 @@ def _has_partner_confirmation(calendar: dict) -> bool:
     return (
         _parse_datetime(confirmation["confirmed_at"]) is not None
         and confirmation["calendar_version"] == calendar.get("version")
-        and confirmation["calendar_checksum"]
-        == calendar_checksum(_calendar_without_attestations(calendar))
+        and confirmation["calendar_checksum"] == calendar_checksum(calendar)
     )
+
+
+def _expected_destination_kind(day: Any) -> str:
+    if not isinstance(day, int) or isinstance(day, bool):
+        return ""
+    if day <= 14:
+        return "masterclass"
+    if day <= 28:
+        return "live"
+    return "checkout"
 
 
 def _verified_destination_urls(days: list[Any], resources: dict) -> bool:
@@ -155,11 +159,17 @@ def _verified_destination_urls(days: list[Any], resources: dict) -> bool:
         if not isinstance(item, dict):
             return False
         url = item.get("destination_url")
+        if not _is_https_url(url):
+            return False
+        expected_kind = _expected_destination_kind(item.get("day"))
+        if item.get("destination_kind") != expected_kind:
+            return False
         evidence = registry.get(url)
         if not (
             isinstance(evidence, dict)
             and evidence.get("verified") is True
             and _parse_datetime(evidence.get("verified_at")) is not None
+            and evidence.get("destination_kind") == expected_kind
         ):
             return False
     return True
@@ -248,10 +258,22 @@ def _has_funnel_sequence(days: list[Any]) -> bool:
         "follow_up",
         "follow_up",
     )
+    expected_actions = (
+        *([("engage_dm", "engaged")] * 7),
+        *([("send_masterclass", "masterclass_requested")] * 7),
+        *([("invite_live", "masterclass_viewed")] * 13),
+        ("live_entry", "live_registered"),
+        ("checkout_follow_up", "live_attended"),
+        ("recovery_call", "live_absent"),
+    )
     for index, item in enumerate(days, start=1):
         cta = str(item.get("cta") or "").lower()
-        dm_action = str(item.get("dm_action") or "").lower()
-        if item.get("phase") != expected_phases[index - 1] or "call" in cta:
+        expected_action, expected_audience = expected_actions[index - 1]
+        if (
+            item.get("phase") != expected_phases[index - 1]
+            or item.get("action_kind") != expected_action
+            or item.get("audience_condition") != expected_audience
+        ):
             return False
         if index < 29 and "checkout" in cta:
             return False
@@ -265,10 +287,7 @@ def _has_funnel_sequence(days: list[Any]) -> bool:
             return False
         if index >= 29 and "checkout" not in cta:
             return False
-        if "call" in dm_action:
-            if index != 30 or item.get("recovery_reason") != "live_absent":
-                return False
-        elif index == 30 and item.get("recovery_reason") not in (None, ""):
+        if index == 30 and item.get("recovery_reason") != "live_absent":
             return False
         if index != 30 and item.get("recovery_reason") not in (None, ""):
             return False
@@ -276,7 +295,10 @@ def _has_funnel_sequence(days: list[Any]) -> bool:
 
 
 def _has_organic_routine(calendar: dict, resources: dict) -> bool:
-    routine = calendar.get("organic_routine") or resources.get("organic_routine")
+    routine = calendar.get("organic_routine")
+    resource_routine = resources.get("organic_routine")
+    if resource_routine is not None and routine != resource_routine:
+        return False
     if not isinstance(routine, dict) or routine.get("daily_minutes") != 30:
         return False
     targets = ("interactions_target", "outreach_target", "dm_follow_up_target")
@@ -328,9 +350,14 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
 
 
 def calendar_checksum(calendar: dict) -> str:
-    """Checksum ripetibile per individuare modifiche dopo una conferma."""
+    """Checksum canonico del contenuto, invariato dalle due attestazioni."""
+    content = {
+        key: value
+        for key, value in calendar.items()
+        if key not in {"admin_approval", "partner_confirmation"}
+    }
     serialized = json.dumps(
-        calendar,
+        content,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),

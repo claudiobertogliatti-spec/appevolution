@@ -14,7 +14,7 @@ from services.launch_calendar import (
 pytestmark = pytest.mark.unit
 
 
-def _raw_days(destination_url: str | None = "https://example.test/masterclass") -> dict:
+def _raw_days(destination_url: str | None = None) -> dict:
     primary_days = {1, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 21, 22, 24, 26, 28}
 
     def phase_for_day(day: int) -> str:
@@ -43,6 +43,26 @@ def _raw_days(destination_url: str | None = "https://example.test/masterclass") 
             return "entra nella live"
         return "vai al checkout"
 
+    def destination_kind_for_day(day: int) -> str:
+        if day <= 14:
+            return "masterclass"
+        if day <= 28:
+            return "live"
+        return "checkout"
+
+    def action_for_day(day: int) -> tuple[str, str]:
+        if day <= 7:
+            return "engage_dm", "engaged"
+        if day <= 14:
+            return "send_masterclass", "masterclass_requested"
+        if day <= 27:
+            return "invite_live", "masterclass_viewed"
+        if day == 28:
+            return "live_entry", "live_registered"
+        if day == 29:
+            return "checkout_follow_up", "live_attended"
+        return "recovery_call", "live_absent"
+
     return {
         "days": [
             {
@@ -52,7 +72,12 @@ def _raw_days(destination_url: str | None = "https://example.test/masterclass") 
                 "theme": f"Tema {day}",
                 "how_to": "Parla a camera per 30 secondi",
                 "cta": cta_for_day(day),
-                "destination_url": destination_url,
+                "destination_url": (
+                    destination_url
+                    if destination_url is not None
+                    else f"https://example.test/{destination_kind_for_day(day)}"
+                ),
+                "destination_kind": destination_kind_for_day(day),
                 "owner": "partner",
                 "phase": phase_for_day(day),
                 "dm_action": (
@@ -62,6 +87,8 @@ def _raw_days(destination_url: str | None = "https://example.test/masterclass") 
                 ),
                 "main_content": day in primary_days,
                 "recovery_reason": "live_absent" if day == 30 else None,
+                "action_kind": action_for_day(day)[0],
+                "audience_condition": action_for_day(day)[1],
             }
             for day in range(1, 31)
         ]
@@ -112,13 +139,7 @@ def _ready_calendar() -> dict:
 
 
 def _refresh_attestations(calendar: dict) -> None:
-    checksum = calendar_checksum(
-        {
-            key: value
-            for key, value in calendar.items()
-            if key not in {"admin_approval", "partner_confirmation"}
-        }
-    )
+    checksum = calendar_checksum(calendar)
     calendar["partner_confirmation"] = {
         "partner_id": "partner-123",
         "confirmed_at": "2026-08-30T10:00:00+02:00",
@@ -137,10 +158,19 @@ def _ready_resources(calendar: dict) -> dict:
     destination_urls = {day["destination_url"] for day in calendar["days"]}
     return {
         "verified_destinations": {
-            url: {"verified": True, "verified_at": "2026-08-30T09:00:00+02:00"}
+            url: {
+                "verified": True,
+                "verified_at": "2026-08-30T09:00:00+02:00",
+                "destination_kind": next(
+                    day["destination_kind"]
+                    for day in calendar["days"]
+                    if day["destination_url"] == url
+                ),
+            }
             for url in destination_urls
         },
         "commercial_terms": calendar["commercial_terms"],
+        "organic_routine": calendar["organic_routine"],
         "evaluated_at": "2026-08-30T12:00:00+02:00",
     }
 
@@ -191,6 +221,15 @@ def test_checksum_is_stable_for_equivalent_calendar_data():
     assert calendar_checksum(calendar) == calendar_checksum(reordered)
 
 
+def test_canonical_checksum_is_stable_after_partner_and_admin_attestations_change():
+    calendar = _ready_calendar()
+    checksum = calendar_checksum(calendar)
+    calendar["partner_confirmation"]["confirmed_at"] = "2026-08-30T12:00:00+02:00"
+    calendar["admin_approval"]["admin_id"] = "admin-456"
+
+    assert calendar_checksum(calendar) == checksum
+
+
 def test_deterministic_editorial_calendar_has_all_launch_phases():
     calendar = _deterministic({}, None)
 
@@ -231,6 +270,8 @@ def test_deterministic_calendar_follows_content_dm_masterclass_live_checkout_flo
     assert all("call" not in day["dm_action"].lower() for day in days[:29])
     assert "call" in days[29]["dm_action"].lower()
     assert days[29]["recovery_reason"] == "live_absent"
+    assert days[29]["action_kind"] == "recovery_call"
+    assert days[29]["audience_condition"] == "live_absent"
 
 
 @pytest.mark.parametrize(
@@ -308,8 +349,8 @@ def test_deterministic_calendar_carries_versioned_server_terms_into_checksum():
         (1, "cta", "vai al checkout"),
         (15, "phase", "live"),
         (28, "phase", "conversion"),
-        (29, "dm_action", "Proponi una call di recupero."),
-        (30, "recovery_reason", None),
+        (29, "action_kind", "invite_live"),
+        (30, "audience_condition", "live_attended"),
     ],
 )
 def test_readiness_rejects_tampered_funnel_sequence(day, field, value):
@@ -335,6 +376,16 @@ def test_readiness_requires_exact_30_minute_routine_and_explicit_actions(routine
     _refresh_attestations(calendar)
 
     result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "organic_routine" in result.failed_codes
+
+
+def test_readiness_rejects_routine_that_differs_from_authoritative_snapshot():
+    calendar = _ready_calendar()
+    resources = _ready_resources(calendar)
+    resources["organic_routine"] = {**calendar["organic_routine"], "daily_minutes": 20}
+
+    result = evaluate_launch_calendar(calendar, resources)
 
     assert "organic_routine" in result.failed_codes
 
@@ -387,3 +438,36 @@ def test_readiness_rejects_partner_confirmation_without_timezone_aware_timestamp
     result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
 
     assert "partner_confirmation" in result.failed_codes
+
+
+def test_readiness_rejects_masterclass_url_as_checkout_destination():
+    calendar = _ready_calendar()
+    calendar["days"][28]["destination_url"] = calendar["days"][7]["destination_url"]
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "verified_destination_urls" in result.failed_codes
+
+
+@pytest.mark.parametrize("invalid_url", [[], {}, 42])
+def test_readiness_rejects_unhashable_or_non_string_destination_without_raising(invalid_url):
+    calendar = _ready_calendar()
+    resources = _ready_resources(calendar)
+    calendar["days"][0]["destination_url"] = invalid_url
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, resources)
+
+    assert "https_destination_urls" in result.failed_codes
+    assert "verified_destination_urls" in result.failed_codes
+
+
+def test_recovery_action_policy_does_not_depend_on_italian_call_copy():
+    calendar = _ready_calendar()
+    calendar["days"][29]["dm_action"] = "Invita a una telefonata solo se serve."
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert result.ready is True

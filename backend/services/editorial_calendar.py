@@ -71,12 +71,15 @@ _DAY_SCHEMA = {
         "how_to": {"type": "string", "description": "Istruzione esecutiva semplice per il partner."},
         "cta": {"type": "string", "description": "La call to action del giorno."},
         "destination_url": {"type": ["string", "null"]},
+        "destination_kind": {"type": "string", "enum": ["masterclass", "live", "checkout"]},
         "owner": {"type": "string", "enum": ["partner"]},
         "phase": {"type": "string"},
         "dm_action": {"type": "string"},
         "recovery_reason": {"type": ["string", "null"]},
+        "action_kind": {"type": "string"},
+        "audience_condition": {"type": "string"},
     },
-    "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "owner", "phase", "dm_action"],
+    "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "destination_kind", "owner", "phase", "dm_action", "action_kind", "audience_condition"],
 }
 
 _SCHEMA = {
@@ -176,6 +179,28 @@ def _dm_action_for_day(day: int) -> str:
     return "Proponi una call di recupero solo a chi non ha visto la live."
 
 
+def _destination_kind_for_day(day: int) -> str:
+    if day <= 14:
+        return "masterclass"
+    if day <= 28:
+        return "live"
+    return "checkout"
+
+
+def _action_for_day(day: int) -> tuple[str, str]:
+    if day <= 7:
+        return "engage_dm", "engaged"
+    if day <= 14:
+        return "send_masterclass", "masterclass_requested"
+    if day <= 27:
+        return "invite_live", "masterclass_viewed"
+    if day == 28:
+        return "live_entry", "live_registered"
+    if day == 29:
+        return "checkout_follow_up", "live_attended"
+    return "recovery_call", "live_absent"
+
+
 def _canonical_day(day: int, source: dict) -> dict:
     return {
         "day": day,
@@ -185,11 +210,14 @@ def _canonical_day(day: int, source: dict) -> dict:
         "how_to": _clean(source.get("how_to") or source.get("come_farlo")),
         "cta": _cta_for_day(day),
         "destination_url": source.get("destination_url"),
+        "destination_kind": _destination_kind_for_day(day),
         "owner": "partner",
         "phase": _phase_for_day(day),
         "dm_action": _dm_action_for_day(day),
         "main_content": day in _PRIMARY_CONTENT_DAYS,
         "recovery_reason": "live_absent" if day == 30 else None,
+        "action_kind": _action_for_day(day)[0],
+        "audience_condition": _action_for_day(day)[1],
     }
 
 
