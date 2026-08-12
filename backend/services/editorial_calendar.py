@@ -202,10 +202,13 @@ def _action_for_day(day: int) -> tuple[str, str]:
 
 
 def _canonical_day(day: int, source: dict) -> dict:
+    primary_format = _coerce_format(source.get("format") or source.get("formato"))
+    if day in _PRIMARY_CONTENT_DAYS and primary_format == "stories":
+        primary_format = "reel"
     return {
         "day": day,
         "channel": "instagram",
-        "format": _coerce_format(source.get("format") or source.get("formato")) if day in _PRIMARY_CONTENT_DAYS else "stories",
+        "format": primary_format if day in _PRIMARY_CONTENT_DAYS else "stories",
         "theme": _clean(source.get("theme") or source.get("tema")),
         "how_to": _clean(source.get("how_to") or source.get("come_farlo")),
         "cta": _cta_for_day(day),
@@ -297,7 +300,7 @@ def _deterministic(
         d("Reel", next_lez("Un secondo quick-win pratico"), "Lezione del corso", "A camera, mostra il fare", "Segui"),
         d("Carosello", "3 verità sul tuo tema", "Masterclass", "4 slide, testo grande", "Salva + segui"),
         d("Reel", "Una domanda alla tua community", "Engagement", "A camera, fai una domanda", "Scrivimi"),
-        d("Reel", "Perché la maggior parte fallisce", "Masterclass", "A camera, tono diretto", "Guarda la masterclass"),
+        d("Reel", "Un errore frequente e come evitarlo", "Masterclass", "A camera, tono diretto", "Guarda la masterclass"),
     ]
     s3 = [
         d("Reel", "Annuncio del webinar live gratuito (con data)", "Annuncio webinar", "A camera, energico, data a schermo", "Iscriviti al webinar"),

@@ -222,6 +222,31 @@ def test_readiness_accepts_complete_calendar():
     assert result.failed_codes == []
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("theme", "   "),
+        ("how_to", "\t"),
+        ("cta", "\n"),
+        ("dm_action", "  "),
+        ("channel", " "),
+        ("format", "  "),
+        ("owner", "\t"),
+        ("phase", "  "),
+        ("action_kind", " "),
+        ("audience_condition", "\n"),
+    ],
+)
+def test_readiness_rejects_whitespace_only_required_day_text(field, value):
+    calendar = _ready_calendar()
+    calendar["days"][0][field] = value
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "day_fields" in result.failed_codes
+
+
 def test_checksum_is_stable_for_equivalent_calendar_data():
     calendar = _ready_calendar()
     reordered = {key: calendar[key] for key in reversed(list(calendar))}
@@ -381,6 +406,17 @@ def test_readiness_rejects_tampered_funnel_sequence(day, field, value):
 def test_readiness_requires_exact_30_minute_routine_and_explicit_actions(routine_patch):
     calendar = _ready_calendar()
     calendar["organic_routine"].update(routine_patch)
+    _refresh_attestations(calendar)
+
+    result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
+
+    assert "organic_routine" in result.failed_codes
+
+
+@pytest.mark.parametrize("target", ["interactions_target", "outreach_target", "dm_follow_up_target"])
+def test_readiness_rejects_boolean_routine_targets(target):
+    calendar = _ready_calendar()
+    calendar["organic_routine"][target] = True
     _refresh_attestations(calendar)
 
     result = evaluate_launch_calendar(calendar, _ready_resources(calendar))
@@ -582,6 +618,21 @@ def test_build_normalize_accepts_valid_ai_output(monkeypatch):
 
     assert generated["source"] == "ai"
     assert "content_cadence" not in evaluate_launch_calendar(normalized, {}).failed_codes
+
+
+def test_build_normalize_canonicalizes_story_format_on_primary_ai_day(monkeypatch):
+    ai_output = _raw_days()
+    ai_output["days"][0]["format"] = "stories"
+    monkeypatch.setattr(editorial_calendar, "_call_claude", lambda _answers, _outline: ai_output)
+
+    generated = asyncio.run(build_editorial_calendar({}, None))
+    normalized = normalize_launch_calendar(generated, date(2026, 9, 1), date(2026, 9, 28))
+
+    result = evaluate_launch_calendar(normalized, {})
+
+    assert generated["source"] == "ai"
+    assert normalized["days"][0]["format"] == "reel"
+    assert "content_cadence" not in result.failed_codes
 
 
 def test_build_normalize_falls_back_for_invalid_ai_output(monkeypatch):

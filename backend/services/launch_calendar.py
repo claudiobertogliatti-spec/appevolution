@@ -115,9 +115,16 @@ def _is_consecutive_dates(days: list[Any]) -> bool:
 
 
 def _has_day_fields(days: list[Any]) -> bool:
+    required_text_fields = tuple(
+        field for field in _REQUIRED_DAY_FIELDS if field not in ("day", "destination_url")
+    )
     return all(
         isinstance(item, dict)
-        and all(field in item and item[field] not in (None, "") for field in _REQUIRED_DAY_FIELDS if field != "destination_url")
+        and isinstance(item.get("day"), int)
+        and all(
+            isinstance(item.get(field), str) and item[field].strip()
+            for field in required_text_fields
+        )
         and "destination_url" in item
         for item in days
     )
@@ -337,7 +344,7 @@ def _has_organic_routine(calendar: dict, resources: dict) -> bool:
     if not isinstance(routine, dict) or routine.get("daily_minutes") != 30:
         return False
     targets = ("interactions_target", "outreach_target", "dm_follow_up_target")
-    if not all(isinstance(routine.get(key), int) and routine[key] > 0 for key in targets):
+    if not all(type(routine.get(key)) is int and routine[key] > 0 for key in targets):
         return False
     actions = routine.get("actions")
     action_keys = ("interactions", "outreach", "dm_follow_up")
