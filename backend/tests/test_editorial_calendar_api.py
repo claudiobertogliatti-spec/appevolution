@@ -576,7 +576,10 @@ def test_notification_failure_is_durable_and_identical_retry_resolves_it(
     async def flaky_notification(*args, **kwargs):
         attempts.append((args, kwargs))
         if len(attempts) == 1:
-            raise RuntimeError(f"provider https://notify.test/retry?to{'ken'}=PROVA_NON_PERSISTERE non raggiungibile")
+            raise RuntimeError(
+                f"Bearer SENSITIVE_PASSWORD password=NON_PERSISTERE api_{'key'}=NON_PERSISTERE "
+                "notifica non raggiungibile"
+            )
         return True
 
     monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", flaky_notification)
@@ -594,9 +597,39 @@ def test_notification_failure_is_durable_and_identical_retry_resolves_it(
     assert len(fake_db.partner_launch_calendar_notification_recovery.docs) == 1
     recovery = fake_db.partner_launch_calendar_notification_recovery.docs[0]
     assert recovery["event"] == "pending_review"
-    assert recovery["status"] == "resolved"
-    assert "calendar.test" not in repr(recovery)
+    assert recovery["status"] == "sent"
+    assert recovery["error_code"] == "admin_notification_failed"
+    assert "error" not in recovery
     assert "PROVA_NON_PERSISTERE" not in repr(recovery)
+    assert "SENSITIVE_PASSWORD" not in repr(recovery)
+
+
+def test_identical_submit_does_not_duplicate_successful_admin_notification(
+    client, partner_token, fake_db, monkeypatch
+):
+    notifications = []
+
+    async def delivered_once(*args, **kwargs):
+        notifications.append((args, kwargs))
+        return True
+
+    monkeypatch.setattr(partner_journey, "_notify_admin_partner_activity", delivered_once)
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_https_destinations(client, partner_token, created)
+
+    first = _submit(client, partner_token, created)
+    retry = _submit(client, partner_token, created)
+
+    assert first.status_code == retry.status_code == 200
+    assert len(notifications) == 1
+    assert len(fake_db.partner_launch_calendar_notification_recovery.docs) == 1
+    event = fake_db.partner_launch_calendar_notification_recovery.docs[0]
+    assert event["status"] == "sent"
+    assert event["checksum"] == first.json()["checksum"]
 
 
 def test_calendar_transition_auth_uses_401_for_missing_or_invalid_and_403_for_roles(
@@ -634,7 +667,7 @@ def test_calendar_transition_auth_uses_401_for_missing_or_invalid_and_403_for_ro
 
 @pytest.mark.asyncio
 async def test_concurrent_identical_partner_submit_returns_one_pending_review_state(
-    client, partner_token
+    client, partner_token, fake_db
 ):
     created = client.post(
         "/api/partner/calendar/p1/versions",
@@ -642,6 +675,25 @@ async def test_concurrent_identical_partner_submit_returns_one_pending_review_st
         json=_generation_payload(),
     ).json()
     created = _with_https_destinations(client, partner_token, created)
+
+    class InterleavedVersions(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.readers = 0
+            self.two_readers = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            if query == {"partner_id": "p1", "version": 1}:
+                result = await super().find_one(query, projection, sort)
+                self.readers += 1
+                if self.readers == 2:
+                    self.two_readers.set()
+                await self.two_readers.wait()
+                return result
+            return await super().find_one(query, projection, sort)
+
+    fake_db.partner_launch_calendar_versions = InterleavedVersions(fake_db.versions)
+    fake_db.versions = fake_db.partner_launch_calendar_versions.docs
     app = FastAPI()
     app.include_router(editorial_calendar.router)
     transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -659,7 +711,7 @@ async def test_concurrent_identical_partner_submit_returns_one_pending_review_st
 
 @pytest.mark.asyncio
 async def test_concurrent_identical_admin_review_returns_one_approval_state(
-    client, partner_token, admin_token
+    client, partner_token, admin_token, fake_db
 ):
     created = client.post(
         "/api/partner/calendar/p1/versions",
@@ -668,6 +720,25 @@ async def test_concurrent_identical_admin_review_returns_one_approval_state(
     ).json()
     created = _with_ready_review_resources(client, partner_token, created)
     _submit(client, partner_token, created)
+
+    class InterleavedVersions(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.readers = 0
+            self.two_readers = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            if query == {"partner_id": "p1", "version": 1}:
+                result = await super().find_one(query, projection, sort)
+                self.readers += 1
+                if self.readers == 2:
+                    self.two_readers.set()
+                await self.two_readers.wait()
+                return result
+            return await super().find_one(query, projection, sort)
+
+    fake_db.partner_launch_calendar_versions = InterleavedVersions(fake_db.versions)
+    fake_db.versions = fake_db.partner_launch_calendar_versions.docs
     app = FastAPI()
     app.include_router(editorial_calendar.router)
     transport = ASGITransport(app=app, raise_app_exceptions=False)

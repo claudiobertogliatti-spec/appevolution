@@ -235,49 +235,57 @@ def _admin_review_resources(calendar: dict, reviewed_at: str) -> tuple[dict, lis
     }, ["verified_destination_urls"] if invalid_destinations else []
 
 
-def _recovery_id(partner_id: str, version: int) -> str:
-    return f"calendar-pending-review:{partner_id}:{version}"
+def _notification_event_key(partner_id: str, version: int, checksum: str) -> str:
+    """Chiave idempotente: Mongo garantisce l'unicita' del suo ``_id``."""
+    return f"calendar-pending-review:{partner_id}:{version}:{checksum}"
 
 
-def _sanitized_notification_error(error: Exception) -> str:
-    """La recovery e' operativa: non ci finiscono URL, token o trace completi."""
-    message = str(error).replace("\n", " ").strip()
-    if "http://" in message or "https://" in message or "token" in message.lower():
-        return "notifica admin non consegnata"
-    return (message or "notifica admin non consegnata")[:240]
-
-
-async def _record_notification_recovery(
+async def _claim_pending_review_notification(
     partner_id: str,
     version: int,
-    error: Exception,
-) -> None:
+    checksum: str,
+) -> dict | None:
+    """Crea l'outbox una volta e consente un solo sender per stato pending."""
     from pymongo import ReturnDocument
 
     now = datetime.now(timezone.utc).isoformat()
+    event_key = _notification_event_key(partner_id, version, checksum)
     await db.partner_launch_calendar_notification_recovery.find_one_and_update(
-        {"_id": _recovery_id(partner_id, version)},
+        {"_id": event_key},
         {
-            "$set": {
+            "$setOnInsert": {
                 "partner_id": partner_id,
                 "version": version,
+                "checksum": checksum,
                 "event": "pending_review",
                 "status": "pending",
-                "error": _sanitized_notification_error(error),
-                "updated_at": now,
+                "created_at": now,
             },
-            "$setOnInsert": {"created_at": now},
         },
         upsert=True,
         return_document=ReturnDocument.AFTER,
     )
+    return await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+        {"_id": event_key, "status": "pending"},
+        {"$set": {"status": "sending", "claimed_at": now}},
+        return_document=ReturnDocument.AFTER,
+    )
 
 
-async def _notify_pending_review_or_record_recovery(partner_id: str, version: int) -> None:
-    """Ogni fallimento di notifica resta recuperabile, incluso un retry identico."""
+async def _notify_pending_review_or_record_recovery(
+    partner_id: str,
+    version: int,
+    checksum: str,
+) -> None:
+    """Invia una sola volta; solo un recovery ``pending`` puo' essere ritentato."""
     from pymongo import ReturnDocument
     from routers.partner_journey import _notify_admin_partner_activity
 
+    claim = await _claim_pending_review_notification(partner_id, version, checksum)
+    if not claim:
+        return
+    event_key = _notification_event_key(partner_id, version, checksum)
+    now = datetime.now(timezone.utc).isoformat()
     try:
         delivered = await _notify_admin_partner_activity(
             partner_id,
@@ -286,13 +294,23 @@ async def _notify_pending_review_or_record_recovery(partner_id: str, version: in
         )
         if delivered is False:
             raise RuntimeError("notifica admin non consegnata")
-    except Exception as exc:
-        await _record_notification_recovery(partner_id, version, exc)
+    except Exception:
+        await db.partner_launch_calendar_notification_recovery.find_one_and_update(
+            {"_id": event_key, "status": "sending"},
+            {
+                "$set": {
+                    "status": "pending",
+                    "error_code": "admin_notification_failed",
+                    "last_failed_at": now,
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
         return
 
     await db.partner_launch_calendar_notification_recovery.find_one_and_update(
-        {"_id": _recovery_id(partner_id, version), "status": "pending"},
-        {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat()}},
+        {"_id": event_key, "status": "sending"},
+        {"$set": {"status": "sent", "sent_at": now}},
         return_document=ReturnDocument.AFTER,
     )
 
@@ -458,7 +476,9 @@ async def submit_calendar_version(
             and existing.get("partner_confirmed_expected_checksum") == body.expected_checksum
             and body.partner_confirmed is True
         ):
-            await _notify_pending_review_or_record_recovery(partner_id, version)
+            await _notify_pending_review_or_record_recovery(
+                partner_id, version, existing.get("checksum") or ""
+            )
             return _response_document(existing)
         raise HTTPException(409, "La conferma gia' registrata non corrisponde alla richiesta")
     if existing.get("status") != "draft":
@@ -504,9 +524,24 @@ async def submit_calendar_version(
         return_document=ReturnDocument.AFTER,
     )
     if not document:
+        winner = await db.partner_launch_calendar_versions.find_one(
+            {"partner_id": partner_id, "version": version},
+            {"_id": 0},
+        )
+        if (
+            winner
+            and winner.get("status") == "pending_review"
+            and winner.get("partner_confirmed_by") == _actor_id(actor)
+            and winner.get("partner_confirmed_expected_checksum") == body.expected_checksum
+            and body.partner_confirmed is True
+        ):
+            await _notify_pending_review_or_record_recovery(
+                partner_id, version, winner.get("checksum") or ""
+            )
+            return _response_document(winner)
         raise HTTPException(409, "La bozza e' stata modificata altrove")
 
-    await _notify_pending_review_or_record_recovery(partner_id, version)
+    await _notify_pending_review_or_record_recovery(partner_id, version, document["checksum"])
     return _response_document(document)
 
 
@@ -593,5 +628,18 @@ async def review_calendar_version(
         return_document=ReturnDocument.AFTER,
     )
     if not document:
+        winner = await db.partner_launch_calendar_versions.find_one(
+            {"partner_id": partner_id, "version": version},
+            {"_id": 0},
+        )
+        winner_review = (winner or {}).get("admin_review") or {}
+        if (
+            winner
+            and winner.get("status") == target_status
+            and winner_review.get("decision") == body.decision
+            and winner_review.get("note") == body.note
+            and winner_review.get("reviewed_by") == _actor_id(actor)
+        ):
+            return _response_document(winner)
         raise HTTPException(409, "La review e' gia' stata registrata o la versione e' cambiata")
     return _response_document(document)
