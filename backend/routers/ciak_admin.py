@@ -3663,3 +3663,109 @@ async def set_partner_alignment(
         update["$unset"] = unset_fields
     await db.partners.update_one({"id": partner_id}, update)
     return {"ok": True, "partner_id": partner_id, "updated": list(set_fields.keys()), "cleared": list(unset_fields.keys())}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  CONSEGNE MANCATE — pagato ma non consegnato
+# ═══════════════════════════════════════════════════════════════════════════
+# Il sistema persisteva gia' ogni indizio di fallimento, ma nessuna schermata
+# li leggeva: finalizzazione_partnership.<effetto>="failed", bozza_errore,
+# ciak_client_access_recovery, ciak_orphan_purchases. Un cliente poteva pagare
+# 2.790 EUR e restare senza account, senza che nessuno se ne accorgesse.
+
+class RetryFinalizzazioneRequest(BaseModel):
+    email: str
+
+
+@router.get("/consegne-mancate")
+async def consegne_mancate(
+    _admin=Depends(require_ciak_admin),
+    max_items: int = Query(200, ge=1, le=1000),
+):
+    """Elenco unico di cio' che e' stato pagato e non consegnato."""
+    from services.ciak_delivery_gaps import build_gap_report
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    proposte = await db.proposte.find(
+        {"pagamento_completato": True}, {"_id": 0}
+    ).sort("pagamento_completato_at", -1).to_list(max_items)
+
+    # L'analisi e' "in ritardo" rispetto al pagamento: la data d'acquisto sta
+    # sulla diagnostic session, non sul documento dell'analisi.
+    analisi: list[tuple] = []
+    async for doc in db.ciak_analisi.find(
+        {"bozza_inviata_at": {"$in": [None, ""]}}, {"_id": 0}
+    ).limit(max_items):
+        session = await db.diagnostic_sessions.find_one(
+            {"session_token": doc.get("session_token")},
+            {"_id": 0, "events": 1, "created_at": 1},
+        ) or {}
+        purchased_at = session.get("created_at")
+        for event in session.get("events") or []:
+            if event.get("event") == "stripe_payment_completed":
+                purchased_at = event.get("timestamp") or purchased_at
+        if purchased_at:
+            analisi.append((doc, purchased_at))
+
+    access_recovery = await db.ciak_client_access_recovery.find(
+        {"status": "pending"}, {"_id": 0}
+    ).sort("created_at", -1).to_list(max_items)
+
+    orphan_purchases = await db.ciak_orphan_purchases.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).to_list(max_items)
+
+    return build_gap_report(
+        proposte=proposte,
+        analisi=analisi,
+        access_recovery=access_recovery,
+        orphan_purchases=orphan_purchases,
+    )
+
+
+@router.post("/consegne-mancate/retry-partnership")
+async def retry_finalizzazione_partnership(
+    body: RetryFinalizzazioneRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Rilancia la finalizzazione Partnership per un cliente gia' pagante.
+
+    Identificato per email, non per token: il token della proposta e' una
+    credenziale (apre la pagina pubblica di firma e pagamento) e non deve
+    passare da liste o form amministrativi.
+
+    Idempotente per costruzione: finalize_partnership_payment riprende solo gli
+    effetti non ancora riusciti, grazie al claim atomico per effetto.
+    """
+    from routers.proposta import finalize_partnership_payment
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    email = (body.email or "").strip().lower()
+    if not email:
+        raise HTTPException(422, "Email mancante")
+
+    proposta = await db.proposte.find_one(
+        {"prospect_email": email, "pagamento_completato": True}, {"_id": 0}
+    )
+    if not proposta:
+        raise HTTPException(404, "Nessuna proposta pagata per questa email")
+    if (proposta.get("finalizzazione_partnership") or {}).get("complete") is True:
+        return {"success": True, "already_complete": True, "email": email}
+
+    actor = {
+        "type": "admin_retry",
+        "id": getattr(admin, "user_id", None),
+        "email": getattr(admin, "email", None),
+    }
+    result = await finalize_partnership_payment(
+        proposta,
+        method=proposta.get("pagamento_metodo") or "stripe",
+        reference=proposta.get("pagamento_riferimento") or "admin-retry",
+        actor=actor,
+    )
+    logger.info("[CIAK_ADMIN] Retry finalizzazione Partnership per %s da %s", email, actor.get("email"))
+    return {**result, "email": email}

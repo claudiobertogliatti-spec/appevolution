@@ -97,6 +97,7 @@ jobs:
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py
+          tests/test_ciak_delivery_gaps.py
 
   frontend:
     name: Frontend (build smoke)

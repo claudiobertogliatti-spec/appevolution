@@ -37,6 +37,7 @@ const NAV_ROUTES = {
   agenti: "/admin/automazione",
   "video-review": "/admin/video-review",
   "partner-setup-pending": "/admin/partner-setup-pending",
+  "consegne-mancate": "/admin/consegne-mancate",
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
