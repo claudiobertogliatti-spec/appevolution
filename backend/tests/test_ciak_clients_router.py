@@ -68,13 +68,18 @@ class FakeDb:
                 {
                     "session_token": "token-1",
                     "stato": "inviata",
+                    "bozza_inviata_at": "2026-08-12T09:00:00+00:00",
                     "analisi_definitiva": {"titolo": "Analisi", "roadmap": []},
                     "script_call": {"internal": True},
                 }
             ]
         )
         self.diagnostic_sessions = FakeCollection(
-            [{"session_token": "token-1", "current_state": "call_done"}]
+            [{
+                "session_token": "token-1",
+                "current_state": "call_done",
+                "events": [{"event": "stripe_payment_completed", "timestamp": "2026-08-12T08:00:00+00:00"}],
+            }]
         )
         self.ciak_client_login_tokens = FakeCollection()
         self.users = FakeCollection()
@@ -430,6 +435,25 @@ def test_offer_decision_accepts_admin_jwt(monkeypatch, client_app, fake_db):
     assert client["offer_decision"] == "partnership"
     assert client["offer_decided_by"] == "admin@example.com"
     assert client["offer_decided_at"]
+    assert client["offer_decision_context"]["diagnostic_state"] == "call_done"
+
+
+def test_offer_decision_rejects_before_call_is_done(monkeypatch, client_app, fake_db):
+    monkeypatch.setattr(
+        ciak_clients,
+        "decode_token",
+        lambda token: SimpleNamespace(role="admin", email="admin@example.com", user_id="admin-1"),
+    )
+    fake_db.diagnostic_sessions.docs[0]["current_state"] = "call_booked"
+
+    response = client_app.post(
+        "/api/ciak/client/admin/offer-decision",
+        json={"client_id": "client-1", "offer_decision": "ciak_start"},
+        headers={"Authorization": "Bearer admin-token"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "La decisione commerciale si registra solo dopo la call completata."
 
 
 def test_activate_start_rejects_unauthenticated_callers(client_app):
@@ -525,11 +549,11 @@ def test_start_checkout_rejects_when_start_is_not_the_allowed_offer(monkeypatch,
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Ciak Start e' disponibile solo quando e' l'offerta consigliata."
+    assert response.json()["detail"] == "Ciak Start richiede la decisione esplicita del team dopo la call."
     assert FakeStripeCheckout.created_requests == []
 
 
-def test_start_checkout_accepts_explicit_offer_flag(monkeypatch, client_app, fake_db):
+def test_start_checkout_rejects_legacy_offer_flag_without_explicit_decision(monkeypatch, client_app, fake_db):
     monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
     fake_db.ciak_clients.docs[0]["access_level"] = "cliente_blueprint"
     fake_db.ciak_clients.docs[0]["start_credit_amount"] = 0
@@ -544,8 +568,38 @@ def test_start_checkout_accepts_explicit_offer_flag(monkeypatch, client_app, fak
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["amount_cents"] == 49900
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Ciak Start richiede la decisione esplicita del team dopo la call."
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_detail"),
+    [
+        (lambda db: db.diagnostic_sessions.docs[0].update(events=[]), "Il pagamento Blueprint da 27 EUR non risulta completato."),
+        (lambda db: db.ciak_analisi.docs[0].update(bozza_inviata_at=None), "L'analisi Blueprint deve essere consegnata prima di proporre Ciak Start."),
+        (lambda db: db.diagnostic_sessions.docs[0].update(current_state="call_booked"), "La call Blueprint deve essere completata prima di acquistare Ciak Start."),
+    ],
+)
+def test_start_checkout_requires_completed_blueprint_path(
+    monkeypatch, client_app, fake_db, mutation, expected_detail
+):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    fake_db.ciak_clients.docs[0].update(
+        access_level="cliente_blueprint",
+        start_credit_amount=0,
+        start_purchased_at=None,
+    )
+    mutation(fake_db)
+
+    token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+    response = client_app.post(
+        "/api/ciak/client/start/checkout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code in (403, 409)
+    assert response.json()["detail"] == expected_detail
+    assert FakeStripeCheckout.created_requests == []
 
 
 def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, client_app, fake_db):

@@ -208,19 +208,46 @@ def _has_explicit_offer_flag(client: dict[str, Any], flags: tuple[str, ...]) -> 
     return any(client.get(flag) is True for flag in flags)
 
 
-def _ensure_start_checkout_allowed(client: dict[str, Any]) -> None:
+async def _blueprint_context(client: dict[str, Any]) -> dict[str, Any]:
+    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    if not session_token or db is None:
+        return {"session": {}, "analysis": {}}
+    session = await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0}) or {}
+    analysis = await db.ciak_analisi.find_one({"session_token": session_token}, {"_id": 0}) or {}
+    return {"session": session, "analysis": analysis}
+
+
+def _ensure_completed_blueprint_path(context: dict[str, Any]) -> None:
+    session = context.get("session") or {}
+    analysis = context.get("analysis") or {}
+    paid = any(event.get("event") == "stripe_payment_completed" for event in session.get("events", []))
+    if not paid:
+        raise HTTPException(status_code=403, detail="Il pagamento Blueprint da 27 EUR non risulta completato.")
+    if not analysis.get("bozza_inviata_at"):
+        raise HTTPException(
+            status_code=409,
+            detail="L'analisi Blueprint deve essere consegnata prima di proporre Ciak Start.",
+        )
+    if session.get("current_state") != "call_done":
+        raise HTTPException(
+            status_code=409,
+            detail="La call Blueprint deve essere completata prima di acquistare Ciak Start.",
+        )
+
+
+def _ensure_start_checkout_allowed(client: dict[str, Any], context: dict[str, Any]) -> None:
     if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
         raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
     if client.get("access_level") == ACCESS_START or has_start_entitlement(client):
         raise HTTPException(status_code=409, detail="Ciak Start risulta gia' attivo su questo account.")
     if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
         raise HTTPException(status_code=403, detail="Ciak Start non e' disponibile per questo account.")
-    if (
-        client.get("offer_decision") != OFFER_START
-        and client.get("recommended_offer") != OFFER_START
-        and not _has_explicit_offer_flag(client, START_EXPLICIT_OFFER_FLAGS)
-    ):
-        raise HTTPException(status_code=403, detail="Ciak Start e' disponibile solo quando e' l'offerta consigliata.")
+    if client.get("offer_decision") != OFFER_START:
+        raise HTTPException(
+            status_code=403,
+            detail="Ciak Start richiede la decisione esplicita del team dopo la call.",
+        )
+    _ensure_completed_blueprint_path(context)
 
 
 def _ensure_partnership_checkout_allowed(client: dict[str, Any]) -> None:
@@ -430,13 +457,29 @@ async def offer_decision(
     if body.offer_decision not in ("ciak_start", "partnership"):
         raise HTTPException(status_code=400, detail="offerta non valida")
 
+    client = await db.ciak_clients.find_one({"id": body.client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    context = await _blueprint_context(client)
+    if (context.get("session") or {}).get("current_state") != "call_done":
+        raise HTTPException(
+            status_code=409,
+            detail="La decisione commerciale si registra solo dopo la call completata.",
+        )
+    decided_at = _now_iso()
+
     res = await db.ciak_clients.update_one(
         {"id": body.client_id},
         {
             "$set": {
                 "offer_decision": body.offer_decision,
                 "offer_decided_by": body.admin_email or auth["actor"],
-                "offer_decided_at": _now_iso(),
+                "offer_decided_at": decided_at,
+                "offer_decision_context": {
+                    "diagnostic_state": "call_done",
+                    "session_token": client.get("session_token") or client.get("diagnostic_session_token"),
+                    "recorded_at": decided_at,
+                },
             }
         },
     )
@@ -474,7 +517,8 @@ async def start_checkout(client: dict[str, Any] = Depends(require_client)):
     canonical_user = await _canonical_user_for_client(client)
     effective_client = _effective_client_snapshot(client, canonical_user)
     effective_client["access_level"] = _effective_access_level(client, canonical_user)
-    _ensure_start_checkout_allowed(effective_client)
+    context = await _blueprint_context(client)
+    _ensure_start_checkout_allowed(effective_client, context)
     frontend = _frontend_url()
     session = await _create_checkout_session(
         amount_cents=START_AMOUNT_CENTS,

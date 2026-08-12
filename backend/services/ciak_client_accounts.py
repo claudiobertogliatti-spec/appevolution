@@ -81,11 +81,16 @@ def default_start_progress() -> list[dict[str, Any]]:
 
 def _score_from_session(session: dict[str, Any]) -> int:
     scoring = session.get("scoring") or {}
-    for key in ("score_percentuale", "score_numerico", "score_total"):
+    if scoring.get("score_percentuale") is not None:
+        try:
+            return max(0, min(100, int(round(float(scoring["score_percentuale"])))))
+        except (TypeError, ValueError):
+            pass
+    for key in ("score_numerico", "score_total"):
         if scoring.get(key) is not None:
             try:
                 raw = float(scoring[key])
-                return int(raw if raw > 13 else round(raw / 13 * 100))
+                return max(0, min(100, int(round(raw / 13 * 100))))
             except (TypeError, ValueError):
                 pass
     return 0

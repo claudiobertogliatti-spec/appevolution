@@ -10,7 +10,14 @@ from services.ciak_client_accounts import (
     offer_for_score,
     partnership_price_for_client,
     verify_magic_login_token,
+    _score_from_session,
 )
+
+
+def test_numeric_blueprint_score_is_clamped_to_the_canonical_13_point_scale():
+    assert _score_from_session({"scoring": {"score_numerico": 13}}) == 100
+    assert _score_from_session({"scoring": {"score_numerico": 14}}) == 100
+    assert _score_from_session({"scoring": {"score_numerico": 15}}) == 100
 
 pytestmark = pytest.mark.unit
 

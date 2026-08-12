@@ -40,11 +40,11 @@ export function BlueprintPage({ dashboard }) {
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-sm font-semibold text-slate-900">Decisione consigliata</p>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            {diagnostic.recommended_offer === "ciak_start"
-              ? "Al momento il consiglio e' consolidare le fondazioni con Ciak Start."
-              : diagnostic.recommended_offer === "partnership"
-                ? "Al momento il consiglio e' la Partnership completa."
-                : "La decisione finale compare qui dopo la lettura completa del Blueprint."}
+            {diagnostic.offer_decision === "ciak_start"
+              ? "Dopo analisi e call, il team ha confermato Ciak Start per consolidare le fondazioni prima della Partnership."
+              : diagnostic.offer_decision === "partnership"
+                ? "Dopo analisi e call, il team ha confermato la Partnership completa."
+                : "Il punteggio e' un'indicazione interna. La decisione finale compare solo dopo la call."}
           </p>
         </div>
       </section>

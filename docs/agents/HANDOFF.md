@@ -12,6 +12,23 @@ Regole:
 
 ---
 
+### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — connessione Blueprint → Start
+
+**FATTO**
+- Il checkout Ciak Start richiede ora, senza scorciatoie: pagamento Blueprint registrato, analisi realmente consegnata, call completata e decisione esplicita `ciak_start` del team.
+- La raccomandazione automatica e i vecchi flag restano dati interni e non autorizzano piu' l'acquisto.
+- La decisione admin e' bloccata prima di `call_done` e salva uno snapshot audit del contesto.
+- L'area cliente mostra Start solo dopo la decisione umana; il punteggio non viene piu' presentato come decisione finale.
+- Normalizzato lo score numerico sulla scala canonica 0-13, con clamp per dati anomali.
+
+**VERIFICATO**
+- RED osservato: 7 test fallivano sui gate mancanti e sul parser score.
+- Suite mirata backend: `54 passed`; `py_compile` e `git diff --check`: exit 0.
+- Build frontend produzione generata con `asset-manifest.json` il 12/08/2026 alle 17:44.
+
+**APERTO**
+- Verificare CI, deploy Cloud Run/Vercel e bundle effettivamente servito dopo il push su `main`.
+
 ### 2026-08-12 · Codex · main — pagamento Ciak Start completo e live
 
 **FATTO**

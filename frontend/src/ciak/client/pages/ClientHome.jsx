@@ -32,7 +32,7 @@ function nextAction(dashboard) {
     return {
       title: "Prossimo passo disponibile",
       body: "Guarda il percorso consigliato dopo la call.",
-      to: diagnostic.recommended_offer === "ciak_start" ? "/cliente/start" : "/cliente/partnership",
+      to: diagnostic.offer_decision === "ciak_start" ? "/cliente/start" : "/cliente/partnership",
     };
   }
   return {
@@ -96,7 +96,7 @@ export function ClientHome({ dashboard }) {
           <p className="mt-1 text-sm text-slate-500">
             {startActive
               ? "Area di lavoro attiva con servizi, avanzamento e credito sempre garantito."
-              : "Si apre quando il percorso consigliato e' Ciak Start."}
+              : "Si apre dopo il Blueprint e la call, se il team conferma che serve consolidare le fondazioni."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
