@@ -17,7 +17,7 @@ const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_UR
  *   3. POST /video/confirm-upload → registra gcs_path + avvia la pipeline Celery
  *      (taglio filler, transcript, render, upload YouTube → ready_for_review)
  */
-export default function Step07RegistraMasterclass({ step, partnerId, onComplete, onSaveDraft }) {
+export default function Step07RegistraMasterclass({ step, partnerId, onSaveDraft }) {
   // Compat: i partner con il vecchio schema hanno video_url; il nuovo schema usa
   // video_submitted (il video è in elaborazione, non c'è un URL riproducibile).
   const alreadyDone = !!(step?.data?.video_submitted || step?.data?.video_url);
@@ -83,9 +83,7 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
     <StepBase
       step={step}
       title="Registra la tua lezione gratuita"
-      ctaDisabled={!submitted || busy}
-      onCta={() => onComplete({ video_submitted: true, filename: fileName })}
-      secondaryNote="Registra senza pensare al montaggio, anche col telefono. Carichi il file (MP4 o MOV) e al taglio e alla qualità pensiamo noi. Se la connessione cade, riprende da solo."
+      secondaryNote="Il caricamento salva il grezzo ma non completa F-11. Il passaggio avanza automaticamente quando approvi il montaggio definitivo nella sua versione corrente."
     >
       <label className={`block border-2 border-dashed rounded-md p-10 text-center cursor-pointer transition ${submitted ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"} ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input

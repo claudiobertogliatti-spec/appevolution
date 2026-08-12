@@ -6,7 +6,7 @@ import React from "react";
  * card bianca rounded-2xl, padding generoso, eyebrow giallo, titolo grande.
  *
  * L'etichetta (eyebrow) è generata automaticamente dal dato reale dello step
- * ("{Fase} · Passo {n} di 14"). Si può passare `eyebrow` a mano come fallback.
+ * ("{Fase} · F-n"). Si può passare `eyebrow` a mano come fallback.
  */
 const PHASE_LABEL = { esamina: "Esamina", valida: "Valida", ottimizza: "Ottimizza" };
 

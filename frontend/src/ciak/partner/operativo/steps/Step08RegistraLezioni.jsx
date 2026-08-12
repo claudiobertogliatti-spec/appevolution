@@ -14,7 +14,7 @@ const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_UR
  * lesson_id → partner_videocorso.lessons.{id}).
  * Manteniamo la UX a lista piatta: a ogni video assegniamo un lesson_id stabile.
  */
-export default function Step08RegistraLezioni({ step, partnerId, onComplete, onSaveDraft }) {
+export default function Step08RegistraLezioni({ step, partnerId, onSaveDraft }) {
   const [videos, setVideos] = useState(step?.data?.videos || []);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -97,9 +97,7 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
     <StepBase
       step={step}
       title="Registra le lezioni del corso"
-      ctaDisabled={videos.length === 0 || busy}
-      onCta={() => onComplete({ videos })}
-      secondaryNote="Una lezione alla volta, con calma. Carichi il grezzo (MP4 o MOV) e montiamo noi. Puoi tornare quando vuoi per aggiungerne altre."
+      secondaryNote="Il caricamento non completa F-12. Il passaggio avanza automaticamente solo quando tutte le lezioni previste risultano montate e approvate nella versione corrente."
     >
       <label className={`block bg-slate-50 border-2 border-dashed border-slate-400 rounded-md p-8 text-center cursor-pointer hover:border-yellow-400 mb-4 transition ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input type="file" accept="video/*" className="hidden" disabled={busy} onChange={(e) => handle(e.target.files?.[0])} />

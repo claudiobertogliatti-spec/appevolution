@@ -98,6 +98,7 @@ jobs:
           tests/test_protocollo_evo_valida.py
           tests/test_journey_f20_migration.py
           tests/test_journey_completion.py
+          tests/test_journey_video_gates.py
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py

@@ -1819,19 +1819,29 @@ async def approve_masterclass_video(
     partner_id: str,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    """Admin approva il video masterclass pulito"""
-    await require_partner_or_admin_for_partner(partner_id, credentials)
+    """Il partner approva la versione corrente del video masterclass."""
+    actor = await require_partner_or_admin_for_partner(partner_id, credentials)
+    if getattr(actor, "role", None) != "partner":
+        raise HTTPException(403, "Questa conferma deve essere data dal partner")
     await get_partner_or_404(partner_id)
     doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
-    if not doc or doc.get("video_pipeline_status") != "ready_for_review":
+    if not doc or doc.get("video_pipeline_status") not in ("ready_for_review", "ready_for_review_gcs"):
         raise HTTPException(status_code=400, detail="Nessun video pronto per approvazione")
 
+    output_version = int(doc.get("output_version") or 0)
+    now_iso = datetime.now(timezone.utc).isoformat()
     await db.masterclass_factory.update_one(
         {"partner_id": partner_id},
         {"$set": {
             "video_approved": True,
+            "partner_approved": True,
+            "partner_review_status": "approved",
+            "partner_review_version": output_version,
+            "partner_reviewed_by": str(getattr(actor, "user_id", "partner")),
+            "partner_reviewed_at": now_iso,
+            "pipeline_status": "approved",
             "video_pipeline_status": "approved",
-            "video_approved_at": datetime.now(timezone.utc).isoformat()
+            "video_approved_at": now_iso,
         }}
     )
     await db.partners.update_one(
@@ -1840,6 +1850,13 @@ async def approve_masterclass_video(
     )
 
     partner = await db.partners.find_one({"id": partner_id})
+
+    # L'upload non completa F-11: l'avanzamento avviene soltanto dopo questo OK.
+    try:
+        await _complete_operativo_step_unchecked(partner_id, "08-registra-masterclass", _OperativoCompleteBody(data={}))
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
 
     # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin):
     # la playlist contiene solo video approvati, mai gli scarti in review.
@@ -2332,6 +2349,17 @@ async def review_videocorso_video_by_partner(
     )
     if not result.matched_count:
         raise HTTPException(409, "Il video e' cambiato: ricarica la pagina")
+    # F-12 avanza automaticamente soltanto quando il resolver vede tutte le
+    # lezioni previste approvate nella loro versione corrente.
+    trusted = await _trusted_completion_context(request.partner_id, "09-registra-lezioni")
+    if trusted.get("lessons_approved"):
+        try:
+            await _complete_operativo_step_unchecked(
+                request.partner_id, "09-registra-lezioni", _OperativoCompleteBody(data={})
+            )
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
     await notify_telegram(
         f"✅ VIDEOLEZIONE APPROVATA DAL PARTNER\n\n👤 {partner.get('name', request.partner_id)}\n"
         f"🎬 {lesson.get('title') or request.lesson_id} — v{request.output_version}"
@@ -6977,6 +7005,26 @@ async def complete_operativo_step(
     return await _complete_operativo_step_unchecked(partner_id, step_id, body)
 
 
+async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
+    """Carica solo evidenze server-side; nessun flag governato arriva dal client."""
+    from services.journey_completion import (
+        all_required_lessons_approved,
+        masterclass_current_version_approved,
+    )
+
+    if step_id == "08-registra-masterclass":
+        masterclass = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+        return {"masterclass_approved": masterclass_current_version_approved(masterclass)}
+    if step_id == "09-registra-lezioni":
+        course = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        return {
+            "lessons_approved": all_required_lessons_approved(
+                course.get("course_data") or {}, course.get("lessons") or {}
+            )
+        }
+    return {}
+
+
 async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body: _OperativoCompleteBody):
     """Logica interna di completamento step, usata anche dai ponti PDF/asset."""
     from services.journey_completion import evaluate_step_completion
@@ -6993,7 +7041,7 @@ async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body
 
     # I flag governati non vengono mai accettati dal body del client: saranno
     # valorizzati esclusivamente dai resolver DB/evidenze dei rispettivi gate.
-    completion_context = {"data": merged_data}
+    completion_context = {"data": merged_data, **(await _trusted_completion_context(partner_id, step_id))}
     completion = evaluate_step_completion(step_id, completion_context)
     if not completion.ok:
         raise HTTPException(
