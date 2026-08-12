@@ -264,3 +264,51 @@ async def test_client_identity_reuses_existing_user_and_client_without_duplicate
     }
     assert len(fake_db.users.docs) == 1
     assert len(fake_db.ciak_clients.docs) == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_finalizations_run_each_effect_exactly_once(monkeypatch):
+    """Webhook Stripe e ritorno del browser arrivano quasi insieme.
+
+    Il rischio reale non e' la seconda chiamata *dopo* la prima: e' che le due
+    partano insieme e leggano entrambe lo stato prima che l'altra scriva. Su
+    `account` questo significa due partner_setup_token, con il primo — gia'
+    spedito al cliente — morto.
+
+    Serve quindi un test CONCORRENTE: uno sequenziale passerebbe anche senza il
+    claim atomico, e darebbe un falso verde. Gli effetti cedono il controllo con
+    un await, cosi' l'interleaving avviene davvero.
+    """
+    import asyncio
+
+    fake_db = FakeDb()
+    fake_db.proposte.docs[0].update({
+        "contratto_firmato_at": "2026-08-12T10:00:00+00:00",
+        "stripe_session_id_partnership": "cs_paid",
+    })
+    proposta.set_db(fake_db)
+
+    eseguiti = {"account": 0, "journey": 0, "tags": 0, "notification": 0}
+
+    def _conta(nome):
+        async def _effetto(*_args, **_kwargs):
+            eseguiti[nome] += 1
+            await asyncio.sleep(0)  # cede: senza, non c'e' concorrenza da testare
+        return _effetto
+
+    monkeypatch.setattr(proposta, "_activate_partner_account_and_notify", _conta("account"))
+    monkeypatch.setattr(proposta, "_seed_operativo_journey_from_funnel", _conta("journey"))
+    monkeypatch.setattr(proposta, "_finalization_tags", _conta("tags"))
+    monkeypatch.setattr(proposta, "_notify_telegram", _conta("notification"))
+
+    doc = fake_db.proposte.docs[0]
+    await asyncio.gather(
+        proposta.finalize_partnership_payment(dict(doc), method="stripe", reference="cs_paid"),
+        proposta.finalize_partnership_payment(dict(doc), method="stripe", reference="cs_paid"),
+    )
+
+    assert eseguiti == {"account": 1, "journey": 1, "tags": 1, "notification": 1}, (
+        f"effetti duplicati dalla finalizzazione concorrente: {eseguiti}"
+    )
+    stato = fake_db.proposte.docs[0].get("finalizzazione_partnership") or {}
+    assert all(stato.get(k) == "done" for k in ("account", "journey", "tags", "notification"))
