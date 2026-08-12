@@ -27,6 +27,7 @@ from services.ciak_delivery_gaps import (
     SEVERITY_HIGH,
     SEVERITY_MEDIUM,
     analysis_gap,
+    access_recovery_gap,
     build_gap_report,
     partnership_gap,
 )
@@ -140,6 +141,27 @@ def test_delivered_analysis_is_not_a_gap():
         {"session_token": "s4", "email": "d@example.com", "bozza_inviata_at": _hours_ago(2)},
         purchased_at=_hours_ago(4),
     ) is None
+
+
+def test_start_access_recovery_is_499_eur_and_retriable_without_token():
+    gap = access_recovery_gap(
+        {
+            "id": "recovery-start-1",
+            "tier": "start",
+            "client_id": "client-1",
+            "email": "start@example.com",
+            "checkout_session_id": "cs_start_secret",
+            "status": "pending",
+            "error": "SMTP down",
+            "created_at": _hours_ago(2),
+        }
+    )
+
+    assert gap["tipo"] == "accesso_start"
+    assert gap["importo_eur"] == 499
+    assert gap["retriable"] is True
+    assert gap["recovery_id"] == "recovery-start-1"
+    assert "cs_start_secret" not in repr(gap)
 
 
 # ── Report complessivo ─────────────────────────────────────────────────────

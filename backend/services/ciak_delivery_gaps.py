@@ -135,21 +135,26 @@ def analysis_gap(analisi: dict, purchased_at: Any) -> Optional[dict]:
 
 
 def access_recovery_gap(entry: dict) -> Optional[dict]:
-    """Magic link Blueprint mai consegnato (coda di recovery)."""
+    """Accesso Blueprint/Start mai consegnato (coda di recovery)."""
     if entry.get("status") != "pending":
         return None
+    is_start = entry.get("tier") == "start"
     return {
-        "tipo": "accesso_blueprint",
+        "tipo": "accesso_start" if is_start else "accesso_blueprint",
         "severity": SEVERITY_HIGH,
-        "titolo": "Cliente Blueprint senza link di accesso",
+        "titolo": "Cliente Ciak Start senza email di accesso" if is_start else "Cliente Blueprint senza link di accesso",
         "email": entry.get("email"),
         "nome": None,
-        "importo_eur": 27,
+        "importo_eur": 499 if is_start else 27,
         "pagato_da_ore": _hours_since(entry.get("created_at")),
         "errore": entry.get("error"),
         "riferimento": _masked(entry.get("checkout_session_id")),
-        "retriable": False,
-        "azione": "Rigenera l'accesso dalla scheda cliente e verifica Systeme.",
+        "recovery_id": entry.get("id") if is_start else None,
+        "retriable": is_start,
+        "azione": (
+            "Riprova l'email Start: verra' generato un nuovo link monouso."
+            if is_start else "Rigenera l'accesso dalla scheda cliente e verifica Systeme."
+        ),
     }
 
 

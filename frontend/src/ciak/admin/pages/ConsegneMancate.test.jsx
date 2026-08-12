@@ -107,6 +107,35 @@ test("il retry richiama il backend e ricarica la lista", async () => {
   expect(apiGet).toHaveBeenCalledTimes(2);
 });
 
+test("il retry Start usa il recovery id senza esporre token", async () => {
+  apiGet.mockResolvedValue({
+    totale: 1,
+    per_tipo: { accesso_start: 1 },
+    importo_a_rischio_eur: 499,
+    items: [{
+      tipo: "accesso_start",
+      severity: "alta",
+      titolo: "Cliente Ciak Start senza email di accesso",
+      email: "start@example.com",
+      importo_eur: 499,
+      riferimento: "cs_s…",
+      recovery_id: "recovery-1",
+      retriable: true,
+      azione: "Riprova l'email Start.",
+    }],
+  });
+  apiPost.mockResolvedValue({ success: true });
+  render(<ConsegneMancate />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Riprova consegna" }));
+
+  await waitFor(() =>
+    expect(apiPost).toHaveBeenCalledWith("/consegne-mancate/retry-start", {
+      recovery_id: "recovery-1",
+    })
+  );
+});
+
 test("un retry fallito lo dice, non resta muto", async () => {
   apiGet.mockResolvedValue(REPORT);
   apiPost.mockRejectedValue(new Error("Systeme irraggiungibile"));

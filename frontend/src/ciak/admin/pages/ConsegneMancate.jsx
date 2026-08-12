@@ -127,7 +127,7 @@ function VoceConsegna({ item, onRetry, inCorso }) {
           <p className="text-sm text-slate-500 flex-1 min-w-[16rem]">{item.azione}</p>
           {item.retriable && (
             <button
-              onClick={() => onRetry(item.email)}
+              onClick={() => onRetry(item)}
               disabled={inCorso}
               className="text-xs font-semibold px-4 py-2 rounded bg-slate-900 text-yellow-400 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
@@ -158,11 +158,16 @@ export function ConsegneMancate({ onAuthExpired }) {
 
   useEffect(load, [load]);
 
-  const onRetry = async (email) => {
-    setRetryEmail(email);
+  const onRetry = async (item) => {
+    const { email } = item;
+    setRetryEmail(item.recovery_id || email);
     setEsito(null);
     try {
-      const res = await apiPost("/consegne-mancate/retry-partnership", { email });
+      const isStart = item.tipo === "accesso_start";
+      const res = await apiPost(
+        isStart ? "/consegne-mancate/retry-start" : "/consegne-mancate/retry-partnership",
+        isStart ? { recovery_id: item.recovery_id } : { email },
+      );
       setEsito({
         ok: true,
         testo: res.already_complete
@@ -244,7 +249,7 @@ export function ConsegneMancate({ onAuthExpired }) {
               key={`${item.tipo}-${item.riferimento}-${i}`}
               item={item}
               onRetry={onRetry}
-              inCorso={retryEmail === item.email}
+              inCorso={retryEmail === (item.recovery_id || item.email)}
             />
           ))}
         </ul>

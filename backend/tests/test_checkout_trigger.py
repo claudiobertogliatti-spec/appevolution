@@ -67,6 +67,7 @@ class FakeDB:
         self.ciak_client_login_tokens = FakeCollection()
         self.ciak_orphan_purchases = FakeCollection()
         self.ciak_client_access_recovery = FakeCollection()
+        self.ciak_onboarding_emails = FakeCollection()
         self.users = FakeCollection()
         self.partners = FakeCollection()
         self.payment_transactions = FakeCollection()
@@ -444,6 +445,75 @@ async def test_stripe_webhook_checkout_completed_activates_ciak_start():
     assert fake_db.payment_transactions.docs[0]["tipo"] == "ciak_start"
     assert fake_db.payments.docs[0]["amount"] == 499.0
     assert tasks.calls == []
+
+
+@pytest.mark.asyncio
+async def test_start_payment_delivers_audited_access_email(monkeypatch):
+    fake_db = FakeDB()
+    fake_db.ciak_clients.docs.append(
+        {
+            "id": "client-email",
+            "email": "start@example.com",
+            "name": "Mario",
+            "access_level": "cliente_blueprint",
+            "events": [],
+        }
+    )
+
+    delivered = {}
+
+    async def fake_delivery(database, **kwargs):
+        delivered.update(kwargs)
+        await database.ciak_onboarding_emails.insert_one(
+            {
+                "client_id": kwargs["client_id"],
+                "tier": "start",
+                "sent": True,
+                "checkout_session_id": kwargs["checkout_session_id"],
+            }
+        )
+        return True
+
+    monkeypatch.setattr(
+        "services.ciak_start_delivery.deliver_start_access", fake_delivery
+    )
+
+    await stripe_webhook.handle_checkout_completed(
+        fake_db,
+        {
+            "id": "cs_start_email",
+            "payment_status": "paid",
+            "amount_total": 49900,
+            "currency": "eur",
+            "metadata": {"tipo": "ciak_start", "client_id": "client-email"},
+        },
+        FakeBackgroundTasks(),
+    )
+
+    assert delivered["client_id"] == "client-email"
+    assert delivered["email"] == "start@example.com"
+    assert delivered["paid_at"]
+    assert fake_db.ciak_onboarding_emails.docs[0]["sent"] is True
+
+
+@pytest.mark.asyncio
+async def test_start_payment_with_unknown_client_fails_and_releases_webhook_lock():
+    fake_db = FakeDB()
+
+    with pytest.raises(RuntimeError, match="Ciak client not found"):
+        await stripe_webhook.handle_checkout_completed(
+            fake_db,
+            {
+                "id": "cs_start_orphan",
+                "payment_status": "paid",
+                "amount_total": 49900,
+                "currency": "eur",
+                "metadata": {"tipo": "ciak_start", "client_id": "missing"},
+            },
+            FakeBackgroundTasks(),
+        )
+
+    assert fake_db.stripe_webhook_events.docs == []
 
 
 @pytest.mark.asyncio

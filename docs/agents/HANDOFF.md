@@ -12,6 +12,23 @@ Regole:
 
 ---
 
+### 2026-08-12 · Codex · codex/ciak-start-payment-delivery — fix pagamento Start in verifica
+
+**FATTO**
+- Il webhook Ciak Start valida importo/valuta e fallisce in modo retriable se manca l'identita cliente.
+- Dopo l'attivazione genera un magic link monouso, invia l'email SMTP con le tre date, registra audit e crea recovery persistente senza salvare il bearer link se la consegna fallisce.
+- `Consegne mancate` distingue Start (€499), espone un retry admin per recovery id e rigenera sempre un link nuovo.
+- Il rientro Stripe mostra conferma esplicita e attende il webhook con polling limitato.
+
+**VERIFICATO**
+- RED osservato su consegna email mancante, client inesistente trattato come successo, classificazione recovery Start e retry admin assente.
+- Test backend mirati: `27 passed`; `py_compile` e `git diff --check`: exit 0.
+- Build frontend produzione: exit 0, con soli warning ESLint preesistenti in file estranei.
+
+**APERTO**
+- Commit/push, CI, deploy e smoke live ancora da eseguire.
+- Jest nel worktree sotto `.worktrees` non indicizza alcun test; la compilazione produzione copre il JSX ma il nuovo test UI deve passare in CI dal checkout standard.
+
 ### 2026-08-12 · Codex · main — journey EVO F-1/F-20, documenti progressivi e lancio
 
 **FATTO**

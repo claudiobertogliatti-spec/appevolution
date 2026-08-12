@@ -3677,6 +3677,10 @@ class RetryFinalizzazioneRequest(BaseModel):
     email: str
 
 
+class RetryStartDeliveryRequest(BaseModel):
+    recovery_id: str
+
+
 @router.get("/consegne-mancate")
 async def consegne_mancate(
     _admin=Depends(require_ciak_admin),
@@ -3769,3 +3773,43 @@ async def retry_finalizzazione_partnership(
     )
     logger.info("[CIAK_ADMIN] Retry finalizzazione Partnership per %s da %s", email, actor.get("email"))
     return {**result, "email": email}
+
+
+@router.post("/consegne-mancate/retry-start")
+async def retry_consegna_start(
+    body: RetryStartDeliveryRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Rigenera un link monouso e ritenta l'email per uno Start gia' pagato."""
+    from services.ciak_start_delivery import deliver_start_access
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    recovery = await db.ciak_client_access_recovery.find_one(
+        {"id": body.recovery_id, "tier": "start", "status": "pending"}, {"_id": 0}
+    )
+    if not recovery:
+        raise HTTPException(404, "Recovery Start non trovata o gia' risolta")
+    client = await db.ciak_clients.find_one({"id": recovery.get("client_id")}, {"_id": 0})
+    if not client:
+        raise HTTPException(409, "Cliente Start non trovato: verificare il pagamento")
+
+    sent = await deliver_start_access(
+        db,
+        client_id=client["id"],
+        email=client.get("email") or recovery.get("email") or "",
+        name=client.get("name"),
+        paid_at=client.get("start_purchased_at") or recovery.get("created_at") or datetime.now(timezone.utc).isoformat(),
+        checkout_session_id=recovery.get("checkout_session_id") or f"admin-retry:{body.recovery_id}",
+    )
+    if not sent:
+        raise HTTPException(502, "Email Start non consegnata: recovery ancora aperta")
+    await db.ciak_client_access_recovery.update_one(
+        {"id": body.recovery_id},
+        {"$set": {
+            "status": "resolved",
+            "resolved_at": datetime.now(timezone.utc).isoformat(),
+            "resolved_by": getattr(admin, "email", None) or "admin",
+        }},
+    )
+    return {"success": True, "recovery_id": body.recovery_id}

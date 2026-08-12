@@ -223,9 +223,9 @@ async def _dispatch_checkout_completed(db, session: dict, session_id: str, metad
     if tipo == 'ciak_start':
         client_id = metadata.get('client_id')
         if client_id:
-            await process_ciak_start_payment(db, client_id, session_id)
+            await process_ciak_start_payment(db, client_id, session_id, session=session)
         else:
-            logger.warning(f"[STRIPE_WEBHOOK] Missing client_id for ciak_start session {session_id}")
+            raise RuntimeError(f"Missing client_id for ciak_start session {session_id}")
     elif tipo == 'analisi_strategica':
         await process_analisi_payment(db, user_id, session_id, background_tasks)
     elif tipo == 'partnership':
@@ -441,11 +441,15 @@ async def _record_checkout_payment(db, *, session_id: str, tipo: str, amount_cen
         )
 
 
-async def process_ciak_start_payment(db, client_id: str, reference_id: str) -> None:
+async def process_ciak_start_payment(db, client_id: str, reference_id: str, session: dict | None = None) -> None:
+    session = session or {}
+    if session.get("amount_total") not in (None, START_AMOUNT_CENTS):
+        raise RuntimeError(f"Invalid Ciak Start amount for session {reference_id}")
+    if session.get("currency") not in (None, "eur"):
+        raise RuntimeError(f"Invalid Ciak Start currency for session {reference_id}")
     client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
     if not client:
-        logger.error(f"[STRIPE_WEBHOOK] Ciak client not found for Start payment: {client_id}")
-        return
+        raise RuntimeError(f"Ciak client not found for Start payment: {client_id}")
 
     now = _iso_now()
     updates = {
@@ -474,6 +478,16 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str) -> N
         amount_cents=START_AMOUNT_CENTS,
         email=client.get("email", ""),
         client_id=client_id,
+    )
+    from services.ciak_start_delivery import deliver_start_access
+
+    await deliver_start_access(
+        db,
+        client_id=client_id,
+        email=client.get("email", ""),
+        name=client.get("name"),
+        paid_at=updates["start_purchased_at"],
+        checkout_session_id=reference_id,
     )
 
 
