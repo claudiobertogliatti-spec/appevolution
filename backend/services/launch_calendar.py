@@ -110,11 +110,11 @@ def _parse_datetime(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo else None
 
 
-def _calendar_without_approval(calendar: dict) -> dict:
+def _calendar_without_attestations(calendar: dict) -> dict:
     return {
         key: value
         for key, value in calendar.items()
-        if key != "admin_approval"
+        if key not in {"admin_approval", "partner_confirmation"}
     }
 
 
@@ -128,7 +128,22 @@ def _has_admin_approval(calendar: dict) -> bool:
     return (
         _parse_datetime(approval["approved_at"]) is not None
         and approval["calendar_version"] == calendar.get("version")
-        and approval["calendar_checksum"] == calendar_checksum(_calendar_without_approval(calendar))
+        and approval["calendar_checksum"] == calendar_checksum(_calendar_without_attestations(calendar))
+    )
+
+
+def _has_partner_confirmation(calendar: dict) -> bool:
+    confirmation = calendar.get("partner_confirmation")
+    if not isinstance(confirmation, dict):
+        return False
+    required = ("partner_id", "confirmed_at", "calendar_version", "calendar_checksum")
+    if not all(isinstance(confirmation.get(field), str) and confirmation[field].strip() for field in required):
+        return False
+    return (
+        _parse_datetime(confirmation["confirmed_at"]) is not None
+        and confirmation["calendar_version"] == calendar.get("version")
+        and confirmation["calendar_checksum"]
+        == calendar_checksum(_calendar_without_attestations(calendar))
     )
 
 
@@ -157,12 +172,23 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
         return False
     version = terms.get("version")
     bonus = terms.get("bonus")
+    price = terms.get("price")
     expires_at = bonus.get("expires_at") if isinstance(bonus, dict) else None
     evaluated_at = _parse_datetime(resources.get("evaluated_at"))
     expires = _parse_datetime(expires_at)
     return (
         isinstance(version, str)
         and bool(version.strip())
+        and isinstance(price, dict)
+        and isinstance(price.get("price_id"), str)
+        and bool(price["price_id"].strip())
+        and isinstance(price.get("amount_cent"), int)
+        and not isinstance(price["amount_cent"], bool)
+        and price["amount_cent"] > 0
+        and isinstance(price.get("currency"), str)
+        and len(price["currency"]) == 3
+        and price["currency"].isalpha()
+        and price["currency"] == price["currency"].upper()
         and isinstance(bonus, dict)
         and isinstance(bonus.get("name"), str)
         and bool(bonus["name"].strip())
@@ -173,22 +199,94 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
 
 
 def _has_expected_cadence(calendar: dict) -> bool:
+    days = calendar.get("days")
     main_contents = calendar.get("main_contents")
     stories = calendar.get("stories")
-    if not isinstance(main_contents, list) or not isinstance(stories, list):
+    if (
+        not isinstance(days, list)
+        or not isinstance(main_contents, list)
+        or not isinstance(stories, list)
+    ):
         return False
     weeks = ((1, 7), (8, 14), (15, 21), (22, 30))
     try:
-        main_days = [int(item["day"]) for item in main_contents]
+        canonical_by_day = {int(item["day"]): item for item in days if isinstance(item, dict)}
+        derived_main = [item for item in days if isinstance(item, dict) and item.get("main_content") is True]
+        main_days = [int(item["day"]) for item in derived_main]
         story_days = [int(item["day"]) for item in stories]
     except (KeyError, TypeError, ValueError):
         return False
     return (
         len(main_days) == 16
         and len(set(main_days)) == 16
+        and all(item.get("format") != "stories" for item in derived_main)
         and all(sum(start <= day <= end for day in main_days) == 4 for start, end in weeks)
+        and main_contents == derived_main
         and len(set(story_days)) >= 28
         and all(1 <= day <= 30 for day in story_days)
+        and all(
+            isinstance(item, dict)
+            and item.get("format") == "stories"
+            and item.get("main_content") is False
+            and canonical_by_day.get(int(item["day"])) is not None
+            and item.get("theme") == canonical_by_day[int(item["day"])].get("theme")
+            for item in stories
+        )
+    )
+
+
+def _has_funnel_sequence(days: list[Any]) -> bool:
+    if len(days) != 30 or any(not isinstance(item, dict) for item in days):
+        return False
+    expected_phases = (
+        *(["recognition"] * 7),
+        *(["authority"] * 7),
+        *(["invitation"] * 7),
+        *(["conversion"] * 5),
+        "gate",
+        "live",
+        "follow_up",
+        "follow_up",
+    )
+    for index, item in enumerate(days, start=1):
+        cta = str(item.get("cta") or "").lower()
+        dm_action = str(item.get("dm_action") or "").lower()
+        if item.get("phase") != expected_phases[index - 1] or "call" in cta:
+            return False
+        if index < 29 and "checkout" in cta:
+            return False
+        if index <= 7 and not ("dm" in cta or "comment" in cta):
+            return False
+        if 8 <= index <= 14 and "masterclass" not in cta:
+            return False
+        if 15 <= index <= 27 and ("live" not in cta or "checkout" in cta):
+            return False
+        if index == 28 and ("entra" not in cta or "live" not in cta):
+            return False
+        if index >= 29 and "checkout" not in cta:
+            return False
+        if "call" in dm_action:
+            if index != 30 or item.get("recovery_reason") != "live_absent":
+                return False
+        elif index == 30 and item.get("recovery_reason") not in (None, ""):
+            return False
+        if index != 30 and item.get("recovery_reason") not in (None, ""):
+            return False
+    return True
+
+
+def _has_organic_routine(calendar: dict, resources: dict) -> bool:
+    routine = calendar.get("organic_routine") or resources.get("organic_routine")
+    if not isinstance(routine, dict) or routine.get("daily_minutes") != 30:
+        return False
+    targets = ("interactions_target", "outreach_target", "dm_follow_up_target")
+    if not all(isinstance(routine.get(key), int) and routine[key] > 0 for key in targets):
+        return False
+    actions = routine.get("actions")
+    action_keys = ("interactions", "outreach", "dm_follow_up")
+    return isinstance(actions, dict) and all(
+        isinstance(actions.get(key), str) and bool(actions[key].strip())
+        for key in action_keys
     )
 
 
@@ -209,14 +307,6 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
         and isinstance(live_date, str)
         and days[27].get("date") == live_date
     )
-    routine = calendar.get("organic_routine") or resources.get("organic_routine")
-    organic_routine = (
-        isinstance(routine, dict)
-        and isinstance(routine.get("daily_minutes"), int)
-        and routine["daily_minutes"] > 0
-        and isinstance(routine.get("outreach_target"), int)
-        and routine["outreach_target"] > 0
-    )
     checks = [
         {"code": "exactly_30_days", "ok": exactly_thirty_days},
         {"code": "consecutive_dates", "ok": _is_consecutive_dates(days)},
@@ -224,10 +314,11 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
         {"code": "day_fields", "ok": _has_day_fields(days)},
         {"code": "https_destination_urls", "ok": bool(days) and all(isinstance(item, dict) and _is_https_url(item.get("destination_url")) for item in days)},
         {"code": "verified_destination_urls", "ok": _verified_destination_urls(days, resources)},
-        {"code": "organic_routine", "ok": organic_routine},
+        {"code": "organic_routine", "ok": _has_organic_routine(calendar, resources)},
         {"code": "content_cadence", "ok": _has_expected_cadence(calendar)},
+        {"code": "funnel_sequence", "ok": _has_funnel_sequence(days)},
         {"code": "bonus_deadline", "ok": _has_valid_commercial_terms(calendar, resources)},
-        {"code": "partner_confirmation", "ok": bool(calendar.get("partner_confirmed_at"))},
+        {"code": "partner_confirmation", "ok": _has_partner_confirmation(calendar)},
         {"code": "admin_approval", "ok": _has_admin_approval(calendar)},
     ]
     return LaunchCalendarReadiness(

@@ -74,6 +74,7 @@ _DAY_SCHEMA = {
         "owner": {"type": "string", "enum": ["partner"]},
         "phase": {"type": "string"},
         "dm_action": {"type": "string"},
+        "recovery_reason": {"type": ["string", "null"]},
     },
     "required": ["day", "channel", "format", "theme", "how_to", "cta", "destination_url", "owner", "phase", "dm_action"],
 }
@@ -188,6 +189,7 @@ def _canonical_day(day: int, source: dict) -> dict:
         "phase": _phase_for_day(day),
         "dm_action": _dm_action_for_day(day),
         "main_content": day in _PRIMARY_CONTENT_DAYS,
+        "recovery_reason": "live_absent" if day == 30 else None,
     }
 
 
@@ -200,7 +202,17 @@ def _calendar(days: list[dict], source: str, commercial_terms: dict | None = Non
             {**days[day - 1], "format": "stories", "main_content": False}
             for day in sorted(_STORY_DAYS)
         ],
-        "organic_routine": {"daily_minutes": 30, "outreach_target": 10},
+        "organic_routine": {
+            "daily_minutes": 30,
+            "interactions_target": 10,
+            "outreach_target": 10,
+            "dm_follow_up_target": 10,
+            "actions": {
+                "interactions": "Rispondi ai commenti utili.",
+                "outreach": "Avvia nuove conversazioni mirate.",
+                "dm_follow_up": "Segui in DM chi ha interagito.",
+            },
+        },
         "source": source,
     }
     if isinstance(commercial_terms, dict):
