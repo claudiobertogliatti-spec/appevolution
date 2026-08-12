@@ -17,6 +17,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import asyncio
 import logging
+from models.start_journey import only_real_partners
 import json
 from pathlib import Path
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
@@ -2711,7 +2712,7 @@ async def get_admin_stats(_admin=Depends(require_admin_role)):
     Statistiche generali admin dashboard.
     """
     try:
-        partners = await db.partners.find({}, {"_id": 0, "phase": 1, "fase": 1, "revenue": 1}).to_list(500)
+        partners = await db.partners.find(only_real_partners(), {"_id": 0, "phase": 1, "fase": 1, "revenue": 1}).to_list(500)
         alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
 
         valid_phases = ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"]
@@ -4346,7 +4347,7 @@ async def mark_systeme_account_created(partner_id: str, systeme_email: str = Non
 async def get_onboarding_status():
     """Get onboarding status for all partners (for admin dashboard)"""
     partners = await db.partners.find(
-        {},
+        only_real_partners(),
         {"_id": 0, "id": 1, "name": 1, "email": 1, "phase": 1, "onboarding_status": 1, "contract": 1}
     ).to_list(100)
     
@@ -4541,13 +4542,13 @@ async def test_ollama_generation(prompt: str):
 async def get_partners_with_social():
     """Lista partner con avatar o social plan configurato per la dashboard produzione video"""
     partners = await db.partners.find(
-        {
+        only_real_partners({
             "$or": [
                 {"avatar_status": {"$in": ["AWAITING_CONSENT", "VERIFIED", "ACTIVE"]}},
                 {"social_plan.is_active": True},
                 {"heygen_id": {"$exists": True, "$ne": None}}
             ]
-        },
+        }),
         {
             "_id": 0, "id": 1, "name": 1, "nome": 1, "email": 1, "niche": 1,
             "avatar_status": 1, "heygen_id": 1, "heygen_voice_id": 1,
@@ -4557,7 +4558,7 @@ async def get_partners_with_social():
     
     if not partners:
         partners = await db.partners.find(
-            {"status": {"$in": ["active", "onboarding", "development"]}},
+            only_real_partners({"status": {"$in": ["active", "onboarding", "development"]}}),
             {
                 "_id": 0, "id": 1, "name": 1, "nome": 1, "email": 1, "niche": 1,
                 "avatar_status": 1, "heygen_id": 1, "heygen_voice_id": 1,
@@ -4569,7 +4570,7 @@ async def get_partners_with_social():
 
 @api_router.get("/partners", response_model=List[Partner])
 async def get_partners():
-    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
     return partners
 
 @api_router.get("/partners/{partner_id}")
@@ -6536,7 +6537,7 @@ async def get_partner_documents(partner_id: str):
 async def get_all_partner_documents_summary():
     """Get summary of all partner documents for Admin dashboard"""
     # Get all partners
-    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
     
     summaries = []
     for partner in partners:
@@ -10577,7 +10578,7 @@ async def get_compliance_stats():
 
 @api_router.get("/stats")
 async def get_stats():
-    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
     
     total_partners = len(partners)
@@ -11849,7 +11850,7 @@ async def get_piano_continuita_stats() -> dict:
     
     # Get all partners with piano_continuita
     partners = await db.partners.find(
-        {"piano_continuita.piano_attivo": {"$ne": None}},
+        only_real_partners({"piano_continuita.piano_attivo": {"$ne": None}}),
         {"_id": 0, "piano_continuita": 1, "name": 1, "email": 1}
     ).to_list(500)
     
@@ -16912,7 +16913,7 @@ async def admin_get_all_piano_continuita(_admin=Depends(require_admin_role)):
     
     # Get all partners with piano_continuita
     partners = await db.partners.find(
-        {"piano_continuita.piano_attivo": {"$ne": None}},
+        only_real_partners({"piano_continuita.piano_attivo": {"$ne": None}}),
         {"_id": 0}
     ).to_list(500)
     
@@ -17021,7 +17022,7 @@ async def admin_export_partners_csv(_admin=Depends(require_admin_role)):
     now = datetime.now(timezone.utc)
     
     # Get all partners
-    partners = await db.partners.find({}, {"_id": 0}).to_list(1000)
+    partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(1000)
     
     # Create CSV
     output = io.StringIO()

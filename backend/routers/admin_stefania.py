@@ -8,6 +8,7 @@ Usa Anthropic SDK direttamente (emergentintegrations rimosso).
 
 import os
 import logging
+from models.start_journey import only_real_partners
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
@@ -89,14 +90,14 @@ async def build_live_context() -> str:
 
         # Partner attivi
         partners = await db.partners.find(
-            {"status": {"$in": ["active", "attivo", "Active"]}},
+            only_real_partners({"status": {"$in": ["active", "attivo", "Active"]}}),
             {"_id": 0, "id": 1, "name": 1, "phase": 1, "email": 1,
              "last_activity": 1, "updated_at": 1, "alert": 1}
         ).to_list(200)
 
         # Tutti i partner (inclusi non attivi) per completezza
         all_partners = await db.partners.find(
-            {},
+            only_real_partners(),
             {"_id": 0, "id": 1, "name": 1, "phase": 1, "status": 1,
              "last_activity": 1, "updated_at": 1, "alert": 1}
         ).to_list(200)

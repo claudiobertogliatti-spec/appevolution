@@ -47,6 +47,30 @@ export async function clientGet(path) {
   return res.json();
 }
 
+/**
+ * Legge il percorso dall'area partner con il token cliente.
+ *
+ * Il cliente Ciak Start non ha un'area separata: usa gli stessi endpoint del
+ * partner, limitatamente al proprio id (vedi `_resolve_ciak_start_client` nel
+ * backend). Per questo il path NON e' sotto /api/ciak/client.
+ *
+ * A differenza di `clientGet`, un 403 qui NON cancella la sessione: significa
+ * "questo pezzo di percorso non e' incluso nel tuo livello", non "sei scaduto".
+ * Sloggare il cliente su un lucchetto sarebbe un bug con l'aria di un logout.
+ */
+export async function journeyGet(path) {
+  const res = await fetch(`/api/partner-journey${path}`, {
+    headers: { Authorization: `Bearer ${getClientToken()}` },
+  });
+  if (res.status === 401) {
+    clearClientSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (res.status === 403) throw new Error("NOT_ENTITLED");
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  return res.json();
+}
+
 export async function clientPost(path, body) {
   const res = await fetch(`/api/ciak/client${path}`, {
     method: "POST",

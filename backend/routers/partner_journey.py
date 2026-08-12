@@ -15,6 +15,18 @@ import logging
 import json
 from pathlib import Path
 
+from jose import jwt
+
+from models.start_journey import (
+    is_start_tier,
+    journey_definition_for_tier,
+    locked_step_definitions_for_tier,
+    normalize_tier,
+    only_real_partners,
+    step_definition,
+    tier_allows_step,
+)
+
 router = APIRouter(prefix="/api/partner-journey", tags=["partner-journey"])
 security = HTTPBearer(auto_error=False)
 
@@ -26,6 +38,63 @@ def set_db(database):
     db = database
 
 
+async def _resolve_ciak_start_client(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials,
+):
+    """Risolve un token cliente Ciak Start sul SUO partner_id, o None.
+
+    Il cliente Ciak Start (499 EUR) entra con magic link e riceve un JWT
+    `role="ciak_client"` (`ciak_clients._create_client_jwt`), non un token
+    partner. Emettergli un token `role="partner"` sarebbe piu' semplice ma
+    aprirebbe TUTTE le guardie dell'area partner a chi ha comprato un percorso
+    ridotto. Qui il perimetro resta chiuso di default: si concede l'accesso solo
+    al proprio id, e solo con un entitlement Start verificato sul database.
+
+    Ritorna None (non solleva) quando il token non e' un token cliente: il
+    chiamante prosegue con gli errori di sempre, cosi' i partner reali vedono
+    esattamente gli stessi status code di prima.
+    """
+    from auth import TokenData
+    from routers.ciak_clients import CLIENT_JWT_ALG, _jwt_secret
+
+    try:
+        payload = jwt.decode(
+            credentials.credentials, _jwt_secret(), algorithms=[CLIENT_JWT_ALG]
+        )
+    except Exception:
+        return None
+
+    if payload.get("role") != "ciak_client":
+        return None
+
+    client_id = str(payload.get("sub") or "")
+    if not client_id:
+        return None
+    if client_id != str(partner_id):
+        # Token cliente valido ma puntato su un altro soggetto: e' un tentativo
+        # di leggere i dati di un partner reale cambiando l'id nell'URL.
+        raise HTTPException(status_code=403, detail="Accesso non autorizzato su questo percorso")
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=403, detail="Accesso non autorizzato su questo percorso")
+
+    from services.ciak_client_accounts import ACCESS_PARTNER, has_start_entitlement
+
+    if not (has_start_entitlement(client) or client.get("access_level") == ACCESS_PARTNER):
+        raise HTTPException(
+            status_code=403,
+            detail="Questo percorso si apre con Ciak Start.",
+        )
+
+    return TokenData(
+        user_id=client_id,
+        email=payload.get("email"),
+        role="ciak_client",
+    )
+
+
 async def require_partner_or_admin_for_partner(
     partner_id: str,
     credentials: HTTPAuthorizationCredentials,
@@ -33,7 +102,10 @@ async def require_partner_or_admin_for_partner(
     """Autorizza letture/scritture partner-facing su un singolo partner.
 
     Admin/superadmin possono supervisionare ogni partner. Un partner puo'
-    accedere solo al proprio partner_id risolto dal record users.
+    accedere solo al proprio partner_id risolto dal record users. Un cliente
+    Ciak Start puo' accedere solo al proprio id (vedi
+    `_resolve_ciak_start_client`), che per costruzione del ponte di identita'
+    coincide con `partners.id`.
     """
     from auth import decode_token
 
@@ -41,24 +113,47 @@ async def require_partner_or_admin_for_partner(
         raise HTTPException(status_code=401, detail="Token non fornito")
 
     token_data = decode_token(credentials.credentials)
+
+    if token_data and token_data.role in ("admin", "superadmin"):
+        return token_data
+
+    if token_data and token_data.role == "partner":
+        user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0, "partner_id": 1})
+        if not user:
+            raise HTTPException(status_code=404, detail="Utente non trovato")
+
+        user_partner_id = str(user.get("partner_id") or "")
+        if user_partner_id != str(partner_id):
+            raise HTTPException(status_code=403, detail="Partner non autorizzato")
+
+        return token_data
+
+    start_client = await _resolve_ciak_start_client(partner_id, credentials)
+    if start_client:
+        return start_client
+
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido o scaduto")
 
-    if token_data.role in ("admin", "superadmin"):
-        return token_data
+    raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
 
-    if token_data.role != "partner":
-        raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
 
-    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0, "partner_id": 1})
-    if not user:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
+async def require_step_for_partner_tier(partner_id: str, step_id: str) -> None:
+    """Blocca gli step che questo livello non ha comprato.
 
-    user_partner_id = str(user.get("partner_id") or "")
-    if user_partner_id != str(partner_id):
-        raise HTTPException(status_code=403, detail="Partner non autorizzato")
-
-    return token_data
+    Il gate e' sul PRODOTTO, non sull'identita': la guardia dice chi sei, questo
+    dice cosa hai pagato. Un partner senza campo `tier` — cioe' i 26 migrati in
+    produzione il 12/8 — non viene limitato in alcun modo.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "tier": 1})
+    if partner is None:
+        return
+    if tier_allows_step(partner.get("tier"), step_id):
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="Questo step fa parte della Partnership e non e' incluso in Ciak Start.",
+    )
 
 
 async def require_admin_token(credentials: HTTPAuthorizationCredentials):
@@ -6265,7 +6360,7 @@ async def get_dashboard_operativa(
 ):
     """Dashboard operativa per il team: stato di tutti i partner"""
     await require_admin_token(credentials)
-    partners = await db.partners.find({}, {"_id": 0}).to_list(200)
+    partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(200)
 
     # Fetch journey data for each partner
     journey_data = {}
@@ -6855,6 +6950,16 @@ async def get_operativo_state(
     con step 1 in_progress.
     """
     await require_partner_or_admin_for_partner(partner_id, credentials)
+
+    # Il livello e' l'unico asse di accesso: decide quale definizione di journey
+    # vale per questo soggetto. Assente = partnership (i 26 partner migrati il
+    # 12/8 non hanno il campo `tier`).
+    partner_doc = await db.partners.find_one(
+        {"id": partner_id}, {"_id": 0, "phase": 1, "tier": 1}
+    ) or {}
+    tier = partner_doc.get("tier")
+    tier_definition = journey_definition_for_tier(tier)
+
     existing = await db.partner_journey_steps.count_documents({"partner_id": partner_id})
     if existing == 0:
         # Seed phase-aware: un partner ESISTENTE (F1-F7) che entra per la prima
@@ -6862,12 +6967,16 @@ async def get_operativo_state(
         # dalla fase legacy (stessa mappa della migrazione one-shot). I partner
         # nuovi che pagano vengono già seedati alla conferma (proposta.py), quindi
         # qui ci arrivano solo i legacy senza step.
-        partner_doc = await db.partners.find_one({"id": partner_id}, {"_id": 0, "phase": 1})
-        phase = (partner_doc or {}).get("phase") or "F1"
-        _PHASE_START = {"F1": 2, "F2": 5, "F3": 8, "F4": 11, "F5": 13, "F6": 14, "F7": 17}
-        start_step = _PHASE_START.get(phase, 1)
-        await seed_partner_journey(db, partner_id, start_step_number=start_step)
-        if phase in ("F7", "LIVE", "OTTIMIZZAZIONE"):
+        phase = partner_doc.get("phase") or "F1"
+        if is_start_tier(tier):
+            # Un cliente Start non ha fasi legacy: parte dal primo step del suo
+            # livello, non dal contratto partner.
+            start_step = tier_definition[0]["step_number"]
+        else:
+            _PHASE_START = {"F1": 2, "F2": 5, "F3": 8, "F4": 11, "F5": 13, "F6": 14, "F7": 17}
+            start_step = _PHASE_START.get(phase, 1)
+        await seed_partner_journey(db, partner_id, start_step_number=start_step, tier=tier)
+        if not is_start_tier(tier) and phase in ("F7", "LIVE", "OTTIMIZZAZIONE"):
             await db.partners.update_one(
                 {"id": partner_id},
                 {"$set": {"journey_current_step": "completato"}},
@@ -6879,11 +6988,13 @@ async def get_operativo_state(
         {"partner_id": partner_id},
         {"_id": 0},
     ).sort("step_number", 1)
-    steps = await steps_cursor.to_list(length=30)
+    steps = await steps_cursor.to_list(length=40)
     # Auto-heal: inserisce gli step del modello mancanti per i partner gia seedati
     # prima che lo step esistesse (es. la-tua-storia), per non lasciare buchi nella mappa.
+    # ⚠️ Sul modello del LIVELLO, non su quello canonico: prima dell'area a livelli
+    # questo ramo avrebbe seedato i 20 step partner a un cliente Ciak Start.
     _existing_ids = {s["step_id"] for s in steps}
-    _missing = [d for d in JOURNEY_STEPS_DEFINITION if d["step_id"] not in _existing_ids]
+    _missing = [d for d in tier_definition if d["step_id"] not in _existing_ids]
     if _missing:
         _now = datetime.utcnow()
         await db.partner_journey_steps.insert_many([{
@@ -6896,12 +7007,13 @@ async def get_operativo_state(
         } for d in _missing])
         steps = await db.partner_journey_steps.find(
             {"partner_id": partner_id}, {"_id": 0}
-        ).sort("step_number", 1).to_list(length=30)
+        ).sort("step_number", 1).to_list(length=40)
 
     # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
-    enrichment = {d["step_id"]: d for d in JOURNEY_STEPS_DEFINITION}
+    # Si guarda a TUTTI gli step conosciuti (canonici + start-only): chi e' salito
+    # da Ciak Start si porta dietro i 4 step Start, che devono restare etichettati.
     for s in steps:
-        meta = enrichment.get(s["step_id"], {})
+        meta = step_definition(s["step_id"]) or {}
         s["label"] = meta.get("label", s["step_id"])
         s["macro_phase"] = meta.get("macro_phase", "attivazione")
         s["code"] = meta.get("code")
@@ -6943,7 +7055,14 @@ async def get_operativo_state(
     # Ottimizza ha il proprio step F-20; resta pending finché non viene sbloccato.
     macro_phases_status = []
     for mp in MACRO_PHASES_DEFINITION:
-        mp_steps = [s for s in steps if s["step_id"] in mp["step_ids"]]
+        # Appartenenza per `macro_phase` oltre che per lista esplicita: i 4 step
+        # Start non stanno in MACRO_PHASES_DEFINITION (che resta la definizione
+        # canonica, non toccata) ma dichiarano la loro fase. Per gli step
+        # canonici le due condizioni coincidono.
+        mp_steps = [
+            s for s in steps
+            if s["step_id"] in mp["step_ids"] or s.get("macro_phase") == mp["id"]
+        ]
         done_count = sum(1 for s in mp_steps if s["status"] == "done")
         in_progress = any(s["status"] == "in_progress" for s in mp_steps)
         total = len(mp_steps)
@@ -6961,15 +7080,35 @@ async def get_operativo_state(
             "icon": mp["icon"],
             "agent": mp.get("agent"),
             "status": mp_status,
-            "step_ids": mp["step_ids"],
+            "step_ids": [s["step_id"] for s in mp_steps] or mp["step_ids"],
             "completed_count": done_count,
             "total_count": total,
         })
 
+    # Step visibili ma non ancora acquistati: sono la leva di upgrade decisa il
+    # 30/7. Etichette e basta — nessun dato del percorso partner esce da qui, e
+    # nulla viene scritto nel database.
+    locked_steps = [
+        {
+            "step_id": d["step_id"],
+            "step_number": d["step_number"],
+            "code": d["code"],
+            "label": d["label"],
+            "macro_phase": d["macro_phase"],
+            "owner": d["owner"],
+            "status": "locked",
+            "locked": True,
+            "min_tier": "partnership",
+        }
+        for d in locked_step_definitions_for_tier(tier)
+    ]
+
     return {
         "success": True,
         "partner_id": partner_id,
+        "tier": normalize_tier(tier),
         "steps": steps,
+        "locked_steps": locked_steps,
         "current_step": current_step,
         "avvio": {
             "status": avvio_status,
@@ -7043,6 +7182,7 @@ async def complete_operativo_step(
     Merge del payload `data` con quello esistente (autosave drafts non si perdono).
     """
     await require_partner_or_admin_for_partner(partner_id, credentials)
+    await require_step_for_partner_tier(partner_id, step_id)
     return await _complete_operativo_step_unchecked(partner_id, step_id, body)
 
 
@@ -7280,6 +7420,7 @@ async def save_draft_operativo_step(
     """Salva bozza dati step in_progress. Merge col data esistente.
     NON cambia lo status (resta in_progress). Usato per autosave debounced dal frontend."""
     await require_partner_or_admin_for_partner(partner_id, credentials)
+    await require_step_for_partner_tier(partner_id, step_id)
     now = datetime.utcnow()
     current = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": step_id}

@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { ArrowRight, LockKeyhole } from "lucide-react";
-import { clientPost } from "../api";
+import { useEffect, useState } from "react";
+import { ArrowRight, Check, LockKeyhole, Loader2 } from "lucide-react";
+import { clientPost, journeyGet } from "../api";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
-const FALLBACK_PROGRESS = [
+// Etichette dei 7 servizi promessi in vendita. Servono SOLO quando il percorso
+// non e' ancora attivo: e' la vetrina della proposta, non uno stato.
+const SERVIZI_PROPOSTI = [
   "Direzione di posizionamento",
   "Basi del brand",
   "Sistemazione profili social",
@@ -14,34 +16,83 @@ const FALLBACK_PROGRESS = [
   "Strategia contenuti",
   "Calendario contenuti",
   "Revisione finale e readiness partnership",
-].map((label) => ({ label, status: "in attesa" }));
+];
 
-function buildProgress(progress, fallbackStatus) {
-  return progress.map((item, index) => ({
-    ...item,
-    label: item.label || `Attivita' ${index + 1}`,
-    status: item.status || fallbackStatus,
-  }));
+const STATO_LABEL = {
+  done: "completato",
+  in_progress: "in corso",
+  pending: "in attesa",
+  blocked: "bloccato",
+  skipped: "saltato",
+};
+
+function StatoBadge({ status }) {
+  if (status === "done") {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+        <Check className="h-3 w-3" aria-hidden="true" />
+        {STATO_LABEL.done}
+      </span>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <span className="inline-flex shrink-0 items-center rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-yellow-400">
+        {STATO_LABEL.in_progress}
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">
+      {STATO_LABEL[status] || STATO_LABEL.pending}
+    </span>
+  );
 }
 
 export function StartPage({ dashboard }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [journey, setJourney] = useState(null);
+  const [journeyError, setJourneyError] = useState("");
+  const [journeyLoading, setJourneyLoading] = useState(false);
+
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
   const decided = dashboard.diagnostic?.offer_decision === "ciak_start";
   const showStartOffer = active || decided;
-  const progress = showStartOffer
-    ? buildProgress(
-      Array.isArray(dashboard.start?.progress) && dashboard.start.progress.length
-        ? dashboard.start.progress
-        : FALLBACK_PROGRESS,
-      active ? "in attesa" : "proposto",
-    )
-    : [];
   const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? 49900;
   const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? 49900;
   const startLocked = !showStartOffer;
+  const clientId = dashboard.client?.id;
+
+  // Il percorso e' la journey vera, non `start_progress`: quel campo veniva
+  // scritto solo alla creazione con un default e nessun endpoint lo faceva
+  // avanzare, quindi mostrava sette etichette immobili. E' in dismissione.
+  useEffect(() => {
+    if (!active || !clientId) return undefined;
+    let annullato = false;
+    setJourneyLoading(true);
+    journeyGet(`/operativo/state/${clientId}`)
+      .then((data) => {
+        if (!annullato) {
+          setJourney(data);
+          setJourneyError("");
+        }
+      })
+      .catch((e) => {
+        if (!annullato) setJourneyError(e.message || "Percorso non disponibile");
+      })
+      .finally(() => {
+        if (!annullato) setJourneyLoading(false);
+      });
+    return () => {
+      annullato = true;
+    };
+  }, [active, clientId]);
+
+  const steps = journey?.steps || [];
+  const lockedSteps = journey?.locked_steps || [];
+  const completati = steps.filter((s) => s.status === "done").length;
 
   async function handleCheckout() {
     try {
@@ -87,7 +138,7 @@ export function StartPage({ dashboard }) {
               type="button"
               onClick={handleCheckout}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
               {loading ? "Apro il checkout..." : "Attiva Ciak Start"}
               <ArrowRight className="h-4 w-4" />
@@ -104,19 +155,83 @@ export function StartPage({ dashboard }) {
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       </section>
 
-      {showStartOffer ? (
+      {active ? (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">{active ? "Servizi inclusi" : "Servizi proposti"}</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">Il tuo percorso</h2>
+            {steps.length ? (
+              <p className="text-sm text-slate-500">
+                {completati} di {steps.length} completati
+              </p>
+            ) : null}
+          </div>
+
+          {journeyLoading && !steps.length ? (
+            <p className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Carico il percorso...
+            </p>
+          ) : null}
+
+          {journeyError && !steps.length ? (
+            <p className="mt-4 text-sm text-slate-500">
+              Il percorso non è ancora disponibile. Riprova fra qualche minuto: se resta così, scrivici.
+            </p>
+          ) : null}
+
+          {steps.length ? (
+            <ol className="mt-4 space-y-2">
+              {steps.map((step) => (
+                <li
+                  key={step.step_id}
+                  className={`flex items-center justify-between gap-4 rounded-lg border px-4 py-3 ${
+                    step.status === "in_progress"
+                      ? "border-yellow-300 bg-yellow-50/60"
+                      : "border-slate-200"
+                  }`}
+                >
+                  <span className="font-medium text-slate-800">{step.label || step.step_id}</span>
+                  <StatoBadge status={step.status} />
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </section>
+      ) : showStartOffer ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Servizi proposti</h2>
           <div className="mt-4 space-y-2">
-            {progress.map((item, index) => (
-              <div key={item.id || item.label || index} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3">
-                <span className="font-medium text-slate-800">{item.label || `Attivita' ${index + 1}`}</span>
-                <span className="shrink-0 text-xs font-semibold uppercase text-slate-400">
-                  {active ? item.status || "in attesa" : "proposto"}
-                </span>
+            {SERVIZI_PROPOSTI.map((label) => (
+              <div key={label} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3">
+                <span className="font-medium text-slate-800">{label}</span>
+                <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">proposto</span>
               </div>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {active && lockedSteps.length ? (
+        <section className="rounded-xl border border-slate-200 bg-slate-900 p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Con la Partnership</p>
+          <h2 className="mt-2 text-lg font-semibold text-white">
+            Altri {lockedSteps.length} step, quando decidi di continuare
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+            Masterclass, videocorso, sistema di vendita e lancio. Quello che compili adesso non si perde:
+            resta dentro e riparte da dove sei arrivato.
+          </p>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {lockedSteps.map((step) => (
+              <li
+                key={step.step_id}
+                className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300"
+              >
+                <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+                {step.label || step.step_id}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
     </div>

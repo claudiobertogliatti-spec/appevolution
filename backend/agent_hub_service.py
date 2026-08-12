@@ -4,6 +4,7 @@
 # =============================================================================
 
 import logging
+from models.start_journey import only_real_partners
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 
@@ -85,12 +86,12 @@ class AgentAnalyticsHub:
         metrics = {}
         
         if agent_id == "MAIN":
-            metrics["total_partners"] = await self.db.partners.count_documents({})
+            metrics["total_partners"] = await self.db.partners.count_documents(only_real_partners())
             # Fix: conta partner con fase F1-F13 (escludi null, F0, e fasi non valide)
             valid_phases = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13"]
-            metrics["active_partners"] = await self.db.partners.count_documents({
+            metrics["active_partners"] = await self.db.partners.count_documents(only_real_partners({
                 "phase": {"$in": valid_phases}
-            })
+            }))
             metrics["total_leads"] = await self.db.leads.count_documents({})
             
         elif agent_id == "MARCO":
@@ -105,7 +106,7 @@ class AgentAnalyticsHub:
             metrics["checkins_sent"] = checkins
             
             # Count inactive partners (no activity > 7 days)
-            partners = await self.db.partners.find({}, {"last_activity": 1, "updated_at": 1}).to_list(500)
+            partners = await self.db.partners.find(only_real_partners(), {"last_activity": 1, "updated_at": 1}).to_list(500)
             inactive = 0
             for p in partners:
                 last = p.get("last_activity") or p.get("updated_at")
