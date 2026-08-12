@@ -1,4 +1,6 @@
 """Policy pure per decidere se uno step EVO può essere completato."""
+import hashlib
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -96,22 +98,59 @@ def approved_launch_calendar_context(document: dict[str, Any] | None) -> dict[st
     }
 
 
-def approved_calendar_workbook_binding(context: dict[str, Any]) -> dict[str, Any] | None:
+_FINAL_WORKBOOK_SOURCE_STEPS = (
+    "12-prezzo-webinar",
+    "16-readiness-lancio",
+    "13-lancio",
+    "18-certificato-valida",
+)
+
+
+def final_workbook_journey_source(
+    steps_by_id: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Snapshot degli output F15-F18 solo quando F19 e' eleggibile."""
+    snapshot = []
+    for step_id in _FINAL_WORKBOOK_SOURCE_STEPS:
+        step = steps_by_id.get(step_id) or {}
+        if step.get("status") != "done":
+            return None
+        snapshot.append({
+            "step_id": step_id,
+            "status": "done",
+            "completed_at": step.get("completed_at"),
+            "evidence": step.get("data") or {},
+        })
+    serialized = json.dumps(
+        snapshot, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False
+    ).encode("utf-8")
+    return {
+        "journey_source_checksum": hashlib.sha256(serialized).hexdigest(),
+        "journey_steps": snapshot,
+    }
+
+
+def approved_calendar_workbook_binding(
+    context: dict[str, Any],
+    journey_source: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """Identita' immutabile del Workbook costruito sul calendario approved corrente."""
     if context.get("launch_calendar_approved") is not True:
         return None
     version = context.get("calendar_version")
     checksum = context.get("calendar_checksum")
     approved_at = context.get("approved_at")
-    if version is None or not checksum or not approved_at:
+    journey_checksum = (journey_source or {}).get("journey_source_checksum")
+    if version is None or not checksum or not approved_at or not journey_checksum:
         return None
     provenance = {
         "calendar_version": version,
         "calendar_checksum": checksum,
         "calendar_approved_at": approved_at,
+        **journey_source,
     }
     return {
-        "source_version": f"launch-calendar:{version}:{checksum}",
+        "source_version": f"launch-calendar:{version}:{checksum}:journey:{journey_checksum}",
         "provenance": provenance,
     }
 

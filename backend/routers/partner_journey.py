@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 import asyncio
 import uuid
@@ -7091,15 +7091,26 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
         )
         return {"certificate_archived": bool((document or {}).get("checksum"))}
     if step_id == "19-workbook-finale":
-        from services.journey_completion import approved_calendar_workbook_binding
+        from services.journey_completion import (
+            approved_calendar_workbook_binding,
+            final_workbook_journey_source,
+        )
 
         calendar_context = await _trusted_completion_context(partner_id, "11-calendario-30gg")
-        binding = approved_calendar_workbook_binding(calendar_context)
+        steps = await db.partner_journey_steps.find(
+            {"partner_id": partner_id}, {"_id": 0}
+        ).to_list(length=40)
+        journey_source = final_workbook_journey_source({
+            step.get("step_id"): step for step in steps
+        })
+        binding = approved_calendar_workbook_binding(calendar_context, journey_source)
         document = await db.partner_document_versions.find_one(
             {
                 "partner_id": partner_id,
                 "kind": "workbook_final",
-                **(binding or {"source_version": "__approved_calendar_required__"}),
+                "source_version": (binding or {}).get(
+                    "source_version", "__approved_calendar_and_journey_required__"
+                ),
             },
             {"_id": 0, "checksum": 1},
         )
@@ -7189,17 +7200,23 @@ async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
             },
         )
     claim_id = uuid.uuid4().hex
+    claim_now = datetime.now(timezone.utc)
+    claim_cutoff = claim_now - timedelta(minutes=5)
     claimed = await db.partner_journey_steps.update_one(
         {
             "partner_id": partner_id,
             "step_id": "11-calendario-30gg",
             "status": current.get("status"),
-            "calendar_completion_claim_id": None,
+            "$or": [
+                {"calendar_completion_claim_id": None},
+                {"calendar_completion_claimed_at": None},
+                {"calendar_completion_claimed_at": {"$lte": claim_cutoff}},
+            ],
         },
         {
             "$set": {
                 "calendar_completion_claim_id": claim_id,
-                "calendar_completion_claimed_at": datetime.now(timezone.utc),
+                "calendar_completion_claimed_at": claim_now,
             }
         },
     )
@@ -7245,7 +7262,10 @@ async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
             },
         )
         raise
-    await _mark_launch_calendar_completion_effects_applied(partner_id)
+    await _reconcile_launch_calendar_completion_effects(partner_id)
+    latest = await _trusted_completion_context(partner_id, "11-calendario-30gg")
+    if any(latest.get(key) != evidence.get(key) for key in evidence):
+        await _complete_approved_launch_calendar_step(partner_id)
     return result
 
 
@@ -7284,9 +7304,34 @@ async def _reconcile_launch_calendar_completion_effects(partner_id: str) -> None
             {"$set": {"status": "in_progress", "started_at": now, "updated_at": now}},
         )
         if updated.matched_count:
+            next_step["status"] = "in_progress"
+        else:
+            next_step = await db.partner_journey_steps.find_one(
+                {"partner_id": partner_id, "step_id": "12-prezzo-webinar"}
+            )
+    if next_step and next_step.get("status") not in ("in_progress", "done"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_completion_effects_incomplete",
+                "message": "Impossibile verificare tutti gli effetti del completamento F-14",
+            },
+        )
+    if next_step and next_step.get("status") == "in_progress":
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+        if partner.get("journey_current_step") != "12-prezzo-webinar":
             await db.partners.update_one(
                 {"id": partner_id},
                 {"$set": {"journey_current_step": "12-prezzo-webinar"}},
+            )
+            partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+        if partner.get("journey_current_step") != "12-prezzo-webinar":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "launch_calendar_completion_effects_incomplete",
+                    "message": "Impossibile verificare tutti gli effetti del completamento F-14",
+                },
             )
     await _project_legacy_phase(partner_id)
     await _mark_launch_calendar_completion_effects_applied(partner_id)

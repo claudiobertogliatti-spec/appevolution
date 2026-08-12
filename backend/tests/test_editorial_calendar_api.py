@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import os
 from types import SimpleNamespace
 
@@ -45,6 +46,8 @@ class FakeCollection:
                     doc[key] = doc.get(key, 0) + value
                 for key, value in update.get("$set", {}).items():
                     doc[key] = value
+                for key, value in update.get("$max", {}).items():
+                    doc[key] = max(doc.get(key, value), value)
                 return dict(doc)
         if not upsert:
             return None
@@ -52,6 +55,8 @@ class FakeCollection:
         for key, value in update.get("$inc", {}).items():
             doc[key] = value
         for key, value in update.get("$set", {}).items():
+            doc[key] = value
+        for key, value in update.get("$max", {}).items():
             doc[key] = value
         for key, value in update.get("$setOnInsert", {}).items():
             doc.setdefault(key, value)
@@ -86,10 +91,14 @@ class FakeCollection:
             if self._matches(doc, query):
                 for key, value in update.get("$set", {}).items():
                     doc[key] = value
+                for key, value in update.get("$max", {}).items():
+                    doc[key] = max(doc.get(key, value), value)
                 return SimpleNamespace(matched_count=1, modified_count=1)
         if upsert:
             document = dict(query)
             document.update(update.get("$set", {}))
+            document.update(update.get("$setOnInsert", {}))
+            document.update(update.get("$max", {}))
             self.docs.append(document)
             return SimpleNamespace(matched_count=0, modified_count=0, upserted_id=len(self.docs))
         return SimpleNamespace(matched_count=0, modified_count=0)
@@ -133,6 +142,7 @@ class FakeDb:
         self.partner_launch_calendar_counters = FakeCollection()
         self.partner_launch_calendar_notification_recovery = FakeCollection()
         self.partner_document_versions = FakeCollection()
+        self.partner_document_version_counters = FakeCollection()
         self.partner_lancio = FakeCollection()
         self.alerts = FakeCollection()
         self.partners = FakeCollection([{"id": "p1", "name": "Partner Uno"}])
@@ -289,6 +299,35 @@ def _approve_calendar(client, partner_token, admin_token, version=1):
     )
     assert approved.status_code == 200
     return approved.json()
+
+
+def _make_workbook_eligible(fake_db):
+    existing = {step.get("step_id") for step in fake_db.partner_journey_steps.docs}
+    for number, step_id in enumerate((
+        "12-prezzo-webinar",
+        "16-readiness-lancio",
+        "13-lancio",
+        "18-certificato-valida",
+    ), 15):
+        if step_id not in existing:
+            fake_db.partner_journey_steps.docs.append({
+                "_id": f"step-{number}",
+                "partner_id": "p1",
+                "step_id": step_id,
+                "step_number": number,
+                "status": "done",
+                "completed_at": f"2026-08-13T{number}:00:00+00:00",
+                "data": {"evidence_version": 1},
+            })
+    if "19-workbook-finale" not in existing:
+        fake_db.partner_journey_steps.docs.append({
+            "_id": "step-19",
+            "partner_id": "p1",
+            "step_id": "19-workbook-finale",
+            "step_number": 19,
+            "status": "in_progress",
+            "data": {},
+        })
 
 
 def test_client_calendar_payload_cannot_complete_f14_without_approved_version(
@@ -684,6 +723,123 @@ async def test_failed_f14_claim_is_released_for_retry(
 
 
 @pytest.mark.asyncio
+async def test_stale_f14_claim_is_reclaimed_after_lease(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({
+        "status": "in_progress",
+        "data": {},
+        "completed_at": None,
+        "calendar_completion_claim_id": "crashed-worker",
+        "calendar_completion_claimed_at": datetime.now(timezone.utc) - timedelta(minutes=30),
+    })
+
+    result = await partner_journey._complete_approved_launch_calendar_step("p1")
+
+    assert result["completed_step"] == "11-calendario-30gg"
+    assert step["status"] == "done"
+    assert step["calendar_completion_claim_id"] != "crashed-worker"
+
+
+@pytest.mark.asyncio
+async def test_v2_approved_during_v1_claim_is_reconciled_to_latest_evidence(
+    client, partner_token, admin_token, fake_db
+):
+    approved_v1 = _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.update({"status": "in_progress", "data": {}, "completed_at": None})
+    step.pop("calendar_completion_effects_applied_at", None)
+    step.pop("calendar_completion_claim_id", None)
+    step.pop("calendar_completion_claimed_at", None)
+
+    class PausedClaimSteps(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.claim_set = asyncio.Event()
+            self.release_first = asyncio.Event()
+
+        async def update_one(self, query, update, upsert=False):
+            result = await super().update_one(query, update, upsert)
+            if (
+                "calendar_completion_claim_id" in update.get("$set", {})
+                and result.matched_count
+                and not self.claim_set.is_set()
+            ):
+                self.claim_set.set()
+                await self.release_first.wait()
+            return result
+
+    steps = PausedClaimSteps(fake_db.partner_journey_steps.docs)
+    fake_db.partner_journey_steps = steps
+    first = asyncio.create_task(partner_journey._complete_approved_launch_calendar_step("p1"))
+    await steps.claim_set.wait()
+
+    from services.launch_calendar import calendar_checksum
+
+    v1_document = next(doc for doc in fake_db.versions if doc.get("version") == 1)
+    v2_document = deepcopy(v1_document)
+    v2_document["version"] = 2
+    v2_document["calendar"]["version"] = 2
+    v2_document["calendar"]["days"][0]["topic"] = "Output finale v2"
+    v2_checksum = calendar_checksum(v2_document["calendar"])
+    v2_document["checksum"] = v2_checksum
+    v2_document["approved_at"] = "2026-08-13T20:00:00+00:00"
+    v2_document["admin_review"]["approved_checksum"] = v2_checksum
+    fake_db.versions.append(v2_document)
+
+    second = await partner_journey._complete_approved_launch_calendar_step("p1")
+    assert second["completion_in_progress"] is True
+    steps.release_first.set()
+    await first
+
+    completed = next(doc for doc in steps.docs if doc.get("_id") == "step-f14")
+    assert completed["data"]["calendar_version"] == 2
+    assert completed["data"]["calendar_checksum"] == v2_checksum
+    assert completed["data"]["calendar_checksum"] != approved_v1["checksum"]
+
+
+@pytest.mark.asyncio
+async def test_partial_f14_recovery_repairs_stale_partner_pointer_before_marker(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    step.pop("calendar_completion_effects_applied_at", None)
+    fake_db.partner_journey_steps.docs.append({
+        "_id": "step-f15",
+        "partner_id": "p1",
+        "step_id": "12-prezzo-webinar",
+        "step_number": 15,
+        "status": "in_progress",
+        "data": {},
+    })
+    fake_db.partners.docs[0]["journey_current_step"] = "11-calendario-30gg"
+
+    class FailPointerOnce(FakeCollection):
+        def __init__(self, docs):
+            super().__init__(docs)
+            self.failed = False
+
+        async def update_one(self, query, update, upsert=False):
+            if update.get("$set", {}).get("journey_current_step") == "12-prezzo-webinar" and not self.failed:
+                self.failed = True
+                return SimpleNamespace(matched_count=0, modified_count=0)
+            return await super().update_one(query, update, upsert)
+
+    fake_db.partners = FailPointerOnce(fake_db.partners.docs)
+    with pytest.raises(HTTPException, match="effetti del completamento F-14"):
+        await partner_journey._complete_approved_launch_calendar_step("p1")
+    assert "calendar_completion_effects_applied_at" not in step
+
+    retried = await partner_journey._complete_approved_launch_calendar_step("p1")
+    assert retried["effects_recovered"] is True
+    assert fake_db.partners.docs[0]["journey_current_step"] == "12-prezzo-webinar"
+    assert step["calendar_completion_effects_applied_at"]
+
+
+@pytest.mark.asyncio
 async def test_workbook_reads_only_the_approved_calendar_snapshot(
     client, partner_token, admin_token, fake_db
 ):
@@ -758,6 +914,7 @@ def test_workbook_archive_is_append_only_and_bound_to_each_approved_calendar(
         "created_at": "2026-01-01T00:00:00+00:00",
     })
     approved_v1 = _approve_calendar(client, partner_token, admin_token, version=1)
+    _make_workbook_eligible(fake_db)
 
     first = client.get(
         "/api/partner-rewards/p1/project-book",
@@ -772,11 +929,16 @@ def test_workbook_archive_is_append_only_and_bound_to_each_approved_calendar(
     assert len(fake_db.partner_document_versions.docs) == 2
     workbook_v1 = fake_db.partner_document_versions.docs[1]
     assert workbook_v1["version"] == 2
-    assert workbook_v1["provenance"] == {
-        "calendar_version": 1,
-        "calendar_checksum": approved_v1["checksum"],
-        "calendar_approved_at": approved_v1["approved_at"],
-    }
+    assert workbook_v1["provenance"]["calendar_version"] == 1
+    assert workbook_v1["provenance"]["calendar_checksum"] == approved_v1["checksum"]
+    assert workbook_v1["provenance"]["calendar_approved_at"] == approved_v1["approved_at"]
+    assert workbook_v1["provenance"]["journey_source_checksum"]
+    assert [item["step_id"] for item in workbook_v1["provenance"]["journey_steps"]] == [
+        "12-prezzo-webinar",
+        "16-readiness-lancio",
+        "13-lancio",
+        "18-certificato-valida",
+    ]
 
     approved_v2 = _approve_calendar(client, partner_token, admin_token, version=2)
     second = client.get(
@@ -788,12 +950,61 @@ def test_workbook_archive_is_append_only_and_bound_to_each_approved_calendar(
     assert len(fake_db.partner_document_versions.docs) == 3
     assert [document["version"] for document in fake_db.partner_document_versions.docs] == [1, 2, 3]
     workbook_v2 = fake_db.partner_document_versions.docs[2]
-    assert workbook_v2["provenance"] == {
-        "calendar_version": 2,
-        "calendar_checksum": approved_v2["checksum"],
-        "calendar_approved_at": approved_v2["approved_at"],
-    }
+    assert workbook_v2["provenance"]["calendar_version"] == 2
+    assert workbook_v2["provenance"]["calendar_checksum"] == approved_v2["checksum"]
+    assert workbook_v2["provenance"]["calendar_approved_at"] == approved_v2["approved_at"]
+    assert workbook_v2["provenance"]["journey_source_checksum"] == workbook_v1["provenance"]["journey_source_checksum"]
     assert workbook_v1["content"] == workbook_v2["content"]
+
+
+def test_workbook_download_waits_until_f19_is_eligible(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+
+    early = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+
+    assert early.status_code == 409
+    assert early.json()["detail"]["code"] == "final_workbook_not_ready"
+    assert fake_db.partner_document_versions.docs == []
+
+    _make_workbook_eligible(fake_db)
+    ready = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+
+    assert ready.status_code == 200
+    assert len(fake_db.partner_document_versions.docs) == 1
+
+
+def test_workbook_relevant_journey_evidence_creates_new_append_only_version(
+    client, partner_token, admin_token, fake_db
+):
+    _approve_calendar(client, partner_token, admin_token, version=1)
+    _make_workbook_eligible(fake_db)
+    assert client.get(
+        "/api/partner-rewards/p1/project-book", headers=_headers(partner_token)
+    ).status_code == 200
+    first = deepcopy(fake_db.partner_document_versions.docs[0])
+
+    f15 = next(
+        step for step in fake_db.partner_journey_steps.docs
+        if step.get("step_id") == "12-prezzo-webinar"
+    )
+    f15["data"]["evidence_version"] = 2
+    assert client.get(
+        "/api/partner-rewards/p1/project-book", headers=_headers(partner_token)
+    ).status_code == 200
+
+    assert len(fake_db.partner_document_versions.docs) == 2
+    second = fake_db.partner_document_versions.docs[1]
+    assert [first["version"], second["version"]] == [1, 2]
+    assert first["source_version"] != second["source_version"]
+    assert first["provenance"]["journey_source_checksum"] != second["provenance"]["journey_source_checksum"]
 
 
 def test_generate_creates_version_one(client, partner_token, fake_db):
@@ -1672,7 +1883,7 @@ def test_calendar_version_index_is_unique_per_partner_and_version():
         [("partner_id", 1), ("version", 1)],
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ) in calls
-    assert result["total"] == 22
+    assert result["total"] == 23
 
 
 def test_workbook_source_index_is_unique_critical_and_excludes_legacy_documents():
@@ -1692,19 +1903,24 @@ def test_workbook_source_index_is_unique_critical_and_excludes_legacy_documents(
         [
             ("partner_id", 1),
             ("kind", 1),
-            ("provenance.calendar_version", 1),
-            ("provenance.calendar_checksum", 1),
+            ("source_version", 1),
         ],
         {
             "unique": True,
-            "name": "partner_document_versions_workbook_calendar_unique",
+            "name": "partner_document_versions_workbook_source_unique",
             "partialFilterExpression": {
                 "provenance.calendar_version": {"$exists": True},
-                "provenance.calendar_checksum": {"$exists": True},
             },
         },
     ) in calls
-    assert result["total"] == 22
+    assert (
+        [("partner_id", 1), ("kind", 1)],
+        {
+            "unique": True,
+            "name": "partner_document_version_counters_partner_kind_unique",
+        },
+    ) in calls
+    assert result["total"] == 23
 
 
 def test_workbook_unique_index_failure_is_fatal():
@@ -1720,8 +1936,53 @@ def test_workbook_unique_index_failure_is_fatal():
         def __getitem__(self, name):
             return IndexCollection(name)
 
-    with pytest.raises(CriticalIndexError, match="partner_document_versions_workbook_calendar_unique"):
+    with pytest.raises(CriticalIndexError, match="partner_document_versions_workbook_source_unique"):
         asyncio.run(ensure_indexes(IndexDb()))
+
+
+def test_workbook_index_upgrade_retires_previous_calendar_only_constraint():
+    calls = []
+
+    class IndexCollection:
+        def __init__(self, name):
+            self.name = name
+
+        async def index_information(self):
+            if self.name == "partner_document_versions":
+                return {"partner_document_versions_workbook_calendar_unique": {}}
+            return {}
+
+        async def drop_index(self, name):
+            calls.append(("drop", self.name, name))
+
+        async def create_index(self, fields, **options):
+            calls.append(("create", self.name, options.get("name")))
+
+    class IndexDb:
+        def __getitem__(self, name):
+            return IndexCollection(name)
+
+    asyncio.run(ensure_indexes(IndexDb()))
+
+    assert (
+        "drop",
+        "partner_document_versions",
+        "partner_document_versions_workbook_calendar_unique",
+    ) in calls
+    assert (
+        "create",
+        "partner_document_versions",
+        "partner_document_versions_workbook_source_unique",
+    ) in calls
+    assert calls.index((
+        "drop",
+        "partner_document_versions",
+        "partner_document_versions_workbook_calendar_unique",
+    )) < calls.index((
+        "create",
+        "partner_document_versions",
+        "partner_document_versions_workbook_source_unique",
+    ))
 
 
 def test_calendar_version_index_failure_is_fatal_but_hot_indexes_stay_best_effort():
@@ -1758,4 +2019,4 @@ def test_hot_index_failure_stays_best_effort_when_critical_index_succeeds():
 
     result = asyncio.run(ensure_indexes(IndexDb()))
 
-    assert result == {"ok": 20, "failed": 2, "total": 22}
+    assert result == {"ok": 21, "failed": 2, "total": 23}

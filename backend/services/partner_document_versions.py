@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from pymongo.errors import DuplicateKeyError
+from pymongo import ReturnDocument
 
 
 @dataclass(frozen=True)
@@ -27,15 +28,29 @@ async def archive_document_version(
         raise ValueError("PDF non valido o vuoto")
     checksum = hashlib.sha256(pdf).hexdigest()
     identity = {"partner_id": partner_id, "kind": kind, "source_version": source_version}
-    if provenance is not None:
-        identity["provenance"] = provenance
     existing = await db.partner_document_versions.find_one(identity, {"_id": 0})
     if existing:
         return DocumentVersion(existing["document_id"], existing["version"], existing["checksum"], False)
     latest = await db.partner_document_versions.find_one(
         {"partner_id": partner_id, "kind": kind}, {"_id": 0, "version": 1}, sort=[("version", -1)]
     )
-    version = int((latest or {}).get("version") or 0) + 1
+    latest_version = int((latest or {}).get("version") or 0)
+    counter_identity = {"partner_id": partner_id, "kind": kind}
+    try:
+        await db.partner_document_version_counters.update_one(
+            counter_identity,
+            {"$max": {"version": latest_version}},
+            upsert=True,
+        )
+    except DuplicateKeyError:
+        pass
+    counter = await db.partner_document_version_counters.find_one_and_update(
+        counter_identity,
+        {"$inc": {"version": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    version = int(counter["version"])
     document_id = uuid.uuid4().hex
     document = {
         "document_id": document_id, "partner_id": partner_id, "kind": kind,

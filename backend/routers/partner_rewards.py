@@ -152,20 +152,33 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
 
 
 def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
-    from services.journey_completion import approved_calendar_workbook_binding
+    from services.journey_completion import (
+        approved_calendar_workbook_binding,
+        final_workbook_journey_source,
+    )
 
-    binding = approved_calendar_workbook_binding({
+    calendar_context = {
         "launch_calendar_approved": bool(ctx.get("launch_calendar")),
         "calendar_version": ctx.get("launch_calendar_version"),
         "calendar_checksum": ctx.get("launch_calendar_checksum"),
         "approved_at": ctx.get("launch_calendar_approved_at"),
-    })
-    if not binding:
+    }
+    if not calendar_context["launch_calendar_approved"]:
         raise HTTPException(
             status_code=409,
             detail={
                 "code": "launch_calendar_not_approved",
                 "message": "Il Workbook richiede un calendario di lancio approvato",
+            },
+        )
+    journey_source = final_workbook_journey_source(ctx.get("steps_by_id") or {})
+    binding = approved_calendar_workbook_binding(calendar_context, journey_source)
+    if not binding:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_not_ready",
+                "message": "Il Workbook finale richiede il completamento verificato di F-15–F-18",
             },
         )
     return binding
@@ -174,7 +187,11 @@ def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
 async def _approved_workbook(ctx: dict[str, Any], partner_id: str):
     binding = _workbook_binding(ctx)
     return await db.partner_document_versions.find_one(
-        {"partner_id": partner_id, "kind": "workbook_final", **binding},
+        {
+            "partner_id": partner_id,
+            "kind": "workbook_final",
+            "source_version": binding["source_version"],
+        },
         {"_id": 0},
     )
 
@@ -603,7 +620,6 @@ async def archive_final_documents(partner_id: str) -> dict:
     from services.partner_document_versions import archive_document_version
 
     ctx = await _load_context(partner_id)
-    _workbook_binding(ctx)
     launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     source_version = str(launch.get("launched_at") or launch.get("probe_verified_at") or "launch")
     meta = PHASE_META["valida"]
@@ -614,17 +630,26 @@ async def archive_final_documents(partner_id: str) -> dict:
     certificate = await archive_document_version(
         db, partner_id, "certificate_valida", source_version, certificate_pdf
     )
-    workbook = await _ensure_approved_workbook(ctx, partner_id)
 
     from routers.partner_journey import _OperativoCompleteBody, _complete_operativo_step_unchecked
-    for step_id in ("18-certificato-valida", "19-workbook-finale"):
-        current = await db.partner_journey_steps.find_one(
-            {"partner_id": partner_id, "step_id": step_id}, {"_id": 0, "status": 1}
+    certificate_step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "18-certificato-valida"},
+        {"_id": 0, "status": 1},
+    )
+    if certificate_step and certificate_step.get("status") != "done":
+        await _complete_operativo_step_unchecked(
+            partner_id, "18-certificato-valida", _OperativoCompleteBody(data={})
         )
-        if current and current.get("status") != "done":
-            await _complete_operativo_step_unchecked(
-                partner_id, step_id, _OperativoCompleteBody(data={})
-            )
+    ctx = await _load_context(partner_id)
+    workbook = await _ensure_approved_workbook(ctx, partner_id)
+    workbook_step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "19-workbook-finale"},
+        {"_id": 0, "status": 1},
+    )
+    if workbook_step and workbook_step.get("status") != "done":
+        await _complete_operativo_step_unchecked(
+            partner_id, "19-workbook-finale", _OperativoCompleteBody(data={})
+        )
     return {"certificate_version": certificate.version, "workbook_version": workbook["version"]}
 
 
@@ -637,7 +662,12 @@ async def get_rewards_state(
     ctx = await _load_context(partner_id)
     ctx["partner_id"] = partner_id
     phases = _reward_state(ctx)
-    workbook = await _approved_workbook(ctx, partner_id) if ctx.get("launch_calendar") else None
+    try:
+        workbook = await _approved_workbook(ctx, partner_id) if ctx.get("launch_calendar") else None
+    except HTTPException as exc:
+        if not isinstance(exc.detail, dict) or exc.detail.get("code") != "final_workbook_not_ready":
+            raise
+        workbook = None
     return {
         "success": True,
         "partner_id": partner_id,

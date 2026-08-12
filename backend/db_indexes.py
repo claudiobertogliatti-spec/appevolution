@@ -54,17 +54,30 @@ _CRITICAL_COMPOUND_INDEXES = [
         [
             ("partner_id", 1),
             ("kind", 1),
-            ("provenance.calendar_version", 1),
-            ("provenance.calendar_checksum", 1),
+            ("source_version", 1),
         ],
         {
             "unique": True,
-            "name": "partner_document_versions_workbook_calendar_unique",
+            "name": "partner_document_versions_workbook_source_unique",
             "partialFilterExpression": {
                 "provenance.calendar_version": {"$exists": True},
-                "provenance.calendar_checksum": {"$exists": True},
             },
         },
+    ),
+    (
+        "partner_document_version_counters",
+        [("partner_id", 1), ("kind", 1)],
+        {
+            "unique": True,
+            "name": "partner_document_version_counters_partner_kind_unique",
+        },
+    ),
+]
+
+_RETIRED_CRITICAL_INDEXES = [
+    (
+        "partner_document_versions",
+        "partner_document_versions_workbook_calendar_unique",
     ),
 ]
 
@@ -79,6 +92,26 @@ async def ensure_indexes(db):
         except Exception as e:  # pragma: no cover - difensivo, non deve bloccare lo startup
             failed += 1
             logger.warning(f"[INDEXES] {coll}.{field}: {e}")
+    for coll, index_name in _RETIRED_CRITICAL_INDEXES:
+        collection = db[coll]
+        index_information = getattr(collection, "index_information", None)
+        if not callable(index_information):
+            continue
+        try:
+            indexes = await index_information()
+            if index_name in indexes:
+                try:
+                    await collection.drop_index(index_name)
+                except Exception:
+                    # Startup concorrenti possono averlo gia' rimosso: conta lo
+                    # stato finale, non chi ha vinto la migrazione.
+                    indexes = await index_information()
+                    if index_name in indexes:
+                        raise
+        except Exception as exc:
+            raise CriticalIndexError(
+                f"Impossibile ritirare l'indice critico obsoleto {index_name}"
+            ) from exc
     for coll, fields, options in _CRITICAL_COMPOUND_INDEXES:
         try:
             await db[coll].create_index(fields, **options)
