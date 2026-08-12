@@ -15,6 +15,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+class CriticalIndexError(RuntimeError):
+    """Un vincolo dati indispensabile non e' stato reso disponibile."""
+
 # (collection, campo) — indici a campo singolo, ascendente.
 _INDEXES = [
     ("partners", "id"),
@@ -39,7 +43,7 @@ _INDEXES = [
     ("agent_tasks", "collaborator_settlement_id"),
 ]
 
-_COMPOUND_INDEXES = [
+_CRITICAL_COMPOUND_INDEXES = [
     (
         "partner_launch_calendar_versions",
         [("partner_id", 1), ("version", 1)],
@@ -58,13 +62,14 @@ async def ensure_indexes(db):
         except Exception as e:  # pragma: no cover - difensivo, non deve bloccare lo startup
             failed += 1
             logger.warning(f"[INDEXES] {coll}.{field}: {e}")
-    for coll, fields, options in _COMPOUND_INDEXES:
+    for coll, fields, options in _CRITICAL_COMPOUND_INDEXES:
         try:
             await db[coll].create_index(fields, **options)
             created += 1
-        except Exception as e:  # pragma: no cover - difensivo, non deve bloccare lo startup
-            failed += 1
-            logger.warning(f"[INDEXES] {coll}.{fields}: {e}")
-    total = len(_INDEXES) + len(_COMPOUND_INDEXES)
+        except Exception as exc:
+            raise CriticalIndexError(
+                f"Impossibile creare l'indice critico calendar version index {coll}.{fields}"
+            ) from exc
+    total = len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
     logger.info(f"[INDEXES] ensure_indexes: {created} ok, {failed} falliti su {total}")
     return {"ok": created, "failed": failed, "total": total}

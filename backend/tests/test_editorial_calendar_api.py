@@ -9,13 +9,14 @@ from types import SimpleNamespace
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 os.environ.setdefault("MONGO_URL", "mongodb://calendar-test.invalid:27017")
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET_KEY", "calendar-test-secret-not-for-production")
 
 from routers import editorial_calendar, partner_journey
-from db_indexes import ensure_indexes
+from db_indexes import CriticalIndexError, ensure_indexes
 from services.editorial_calendar import _deterministic
 
 pytestmark = pytest.mark.unit
@@ -188,6 +189,116 @@ def test_draft_update_requires_current_checksum(client, partner_token):
     assert stale.status_code == 409
 
 
+def test_draft_update_preserves_server_side_source(client, partner_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    forged_calendar = deepcopy(created["calendar"])
+    forged_calendar["source"] = "forged-client-source"
+
+    updated = client.put(
+        "/api/partner/calendar/p1/versions/1/draft",
+        headers=_headers(partner_token),
+        json={"expected_checksum": created["checksum"], "calendar": forged_calendar},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["source"] == created["source"] == "fallback"
+    assert updated.json()["calendar"]["source"] == "fallback"
+
+
+def test_current_version_response_whitelists_public_fields(client, partner_token, fake_db):
+    client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    )
+    fake_db.versions[0]["internal_secret"] = "non esporre"
+    fake_db.versions[0]["retry_internal_state"] = {"attempt": 2}
+
+    response = client.get(
+        "/api/partner/calendar/p1/versions/current",
+        headers=_headers(partner_token),
+    )
+
+    assert response.status_code == 200
+    assert "internal_secret" not in response.json()
+    assert "retry_internal_state" not in response.json()
+    assert set(response.json()) == {
+        "partner_id", "version", "status", "calendar", "checksum", "source",
+        "created_at", "created_by", "partner_confirmed_at", "admin_review",
+    }
+
+
+@pytest.mark.asyncio
+async def test_concurrent_generation_allocates_two_unique_versions(fake_db, partner_token, monkeypatch):
+    class AtomicCounter(FakeCollection):
+        def __init__(self):
+            super().__init__()
+            self.lock = asyncio.Lock()
+
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
+            async with self.lock:
+                await asyncio.sleep(0)
+                return await super().find_one_and_update(query, update, upsert, return_document)
+
+    class InterleavedVersions(FakeCollection):
+        def __init__(self):
+            super().__init__()
+            self.readers = 0
+            self.two_readers = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            if query == {"partner_id": "p1"}:
+                self.readers += 1
+                if self.readers == 2:
+                    self.two_readers.set()
+                await self.two_readers.wait()
+            return await super().find_one(query, projection, sort)
+
+        async def insert_one(self, document):
+            if any(
+                existing["partner_id"] == document["partner_id"]
+                and existing["version"] == document["version"]
+                for existing in self.docs
+            ):
+                raise RuntimeError("duplicated calendar version")
+            return await super().insert_one(document)
+
+    fake_db.partner_launch_calendar_counters = AtomicCounter()
+    fake_db.partner_launch_calendar_versions = InterleavedVersions()
+    fake_db.versions = fake_db.partner_launch_calendar_versions.docs
+
+    async def deterministic_calendar(answers, outline):
+        await asyncio.sleep(0)
+        return _deterministic(answers, outline)
+
+    monkeypatch.setattr(editorial_calendar, "build_editorial_calendar", deterministic_calendar)
+    app = FastAPI()
+    app.include_router(editorial_calendar.router)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://calendar.test") as async_client:
+        first, second = await asyncio.gather(
+            async_client.post(
+                "/api/partner/calendar/p1/versions",
+                headers=_headers(partner_token),
+                json=_generation_payload(),
+            ),
+            async_client.post(
+                "/api/partner/calendar/p1/versions",
+                headers=_headers(partner_token),
+                json=_generation_payload(),
+            ),
+        )
+
+    assert {first.status_code, second.status_code} == {201}
+    assert {first.json()["version"], second.json()["version"]} == {1, 2}
+    assert {doc["version"] for doc in fake_db.versions} == {1, 2}
+    assert len(fake_db.versions) == 2
+
+
 def test_calendar_version_index_is_unique_per_partner_and_version():
     calls = []
 
@@ -206,3 +317,40 @@ def test_calendar_version_index_is_unique_per_partner_and_version():
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ) in calls
     assert result["total"] == 21
+
+
+def test_calendar_version_index_failure_is_fatal_but_hot_indexes_stay_best_effort():
+    class IndexCollection:
+        def __init__(self, name):
+            self.name = name
+
+        async def create_index(self, fields, **options):
+            if self.name == "partners":
+                raise RuntimeError("hot index unavailable")
+            if self.name == "partner_launch_calendar_versions":
+                raise RuntimeError("calendar unique index unavailable")
+
+    class IndexDb:
+        def __getitem__(self, name):
+            return IndexCollection(name)
+
+    with pytest.raises(CriticalIndexError, match="calendar version index"):
+        asyncio.run(ensure_indexes(IndexDb()))
+
+
+def test_hot_index_failure_stays_best_effort_when_critical_index_succeeds():
+    class IndexCollection:
+        def __init__(self, name):
+            self.name = name
+
+        async def create_index(self, fields, **options):
+            if self.name == "partners":
+                raise RuntimeError("hot index unavailable")
+
+    class IndexDb:
+        def __getitem__(self, name):
+            return IndexCollection(name)
+
+    result = asyncio.run(ensure_indexes(IndexDb()))
+
+    assert result == {"ok": 19, "failed": 2, "total": 21}

@@ -17461,11 +17461,14 @@ async def start_background_services():
     except Exception as e:
         logging.warning(f"Could not initialize MongoDB views: {e}")
 
-    # Ensure Mongo indexes on hot query fields (idempotent, non-blocking)
+    # Gli indici hot sono best-effort; i vincoli dati critici bloccano readiness.
     try:
-        from db_indexes import ensure_indexes
+        from db_indexes import CriticalIndexError, ensure_indexes
         summary = await ensure_indexes(db)
         logging.info(f"Mongo indexes ensured: {summary}")
+    except CriticalIndexError:
+        logging.exception("Critical Mongo index unavailable; refusing readiness")
+        raise
     except Exception as e:
         logging.warning(f"Could not ensure Mongo indexes: {e}")
     

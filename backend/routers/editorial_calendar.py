@@ -90,10 +90,22 @@ def _without_task_three_attestations(calendar: dict) -> dict:
 
 
 def _response_document(document: dict) -> dict:
-    """Mongo aggiunge ``_id`` in-place dopo insert_one: non e' parte dell'API."""
-    response = dict(document)
-    response.pop("_id", None)
-    return response
+    """Contratto pubblico stabile: le future chiavi Mongo restano interne."""
+    public_fields = (
+        "partner_id",
+        "version",
+        "status",
+        "calendar",
+        "checksum",
+        "source",
+        "created_at",
+        "created_by",
+        "partner_confirmed_at",
+        "admin_review",
+        "updated_at",
+        "updated_by",
+    )
+    return {field: document[field] for field in public_fields if field in document}
 
 
 @router.post("/generate")
@@ -198,6 +210,8 @@ async def update_calendar_draft(
         raise HTTPException(409, "La bozza e' stata modificata altrove")
 
     editable = _without_task_three_attestations(body.calendar)
+    source = existing.get("source") or (existing.get("calendar") or {}).get("source")
+    editable["source"] = source
     try:
         start_date = date.fromisoformat(editable["start_date"])
         live_date = date.fromisoformat(editable["live_date"])
@@ -216,7 +230,7 @@ async def update_calendar_draft(
             "$set": {
                 "calendar": calendar,
                 "checksum": checksum,
-                "source": calendar.get("source"),
+                "source": source,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
                 "updated_by": _actor_id(actor),
             }
