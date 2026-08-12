@@ -268,7 +268,7 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -293,6 +293,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
         "seguendo la struttura e le regole. Ogni giorno: formato, tema, fonte, come_farlo, cta."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "quarterly_calendar",
@@ -302,7 +304,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=8000,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # Il calendario di regime e' fase Ottimizza, non di lancio: MARCO.
+        system=system_blocks("MARCO", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "quarterly_calendar"},

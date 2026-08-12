@@ -214,7 +214,7 @@ def _call_claude(answers: dict) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -229,6 +229,8 @@ def _call_claude(answers: dict) -> dict:
         "fino a 2 ospiti e 3 bonus."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "curriculum_outline",
@@ -238,7 +240,8 @@ def _call_claude(answers: dict) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=2500,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # L'outline del corso lo firma ANDREA (struttura e produzione).
+        system=system_blocks("ANDREA", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "curriculum_outline"},

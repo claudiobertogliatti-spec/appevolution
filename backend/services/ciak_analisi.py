@@ -143,7 +143,7 @@ async def _resolve_prompt(key: str) -> str:
 
 
 def _get_client() -> anthropic.Anthropic:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise CiakAnalisiError("ANTHROPIC_API_KEY non configurata")
     return anthropic.Anthropic(api_key=api_key)

@@ -263,7 +263,7 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -288,6 +288,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
         "settimana: tema, 2-3 azioni esecutive, cta."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "live_cycle",
@@ -297,7 +299,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=4000,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # Il ciclo live ricorrente e' fase Ottimizza, post-lancio: MARCO.
+        system=system_blocks("MARCO", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "live_cycle"},

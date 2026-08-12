@@ -277,8 +277,17 @@ def _numeri(testo: str) -> set[str]:
     return set(re.findall(r"\d+", testo or ""))
 
 
+def _normalizza(testo: str) -> str:
+    """Le frasi di `_SEGNAPOSTO` sono scritte con l'apostrofo (`e'`, `completera'`).
+    I testi ora escono con gli accenti veri: si normalizza prima di confrontare,
+    altrimenti un segnaposto accentato passerebbe per sezione compilata."""
+    for accentata, piatta in (("à", "a'"), ("è", "e'"), ("é", "e'"), ("ì", "i'"), ("ò", "o'"), ("ù", "u'")):
+        testo = testo.replace(accentata, piatta)
+    return testo
+
+
 def _e_segnaposto(body: str) -> bool:
-    testo = (body or "").strip().lower()
+    testo = _normalizza((body or "").strip().lower())
     return not testo or any(testo.startswith(p) or p in testo[:120] for p in _SEGNAPOSTO)
 
 
@@ -311,7 +320,7 @@ def _sezione_offerta(ctx: dict[str, Any]) -> str:
             else "Garanzia: nessuna garanzia prevista."
         )
     else:
-        righe.append("L'offerta non e' ancora stata definita: nome, prezzo e contenuto vanno decisi prima del lancio.")
+        righe.append("L'offerta non è ancora stata definita: nome, prezzo e contenuto vanno decisi prima del lancio.")
 
     if isinstance(strategia, dict):
         prezzo_traccia = strategia.get("prezzo") or {}
@@ -468,7 +477,7 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md).
     # "Problema" e "Promessa" sono due sezioni distinte, cosi' come "Offerta e prezzo"
     # e "Webinar/live"; gli script delle videolezioni non fanno parte del libretto.
-    ATTESA = "Questa sezione si completera' nella prossima fase del percorso."
+    ATTESA = "Questa sezione si completerà nella prossima fase del percorso."
 
     # Gli script pronti all'uso non sono una sezione: vanno nel box "Script & Output AI"
     # previsto dallo standard (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
@@ -487,7 +496,7 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
                "testo": _estratto(_pulisci_markdown(script_mc), 1400)}] if script_mc else []
 
     return [
-        {"title": "Executive Summary & Identita'", "body": identita or ATTESA},
+        {"title": "Executive Summary & Identità", "body": identita or ATTESA},
         {"title": "Target & ICP", "body": target or ATTESA},
         {"title": "Problema che risolvi", "body": problema or ATTESA},
         {"title": "Promessa", "body": promessa or ATTESA},
@@ -641,12 +650,17 @@ async def download_project_book(
             headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
         )
     ctx = await _load_context(partner_id)
+    # `filled` viaggia col payload: prima il renderer riderivava "sezione compilata"
+    # con una sua euristica piu' debole e l'indice del PDF marcava Compilata anche
+    # una sezione che diceva "l'offerta non e' ancora stata definita" (12/08/2026).
+    # Un solo criterio, quello di `_e_segnaposto`.
+    sezioni = [{**s, "filled": not _e_segnaposto(s.get("body", ""))} for s in _project_sections(ctx)]
     payload = {
         "partner_name": _partner_name(ctx["partner"]),
         "project_name": _project_name(ctx),
         "start_date": _start_date(ctx),
         "fase_attuale": _fase_attuale(ctx),
-        "sections": _project_sections(ctx),
+        "sections": sezioni,
     }
     # Standard ufficiale: HTML brandizzato -> Playwright (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
     # Se chromium non e' disponibile si ripiega sul render reportlab, cosi' il partner

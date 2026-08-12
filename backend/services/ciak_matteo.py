@@ -123,7 +123,7 @@ class MatteoServiceError(Exception):
 
 
 def _get_client() -> anthropic.Anthropic:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise MatteoServiceError("ANTHROPIC_API_KEY non configurata")
     return anthropic.Anthropic(api_key=api_key)

@@ -93,7 +93,7 @@ def _deterministic(partner: dict, risultato: dict) -> dict:
 def _call_claude(partner: dict, risultato: dict) -> dict:
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -110,6 +110,8 @@ def _call_claude(partner: dict, risultato: dict) -> dict:
         "Impacchetta questo in un caso studio in voce Ciak, usando SOLO i fatti dati."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "case_study",
@@ -119,7 +121,8 @@ def _call_claude(partner: dict, risultato: dict) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=1500,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # Il caso studio nasce dai risultati post-lancio: MARCO.
+        system=system_blocks("MARCO", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "case_study"},

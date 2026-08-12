@@ -239,7 +239,7 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -265,6 +265,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
         "come_farlo, cta."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "editorial_calendar",
@@ -274,7 +276,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=4000,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # Il calendario editoriale e' del reparto Acquisizione/Comunicazione: ANDREA.
+        system=system_blocks("ANDREA", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "editorial_calendar"},

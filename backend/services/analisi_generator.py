@@ -166,14 +166,25 @@ def _call_anthropic_json(prompt: str) -> dict:
     """Chiamata sincrona Anthropic: ritorna il JSON parsato. Solleva in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
+
+    from .agent_deliverable import system_blocks
 
     client = anthropic.Anthropic(api_key=api_key)
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=2000,
+        # L'analisi strategica del lead è il mestiere di MATTEO (analista Blueprint).
+        # Prima questa chiamata non aveva alcun system prompt: tutto stava nel
+        # messaggio utente, quindi il modello lavorava senza identità né competenza.
+        system=system_blocks(
+            "MATTEO",
+            "Stai producendo l'analisi strategica di un potenziale cliente. "
+            "Rispetta esattamente il formato richiesto nel messaggio: se ti viene "
+            "chiesto JSON, rispondi con il solo JSON valido, senza testo attorno.",
+        ),
         messages=[{"role": "user", "content": prompt}],
     )
     text = "".join(

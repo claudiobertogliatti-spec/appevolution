@@ -75,7 +75,7 @@ async def extract_key_moments(
     Returns:
         Lista di dict {startSec, endSec, text, type} compatibili con KeyMoment TS
     """
-    ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+    ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not ANTHROPIC_KEY:
         logger.warning("[KEY_MOMENTS] ANTHROPIC_API_KEY non configurata, skip")
         return []

@@ -1,172 +1,161 @@
 """Render PDF del Brand Kit del partner.
 
 Identità visiva (logo + foto + 3 colori) + voce (tone of voice + parole chiave +
-parole da evitare). Layout brand Ciak (navy #0F172A + giallo #FACC15, Poppins).
-Riusa html_to_pdf condiviso (backend/services/ciak_pdf.py) che gira su
-playwright/chromium già installato nel container.
+parole da evitare).
+
+⚠️ Rifatto il 12/8/2026 sul tema condiviso `ciak_doc_theme`.
+ℹ️ Perimetri: la **cornice** del documento è Ciak (interno, brand lock), i colori
+   mostrati nelle campionature sono quelli del **partner** (esterno). Non è
+   contaminazione: il brand del partner è il contenuto, non la grafica.
+   Il rosso delle parole da evitare è `#F43F5E`, il colore semantico d'urgenza
+   deciso il 5/8/2026 — usato qui in senso funzionale (negazione), non decorativo.
 """
-import html as _html
 import logging
 from typing import Any
 
-from .ciak_pdf import html_to_pdf
+from .ciak_doc_theme import cover, documento, esc, foot, render_pdf
 
 logger = logging.getLogger(__name__)
 
+_CSS_EXTRA = """
+.bk-visual{ display:flex; gap:8mm; }
+.bk-card{ flex:1; border:1px solid var(--line); border-radius:3mm; padding:5mm; text-align:center; }
+.bk-card .lab{ font-size:8.5pt; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4mm; }
+.bk-card img{ max-width:100%; max-height:42mm; object-fit:contain; display:block; margin:0 auto; }
+.bk-card .missing{ color:var(--muted); font-style:italic; font-size:10pt; padding:12mm 0; }
 
-_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-:root{--navy:#0F172A;--yellow:#FACC15;--slate-50:#F8FAFC;--slate-200:#E2E8F0;--slate-400:#94A3B8;--slate-600:#475569;}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-body{font-family:'Poppins',sans-serif;color:var(--navy);line-height:1.6;background:#fff;}
-.container{max-width:900px;margin:0 auto;}
-.cover{padding:90px 60px 70px;text-align:center;position:relative;}
-.cover .logo{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--slate-400);text-transform:uppercase;margin-bottom:40px;}
-.cover h1{font-size:42px;font-weight:700;line-height:1.1;}
-.highlight-pill{background:var(--yellow);padding:2px 16px;border-radius:30px;display:inline-block;}
-.cover .sub{color:var(--navy);font-size:18px;font-weight:600;margin-top:22px;}
-.cover .who{color:var(--slate-600);font-size:14px;margin-top:8px;}
-.page{padding:30px 60px 60px;}
-.group{margin-bottom:40px;page-break-inside:avoid;}
-.group-header{margin-bottom:18px;border-bottom:2px solid var(--yellow);padding-bottom:8px;}
-.group-header h2{font-size:22px;font-weight:700;color:var(--navy);}
-.group-header .subtitle{font-size:13px;color:var(--slate-400);margin-top:2px;font-weight:400;}
-.section{margin-bottom:22px;page-break-inside:avoid;}
-.section-num{font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:1px;display:block;margin-bottom:4px;}
-.section h3{font-size:16px;font-weight:600;margin-bottom:8px;}
-.section p{color:var(--slate-600);font-size:14px;white-space:pre-wrap;}
-.visual-row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
-.asset-card{background:var(--slate-50);border:1px solid var(--slate-200);border-radius:8px;padding:18px;text-align:center;flex:1;min-width:220px;}
-.asset-card .asset-label{font-size:11px;font-weight:600;color:var(--slate-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
-.asset-card img{max-width:100%;max-height:160px;object-fit:contain;border-radius:4px;}
-.asset-card .missing{color:var(--slate-400);font-style:italic;font-size:13px;padding:30px 0;}
-.palette{display:flex;gap:18px;justify-content:center;}
-.swatch{text-align:center;}
-.swatch .chip{width:90px;height:90px;border-radius:8px;border:1px solid var(--slate-200);}
-.swatch .hex{font-family:monospace;font-size:12px;color:var(--slate-600);margin-top:8px;font-weight:600;}
-.pill-list{display:flex;flex-wrap:wrap;gap:8px;}
-.pill{background:var(--slate-50);border:1px solid var(--slate-200);border-radius:30px;padding:6px 14px;font-size:13px;color:var(--navy);font-weight:500;}
-.pill.avoid{background:#FEF2F2;border-color:#FECACA;color:#991B1B;text-decoration:line-through;}
-.empty-note{color:var(--slate-400);font-style:italic;font-size:13px;}
-.footer{margin-top:40px;padding-top:24px;border-top:1px solid var(--slate-200);color:var(--slate-400);font-size:12px;text-align:center;}
+.bk-palette{ display:flex; gap:6mm; }
+.bk-swatch{ flex:1; }
+/* Il campione è alto e pieno: su un brand kit il colore deve potersi giudicare. */
+.bk-chip{ height:30mm; border-radius:3mm; border:1px solid var(--line); }
+.bk-hex{ font-family:'Space Mono', monospace; font-size:9.5pt; color:var(--ink); margin-top:2.5mm; font-weight:700; text-align:center; letter-spacing:.02em; }
+.bk-role{ font-size:8.5pt; color:var(--muted); text-align:center; margin-top:.5mm; }
+
+.bk-pills{ display:flex; flex-wrap:wrap; gap:2.5mm; }
+.bk-pill{ background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:2mm 5mm; font-size:10.5pt; color:var(--ink); font-weight:500; }
+.bk-pill.avoid{ border-color:#FDA4AF; color:#F43F5E; text-decoration:line-through; background:#fff; }
 """
 
-
-def _esc(s: Any) -> str:
-    return _html.escape(str(s or ""))
+_RUOLI = ["Colore principale", "Colore d'accento", "Colore di supporto"]
 
 
 def _asset_card(label: str, url: str) -> str:
-    if url:
-        return (
-            f'<div class="asset-card"><div class="asset-label">{_esc(label)}</div>'
-            f'<img src="{_esc(url)}" alt="{_esc(label)}" /></div>'
-        )
-    return (
-        f'<div class="asset-card"><div class="asset-label">{_esc(label)}</div>'
-        f'<div class="missing">Non caricato</div></div>'
+    dentro = (
+        f'<img src="{esc(url)}" alt="{esc(label)}">' if url
+        else '<div class="missing">Non caricato</div>'
     )
+    return f'<div class="bk-card"><div class="lab">{esc(label)}</div>{dentro}</div>'
 
 
-def _swatch(hex_color: str) -> str:
-    safe = _esc(hex_color)
+def _swatch(hex_color: str, ruolo: str) -> str:
+    safe = esc(hex_color)
     return (
-        f'<div class="swatch"><div class="chip" style="background:{safe}"></div>'
-        f'<div class="hex">{safe}</div></div>'
+        f'<div class="bk-swatch"><div class="bk-chip" style="background:{safe}"></div>'
+        f'<div class="bk-hex">{safe.upper()}</div><div class="bk-role">{esc(ruolo)}</div></div>'
     )
 
 
 def _pills(items: list, avoid: bool = False) -> str:
     items = [i for i in (items or []) if (i or "").strip()]
     if not items:
-        return '<div class="empty-note">Nessuna voce indicata.</div>'
-    cls = "pill avoid" if avoid else "pill"
+        return '<div class="doc-empty">Nessuna voce indicata.</div>'
+    cls = "bk-pill avoid" if avoid else "bk-pill"
+    return '<div class="bk-pills">' + "".join(
+        f'<span class="{cls}">{esc(i)}</span>' for i in items
+    ) + "</div>"
+
+
+# Testo NOSTRO, fisso: regole d'uso concrete. Un brand kit che elenca i colori
+# senza dire come si usano non evita l'errore che deve evitare.
+_GUIDA = {
+    1: {
+        "testo": "Questi elementi non si cambiano a ogni pubblicazione: il riconoscimento nasce "
+                 "dalla ripetizione, e un progetto che cambia aspetto ogni volta costringe il "
+                 "pubblico a ricominciare da capo. Il colore principale va sui titoli e sulle "
+                 "aree piene, l'accento solo sui pulsanti e sui dettagli da far notare, il colore "
+                 "di supporto sui fondi. Se usi l'accento dappertutto smette di essere un accento "
+                 "e non guida più l'occhio da nessuna parte. Il logo va su fondo pieno e con "
+                 "spazio libero attorno: mai sopra una foto affollata, mai deformato per farlo "
+                 "entrare in uno spazio, mai ricolorato per farlo intonare con la grafica.",
+        "errore": "Trattare il brand kit come un vezzo estetico da sistemare più avanti. "
+                  "Rifare tutti i materiali dopo sei mesi di pubblicazioni costa molto più "
+                  "tempo che deciderlo adesso.",
+    },
+    2: {
+        "testo": "Il tono di voce serve soprattutto quando scrivi di fretta: è la regola a cui "
+                 "tornare per non assomigliare a tutti gli altri nel momento in cui non hai tempo "
+                 "di pensarci. Le parole chiave vanno usate davvero, nei titoli, nelle email e "
+                 "nelle descrizioni dei moduli, perché diventino le tue e il pubblico le associ "
+                 "a te. Le parole da evitare contano quanto le altre: sono quelle che ti farebbero "
+                 "confondere con i concorrenti da cui vuoi distinguerti, e di solito sono proprio "
+                 "quelle che vengono più naturali perché le usano tutti.",
+        "errore": "Scrivere un tono di voce fatto di aggettivi generici come professionale, "
+                  "empatico, coinvolgente. Non aiutano a decidere niente. Serve una regola "
+                  "operativa: do del tu, non uso termini tecnici senza spiegarli, non prometto "
+                  "risultati garantiti.",
+    },
+}
+
+
+def _gruppo(num: int, titolo: str, sottotitolo: str, corpo: str) -> str:
+    g = _GUIDA.get(num) or {}
+    guida_html = (
+        f'<div class="doc-guida"><p>{esc(g["testo"])}</p>'
+        f'<p class="errore"><b>L\'errore da evitare.</b> {esc(g["errore"])}</p></div>'
+    ) if g else ""
     return (
-        '<div class="pill-list">'
-        + "".join(f'<span class="{cls}">{_esc(i)}</span>' for i in items)
-        + "</div>"
+        f'<section class="doc-group"><div class="doc-group-head">'
+        f'<h2><span class="doc-num">{num}</span>{esc(titolo)}</h2>'
+        f'<div class="sub">{esc(sottotitolo)}</div></div>{guida_html}{corpo}</section>'
     )
 
 
 def render_brand_kit_html(data: dict, nome: str) -> str:
-    """Costruisce l'HTML del Brand Kit.
-
-    data: dict con keys logo_url, foto_url, colors (list[str] HEX),
-          tone_of_voice (str), parole_chiave (list[str]), parole_evitare (list[str]).
-    """
+    """data: logo_url, foto_url, colors (list[str] HEX), tone_of_voice,
+    parole_chiave (list[str]), parole_evitare (list[str])."""
     logo_url = (data.get("logo_url") or "").strip()
     foto_url = (data.get("foto_url") or "").strip()
     colors = data.get("colors") or []
     tone = (data.get("tone_of_voice") or "").strip()
-    parole_chiave = data.get("parole_chiave") or []
-    parole_evitare = data.get("parole_evitare") or []
 
-    swatches_html = "".join(_swatch(c) for c in colors) or (
-        '<div class="empty-note">Colori non definiti.</div>'
-    )
+    swatches = "".join(
+        _swatch(c, _RUOLI[i] if i < len(_RUOLI) else "Colore di supporto")
+        for i, c in enumerate(colors)
+    ) or '<div class="doc-empty">Colori non ancora definiti.</div>'
 
     tone_html = (
-        f"<p>{_esc(tone)}</p>"
-        if tone
-        else "<p class='empty-note'>Tone of voice non compilato.</p>"
+        f'<div class="doc-qa"><div class="ans">{esc(tone)}</div></div>' if tone
+        else '<div class="doc-empty">Tone of voice non compilato.</div>'
     )
 
-    return f"""<!doctype html><html lang="it"><head><meta charset="utf-8"><style>{_CSS}</style></head>
-<body><div class="container">
-<header class="cover">
-  <div class="logo">Brand Kit · Metodo EVO™</div>
-  <h1>Il tuo <span class="highlight-pill">brand kit</span></h1>
-  <div class="sub">Fondamento Esamina · Fase 1</div>
-  <div class="who">Preparato per {_esc(nome)}</div>
-</header>
-<div class="page">
+    corpo = (
+        _gruppo(1, "Identità visiva", "Logo, foto e colori: gli asset con cui ti riconoscono.",
+                f'<div class="bk-visual">{_asset_card("Logo", logo_url)}'
+                f'{_asset_card("Foto personale", foto_url)}</div>'
+                f'<div style="margin-top:7mm"><div class="doc-qa"><div class="lab">Palette</div></div>'
+                f'<div class="bk-palette">{swatches}</div></div>')
+        + _gruppo(2, "La tua voce", "Come parli, e le parole che fanno suono di te.",
+                  f'<div class="doc-qa"><div class="lab">Tone of voice</div></div>{tone_html}'
+                  f'<div class="doc-qa" style="margin-top:6mm"><div class="lab">Parole chiave</div></div>'
+                  f'{_pills(data.get("parole_chiave"))}'
+                  f'<div class="doc-qa" style="margin-top:6mm"><div class="lab">Parole da evitare</div></div>'
+                  f'{_pills(data.get("parole_evitare"), avoid=True)}')
+    )
 
-  <div class="group">
-    <div class="group-header">
-      <h2>Identità visiva</h2>
-      <div class="subtitle">Logo, foto, colori — gli asset con cui ti riconoscono.</div>
-    </div>
-    <section class="section">
-      <span class="section-num">01</span>
-      <h3>Logo e foto</h3>
-      <div class="visual-row">
-        {_asset_card("Logo", logo_url)}
-        {_asset_card("Foto personale", foto_url)}
-      </div>
-    </section>
-    <section class="section">
-      <span class="section-num">02</span>
-      <h3>Palette colori</h3>
-      <div class="palette">{swatches_html}</div>
-    </section>
-  </div>
-
-  <div class="group">
-    <div class="group-header">
-      <h2>La tua voce</h2>
-      <div class="subtitle">Come parli, le parole che fanno suono di te.</div>
-    </div>
-    <section class="section">
-      <span class="section-num">03</span>
-      <h3>Tone of voice</h3>
-      {tone_html}
-    </section>
-    <section class="section">
-      <span class="section-num">04</span>
-      <h3>Parole chiave</h3>
-      {_pills(parole_chiave)}
-    </section>
-    <section class="section">
-      <span class="section-num">05</span>
-      <h3>Parole da evitare</h3>
-      {_pills(parole_evitare, avoid=True)}
-    </section>
-  </div>
-
-  <div class="footer">Documento generato dal Metodo EVO™ · Evolution PRO LLC · ciak.io</div>
-</div></div></body></html>"""
+    return documento(
+        f"Brand Kit di {esc(nome)}",
+        cover(
+            kicker="Metodo EVO · Fase Esamina",
+            titolo="Il tuo Brand Kit",
+            sottotitolo="Gli elementi fissi della tua identità: da qui in avanti, "
+                        "tutto quello che pubblichi parte da questa pagina.",
+            meta=f"Preparato per <strong>{esc(nome)}</strong>",
+        )
+        + f'<main class="doc-body">{corpo}</main>'
+        + foot(nome),
+        _CSS_EXTRA,
+    )
 
 
 async def genera_brand_kit_pdf(data: dict, nome: str) -> bytes:
-    """HTML → PDF bytes via playwright/chromium (riuso shared helper)."""
-    return await html_to_pdf(render_brand_kit_html(data, nome))
+    return await render_pdf(render_brand_kit_html(data, nome), f"Brand Kit · {nome}")

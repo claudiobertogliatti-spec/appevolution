@@ -7614,11 +7614,23 @@ async def get_certificato_pdf(
     await require_partner_or_admin_for_partner(partner_id, credentials)
     partner = await get_partner_or_404(partner_id)
 
+    # Durata reale della fase dagli step del journey: se non calcolabile resta
+    # None e il certificato non stampa il blocco (meglio tacere che stimare).
+    from routers.partner_rewards import _phase_days
+    steps = await db.partner_journey_steps.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).sort("step_number", 1).to_list(length=40)
+    giorni = _phase_days({"steps": steps, "steps_by_id": {s.get("step_id"): s for s in steps}}, macro_fase)
+
     from services.certificati_pdf_renderer import genera_certificato_pdf
     pdf_bytes = await genera_certificato_pdf(
         partner_name=partner.get("name", "Partner CIAK"),
-        accademia_name=partner.get("brand_name", partner.get("accademia_name", "Accademia Digitale")),
+        # Niente "Accademia Digitale" di default: se il dato manca non si stampa
+        # un nome inventato, la riga sparisce.
+        accademia_name=partner.get("brand_name", partner.get("accademia_name", "")),
         macro_fase_id=macro_fase,
+        partner_id=partner_id,
+        giorni=giorni,
     )
 
     return Response(

@@ -1192,6 +1192,16 @@ o richiede una scelta importante, di' che la vedete insieme a Valentina.
 Non gestire rimborsi, contratti o questioni legali: di' che se ne occupa direttamente Claudio.
 """
 
+# Competenze senior per dominio (posizionamento, vendita, funnel, contenuti,
+# aderenza). Stanno in un modulo separato perché sono lunghe e si aggiornano da
+# sole: `agent_expertise.py`. Import difensivo, il modulo deve restare
+# importabile anche se quel file manca.
+try:
+    from agent_expertise import expertise_for as _expertise_for
+except Exception:  # noqa: BLE001
+    def _expertise_for(_agent_id: str) -> str:  # type: ignore
+        return ""
+
 # Dizionario per accesso rapido ai system prompt
 AGENT_SYSTEM_PROMPTS = {
     "STEFANIA": STEFANIA_SYSTEM_PROMPT,
@@ -1205,9 +1215,19 @@ AGENT_SYSTEM_PROMPTS = {
     "ELENA": ELENA_SYSTEM_PROMPT,
 }
 
+
 def get_agent_prompt(agent_id: str) -> str:
-    """Ottiene il system prompt per un agente specifico"""
-    return AGENT_SYSTEM_PROMPTS.get(agent_id.upper(), STEFANIA_SYSTEM_PROMPT)
+    """System prompt dell'agente: ruolo operativo + competenza senior del dominio.
+
+    La competenza si aggiunge qui, in un punto solo: valgono sia per la chat sia
+    per i deliverable, che passano dallo stesso prompt tramite
+    `services/agent_deliverable.py`.
+    """
+    key = (agent_id or "").upper()
+    base = AGENT_SYSTEM_PROMPTS.get(key, STEFANIA_SYSTEM_PROMPT)
+    # RESEARCH riusa il prompt di Valentina, quindi ne eredita anche la competenza.
+    competenza = _expertise_for("VALENTINA" if key == "RESEARCH" else key)
+    return base + competenza if competenza else base
 
 def list_available_agents() -> list:
     """Lista degli agenti disponibili"""
