@@ -132,6 +132,8 @@ class FakeDb:
         self.partner_launch_calendar_versions = FakeCollection()
         self.partner_launch_calendar_counters = FakeCollection()
         self.partner_launch_calendar_notification_recovery = FakeCollection()
+        self.partner_document_versions = FakeCollection()
+        self.partner_lancio = FakeCollection()
         self.alerts = FakeCollection()
         self.partners = FakeCollection([{"id": "p1", "name": "Partner Uno"}])
         self.partner_hub = FakeCollection()
@@ -193,9 +195,15 @@ def client(fake_db, monkeypatch):
         return _deterministic(answers, outline)
 
     monkeypatch.setattr(editorial_calendar, "build_editorial_calendar", deterministic_calendar)
+
+    async def render_workbook(_payload):
+        return b"%PDF-1.4\n" + (b"approved-workbook\n" * 10)
+
+    monkeypatch.setattr(partner_rewards, "genera_project_book_pdf", render_workbook)
     app = FastAPI()
     app.include_router(editorial_calendar.router)
     app.include_router(partner_journey.router)
+    app.include_router(partner_rewards.router)
     with TestClient(app) as test_client:
         yield test_client
 
@@ -213,7 +221,7 @@ def _with_https_destinations(client, partner_token, calendar_version):
     for day in calendar["days"]:
         day["destination_url"] = f"https://www.ciak.io/{day['destination_kind']}"
     response = client.put(
-        "/api/partner/calendar/p1/versions/1/draft",
+        f"/api/partner/calendar/p1/versions/{calendar_version['version']}/draft",
         headers=_headers(partner_token),
         json={"expected_checksum": calendar_version["checksum"], "calendar": calendar},
     )
@@ -238,7 +246,7 @@ def _with_ready_review_resources(client, partner_token, calendar_version):
         },
     }
     response = client.put(
-        "/api/partner/calendar/p1/versions/1/draft",
+        f"/api/partner/calendar/p1/versions/{calendar_version['version']}/draft",
         headers=_headers(partner_token),
         json={"expected_checksum": calendar_version["checksum"], "calendar": calendar},
     )
@@ -248,7 +256,7 @@ def _with_ready_review_resources(client, partner_token, calendar_version):
 
 def _submit(client, partner_token, calendar_version, partner_confirmed=True):
     return client.post(
-        "/api/partner/calendar/p1/versions/1/submit",
+        f"/api/partner/calendar/p1/versions/{calendar_version['version']}/submit",
         headers=_headers(partner_token),
         json={
             "partner_confirmed": partner_confirmed,
@@ -263,6 +271,24 @@ def _f14_step(fake_db):
         for step in fake_db.partner_journey_steps.docs
         if step.get("step_id") == "11-calendario-30gg"
     )
+
+
+def _approve_calendar(client, partner_token, admin_token, version=1):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    assert created["version"] == version
+    ready = _with_ready_review_resources(client, partner_token, created)
+    assert _submit(client, partner_token, ready).status_code == 200
+    approved = client.post(
+        f"/api/partner/calendar/p1/versions/{version}/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": f"Calendario v{version} verificato"},
+    )
+    assert approved.status_code == 200
+    return approved.json()
 
 
 def test_client_calendar_payload_cannot_complete_f14_without_approved_version(
@@ -332,6 +358,132 @@ def test_positive_review_completes_f14_once_with_db_evidence(
     assert _f14_step(fake_db)["completed_at"] == completed_at
 
 
+def test_approved_v2_refreshes_only_f14_evidence_without_advancing_pending_steps(
+    client, partner_token, admin_token, fake_db
+):
+    approved_v1 = _approve_calendar(client, partner_token, admin_token, version=1)
+    completed_at = _f14_step(fake_db)["completed_at"]
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "in_progress",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    approved_v2 = _approve_calendar(client, partner_token, admin_token, version=2)
+
+    step = _f14_step(fake_db)
+    assert step["data"]["calendar_version"] == 2
+    assert step["data"]["calendar_checksum"] == approved_v2["checksum"]
+    assert step["data"]["calendar_checksum"] != approved_v1["checksum"]
+    assert step["completed_at"] == completed_at
+    statuses = {
+        item["step_id"]: item["status"]
+        for item in fake_db.partner_journey_steps.docs
+        if item.get("step_id") in ("12-prezzo-webinar", "16-readiness-lancio")
+    }
+    assert statuses == {
+        "12-prezzo-webinar": "in_progress",
+        "16-readiness-lancio": "pending",
+    }
+
+
+def test_review_retry_recovers_missing_f14_evidence_without_advancing_steps(
+    client, partner_token, admin_token, fake_db
+):
+    approved = _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    completed_at = step["completed_at"]
+    step["data"] = {"summary": "dato storico"}
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "in_progress",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    retry = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "Calendario v1 verificato"},
+    )
+
+    assert retry.status_code == 200
+    assert step["data"] == {
+        "summary": "dato storico",
+        "calendar_version": 1,
+        "calendar_checksum": approved["checksum"],
+        "approved_at": approved["approved_at"],
+    }
+    assert step["completed_at"] == completed_at
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f15")["status"] == "in_progress"
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f16")["status"] == "pending"
+
+
+def test_review_retry_recovers_partial_first_completion_without_opening_f16(
+    client, partner_token, admin_token, fake_db
+):
+    approved = _approve_calendar(client, partner_token, admin_token, version=1)
+    step = _f14_step(fake_db)
+    completed_at = step["completed_at"]
+    step.pop("calendar_completion_effects_applied_at", None)
+    fake_db.partner_journey_steps.docs.extend([
+        {
+            "_id": "step-f15",
+            "partner_id": "p1",
+            "step_id": "12-prezzo-webinar",
+            "step_number": 15,
+            "status": "pending",
+            "data": {},
+        },
+        {
+            "_id": "step-f16",
+            "partner_id": "p1",
+            "step_id": "16-readiness-lancio",
+            "step_number": 16,
+            "status": "pending",
+            "data": {},
+        },
+    ])
+
+    retry = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "Calendario v1 verificato"},
+    )
+
+    assert retry.status_code == 200
+    assert step["data"]["calendar_checksum"] == approved["checksum"]
+    assert step["completed_at"] == completed_at
+    assert step["calendar_completion_effects_applied_at"]
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f15")["status"] == "in_progress"
+    assert next(item for item in fake_db.partner_journey_steps.docs if item.get("_id") == "step-f16")["status"] == "pending"
+
+
 @pytest.mark.asyncio
 async def test_workbook_reads_only_the_approved_calendar_snapshot(
     client, partner_token, admin_token, fake_db
@@ -366,6 +518,83 @@ async def test_workbook_reads_only_the_approved_calendar_snapshot(
     assert context["launch_calendar_version"] == 1
     assert "Tema approvato e immutabile" in calendar_section["body"]
     assert "BOZZA INVENTATA" not in calendar_section["body"]
+
+
+def test_legacy_workbook_is_not_served_without_approved_calendar(
+    client, partner_token, fake_db
+):
+    legacy = {
+        "document_id": "legacy-workbook",
+        "partner_id": "p1",
+        "kind": "workbook_final",
+        "source_version": "launch-legacy",
+        "version": 1,
+        "checksum": "legacy-checksum",
+        "content": b"%PDF-legacy",
+        "created_at": "2026-01-01T00:00:00+00:00",
+    }
+    fake_db.partner_document_versions.docs.append(deepcopy(legacy))
+
+    response = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "launch_calendar_not_approved"
+    assert fake_db.partner_document_versions.docs == [legacy]
+
+
+def test_workbook_archive_is_append_only_and_bound_to_each_approved_calendar(
+    client, partner_token, admin_token, fake_db
+):
+    fake_db.partner_document_versions.docs.append({
+        "document_id": "legacy-workbook",
+        "partner_id": "p1",
+        "kind": "workbook_final",
+        "source_version": "launch-legacy",
+        "version": 1,
+        "checksum": "legacy-checksum",
+        "content": b"%PDF-legacy",
+        "created_at": "2026-01-01T00:00:00+00:00",
+    })
+    approved_v1 = _approve_calendar(client, partner_token, admin_token, version=1)
+
+    first = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+    retry = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+
+    assert first.status_code == retry.status_code == 200
+    assert len(fake_db.partner_document_versions.docs) == 2
+    workbook_v1 = fake_db.partner_document_versions.docs[1]
+    assert workbook_v1["version"] == 2
+    assert workbook_v1["provenance"] == {
+        "calendar_version": 1,
+        "calendar_checksum": approved_v1["checksum"],
+        "calendar_approved_at": approved_v1["approved_at"],
+    }
+
+    approved_v2 = _approve_calendar(client, partner_token, admin_token, version=2)
+    second = client.get(
+        "/api/partner-rewards/p1/project-book",
+        headers=_headers(partner_token),
+    )
+
+    assert second.status_code == 200
+    assert len(fake_db.partner_document_versions.docs) == 3
+    assert [document["version"] for document in fake_db.partner_document_versions.docs] == [1, 2, 3]
+    workbook_v2 = fake_db.partner_document_versions.docs[2]
+    assert workbook_v2["provenance"] == {
+        "calendar_version": 2,
+        "calendar_checksum": approved_v2["checksum"],
+        "calendar_approved_at": approved_v2["approved_at"],
+    }
+    assert workbook_v1["content"] == workbook_v2["content"]
 
 
 def test_generate_creates_version_one(client, partner_token, fake_db):

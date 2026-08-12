@@ -135,7 +135,6 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
         if launch_calendar_evidence.get("launch_calendar_approved")
         else {}
     )
-
     return {
         "partner": partner,
         "steps": steps,
@@ -150,6 +149,71 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
         "launch_calendar_checksum": launch_calendar_evidence.get("calendar_checksum"),
         "launch_calendar_approved_at": launch_calendar_evidence.get("approved_at"),
     }
+
+
+def _workbook_binding(ctx: dict[str, Any]) -> dict[str, Any]:
+    from services.journey_completion import approved_calendar_workbook_binding
+
+    binding = approved_calendar_workbook_binding({
+        "launch_calendar_approved": bool(ctx.get("launch_calendar")),
+        "calendar_version": ctx.get("launch_calendar_version"),
+        "calendar_checksum": ctx.get("launch_calendar_checksum"),
+        "approved_at": ctx.get("launch_calendar_approved_at"),
+    })
+    if not binding:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_not_approved",
+                "message": "Il Workbook richiede un calendario di lancio approvato",
+            },
+        )
+    return binding
+
+
+async def _approved_workbook(ctx: dict[str, Any], partner_id: str):
+    binding = _workbook_binding(ctx)
+    return await db.partner_document_versions.find_one(
+        {"partner_id": partner_id, "kind": "workbook_final", **binding},
+        {"_id": 0},
+    )
+
+
+async def _ensure_approved_workbook(ctx: dict[str, Any], partner_id: str):
+    from services.partner_document_versions import archive_document_version
+
+    binding = _workbook_binding(ctx)
+    existing = await _approved_workbook(ctx, partner_id)
+    if existing:
+        return existing
+
+    sections = [
+        {**section, "filled": not _e_segnaposto(section.get("body", ""))}
+        for section in _project_sections(ctx)
+    ]
+    payload = {
+        "partner_name": _partner_name(ctx["partner"]),
+        "project_name": _project_name(ctx),
+        "start_date": _start_date(ctx),
+        "fase_attuale": _fase_attuale(ctx),
+        "sections": sections,
+    }
+    try:
+        workbook_pdf = await genera_project_book_pdf(payload)
+    except Exception:
+        logging.exception("[project-book] render HTML fallito, fallback reportlab")
+        workbook_pdf = render_project_book_pdf(payload)
+    archived = await archive_document_version(
+        db,
+        partner_id,
+        "workbook_final",
+        binding["source_version"],
+        workbook_pdf,
+        provenance=binding["provenance"],
+    )
+    return await db.partner_document_versions.find_one(
+        {"document_id": archived.document_id}, {"_id": 0}
+    )
 
 
 def _phase_step_ids(phase: str) -> list[str]:
@@ -539,6 +603,7 @@ async def archive_final_documents(partner_id: str) -> dict:
     from services.partner_document_versions import archive_document_version
 
     ctx = await _load_context(partner_id)
+    _workbook_binding(ctx)
     launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     source_version = str(launch.get("launched_at") or launch.get("probe_verified_at") or "launch")
     meta = PHASE_META["valida"]
@@ -549,17 +614,7 @@ async def archive_final_documents(partner_id: str) -> dict:
     certificate = await archive_document_version(
         db, partner_id, "certificate_valida", source_version, certificate_pdf
     )
-    payload = {
-        "partner_name": _partner_name(ctx["partner"]), "project_name": _project_name(ctx),
-        "start_date": _start_date(ctx), "fase_attuale": _fase_attuale(ctx),
-        "sections": _project_sections(ctx),
-    }
-    try:
-        workbook_pdf = await genera_project_book_pdf(payload)
-    except Exception:
-        logging.exception("[project-book] render finale HTML fallito, fallback reportlab")
-        workbook_pdf = render_project_book_pdf(payload)
-    workbook = await archive_document_version(db, partner_id, "workbook_final", source_version, workbook_pdf)
+    workbook = await _ensure_approved_workbook(ctx, partner_id)
 
     from routers.partner_journey import _OperativoCompleteBody, _complete_operativo_step_unchecked
     for step_id in ("18-certificato-valida", "19-workbook-finale"):
@@ -570,7 +625,7 @@ async def archive_final_documents(partner_id: str) -> dict:
             await _complete_operativo_step_unchecked(
                 partner_id, step_id, _OperativoCompleteBody(data={})
             )
-    return {"certificate_version": certificate.version, "workbook_version": workbook.version}
+    return {"certificate_version": certificate.version, "workbook_version": workbook["version"]}
 
 
 @router.get("/{partner_id}/state")
@@ -582,7 +637,7 @@ async def get_rewards_state(
     ctx = await _load_context(partner_id)
     ctx["partner_id"] = partner_id
     phases = _reward_state(ctx)
-    workbook = await _latest_document(partner_id, "workbook_final")
+    workbook = await _approved_workbook(ctx, partner_id) if ctx.get("launch_calendar") else None
     return {
         "success": True,
         "partner_id": partner_id,
@@ -665,35 +720,10 @@ async def download_project_book(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     await _require_partner_access(partner_id, credentials)
-    archived = await _latest_document(partner_id, "workbook_final")
-    if archived:
-        return Response(
-            content=archived["content"], media_type="application/pdf",
-            headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
-        )
     ctx = await _load_context(partner_id)
-    # `filled` viaggia col payload: prima il renderer riderivava "sezione compilata"
-    # con una sua euristica piu' debole e l'indice del PDF marcava Compilata anche
-    # una sezione che diceva "l'offerta non e' ancora stata definita" (12/08/2026).
-    # Un solo criterio, quello di `_e_segnaposto`.
-    sezioni = [{**s, "filled": not _e_segnaposto(s.get("body", ""))} for s in _project_sections(ctx)]
-    payload = {
-        "partner_name": _partner_name(ctx["partner"]),
-        "project_name": _project_name(ctx),
-        "start_date": _start_date(ctx),
-        "fase_attuale": _fase_attuale(ctx),
-        "sections": sezioni,
-    }
-    # Standard ufficiale: HTML brandizzato -> Playwright (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
-    # Se chromium non e' disponibile si ripiega sul render reportlab, cosi' il partner
-    # riceve comunque il documento invece di un errore.
-    try:
-        pdf = await genera_project_book_pdf(payload)
-    except Exception:
-        logging.exception("[project-book] render HTML fallito, fallback reportlab")
-        pdf = render_project_book_pdf(payload)
+    archived = await _ensure_approved_workbook(ctx, partner_id)
     return Response(
-        content=pdf,
+        content=archived["content"],
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="libretto-progetto-ciak.pdf"'},
+        headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
     )

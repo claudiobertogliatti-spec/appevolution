@@ -96,6 +96,26 @@ def approved_launch_calendar_context(document: dict[str, Any] | None) -> dict[st
     }
 
 
+def approved_calendar_workbook_binding(context: dict[str, Any]) -> dict[str, Any] | None:
+    """Identita' immutabile del Workbook costruito sul calendario approved corrente."""
+    if context.get("launch_calendar_approved") is not True:
+        return None
+    version = context.get("calendar_version")
+    checksum = context.get("calendar_checksum")
+    approved_at = context.get("approved_at")
+    if version is None or not checksum or not approved_at:
+        return None
+    provenance = {
+        "calendar_version": version,
+        "calendar_checksum": checksum,
+        "calendar_approved_at": approved_at,
+    }
+    return {
+        "source_version": f"launch-calendar:{version}:{checksum}",
+        "provenance": provenance,
+    }
+
+
 def evaluate_step_completion(step_id: str, context: dict[str, Any]) -> CompletionResult:
     definition = _STEP_BY_ID.get(step_id)
     if not definition:
