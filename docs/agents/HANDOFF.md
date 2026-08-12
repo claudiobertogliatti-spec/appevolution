@@ -264,6 +264,23 @@ Dettagli operativi: [`docs/migration/journey-f20-release.md`](../migration/journ
 
 ---
 
+### 2026-08-12 · Codex · codex/strategia-lancio-ottimizza — strategia Lancio/Ottimizza consolidata
+
+**FATTO**
+- Consolidata in `docs/superpowers/specs/2026-08-12-lancio-30gg-ottimizza-60gg-design.md`
+  la strategia approvata da Claudio per lancio ibrido di 30 giorni, gate live, tracking,
+  advertising, ciclo Ottimizza di 60 giorni, marginalita', casi studio e continuita' EVO-S.
+- Nessuna modifica applicativa: il documento resta il gate precedente al piano di implementazione.
+
+**VERIFICATO**
+- Specifica costruita su `origin/main` nel worktree isolato; autoverifica senza placeholder,
+  conflitti tra durata contrattuale/cicli o riferimenti operativi al vecchio calendario da 90 giorni.
+
+**APERTO**
+- Claudio deve revisionare il documento versionato. Solo dopo approvazione si scrive il piano tecnico.
+
+---
+
 ### 2026-07-31 · Codex + Claude Code (Luca) · feat/ciak-onboarding-email — review esterna FAIL, 3 bloccanti corretti
 
 **FATTO**
