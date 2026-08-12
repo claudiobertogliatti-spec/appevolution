@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import StepBase from "./StepBase";
+import { authHeaders } from "../../api";
 
 const BLOCKS = [
   {
@@ -20,9 +21,18 @@ const BLOCKS = [
   },
 ];
 
-export default function Step10SistemaVendita({ step, onComplete, onSaveDraft }) {
+export default function Step10SistemaVendita({ step, partnerId, onComplete, onSaveDraft }) {
   const [approved, setApproved] = useState(step?.data?.sistema_vendita_approved ?? false);
   const [note, setNote] = useState(step?.data?.note_sistema_vendita || "");
+  const [readiness, setReadiness] = useState(null);
+
+  useEffect(() => {
+    if (!partnerId) return;
+    fetch(`/api/partner-journey/operativo/readiness/${partnerId}/sales-system`, { headers: authHeaders() })
+      .then((response) => response.ok ? response.json() : null)
+      .then(setReadiness)
+      .catch(() => setReadiness(null));
+  }, [partnerId]);
 
   const save = (next) => {
     if (next.approved !== undefined) setApproved(next.approved);
@@ -37,7 +47,7 @@ export default function Step10SistemaVendita({ step, onComplete, onSaveDraft }) 
     <StepBase
       step={step}
       title="Subaccount, dominio, legal e funnel"
-      ctaDisabled={!approved}
+      ctaDisabled={!approved || !readiness?.ready}
       onCta={() => onComplete?.({ sistema_vendita_approved: true, note_sistema_vendita: note })}
       secondaryNote="Qui non devi costruire la parte tecnica. Gaia e il team Evolution preparano il sistema nel subaccount Systeme collegato a Evolution PRO; tu controlli direzione, dati e approvazione finale."
     >
@@ -52,6 +62,15 @@ export default function Step10SistemaVendita({ step, onComplete, onSaveDraft }) 
           </div>
         ))}
       </div>
+
+      {readiness && (
+        <div className="rounded-xl border border-slate-200 p-4 mb-5">
+          <p className="text-sm font-semibold mb-2">Verifica tecnica</p>
+          <ul className="space-y-1 text-xs">
+            {readiness.checks.map((check) => <li key={check.id} className={check.ok ? "text-emerald-700" : "text-amber-700"}>{check.ok ? "✓" : "○"} {check.label}</li>)}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 mb-5">
         <p className="text-sm font-semibold text-slate-900">CTA servizi extra, senza pressione</p>

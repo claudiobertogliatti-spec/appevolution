@@ -99,6 +99,8 @@ jobs:
           tests/test_journey_f20_migration.py
           tests/test_journey_completion.py
           tests/test_journey_video_gates.py
+          tests/test_sales_system_readiness.py
+          tests/test_partner_launch_readiness.py
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py

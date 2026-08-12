@@ -3762,19 +3762,42 @@ async def activate_launch(
     await require_partner_or_admin_for_partner(request.partner_id, credentials)
     partner = await get_partner_or_404(request.partner_id)
     
-    # Verifica prerequisiti
-    lancio_status = await _get_lancio_status_unchecked(request.partner_id)
-    if not lancio_status.get("all_ready"):
-        raise HTTPException(status_code=400, detail="Completa tutti i prerequisiti prima del lancio")
+    readiness = await _load_launch_readiness(request.partner_id)
+    if not readiness.ready:
+        raise HTTPException(status_code=409, detail={"code": "launch_not_ready", **readiness.to_dict()})
+
+    lancio = await db.partner_lancio.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
+    if lancio.get("launched") and lancio.get("probe_verified"):
+        return {"success": True, "already_launched": True, "launched_at": lancio.get("launched_at")}
+
+    funnel = await db.partner_funnel.find_one({"partner_id": request.partner_id}, {"_id": 0}) or {}
+    funnel_url = lancio.get("funnel_url") or funnel.get("funnel_url") or funnel.get("vendita_url")
+    from services.partner_launch import probe_launch_url
+    if not funnel_url or not await probe_launch_url(funnel_url):
+        raise HTTPException(status_code=409, detail={"code": "launch_url_unreachable", "message": "La pagina di vendita non risponde correttamente"})
+
+    # Lo snapshot F-16 è completato soltanto dopo aver verificato i prerequisiti.
+    try:
+        await _complete_operativo_step_unchecked(
+            request.partner_id, "16-readiness-lancio", _OperativoCompleteBody(data={})
+        )
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
     
     # Attiva lancio
+    launched_at = datetime.now(timezone.utc).isoformat()
     await db.partner_lancio.update_one(
-        {"partner_id": request.partner_id},
+        {"partner_id": request.partner_id, "launched": {"$ne": True}},
         {
             "$set": {
                 "launched": True,
-                "launched_at": datetime.now(timezone.utc).isoformat()
-            }
+                "launched_at": launched_at,
+                "funnel_url": funnel_url,
+                "probe_verified": True,
+                "probe_verified_at": launched_at,
+            },
+            "$setOnInsert": {"partner_id": request.partner_id},
         },
         upsert=True
     )
@@ -3784,10 +3807,18 @@ async def activate_launch(
         {"id": request.partner_id},
         {"$set": {
             "phase": "LIVE",
-            "launch_date": datetime.now(timezone.utc).isoformat(),
+            "launch_date": launched_at,
             "accademia_live": True
         }}
     )
+
+    try:
+        await _complete_operativo_step_unchecked(
+            request.partner_id, "13-lancio", _OperativoCompleteBody(data={})
+        )
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
     
     # Notifica
     await notify_telegram(
@@ -3797,7 +3828,7 @@ async def activate_launch(
     return {
         "success": True,
         "message": "Lancio attivato! L'Accademia Digitale è ora live.",
-        "launched_at": datetime.now(timezone.utc).isoformat()
+        "launched_at": launched_at
     }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -7022,7 +7053,71 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
                 course.get("course_data") or {}, course.get("lessons") or {}
             )
         }
+    if step_id == "10-sistema-vendita":
+        report = await _load_sales_readiness(partner_id)
+        return {"sales_system_ready": report.ready}
+    if step_id == "16-readiness-lancio":
+        report = await _load_launch_readiness(partner_id)
+        return {"launch_readiness_verified": report.ready}
+    if step_id == "13-lancio":
+        launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        return {"launch_verified": bool(launch.get("launched") and launch.get("probe_verified"))}
     return {}
+
+
+async def _load_sales_readiness(partner_id: str):
+    from services.sales_system_readiness import evaluate_sales_system
+
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+    funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    hub = await db.partner_hub.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    legal = funnel.get("legal") or {}
+    return evaluate_sales_system({
+        "subaccount": partner.get("systeme_course_id") or partner.get("systeme_subdomain"),
+        "domain": partner.get("custom_domain") or partner.get("systeme_subdomain") or funnel.get("domain"),
+        "legal": funnel.get("legal_completed") or all(legal.get(key) for key in ("privacy_url", "terms_url")),
+        "funnel": bool(funnel.get("published") and (funnel.get("funnel_url") or funnel.get("vendita_url") or funnel.get("optin_url"))),
+        "checkout": funnel.get("checkout_url") or funnel.get("stripe_checkout_url"),
+        "price": hub.get("offerPrice") or funnel.get("price") or funnel.get("prezzo"),
+        "automation": funnel.get("automation_active") or funnel.get("publish_status") in ("published", "completed", "active"),
+    })
+
+
+async def _load_launch_readiness(partner_id: str):
+    from services.sales_system_readiness import evaluate_launch_readiness
+
+    steps = await db.partner_journey_steps.find(
+        {"partner_id": partner_id}, {"_id": 0, "step_id": 1, "status": 1}
+    ).to_list(length=50)
+    status = {step["step_id"]: step.get("status") for step in steps}
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+    launch = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    return evaluate_launch_readiness({
+        "masterclass": status.get("08-registra-masterclass") == "done",
+        "lessons": status.get("09-registra-lezioni") == "done",
+        "sales_system": status.get("10-sistema-vendita") == "done",
+        "calendar": status.get("11-calendario-30gg") == "done",
+        "price_webinar": status.get("12-prezzo-webinar") == "done",
+        "launch_date": partner.get("launch_date") or launch.get("launch_date") or launch.get("scheduled_at"),
+    })
+
+
+@router.get("/operativo/readiness/{partner_id}/sales-system")
+async def get_sales_readiness(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    return (await _load_sales_readiness(partner_id)).to_dict()
+
+
+@router.get("/operativo/readiness/{partner_id}/launch")
+async def get_launch_readiness(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    return (await _load_launch_readiness(partner_id)).to_dict()
 
 
 async def _complete_operativo_step_unchecked(partner_id: str, step_id: str, body: _OperativoCompleteBody):
