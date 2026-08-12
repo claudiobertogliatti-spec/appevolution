@@ -270,6 +270,9 @@ Dettagli operativi: [`docs/migration/journey-f20-release.md`](../migration/journ
 - Consolidata in `docs/superpowers/specs/2026-08-12-lancio-30gg-ottimizza-60gg-design.md`
   la strategia approvata da Claudio per lancio ibrido di 30 giorni, gate live, tracking,
   advertising, ciclo Ottimizza di 60 giorni, marginalita', casi studio e continuita' EVO-S.
+- Dopo l'approvazione della spec, scritto il primo piano eseguibile in
+  `docs/superpowers/plans/2026-08-12-lancio-30gg-f14.md`: F-14 canonico, versioni append-only,
+  review Marco, gate backend, UI partner/admin, ritiro del generatore duplicato e release.
 - Nessuna modifica applicativa: il documento resta il gate precedente al piano di implementazione.
 
 **VERIFICATO**
@@ -277,7 +280,8 @@ Dettagli operativi: [`docs/migration/journey-f20-release.md`](../migration/journ
   conflitti tra durata contrattuale/cicli o riferimenti operativi al vecchio calendario da 90 giorni.
 
 **APERTO**
-- Claudio deve revisionare il documento versionato. Solo dopo approvazione si scrive il piano tecnico.
+- Scegliere modalita' di esecuzione del piano F-14. Dopo F-14 restano tre piani separati:
+  tracking/ads, ciclo Ottimizza 60 giorni, casi studio/rinnovi.
 
 ---
 
