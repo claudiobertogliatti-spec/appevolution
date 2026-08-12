@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, RefreshCw, Sparkles, Target } from "lucide-react";
-import { adminFetch, apiGet } from "../api";
+import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target } from "lucide-react";
+import { adminFetch, apiGet, apiPost } from "../api";
 
 const ACCESS_LABELS = {
   cliente_blueprint: "Blueprint",
@@ -83,6 +83,152 @@ function AccessBadge({ value }) {
     <span className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${tone}`}>
       {formatAccessLevel(value)}
     </span>
+  );
+}
+
+const IMPORTI_START = [
+  { value: 49900, label: "Pagamento unico — 499€" },
+  { value: 19900, label: "Acconto Edizione Settembre — 199€" },
+  { value: 30000, label: "Saldo Edizione Settembre — 300€" },
+];
+
+/**
+ * Attivazione manuale di Ciak Start.
+ *
+ * Serve per chi paga da Payment Link statico: quel pagamento non porta
+ * `metadata.tipo`, quindi il webhook non lo riconosce e il cliente resta senza
+ * account e senza accesso. Qui basta l'email.
+ */
+function AttivaStartCard({ onAuthExpired, onAttivato }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [amountCents, setAmountCents] = useState(49900);
+  const [riferimento, setRiferimento] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [esito, setEsito] = useState(null);
+  const [errore, setErrore] = useState(null);
+
+  async function attiva(event) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setEsito(null);
+    setErrore(null);
+    try {
+      const data = await apiPost("/start/attiva", {
+        email: email.trim(),
+        name: name.trim() || null,
+        amount_cents: amountCents,
+        riferimento: riferimento.trim() || null,
+      });
+      setEsito(data);
+      if (data.access_sent) {
+        setEmail("");
+        setName("");
+        setRiferimento("");
+      }
+      onAttivato?.();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setErrore(e.message || "Errore attivazione");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="flex items-start gap-3">
+        <KeyRound className="mt-1 h-5 w-5 shrink-0 text-yellow-500" />
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Attiva Ciak Start</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
+            Per chi ha pagato da Payment Link e non passa dal checkout interno. Crea l'account se manca,
+            registra l'incasso e manda subito il link di accesso.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={attiva} className="mt-5 grid gap-4 md:grid-cols-2">
+        <label className="text-sm">
+          <span className="font-medium text-slate-700">Email del cliente</span>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="nome@esempio.it"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="font-medium text-slate-700">Nome e cognome <span className="text-slate-400">(se non è già a sistema)</span></span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Maria Restifo"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="font-medium text-slate-700">Quanto è entrato</span>
+          <select
+            value={amountCents}
+            onChange={(e) => setAmountCents(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
+          >
+            {IMPORTI_START.map((opzione) => (
+              <option key={opzione.value} value={opzione.value}>{opzione.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="font-medium text-slate-700">Riferimento Stripe <span className="text-slate-400">(consigliato)</span></span>
+          <input
+            type="text"
+            value={riferimento}
+            onChange={(e) => setRiferimento(e.target.value)}
+            placeholder="pi_3ABC... — evita di registrare due volte lo stesso incasso"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
+          />
+        </label>
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            disabled={busy || !email.trim()}
+            className="inline-flex h-11 items-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? "Attivo e mando l'accesso..." : "Attiva e manda l'accesso"}
+          </button>
+        </div>
+      </form>
+
+      {errore ? (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errore}</p>
+      ) : null}
+
+      {esito ? (
+        esito.access_sent ? (
+          <p className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Ciak Start attivo{esito.created ? " — account creato ora" : ""}
+              {esito.already_active ? " (era già attivo: ho rimandato solo l'accesso)" : ""}.
+              Email con il link di accesso partita.
+            </span>
+          </p>
+        ) : (
+          <p className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Entitlement scritto, ma <strong>l'email non è partita</strong>: il cliente non ha ancora il link.
+              La consegna resta aperta in <em>Consegne mancate</em>, da lì si ritenta.
+            </span>
+          </p>
+        )
+      ) : null}
+    </section>
   );
 }
 
@@ -207,6 +353,8 @@ export function ClientiCiak({ onAuthExpired }) {
           {notice}
         </div>
       ) : null}
+
+      <AttivaStartCard onAuthExpired={onAuthExpired} onAttivato={() => loadItems({ silent: true })} />
 
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">

@@ -220,6 +220,19 @@ async def _dispatch_checkout_completed(db, session: dict, session_id: str, metad
         await process_evo_s_payment(db, session, metadata)
         return
 
+    if tipo in ('ciak_start_acconto', 'ciak_start_saldo'):
+        client_id = metadata.get('client_id')
+        if not client_id:
+            raise RuntimeError(f"Missing client_id for {tipo} session {session_id}")
+        await process_ciak_start_installment(
+            db,
+            client_id,
+            session_id,
+            session=session,
+            kind=tipo.rsplit('_', 1)[-1],
+        )
+        return
+
     if tipo == 'ciak_start':
         client_id = metadata.get('client_id')
         if client_id:
@@ -489,6 +502,83 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
         paid_at=updates["start_purchased_at"],
         checkout_session_id=reference_id,
     )
+
+
+async def process_ciak_start_installment(
+    db,
+    client_id: str,
+    reference_id: str,
+    session: dict | None = None,
+    kind: str = "acconto",
+) -> None:
+    """Ciak Start pagato a rate: acconto 199 alla conferma, saldo 300 alla partenza.
+
+    L'entitlement si attiva con la PRIMA rata (il cliente entra e parte), ma il
+    credito verso la Partnership resta pari a quanto e' davvero entrato finche'
+    il piano non si chiude. Idempotente sul reference_id.
+    """
+    from services.ciak_client_accounts import build_start_payment_updates
+
+    session = session or {}
+    if session.get("currency") not in (None, "eur"):
+        raise RuntimeError(f"Invalid Ciak Start currency for session {reference_id}")
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise RuntimeError(f"Ciak client not found for Start installment: {client_id}")
+
+    now = _iso_now()
+    try:
+        updates = build_start_payment_updates(
+            client,
+            amount_cents=session.get("amount_total"),
+            reference_id=reference_id,
+            kind=kind,
+            now=now,
+        )
+    except ValueError as exc:
+        raise RuntimeError(f"Invalid Ciak Start installment for session {reference_id}: {exc}")
+    if updates is None:
+        logger.info("[STRIPE_WEBHOOK] Rata Ciak Start gia' registrata: %s", reference_id)
+        return
+
+    amount = int(session.get("amount_total"))
+    first_installment = not has_start_entitlement(client)
+    events = _append_payment_event(
+        client.get("events"),
+        f"ciak_start_{kind}_completed",
+        reference_id,
+        {"amount_cents": amount},
+    )
+    await db.ciak_clients.update_one(
+        {"id": client_id},
+        {"$set": {
+            **updates,
+            "events": events,
+            "last_checkout_session_id": reference_id,
+            "last_checkout_completed_at": now,
+        }},
+    )
+    await _record_checkout_payment(
+        db,
+        session_id=reference_id,
+        tipo="ciak_start",
+        amount_cents=amount,
+        email=client.get("email", ""),
+        client_id=client_id,
+    )
+
+    # L'accesso si consegna una volta sola, con la rata che apre il percorso.
+    if first_installment:
+        from services.ciak_start_delivery import deliver_start_access
+
+        await deliver_start_access(
+            db,
+            client_id=client_id,
+            email=client.get("email", ""),
+            name=client.get("name"),
+            paid_at=updates["start_purchased_at"],
+            checkout_session_id=reference_id,
+        )
 
 
 async def process_ciak_client_partnership_payment(db, client_id: str, reference_id: str, background_tasks: BackgroundTasks, metadata: dict) -> None:

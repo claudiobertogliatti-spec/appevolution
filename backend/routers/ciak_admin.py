@@ -3832,3 +3832,107 @@ async def retry_consegna_start(
         }},
     )
     return {"success": True, "recovery_id": body.recovery_id}
+
+
+# ─── Attivazione manuale Ciak Start ────────────────────────────────────────
+# Il caso reale: un ko paga da Payment Link statico. Non ha account (nasce solo
+# dal Blueprint 27 EUR), il webhook non lo riconosce (nessun metadata.tipo) e
+# l'endpoint /start/activate setta i flag ma non consegna l'accesso. Qui il
+# ciclo si chiude in una chiamata sola, partendo da una email.
+
+class AttivaStartRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    amount_cents: int = Field(default=49900, ge=1, le=49900)
+    riferimento: Optional[str] = None
+
+
+@router.post("/start/attiva")
+async def attiva_ciak_start(
+    body: AttivaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Attiva Ciak Start per una email: account, entitlement, incasso, accesso."""
+    import uuid
+
+    from services.ciak_client_accounts import (
+        build_start_payment_updates,
+        ensure_client_for_direct_start,
+        has_start_entitlement,
+    )
+    from services.ciak_start_delivery import deliver_start_access
+    from routers.stripe_webhook import _record_checkout_payment
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    email = (body.email or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(422, "Email non valida")
+
+    try:
+        client, created = await ensure_client_for_direct_start(db, email=email, name=body.name)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
+    already_active = has_start_entitlement(client)
+    now = datetime.now(timezone.utc).isoformat()
+    reference = (body.riferimento or "").strip() or f"admin:{uuid.uuid4().hex}"
+    actor = getattr(admin, "email", None) or "admin"
+
+    # Se il piano e' gia' saldato la riattivazione non e' un errore: e' il caso
+    # «non mi e' arrivata la mail». Si riconsegna l'accesso senza sommare nulla.
+    try:
+        updates = build_start_payment_updates(
+            client,
+            amount_cents=body.amount_cents,
+            reference_id=reference,
+            kind="attivazione_admin",
+            now=now,
+        ) or {}
+    except ValueError:
+        updates = {}
+    incasso_da_registrare = bool(updates)
+    events = [dict(item) for item in (client.get("events") or [])]
+    events.append({
+        "event": "ciak_start_activated_by_admin",
+        "timestamp": now,
+        "reference_id": reference,
+        "amount_cents": body.amount_cents,
+        "by": actor,
+    })
+    await db.ciak_clients.update_one(
+        {"id": client["id"]},
+        {"$set": {**updates, "events": events, "updated_at": now}},
+    )
+
+    if incasso_da_registrare:
+        await _record_checkout_payment(
+            db,
+            session_id=reference,
+            tipo="ciak_start",
+            amount_cents=body.amount_cents,
+            email=email,
+            client_id=client["id"],
+        )
+
+    access_sent = await deliver_start_access(
+        db,
+        client_id=client["id"],
+        email=email,
+        name=body.name or client.get("name"),
+        paid_at=updates.get("start_purchased_at") or client.get("start_purchased_at") or now,
+        checkout_session_id=reference,
+    )
+    logger.info(
+        "[CIAK_ADMIN] Ciak Start attivato per %s da %s (creato=%s, accesso=%s)",
+        email, actor, created, access_sent,
+    )
+    return {
+        "success": True,
+        "client_id": client["id"],
+        "created": created,
+        "already_active": already_active,
+        "access_sent": access_sent,
+        "recovery_open": not access_sent,
+    }

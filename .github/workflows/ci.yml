@@ -108,6 +108,10 @@ jobs:
           tests/test_proposta_finalization_race.py
           tests/test_ciak_delivery_gaps.py
           tests/test_blueprint_delivery_durability.py
+          tests/test_ciak_start_attivazione.py
+          tests/test_ciak_start_recovery.py
+          tests/test_ciak_client_accounts.py
+          tests/test_ciak_clients_router.py
 
   frontend:
     name: Frontend (build smoke)

@@ -44,6 +44,21 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
 
 def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
     stored_credit = client.get("start_credit_amount")
+    plan = client.get("start_payment_plan") or {}
+    if plan and not plan.get("complete"):
+        # Piano rateale ancora aperto: si scala l'incassato, non i 499 promessi.
+        # Col saldo il piano si chiude e il credito torna pieno.
+        try:
+            credit = int(plan.get("paid_cents") or client.get("start_paid_cents") or 0)
+        except (TypeError, ValueError):
+            credit = 0
+        credit = max(0, min(credit, PARTNERSHIP_AMOUNT_CENTS))
+        return {
+            "full_amount_cents": PARTNERSHIP_AMOUNT_CENTS,
+            "credit_amount_cents": credit,
+            "due_amount_cents": PARTNERSHIP_AMOUNT_CENTS - credit,
+            "currency": "eur",
+        }
     if has_start_entitlement(client):
         try:
             credit = max(START_AMOUNT_CENTS, int(stored_credit or 0))
@@ -181,6 +196,110 @@ async def ensure_client_for_blueprint(db, session: dict[str, Any]) -> dict[str, 
     await db.ciak_clients.insert_one(doc)
     doc.pop("_id", None)
     return doc
+
+
+async def ensure_client_for_direct_start(
+    db,
+    *,
+    email: str,
+    name: str | None = None,
+) -> tuple[dict[str, Any], bool]:
+    """Account cliente per chi entra da Ciak Start senza passare dal Blueprint.
+
+    Serve ai ko dell'Edizione Settembre: pagano da Payment Link e non hanno una
+    diagnostic session, quindi `ensure_client_for_blueprint` non li puo' creare.
+    Ritorna (client, created). Non assegna entitlement: lo fa chi la chiama.
+    """
+    normalized = (email or "").strip().lower()
+    if not normalized or "@" not in normalized:
+        raise ValueError("email non valida")
+
+    clean_name = (name or "").strip() or None
+    existing = await db.ciak_clients.find_one({"email": normalized}, {"_id": 0})
+    if existing:
+        if clean_name and not existing.get("name"):
+            await db.ciak_clients.update_one(
+                {"id": existing["id"]},
+                {"$set": {"name": clean_name, "updated_at": _now_iso()}},
+            )
+            existing = {**existing, "name": clean_name}
+        return existing, False
+
+    doc = {
+        "id": str(uuid4()),
+        "email": normalized,
+        "name": clean_name,
+        "access_level": ACCESS_BLUEPRINT,
+        "created_from": "ciak_start_direct",
+        "start_credit_amount": 0,
+        "start_progress": [],
+        "created_at": _now_iso(),
+        "updated_at": _now_iso(),
+        "events": [{"event": "client_created_for_direct_start", "timestamp": _now_iso()}],
+    }
+    await db.ciak_clients.insert_one(doc)
+    doc.pop("_id", None)
+    return doc, True
+
+
+def build_start_payment_updates(
+    client: dict[str, Any],
+    *,
+    amount_cents: int,
+    reference_id: str,
+    kind: str,
+    now: str,
+) -> dict[str, Any] | None:
+    """Applica una rata Ciak Start a un cliente e ritorna i campi da scrivere.
+
+    Ritorna None se quella rata risulta gia' registrata (stesso reference_id):
+    un webhook consegnato due volte non deve raddoppiare l'incasso.
+    Solleva ValueError se l'importo non e' valido o supera i 499 EUR.
+    """
+    try:
+        amount = int(amount_cents)
+    except (TypeError, ValueError):
+        raise ValueError("importo non valido")
+    if amount <= 0:
+        raise ValueError("importo non valido")
+
+    plan = dict(client.get("start_payment_plan") or {})
+    installments = [dict(item) for item in (plan.get("installments") or [])]
+    if any(item.get("reference_id") == reference_id for item in installments):
+        return None
+
+    try:
+        already_paid = int(plan.get("paid_cents") or client.get("start_paid_cents") or 0)
+    except (TypeError, ValueError):
+        already_paid = 0
+    paid = already_paid + amount
+    if paid > START_AMOUNT_CENTS:
+        raise ValueError(
+            f"rata da {amount} su {already_paid} gia' versati: supera i {START_AMOUNT_CENTS} di Ciak Start"
+        )
+
+    installments.append({
+        "kind": kind,
+        "amount_cents": amount,
+        "reference_id": reference_id,
+        "at": now,
+    })
+    complete = paid >= START_AMOUNT_CENTS
+
+    return {
+        "access_level": ACCESS_START,
+        "start_purchased_at": client.get("start_purchased_at") or now,
+        "start_progress": client.get("start_progress") or default_start_progress(),
+        "start_paid_cents": paid,
+        "start_credit_amount": START_AMOUNT_CENTS if complete else paid,
+        "start_payment_plan": {
+            "total_cents": START_AMOUNT_CENTS,
+            "paid_cents": paid,
+            "complete": complete,
+            "installments": installments,
+        },
+        "updated_at": now,
+    }
 
 
 async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, str]:
