@@ -1515,7 +1515,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     ASSEMBLYAI_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "")
     SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
     SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
-    ANTHROPIC_KEY = os.environ.get("EMERGENT_LLM_KEY", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+    ANTHROPIC_KEY = os.environ.get("EMERGENT_LLM_KEY", "") or os.environ.get("ANTHROPIC_API_KEY", "").strip()
     # Flag opt-in per gli step "enhance" (sub burn-in, Remotion render, Shotstack
     # intro/musica/zoom/overlay/outro). Default False: il partner riceve il video
     # pulito (taglio + audio normalizzato) e fa l'editing creativo manualmente.

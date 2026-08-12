@@ -183,7 +183,7 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -211,6 +211,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
         "leggere) e come farlo per ciascuno. Più il titolo e la durata totale."
     )
 
+    from .agent_deliverable import system_blocks
+
     client = anthropic.Anthropic(api_key=api_key)
     tool = {
         "name": "masterclass_script",
@@ -220,7 +222,8 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
     resp = client.messages.create(
         model=_MODEL,
         max_tokens=4000,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # Lo script della masterclass lo firma ANDREA (coach video e contenuti).
+        system=system_blocks("ANDREA", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "masterclass_script"},

@@ -1,90 +1,231 @@
 """
 Render PDF dei Certificati Ufficiali di Completamento Macro-Fase del Partner.
-Genera il certificato in formato landscape/A4 per le macro-fasi "Esamina" e "Valida"
-del Protocollo EVO. Layout luxury brand CIAK (Navy #0F172A + Giallo Gold #FACC15).
+
+A4 landscape, HTML+CSS -> Playwright (stesso impianto del Workbook Strategico).
+
+⛔ BRAND LOCK INTERNO (Evolution/Ciak) — vedi docs/brand/ciak-brand-kit.md v1.0:
+   Poppins · #0F172A inchiostro · #64748B muted · #E5E7EB superfici · #FACC15 accento.
+   Nient'altro. Niente gradienti, ombre o serif decorativi.
+
+⚠️ Il logo Ciak ufficiale e' NAVY con payoff "SI CAMBIA": su fondo scuro sparisce.
+   Per questo il certificato e' su fondo chiaro, come la copertina del Workbook.
+   Entrambi i loghi sono asset RASTER REALI incorporati in base64 — mai ricostruiti
+   in SVG a mano (l'errore della versione precedente di questo file).
 """
+import base64
+import hashlib
 import html as _html
 import logging
+import os
 from datetime import datetime
-from .ciak_pdf import html_to_pdf
 
 logger = logging.getLogger(__name__)
+
+_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets")
+_CIAK_LOGO = os.path.join(_ASSETS, "ciak-logo.webp")
+_EVO_LOGO = os.path.join(_ASSETS, "logo_evolutionpro.png")
 
 
 def _esc(s) -> str:
     return _html.escape(str(s or ""))
 
 
-# Logo CIAK SVG scuro/dorato per certificato su sfondo chiaro
-_CIAK_CERT_LOGO_SVG = """<svg width="220" height="50" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28.5 12C36.5 12 43 18.5 43 26.5" stroke="#FACC15" stroke-width="5.5" stroke-linecap="round"/>
-  <path d="M12 28.5C12 20.5 18.5 14 26.5 14" stroke="#94A3B8" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M12 28.5C12 36.5 18.5 43 26.5 43" stroke="#64748B" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M28.5 45C36.5 45 43 38.5 43 30.5" stroke="#0F172A" stroke-width="4.5" stroke-linecap="round"/>
-  <text x="56" y="38" fill="#0F172A" font-family="'Plus Jakarta Sans', 'Poppins', sans-serif" font-weight="800" font-size="30" letter-spacing="-0.5">Ciak<tspan fill="#D97706">.io</tspan></text>
-</svg>"""
+def _img_tag(path: str, mime: str, css_class: str, alt: str) -> str:
+    """Incorpora l'asset reale in base64: Playwright riceve l'HTML come stringa,
+    quindi un src relativo non risolverebbe."""
+    try:
+        with open(path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        return f'<img class="{css_class}" src="data:{mime};base64,{b64}" alt="{_esc(alt)}">'
+    except Exception as e:
+        logger.warning("[CERT] logo %s non incorporato: %s", path, e)
+        return ""
 
-_CERT_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
-:root {
-  --navy: #0F172A;
-  --yellow: #FACC15;
-  --gold: #D97706;
-  --slate-50: #FFFDF5;
-  --slate-600: #475569;
-}
-* { margin:0; padding:0; box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-body { font-family:'Plus Jakarta Sans', sans-serif; color:var(--navy); background:#F8FAFC; padding: 20px; display:flex; align-items:center; justify-content:center; min-height:100vh; }
 
-.cert-card {
-  width: 960px;
-  height: 660px;
-  background: #FFFFFF;
-  border: 12px solid #0F172A;
-  outline: 3px solid #FACC15;
-  outline-offset: -8px;
-  padding: 40px 60px;
-  position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-  text-align: center;
-  display: flex;
-  flex-col;
-  justify-content: space-between;
-}
+def codice_verifica(partner_id: str, macro_fase_id: str) -> str:
+    """Codice di verifica STABILE nel tempo.
 
-.cert-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #FEF08A; padding-bottom: 15px; }
-.cert-seal { background: linear-gradient(135deg, #FACC15 0%, #D97706 100%); color: #0F172A; font-weight: 800; font-size: 11px; padding: 8px 18px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.3); }
+    La versione precedente usava hash() su stringa: in Python e' randomizzato per
+    processo (PYTHONHASHSEED), quindi lo stesso certificato usciva con un codice
+    diverso a ogni riavvio del backend. Un codice di verifica che cambia non
+    verifica niente.
+    """
+    seme = f"{partner_id or ''}|{macro_fase_id or ''}".lower()
+    return "EVO-" + hashlib.sha256(seme.encode("utf-8")).hexdigest()[:6].upper()
 
-.cert-subtitle { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-top: 10px; }
-.cert-title { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 800; color: var(--navy); margin-top: 6px; letter-spacing: -0.5px; }
 
-.cert-recipient-label { font-size: 13px; color: var(--slate-600); margin-top: 25px; text-transform: uppercase; letter-spacing: 1.5px; }
-.cert-recipient-name { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 800; color: var(--navy); margin-top: 4px; border-bottom: 2px solid var(--yellow); display: inline-block; padding: 0 30px 4px; }
-.cert-accademia-name { font-size: 16px; font-weight: 700; color: #1E293B; margin-top: 10px; }
-
-.cert-description { font-size: 14px; color: var(--slate-600); max-width: 700px; margin: 20px auto 0; line-height: 1.6; }
-
-.cert-footer { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 30px; border-top: 1px solid #E2E8F0; padding-top: 20px; }
-.cert-meta { text-align: left; font-size: 11px; color: #94A3B8; }
-.cert-meta strong { color: var(--navy); display: block; font-size: 12px; }
-
-.cert-signature { text-align: right; }
-.signature-img { font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px; font-weight: 700; color: var(--navy); }
-.signature-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--slate-600); margin-top: 2px; }
-"""
+# I numeri sono quelli veri del modello (models/partner_journey_step.py):
+# Esamina 6 step, Valida 9 step, Ottimizza post-lancio (nessuno step).
+_TRACCIATO = [
+    {"id": "esamina", "label": "Esamina", "step": 6},
+    {"id": "valida", "label": "Valida", "step": 9},
+    {"id": "ottimizza", "label": "Ottimizza", "step": 5},  # post-lancio, ritmo continuo
+]
 
 MACRO_PHASE_CERT_CONFIG = {
     "esamina": {
-        "badge": "FASE 01 · ESAMINA VALIDATA",
-        "title": "Certificato di Validazione Strategica & Brand Identity",
-        "desc": "Si attesta che il Partner ha completato con successo l'analisi di posizionamento, la definizione del target ICP, la promessa differenziante e l'identità visiva del Brand Kit secondo il Protocollo EVO™.",
+        "numero": "01",
+        "nome": "Esamina",
+        "tagline": "Chiarire chi sei e a chi parli",
+        "voci": [
+            "Documento di Posizionamento",
+            "Brand Kit: colori, logo, tono di voce",
+            "La tua storia, in forma narrativa",
+            "Anagrafica e dati per la fatturazione",
+        ],
+        "chiusura": "Le fondamenta del progetto sono definite: identità, pubblico, promessa e identità visiva.",
     },
     "valida": {
-        "badge": "FASE 02 · VALIDA COMPLETATA",
-        "title": "Certificato di Prontezza Operativa Accademia & Funnel",
-        "desc": "Si attesta che il Partner ha completato la strutturazione dell'Accademia, la scrittura degli script delle videolezioni, il setup del funnel di vendita e del checkout secondo il Protocollo EVO™.",
+        "numero": "02",
+        "nome": "Valida",
+        "tagline": "Costruire una prima versione vendibile",
+        "voci": [
+            "Masterclass registrata e approvata",
+            "Videocorso: lezioni pubblicate",
+            "Sistema di vendita: dominio, legal, funnel, checkout",
+            "Calendario di lancio e offerta al pubblico",
+        ],
+        "chiusura": "Il progetto è diventato un sistema reale, pronto per il lancio.",
     },
 }
+
+
+def _tracciato_html(fase_corrente: str, giorni=None) -> str:
+    """Firma visiva: il percorso EVO reso con i pixel quadrati del logo Ciak,
+    a piena larghezza sotto il corpo del documento.
+
+    Non e' decorazione. Assolve una funzione informativa — si legge a colpo d'occhio
+    a che punto del percorso e' il partner — e riprende l'elemento del marchio
+    (i pixel = "analogico che diventa digitale", concept del brand kit).
+    """
+    ordine = [t["id"] for t in _TRACCIATO]
+    idx_corrente = ordine.index(fase_corrente) if fase_corrente in ordine else 0
+    blocchi = []
+    for i, fase in enumerate(_TRACCIATO):
+        stato = "done" if i < idx_corrente else ("now" if i == idx_corrente else "next")
+        nota = {"done": "completata", "now": "questa fase", "next": "prossimo passo"}[stato]
+        pixel = "".join(f'<i class="px {stato}"></i>' for _ in range(fase["step"]))
+        blocchi.append(
+            f'<div class="tratto {stato}">'
+            f'<div class="px-row">{pixel}</div>'
+            f'<span class="tratto-label">{_esc(fase["label"])}</span>'
+            f'<span class="tratto-nota">{nota} &middot; {fase["step"]} passi</span>'
+            f"</div>"
+        )
+    durata = ""
+    if isinstance(giorni, int) and giorni > 0:
+        durata = (
+            f'<div class="durata"><span class="durata-n">{giorni}</span>'
+            f'<span class="durata-l">giorni<br>di lavoro</span></div>'
+        )
+    return (
+        '<section class="tracciato-banda">'
+        '<div class="tracciato-title">Il percorso, in tre fasi</div>'
+        f'<div class="tracciato">{"".join(blocchi)}{durata}</div>'
+        "</section>"
+    )
+
+
+_CERT_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* Brand lock: solo questi quattro colori + il bianco. */
+:root{
+  --ink:#0F172A;      /* inchiostro  */
+  --muted:#64748B;    /* secondario  */
+  --line:#E5E7EB;     /* superfici e divider */
+  --accent:#FACC15;   /* accento     */
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+@page{ size:A4 landscape; margin:0; }
+html,body{ width:297mm; height:210mm; }
+body{
+  font-family:'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color:var(--ink); background:#fff;
+  padding:14mm 16mm 12mm;
+  display:flex; flex-direction:column;
+}
+
+/* ── testata ───────────────────────────────────────────── */
+.head{ display:flex; align-items:flex-start; justify-content:space-between; }
+.logo-ciak{ height:15mm; width:auto; display:block; }
+.head-right{ text-align:right; }
+.kicker{ font-size:8.5pt; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.doc-id{ font-size:8.5pt; font-weight:500; color:var(--muted); margin-top:1mm; }
+.rule{ height:2.5px; background:var(--accent); margin:6mm 0 0; }
+
+/* ── corpo ─────────────────────────────────────────────── */
+/* Il corpo prende l'altezza del CONTENUTO, non tutta la pagina: distribuire il
+   vuoto fra i blocchi apriva due buchi morti e faceva scendere il filo verticale
+   in mezzo al niente (rilevato ai render 1 e 2). L'aria residua sta tutta in un
+   respiro solo, sopra il piede — che resta ancorato in basso. */
+.body{ display:flex; gap:14mm; padding-top:10mm; align-items:stretch; }
+.col-main{ flex:1.35; display:flex; flex-direction:column; }
+.col-side{ flex:1; border-left:1px solid var(--line); padding-left:12mm; }
+
+.eyebrow{ font-size:8.5pt; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+
+/* Su un attestato il protagonista e' la persona, non il nome della fase. */
+.nome-partner{
+  font-size:42pt; font-weight:700; line-height:1.05; letter-spacing:-.025em;
+  margin-top:3mm; display:inline-block; padding-bottom:3mm;
+  border-bottom:3px solid var(--accent);
+}
+.accademia{ font-size:11.5pt; font-weight:500; color:var(--muted); margin-top:4mm; max-width:105mm; line-height:1.4; }
+
+.fase-blocco{ margin-top:11mm; }
+.fase-label{ font-size:11pt; font-weight:600; letter-spacing:.04em; }
+.fase-label .num{ color:var(--muted); font-weight:500; }
+.fase-tagline{ font-size:11pt; font-weight:400; color:var(--muted); margin-top:1.5mm; }
+
+/* ── colonna destra: cosa e' stato completato ──────────── */
+.side-title{ font-size:8.5pt; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+.voci{ list-style:none; margin-top:6mm; }
+.voci li{
+  font-size:11pt; font-weight:500; line-height:1.45;
+  padding:0 0 4.5mm 7mm; position:relative;
+}
+.voci li:before{
+  content:""; position:absolute; left:0; top:2.1mm;
+  width:2.6mm; height:2.6mm; background:var(--accent);
+}
+.chiusura{ font-size:10pt; line-height:1.6; color:var(--muted); margin-top:5mm; padding-top:5mm; border-top:1px solid var(--line); }
+
+/* ── firma visiva: il tracciato a pixel, a piena larghezza ─────────
+   I pixel quadrati vengono dal marchio Ciak (analogico -> digitale). Qui
+   dicono a colpo d'occhio dove sta il partner nel percorso: e' informazione,
+   non ornamento. */
+.tracciato-banda{ margin-top:auto; padding-top:7mm; border-top:1px solid var(--line); }
+.tracciato-title{ font-size:8.5pt; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+/* gap fisso + durata spinta a destra: con space-between, quando la durata manca,
+   l'ultimo tratto finiva incollato al margine. */
+.tracciato{ display:flex; align-items:flex-end; gap:18mm; margin-top:6mm; }
+.tratto-label{ font-size:10pt; font-weight:600; letter-spacing:.02em; color:var(--muted); display:block; margin-top:3mm; }
+.tratto.now .tratto-label{ color:var(--ink); }
+.tratto-nota{ font-size:8pt; font-weight:400; color:var(--muted); display:block; margin-top:.8mm; }
+.tratto.now .tratto-nota{ color:var(--ink); }
+.px-row{ display:flex; gap:1.4mm; }
+.px{ width:4mm; height:4mm; display:block; }
+.px.done{ background:var(--muted); }
+.px.now{ background:var(--accent); }
+.px.next{ background:#fff; border:1px solid var(--line); }
+
+.durata{ display:flex; align-items:baseline; gap:2.5mm; padding-left:9mm; border-left:1px solid var(--line); margin-left:auto; }
+.durata-n{ font-size:30pt; font-weight:700; line-height:1; letter-spacing:-.03em; }
+.durata-l{ font-size:9pt; font-weight:500; color:var(--muted); line-height:1.3; }
+
+/* ── piede ─────────────────────────────────────────────── */
+.foot{ display:flex; align-items:flex-end; justify-content:space-between; border-top:1px solid var(--line); padding-top:5mm; margin-top:7mm; }
+.foot-left{ font-size:8.5pt; color:var(--muted); line-height:1.6; }
+.foot-left strong{ color:var(--ink); font-weight:600; }
+.powered{ display:flex; align-items:center; gap:2.5mm; margin-top:3mm; }
+.powered span{ font-size:7.5pt; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.logo-evo{ height:5.5mm; width:auto; display:block; }
+.foot-right{ text-align:right; }
+.firma{ font-size:13pt; font-weight:600; color:var(--ink); }
+.firma-ruolo{ font-size:8pt; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:1mm; }
+"""
 
 
 def render_certificato_html(
@@ -92,55 +233,77 @@ def render_certificato_html(
     accademia_name: str = "",
     macro_fase_id: str = "esamina",
     date_str: str = "",
+    partner_id: str = "",
+    giorni=None,
 ) -> str:
-    """Genera l'HTML del Certificato Ufficiale di Completamento Macro-Fase."""
-    p_name = _esc(partner_name or "Partner CIAK")
-    a_name = _esc(accademia_name or "Accademia Digitale")
-    if not date_str:
-        date_str = datetime.utcnow().strftime("%d/%m/%Y")
-    else:
-        date_str = _esc(date_str)
+    """Genera l'HTML del Certificato Ufficiale di Completamento Macro-Fase.
 
-    cfg = MACRO_PHASE_CERT_CONFIG.get(macro_fase_id.lower(), MACRO_PHASE_CERT_CONFIG["esamina"])
+    `giorni` = durata reale della fase (partner_rewards._phase_days). Se assente
+    il blocco durata non viene stampato: meglio tacere che stimare.
+    """
+    fase_id = (macro_fase_id or "esamina").lower()
+    cfg = MACRO_PHASE_CERT_CONFIG.get(fase_id, MACRO_PHASE_CERT_CONFIG["esamina"])
+
+    p_name = _esc(partner_name or "Partner Ciak")
+    a_name = _esc(accademia_name or "")
+    date_str = _esc(date_str) if date_str else datetime.utcnow().strftime("%d/%m/%Y")
+    codice = codice_verifica(partner_id or partner_name, fase_id)
+
+    logo_ciak = _img_tag(_CIAK_LOGO, "image/webp", "logo-ciak", "Ciak Si Cambia")
+    logo_evo = _img_tag(_EVO_LOGO, "image/png", "logo-evo", "Evolution PRO")
+    voci = "".join(f"<li>{_esc(v)}</li>" for v in cfg["voci"])
 
     return f"""<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>CIAK.io - Certificato Ufficiale | {p_name}</title>
+  <title>Attestato {_esc(cfg['nome'])} di {p_name}</title>
   <style>{_CERT_CSS}</style>
 </head>
 <body>
-  <div class="cert-card">
-    <div class="cert-header">
-      <div>{_CIAK_CERT_LOGO_SVG}</div>
-      <div class="cert-seal">{_esc(cfg['badge'])}</div>
+  <header class="head">
+    {logo_ciak}
+    <div class="head-right">
+      <div class="kicker">Metodo EVO &middot; Attestato di fase</div>
+      <div class="doc-id">{codice} &middot; {date_str}</div>
     </div>
+  </header>
+  <div class="rule"></div>
 
-    <div>
-      <div class="cert-subtitle">METODO EVO™ &middot; CERTIFICAZIONE UFFICIALE</div>
-      <h1 class="cert-title">{_esc(cfg['title'])}</h1>
-
-      <div class="cert-recipient-label">Rilasciato a</div>
-      <div class="cert-recipient-name">{p_name}</div>
-      <div class="cert-accademia-name">{a_name}</div>
-
-      <p class="cert-description">{_esc(cfg['desc'])}</p>
-    </div>
-
-    <div class="cert-footer">
-      <div class="cert-meta">
-        <strong>CIAK.io &middot; Protocollo EVO™</strong>
-        <span>Data di Rilascio: {date_str}</span><br>
-        <span>Codice Verifica: EVOCERT-{hash(p_name + macro_fase_id) & 0xFFFFFF:06X}</span>
+  <main class="body">
+    <div class="col-main">
+      <div>
+        <div class="eyebrow">Attestato di completamento &middot; rilasciato a</div>
+        <h1 class="nome-partner">{p_name}</h1>
+        {f'<div class="accademia">{a_name}</div>' if a_name else ''}
       </div>
 
-      <div class="cert-signature">
-        <div class="signature-img">Claudio Bertogliatti</div>
-        <div class="signature-title">Fondatore CIAK.io &amp; Metodo EVO™</div>
+      <div class="fase-blocco">
+        <div class="fase-label"><span class="num">Fase {_esc(cfg['numero'])} &middot;</span> {_esc(cfg['nome'])}</div>
+        <div class="fase-tagline">{_esc(cfg['tagline'])}</div>
       </div>
     </div>
-  </div>
+
+    <aside class="col-side">
+      <div class="side-title">Completato in questa fase</div>
+      <ul class="voci">{voci}</ul>
+      <p class="chiusura">{_esc(cfg['chiusura'])}</p>
+    </aside>
+  </main>
+
+  {_tracciato_html(fase_id, giorni)}
+
+  <footer class="foot">
+    <div class="foot-left">
+      <strong>Ciak Si Cambia</strong> &middot; ciak.io<br>
+      Codice di verifica {codice}
+      <div class="powered"><span>Powered by</span>{logo_evo}</div>
+    </div>
+    <div class="foot-right">
+      <div class="firma">Claudio Bertogliatti</div>
+      <div class="firma-ruolo">Fondatore &middot; Metodo EVO</div>
+    </div>
+  </footer>
 </body>
 </html>"""
 
@@ -150,10 +313,15 @@ async def genera_certificato_pdf(
     accademia_name: str = "",
     macro_fase_id: str = "esamina",
     date_str: str = "",
+    partner_id: str = "",
+    giorni=None,
 ) -> bytes:
     """Genera i bytes PDF in formato A4 landscape del Certificato via Playwright."""
     from playwright.async_api import async_playwright
-    html_content = render_certificato_html(partner_name, accademia_name, macro_fase_id, date_str)
+
+    html_content = render_certificato_html(
+        partner_name, accademia_name, macro_fase_id, date_str, partner_id, giorni
+    )
     async with async_playwright() as p:
         browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
         try:

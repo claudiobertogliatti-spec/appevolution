@@ -69,20 +69,47 @@ def _clip(s: str, n: int) -> str:
     return cut.rstrip(",.;:") + "…"
 
 
+def _frammento(testo: str) -> str:
+    """Prepara una risposta del partner per essere incastonata IN MEZZO a una frase.
+
+    Le risposte arrivano come frasi autonome ("Terapisti del massaggio thai...
+    passaparola."): incollate tali e quali producevano maiuscole in mezzo alla
+    frase e doppi punti ("...non un hobby.."). Rilevato il 12/8/2026 sull'output
+    reale del fallback.
+    """
+    t = " ".join(str(testo or "").split()).rstrip(" .;,:")
+    if not t:
+        return ""
+    # L'iniziale si abbassa solo se è una parola comune: un nome proprio o una
+    # sigla (Metodo Sabai, PNL) resta com'è.
+    prima = t.split(" ", 1)[0]
+    if prima[:1].isupper() and not prima.isupper() and len(t.split()) > 1:
+        seconda = t.split(" ", 1)[1][:1]
+        if not seconda.isupper():  # "Metodo Sabai" -> resta, "Terapisti del" -> scende
+            t = t[0].lower() + t[1:]
+    return t
+
+
 def _deterministic(answers: dict) -> dict:
     """Fallback senza AI: assembla gli slot dalle risposte grezze. Non si rompe mai."""
-    brand = _t(answers, "metodo_nome", "Il tuo metodo")
-    categoria = _clip(_t(answers, "nicchia", "il tuo mercato"), 90)
-    idea = _clip(_t(answers, "spazio_specialista") or _t(answers, "differenza_riconoscibile", "ha una specializzazione precisa"), 110)
-    altri = _clip(_t(answers, "mercato_affollato") or _t(answers, "concorrenti_principali", "promettono tutti la stessa cosa"), 110)
-    vantaggio = _clip(_t(answers, "trasformazione_90gg", "un risultato concreto e misurabile"), 110)
+    brand = _t(answers, "metodo_nome", "Il tuo metodo")  # nome proprio: non si tocca
+    categoria = _frammento(_clip(_t(answers, "nicchia", "il tuo mercato"), 90))
+    idea = _frammento(_clip(_t(answers, "spazio_specialista") or _t(answers, "differenza_riconoscibile", "ha una specializzazione precisa"), 110))
+    altri = _frammento(_clip(_t(answers, "mercato_affollato") or _t(answers, "concorrenti_principali", "promettono tutti la stessa cosa"), 110))
+    vantaggio = _frammento(_clip(_t(answers, "trasformazione_90gg", "un risultato concreto e misurabile"), 110))
 
+    # ⛔ Niente frase assemblata a incastro. La formula a cinque slot regge solo
+    # con frammenti riscritti apposta: incollando le risposte cosi' come sono
+    # usciva sgrammaticata ("A differenza di chi tutti promettono il diploma...").
+    # Meglio dichiarare che la sintesi manca, che consegnarne una sbagliata: i
+    # cinque elementi qui sotto sono corretti e bastano a comporla a mano.
     frase = (
-        f"{brand} è {categoria} che {idea}. "
-        f"A differenza dei concorrenti che {altri}, noi {idea}, "
-        f"e questo per il cliente significa {vantaggio}."
+        "I cinque elementi del posizionamento sono stati raccolti dalle tue risposte e li "
+        "trovi qui sotto. La frase di sintesi va composta insieme a Valentina: la "
+        "generazione automatica non e' andata a buon fine."
     )
     return {
+        "_fallback": True,
         "brand": brand,
         "categoria": categoria,
         "idea_differenziante": idea,
@@ -96,7 +123,7 @@ def _call_claude(answers: dict) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -114,10 +141,12 @@ def _call_claude(answers: dict) -> dict:
         "description": "Restituisci il Brand Positioning Statement strutturato.",
         "input_schema": _SCHEMA,
     }
+    from .agent_deliverable import system_blocks
+
     resp = client.messages.create(
         model=_MODEL,
-        max_tokens=700,
-        system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        max_tokens=1200,
+        system=system_blocks("VALENTINA", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "brand_positioning_statement"},
@@ -164,22 +193,43 @@ _REV_SYSTEM = (
     "- Italiano semplice e diretto, zero fuffa.\n"
     "- Niente superlativi assoluti ('potente', 'incredibile', '10x', 'il migliore').\n"
     "- Niente registro guru o coach motivazionale.\n"
-    "- Frasi brevi, massimo 25 parole.\n"
+    "- Frasi brevi: massimo 25 parole PER FRASE. Questo vale sulla singola frase e "
+    "NON e' un limite alla lunghezza del testo: i blocchi devono essere lunghi, "
+    "fatti di molte frasi brevi.\n"
+    "- Mai il trattino lungo. Al suo posto virgola, punto o parentesi.\n"
     "- Usa 'percorso' invece di 'funnel', 'ambito specifico' invece di 'nicchia'.\n"
     "- Riordina e riscrivi cio' che ha scritto il partner: NON inventare numeri o "
-    "fatti non presenti nelle risposte.\n"
+    "fatti non presenti nelle risposte. Se un dato manca, dillo esplicitamente "
+    "('da definire con il partner') invece di riempire con genericita'.\n"
+    "\n"
+    "LUNGHEZZA: questo e' un documento strategico che il partner paga e usa per mesi. "
+    "Un blocco di due frasi non gli serve a niente. Scrivi in modo esteso e "
+    "articolato, restando concreto: ogni affermazione deve poggiare su una risposta "
+    "del questionario, non su un riempitivo.\n"
+    "\n"
     "COSA PRODUCI:\n"
-    "1. sintesi_strategica: 2-3 frasi che inquadrano il posizionamento (chi serve, "
-    "con quale promessa, perche' proprio lui).\n"
-    "2. avatar: ritratto del cliente ideale in prosa: chi e', cosa teme, cosa "
-    "desidera, cosa perde se non agisce.\n"
-    "3. consapevolezza: a che livello di consapevolezza e' il pubblico (modello "
-    "Schwartz: inconsapevole, consapevole del problema, della soluzione, del "
-    "prodotto, molto consapevole) e di conseguenza cosa comunicare per primo.\n"
+    "1. sintesi_strategica: 200-280 parole. Inquadra il posizionamento in tre "
+    "movimenti: chi serve e in che momento, con quale promessa e perche' e' "
+    "credibile proprio da lui, cosa implica questo per le prossime scelte "
+    "(masterclass, moduli, prezzo). Chiudi indicando il punto piu' fragile del "
+    "posizionamento attuale e cosa serve per rafforzarlo.\n"
+    "2. avatar: 220-320 parole. Ritratto del cliente ideale in prosa continua: in "
+    "che situazione si trova, com'e' fatta la sua giornata rispetto al problema, "
+    "cosa ha gia' provato senza risultato e perche' non ha funzionato, cosa teme, "
+    "cosa desidera davvero, cosa perde concretamente se non agisce. Scrivi come se "
+    "dovessi farlo riconoscere al partner in una persona reale che ha gia' incontrato.\n"
+    "3. consapevolezza: 160-240 parole. Indica il livello secondo il modello "
+    "Schwartz (inconsapevole, consapevole del problema, della soluzione, del "
+    "prodotto, molto consapevole) e motiva la scelta con le risposte date. Poi "
+    "spiega cosa comunicare per primo, con che tipo di contenuto, e soprattutto "
+    "cosa NON dire ancora perche' arriverebbe troppo presto.\n"
     "4. obiezioni: ESATTAMENTE 3 obiezioni, una per tipo. 'Esterna' (tempo, soldi, "
     "contesto), 'Interna' ('non fa per me', sfiducia in se'), 'Meccanismo' (dubbio "
-    "che il metodo funzioni). Per ognuna: l'obiezione come la direbbe il cliente e "
-    "una risposta breve e onesta."
+    "che il metodo funzioni). Per ognuna: l'obiezione formulata con le parole che "
+    "userebbe davvero il cliente (prima persona, tono parlato), e una risposta di "
+    "80-120 parole. La risposta deve riconoscere il punto valido dell'obiezione "
+    "prima di rispondere, usare un elemento concreto preso dalle risposte del "
+    "partner, e non promettere nulla che non sia sostenibile."
 )
 
 _REV_SCHEMA = {
@@ -233,8 +283,20 @@ def _rev_deterministic(answers: dict) -> dict:
         "obiezione": obiez_txt or "Costa troppo o non ho tempo adesso.",
         "risposta": "",
     }]
+    # La sintesi del fallback metteva solo la promessa: una riga sola dove il
+    # documento ne chiede duecento parole. Qui si concatenano le risposte che
+    # compongono davvero il posizionamento, senza inventare nulla.
+    sintesi = " ".join(filter(None, [
+        _rev_t(answers, "promessa"),
+        ("Il metodo si chiama " + _rev_t(answers, "metodo_nome") + ".") if _rev_t(answers, "metodo_nome") else "",
+        ("Si rivolge a " + _rev_t(answers, "nicchia") + ".") if _rev_t(answers, "nicchia") else "",
+        ("La differenza riconoscibile: " + _rev_t(answers, "differenza_riconoscibile") + ".") if _rev_t(answers, "differenza_riconoscibile") else "",
+        ("La trasformazione attesa a 90 giorni: " + _rev_t(answers, "trasformazione_90gg") + ".") if _rev_t(answers, "trasformazione_90gg") else "",
+        ("Prova concreta disponibile: " + _rev_t(answers, "prova_sociale_concreta") + ".") if _rev_t(answers, "prova_sociale_concreta") else "",
+        "Questa sintesi è composta automaticamente dalle risposte: la revisione strategica è da completare con il team.",
+    ])).strip()
     return {
-        "sintesi_strategica": _rev_t(answers, "promessa", "Posizionamento da rifinire con il team."),
+        "sintesi_strategica": sintesi or "Posizionamento da rifinire con il team.",
         "avatar": avatar,
         "consapevolezza": _rev_t(answers, "livello_consapevolezza", "Da valutare."),
         "obiezioni": obiezioni,
@@ -245,7 +307,7 @@ def _rev_call_claude(answers: dict, nome: str) -> dict:
     """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY non configurata")
 
@@ -264,10 +326,16 @@ def _rev_call_claude(answers: dict, nome: str) -> dict:
         "description": "Restituisci il documento strategico di posizionamento.",
         "input_schema": _REV_SCHEMA,
     }
+    from .agent_deliverable import system_blocks
+
     resp = client.messages.create(
         model=_REV_MODEL,
-        max_tokens=1600,
-        system=[{"type": "text", "text": _REV_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        # 1600 token non bastavano per i target di lunghezza chiesti nel system
+        # prompt: il modello troncava o accorciava da solo. (12/8/2026)
+        max_tokens=6000,
+        # Il documento lo firma VALENTINA: parte dal suo prompt ufficiale, non da
+        # un "sei uno stratega" generico. Fonte unica: agent_prompts.py.
+        system=system_blocks("VALENTINA", _REV_SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "documento_posizionamento"},
