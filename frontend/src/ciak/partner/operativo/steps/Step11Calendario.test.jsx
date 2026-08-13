@@ -105,6 +105,15 @@ test("non consente invio finche proposta commerciale e routine non sono complete
   expect((await screen.findByRole("button", { name: /invia a marco/i })).disabled).toBe(true);
 });
 
+test("abilita l'invio quando la scadenza bonus locale e dopo il giorno 30 anche con offset ISO", async () => {
+  const calendar = validCalendar();
+  calendar.commercial_terms.bonus.expires_at = "2026-10-01T00:30:00+02:00";
+  mockApi.current = () => versionDocument({ calendar });
+  renderStep();
+
+  expect((await screen.findByRole("button", { name: /invia a marco/i })).disabled).toBe(false);
+});
+
 test("mostra lo stato in revisione senza dichiarare lo step concluso", async () => {
   mockApi.current = () => versionDocument({ version: 2, status: "pending_review" });
   renderStep({ status: "in_progress", data: {} });

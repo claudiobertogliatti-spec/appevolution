@@ -79,8 +79,9 @@ function hasCompleteCommercialProposal(calendar) {
   const bonus = terms?.bonus;
   const expiresAt = bonus?.expires_at;
   const dayThirty = calendar?.days?.[29]?.date;
-  const expires = typeof expiresAt === "string" && /(?:Z|[+-]\d{2}:\d{2})$/i.test(expiresAt) ? new Date(expiresAt) : null;
-  const dayThirtyEnd = typeof dayThirty === "string" ? new Date(`${dayThirty}T23:59:59Z`) : null;
+  const expiresLocalDate = typeof expiresAt === "string" && /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/i.test(expiresAt)
+    ? expiresAt.slice(0, 10)
+    : null;
   return (
     typeof terms?.version === "string" && terms.version.trim()
     && terms.contract_duration_months === 12
@@ -89,8 +90,8 @@ function hasCompleteCommercialProposal(calendar) {
     && Number.isInteger(price?.amount_cent) && price.amount_cent > 0
     && typeof price?.currency === "string" && /^[A-Z]{3}$/.test(price.currency)
     && ["bonus_id", "name", "version"].every((field) => typeof bonus?.[field] === "string" && bonus[field].trim())
-    && expires instanceof Date && !Number.isNaN(expires.valueOf())
-    && dayThirtyEnd instanceof Date && !Number.isNaN(dayThirtyEnd.valueOf()) && expires > dayThirtyEnd
+    && expiresLocalDate !== null && !Number.isNaN(new Date(expiresAt).valueOf())
+    && typeof dayThirty === "string" && expiresLocalDate > dayThirty
   );
 }
 
