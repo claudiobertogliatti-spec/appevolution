@@ -728,9 +728,6 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
     purchased = await db.diagnostic_sessions.count_documents(
         {"current_state": {"$in": list(_PURCHASED_STATES)}}
     )
-    viewer_events = {}
-    for event in ("video_started", "video_25", "video_50", "video_75", "video_completed", "cta_shown", "cta_clicked"):
-        viewer_events[event] = await db.ciak_masterclass_events.count_documents({"event": event})
     orphan_purchases = await db.ciak_orphan_purchases.count_documents({})
 
     return {
@@ -1786,6 +1783,9 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
     purchased = await db.diagnostic_sessions.count_documents(
         {"current_state": {"$in": list(_PURCHASED_STATES)}}
     )
+    viewer_events = {}
+    for event in ("video_started", "video_25", "video_50", "video_75", "video_completed", "cta_shown", "cta_clicked"):
+        viewer_events[event] = await db.ciak_masterclass_events.count_documents({"event": event})
 
     # ── Distribuzione 4 stati (Checkpoint pre-acquisto) ────────────────
     checkpoint_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
