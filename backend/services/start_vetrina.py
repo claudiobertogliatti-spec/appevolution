@@ -2,21 +2,22 @@
 
 ⛔ **La vetrina non vende.** Decisione di Claudio del 30/7: niente checkout,
 niente opt-in, niente automazioni. E' il confine fra i 499 di Ciak Start e i
-2.790 della Partnership; se vendesse, avremmo regalato il pezzo che distingue i
-due prodotti. Qui si dice chi sei, per chi lavori, e come ti si contatta.
+2.790 della Partnership. Qui si dice chi sei, per chi lavori, e come ti si
+contatta: un form di contatto non e' un carrello.
+
+🎨 **Perimetro ESTERNO: il brand e' del CLIENTE, non di Evolution.**
+I colori arrivano dal suo brand kit (tappa 1 di Ciak Start, step `03-brand-kit`,
+generato subito prima di questa pagina). Il giallo Ciak su un sito del cliente
+sarebbe una contaminazione fra i due sistemi. Se il brand kit manca, si usa una
+base neutra professionale e **non si inventa un accento**.
 
 Perche' non riusa `LANDING_PAGE_TEMPLATE` di `routers/funnel_builder.py`: quello
 e' un funnel di vendita completo (urgency bar, prezzo barrato, garanzia,
 testimonianze, CTA d'acquisto). Svuotarne i placeholder lascerebbe comunque il
-markup di quelle sezioni: box prezzo vuoti e griglia testimonianze vuota. Serve
-un template proprio, piu' piccolo. Resta condivisa la meccanica di `_render`,
-riscritta qui con il controllo che nel funnel manca: **nessun placeholder puo'
-sopravvivere alla sostituzione** (una chiave mancante lascia `{CHIAVE}` letterale
-e dentro un `<style>` significa CSS rotto — pitfall documentato in CLAUDE.md).
-
-Brand lock (`docs/brand/ciak-brand-kit.md` v1.0): Poppins, #0F172A, #64748B,
-#E5E7EB, #FACC15. Sono i colori di Evolution/Ciak: quando il cliente avra' un
-brand kit suo, i token si sostituiscono da li'.
+markup di quelle sezioni. Resta condivisa la meccanica di `_render`, con il
+controllo che nel funnel manca: **nessun placeholder puo' sopravvivere alla
+sostituzione** (una chiave mancante lascia `{CHIAVE}` letterale e dentro un
+`<style>` significa CSS rotto — pitfall documentato in CLAUDE.md).
 """
 from __future__ import annotations
 
@@ -33,18 +34,36 @@ _MODEL = os.environ.get("START_VETRINA_MODEL", "claude-sonnet-4-6")
 
 DOMINIO_DA_SCEGLIERE = "dominio-da-scegliere.it"
 
+# Base neutra professionale, usata SOLO quando il brand kit del cliente manca.
+# Non e' il brand Ciak: e' l'assenza di brand, dichiarata. (Palette B2B service
+# dal database di ui-ux-pro-max, contrasto verificato.)
+NEUTRI = {
+    "primario": "#0F172A",
+    "secondario": "#475569",
+    "accento": "#0F172A",   # senza brand kit l'accento NON e' colorato
+    "accento_forte": "#0F172A",
+    "fondo": "#FFFFFF",
+    "fondo_alt": "#F8FAFC",
+    "bordo": "#E2E8F0",
+}
+
 _NOTA_FALLBACK = (
     "I testi della pagina non sono stati riscritti dall'AI: qui sotto trovi il tuo "
     "posizionamento cosi' com'e'. La pagina e' completa e funzionante, ma prima di "
     "pubblicarla vanno riletti i testi insieme a Valentina."
 )
 
+_NOTA_BRAND_MANCANTE = (
+    "Il brand kit non risulta ancora completato: la pagina usa una base neutra. "
+    "Quando i colori del tuo brand sono pronti, la vetrina si rigenera con quelli."
+)
+
 _SYSTEM = (
     "Scrivi i testi del SITO VETRINA di un professionista: una pagina sola, che "
     "presenta chi e' e per chi lavora.\n"
     "⛔ QUESTA PAGINA NON VENDE. Niente prezzi, niente offerte, niente scadenze, "
-    "niente 'iscriviti', niente moduli di contatto: solo presentazione e recapiti. "
-    "Se ti viene voglia di aggiungere una call to action commerciale, non farlo.\n"
+    "niente 'iscriviti': solo presentazione e contatto. Se ti viene voglia di "
+    "aggiungere una call to action commerciale, non farlo.\n"
     "REGOLE DI SCRITTURA (brand voice Ciak, non negoziabili):\n"
     "- Italiano semplice e diretto, zero fuffa.\n"
     "- Niente superlativi assoluti ('potente', 'incredibile', '10x', 'il migliore').\n"
@@ -55,7 +74,9 @@ _SYSTEM = (
     "che ricevi, non esiste. Inventare recensioni o risultati e' illecito "
     "(Codice del Consumo artt. 21-23).\n"
     "'per_chi_no' e' la sezione piu' importante: dire a chi NON ci si rivolge rende "
-    "credibile tutto il resto ed e' il metodo De Veglia applicato. Non addolcirla."
+    "credibile tutto il resto ed e' il metodo De Veglia applicato. Non addolcirla.\n"
+    "'punti_chiave' sono due frasi brevissime (max 6 parole) che stanno sotto il "
+    "titolo: fatti, non slogan."
 )
 
 _CAMPI = ["headline", "sottotitolo", "cosa_faccio", "per_chi_si", "per_chi_no", "bio"]
@@ -65,6 +86,11 @@ _SCHEMA = {
     "properties": {
         "headline": {"type": "string", "description": "Titolo della pagina: cosa fai e per chi, in una riga."},
         "sottotitolo": {"type": "string", "description": "Una frase che chiarisce la headline."},
+        "punti_chiave": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "2 fatti brevissimi (max 6 parole) da mettere sotto il titolo.",
+        },
         "cosa_faccio": {
             "type": "array",
             "items": {
@@ -76,7 +102,7 @@ _SCHEMA = {
         },
         "per_chi_si": {"type": "array", "items": {"type": "string"}, "description": "2-4 profili a cui si rivolge."},
         "per_chi_no": {"type": "array", "items": {"type": "string"}, "description": "2-4 profili a cui NON si rivolge."},
-        "bio": {"type": "string", "description": "Breve presentazione in prima persona, 3-5 frasi."},
+        "bio": {"type": "string", "description": "Presentazione in prima persona, 4-6 frasi brevi."},
     },
     "required": _CAMPI,
 }
@@ -85,6 +111,7 @@ _EMOJI = re.compile(
     "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\U00002190-\U000021FF\U00002B00-\U00002BFF️‍]"
 )
 _PLACEHOLDER = re.compile(r"\{[A-Z_0-9]+\}")
+_HEX = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
 def placeholder_residui(html: str) -> list[str]:
@@ -99,31 +126,80 @@ def _pulisci(testo: Any) -> str:
 
 
 def _esc(testo: Any) -> str:
-    """Testo del cliente nel CORPO della pagina: `<`, `>` e `&` escapati.
+    """Testo del cliente nel CORPO della pagina.
 
-    Non si escapano apici e virgolette: in un nodo di testo non servono, e in
-    italiano l'apostrofo e' ovunque ("gia'", "l'agenda"). Escaparlo riempirebbe
-    il sorgente di `&#x27;` proprio nelle frasi che il cliente deve rileggere.
-    Per gli ATTRIBUTI si usa `_attr`, dove le virgolette contano davvero.
+    Non si escapano gli apici: in un nodo di testo non servono, e in italiano
+    l'apostrofo e' ovunque. Per gli ATTRIBUTI si usa `_attr`.
     """
     return html_lib.escape(_pulisci(testo), quote=False)
 
 
 def _attr(testo: Any) -> str:
-    """Testo del cliente dentro un attributo HTML: qui le virgolette si escapano."""
     return html_lib.escape(_pulisci(testo), quote=True)
 
 
 def _come_titolo(testo: Any) -> str:
     """Prima lettera maiuscola, il resto invariato.
 
-    I campi del posizionamento sono frammenti pensati per stare in mezzo a una
-    frase ("formazione per terapisti del massaggio thai"): usati come titolo di
-    sezione restano minuscoli e la pagina sembra sciatta. `.capitalize()` non va
-    bene, abbasserebbe i nomi propri nel resto della stringa.
+    I campi del posizionamento sono frammenti da mezza frase ("formazione per
+    terapisti..."): come titolo di sezione resterebbero minuscoli.
+    `.capitalize()` non va bene, abbasserebbe i nomi propri.
     """
     t = _pulisci(testo)
     return t[0].upper() + t[1:] if t else t
+
+
+def _colore(valore: Any, fallback: str) -> str:
+    """Accetta solo esadecimali validi: un colore sporco romperebbe il CSS."""
+    v = _pulisci(valore)
+    return v if _HEX.match(v) else fallback
+
+
+def _luminanza(hex_colore: str) -> float:
+    h = hex_colore.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    canali = []
+    for i in (0, 2, 4):
+        v = int(h[i:i + 2], 16) / 255
+        canali.append(v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * canali[0] + 0.7152 * canali[1] + 0.0722 * canali[2]
+
+
+def contrasto(colore_a: str, colore_b: str) -> float:
+    """Rapporto di contrasto WCAG fra due esadecimali."""
+    la, lb = _luminanza(colore_a), _luminanza(colore_b)
+    chiaro, scuro = max(la, lb), min(la, lb)
+    return round((chiaro + 0.05) / (scuro + 0.05), 2)
+
+
+def palette_da_brand_kit(brand_kit: dict | None) -> tuple[dict, bool]:
+    """Token colore del CLIENTE. Ritorna (palette, brand_presente).
+
+    ⚠️ Il brand kit del partner vive nello step `03-brand-kit`, non nella
+    collection `partner_brand_kits` (che non viene mai scritta). Chi chiama
+    questa funzione deve leggerlo da li'.
+    """
+    kit = brand_kit or {}
+    primario = _colore(kit.get("colore_primario") or kit.get("primary"), "")
+    if not primario:
+        return dict(NEUTRI), False
+    secondario = _colore(kit.get("colore_secondario") or kit.get("secondary"), NEUTRI["secondario"])
+    accento = _colore(kit.get("colore_accento") or kit.get("accent"), primario)
+    fondo_alt = _colore(kit.get("colore_fondo") or kit.get("background"), NEUTRI["fondo_alt"])
+    # Il cliente sceglie i suoi colori, e puo' sceglierne uno chiarissimo. Dove
+    # l'accento porta significato (icone, bordo di stato) serve almeno 3:1
+    # contro il fondo, o quel segno non si vede: in quel caso si usa il primario.
+    accento_forte = accento if contrasto(accento, fondo_alt) >= 3 else primario
+    return {
+        "primario": primario,
+        "secondario": secondario,
+        "accento": accento,
+        "accento_forte": accento_forte,
+        "fondo": "#FFFFFF",
+        "fondo_alt": fondo_alt,
+        "bordo": NEUTRI["bordo"],
+    }, True
 
 
 def _render(template: str, params: dict) -> str:
@@ -140,108 +216,268 @@ VETRINA_TEMPLATE = """<!DOCTYPE html>
 <title>{TITOLO_PAGINA}</title>
 <meta name="description" content="{META_DESCRIPTION}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family={FONT_QUERY}:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
 <style>
-:root{--slate:#0F172A;--grigio:#64748B;--bordo:#E5E7EB;--giallo:#FACC15;--fondo:#FFFFFF}
+:root{
+  --primario:{C_PRIMARIO};--secondario:{C_SECONDARIO};--accento:{C_ACCENTO};--accento-forte:{C_ACCENTO_FORTE};
+  --fondo:{C_FONDO};--fondo-alt:{C_FONDO_ALT};--bordo:{C_BORDO};
+  --testo:{C_PRIMARIO};--radius:14px;--gutter:24px;--max:1120px;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Poppins',system-ui,sans-serif;color:var(--slate);background:var(--fondo);line-height:1.65;-webkit-font-smoothing:antialiased}
-.wrap{max-width:960px;margin:0 auto;padding:0 24px}
-header{padding:28px 0;border-bottom:1px solid var(--bordo)}
-.marchio{font-weight:700;font-size:18px;letter-spacing:-.01em}
-.hero{padding:88px 0 72px;border-bottom:1px solid var(--bordo)}
-.hero h1{font-size:clamp(30px,5vw,54px);font-weight:700;line-height:1.1;letter-spacing:-.02em;max-width:18ch}
-.hero .filo{width:56px;height:4px;background:var(--giallo);margin:28px 0 24px;border-radius:2px}
-.hero p{font-size:clamp(17px,2vw,20px);color:var(--grigio);max-width:60ch}
-section{padding:64px 0;border-bottom:1px solid var(--bordo)}
-h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.01em;margin-bottom:32px}
-.occhiello{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--grigio);margin-bottom:10px}
-.griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}
-.scheda{border:1px solid var(--bordo);border-radius:12px;padding:26px}
-.scheda h3{font-size:17px;font-weight:600;margin-bottom:8px}
-.scheda p{font-size:15px;color:var(--grigio)}
-.due{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px}
-.elenco{list-style:none}
-.elenco li{padding:11px 0 11px 30px;position:relative;font-size:16px;border-bottom:1px solid var(--bordo)}
-.elenco li:last-child{border-bottom:none}
-.si li::before{content:"";position:absolute;left:0;top:19px;width:14px;height:3px;background:var(--giallo);border-radius:2px}
-.no li{color:var(--grigio)}
-.no li::before{content:"";position:absolute;left:0;top:19px;width:14px;height:3px;background:var(--bordo);border-radius:2px}
-.bio-blocco{display:grid;grid-template-columns:{BIO_COLONNE};gap:40px;align-items:start}
-.bio-blocco img{width:100%;max-width:220px;border-radius:14px;display:block}
-.bio-blocco p{color:var(--grigio);font-size:16px}
-.contatti a{color:var(--slate);text-decoration:none;border-bottom:2px solid var(--giallo);font-weight:500}
-.contatti a:hover{background:var(--giallo)}
-.riga-contatti{display:flex;flex-wrap:wrap;gap:28px;font-size:17px}
-footer{padding:40px 0 64px;color:var(--grigio);font-size:14px}
-@media(max-width:640px){.hero{padding:56px 0 48px}section{padding:48px 0}.bio-blocco{grid-template-columns:1fr}}
+html{scroll-behavior:smooth}
+body{font-family:'{FONT_NOME}',system-ui,-apple-system,sans-serif;color:var(--testo);background:var(--fondo);line-height:1.6;font-size:17px;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--gutter)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accento-forte);outline-offset:3px;border-radius:4px}
+.salta{position:absolute;left:-9999px}
+.salta:focus{left:16px;top:16px;z-index:50;background:var(--primario);color:#fff;padding:12px 18px;border-radius:8px}
+
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--fondo) 92%,transparent);border-bottom:1px solid var(--bordo)}
+.barra{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;min-height:64px}
+.marchio{display:flex;align-items:center;gap:12px;font-weight:600;font-size:17px;text-decoration:none}
+.marchio img{height:34px;width:auto}
+.barra a.contatto{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border:1.5px solid var(--primario);border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;transition:background .2s ease,color .2s ease}
+.barra a.contatto:hover{background:var(--primario);color:var(--fondo)}
+
+.hero{padding:72px 0 64px}
+.hero-griglia{display:grid;grid-template-columns:{HERO_COLONNE};gap:56px;align-items:center}
+.occhiello{display:inline-block;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--secondario);margin-bottom:18px}
+.hero h1{font-size:clamp(32px,4.6vw,52px);font-weight:700;line-height:1.08;letter-spacing:-.02em;max-width:16ch}
+.hero .sotto{margin-top:20px;font-size:clamp(17px,1.6vw,20px);color:var(--secondario);max-width:52ch}
+.chiavi{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;list-style:none}
+.chiavi li{font-size:14px;font-weight:500;padding:8px 14px;border:1px solid var(--bordo);border-radius:999px;background:var(--fondo-alt)}
+.ritratto{position:relative}
+.ritratto img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:var(--radius)}
+.ritratto::after{content:"";position:absolute;left:-14px;bottom:-14px;width:96px;height:96px;border-left:3px solid var(--accento-forte);border-bottom:3px solid var(--accento-forte);border-radius:0 0 0 var(--radius)}
+
+section{padding:72px 0;border-top:1px solid var(--bordo)}
+.testa{max-width:60ch;margin-bottom:44px}
+h2{font-size:clamp(24px,3vw,34px);font-weight:600;letter-spacing:-.015em;line-height:1.2}
+.testa p{margin-top:12px;color:var(--secondario)}
+.schede{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
+.scheda{border:1px solid var(--bordo);border-radius:var(--radius);overflow:hidden;background:var(--fondo);display:flex;flex-direction:column;transition:border-color .2s ease,box-shadow .2s ease}
+.scheda:hover{border-color:var(--accento);box-shadow:0 6px 24px rgba(15,23,42,.07)}
+.scheda figure{aspect-ratio:16/10;overflow:hidden;background:var(--fondo-alt)}
+.scheda figure img{width:100%;height:100%;object-fit:cover}
+.scheda .corpo{padding:26px}
+.scheda h3{font-size:18px;font-weight:600;margin-bottom:8px}
+.scheda p{font-size:15.5px;color:var(--secondario)}
+
+.confronto{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+.colonna{border-radius:var(--radius);padding:32px}
+.colonna.si{background:var(--fondo-alt);border:1px solid var(--bordo);border-top:4px solid var(--accento-forte)}
+.colonna.no{border:1px dashed var(--bordo)}
+.colonna h3{font-size:19px;font-weight:600;margin-bottom:20px}
+.colonna ul{list-style:none;display:grid;gap:14px}
+.colonna li{display:flex;gap:12px;font-size:16px;line-height:1.5}
+.colonna li svg{flex:0 0 20px;width:20px;height:20px;margin-top:3px}
+.colonna.no li{color:var(--secondario)}
+
+.chi-sono{display:grid;grid-template-columns:{BIO_COLONNE};gap:48px;align-items:start}
+.chi-sono img{border-radius:var(--radius);aspect-ratio:1/1;object-fit:cover}
+.chi-sono p{color:var(--secondario);margin-top:14px}
+
+.contatti{background:var(--fondo-alt);border-top:1px solid var(--bordo)}
+.contatti-griglia{display:grid;grid-template-columns:{CONTATTI_COLONNE};gap:48px;align-items:start}
+form{display:grid;gap:18px}
+.campo{display:grid;gap:7px}
+label{font-size:14.5px;font-weight:600}
+input,textarea{font:inherit;font-size:16px;padding:13px 15px;border:1.5px solid var(--bordo);border-radius:10px;background:var(--fondo);color:var(--testo);width:100%}
+input:focus,textarea:focus{border-color:var(--accento);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accento) 22%,transparent)}
+textarea{min-height:132px;resize:vertical}
+.consenso{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:var(--secondario);line-height:1.5}
+.consenso input{width:20px;height:20px;min-width:20px;margin-top:2px;accent-color:var(--accento)}
+button[type=submit]{min-height:52px;padding:0 30px;border:none;border-radius:10px;background:var(--primario);color:var(--fondo);font:inherit;font-size:16px;font-weight:600;cursor:pointer;justify-self:start;transition:opacity .2s ease}
+button[type=submit]:hover{opacity:.88}
+.recapiti{display:grid;gap:18px;font-size:16px}
+.recapiti a{font-weight:500;text-decoration:none;border-bottom:2px solid color-mix(in srgb,var(--accento) 55%,transparent)}
+.recapiti a:hover{border-bottom-color:var(--accento)}
+.recapiti .voce{display:grid;gap:3px}
+.recapiti .et{font-size:13px;color:var(--secondario);text-transform:uppercase;letter-spacing:.08em}
+
+footer{padding:36px 0 56px;color:var(--secondario);font-size:14.5px}
+.pie{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+
+/* Il reveal esiste SOLO se il JS gira: senza, il contenuto e' visibile da subito.
+   Con `.rivela{opacity:0}` incondizionato una pagina senza JS resta bianca. */
+.js .rivela{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.js .rivela.visibile{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rivela{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+@media(max-width:860px){
+  .hero{padding:44px 0 40px}
+  .hero-griglia,.chi-sono,.contatti-griglia{grid-template-columns:1fr}
+  .hero-griglia{gap:36px}
+  .ritratto{order:-1;max-width:340px}
+  section{padding:52px 0}
+  .barra a.contatto{padding:0 16px}
+}
 </style>
 </head>
 <body>
-<header><div class="wrap"><div class="marchio">{MARCHIO}</div></div></header>
+<a class="salta" href="#contatti">Vai ai contatti</a>
 
-<div class="hero"><div class="wrap">
-  <h1>{HEADLINE}</h1>
-  <div class="filo"></div>
-  <p>{SOTTOTITOLO}</p>
+<header><div class="wrap barra">
+  <a class="marchio" href="#top">{MARCHIO}</a>
+  <a class="contatto" href="#contatti">Contattami</a>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap hero-griglia">
+  <div>
+    <span class="occhiello">{OCCHIELLO}</span>
+    <h1>{HEADLINE}</h1>
+    <p class="sotto">{SOTTOTITOLO}</p>
+    <ul class="chiavi">{PUNTI_CHIAVE}</ul>
+  </div>
+  {RITRATTO}
 </div></div>
 
 <section><div class="wrap">
-  <p class="occhiello">Cosa faccio</p>
-  <h2>{TITOLO_COSA_FACCIO}</h2>
-  <div class="griglia">{SCHEDE}</div>
+  <div class="testa rivela">
+    <h2>{TITOLO_COSA_FACCIO}</h2>
+    <p>{SOTTOTITOLO_COSA_FACCIO}</p>
+  </div>
+  <div class="schede">{SCHEDE}</div>
 </div></section>
 
 <section><div class="wrap">
-  <p class="occhiello">Per chi lavoro</p>
-  <div class="due">
-    <div><h2>Ti riguarda se</h2><ul class="elenco si">{PER_CHI_SI}</ul></div>
-    <div><h2>Non fa per te se</h2><ul class="elenco no">{PER_CHI_NO}</ul></div>
+  <div class="testa rivela"><h2>Per chi lavoro, e per chi no</h2>
+    <p>Dirlo in chiaro fa risparmiare tempo a tutti e due.</p></div>
+  <div class="confronto">
+    <div class="colonna si rivela"><h3>Ti riguarda se</h3><ul>{PER_CHI_SI}</ul></div>
+    <div class="colonna no rivela"><h3>Non fa per te se</h3><ul>{PER_CHI_NO}</ul></div>
   </div>
 </div></section>
 
-<section><div class="wrap">
-  <p class="occhiello">Chi sono</p>
-  <div class="bio-blocco">{FOTO}<div><h2>{NOME}</h2><p>{BIO}</p></div></div>
+<section><div class="wrap chi-sono rivela">
+  {FOTO_BIO}
+  <div><h2>{NOME}</h2><p>{BIO}</p></div>
 </div></section>
 
-<section class="contatti"><div class="wrap">
-  <p class="occhiello">Parliamone</p>
-  <h2>Come mi si contatta</h2>
-  <div class="riga-contatti">{CONTATTI}</div>
+<section class="contatti" id="contatti"><div class="wrap">
+  <div class="testa"><h2>Parliamone</h2><p>{INVITO_CONTATTO}</p></div>
+  <div class="contatti-griglia">
+    {FORM}
+    <div class="recapiti">{RECAPITI}</div>
+  </div>
 </div></section>
+</main>
 
-<footer><div class="wrap">{NOME} · {DOMINIO}</div></footer>
+<footer><div class="wrap pie">
+  <span>{NOME}</span><span>{DOMINIO}</span>
+</div></footer>
+
+<script>
+(function(){
+  var ridotto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var voci = document.querySelectorAll('.rivela');
+  if (ridotto || !('IntersectionObserver' in window)) {
+    voci.forEach(function(v){ v.classList.add('visibile'); });
+    return;
+  }
+  var osservatore = new IntersectionObserver(function(entrate){
+    entrate.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('visibile'); osservatore.unobserve(e.target); } });
+  }, {rootMargin: '0px 0px -8% 0px'});
+  voci.forEach(function(v){ osservatore.observe(v); });
+})();
+</script>
 </body>
 </html>
 """
 
+# Icone SVG (Lucide, 24x24). Mai emoji come icone.
+_ICONA_SI = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="var(--accento-forte)" stroke-width="2.4" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+)
+_ICONA_NO = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.45">'
+    '<line x1="5" y1="12" x2="19" y2="12"/></svg>'
+)
 
-def _scheda(voce: dict) -> str:
+
+def _scheda(voce: dict, immagine: str = "") -> str:
+    figura = ""
+    if immagine.startswith("http"):
+        figura = f'<figure><img src="{_attr(immagine)}" alt="" loading="lazy"></figure>'
     return (
-        f'<div class="scheda"><h3>{_esc(voce.get("titolo"))}</h3>'
-        f'<p>{_esc(voce.get("testo"))}</p></div>'
+        f'<article class="scheda rivela">{figura}<div class="corpo">'
+        f'<h3>{_esc(voce.get("titolo"))}</h3><p>{_esc(voce.get("testo"))}</p>'
+        f"</div></article>"
     )
 
 
-def _voci(elenco: Any) -> str:
-    return "".join(f"<li>{_esc(v)}</li>" for v in (elenco or []) if _pulisci(v))
+def _voci(elenco: Any, icona: str) -> str:
+    return "".join(
+        f"<li>{icona}<span>{_esc(v)}</span></li>" for v in (elenco or []) if _pulisci(v)
+    )
 
 
-def _contatti(dati: dict) -> str:
+def _form(dati: dict) -> str:
+    """Form di contatto. Senza destinazione NON si stampa.
+
+    Un form che non recapita i messaggi e' peggio di nessun form: il visitatore
+    crede di aver scritto e nessuno gli risponde. Serve `form_action`, cioe'
+    l'endpoint che riceve i dati. Il consenso privacy e' obbligatorio (GDPR):
+    qui si raccolgono dati personali.
+    """
+    action = _pulisci(dati.get("form_action"))
+    if not action.startswith("http"):
+        return (
+            '<div class="recapiti"><p>Il modulo di contatto si attiva quando il sito va online. '
+            "Nel frattempo restano validi i recapiti qui accanto.</p></div>"
+        )
+    privacy = _pulisci(dati.get("privacy_url"))
+    link_privacy = (
+        f' Vedi l\'<a href="{_attr(privacy)}">informativa privacy</a>.' if privacy.startswith("http") else ""
+    )
+    return f"""<form method="post" action="{_attr(action)}">
+      <div class="campo"><label for="nome">Come ti chiami</label>
+        <input id="nome" name="nome" type="text" autocomplete="name" required></div>
+      <div class="campo"><label for="email">La tua email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required></div>
+      <div class="campo"><label for="messaggio">Di cosa hai bisogno</label>
+        <textarea id="messaggio" name="messaggio" required></textarea></div>
+      <label class="consenso"><input type="checkbox" name="consenso" value="si" required>
+        <span>Acconsento al trattamento dei miei dati per ricevere una risposta a questo messaggio.{link_privacy}</span></label>
+      <button type="submit">Invia il messaggio</button>
+    </form>"""
+
+
+def _recapiti(dati: dict) -> str:
     """Solo i recapiti che esistono davvero. Un contatto inventato e' un vicolo cieco."""
     pezzi = []
     email = _pulisci(dati.get("email_contatto"))
     if "@" in email:
-        pezzi.append(f'<span>Email: <a href="mailto:{_attr(email)}">{_esc(email)}</a></span>')
+        pezzi.append(
+            f'<div class="voce"><span class="et">Email</span>'
+            f'<a href="mailto:{_attr(email)}">{_esc(email)}</a></div>'
+        )
     telefono = _pulisci(dati.get("telefono"))
     if telefono:
-        pezzi.append(f"<span>Telefono: {_esc(telefono)}</span>")
+        numero = re.sub(r"[^\d+]", "", telefono)
+        pezzi.append(
+            f'<div class="voce"><span class="et">Telefono</span>'
+            f'<a href="tel:{_attr(numero)}">{_esc(telefono)}</a></div>'
+        )
     for etichetta, chiave in (("Instagram", "instagram_url"), ("LinkedIn", "linkedin_url")):
         url = _pulisci(dati.get(chiave))
         if url.startswith("http"):
-            pezzi.append(f'<span>{etichetta}: <a href="{_attr(url)}">{_esc(url)}</a></span>')
+            mostrato = url.replace("https://", "").replace("http://", "").rstrip("/")
+            pezzi.append(
+                f'<div class="voce"><span class="et">{etichetta}</span>'
+                f'<a href="{_attr(url)}" rel="me noopener">{_esc(mostrato)}</a></div>'
+            )
     if not pezzi:
-        pezzi.append("<span>Recapiti da inserire prima di pubblicare la pagina.</span>")
+        pezzi.append(
+            '<div class="voce"><span class="et">Recapiti</span>'
+            "<span>Da inserire prima di pubblicare la pagina.</span></div>"
+        )
     return "".join(pezzi)
 
 
@@ -264,15 +500,16 @@ def checklist_dns(dominio: str, target: str = "cname.vercel-dns.com") -> list[st
 def _fallback_testi(dati: dict) -> dict:
     """Testi presi dal posizionamento del cliente: veri, solo non riscritti.
 
-    A differenza delle bio social, qui una pagina senza testi non esiste. Gli
+    A differenza delle bio social, una pagina senza testi non esiste. Gli
     elementi del posizionamento sono frasi autonome e corrette: si usano come
-    blocchi interi, mai incastrati in una formula (e' l'errore che il 12/8 ha
+    blocchi interi, mai incastrati in una formula (l'errore che il 12/8 ha
     prodotto il Brand Positioning Statement sgrammaticato).
     """
     pos = dati.get("posizionamento") or {}
     return {
         "headline": _pulisci(pos.get("idea_differenziante")) or _pulisci(pos.get("categoria")) or _pulisci(dati.get("nicchia")),
         "sottotitolo": _pulisci(pos.get("vantaggio_cliente")),
+        "punti_chiave": [],
         "cosa_faccio": [
             {"titolo": "Di cosa mi occupo", "testo": _pulisci(pos.get("categoria"))},
             {"titolo": "Come lavoro", "testo": _pulisci(pos.get("idea_differenziante"))},
@@ -351,41 +588,92 @@ async def build_vetrina(dati: dict) -> dict:
         testi, fallback = _fallback_testi(dati), True
 
     pos = dati.get("posizionamento") or {}
+    palette, brand_presente = palette_da_brand_kit(dati.get("brand_kit"))
     nome = _pulisci(dati.get("nome")) or _pulisci(pos.get("brand")) or "Il tuo nome"
     dominio = _pulisci(dati.get("dominio")) or DOMINIO_DA_SCEGLIERE
     foto = _pulisci(dati.get("foto_url"))
-    headline = _pulisci(testi.get("headline"))
+    foto_bio = _pulisci(dati.get("foto_bio_url"))
+    font = _pulisci((dati.get("brand_kit") or {}).get("font")) or "Poppins"
+    immagini = [_pulisci(v) for v in (dati.get("immagini") or [])]
+    marchio_logo = _pulisci((dati.get("brand_kit") or {}).get("logo_url"))
+    schede_voci = [v for v in (testi.get("cosa_faccio") or []) if isinstance(v, dict)]
+
+    marchio = (
+        f'<img src="{_attr(marchio_logo)}" alt="{_attr(nome)}">'
+        if marchio_logo.startswith("http")
+        else f"<span>{_esc(_pulisci(pos.get('brand')) or nome)}</span>"
+    )
+    ritratto = (
+        f'<div class="ritratto"><img src="{_attr(foto)}" alt="Ritratto di {_attr(nome)}"></div>'
+        if foto.startswith("http")
+        else ""
+    )
+    foto_bio_tag = (
+        f'<img src="{_attr(foto_bio)}" alt="" loading="lazy">' if foto_bio.startswith("http") else ""
+    )
+    has_form = _pulisci(dati.get("form_action")).startswith("http")
 
     params = {
-        "TITOLO_PAGINA": _esc(f"{nome} · {_pulisci(pos.get('categoria')) or _pulisci(dati.get('nicchia'))}".strip(" ·")),
+        "TITOLO_PAGINA": _attr(f"{nome} · {_pulisci(pos.get('categoria')) or _pulisci(dati.get('nicchia'))}".strip(" ·")),
         "META_DESCRIPTION": _attr(testi.get("sottotitolo")),
-        "MARCHIO": _esc(_pulisci(pos.get("brand")) or nome),
-        "HEADLINE": _esc(headline),
+        "FONT_NOME": _attr(font),
+        "FONT_QUERY": _attr(font.replace(" ", "+")),
+        "C_PRIMARIO": palette["primario"],
+        "C_SECONDARIO": palette["secondario"],
+        "C_ACCENTO": palette["accento"],
+        "C_ACCENTO_FORTE": palette["accento_forte"],
+        "C_FONDO": palette["fondo"],
+        "C_FONDO_ALT": palette["fondo_alt"],
+        "C_BORDO": palette["bordo"],
+        "MARCHIO": marchio,
+        "OCCHIELLO": _esc(_come_titolo(pos.get("categoria")) or _come_titolo(dati.get("nicchia"))),
+        "HEADLINE": _esc(testi.get("headline")),
         "SOTTOTITOLO": _esc(testi.get("sottotitolo")),
+        "PUNTI_CHIAVE": "".join(f"<li>{_esc(v)}</li>" for v in (testi.get("punti_chiave") or []) if _pulisci(v)),
+        "RITRATTO": ritratto,
+        "HERO_COLONNE": "1.15fr .85fr" if ritratto else "1fr",
         "TITOLO_COSA_FACCIO": _esc(_come_titolo(pos.get("categoria")) or "Il lavoro che faccio"),
-        "SCHEDE": "".join(_scheda(v) for v in (testi.get("cosa_faccio") or []) if isinstance(v, dict)),
-        "PER_CHI_SI": _voci(testi.get("per_chi_si")),
-        "PER_CHI_NO": _voci(testi.get("per_chi_no")),
+        "SOTTOTITOLO_COSA_FACCIO": _esc(pos.get("idea_differenziante")),
+        "SCHEDE": "".join(
+            _scheda(voce, immagini[i] if i < len(immagini) else "")
+            for i, voce in enumerate(schede_voci)
+        ),
+        "PER_CHI_SI": _voci(testi.get("per_chi_si"), _ICONA_SI),
+        "PER_CHI_NO": _voci(testi.get("per_chi_no"), _ICONA_NO),
         "NOME": _esc(nome),
         "BIO": _esc(testi.get("bio")),
-        "FOTO": f'<img src="{_attr(foto)}" alt="{_attr(nome)}">' if foto.startswith("http") else "",
-        "BIO_COLONNE": "220px 1fr" if foto.startswith("http") else "1fr",
-        "CONTATTI": _contatti(dati),
+        "FOTO_BIO": foto_bio_tag,
+        "BIO_COLONNE": "280px 1fr" if foto_bio_tag else "1fr",
+        "INVITO_CONTATTO": _esc(
+            "Scrivimi cosa ti serve: ti rispondo io."
+            if has_form
+            else "Questi sono i modi per raggiungermi."
+        ),
+        "FORM": _form(dati),
+        "CONTATTI_COLONNE": "1.3fr .7fr" if has_form else "1fr",
+        "RECAPITI": _recapiti(dati),
         "DOMINIO": _esc(dominio),
     }
     pagina = _render(VETRINA_TEMPLATE, params)
 
     residui = placeholder_residui(pagina)
     if residui:
-        # Non si consegna una pagina con `{CHIAVE}` a video o dentro un <style>.
         logger.error("[START_VETRINA] Placeholder non sostituiti: %s", residui)
         raise RuntimeError(f"Template vetrina incompleto: {', '.join(residui)}")
 
+    note = []
+    if fallback:
+        note.append(_NOTA_FALLBACK)
+    if not brand_presente:
+        note.append(_NOTA_BRAND_MANCANTE)
+
     return {
         "_fallback": fallback,
-        "nota": _NOTA_FALLBACK if fallback else "",
+        "brand_applicato": brand_presente,
+        "nota": " ".join(note),
         "html": pagina,
         "dominio": dominio,
         "checklist_dns": checklist_dns(dominio),
+        "form_attivo": has_form,
         "vende": False,
     }

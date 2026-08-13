@@ -70,23 +70,137 @@ async def test_la_vetrina_non_vende(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_rispetta_il_brand_lock(monkeypatch):
+async def test_il_font_di_default_e_poppins_ma_il_brand_ciak_non_entra(monkeypatch):
+    """Perimetro ESTERNO: questa pagina e' del cliente.
+
+    Poppins resta il default (e' il font che il brand kit Ciak Start produce),
+    ma i COLORI di Evolution non devono comparire su un sito che non e' suo.
+    """
     monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
 
     html = (await sv.build_vetrina(DATI))["html"]
 
     assert "Poppins" in html
-    assert "#0F172A" in html
-    assert "#FACC15" in html
+    assert "#FACC15" not in html
+
+
+@pytest.mark.asyncio
+async def test_il_font_del_cliente_sostituisce_il_default(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    html = (await sv.build_vetrina({**DATI, "brand_kit": {
+        "colore_primario": "#2F5D50", "font": "Source Serif 4",
+    }}))["html"]
+
+    assert "family=Source+Serif+4" in html
+    assert "'Source Serif 4'" in html
 
 
 @pytest.mark.asyncio
 async def test_senza_foto_non_stampa_un_immagine_rotta(monkeypatch):
+    """Foto assente non significa placeholder grigio: significa niente <img>."""
     monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
 
     html = (await sv.build_vetrina({**DATI, "foto_url": None}))["html"]
 
     assert "<img" not in html
+    assert '<div class="ritratto"' not in html
+
+
+@pytest.mark.asyncio
+async def test_con_la_foto_il_ritratto_ha_un_alt_descrittivo(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    html = (await sv.build_vetrina({**DATI, "foto_url": "https://cdn.esempio.it/maria.jpg"}))["html"]
+
+    assert 'alt="Ritratto di Maria Restifo"' in html
+    assert 'class="ritratto"' in html
+
+
+@pytest.mark.asyncio
+async def test_i_colori_arrivano_dal_brand_kit_del_cliente_non_da_ciak(monkeypatch):
+    """Perimetro esterno: il giallo Ciak su un sito del cliente e' contaminazione."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+    kit = {"colore_primario": "#2F5D50", "colore_accento": "#C97B4A", "font": "Poppins"}
+
+    out = await sv.build_vetrina({**DATI, "brand_kit": kit})
+
+    assert out["brand_applicato"] is True
+    assert "#2F5D50" in out["html"]
+    assert "#C97B4A" in out["html"]
+    assert "#FACC15" not in out["html"]
+
+
+@pytest.mark.asyncio
+async def test_senza_brand_kit_niente_accento_inventato_e_lo_dice(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    out = await sv.build_vetrina(DATI)
+
+    assert out["brand_applicato"] is False
+    assert "#FACC15" not in out["html"]
+    assert "brand kit" in out["nota"].lower()
+
+
+@pytest.mark.asyncio
+async def test_un_colore_non_valido_non_finisce_nel_css(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+    kit = {"colore_primario": "verde bosco; }body{display:none", "colore_accento": "#C97B4A"}
+
+    out = await sv.build_vetrina({**DATI, "brand_kit": kit})
+
+    assert "display:none" not in out["html"]
+    assert out["brand_applicato"] is False
+
+
+@pytest.mark.asyncio
+async def test_il_form_non_si_stampa_se_non_ha_dove_recapitare(monkeypatch):
+    """Un form che perde i messaggi e' peggio di nessun form."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    out = await sv.build_vetrina(DATI)
+
+    assert out["form_attivo"] is False
+    assert "<form" not in out["html"]
+
+
+@pytest.mark.asyncio
+async def test_il_form_ha_label_vere_e_il_consenso_privacy(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    out = await sv.build_vetrina({
+        **DATI,
+        "form_action": "https://www.ciak.io/api/vetrina/abc/contatto",
+        "privacy_url": "https://mariarestifo.it/privacy",
+    })
+    html = out["html"]
+
+    assert out["form_attivo"] is True
+    for campo in ("nome", "email", "messaggio"):
+        assert f'<label for="{campo}"' in html
+    assert 'name="consenso"' in html and "required" in html
+    assert "informativa privacy" in html
+
+
+@pytest.mark.asyncio
+async def test_le_icone_sono_svg_non_emoji(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    html = (await sv.build_vetrina(DATI))["html"]
+
+    assert "<svg" in html
+    assert "✅" not in html and "❌" not in html and "✔" not in html
+
+
+@pytest.mark.asyncio
+async def test_il_movimento_rispetta_prefers_reduced_motion(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    html = (await sv.build_vetrina(DATI))["html"]
+
+    assert "prefers-reduced-motion" in html
+    # Senza JS il contenuto resta visibile: il reveal non nasconde nulla di critico.
+    assert "IntersectionObserver" in html and "classList.add('visibile')" in html
 
 
 @pytest.mark.asyncio
@@ -133,7 +247,7 @@ async def test_i_contatti_mancanti_non_diventano_recapiti_finti(monkeypatch):
     out = await sv.build_vetrina({**DATI, "email_contatto": None})
 
     assert "mailto:" not in out["html"]
-    assert "Recapiti da inserire" in out["html"]
+    assert "Da inserire prima di pubblicare" in out["html"]
 
 
 @pytest.mark.asyncio
@@ -148,3 +262,53 @@ async def test_il_titolo_di_sezione_non_resta_minuscolo(monkeypatch):
     html = (await sv.build_vetrina(DATI))["html"]
 
     assert "<h2>Formazione per terapisti del massaggio thai</h2>" in html
+
+
+@pytest.mark.asyncio
+async def test_senza_javascript_la_pagina_resta_leggibile(monkeypatch):
+    """Il difetto trovato guardando il render, non i test.
+
+    Con `.rivela{opacity:0}` incondizionato, un browser senza JS mostrava una
+    pagina bianca. Ora il reveal e' subordinato alla classe `js`, che aggiunge
+    lo script stesso: niente JS, nessun nascondimento.
+    """
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    html = (await sv.build_vetrina(DATI))["html"]
+
+    import re
+
+    assert "classList.add('js')" in html
+    # Ogni regola che azzera l'opacita' deve essere condizionata alla classe `js`.
+    # I commenti CSS si tolgono prima: citano la regola sbagliata per spiegarla.
+    css = re.sub(r"/\*.*?\*/", "", html, flags=re.S)
+    regole = re.findall(r"([^\s{;]*\s*\.rivela[^{]*)\{opacity:0", css)
+    assert regole, "il reveal non c'e' piu': aggiorna il test"
+    for regola in regole:
+        assert regola.strip().startswith(".js "), f"reveal non condizionato al JS: {regola}"
+
+
+def test_il_contrasto_si_calcola_come_wcag():
+    assert sv.contrasto("#FFFFFF", "#000000") == 21.0
+    assert sv.contrasto("#24463C", "#FFFFFF") > 7
+
+
+@pytest.mark.asyncio
+async def test_un_accento_troppo_chiaro_non_viene_usato_dove_serve_leggerlo(monkeypatch):
+    """Il cliente sceglie i suoi colori, e puo' sceglierne uno illeggibile.
+
+    Un giallo chiaro come stroke delle icone sparisce sul fondo chiaro: dove
+    l'accento porta significato si ripiega sul primario. Resta l'accento dove
+    e' solo decorazione.
+    """
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+    kit = {"colore_primario": "#24463C", "colore_accento": "#FAF089", "colore_fondo": "#FFFFFF"}
+
+    palette, presente = sv.palette_da_brand_kit(kit)
+
+    assert presente is True
+    assert palette["accento"] == "#FAF089"
+    assert palette["accento_forte"] == "#24463C"
+
+    html = (await sv.build_vetrina({**DATI, "brand_kit": kit}))["html"]
+    assert 'stroke="var(--accento-forte)"' in html
