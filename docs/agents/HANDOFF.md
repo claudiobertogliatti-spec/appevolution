@@ -23,10 +23,10 @@ Regole:
   da regressioni ASGI locali autenticate e deterministiche.
 
 **DICHIARATO**
-- Commit locale previsto: `refactor(lancio): retire duplicate calendar generator`.
 - Nessun deploy o push eseguito: restano di competenza della Task 8.
 
 **VERIFICATO**
+- Commit applicativo locale `da7b99bf` (`refactor(lancio): retire duplicate calendar generator`).
 - TDD RED: l'alias entrava ancora nel generatore autonomo e falliva tentando di leggere
   `partner_posizionamento`; GREEN mirato: `2 passed`.
 - E2E locale autenticato: 401 senza token; v1 creata/modificata/inviata; partner respinto
