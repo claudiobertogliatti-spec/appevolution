@@ -1,6 +1,10 @@
 import pytest
 
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION
+from services.journey_completion import (
+    approved_calendar_workbook_binding,
+    evaluate_step_completion,
+)
 
 
 pytestmark = pytest.mark.unit
@@ -72,3 +76,48 @@ def test_valida_keeps_legacy_phase_projection_ordered():
     assert _step("08-registra-masterclass")["fase_legacy"] == "F4"
     assert _step("10-sistema-vendita")["fase_legacy"] == "F5"
     assert _step("11-calendario-30gg")["fase_legacy"] == "F6"
+
+
+def test_launch_calendar_policy_is_governed():
+    failed = evaluate_step_completion(
+        "11-calendario-30gg", {"launch_calendar_approved": False}
+    )
+
+    assert failed.ok is False
+    assert failed.code == "launch_calendar_not_approved"
+
+    passed = evaluate_step_completion(
+        "11-calendario-30gg", {"launch_calendar_approved": True}
+    )
+
+    assert passed.ok is True
+
+
+def test_workbook_identity_changes_when_journey_provenance_changes():
+    calendar_context = {
+        "launch_calendar_approved": True,
+        "calendar_version": 2,
+        "calendar_checksum": "calendar-checksum",
+        "approved_at": "2026-08-13T10:00:00+00:00",
+    }
+    renderer_source = {"renderer_source_checksum": "renderer-checksum"}
+
+    first = approved_calendar_workbook_binding(
+        calendar_context,
+        {
+            "journey_source_checksum": "journey-checksum-v1",
+            "journey_steps": [{"step_id": "12-prezzo-webinar", "data": {"audit": 1}}],
+        },
+        renderer_source,
+    )
+    second = approved_calendar_workbook_binding(
+        calendar_context,
+        {
+            "journey_source_checksum": "journey-checksum-v2",
+            "journey_steps": [{"step_id": "12-prezzo-webinar", "data": {"audit": 2}}],
+        },
+        renderer_source,
+    )
+
+    assert first["provenance"] != second["provenance"]
+    assert first["source_version"] != second["source_version"]

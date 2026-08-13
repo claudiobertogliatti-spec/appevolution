@@ -3,15 +3,21 @@
 Chiamato una volta allo startup (server.py, `start_background_services`).
 `create_index` è idempotente: creare un indice già esistente è un no-op.
 
-Gli indici sono NON unique di proposito: velocizzano le lookup senza rischiare
-un fallimento di build su eventuali duplicati nei dati esistenti. Ogni indice è
-protetto da try/except: il fallimento di uno non blocca gli altri né lo startup.
+Gli indici a campo singolo sono NON unique di proposito: velocizzano le lookup
+senza rischiare un fallimento di build su eventuali duplicati nei dati esistenti.
+Le nuove risorse versionate dichiarano invece il proprio vincolo unico. Ogni
+indice è protetto da try/except: il fallimento di uno non blocca gli altri né lo
+startup.
 
 Coprono i campi usati nei `find`/`find_one` più frequenti del backend.
 """
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class CriticalIndexError(RuntimeError):
+    """Un vincolo dati indispensabile non e' stato reso disponibile."""
 
 # (collection, campo) — indici a campo singolo, ascendente.
 _INDEXES = [
@@ -37,6 +43,43 @@ _INDEXES = [
     ("agent_tasks", "collaborator_settlement_id"),
 ]
 
+_CRITICAL_COMPOUND_INDEXES = [
+    (
+        "partner_launch_calendar_versions",
+        [("partner_id", 1), ("version", 1)],
+        {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
+    ),
+    (
+        "partner_document_versions",
+        [
+            ("partner_id", 1),
+            ("kind", 1),
+            ("source_version", 1),
+        ],
+        {
+            "unique": True,
+            "name": "partner_document_versions_workbook_source_unique",
+            "partialFilterExpression": {
+                "provenance.calendar_version": {"$exists": True},
+            },
+        },
+    ),
+    (
+        "partner_document_version_counters",
+        [("partner_id", 1), ("kind", 1)],
+        {
+            "unique": True,
+            "name": "partner_document_version_counters_partner_kind_unique",
+        },
+    ),
+]
+
+_RETIRED_CRITICAL_INDEXES = [
+    (
+        "partner_document_versions",
+        "partner_document_versions_workbook_calendar_unique",
+    ),
+]
 
 async def ensure_indexes(db):
     """Crea (idempotente) gli indici sulle collezioni calde. Ritorna un riepilogo."""
@@ -49,5 +92,36 @@ async def ensure_indexes(db):
         except Exception as e:  # pragma: no cover - difensivo, non deve bloccare lo startup
             failed += 1
             logger.warning(f"[INDEXES] {coll}.{field}: {e}")
-    logger.info(f"[INDEXES] ensure_indexes: {created} ok, {failed} falliti su {len(_INDEXES)}")
-    return {"ok": created, "failed": failed, "total": len(_INDEXES)}
+    for coll, index_name in _RETIRED_CRITICAL_INDEXES:
+        collection = db[coll]
+        index_information = getattr(collection, "index_information", None)
+        if not callable(index_information):
+            continue
+        try:
+            indexes = await index_information()
+            if index_name in indexes:
+                try:
+                    await collection.drop_index(index_name)
+                except Exception:
+                    # Startup concorrenti possono averlo gia' rimosso: conta lo
+                    # stato finale, non chi ha vinto la migrazione.
+                    indexes = await index_information()
+                    if index_name in indexes:
+                        raise
+        except Exception as exc:
+            raise CriticalIndexError(
+                f"Impossibile ritirare l'indice critico obsoleto {index_name}"
+            ) from exc
+    for coll, fields, options in _CRITICAL_COMPOUND_INDEXES:
+        try:
+            await db[coll].create_index(fields, **options)
+            created += 1
+        except Exception as exc:
+            index_name = options.get("name", "compound index")
+            label = "calendar version index" if coll == "partner_launch_calendar_versions" else index_name
+            raise CriticalIndexError(
+                f"Impossibile creare l'indice critico {label} {coll}.{fields}"
+            ) from exc
+    total = len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
+    logger.info(f"[INDEXES] ensure_indexes: {created} ok, {failed} falliti su {total}")
+    return {"ok": created, "failed": failed, "total": total}

@@ -108,6 +108,9 @@ jobs:
           tests/test_proposta_finalization_race.py
           tests/test_ciak_delivery_gaps.py
           tests/test_blueprint_delivery_durability.py
+          tests/test_launch_calendar.py
+          tests/test_editorial_calendar_api.py
+          tests/test_calendario_lancio.py
 
   frontend:
     name: Frontend (build smoke)
@@ -127,6 +130,10 @@ jobs:
       - name: Install
         working-directory: frontend
         run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Calendar review tests
+        working-directory: frontend
+        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali

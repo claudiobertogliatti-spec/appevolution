@@ -1,291 +1,362 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import axios from "axios";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
-import axios from "axios";
 import { authHeaders } from "../../api";
-import { Link } from "react-router-dom";
 
-const FORMATI = ["Reel", "Carosello", "Post", "Storie"];
-const CTA_OPTIONS = [
-  "Segui",
-  "Guarda la masterclass",
-  "Iscriviti al webinar",
-  "Commenta",
-  "Salva + segui",
-  "Scrivimi",
-];
-
-const FORMATO_STYLE = {
-  Reel: "bg-rose-100 text-rose-700",
-  Carosello: "bg-indigo-100 text-indigo-700",
-  Post: "bg-emerald-100 text-emerald-700",
-  Storie: "bg-amber-100 text-amber-700",
+const STATUS = {
+  draft: { label: "Bozza", classes: "bg-slate-100 text-slate-700 border-slate-200" },
+  pending_review: { label: "In revisione", classes: "bg-amber-50 text-amber-800 border-amber-200" },
+  approved: { label: "Approvato", classes: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+  rejected: { label: "Da rivedere", classes: "bg-rose-50 text-rose-800 border-rose-200" },
 };
 
-/**
- * Step 11 — Calendario editoriale 30gg di lancio (Valida, agente Andrea).
- * Andrea genera il piano dal Posizionamento + outline del corso; il partner lo edita.
- * Rigenera tiene i giorni già toccati e riscrive solo quelli intatti.
- */
-export default function Step11Calendario({ step, partnerId, onComplete, onSaveDraft }) {
-  const _saved = step?.data?.calendario;
-  const [cal, setCal] = useState(_saved && typeof _saved === "object" ? _saved : null);
-  const [generating, setGenerating] = useState(false);
+const READINESS_MESSAGES = {
+  exactly_30_days: "Il calendario deve contenere esattamente 30 giorni.",
+  consecutive_dates: "Le date dei 30 giorni devono essere consecutive.",
+  live_day_28: "La diretta deve cadere al giorno 28.",
+  day_fields: "Completa tema, istruzioni, CTA, destinazione e routine di ogni giorno.",
+  canonical_enums: "Usa canale, formato e responsabile previsti per il calendario.",
+  https_destination_urls: "Inserisci un URL HTTPS valido per ogni destinazione.",
+  content_cadence: "Riequilibra la cadenza dei contenuti nel calendario.",
+  funnel_sequence: "Controlla la sequenza tra contenuti, live e checkout.",
+  organic_routine: "Completa la routine organica quotidiana.",
+  bonus_deadline: "Completa prezzo, bonus e scadenza nelle condizioni commerciali.",
+  partner_confirmation: "Completa la conferma del partner prima dell’invio.",
+  admin_approval: "L’approvazione di Marco viene registrata dopo la revisione.",
+};
+
+const EMPTY_TERMS = {
+  version: "",
+  contract_duration_months: 12,
+  contract_start_anchor: "payment_completed",
+  price: { price_id: "", amount_cent: "", currency: "EUR" },
+  bonus: { bonus_id: "", name: "", version: "", expires_at: "" },
+};
+
+function describeError(error, fallback) {
+  const response = error?.response;
+  const detail = response?.data?.detail;
+  if (detail?.code === "launch_calendar_not_ready") {
+    const checks = [...new Set(detail.failed_checks || [])].map((check) => READINESS_MESSAGES[check] || "Completa i controlli richiesti nel calendario.");
+    return { message: "Il calendario non è pronto per l’invio.", checks };
+  }
+  if (response?.status === 409) {
+    return { message: "Questa versione è cambiata altrove. Ricarica la pagina prima di proseguire.", checks: [] };
+  }
+  if (typeof detail === "string") return { message: detail, checks: [] };
+  if (detail?.message) return { message: detail.message, checks: [] };
+  return { message: fallback, checks: [] };
+}
+
+function calendarDates(calendar) {
+  return { start_date: calendar?.start_date || "", live_date: calendar?.live_date || "" };
+}
+
+function statusInfo(status) {
+  return STATUS[status] || STATUS.draft;
+}
+
+function formatDate(value) {
+  if (!value) return "Data non disponibile";
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
+function hasCompleteOrganicRoutine(calendar) {
+  const routine = calendar?.organic_routine;
+  const actions = routine?.actions;
+  return (
+    routine?.daily_minutes === 30
+    && ["interactions_target", "outreach_target", "dm_follow_up_target"].every((field) => Number.isInteger(routine[field]) && routine[field] > 0)
+    && ["interactions", "outreach", "dm_follow_up"].every((field) => typeof actions?.[field] === "string" && actions[field].trim())
+  );
+}
+
+function hasCompleteCommercialProposal(calendar) {
+  const terms = calendar?.commercial_terms;
+  const price = terms?.price;
+  const bonus = terms?.bonus;
+  const expiresAt = bonus?.expires_at;
+  const dayThirty = calendar?.days?.[29]?.date;
+  const expiresLocalDate = typeof expiresAt === "string" && /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/i.test(expiresAt)
+    ? expiresAt.slice(0, 10)
+    : null;
+  return (
+    typeof terms?.version === "string" && terms.version.trim()
+    && terms.contract_duration_months === 12
+    && terms.contract_start_anchor === "payment_completed"
+    && typeof price?.price_id === "string" && price.price_id.trim()
+    && Number.isInteger(price?.amount_cent) && price.amount_cent > 0
+    && typeof price?.currency === "string" && /^[A-Z]{3}$/.test(price.currency)
+    && ["bonus_id", "name", "version"].every((field) => typeof bonus?.[field] === "string" && bonus[field].trim())
+    && expiresLocalDate !== null && !Number.isNaN(new Date(expiresAt).valueOf())
+    && typeof dayThirty === "string" && expiresLocalDate > dayThirty
+  );
+}
+
+function ErrorNotice({ error }) {
+  if (!error) return null;
+  return (
+    <div role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+      <p>{error.message}</p>
+      {error.checks?.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-5">{error.checks.map((check) => <li key={check}>{check}</li>)}</ul>}
+    </div>
+  );
+}
+
+/** Step 11 — calendario lancio versionato, revisionato da Marco. */
+export default function Step11Calendario({ step, partnerId }) {
+  const [document, setDocument] = useState(null);
+  const [loadState, setLoadState] = useState("loading");
+  const [mutation, setMutation] = useState(null);
   const [error, setError] = useState(null);
+  const [dirty, setDirty] = useState(false);
+  const [dates, setDates] = useState({ start_date: "", live_date: "" });
+  const loadSequence = useRef(0);
+  const mutationSequence = useRef(0);
+  const mutationLocked = useRef(false);
 
-  // Tracciamento "toccato dall'utente" per la rigenerazione selettiva (chiave wi-di)
-  const [editedDays, setEditedDays] = useState(() => new Set());
-
-  const save = (next) => {
-    setCal(next);
-    if (onSaveDraft) onSaveDraft({ calendario: next });
-  };
-
-  const callGenerate = async () => {
-    const res = await axios.post(
-      `${API}/api/partner/calendar/generate`,
-      { partner_id: partnerId },
-      { headers: authHeaders() }
-    );
-    return res.data;
-  };
-
-  const genera = async () => {
-    setGenerating(true);
+  const loadCurrent = useCallback(async () => {
+    const sequence = ++loadSequence.current;
+    setLoadState("loading");
     setError(null);
     try {
-      const fresh = await callGenerate();
-      save(fresh);
-      setEditedDays(new Set());
-      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-      if (e?.response?.status === 400) {
-        setError(e.response.data?.detail || "Completa prima il Posizionamento.");
-      } else {
-        setError("Errore tecnico nella generazione. Riprova tra qualche minuto.");
+      const response = await axios.get(`${API}/api/partner/calendar/${partnerId}/versions/current`, { headers: authHeaders() });
+      if (sequence !== loadSequence.current) return;
+      setDocument(response.data);
+      setDates(calendarDates(response.data?.calendar));
+      setDirty(false);
+      setLoadState("ready");
+    } catch (requestError) {
+      if (sequence !== loadSequence.current) return;
+      if (requestError?.response?.status === 404) {
+        setDocument(null);
+        setDates({ start_date: "", live_date: "" });
+        setDirty(false);
+        setLoadState("missing");
+        return;
       }
-    } finally {
-      setGenerating(false);
+      setError(describeError(requestError, "Non riesco a caricare il calendario. Riprova."));
+      setLoadState("error");
     }
-  };
+  }, [partnerId]);
 
-  // Rigenera: tiene i giorni che il partner ha toccato, riscrive solo l'intatto
-  const rigenera = async () => {
-    if (!cal) return genera();
-    setGenerating(true);
+  useEffect(() => {
+    loadSequence.current += 1;
+    mutationSequence.current += 1;
+    mutationLocked.current = false;
+    setDocument(null);
     setError(null);
+    setDirty(false);
+    setMutation(null);
+  }, [partnerId]);
+
+  useEffect(() => { loadCurrent(); }, [loadCurrent]);
+
+  const beginMutation = (kind) => {
+    if (mutationLocked.current) return null;
+    mutationLocked.current = true;
+    const sequence = ++mutationSequence.current;
+    loadSequence.current += 1;
+    setMutation(kind);
+    setError(null);
+    return sequence;
+  };
+
+  const finishMutation = (sequence) => {
+    if (sequence !== mutationSequence.current) return;
+    mutationLocked.current = false;
+    setMutation(null);
+  };
+
+  const createVersion = async () => {
+    if (!dates.start_date || !dates.live_date) {
+      setError({ message: "Indica la data di inizio e la data della live.", checks: [] });
+      return;
+    }
+    const sequence = beginMutation("create");
+    if (!sequence) return;
     try {
-      const fresh = await callGenerate();
-      const merged = {
-        ...fresh,
-        weeks: (fresh.weeks || []).map((w, wi) => ({
-          ...w,
-          giorni: (w.giorni || []).map((g, di) => {
-            const old = cal.weeks?.[wi]?.giorni?.[di];
-            return editedDays.has(`${wi}-${di}`) && old ? { ...old, giorno: g.giorno } : g;
-          }),
-        })),
-      };
-      save(merged);
-      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-      setError("Errore tecnico nella rigenerazione. Riprova tra qualche minuto.");
+      const response = await axios.post(`${API}/api/partner/calendar/${partnerId}/versions`, dates, { headers: authHeaders() });
+      if (sequence !== mutationSequence.current) return;
+      setDocument(response.data);
+      setDates(calendarDates(response.data?.calendar));
+      setDirty(false);
+      setLoadState("ready");
+    } catch (requestError) {
+      if (sequence === mutationSequence.current) setError(describeError(requestError, "Non riesco a creare la nuova versione. Riprova."));
     } finally {
-      setGenerating(false);
+      finishMutation(sequence);
     }
   };
 
-  const setDayField = (wi, di, field, value) => {
-    setEditedDays((prev) => new Set(prev).add(`${wi}-${di}`));
-    const weeks = cal.weeks.map((w, i) => {
-      if (i !== wi) return w;
-      const giorni = w.giorni.map((g, j) => (j === di ? { ...g, [field]: value } : g));
-      return { ...w, giorni };
-    });
-    save({ ...cal, weeks });
+  const changeDay = (index, field, value) => {
+    if (document?.status !== "draft" || mutationLocked.current) return;
+    const days = (document.calendar?.days || []).map((day, dayIndex) => dayIndex === index ? { ...day, [field]: value } : day);
+    setDocument((current) => ({ ...current, calendar: { ...current.calendar, days } }));
+    setDirty(true);
   };
 
-  // ─── Stato vuoto: genera il calendario ────────────────────────────────
-  if (!cal) {
+  const changeTerms = (section, field, value) => {
+    if (document?.status !== "draft" || mutationLocked.current) return;
+    setDocument((current) => {
+      const terms = { ...EMPTY_TERMS, ...(current.calendar?.commercial_terms || {}) };
+      const nextTerms = section ? { ...terms, [section]: { ...(terms[section] || {}), [field]: value } } : { ...terms, [field]: value };
+      return { ...current, calendar: { ...current.calendar, commercial_terms: nextTerms } };
+    });
+    setDirty(true);
+  };
+
+  const saveDraft = async () => {
+    if (!document || document.status !== "draft" || !dirty) return;
+    const sequence = beginMutation("save");
+    if (!sequence) return;
+    try {
+      const response = await axios.put(
+        `${API}/api/partner/calendar/${partnerId}/versions/${document.version}/draft`,
+        { expected_checksum: document.checksum, calendar: document.calendar },
+        { headers: authHeaders() }
+      );
+      if (sequence !== mutationSequence.current) return;
+      setDocument(response.data);
+      setDates(calendarDates(response.data?.calendar));
+      setDirty(false);
+    } catch (requestError) {
+      if (sequence === mutationSequence.current) setError(describeError(requestError, "Le modifiche non sono state salvate. Nessuna conferma è stata inviata."));
+    } finally {
+      finishMutation(sequence);
+    }
+  };
+
+  const submitForReview = async () => {
+    if (!document || document.status !== "draft") return;
+    const sequence = beginMutation("submit");
+    if (!sequence) return;
+    try {
+      const response = await axios.post(
+        `${API}/api/partner/calendar/${partnerId}/versions/${document.version}/submit`,
+        { partner_confirmed: true, expected_checksum: document.checksum },
+        { headers: authHeaders() }
+      );
+      if (sequence !== mutationSequence.current) return;
+      setDocument(response.data);
+      setDirty(false);
+    } catch (requestError) {
+      if (sequence === mutationSequence.current) setError(describeError(requestError, "Il calendario non è stato inviato. Correggi i dati richiesti e riprova."));
+    } finally {
+      finishMutation(sequence);
+    }
+  };
+
+  if (loadState === "loading") {
+    return <StepBase step={step} title="Il tuo calendario di lancio"><p className="text-sm text-slate-500">Carico la versione del calendario…</p></StepBase>;
+  }
+
+  if (loadState === "error") {
     return (
-      <StepBase
-        step={step}
-        title="Il tuo piano dei primi 30 giorni"
-        secondaryNote="Per ogni giorno: cosa pubblicare per farti conoscere. È già pronto: tu pubblichi, con calma."
-      >
-        <div className="rounded-xl bg-slate-900 text-white p-5 text-center">
-          <p className="text-[14px] text-slate-300 mb-4 max-w-md mx-auto leading-relaxed">
-            Andrea costruisce 30 giorni di lancio: contenuti, canali, date, CTA, rimandi alla
-            masterclass e follow-up. Ti diamo la direzione; se vuoi anche i contenuti pronti,
-            puoi attivare il servizio extra.
-          </p>
-          <button
-            type="button"
-            onClick={genera}
-            disabled={generating}
-            className="bg-yellow-400 text-slate-900 font-bold text-[15px] px-6 py-3 rounded-xl hover:bg-yellow-500 transition disabled:opacity-50"
-          >
-            {generating ? "Andrea sta costruendo il calendario…" : "✨ Genera il calendario dei 30 giorni"}
-          </button>
-        </div>
-        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-slate-800">
-          <div className="font-semibold text-slate-900">Vuoi i contenuti gia' pronti?</div>
-          <p className="text-[13px] leading-relaxed mt-1">
-            Il calendario e' incluso. Post, script reel, email, grafiche o programmazione possono
-            essere prodotti dal team Evolution come servizio extra.
-          </p>
-          <Link to="/partner/servizi-extra" className="inline-flex mt-3 text-[13px] font-semibold text-blue-700 hover:text-blue-900">
-            Vedi i servizi extra →
-          </Link>
-        </div>
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      <StepBase step={step} title="Il tuo calendario di lancio" secondaryNote="Non creiamo una nuova versione finché il server non conferma che non ne esiste una.">
+        <ErrorNotice error={error} />
+        <button type="button" onClick={loadCurrent} disabled={Boolean(mutation)} className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">Riprova</button>
       </StepBase>
     );
   }
 
-  // ─── Calendario generato: editor ──────────────────────────────────────
-  const totGiorni = (cal.weeks || []).reduce((n, w) => n + (w.giorni || []).length, 0);
-  const canComplete = totGiorni >= 20;
+  if (loadState === "missing") {
+    return (
+      <StepBase step={step} title="Il tuo calendario di lancio" secondaryNote="Marco prepara una versione alla volta: potrai rivederla e inviarla senza perdere lo storico.">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <p className="mb-4 text-sm text-slate-700">Scegli le date. La diretta deve cadere al giorno 28.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-medium text-slate-800">Inizio calendario
+              <input aria-label="Inizio calendario" type="date" value={dates.start_date} disabled={Boolean(mutation)} onChange={(event) => setDates({ ...dates, start_date: event.target.value })} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100" />
+            </label>
+            <label className="text-sm font-medium text-slate-800">Data della live
+              <input aria-label="Data della live" type="date" value={dates.live_date} disabled={Boolean(mutation)} onChange={(event) => setDates({ ...dates, live_date: event.target.value })} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100" />
+            </label>
+          </div>
+          <button type="button" onClick={createVersion} disabled={Boolean(mutation)} className="mt-5 rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{mutation === "create" ? "Creo la versione…" : "Crea il calendario dei 30 giorni"}</button>
+        </div>
+        <ErrorNotice error={error} />
+      </StepBase>
+    );
+  }
+
+  const { calendar = {}, status, version, checksum, admin_review: adminReview } = document;
+  const days = calendar.days || [];
+  const editable = status === "draft";
+  const isMutating = Boolean(mutation);
+  const enoughDays = days.length === 30;
+  const state = statusInfo(status);
+  const routine = calendar.organic_routine || {};
+  const terms = { ...EMPTY_TERMS, ...(calendar.commercial_terms || {}) };
+  const price = { ...EMPTY_TERMS.price, ...(terms.price || {}) };
+  const bonus = { ...EMPTY_TERMS.bonus, ...(terms.bonus || {}) };
+  const canSubmit = editable && !dirty && enoughDays && hasCompleteOrganicRoutine(calendar) && hasCompleteCommercialProposal(calendar);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      {/* Voce dell'agente di fase */}
-      <div className="flex items-center gap-3 bg-amber-50 border-b border-amber-200 px-5 py-3.5">
-        <div className="w-11 h-11 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center font-bold text-xl flex-shrink-0">
-          A
-        </div>
-        <div>
-          <div className="text-xs text-slate-500 font-medium">Andrea · Fase Valida</div>
-          <div className="text-sm leading-snug text-slate-900">
-            Ecco i tuoi 30 giorni. Cambia i temi, sistema le CTA: il piano è tuo.
-          </div>
-        </div>
+    <StepBase step={step} title="Il tuo calendario di lancio" secondaryNote="Una versione approvata resta consultabile. Per cambiare rotta, crei una nuova versione.">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div><p className="text-sm font-semibold text-slate-900">Versione {version}</p><p className="mt-1 text-xs text-slate-500">Checksum: <span className="font-mono">{checksum}</span></p></div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${state.classes}`}>{state.label}</span>
+      </div>
+      {status === "pending_review" && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">In revisione da Marco. Non dichiariamo questo step concluso finché non arriva la decisione.</p>}
+      {status === "approved" && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">Versione approvata. È bloccata per proteggere quanto è stato confermato.</p>}
+      {status === "rejected" && <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">Da rivedere. Crea una nuova versione e inviala di nuovo quando è pronta.</p>}
+      {adminReview?.note && <p className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700"><span className="font-semibold text-slate-900">Nota di Marco:</span> {adminReview.note}</p>}
+
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+        <div><p className="text-xl font-bold text-slate-900">{days.length} di 30 giorni</p><p className="text-sm text-slate-600">Dal {formatDate(calendar.start_date)} · live il {formatDate(calendar.live_date)}</p></div>
+        <button type="button" onClick={createVersion} disabled={isMutating} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">{mutation === "create" ? "Creo la versione…" : "Rigenera nuova versione"}</button>
       </div>
 
-      <div className="px-5 py-5">
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 mb-5">
-          <div className="text-[13px] font-semibold text-slate-900">Base inclusa, produzione extra se vuoi</div>
-          <p className="text-[12.5px] text-slate-700 leading-relaxed mt-1">
-            Qui hai strategia, traccia e CTA per 30 giorni. Se vuoi risparmiare tempo, il team
-            Evolution puo' trasformare il calendario in contenuti pronti da pubblicare.
-          </p>
-          <Link to="/partner/servizi-extra" className="inline-flex mt-2 text-[12.5px] font-semibold text-blue-700 hover:text-blue-900">
-            Attiva contenuti di lancio / Calendario PRO →
-          </Link>
-        </div>
-
-        {(cal.weeks || []).map((w, wi) => (
-          <div key={wi} className="mb-6">
-            {/* Intestazione settimana */}
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-900 mb-3">
-              <span className="w-1 h-4 bg-yellow-400 rounded-sm" />
-              Settimana {wi + 1} — {w.obiettivo}
+      <div className="mt-5 space-y-3">
+        {days.map((day, index) => (
+          <section key={day.day || index} className="rounded-xl border border-slate-200 p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rounded-lg bg-slate-900 px-2.5 py-1 text-sm font-bold text-yellow-400">Giorno {day.day}</span><span className="text-sm font-medium text-slate-700">{formatDate(day.date)}</span><span className="text-xs text-slate-500">Canale: {day.channel || "—"} · Responsabile: {day.owner || "—"}</span></div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Formato
+                <select aria-label={`Formato del giorno ${day.day}`} disabled={!editable || isMutating} value={day.format || "reel"} onChange={(event) => changeDay(index, "format", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100"><option value="reel">reel</option><option value="carousel">carousel</option><option value="post">post</option><option value="stories">stories</option></select>
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tema
+                <input aria-label={`Tema del giorno ${day.day}`} disabled={!editable || isMutating} value={day.theme || ""} onChange={(event) => changeDay(index, "theme", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" />
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">CTA
+                <input aria-label={`CTA del giorno ${day.day}`} disabled={!editable || isMutating} value={day.cta || ""} onChange={(event) => changeDay(index, "cta", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" />
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">URL destinazione
+                <input aria-label={`Destinazione del giorno ${day.day}`} disabled={!editable || isMutating} type="url" value={day.destination_url || ""} onChange={(event) => changeDay(index, "destination_url", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" />
+              </label>
             </div>
-
-            {(w.giorni || []).map((g, di) => (
-              <div key={di} className="border border-slate-200 rounded-xl mb-3 overflow-hidden">
-                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-                  <div className="w-9 h-9 rounded-lg bg-slate-900 text-yellow-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    {g.giorno}
-                  </div>
-                  <select
-                    value={FORMATI.includes(g.formato) ? g.formato : "Reel"}
-                    onChange={(e) => setDayField(wi, di, "formato", e.target.value)}
-                    className={`text-[11.5px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 border-0 focus:outline-none cursor-pointer ${
-                      FORMATO_STYLE[g.formato] || "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {FORMATI.map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
-                  <input
-                    value={g.tema || ""}
-                    onChange={(e) => setDayField(wi, di, "tema", e.target.value)}
-                    placeholder="Tema / hook del contenuto"
-                    className="flex-1 text-[14px] font-semibold text-slate-900 bg-transparent focus:outline-none focus:bg-white rounded px-1"
-                  />
-                </div>
-
-                <div className="px-4 py-2.5 space-y-2">
-                  {/* Come farlo */}
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide flex-shrink-0 w-24">
-                      Come farlo
-                    </span>
-                    <input
-                      value={g.come_farlo || ""}
-                      onChange={(e) => setDayField(wi, di, "come_farlo", e.target.value)}
-                      placeholder="es. Parla a camera 30 secondi"
-                      className="flex-1 text-[12.5px] text-slate-600 bg-transparent focus:outline-none focus:bg-slate-50 rounded px-1"
-                    />
-                  </div>
-                  {/* Fonte */}
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide flex-shrink-0 w-24">
-                      Da dove nasce
-                    </span>
-                    <input
-                      value={g.fonte || ""}
-                      onChange={(e) => setDayField(wi, di, "fonte", e.target.value)}
-                      placeholder="es. Lezione 2 / Annuncio webinar"
-                      className="flex-1 text-[12.5px] text-slate-500 bg-transparent focus:outline-none focus:bg-slate-50 rounded px-1"
-                    />
-                  </div>
-                  {/* CTA */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide flex-shrink-0 w-24">
-                      Call to action
-                    </span>
-                    <select
-                      value={CTA_OPTIONS.includes(g.cta) ? g.cta : "Segui"}
-                      onChange={(e) => setDayField(wi, di, "cta", e.target.value)}
-                      className="text-[12px] text-slate-700 border border-slate-200 rounded-md px-2 py-1 bg-white focus:outline-none"
-                    >
-                      {CTA_OPTIONS.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+            <p className="mt-3 text-sm text-slate-600"><span className="font-medium text-slate-800">Routine DM:</span> {day.dm_action || "Non definita"}</p>
+          </section>
         ))}
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Footer azioni */}
-        <div className="flex flex-wrap gap-3 items-center pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-400 mr-auto">
-            {totGiorni} giorni · bozza salvata in automatico
-          </span>
-          <button
-            type="button"
-            onClick={rigenera}
-            disabled={generating}
-            className="bg-white border-2 border-slate-200 text-slate-600 font-semibold text-[13.5px] px-4 py-2.5 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
-          >
-            {generating ? "Rigenero…" : "↻ Rigenera (tengo ciò che hai cambiato)"}
-          </button>
-          <button
-            type="button"
-            onClick={() => onComplete && onComplete({ calendario: cal })}
-            disabled={!canComplete}
-            className="bg-yellow-400 text-slate-900 font-bold text-[15px] px-6 py-2.5 rounded-xl hover:bg-yellow-500 transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-          >
-            Salva e continua →
-          </button>
-        </div>
       </div>
-    </div>
+
+      <section className="mt-5 grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
+        <div><h3 className="text-sm font-semibold text-slate-900">Routine quotidiana</h3><p className="mt-1 text-sm text-slate-700">{routine.daily_minutes || "—"} minuti · {routine.interactions_target || "—"} interazioni · {routine.outreach_target || "—"} contatti · {routine.dm_follow_up_target || "—"} follow-up DM</p></div>
+        <div><h3 className="text-sm font-semibold text-slate-900">Bonus e scadenza</h3><p className="mt-1 text-sm text-slate-700">{bonus.name || "Bonus da completare in bozza"}{bonus.expires_at ? ` · scade ${formatDate(bonus.expires_at.slice(0, 10))}` : ""}</p></div>
+      </section>
+
+      <section className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="text-sm font-semibold text-slate-900">Condizioni commerciali</h3>
+        <p className="mt-1 text-xs text-slate-500">Sono dati di proposta nella bozza: Marco li verifica e li attesta prima dell’approvazione.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Versione catalogo<input aria-label="Versione catalogo" disabled={!editable || isMutating} value={terms.version} onChange={(event) => changeTerms(null, "version", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price ID<input aria-label="Price ID" disabled={!editable || isMutating} value={price.price_id} onChange={(event) => changeTerms("price", "price_id", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Importo (centesimi)<input aria-label="Importo centesimi" type="number" min="1" disabled={!editable || isMutating} value={price.amount_cent} onChange={(event) => changeTerms("price", "amount_cent", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Valuta<input aria-label="Valuta" maxLength="3" disabled={!editable || isMutating} value={price.currency} onChange={(event) => changeTerms("price", "currency", event.target.value.toUpperCase())} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Durata contratto (mesi)<input aria-label="Durata contratto mesi" type="number" disabled={!editable || isMutating} value={terms.contract_duration_months} onChange={(event) => changeTerms(null, "contract_duration_months", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Decorrenza contratto<select aria-label="Decorrenza contratto" disabled={!editable || isMutating} value={terms.contract_start_anchor} onChange={(event) => changeTerms(null, "contract_start_anchor", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100"><option value="payment_completed">payment_completed</option></select></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Bonus ID<input aria-label="Bonus ID" disabled={!editable || isMutating} value={bonus.bonus_id} onChange={(event) => changeTerms("bonus", "bonus_id", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nome bonus<input aria-label="Nome bonus" disabled={!editable || isMutating} value={bonus.name} onChange={(event) => changeTerms("bonus", "name", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Versione bonus<input aria-label="Versione bonus" disabled={!editable || isMutating} value={bonus.version} onChange={(event) => changeTerms("bonus", "version", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Scadenza bonus<input aria-label="Scadenza bonus" placeholder="2026-10-01T23:59:59+02:00" disabled={!editable || isMutating} value={bonus.expires_at} onChange={(event) => changeTerms("bonus", "expires_at", event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case text-slate-800 disabled:bg-slate-100" /></label>
+        </div>
+      </section>
+
+      <ErrorNotice error={error} />
+      {editable && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5"><p className="text-xs text-slate-500">Le modifiche diventano reali solo dopo il salvataggio sul server.</p>{dirty ? <button type="button" onClick={saveDraft} disabled={isMutating} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{mutation === "save" ? "Salvo…" : "Salva modifiche"}</button> : <button type="button" onClick={submitForReview} disabled={isMutating || !canSubmit} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50">{mutation === "submit" ? "Invio…" : "Invia a Marco per la revisione"}</button>}</div>}
+    </StepBase>
   );
 }

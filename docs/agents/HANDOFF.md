@@ -12,6 +12,44 @@ Regole:
 
 ---
 
+### 2026-08-13 · Codex · codex/strategia-lancio-ottimizza — ritiro generatore legacy calendario F-14
+
+**FATTO**
+- `POST /api/partner-journey/lancio/genera-calendario` non contiene piu' prompt, parser,
+  fallback o scritture in `partner_lancio`: e' un alias deprecato che richiede le date e
+  delega alla creazione versionata canonica `/api/partner/calendar/{partner_id}/versions`.
+- L'alias restituisce `201`, `Deprecation: true` e `Sunset`; il frontend usa gia' soltanto
+  gli endpoint canonici. La vecchia suite HTTP verso il dominio preview e' stata sostituita
+  da regressioni ASGI locali autenticate e deterministiche.
+
+**DICHIARATO**
+- Nessun deploy o push eseguito: restano di competenza della Task 8.
+
+**VERIFICATO**
+- Commit applicativo locale `da7b99bf` (`refactor(lancio): retire duplicate calendar generator`).
+- TDD RED: l'alias entrava ancora nel generatore autonomo e falliva tentando di leggere
+  `partner_posizionamento`; GREEN mirato: `2 passed`.
+- E2E ASGI locale con token di test: 401 senza token; v1 creata/modificata/inviata; partner respinto
+  con 403 sulla review; rifiuto admin con nota; v2 creata, approvata e F-14 `done`;
+  Workbook archiviato con provenance e contenuto della v2 (tema v1/bozza assenti dal payload
+  renderer); v1 ancora leggibile e non modificabile (409). Non e' uno smoke pre-produzione.
+- Backend rilevante: `168 passed, 2 skipped` sui cinque file indicati dal brief.
+- Fix round 1: collection dal vero `working-directory: backend` -> `2 tests collected`;
+  allowlist backend CI aggiornata ed eseguita con le quattro env del workflow -> `326 passed`.
+- Frontend mirato, eseguito da copia temporanea fuori da `.worktrees`: `2 suites passed`,
+  `19 tests passed`. Build col gate CI versionato (`DISABLE_ESLINT_PLUGIN=true CI=false`):
+  compilata, bundle `main.d490b250.js`, postbuild Ciak completato.
+- La build letterale con `CI=true` e' invece bloccata dai warning `exhaustive-deps`
+  preesistenti in 12 file estranei; nessun warning riguarda i due componenti calendario.
+
+**APERTO**
+- Gate obbligatorio Task 8, solo dopo la release: smoke autenticato pre-produzione con partner
+  autorizzato sui dieci passaggi del brief — genera v1, modifica/autosave, invia a Marco,
+  partner non approva, admin respinge con nota, genera v2, admin approva, F-14 `done`, Workbook
+  su v2, v1 disponibile e immutata. Conservare prova per ogni passaggio.
+- Non e' stato usato alcun token o dato partner reale in Task 7; Task 7 e' verificata localmente,
+  non live/pre-produzione. Task 8 include inoltre review finale, push, CI e deploy.
+
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 
 **FATTO**
@@ -261,6 +299,27 @@ Dettagli operativi: [`docs/migration/journey-f20-release.md`](../migration/journ
   è disponibile una configurazione/CLI autenticata per forzarlo in sicurezza.
 - Non eseguiti per vincolo: pagamento reale €27/€2.790 e firma reale. Il 403 live con token di
   ruolo non-admin non è stato provato perché lo smoke doveva restare anonimo e senza credenziali.
+
+---
+
+### 2026-08-12 · Codex · codex/strategia-lancio-ottimizza — strategia Lancio/Ottimizza consolidata
+
+**FATTO**
+- Consolidata in `docs/superpowers/specs/2026-08-12-lancio-30gg-ottimizza-60gg-design.md`
+  la strategia approvata da Claudio per lancio ibrido di 30 giorni, gate live, tracking,
+  advertising, ciclo Ottimizza di 60 giorni, marginalita', casi studio e continuita' EVO-S.
+- Dopo l'approvazione della spec, scritto il primo piano eseguibile in
+  `docs/superpowers/plans/2026-08-12-lancio-30gg-f14.md`: F-14 canonico, versioni append-only,
+  review Marco, gate backend, UI partner/admin, ritiro del generatore duplicato e release.
+- Nessuna modifica applicativa: il documento resta il gate precedente al piano di implementazione.
+
+**VERIFICATO**
+- Specifica costruita su `origin/main` nel worktree isolato; autoverifica senza placeholder,
+  conflitti tra durata contrattuale/cicli o riferimenti operativi al vecchio calendario da 90 giorni.
+
+**APERTO**
+- Scegliere modalita' di esecuzione del piano F-14. Dopo F-14 restano tre piani separati:
+  tracking/ads, ciclo Ottimizza 60 giorni, casi studio/rinnovi.
 
 ---
 

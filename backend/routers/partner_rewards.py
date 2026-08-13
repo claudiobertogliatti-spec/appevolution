@@ -123,7 +123,18 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     brand_kit = await db.partner_brand_kits.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
     funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
-
+    launch_calendar_document = await db.partner_launch_calendar_versions.find_one(
+        {"partner_id": partner_id, "status": "approved"},
+        {"_id": 0},
+        sort=[("version", -1)],
+    ) or {}
+    from services.journey_completion import approved_launch_calendar_context
+    launch_calendar_evidence = approved_launch_calendar_context(launch_calendar_document)
+    launch_calendar = (
+        launch_calendar_document.get("calendar")
+        if launch_calendar_evidence.get("launch_calendar_approved")
+        else {}
+    )
     return {
         "partner": partner,
         "steps": steps,
@@ -133,7 +144,134 @@ async def _load_context(partner_id: str) -> dict[str, Any]:
         "videocorso": videocorso,
         "brand_kit": brand_kit,
         "funnel": funnel,
+        "launch_calendar": launch_calendar,
+        "launch_calendar_version": launch_calendar_evidence.get("calendar_version"),
+        "launch_calendar_checksum": launch_calendar_evidence.get("calendar_checksum"),
+        "launch_calendar_approved_at": launch_calendar_evidence.get("approved_at"),
     }
+
+
+def _workbook_payload(ctx: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {**section, "filled": not _e_segnaposto(section.get("body", ""))}
+        for section in _project_sections(ctx)
+    ]
+    return {
+        "partner_name": _partner_name(ctx["partner"]),
+        "project_name": _project_name(ctx),
+        "start_date": _start_date(ctx),
+        "fase_attuale": _fase_attuale(ctx),
+        "sections": sections,
+    }
+
+
+def _workbook_binding(
+    ctx: dict[str, Any], payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    from services.journey_completion import (
+        approved_calendar_workbook_binding,
+        final_workbook_journey_source,
+        workbook_renderer_source,
+    )
+
+    calendar_context = {
+        "launch_calendar_approved": bool(ctx.get("launch_calendar")),
+        "calendar_version": ctx.get("launch_calendar_version"),
+        "calendar_checksum": ctx.get("launch_calendar_checksum"),
+        "approved_at": ctx.get("launch_calendar_approved_at"),
+    }
+    if not calendar_context["launch_calendar_approved"]:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_not_approved",
+                "message": "Il Workbook richiede un calendario di lancio approvato",
+            },
+        )
+    journey_source = final_workbook_journey_source(ctx.get("steps_by_id") or {})
+    renderer_source = workbook_renderer_source(payload or _workbook_payload(ctx))
+    binding = approved_calendar_workbook_binding(
+        calendar_context, journey_source, renderer_source
+    )
+    if not binding:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_not_ready",
+                "message": "Il Workbook finale richiede il completamento verificato di F-15–F-18",
+            },
+        )
+    return binding
+
+
+async def _approved_workbook(ctx: dict[str, Any], partner_id: str):
+    f19_status = ((ctx.get("steps_by_id") or {}).get("19-workbook-finale") or {}).get(
+        "status"
+    )
+    if f19_status not in ("in_progress", "done"):
+        return None
+    payload = _workbook_payload(ctx)
+    binding = _workbook_binding(ctx, payload)
+    return await db.partner_document_versions.find_one(
+        {
+            "partner_id": partner_id,
+            "kind": "workbook_final",
+            "source_version": binding["source_version"],
+        },
+        {"_id": 0},
+    )
+
+
+async def _ensure_approved_workbook(ctx: dict[str, Any], partner_id: str):
+    from services.partner_document_versions import archive_document_version
+
+    payload = _workbook_payload(ctx)
+    binding = _workbook_binding(ctx, payload)
+    f19_status = ((ctx.get("steps_by_id") or {}).get("19-workbook-finale") or {}).get(
+        "status"
+    )
+    if f19_status not in ("in_progress", "done"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_not_ready",
+                "message": "F-19 deve essere in corso prima di generare il Workbook finale",
+            },
+        )
+    existing = await db.partner_document_versions.find_one(
+        {
+            "partner_id": partner_id,
+            "kind": "workbook_final",
+            "source_version": binding["source_version"],
+        },
+        {"_id": 0},
+    )
+    if existing:
+        return existing
+    if f19_status == "done":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "final_workbook_state_inconsistent",
+                "message": "F-19 risulta completato senza il Workbook della source corrente",
+            },
+        )
+    try:
+        workbook_pdf = await genera_project_book_pdf(payload)
+    except Exception:
+        logging.exception("[project-book] render HTML fallito, fallback reportlab")
+        workbook_pdf = render_project_book_pdf(payload)
+    archived = await archive_document_version(
+        db,
+        partner_id,
+        "workbook_final",
+        binding["source_version"],
+        workbook_pdf,
+        provenance=binding["provenance"],
+    )
+    return await db.partner_document_versions.find_one(
+        {"document_id": archived.document_id}, {"_id": 0}
+    )
 
 
 def _phase_step_ids(phase: str) -> list[str]:
@@ -386,7 +524,7 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
     story = _answers(steps.get("la-tua-storia"))
     brand_step = (steps.get("03-brand-kit") or {}).get("data") or {}
     vendita = (steps.get("10-sistema-vendita") or {}).get("data") or {}
-    calendar = (steps.get("11-calendario-30gg") or {}).get("data") or {}
+    calendar = ctx.get("launch_calendar") or {}
     launch = (steps.get("13-lancio") or {}).get("data") or {}
     ott = partner.get("ottimizzazione") or {}
 
@@ -472,6 +610,12 @@ def _project_sections(ctx: dict[str, Any]) -> list[dict[str, str]]:
         vendita_righe.append(_primo(vendita.get("note_sistema_vendita"), vendita.get("headline"), vendita.get("descrizione")))
 
     calendario = _primo(calendar.get("calendario"), calendar.get("summary"), calendar.get("piano"))
+    if not calendario and calendar.get("days"):
+        calendario = "\n".join(
+            f"Giorno {day.get('day')} · {day.get('format')}: {day.get('theme')} — CTA: {day.get('cta')}"
+            for day in calendar["days"]
+            if isinstance(day, dict)
+        )
 
     # Le 13 sezioni, nell'ordine del design approvato il 01/07/2026
     # (docs/superpowers/specs/2026-07-01-ciak-partner-libretto-attestati-design.md).
@@ -527,28 +671,27 @@ async def archive_final_documents(partner_id: str) -> dict:
     certificate = await archive_document_version(
         db, partner_id, "certificate_valida", source_version, certificate_pdf
     )
-    payload = {
-        "partner_name": _partner_name(ctx["partner"]), "project_name": _project_name(ctx),
-        "start_date": _start_date(ctx), "fase_attuale": _fase_attuale(ctx),
-        "sections": _project_sections(ctx),
-    }
-    try:
-        workbook_pdf = await genera_project_book_pdf(payload)
-    except Exception:
-        logging.exception("[project-book] render finale HTML fallito, fallback reportlab")
-        workbook_pdf = render_project_book_pdf(payload)
-    workbook = await archive_document_version(db, partner_id, "workbook_final", source_version, workbook_pdf)
 
     from routers.partner_journey import _OperativoCompleteBody, _complete_operativo_step_unchecked
-    for step_id in ("18-certificato-valida", "19-workbook-finale"):
-        current = await db.partner_journey_steps.find_one(
-            {"partner_id": partner_id, "step_id": step_id}, {"_id": 0, "status": 1}
+    certificate_step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "18-certificato-valida"},
+        {"_id": 0, "status": 1},
+    )
+    if certificate_step and certificate_step.get("status") != "done":
+        await _complete_operativo_step_unchecked(
+            partner_id, "18-certificato-valida", _OperativoCompleteBody(data={})
         )
-        if current and current.get("status") != "done":
-            await _complete_operativo_step_unchecked(
-                partner_id, step_id, _OperativoCompleteBody(data={})
-            )
-    return {"certificate_version": certificate.version, "workbook_version": workbook.version}
+    ctx = await _load_context(partner_id)
+    workbook = await _ensure_approved_workbook(ctx, partner_id)
+    workbook_step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "19-workbook-finale"},
+        {"_id": 0, "status": 1},
+    )
+    if workbook_step and workbook_step.get("status") != "done":
+        await _complete_operativo_step_unchecked(
+            partner_id, "19-workbook-finale", _OperativoCompleteBody(data={})
+        )
+    return {"certificate_version": certificate.version, "workbook_version": workbook["version"]}
 
 
 @router.get("/{partner_id}/state")
@@ -560,7 +703,12 @@ async def get_rewards_state(
     ctx = await _load_context(partner_id)
     ctx["partner_id"] = partner_id
     phases = _reward_state(ctx)
-    workbook = await _latest_document(partner_id, "workbook_final")
+    try:
+        workbook = await _approved_workbook(ctx, partner_id) if ctx.get("launch_calendar") else None
+    except HTTPException as exc:
+        if not isinstance(exc.detail, dict) or exc.detail.get("code") != "final_workbook_not_ready":
+            raise
+        workbook = None
     return {
         "success": True,
         "partner_id": partner_id,
@@ -643,35 +791,10 @@ async def download_project_book(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     await _require_partner_access(partner_id, credentials)
-    archived = await _latest_document(partner_id, "workbook_final")
-    if archived:
-        return Response(
-            content=archived["content"], media_type="application/pdf",
-            headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
-        )
     ctx = await _load_context(partner_id)
-    # `filled` viaggia col payload: prima il renderer riderivava "sezione compilata"
-    # con una sua euristica piu' debole e l'indice del PDF marcava Compilata anche
-    # una sezione che diceva "l'offerta non e' ancora stata definita" (12/08/2026).
-    # Un solo criterio, quello di `_e_segnaposto`.
-    sezioni = [{**s, "filled": not _e_segnaposto(s.get("body", ""))} for s in _project_sections(ctx)]
-    payload = {
-        "partner_name": _partner_name(ctx["partner"]),
-        "project_name": _project_name(ctx),
-        "start_date": _start_date(ctx),
-        "fase_attuale": _fase_attuale(ctx),
-        "sections": sezioni,
-    }
-    # Standard ufficiale: HTML brandizzato -> Playwright (memory/CIAK_WORKBOOK_STRATEGICO_TEMPLATE.md).
-    # Se chromium non e' disponibile si ripiega sul render reportlab, cosi' il partner
-    # riceve comunque il documento invece di un errore.
-    try:
-        pdf = await genera_project_book_pdf(payload)
-    except Exception:
-        logging.exception("[project-book] render HTML fallito, fallback reportlab")
-        pdf = render_project_book_pdf(payload)
+    archived = await _ensure_approved_workbook(ctx, partner_id)
     return Response(
-        content=pdf,
+        content=archived["content"],
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="libretto-progetto-ciak.pdf"'},
+        headers={"Content-Disposition": 'attachment; filename="workbook-finale-ciak.pdf"'},
     )

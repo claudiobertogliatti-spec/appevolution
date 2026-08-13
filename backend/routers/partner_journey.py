@@ -3,11 +3,11 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import os
 import asyncio
 import uuid
@@ -4515,6 +4515,8 @@ async def genera_caso_studio(
 
 class GeneraCalendarioRequest(BaseModel):
     partner_id: str
+    start_date: date
+    live_date: date
 
 class ExportCalendarioRequest(BaseModel):
     partner_id: str
@@ -4540,182 +4542,29 @@ async def get_calendario_lancio(
     }
 
 
-async def _rispecchia_calendario_su_step(partner_id: str, calendario: list, fallback: bool = False):
-    """Il calendario generato vive in `partner_lancio`, ma il Libretto di Progetto
-    lo legge dallo STEP `11-calendario-30gg` (`partner_rewards.py:365` e `:450`,
-    che cerca `data.calendario | data.summary | data.piano`). Senza questo ponte
-    la sezione del Libretto resta vuota anche dopo aver generato, e il collaudo
-    del percorso vede lo step a 0 campi (verificato su Andolfi il 06/08/2026).
-
-    Si scrive TESTO, non la lista grezza: `_primo()` fa `str()` sul valore, quindi
-    una lista di dict finirebbe nel PDF come letterale Python.
-    Lo `status` non si tocca: generare non e' approvare (regola 7 del protocollo).
-    Nessun upsert: se lo step non esiste non lo si inventa."""
-    righe = [
-        f"Giorno {g.get('giorno', '?')} - {g.get('tipo', '')} ({g.get('formato', '')}): {g.get('idea', '')}".strip()
-        for g in (calendario or []) if isinstance(g, dict)
-    ]
-    if not righe:
-        return
-    now = datetime.utcnow()
-    await db.partner_journey_steps.update_one(
-        {"partner_id": str(partner_id), "step_id": "11-calendario-30gg"},
-        {"$set": {
-            "data.calendario": "\n".join(righe),
-            "data.calendario_generated_at": now.isoformat(),
-            "data.calendario_fallback": fallback,
-            "updated_at": now,
-        }},
-    )
-
-
-@router.post("/lancio/genera-calendario")
+@router.post("/lancio/genera-calendario", status_code=status.HTTP_201_CREATED)
 async def genera_calendario_lancio(
     request: GeneraCalendarioRequest,
+    response: Response,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    """Genera il calendario editoriale di 30 giorni usando AI"""
-    await require_partner_or_admin_for_partner(request.partner_id, credentials)
-    partner = await get_partner_or_404(request.partner_id)
-    
-    # Recupera posizionamento
-    posizionamento = await db.partner_posizionamento.find_one(
-        {"partner_id": request.partner_id}, {"_id": 0}
+    """Alias legacy: usa lo stesso flusso versionato dell'endpoint canonico."""
+    from routers.editorial_calendar import (
+        CreateCalendarVersionBody,
+        create_calendar_version,
     )
-    
-    prompt = f"""Sei un social media strategist esperto di lanci di corsi online.
-Genera un calendario editoriale di 30 giorni per il lancio di un videocorso.
 
-PARTNER: {partner.get('name')}
-NICCHIA: {partner.get('niche', 'N/D')}
-
-POSIZIONAMENTO:
-- Studente ideale: {posizionamento.get('step_1_studente_ideale', 'N/D') if posizionamento else 'N/D'}
-- Obiettivo: {posizionamento.get('step_2_obiettivo', 'N/D') if posizionamento else 'N/D'}
-- Trasformazione: {posizionamento.get('step_3_trasformazione', 'N/D') if posizionamento else 'N/D'}
-- Metodo: {posizionamento.get('step_4_metodo', 'N/D') if posizionamento else 'N/D'}
-
-STRUTTURA:
-- Settimana 1 (giorni 1-7): ATTENZIONE - Far emergere il problema
-- Settimana 2 (giorni 8-14): AUTORITÀ - Mostrare competenza  
-- Settimana 3 (giorni 15-21): COINVOLGIMENTO - Preparare il pubblico
-- Settimana 4 (giorni 22-30): LANCIO - Vendere
-
-Per ogni giorno genera:
-- giorno: numero (1-30)
-- tipo: tipo di contenuto (es. "Storia personale", "Mini lezione", etc.)
-- idea: descrizione breve dell'idea
-- formato: uno tra "post", "reel", "story", "live", "carousel"
-- obiettivo: obiettivo specifico del contenuto
-
-Rispondi SOLO in formato JSON con questa struttura:
-{{
-  "calendario": [
-    {{"giorno": 1, "tipo": "...", "idea": "...", "formato": "post", "obiettivo": "..."}}
-  ]
-}}"""
-
-    try:
-        llm = await get_llm_chat()
-        
-        
-        response = await llm.send_message(UserMessage(text=prompt))
-        response_text = response.strip()
-        
-        # Parse JSON
-        if "```json" in response_text:
-            json_start = response_text.find("```json") + 7
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        elif "```" in response_text:
-            json_start = response_text.find("```") + 3
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        
-        calendario_data = json.loads(response_text)
-        calendario = calendario_data.get("calendario", [])
-        
-        # Salva
-        await db.partner_lancio.update_one(
-            {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "calendario": calendario,
-                    "calendario_generated_at": datetime.now(timezone.utc).isoformat()
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            upsert=True
-        )
-        await _rispecchia_calendario_su_step(request.partner_id, calendario)
-
-        return {
-            "success": True,
-            "calendario": calendario
-        }
-
-    except Exception as e:
-        logging.error(f"Calendario generation error: {e}")
-        # Fallback con calendario generico
-        fallback_calendario = generate_fallback_calendario()
-        
-        # Save fallback calendario to database
-        await db.partner_lancio.update_one(
-            {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "calendario": fallback_calendario,
-                    "calendario_generated_at": datetime.now(timezone.utc).isoformat(),
-                    "calendario_fallback": True
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            upsert=True
-        )
-        await _rispecchia_calendario_su_step(request.partner_id, fallback_calendario, fallback=True)
-
-        return {
-            "success": True,
-            "calendario": fallback_calendario,
-            "fallback": True
-        }
-
-
-def generate_fallback_calendario():
-    """Genera un calendario di fallback se l'AI fallisce"""
-    settimane = {
-        1: {"tema": "Attenzione", "tipi": ["Storia personale", "Errore comune", "Contenuto educativo", "Problema del pubblico", "Statistica shock", "Domanda provocatoria", "Mito da sfatare"]},
-        2: {"tema": "Autorità", "tipi": ["Mini lezione", "Case study", "Dietro le quinte", "Testimonianza", "Processo creativo", "Tool che uso", "Lezione appresa"]},
-        3: {"tema": "Coinvolgimento", "tipi": ["FAQ", "Risposta a obiezione", "Invito masterclass", "Countdown", "Sneak peek", "Sondaggio", "Q&A"]},
-        4: {"tema": "Lancio", "tipi": ["Apertura iscrizioni", "Bonus reveal", "Testimonianza", "Scadenza reminder", "FAQ corso", "Behind the scenes", "Ultimo giorno", "Chiusura", "Risultati"]}
-    }
-    
-    formati = ["post", "reel", "story", "carousel", "post", "reel", "live"]
-    calendario = []
-    
-    for giorno in range(1, 31):
-        settimana = min((giorno - 1) // 7 + 1, 4)
-        config = settimane[settimana]
-        tipo_idx = (giorno - 1) % len(config["tipi"])
-        formato_idx = (giorno - 1) % len(formati)
-        
-        calendario.append({
-            "giorno": giorno,
-            "tipo": config["tipi"][tipo_idx],
-            "idea": f"Contenuto {config['tema'].lower()} - {config['tipi'][tipo_idx]}",
-            "formato": formati[formato_idx],
-            "obiettivo": f"Obiettivo settimana {settimana}: {config['tema']}"
-        })
-    
-    return calendario
+    document = await create_calendar_version(
+        request.partner_id,
+        CreateCalendarVersionBody(
+            start_date=request.start_date,
+            live_date=request.live_date,
+        ),
+        credentials,
+    )
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = "Thu, 31 Dec 2026 23:59:59 GMT"
+    return document
 
 
 @router.post("/lancio/export-calendario")
@@ -7028,8 +6877,10 @@ async def _notify_admin_partner_activity(
         await notify_telegram(
             f"📥 {nome} {msg}" + (" (da approvare)" if requires_approval else "")
         )
+        return True
     except Exception as e:
         logging.warning(f"[OPERATIVO] notifica admin fallita per {partner_id}: {e}")
+        return False
 
 
 @router.post("/operativo/complete/{partner_id}/{step_id}")
@@ -7043,6 +6894,8 @@ async def complete_operativo_step(
     Merge del payload `data` con quello esistente (autosave drafts non si perdono).
     """
     await require_partner_or_admin_for_partner(partner_id, credentials)
+    if step_id == "11-calendario-30gg":
+        return await _complete_approved_launch_calendar_step(partner_id)
     return await _complete_operativo_step_unchecked(partner_id, step_id, body)
 
 
@@ -7066,6 +6919,15 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
     if step_id == "10-sistema-vendita":
         report = await _load_sales_readiness(partner_id)
         return {"sales_system_ready": report.ready}
+    if step_id == "11-calendario-30gg":
+        from services.journey_completion import approved_launch_calendar_context
+
+        calendar = await db.partner_launch_calendar_versions.find_one(
+            {"partner_id": partner_id, "status": "approved"},
+            {"_id": 0},
+            sort=[("version", -1)],
+        )
+        return approved_launch_calendar_context(calendar)
     if step_id == "16-readiness-lancio":
         report = await _load_launch_readiness(partner_id)
         return {"launch_readiness_verified": report.ready}
@@ -7078,11 +6940,414 @@ async def _trusted_completion_context(partner_id: str, step_id: str) -> dict:
         )
         return {"certificate_archived": bool((document or {}).get("checksum"))}
     if step_id == "19-workbook-finale":
+        from routers.partner_rewards import _load_context, _workbook_binding, _workbook_payload
+
+        workbook_context = await _load_context(partner_id)
+        payload = _workbook_payload(workbook_context)
+        binding = _workbook_binding(workbook_context, payload)
         document = await db.partner_document_versions.find_one(
-            {"partner_id": partner_id, "kind": "workbook_final"}, {"_id": 0, "checksum": 1}
+            {
+                "partner_id": partner_id,
+                "kind": "workbook_final",
+                "source_version": (binding or {}).get(
+                    "source_version", "__approved_calendar_and_journey_required__"
+                ),
+            },
+            {"_id": 0, "checksum": 1},
         )
         return {"workbook_archived": bool((document or {}).get("checksum"))}
     return {}
+
+
+async def _complete_approved_launch_calendar_step(partner_id: str) -> dict:
+    """Chiude F-14 usando solo i riferimenti della versione approved nel DB."""
+    trusted = await _trusted_completion_context(partner_id, "11-calendario-30gg")
+    from services.journey_completion import evaluate_step_completion
+
+    completion = evaluate_step_completion("11-calendario-30gg", trusted)
+    if not completion.ok:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": completion.code,
+                "message": completion.message,
+                "evidence": completion.evidence,
+            },
+        )
+    evidence = {
+        key: trusted.get(key)
+        for key in ("calendar_version", "calendar_checksum", "approved_at")
+        if trusted.get(key) is not None
+    }
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+    )
+    if not current:
+        raise HTTPException(404, f"Step 11-calendario-30gg non trovato per partner {partner_id}")
+    evidence_matches = all(
+        (current.get("data") or {}).get(key) == value for key, value in evidence.items()
+    )
+    if current.get("status") == "done" and evidence_matches and current.get(
+        "calendar_completion_effects_applied_at"
+    ):
+        return {
+            "success": True,
+            "completed_step": "11-calendario-30gg",
+            "next_step": None,
+            "idempotent": True,
+        }
+    claim_id = uuid.uuid4().hex
+    claim_now = datetime.now(timezone.utc)
+    claim_cutoff = claim_now - _F14_CLAIM_LEASE
+    claimed = await db.partner_journey_steps.update_one(
+        {
+            "partner_id": partner_id,
+            "step_id": "11-calendario-30gg",
+            "status": current.get("status"),
+            "$or": [
+                {"calendar_completion_claim_id": None},
+                {"calendar_completion_claimed_at": None},
+                {"calendar_completion_claimed_at": {"$lte": claim_cutoff}},
+            ],
+        },
+        {
+            "$set": {
+                "calendar_completion_claim_id": claim_id,
+                "calendar_completion_claimed_at": claim_now,
+            }
+        },
+    )
+    if not claimed.matched_count:
+        current = await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+        )
+        if current and current.get("calendar_completion_claim_id"):
+            return {
+                "success": True,
+                "completed_step": None,
+                "next_step": None,
+                "completion_in_progress": True,
+                "idempotent": True,
+            }
+        if current and current.get("status") == "done":
+            return await _complete_approved_launch_calendar_step(partner_id)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_completion_claim_conflict",
+                "message": "Il completamento F-14 e' cambiato durante il claim",
+            },
+        )
+    try:
+        if current.get("status") == "done":
+            evidence_refreshed = False
+            if not evidence_matches:
+                await _refresh_f14_evidence_fenced(partner_id, claim_id, evidence)
+                evidence_refreshed = True
+            if not current.get("calendar_completion_effects_applied_at"):
+                await _reconcile_launch_calendar_completion_effects(partner_id, claim_id)
+                return {
+                    "success": True,
+                    "completed_step": "11-calendario-30gg",
+                    "next_step": None,
+                    "evidence_refreshed": evidence_refreshed,
+                    "effects_recovered": True,
+                }
+            await _release_f14_claim(partner_id, claim_id)
+            return {
+                "success": True,
+                "completed_step": "11-calendario-30gg",
+                "next_step": None,
+                "evidence_refreshed": evidence_refreshed,
+            }
+
+        result = await _complete_f14_step_fenced(partner_id, claim_id, evidence)
+        await _refresh_f14_claim(partner_id, claim_id)
+        await _notify_admin_partner_activity(
+            partner_id, "ha completato: Calendario lancio 30gg"
+        )
+        await _reconcile_launch_calendar_completion_effects(partner_id, claim_id)
+    except BaseException:
+        await _release_f14_claim(partner_id, claim_id, require_valid_lease=False)
+        raise
+    latest = await _trusted_completion_context(partner_id, "11-calendario-30gg")
+    if any(latest.get(key) != evidence.get(key) for key in evidence):
+        await _complete_approved_launch_calendar_step(partner_id)
+    return result
+
+
+_F14_CLAIM_LEASE = timedelta(minutes=5)
+
+
+def _f14_owned_claim_query(partner_id: str, claim_id: str) -> dict:
+    return {
+        "partner_id": partner_id,
+        "step_id": "11-calendario-30gg",
+        "calendar_completion_claim_id": claim_id,
+        "calendar_completion_claimed_at": {
+            "$gt": datetime.now(timezone.utc) - _F14_CLAIM_LEASE
+        },
+    }
+
+
+def _claim_lost() -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": "launch_calendar_completion_claim_lost",
+            "message": "Il claim F-14 non e' piu' corrente o la lease e' scaduta",
+        },
+    )
+
+
+async def _refresh_f14_claim(partner_id: str, claim_id: str) -> None:
+    result = await db.partner_journey_steps.update_one(
+        _f14_owned_claim_query(partner_id, claim_id),
+        {"$set": {"calendar_completion_claimed_at": datetime.now(timezone.utc)}},
+    )
+    if not result.matched_count:
+        raise _claim_lost()
+
+
+async def _release_f14_claim(
+    partner_id: str, claim_id: str, *, require_valid_lease: bool = True
+) -> None:
+    query = (
+        _f14_owned_claim_query(partner_id, claim_id)
+        if require_valid_lease
+        else {
+            "partner_id": partner_id,
+            "step_id": "11-calendario-30gg",
+            "calendar_completion_claim_id": claim_id,
+        }
+    )
+    result = await db.partner_journey_steps.update_one(
+        query,
+        {
+            "$set": {
+                "calendar_completion_claim_id": None,
+                "calendar_completion_claimed_at": None,
+            }
+        },
+    )
+    if require_valid_lease and not result.matched_count:
+        raise _claim_lost()
+
+
+async def _complete_f14_step_fenced(
+    partner_id: str, claim_id: str, evidence: dict
+) -> dict:
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+    )
+    if not current or current.get("calendar_completion_claim_id") != claim_id:
+        raise _claim_lost()
+    now = datetime.now(timezone.utc)
+    current_data = dict(current.get("data") or {})
+    result = await db.partner_journey_steps.update_one(
+        {
+            **_f14_owned_claim_query(partner_id, claim_id),
+            "status": current.get("status"),
+            "data": current_data,
+        },
+        {
+            "$set": {
+                "status": "done",
+                "completed_at": now,
+                "data": {**current_data, **evidence},
+                "updated_at": now,
+            }
+        },
+    )
+    if not result.matched_count:
+        raise _claim_lost()
+    return {
+        "success": True,
+        "completed_step": "11-calendario-30gg",
+        "next_step": None,
+    }
+
+
+async def _refresh_f14_evidence_fenced(
+    partner_id: str, claim_id: str, evidence: dict
+) -> None:
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "11-calendario-30gg"}
+    )
+    if not current or current.get("calendar_completion_claim_id") != claim_id:
+        raise _claim_lost()
+    current_data = dict(current.get("data") or {})
+    result = await db.partner_journey_steps.update_one(
+        {
+            **_f14_owned_claim_query(partner_id, claim_id),
+            "status": "done",
+            "data": current_data,
+        },
+        {
+            "$set": {
+                "data": {**current_data, **evidence},
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
+    )
+    if not result.matched_count:
+        raise _claim_lost()
+
+
+async def _mark_launch_calendar_completion_effects_applied(
+    partner_id: str, claim_id: str
+) -> None:
+    result = await db.partner_journey_steps.update_one(
+        {
+            **_f14_owned_claim_query(partner_id, claim_id),
+            "status": "done",
+        },
+        {
+            "$set": {
+                "calendar_completion_effects_applied_at": datetime.now(timezone.utc),
+                "calendar_completion_claim_id": None,
+                "calendar_completion_claimed_at": None,
+            }
+        },
+    )
+    if not result.matched_count:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_completion_effects_not_recorded",
+                "message": "Impossibile registrare gli effetti del completamento F-14",
+            },
+        )
+
+
+async def _reconcile_launch_calendar_completion_effects(
+    partner_id: str, claim_id: str
+) -> None:
+    """Riconcilia il prossimo step canonico senza regredire un avanzamento reale."""
+    steps = await db.partner_journey_steps.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).to_list(length=50)
+    steps_by_id = {step.get("step_id"): step for step in steps}
+    canonical_after_f14 = sorted(
+        (
+            definition
+            for definition in JOURNEY_STEPS_DEFINITION
+            if definition["step_number"] > _STEP_NUMBER_BY_ID["11-calendario-30gg"]
+        ),
+        key=lambda definition: definition["step_number"],
+    )
+    if "12-prezzo-webinar" not in steps_by_id:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "launch_calendar_next_step_missing",
+                "message": "Lo step canonico F-15 non esiste: effetti F-14 non applicabili",
+            },
+        )
+
+    active = max(
+        (
+            step
+            for step in steps
+            if step.get("status") == "in_progress"
+            and _STEP_NUMBER_BY_ID.get(step.get("step_id"), 0)
+            > _STEP_NUMBER_BY_ID["11-calendario-30gg"]
+        ),
+        key=lambda step: _STEP_NUMBER_BY_ID.get(step.get("step_id"), 0),
+        default=None,
+    )
+    if active is None:
+        next_definition = next(
+            (
+                definition
+                for definition in canonical_after_f14
+                if (steps_by_id.get(definition["step_id"]) or {}).get("status")
+                not in ("done", "skipped")
+            ),
+            None,
+        )
+        if next_definition:
+            active = steps_by_id.get(next_definition["step_id"])
+            if not active:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "launch_calendar_next_step_missing",
+                        "message": f"Lo step canonico {next_definition['code']} non esiste",
+                    },
+                )
+            if active.get("status") != "pending":
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "launch_calendar_completion_effects_incomplete",
+                        "message": "Il prossimo step canonico non e' attivabile",
+                    },
+                )
+            await _refresh_f14_claim(partner_id, claim_id)
+            now = datetime.now(timezone.utc)
+            updated = await db.partner_journey_steps.update_one(
+                {
+                    "partner_id": partner_id,
+                    "step_id": active["step_id"],
+                    "status": "pending",
+                },
+                {"$set": {"status": "in_progress", "started_at": now, "updated_at": now}},
+            )
+            if not updated.matched_count:
+                active = await db.partner_journey_steps.find_one(
+                    {"partner_id": partner_id, "step_id": active["step_id"]}
+                )
+                if not active or active.get("status") != "in_progress":
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "code": "launch_calendar_completion_effects_incomplete",
+                            "message": "Il prossimo step canonico non e' stato attivato",
+                        },
+                    )
+            else:
+                active["status"] = "in_progress"
+
+    if active:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+        pointer = partner.get("journey_current_step")
+        pointer_step = steps_by_id.get(pointer) or {}
+        pointer_number = _STEP_NUMBER_BY_ID.get(pointer, 0)
+        active_number = _STEP_NUMBER_BY_ID.get(active.get("step_id"), 0)
+        pointer_is_advanced = (
+            pointer_number >= active_number and pointer_step.get("status") == "in_progress"
+        )
+        if not pointer_is_advanced:
+            await _refresh_f14_claim(partner_id, claim_id)
+            updated = await db.partners.update_one(
+                {"id": partner_id, "journey_current_step": pointer},
+                {"$set": {"journey_current_step": active["step_id"]}},
+            )
+            if not updated.matched_count:
+                partner = await db.partners.find_one({"id": partner_id}, {"_id": 0}) or {}
+            else:
+                partner["journey_current_step"] = active["step_id"]
+        pointer = partner.get("journey_current_step")
+        verified_pointer = await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "step_id": pointer}
+        )
+        if (
+            not verified_pointer
+            or verified_pointer.get("status") != "in_progress"
+            or _STEP_NUMBER_BY_ID.get(pointer, 0) < active_number
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "launch_calendar_completion_effects_incomplete",
+                    "message": "Impossibile verificare gli effetti del completamento F-14 sul pointer",
+                },
+            )
+
+    await _refresh_f14_claim(partner_id, claim_id)
+    await _project_legacy_phase(partner_id)
+    await _mark_launch_calendar_completion_effects_applied(partner_id, claim_id)
 
 
 async def _load_sales_readiness(partner_id: str):
@@ -7318,6 +7583,8 @@ async def admin_set_operativo_step_status(
     await require_admin_token(credentials)
     if body.status not in _JOURNEY_STATUSES:
         raise HTTPException(400, f"Stato non valido: {body.status}")
+    if step_id == "11-calendario-30gg" and body.status == "done":
+        return await _complete_approved_launch_calendar_step(partner_id)
 
     now = datetime.utcnow()
     current = await db.partner_journey_steps.find_one(
