@@ -3836,3 +3836,205 @@ async def retry_consegna_start(
         }},
     )
     return {"success": True, "recovery_id": body.recovery_id}
+
+
+# ─── Attivazione manuale Ciak Start ────────────────────────────────────────
+# Il caso reale: un ko paga da Payment Link statico. Non ha account (nasce solo
+# dal Blueprint 27 EUR), il webhook non lo riconosce (nessun metadata.tipo) e
+# l'endpoint /start/activate setta i flag ma non consegna l'accesso. Qui il
+# ciclo si chiude in una chiamata sola, partendo da una email.
+
+class AttivaStartRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    riferimento: Optional[str] = None
+
+
+@router.post("/start/attiva")
+async def attiva_ciak_start(
+    body: AttivaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Attiva Ciak Start per una email: account, entitlement, incasso, accesso."""
+    import uuid
+
+    from services.ciak_client_accounts import (
+        START_AMOUNT_CENTS,
+        build_start_entitlement_updates,
+        ensure_client_for_direct_start,
+        has_start_entitlement,
+    )
+    from services.ciak_start_delivery import deliver_start_access
+    from routers.stripe_webhook import _record_checkout_payment
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    email = (body.email or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(422, "Email non valida")
+
+    try:
+        client, created = await ensure_client_for_direct_start(db, email=email, name=body.name)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
+    already_active = has_start_entitlement(client)
+    now = datetime.now(timezone.utc).isoformat()
+    reference = (body.riferimento or "").strip() or f"admin:{uuid.uuid4().hex}"
+    actor = getattr(admin, "email", None) or "admin"
+
+    # Su chi e' gia' attivo non si riscrive niente e non si registra un secondo
+    # incasso: quella chiamata e' il caso «non mi e' arrivata la mail», e l'unica
+    # cosa che serve e' un link nuovo.
+    updates = {} if already_active else (
+        build_start_entitlement_updates(client, reference_id=reference, now=now) or {}
+    )
+    incasso_da_registrare = bool(updates)
+    events = [dict(item) for item in (client.get("events") or [])]
+    events.append({
+        "event": "ciak_start_activated_by_admin",
+        "timestamp": now,
+        "reference_id": reference,
+        "amount_cents": START_AMOUNT_CENTS if incasso_da_registrare else 0,
+        "by": actor,
+    })
+    await db.ciak_clients.update_one(
+        {"id": client["id"]},
+        {"$set": {**updates, "events": events, "updated_at": now}},
+    )
+
+    if incasso_da_registrare:
+        await _record_checkout_payment(
+            db,
+            session_id=reference,
+            tipo="ciak_start",
+            amount_cents=START_AMOUNT_CENTS,
+            email=email,
+            client_id=client["id"],
+        )
+
+    access_sent = await deliver_start_access(
+        db,
+        client_id=client["id"],
+        email=email,
+        name=body.name or client.get("name"),
+        paid_at=updates.get("start_purchased_at") or client.get("start_purchased_at") or now,
+        checkout_session_id=reference,
+    )
+    logger.info(
+        "[CIAK_ADMIN] Ciak Start attivato per %s da %s (creato=%s, accesso=%s)",
+        email, actor, created, access_sent,
+    )
+    return {
+        "success": True,
+        "client_id": client["id"],
+        "created": created,
+        "already_active": already_active,
+        "access_sent": access_sent,
+        "recovery_open": not access_sent,
+    }
+
+
+# ─── Pannello delle 3 tappe datate di Ciak Start ───────────────────────────
+# L'email di attivazione promette per iscritto tre consegne con date precise
+# (7/14/21 giorni da `start_purchased_at`). Fino a qui quelle date non le
+# ricordava nessuno. Con l'Edizione Settembre — 8 posti, partenza unica — sono
+# 24 consegne datate in 21 giorni tenute a memoria.
+#
+# Le regole stanno in `services/ciak_start_milestones.py`, che condivide con
+# l'email la stessa sorgente delle date. Qui restano solo le query.
+
+class SegnaTappaStartRequest(BaseModel):
+    client_id: str
+    tappa: int = Field(ge=1, le=3)
+    stato: str
+    riferimento: Optional[str] = None
+    nota: Optional[str] = None
+
+
+@router.get("/start/consegne")
+async def consegne_start(
+    _admin=Depends(require_ciak_admin),
+    max_items: int = Query(500, ge=1, le=2000),
+):
+    """Le 3 tappe promesse a ogni cliente Start, ordinate per urgenza."""
+    from services.ciak_client_accounts import ACCESS_START
+    from services.ciak_start_milestones import build_report
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    clients = await db.ciak_clients.find(
+        {"$or": [
+            {"access_level": ACCESS_START},
+            {"start_purchased_at": {"$nin": [None, ""]}},
+            {"start_credit_amount": {"$nin": [None, "", 0, "0"]}},
+        ]},
+        {
+            "_id": 0,
+            "id": 1,
+            "email": 1,
+            "name": 1,
+            "access_level": 1,
+            "start_purchased_at": 1,
+            "start_credit_amount": 1,
+            "start_progress": 1,
+        },
+    ).sort("start_purchased_at", -1).to_list(max_items)
+
+    return build_report(clients)
+
+
+@router.post("/start/consegne/segna")
+async def segna_tappa_start(
+    body: SegnaTappaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Segna una tappa come pronta da approvare o come consegnata.
+
+    Il pannello resta utile anche con la consegna fatta a mano — che e' la
+    situazione dei primi clienti: nessun generatore automatico e' richiesto qui.
+    """
+    from services.ciak_client_accounts import has_start_entitlement
+    from services.ciak_start_milestones import apply_milestone_status
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    client = await db.ciak_clients.find_one({"id": body.client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente non trovato")
+    if not has_start_entitlement(client):
+        raise HTTPException(409, "Il cliente non ha Ciak Start: nessuna tappa da consegnare")
+
+    actor = getattr(admin, "email", None) or "admin"
+    try:
+        progress = apply_milestone_status(
+            client,
+            tappa=body.tappa,
+            stato=body.stato,
+            attore=actor,
+            riferimento=(body.riferimento or "").strip() or None,
+            nota=(body.nota or "").strip() or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
+    await db.ciak_clients.update_one(
+        {"id": body.client_id},
+        {"$set": {
+            "start_progress": progress,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    logger.info(
+        "[CIAK_ADMIN] Tappa Start %s -> %s per %s da %s",
+        body.tappa, body.stato, client.get("email"), actor,
+    )
+    return {
+        "success": True,
+        "client_id": body.client_id,
+        "tappa": body.tappa,
+        "stato": body.stato,
+    }

@@ -183,6 +183,78 @@ async def ensure_client_for_blueprint(db, session: dict[str, Any]) -> dict[str, 
     return doc
 
 
+async def ensure_client_for_direct_start(
+    db,
+    *,
+    email: str,
+    name: str | None = None,
+) -> tuple[dict[str, Any], bool]:
+    """Account cliente per chi entra da Ciak Start senza passare dal Blueprint.
+
+    Serve ai ko dell'Edizione Settembre: pagano da Payment Link e non hanno una
+    diagnostic session, quindi `ensure_client_for_blueprint` non li puo' creare.
+    Ritorna (client, created). Non assegna entitlement: lo fa chi la chiama.
+    """
+    normalized = (email or "").strip().lower()
+    if not normalized or "@" not in normalized:
+        raise ValueError("email non valida")
+
+    clean_name = (name or "").strip() or None
+    existing = await db.ciak_clients.find_one({"email": normalized}, {"_id": 0})
+    if existing:
+        if clean_name and not existing.get("name"):
+            await db.ciak_clients.update_one(
+                {"id": existing["id"]},
+                {"$set": {"name": clean_name, "updated_at": _now_iso()}},
+            )
+            existing = {**existing, "name": clean_name}
+        return existing, False
+
+    doc = {
+        "id": str(uuid4()),
+        "email": normalized,
+        "name": clean_name,
+        "access_level": ACCESS_BLUEPRINT,
+        "created_from": "ciak_start_direct",
+        "start_credit_amount": 0,
+        "start_progress": [],
+        "created_at": _now_iso(),
+        "updated_at": _now_iso(),
+        "events": [{"event": "client_created_for_direct_start", "timestamp": _now_iso()}],
+    }
+    await db.ciak_clients.insert_one(doc)
+    doc.pop("_id", None)
+    return doc, True
+
+
+def build_start_entitlement_updates(
+    client: dict[str, Any],
+    *,
+    reference_id: str,
+    now: str,
+) -> dict[str, Any] | None:
+    """Campi da scrivere per attivare Ciak Start su un cliente.
+
+    Ciak Start si paga intero: nessun piano rateale, il credito verso la
+    Partnership e' sempre quello garantito. Ritorna None se quel pagamento
+    risulta gia' registrato (stesso reference_id) — riattivare per rimandare
+    l'accesso non deve registrare un secondo incasso.
+    """
+    registrati = [dict(item) for item in (client.get("start_payments") or [])]
+    if any(item.get("reference_id") == reference_id for item in registrati):
+        return None
+    registrati.append({"amount_cents": START_AMOUNT_CENTS, "reference_id": reference_id, "at": now})
+
+    return {
+        "access_level": ACCESS_START,
+        "start_purchased_at": client.get("start_purchased_at") or now,
+        "start_progress": client.get("start_progress") or default_start_progress(),
+        "start_credit_amount": START_AMOUNT_CENTS,
+        "start_payments": registrati,
+        "updated_at": now,
+    }
+
+
 async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, str]:
     token = secrets.token_urlsafe(32)
     doc = {

@@ -105,6 +105,138 @@ Regole:
   su v2, v1 disponibile e immutata. Conservare prova per ogni passaggio.
 - Non e' stato usato alcun token o dato partner reale in Task 7; Task 7 e' verificata localmente,
   non live/pre-produzione. Task 8 include inoltre review finale, push, CI e deploy.
+### 2026-08-13 · Claude Code (Luca) · cc/ciak-start-consegne — Blocco 3: le 3 date promesse ora le ricorda qualcuno
+
+Quarto dei 4 blocchi per l'erogazione di Ciak Start. Branch partito da
+`cc/ciak-start-attivazione-manuale` (Blocco 0, `7f9c9eae`), **non** da `main`: senza quello non
+esiste l'endpoint di attivazione. Commit del blocco: `611ad737`.
+
+⚠️ **Divergenza intercettata e chiusa nella stessa sessione.** Mentre lavoravo, un'altra sessione
+ha aggiunto 3 commit alla mia base — fra cui `f2930392`, il **revert del piano rateale** deciso da
+Claudio (Ciak Start resta a pagamento intero). Me ne sono accorto solo perché una riga di memoria
+diceva una cosa diversa dal mio branch. `cc/ciak-start-attivazione-manuale` è stato **mergiato**
+dentro questo branch (`54467730`): merge automatico, nessun conflitto, e le due entry di HANDOFF si
+sono impilate da sole. È il caso esatto di `feedback_task_paralleli_stesso_file`: il segnale è il
+file modificato da entrambi, qui `routers/ciak_admin.py` e questo file.
+
+**Il problema che chiude**
+L'email di attivazione promette per iscritto tre tappe datate (7/14/21 giorni da
+`start_purchased_at`). Quelle date partivano a ogni pagamento e **non le ricordava nessuno**:
+nessuna coda, nessun promemoria, nessuna schermata. Con l'Edizione Settembre — 8 posti, partenza
+unica — sono 24 consegne datate in 21 giorni tenute a memoria. Il precedente costato caro è
+Diego Carbone: analisi pagata e mai consegnata, 193 giorni, scoperta leggendo Gmail.
+
+**FATTO**
+- `services/ciak_start_milestones.py` (regole pure): le 3 tappe, le date, l'urgenza, l'ordinamento,
+  lo stato. `ciak_start_delivery._delivery_dates` **non calcola più**: importa
+  `format_delivery_dates` da qui. Sorgente unica, così pannello ed email non possono divergere.
+  Unica modifica a `ciak_start_delivery.py`, il testo dell'email non è stato toccato.
+- `GET /api/admin/ciak/start/consegne` e `POST /api/admin/ciak/start/consegne/segna`
+  (`routers/ciak_admin.py`, pattern di `/consegne-mancate`, entrambi sotto `require_ciak_admin`).
+- Pagina `/admin/consegne-start` + voce in `NAV` sotto Delivery (visibile anche ad Antonella).
+- `tests/test_ciak_start_consegne.py` aggiunto alla lista esplicita della CI in `ci.yml`.
+
+**Decisione di Claudio presa all'inizio, non a pannello finito**
+Alla domanda "chi approva un deliverable prima che il cliente lo veda" ha risposto **lui**.
+Conseguenze: esiste lo stato *pronta da approvare* (scritto davvero dall'endpoint, non finto) e
+ogni riga mostra **due** date — quella promessa al cliente e la scadenza interna 48h prima.
+⚠️ **Tensione risolta, da sapere:** il contatore grande e i due numeri in cima restano ancorati
+alla **data promessa**, non a quella interna. È la data che il cliente ha per iscritto ed è quella
+della prova di accettazione. L'anticipo di 48h c'è, come riga secondaria e come `giorni_interni`.
+Coincidenza utile: "entro 48 ore" sulla data promessa ⇔ la scadenza interna è già arrivata.
+
+**VERIFICATO**
+- RED osservato prima del codice: `ImportError: cannot import name 'ciak_start_milestones'`, poi
+  20 passed / 7 failed sui soli endpoint mancanti.
+- `pytest tests/test_ciak_start_consegne.py` → **27 passed**.
+- **Lista esatta della CI (35 file) → 243 passed**, identica a prima dell'intervento: nessuna
+  regressione dall'estrazione di `_delivery_dates`.
+- Jest `ConsegneStart.test.jsx` + `ConsegneMancate.test.jsx` → **13 passed** (la pagina sorella non
+  si è rotta). Build produzione `craco build`: **exit 0**, bundle `main.f5e0642a.js`, che contiene
+  `Consegne Start`; solo warning ESLint preesistenti in file estranei.
+- `py_compile` sui 4 file Python toccati e `git diff --check`: exit 0.
+- **Prova visiva**: HTML reale del componente reso e fotografato con Chrome headless. Ha fatto
+  emergere 3 difetti invisibili nel codice, tutti corretti: il contatore "13 giorni" pesava quanto
+  un "−3 di ritardo" (ora attenuato a `slate-400`: solo l'urgente è scuro), "1 gia' consegnate"
+  senza accordo, e nessun focus visibile sui controlli.
+- La prova che chiude il blocco, eseguita: cliente con `start_purchased_at` di 10 giorni fa →
+  `giorni == [-3, 4, 11]`, tappa 1 in cima e `urgenza == "scaduta"`, e le 3 date **identiche** a
+  `_delivery_dates` dello stesso `paid_at`.
+
+**⚠️ Pitfall risolto, per chi verrà dopo: Jest NEL worktree**
+`craco test` dichiarava "0 matches" su 205 file esaminati. Causa trovata: il `testMatch` generato
+contiene `C:/Users/berto/appevolution\.worktrees/...` e in glob `\.` è un **escape**, quindi il
+pattern non può matchare nulla. Non è un problema di indicizzazione. Aggiro:
+`node node_modules/@craco/craco/dist/bin/craco.js test --watchAll=false --testMatch "**/<file>.test.jsx"`.
+(Una junction su un path senza punto **non basta**: jest risolve il path reale.)
+Nel worktree serve anche `node_modules` — junction al `frontend/node_modules` del repo principale,
+poi rimossa con `[System.IO.Directory]::Delete(path, $false)`, che cancella solo il reparse point.
+⛔ Non usare `Remove-Item -Recurse` su una junction: rischia di svuotare il target.
+
+**APERTO**
+- ⛔ **Non su `main`.** Il branch è su GitHub (`origin/cc/ciak-start-consegne`), ma il merge su
+  `main` deploya in produzione e questo ramo porta con sé anche il Blocco 0, che tocca i pagamenti:
+  **decide Claudio**, e il PROTOCOL §5 chiede la review Codex prima.
+- ♻️ Dopo il merge della base i test della lista CI sono **237 passed** invece di 243: i 6 in meno
+  sono quelli delle rate, rimossi da `f2930392`. Zero rossi, i miei 27 invariati.
+- 🔗 **Aggancio al Blocco 1 (ponte di identità), una funzione sola:** lo stato di avanzamento si
+  legge **solo** in `_stato_tappe(client)` e si scrive **solo** in `apply_milestone_status`, in
+  `ciak_start_milestones.py`. Quando la journey unica (`partner_journey_steps` + `tier`) atterra,
+  si cambiano quelle due e nient'altro. `start_progress` non è sparso nel pannello.
+- Il pannello **non** manda niente al cliente: nessun promemoria, nessun sollecito. Deliberato —
+  un'email in più a chi ha già una promessa aperta è un rischio, non un aiuto.
+- Il pannello **non** dipende dai generatori dei deliverable (Blocco 2, che non esistono): la
+  consegna si segna a mano, che è la situazione dei primi clienti.
+- Lo **step 7** del percorso (readiness partnership) non ha una data promessa nell'email: non
+  compare fra le tappe, ed è detto esplicitamente in fondo alla pagina.
+- Segnare una tappa consegnata **non sblocca** la tappa successiva: la progressione degli step è
+  materia del Blocco 1 (`journey_progression.py`, in lavorazione in un'altra sessione), non di un
+  pannello di scadenze. Un test lo fissa.
+- La CI **non esegue** i test Jest (solo il build del frontend): `ConsegneStart.test.jsx` gira solo
+  in locale, col comando qui sopra.
+
+---
+
+### 2026-08-12 · Claude Code (Luca) · cc/ciak-start-attivazione-manuale — Blocco 0: si incassa e si consegna
+
+Primo dei 4 blocchi decisi con Claudio per l'erogazione di Ciak Start (0 attivazione+acconto ·
+1 ponte di identità · 2 i 4 deliverable mancanti · 3 pannello scadenze).
+
+**FATTO**
+- `POST /api/admin/ciak/start/attiva`: da **una sola email** crea l'account se manca
+  (`ensure_client_for_direct_start`, per chi non ha mai comprato il Blueprint), scrive entitlement e
+  credito, registra l'incasso da 499 e **consegna l'accesso** con `deliver_start_access` — il pezzo
+  che `/start/activate` non faceva. Su chi è già attivo non registra un secondo incasso: riconsegna
+  solo il link (caso «non mi è arrivata la mail»).
+- Pannello "Attiva Ciak Start" in Clienti Ciak, che distingue *accesso consegnato* da *entitlement
+  scritto ma email non partita* → in quel caso rimanda a Consegne mancate.
+- I test Start non erano nella lista esplicita della CI: aggiunti 4 file a `ci.yml`.
+- 🔄 **Rate rimosse (decisione di Claudio, commit `f2930392`):** una prima versione gestiva acconto
+  199 + saldo 300 per l'Edizione Settembre, con la regola "credito = incassato finché il piano è
+  aperto". **Ciak Start resta a pagamento intero**, quindi sono stati tolti il routing webhook, il
+  piano rateale e la modifica al pricing. `stripe_webhook.py` è tornato **identico a main**.
+
+**VERIFICATO**
+- RED osservato prima del codice: 11 test rossi (poi 7, tolte le rate).
+- `pytest test_ciak_start_attivazione + test_checkout_trigger + test_ciak_client_accounts +
+  test_ciak_start_recovery + test_ciak_clients_router + test_ciak_delivery_gaps` → **72 passed**.
+- Jest `ClientiCiak.test.jsx` → **2 passed**.
+- Build frontend con gli stessi flag della CI (`DISABLE_ESLINT_PLUGIN=true CI=false`): **exit 0**,
+  `Compiled successfully`, bundle `main.59064f5e.js`. ⚠️ Con `CI=true` fallisce, ma per un warning
+  `react-hooks/exhaustive-deps` **preesistente in `AgentDashboard.jsx`**, estraneo a questo lavoro.
+- `py_compile` sui file toccati e `git diff --check`: exit 0.
+- Diff netto vs `origin/main`: 7 file, **nessuna modifica a `stripe_webhook.py`**.
+
+**APERTO**
+- ⛔ **Non mergiato su `main`: il merge deploya in produzione.** Il diff tocca il percorso dei
+  pagamenti, e il PROTOCOL §5 chiede la review Codex in questo caso. Decide Claudio.
+- Errori di collection **preesistenti** (verificati con le mie modifiche stashate, non miei):
+  `tests/test_admin_diagnostics.py` (import `auth` che risolve `routers/auth.py`) e
+  `tests/test_partner_rewards_protocollo_evo.py` (FileNotFoundError).
+- ⚠️ Un'altra sessione parte sul **Blocco 1** (ponte di identità, `tier="start"`). Deve agganciare
+  il bridge in due punti: `process_ciak_start_payment` (`stripe_webhook.py`, **non toccato da questo
+  branch**, quindi nessun conflitto) e `attiva_ciak_start` (`ciak_admin.py`, qui). La riga in
+  `ciak_admin.py` la applica **chi merge per secondo**.
 
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 
