@@ -320,6 +320,7 @@ details.faq .risposta{padding:0 44px 24px 0;color:var(--secondario);font-size:16
 .contatti{background:var(--fondo-alt);border-top:1px solid var(--bordo)}
 .contatti-griglia{display:grid;grid-template-columns:{CONTATTI_COLONNE};gap:48px;align-items:start}
 form{display:grid;gap:18px}
+.trappola{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .campo{display:grid;gap:7px}
 label{font-size:14.5px;font-weight:600}
 input,textarea{font:inherit;font-size:16px;padding:13px 15px;border:1.5px solid var(--bordo);border-radius:10px;background:var(--fondo);color:var(--testo);width:100%}
@@ -505,6 +506,23 @@ def _testimonianze(voci: list[dict]) -> str:
     return "".join(carte)
 
 
+def destinazione_form(dati: dict) -> str:
+    """URL a cui il form recapita.
+
+    Di norma non va passato: si ricava dal `client_id`, cosi' chi genera la
+    vetrina non deve conoscere l'endpoint. `form_action` esplicito serve solo
+    per puntare altrove (un servizio esterno, un ambiente di prova).
+    """
+    esplicito = _pulisci(dati.get("form_action"))
+    if esplicito.startswith("http"):
+        return esplicito
+    client_id = _pulisci(dati.get("client_id"))
+    if not client_id:
+        return ""
+    base = os.environ.get("CIAK_BASE_URL", "https://www.ciak.io").rstrip("/")
+    return f"{base}/api/vetrina/{client_id}/contatto"
+
+
 def _form(dati: dict) -> str:
     """Form di contatto. Senza destinazione NON si stampa.
 
@@ -513,8 +531,8 @@ def _form(dati: dict) -> str:
     l'endpoint che riceve i dati. Il consenso privacy e' obbligatorio (GDPR):
     qui si raccolgono dati personali.
     """
-    action = _pulisci(dati.get("form_action"))
-    if not action.startswith("http"):
+    action = destinazione_form(dati)
+    if not action:
         return (
             '<div class="recapiti"><p>Il modulo di contatto si attiva quando il sito va online. '
             "Nel frattempo restano validi i recapiti qui accanto.</p></div>"
@@ -524,6 +542,9 @@ def _form(dati: dict) -> str:
         f' Vedi l\'<a href="{_attr(privacy)}">informativa privacy</a>.' if privacy.startswith("http") else ""
     )
     return f"""<form method="post" action="{_attr(action)}">
+      <div class="trappola" aria-hidden="true">
+        <label for="azienda">Azienda</label>
+        <input id="azienda" name="azienda" type="text" tabindex="-1" autocomplete="off"></div>
       <div class="campo"><label for="nome">Come ti chiami</label>
         <input id="nome" name="nome" type="text" autocomplete="name" required></div>
       <div class="campo"><label for="email">La tua email</label>
@@ -698,7 +719,7 @@ async def build_vetrina(dati: dict) -> dict:
     foto_bio_tag = (
         f'<img src="{_attr(foto_bio)}" alt="" loading="lazy">' if foto_bio.startswith("http") else ""
     )
-    has_form = _pulisci(dati.get("form_action")).startswith("http")
+    has_form = bool(destinazione_form(dati))
     voci_testimonianze = testimonianze_pubblicabili(dati.get("testimonianze"))
     faq_html = _faq(testi.get("faq"))
 

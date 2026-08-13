@@ -422,3 +422,36 @@ async def test_nessun_carattere_di_controllo_nella_pagina(monkeypatch):
     controllo = [c for c in html if ord(c) < 32 and c not in "\n\t\r"] + \
                 [c for c in html if 127 <= ord(c) <= 159]
     assert controllo == [], f"caratteri di controllo trovati: {[hex(ord(c)) for c in controllo]}"
+
+
+@pytest.mark.asyncio
+async def test_il_form_punta_da_solo_all_endpoint_pubblico(monkeypatch):
+    """Chi genera la vetrina passa il client_id, non deve sapere l'URL."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    out = await sv.build_vetrina({**DATI, "client_id": "client-1"})
+
+    assert out["form_attivo"] is True
+    assert 'action="https://www.ciak.io/api/vetrina/client-1/contatto"' in out["html"]
+
+
+@pytest.mark.asyncio
+async def test_il_form_ha_il_campo_trappola_per_i_bot(monkeypatch):
+    """Honeypot: fuori schermo e fuori dal giro del tab, invisibile a chi legge."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    html = (await sv.build_vetrina({**DATI, "client_id": "client-1"}))["html"]
+
+    assert 'name="azienda"' in html
+    assert 'tabindex="-1"' in html
+    assert ".trappola{position:absolute;left:-9999px" in html
+
+
+@pytest.mark.asyncio
+async def test_senza_client_id_e_senza_form_action_il_form_resta_spento(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    out = await sv.build_vetrina(DATI)
+
+    assert out["form_attivo"] is False
+    assert "<form" not in out["html"]
