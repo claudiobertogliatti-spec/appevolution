@@ -12,6 +12,46 @@ Regole:
 
 ---
 
+### 2026-08-13 · Claude Code (Luca) · main — Ciak Start: i quattro blocchi allineati su main
+
+**COSA E' ENTRATO**
+Merge dei quattro branch nell'ordine in cui si contenevano: `cc/ciak-start-consegne`
+(che aveva gia' assorbito il Blocco 0), `cc/ciak-start-identity-bridge`, `cc/ciak-start-deliverable`.
+Piu' l'endpoint del form vetrina, scritto oggi.
+
+- **Le due righe di aggancio del Blocco 1 sono applicate.** `process_ciak_start_payment` e
+  `attiva_ciak_start` chiamano `ensure_start_partner_bridge` col documento aggiornato. Fino a
+  ieri il ponte esisteva e non lo chiamava nessuno: ora un cliente Start ottiene davvero il
+  record `partners` e i motori brand kit / posizionamento gli si aprono.
+- **`POST /api/vetrina/{client_id}/contatto`** (nuovo, pubblico): riceve il form della vetrina.
+  Honeypot, tetto di 5 messaggi l'ora per IP contato a DB (Cloud Run ha piu' istanze), consenso
+  obbligatorio, id inesistente e cliente senza Start indistinguibili nella risposta. Se l'SMTP
+  fallisce il messaggio resta salvato con `notificato: false`.
+- **Vetrina rifatta** col processo `design-lead`: brand del CLIENTE (perimetro esterno, non il
+  giallo Ciak), ritratto, FAQ in `<details>`, testimonianze **solo se attribuite**.
+
+**IL CONFLITTO CHE VALEVA LA PENA LEGGERE**
+`complete_operativo_step` aveva due controlli aggiunti nello stesso punto da due branch: il gate
+`require_step_for_partner_tier` (Blocco 1) e lo short-circuit del calendario F-14 (arrivato su
+main). Servono **entrambi**, e il gate va **prima**: al contrario, uno step fuori dal proprio tier
+si completerebbe passando dal ramo speciale del calendario. Risolto cosi', non scegliendone uno.
+
+**VERIFICATO**
+- Lista CI completa (47 file): **527 passed**. `compileall`: exit 0. `flake8 E9,F821`: **0**.
+- Nessun marcatore di conflitto residuo in backend, docs, workflow.
+- Test mirato nuovo: dopo l'attivazione admin esiste un record `partners` con lo stesso id del
+  cliente e `tier="start"` — cioe' l'aggancio fa quello per cui e' stato scritto.
+
+**APERTO**
+- ⛔ **Nessun cliente Start reale esiste ancora in produzione**: tutto gira su DB in memoria.
+  Il primo acquisto vero va seguito in `Consegne mancate` e in `Consegne Start`.
+- I generatori `start_profili_social` e `start_vetrina` non sono mai stati provati con una
+  chiamata AI reale: la chiave e' di Claudio. I test usano il modello mockato.
+- Restano da scrivere gli ultimi due deliverable del Blocco 2: **calendario 90 giorni** (per chi
+  non ha un corso da vendere) e **readiness partnership** (il documento che vende il 2.790).
+- Due decisioni di copy ancora di Claudio, ereditate dal Blocco 1: l'ordine brand-prima-di-
+  posizionamento e i 7 servizi venduti che diventano 6 step.
+
 ### 2026-08-13 · Codex · codex/ciak-funnel-promesse — Blueprint, Masterclass, Go Live
 
 **FATTO**
