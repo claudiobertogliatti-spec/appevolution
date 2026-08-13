@@ -78,8 +78,9 @@ function renderStep(step = { data: {} }) {
 
 function deferred() {
   let resolve;
-  const promise = new Promise((next) => { resolve = next; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((next, fail) => { resolve = next; reject = fail; });
+  return { promise, resolve, reject };
 }
 
 beforeEach(() => {
@@ -93,6 +94,15 @@ test("non consente invio con meno di 30 giorni", async () => {
 
   expect((await screen.findByRole("button", { name: /invia a marco/i })).disabled).toBe(true);
   expect(screen.getByText((_, element) => element?.textContent === "29 di 30 giorni")).toBeTruthy();
+});
+
+test("non consente invio finche proposta commerciale e routine non sono complete e salvate", async () => {
+  const calendar = validCalendar();
+  delete calendar.commercial_terms;
+  mockApi.current = () => versionDocument({ calendar });
+  renderStep();
+
+  expect((await screen.findByRole("button", { name: /invia a marco/i })).disabled).toBe(true);
 });
 
 test("mostra lo stato in revisione senza dichiarare lo step concluso", async () => {
@@ -110,7 +120,10 @@ test("invia la conferma con il checksum della versione mostrata", async () => {
   });
   renderStep();
 
-  fireEvent.click(await screen.findByRole("button", { name: /invia a marco/i }));
+  const submit = await screen.findByRole("button", { name: /invia a marco/i });
+  expect(submit.disabled).toBe(false);
+  fireEvent.click(submit);
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(1));
 
   await waitFor(() =>
     expect(axios.post).toHaveBeenCalledWith(
@@ -173,6 +186,41 @@ test("mostra un messaggio operativo per i controlli strutturati rifiutati", asyn
   expect(screen.getByText(/completa prezzo, bonus e scadenza/i)).toBeTruthy();
 });
 
+test("traduce tutti i codici di readiness senza esporre codici tecnici", async () => {
+  mockApi.current = () => versionDocument();
+  const codes = [
+    "exactly_30_days", "consecutive_dates", "live_day_28", "day_fields", "canonical_enums",
+    "https_destination_urls", "content_cadence", "funnel_sequence", "organic_routine",
+    "bonus_deadline", "partner_confirmation", "admin_approval",
+  ];
+  axios.post.mockRejectedValueOnce({
+    response: { status: 409, data: { detail: { code: "launch_calendar_not_ready", failed_checks: codes } } },
+  });
+  renderStep();
+
+  const submit = await screen.findByRole("button", { name: /invia a marco/i });
+  expect(submit.disabled).toBe(false);
+  fireEvent.click(submit);
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(1));
+
+  const alert = await screen.findByRole("alert");
+  [
+    "Il calendario deve contenere esattamente 30 giorni.",
+    "Le date dei 30 giorni devono essere consecutive.",
+    "La diretta deve cadere al giorno 28.",
+    "Completa tema, istruzioni, CTA, destinazione e routine di ogni giorno.",
+    "Usa canale, formato e responsabile previsti per il calendario.",
+    "Inserisci un URL HTTPS valido per ogni destinazione.",
+    "Riequilibra la cadenza dei contenuti nel calendario.",
+    "Controlla la sequenza tra contenuti, live e checkout.",
+    "Completa la routine organica quotidiana.",
+    "Completa prezzo, bonus e scadenza nelle condizioni commerciali.",
+    "Completa la conferma del partner prima dell’invio.",
+    "L’approvazione di Marco viene registrata dopo la revisione.",
+  ].forEach((message) => expect(alert.textContent).toContain(message));
+  codes.forEach((code) => expect(screen.queryByText(code, { exact: true })).toBeNull());
+});
+
 test("blocca la seconda mutazione finche la nuova versione non e' confermata dal server", async () => {
   mockApi.current = () => versionDocument();
   const creation = deferred();
@@ -206,4 +254,47 @@ test("ignora il caricamento precedente quando cambia il partner", async () => {
   first.resolve({ data: versionDocument({ partner_id: "p1", version: 1, checksum: "checksum-p1" }) });
   await waitFor(() => expect(screen.getByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy());
   expect(screen.queryByText((_, element) => element?.textContent === "Versione 1")).toBeNull();
+});
+
+test("ignora la creazione precedente se il partner cambia durante la mutazione", async () => {
+  mockApi.current = () => versionDocument();
+  const creation = deferred();
+  const p2 = deferred();
+  axios.post.mockImplementationOnce(() => creation.promise);
+  axios.get.mockImplementationOnce(() => Promise.resolve({ data: versionDocument() })).mockImplementationOnce(() => p2.promise);
+  const view = render(<Step11Calendario step={{ data: {} }} partnerId="p1" />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /rigenera nuova versione/i }));
+  view.rerender(<Step11Calendario step={{ data: {} }} partnerId="p2" />);
+  await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(2));
+
+  p2.resolve({ data: versionDocument({ partner_id: "p2", version: 2, checksum: "checksum-p2" }) });
+  expect(await screen.findByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
+  creation.resolve({ data: versionDocument({ partner_id: "p1", version: 3, checksum: "checksum-p3" }) });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await waitFor(() => expect(screen.getByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy());
+  expect(screen.queryByText((_, element) => element?.textContent === "Versione 3")).toBeNull();
+});
+
+test("ignora l'errore di salvataggio del partner precedente dopo il cambio partner", async () => {
+  mockApi.current = () => versionDocument();
+  const saving = deferred();
+  const p2 = deferred();
+  axios.put.mockImplementationOnce(() => saving.promise);
+  axios.get.mockImplementationOnce(() => Promise.resolve({ data: versionDocument() })).mockImplementationOnce(() => p2.promise);
+  const view = render(<Step11Calendario step={{ data: {} }} partnerId="p1" />);
+
+  fireEvent.change(await screen.findByRole("textbox", { name: /^tema del giorno 1$/i }), { target: { value: "Tema aggiornato" } });
+  fireEvent.click(screen.getByRole("button", { name: /salva modifiche/i }));
+  view.rerender(<Step11Calendario step={{ data: {} }} partnerId="p2" />);
+  await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(2));
+
+  p2.resolve({ data: versionDocument({ partner_id: "p2", version: 2, checksum: "checksum-p2" }) });
+  expect(await screen.findByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
+  saving.reject({ response: { status: 503, data: { detail: "Errore salvataggio P1" } } });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(screen.queryByText("Errore salvataggio P1")).toBeNull();
+  expect(screen.getByText((_, element) => element?.textContent === "Versione 2")).toBeTruthy();
 });

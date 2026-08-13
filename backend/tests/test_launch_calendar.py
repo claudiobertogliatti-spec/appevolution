@@ -9,6 +9,7 @@ from services import editorial_calendar
 from services.editorial_calendar import _deterministic, build_editorial_calendar
 from services.launch_calendar import (
     calendar_checksum,
+    evaluate_partner_submission_calendar,
     evaluate_launch_calendar,
     normalize_launch_calendar,
 )
@@ -220,6 +221,23 @@ def test_readiness_accepts_complete_calendar():
 
     assert result.ready is True
     assert result.failed_codes == []
+
+
+def test_partner_submission_requires_intrinsic_routine_and_commercial_terms_without_admin_attestations():
+    calendar = _ready_calendar()
+    calendar.pop("partner_confirmation")
+    calendar.pop("admin_approval")
+    calendar.pop("commercial_terms")
+
+    missing_terms = evaluate_partner_submission_calendar(calendar)
+    assert missing_terms.ready is False
+    assert missing_terms.failed_codes == ["bonus_deadline"]
+
+    calendar["commercial_terms"] = _ready_calendar()["commercial_terms"]
+    submitted = evaluate_partner_submission_calendar(calendar)
+
+    assert submitted.ready is True
+    assert submitted.failed_codes == []
 
 
 @pytest.mark.parametrize(

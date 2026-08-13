@@ -1391,8 +1391,40 @@ def test_submit_rejects_draft_without_https_destinations(client, partner_token):
     assert response.status_code == 409
     assert response.json()["detail"] == {
         "code": "launch_calendar_not_ready",
-        "failed_checks": ["https_destination_urls"],
+        "failed_checks": ["https_destination_urls", "bonus_deadline"],
     }
+
+
+def test_submit_requires_partner_proposal_before_pending_review_then_allows_admin_attestation(
+    client, partner_token, admin_token, fake_db
+):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    with_urls = _with_https_destinations(client, partner_token, created)
+
+    missing_terms = _submit(client, partner_token, with_urls)
+    assert missing_terms.status_code == 409
+    assert missing_terms.json()["detail"] == {
+        "code": "launch_calendar_not_ready",
+        "failed_checks": ["bonus_deadline"],
+    }
+    assert fake_db.versions[0]["status"] == "draft"
+
+    proposed = _with_ready_review_resources(client, partner_token, with_urls)
+    submitted = _submit(client, partner_token, proposed)
+    assert submitted.status_code == 200
+    assert submitted.json()["status"] == "pending_review"
+
+    approved = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "approve", "note": "Proposta verificata"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
 
 
 def test_partner_submit_moves_draft_to_pending_review_and_notifies_admin(
@@ -1407,7 +1439,7 @@ def test_partner_submit_moves_draft_to_pending_review_and_notifies_admin(
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
 
     response = _submit(client, partner_token, created)
 
@@ -1500,7 +1532,7 @@ def test_submit_requires_expected_checksum_and_persists_canonical_attestation(cl
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
 
     missing = client.post(
         "/api/partner/calendar/p1/versions/1/submit",
@@ -1523,7 +1555,7 @@ def test_submit_rejects_stale_checksum_but_retries_identically(client, partner_t
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    ready = _with_https_destinations(client, partner_token, created)
+    ready = _with_ready_review_resources(client, partner_token, created)
     edited = deepcopy(ready["calendar"])
     edited["days"][0]["theme"] = "Versione aggiornata"
     current = client.put(
@@ -1542,24 +1574,32 @@ def test_submit_rejects_stale_checksum_but_retries_identically(client, partner_t
     assert retry.json()["checksum"] == first.json()["checksum"]
 
 
-def test_approve_requires_complete_server_materialized_readiness(client, partner_token, admin_token):
+def test_approve_requires_server_attestation_of_destinations(client, partner_token, admin_token):
     created = client.post(
         "/api/partner/calendar/p1/versions",
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
-    _submit(client, partner_token, created)
+    proposed = _with_ready_review_resources(client, partner_token, created)
+    calendar = deepcopy(proposed["calendar"])
+    for day in calendar["days"]:
+        day["destination_url"] = f"https://example.test/{day['destination_kind']}"
+    created = client.put(
+        "/api/partner/calendar/p1/versions/1/draft",
+        headers=_headers(partner_token),
+        json={"expected_checksum": proposed["checksum"], "calendar": calendar},
+    ).json()
+    assert _submit(client, partner_token, created).status_code == 200
 
     response = client.post(
         "/api/partner/calendar/p1/versions/1/review",
         headers=_headers(admin_token),
-        json={"decision": "approve", "note": "Manca il listino"},
+        json={"decision": "approve", "note": "Destinazioni non attestabili"},
     )
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "launch_calendar_not_ready"
-    assert "bonus_deadline" in response.json()["detail"]["failed_checks"]
+    assert "verified_destination_urls" in response.json()["detail"]["failed_checks"]
     assert response.json()["detail"]["failed_checks"] == sorted(response.json()["detail"]["failed_checks"])
 
 
@@ -1671,7 +1711,7 @@ def test_notification_failure_is_durable_and_identical_retry_resolves_it(
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
 
     first = _submit(client, partner_token, created)
     retry = _submit(client, partner_token, created)
@@ -1699,7 +1739,7 @@ def test_identical_submit_does_not_duplicate_successful_admin_notification(
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
 
     first = _submit(client, partner_token, created)
     retry = _submit(client, partner_token, created)
@@ -1756,7 +1796,7 @@ def test_admin_can_drain_failed_notification_without_resubmitting(
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
     submitted = _submit(client, partner_token, created)
     assert submitted.status_code == 200
     recovery = fake_db.partner_launch_calendar_notification_recovery.docs[0]
@@ -1794,7 +1834,7 @@ def test_drain_reconciles_pending_review_after_submit_claim_error(
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
     original_claim = editorial_calendar._claim_pending_review_notification
 
     async def claim_down(*args, **kwargs):
@@ -1945,7 +1985,7 @@ async def test_concurrent_identical_partner_submit_returns_one_pending_review_st
         headers=_headers(partner_token),
         json=_generation_payload(),
     ).json()
-    created = _with_https_destinations(client, partner_token, created)
+    created = _with_ready_review_resources(client, partner_token, created)
 
     class InterleavedVersions(FakeCollection):
         def __init__(self, docs):

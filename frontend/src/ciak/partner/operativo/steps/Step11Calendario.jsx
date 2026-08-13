@@ -13,10 +13,17 @@ const STATUS = {
 
 const READINESS_MESSAGES = {
   exactly_30_days: "Il calendario deve contenere esattamente 30 giorni.",
-  launch_day_28: "La live deve essere programmata al giorno 28.",
+  consecutive_dates: "Le date dei 30 giorni devono essere consecutive.",
+  live_day_28: "La diretta deve cadere al giorno 28.",
+  day_fields: "Completa tema, istruzioni, CTA, destinazione e routine di ogni giorno.",
+  canonical_enums: "Usa canale, formato e responsabile previsti per il calendario.",
   https_destination_urls: "Inserisci un URL HTTPS valido per ogni destinazione.",
+  content_cadence: "Riequilibra la cadenza dei contenuti nel calendario.",
+  funnel_sequence: "Controlla la sequenza tra contenuti, live e checkout.",
   organic_routine: "Completa la routine organica quotidiana.",
   bonus_deadline: "Completa prezzo, bonus e scadenza nelle condizioni commerciali.",
+  partner_confirmation: "Completa la conferma del partner prima dell’invio.",
+  admin_approval: "L’approvazione di Marco viene registrata dopo la revisione.",
 };
 
 const EMPTY_TERMS = {
@@ -31,7 +38,7 @@ function describeError(error, fallback) {
   const response = error?.response;
   const detail = response?.data?.detail;
   if (detail?.code === "launch_calendar_not_ready") {
-    const checks = [...new Set(detail.failed_checks || [])].map((check) => READINESS_MESSAGES[check] || `Completa il controllo richiesto: ${check}.`);
+    const checks = [...new Set(detail.failed_checks || [])].map((check) => READINESS_MESSAGES[check] || "Completa i controlli richiesti nel calendario.");
     return { message: "Il calendario non è pronto per l’invio.", checks };
   }
   if (response?.status === 409) {
@@ -54,6 +61,37 @@ function formatDate(value) {
   if (!value) return "Data non disponibile";
   const [year, month, day] = value.split("-");
   return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
+function hasCompleteOrganicRoutine(calendar) {
+  const routine = calendar?.organic_routine;
+  const actions = routine?.actions;
+  return (
+    routine?.daily_minutes === 30
+    && ["interactions_target", "outreach_target", "dm_follow_up_target"].every((field) => Number.isInteger(routine[field]) && routine[field] > 0)
+    && ["interactions", "outreach", "dm_follow_up"].every((field) => typeof actions?.[field] === "string" && actions[field].trim())
+  );
+}
+
+function hasCompleteCommercialProposal(calendar) {
+  const terms = calendar?.commercial_terms;
+  const price = terms?.price;
+  const bonus = terms?.bonus;
+  const expiresAt = bonus?.expires_at;
+  const dayThirty = calendar?.days?.[29]?.date;
+  const expires = typeof expiresAt === "string" && /(?:Z|[+-]\d{2}:\d{2})$/i.test(expiresAt) ? new Date(expiresAt) : null;
+  const dayThirtyEnd = typeof dayThirty === "string" ? new Date(`${dayThirty}T23:59:59Z`) : null;
+  return (
+    typeof terms?.version === "string" && terms.version.trim()
+    && terms.contract_duration_months === 12
+    && terms.contract_start_anchor === "payment_completed"
+    && typeof price?.price_id === "string" && price.price_id.trim()
+    && Number.isInteger(price?.amount_cent) && price.amount_cent > 0
+    && typeof price?.currency === "string" && /^[A-Z]{3}$/.test(price.currency)
+    && ["bonus_id", "name", "version"].every((field) => typeof bonus?.[field] === "string" && bonus[field].trim())
+    && expires instanceof Date && !Number.isNaN(expires.valueOf())
+    && dayThirtyEnd instanceof Date && !Number.isNaN(dayThirtyEnd.valueOf()) && expires > dayThirtyEnd
+  );
 }
 
 function ErrorNotice({ error }) {
@@ -101,6 +139,16 @@ export default function Step11Calendario({ step, partnerId }) {
       setError(describeError(requestError, "Non riesco a caricare il calendario. Riprova."));
       setLoadState("error");
     }
+  }, [partnerId]);
+
+  useEffect(() => {
+    loadSequence.current += 1;
+    mutationSequence.current += 1;
+    mutationLocked.current = false;
+    setDocument(null);
+    setError(null);
+    setDirty(false);
+    setMutation(null);
   }, [partnerId]);
 
   useEffect(() => { loadCurrent(); }, [loadCurrent]);
@@ -243,6 +291,7 @@ export default function Step11Calendario({ step, partnerId }) {
   const terms = { ...EMPTY_TERMS, ...(calendar.commercial_terms || {}) };
   const price = { ...EMPTY_TERMS.price, ...(terms.price || {}) };
   const bonus = { ...EMPTY_TERMS.bonus, ...(terms.bonus || {}) };
+  const canSubmit = editable && !dirty && enoughDays && hasCompleteOrganicRoutine(calendar) && hasCompleteCommercialProposal(calendar);
 
   return (
     <StepBase step={step} title="Il tuo calendario di lancio" secondaryNote="Una versione approvata resta consultabile. Per cambiare rotta, crei una nuova versione.">
@@ -306,7 +355,7 @@ export default function Step11Calendario({ step, partnerId }) {
       </section>
 
       <ErrorNotice error={error} />
-      {editable && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5"><p className="text-xs text-slate-500">Le modifiche diventano reali solo dopo il salvataggio sul server.</p>{dirty ? <button type="button" onClick={saveDraft} disabled={isMutating} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{mutation === "save" ? "Salvo…" : "Salva modifiche"}</button> : <button type="button" onClick={submitForReview} disabled={isMutating || !enoughDays} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50">{mutation === "submit" ? "Invio…" : "Invia a Marco per la revisione"}</button>}</div>}
+      {editable && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5"><p className="text-xs text-slate-500">Le modifiche diventano reali solo dopo il salvataggio sul server.</p>{dirty ? <button type="button" onClick={saveDraft} disabled={isMutating} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:opacity-50">{mutation === "save" ? "Salvo…" : "Salva modifiche"}</button> : <button type="button" onClick={submitForReview} disabled={isMutating || !canSubmit} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50">{mutation === "submit" ? "Invio…" : "Invia a Marco per la revisione"}</button>}</div>}
     </StepBase>
   );
 }

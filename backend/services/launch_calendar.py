@@ -205,13 +205,21 @@ def _verified_destination_urls(days: list[Any], resources: dict) -> bool:
 def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
     terms = calendar.get("commercial_terms")
     resource_terms = resources.get("commercial_terms")
-    if not isinstance(terms, dict) or terms != resource_terms:
+    if not _has_intrinsic_commercial_terms(calendar) or terms != resource_terms:
         return False
-    version = terms.get("version")
+    evaluated_at = _parse_datetime(resources.get("evaluated_at"))
+    expires = _parse_datetime((terms.get("bonus") or {}).get("expires_at"))
+    return evaluated_at is not None and expires is not None and expires > evaluated_at
+
+
+def _has_intrinsic_commercial_terms(calendar: dict) -> bool:
+    """Valida la proposta partner senza scambiarla per attestazione admin."""
+    terms = calendar.get("commercial_terms")
+    if not isinstance(terms, dict):
+        return False
     bonus = terms.get("bonus")
     price = terms.get("price")
     expires_at = bonus.get("expires_at") if isinstance(bonus, dict) else None
-    evaluated_at = _parse_datetime(resources.get("evaluated_at"))
     expires = _parse_datetime(expires_at)
     days = calendar.get("days")
     try:
@@ -219,8 +227,8 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
     except (IndexError, KeyError, TypeError, ValueError):
         return False
     return (
-        isinstance(version, str)
-        and bool(version.strip())
+        isinstance(terms.get("version"), str)
+        and bool(terms["version"].strip())
         and terms.get("contract_duration_months") == 12
         and terms.get("contract_start_anchor") == "payment_completed"
         and isinstance(price, dict)
@@ -241,8 +249,6 @@ def _has_valid_commercial_terms(calendar: dict, resources: dict) -> bool:
         and isinstance(bonus.get("name"), str)
         and bool(bonus["name"].strip())
         and expires is not None
-        and evaluated_at is not None
-        and expires > evaluated_at
         and expires.date() > day_thirty_date
     )
 
@@ -339,8 +345,11 @@ def _has_funnel_sequence(days: list[Any]) -> bool:
 def _has_organic_routine(calendar: dict, resources: dict) -> bool:
     routine = calendar.get("organic_routine")
     resource_routine = resources.get("organic_routine")
-    if not isinstance(resource_routine, dict) or routine != resource_routine:
-        return False
+    return isinstance(resource_routine, dict) and routine == resource_routine and _has_intrinsic_organic_routine(calendar)
+
+
+def _has_intrinsic_organic_routine(calendar: dict) -> bool:
+    routine = calendar.get("organic_routine")
     if not isinstance(routine, dict) or routine.get("daily_minutes") != 30:
         return False
     targets = ("interactions_target", "outreach_target", "dm_follow_up_target")
@@ -396,6 +405,43 @@ def evaluate_launch_calendar(calendar: dict, resources: dict) -> LaunchCalendarR
         {"code": "bonus_deadline", "ok": _has_valid_commercial_terms(calendar, resources)},
         {"code": "partner_confirmation", "ok": _has_partner_confirmation(calendar)},
         {"code": "admin_approval", "ok": _has_admin_approval(calendar)},
+    ]
+    return LaunchCalendarReadiness(
+        ready=all(check["ok"] for check in checks),
+        checks=checks,
+    )
+
+
+_PARTNER_SUBMISSION_CODES = (
+    "exactly_30_days",
+    "consecutive_dates",
+    "live_day_28",
+    "day_fields",
+    "canonical_enums",
+    "https_destination_urls",
+    "content_cadence",
+    "funnel_sequence",
+    "organic_routine",
+    "bonus_deadline",
+)
+
+
+def evaluate_partner_submission_calendar(calendar: dict) -> LaunchCalendarReadiness:
+    """Gate puro della proposta partner, prima di pending review.
+
+    Richiede tutto cio' che e' intrinseco al calendario, ma non prova URL esterni
+    ne' inventa la successiva attestazione amministrativa.
+    """
+    calendar = calendar if isinstance(calendar, dict) else {}
+    full_checks = {
+        check["code"]: check["ok"]
+        for check in evaluate_launch_calendar(calendar, {}).checks
+    }
+    full_checks["organic_routine"] = _has_intrinsic_organic_routine(calendar)
+    full_checks["bonus_deadline"] = _has_intrinsic_commercial_terms(calendar)
+    checks = [
+        {"code": code, "ok": full_checks[code]}
+        for code in _PARTNER_SUBMISSION_CODES
     ]
     return LaunchCalendarReadiness(
         ready=all(check["ok"] for check in checks),

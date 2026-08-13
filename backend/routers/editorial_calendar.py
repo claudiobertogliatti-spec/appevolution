@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from services.editorial_calendar import build_editorial_calendar
 from services.launch_calendar import (
     calendar_checksum,
+    evaluate_partner_submission_calendar,
     evaluate_launch_calendar,
     normalize_launch_calendar,
 )
@@ -76,18 +77,6 @@ class DrainCalendarNotificationRecoveryBody(BaseModel):
     """Limite esplicito per il consumer amministrativo della recovery alert."""
 
     limit: int = Field(default=25, ge=1, le=100)
-
-
-_STRUCTURAL_READINESS_CODES = {
-    "exactly_30_days",
-    "consecutive_dates",
-    "live_day_28",
-    "day_fields",
-    "canonical_enums",
-    "https_destination_urls",
-    "content_cadence",
-    "funnel_sequence",
-}
 
 
 async def _step_data(partner_id: str, step_id: str) -> dict:
@@ -146,20 +135,6 @@ def _response_document(document: dict) -> dict:
         "updated_by",
     )
     return {field: document[field] for field in public_fields if field in document}
-
-
-def _structural_readiness_failures(calendar: dict) -> list[str]:
-    """Valida la struttura prima della conferma, senza fingere prove esterne.
-
-    Le verifiche di URL, condizioni commerciali e approvazione finale sono
-    attestazioni separate: qui il partner puo' presentare soltanto un calendario
-    semanticamente coerente al team per la review.
-    """
-    readiness = evaluate_launch_calendar(calendar, {})
-    return [
-        code for code in readiness.failed_codes
-        if code in _STRUCTURAL_READINESS_CODES
-    ]
 
 
 def _raise_calendar_not_ready(failed_checks: list[str]) -> None:
@@ -714,7 +689,9 @@ async def submit_calendar_version(
     if not body.partner_confirmed:
         _raise_calendar_not_ready(["partner_confirmation"])
 
-    failed_checks = _structural_readiness_failures(existing.get("calendar") or {})
+    failed_checks = evaluate_partner_submission_calendar(
+        existing.get("calendar") or {}
+    ).failed_codes
     if failed_checks:
         _raise_calendar_not_ready(failed_checks)
 
