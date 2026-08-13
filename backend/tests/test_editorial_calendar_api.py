@@ -402,6 +402,20 @@ def test_client_calendar_payload_cannot_complete_f14_without_approved_version(
     assert _f14_step(fake_db)["status"] == "in_progress"
 
 
+def test_admin_legacy_status_cannot_complete_f14_without_approved_version(
+    client, admin_token, fake_db
+):
+    response = client.post(
+        "/api/partner-journey/operativo/admin/set-status/p1/11-calendario-30gg",
+        headers=_headers(admin_token),
+        json={"status": "done"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "launch_calendar_not_approved"
+    assert _f14_step(fake_db)["status"] == "in_progress"
+
+
 @pytest.mark.asyncio
 async def test_auto_completion_helper_refuses_done_step_without_approved_db_evidence(fake_db):
     _f14_step(fake_db)["status"] = "done"

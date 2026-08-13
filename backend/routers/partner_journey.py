@@ -7583,6 +7583,8 @@ async def admin_set_operativo_step_status(
     await require_admin_token(credentials)
     if body.status not in _JOURNEY_STATUSES:
         raise HTTPException(400, f"Stato non valido: {body.status}")
+    if step_id == "11-calendario-30gg" and body.status == "done":
+        return await _complete_approved_launch_calendar_step(partner_id)
 
     now = datetime.utcnow()
     current = await db.partner_journey_steps.find_one(

@@ -160,7 +160,8 @@ def approved_calendar_workbook_binding(
     }
     return {
         "source_version": (
-            f"launch-calendar:{version}:{checksum}:renderer:{renderer_checksum}"
+            f"launch-calendar:{version}:{checksum}:journey:{journey_checksum}:"
+            f"renderer:{renderer_checksum}"
         ),
         "provenance": provenance,
     }
