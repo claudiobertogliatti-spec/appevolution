@@ -12,6 +12,87 @@ Regole:
 
 ---
 
+### 2026-08-13 · Claude Code (Luca) · cc/ciak-start-consegne — Blocco 3: le 3 date promesse ora le ricorda qualcuno
+
+Quarto dei 4 blocchi per l'erogazione di Ciak Start. Branch partito da
+`cc/ciak-start-attivazione-manuale` (Blocco 0, `7f9c9eae`), **non** da `main`: senza quello non
+esistono l'endpoint di attivazione né i campi del piano rateale.
+
+**Il problema che chiude**
+L'email di attivazione promette per iscritto tre tappe datate (7/14/21 giorni da
+`start_purchased_at`). Quelle date partivano a ogni pagamento e **non le ricordava nessuno**:
+nessuna coda, nessun promemoria, nessuna schermata. Con l'Edizione Settembre — 8 posti, partenza
+unica — sono 24 consegne datate in 21 giorni tenute a memoria. Il precedente costato caro è
+Diego Carbone: analisi pagata e mai consegnata, 193 giorni, scoperta leggendo Gmail.
+
+**FATTO**
+- `services/ciak_start_milestones.py` (regole pure): le 3 tappe, le date, l'urgenza, l'ordinamento,
+  lo stato. `ciak_start_delivery._delivery_dates` **non calcola più**: importa
+  `format_delivery_dates` da qui. Sorgente unica, così pannello ed email non possono divergere.
+  Unica modifica a `ciak_start_delivery.py`, il testo dell'email non è stato toccato.
+- `GET /api/admin/ciak/start/consegne` e `POST /api/admin/ciak/start/consegne/segna`
+  (`routers/ciak_admin.py`, pattern di `/consegne-mancate`, entrambi sotto `require_ciak_admin`).
+- Pagina `/admin/consegne-start` + voce in `NAV` sotto Delivery (visibile anche ad Antonella).
+- `tests/test_ciak_start_consegne.py` aggiunto alla lista esplicita della CI in `ci.yml`.
+
+**Decisione di Claudio presa all'inizio, non a pannello finito**
+Alla domanda "chi approva un deliverable prima che il cliente lo veda" ha risposto **lui**.
+Conseguenze: esiste lo stato *pronta da approvare* (scritto davvero dall'endpoint, non finto) e
+ogni riga mostra **due** date — quella promessa al cliente e la scadenza interna 48h prima.
+⚠️ **Tensione risolta, da sapere:** il contatore grande e i due numeri in cima restano ancorati
+alla **data promessa**, non a quella interna. È la data che il cliente ha per iscritto ed è quella
+della prova di accettazione. L'anticipo di 48h c'è, come riga secondaria e come `giorni_interni`.
+Coincidenza utile: "entro 48 ore" sulla data promessa ⇔ la scadenza interna è già arrivata.
+
+**VERIFICATO**
+- RED osservato prima del codice: `ImportError: cannot import name 'ciak_start_milestones'`, poi
+  20 passed / 7 failed sui soli endpoint mancanti.
+- `pytest tests/test_ciak_start_consegne.py` → **27 passed**.
+- **Lista esatta della CI (35 file) → 243 passed**, identica a prima dell'intervento: nessuna
+  regressione dall'estrazione di `_delivery_dates`.
+- Jest `ConsegneStart.test.jsx` + `ConsegneMancate.test.jsx` → **13 passed** (la pagina sorella non
+  si è rotta). Build produzione `craco build`: **exit 0**, bundle `main.f5e0642a.js`, che contiene
+  `Consegne Start`; solo warning ESLint preesistenti in file estranei.
+- `py_compile` sui 4 file Python toccati e `git diff --check`: exit 0.
+- **Prova visiva**: HTML reale del componente reso e fotografato con Chrome headless. Ha fatto
+  emergere 3 difetti invisibili nel codice, tutti corretti: il contatore "13 giorni" pesava quanto
+  un "−3 di ritardo" (ora attenuato a `slate-400`: solo l'urgente è scuro), "1 gia' consegnate"
+  senza accordo, e nessun focus visibile sui controlli.
+- La prova che chiude il blocco, eseguita: cliente con `start_purchased_at` di 10 giorni fa →
+  `giorni == [-3, 4, 11]`, tappa 1 in cima e `urgenza == "scaduta"`, e le 3 date **identiche** a
+  `_delivery_dates` dello stesso `paid_at`.
+
+**⚠️ Pitfall risolto, per chi verrà dopo: Jest NEL worktree**
+`craco test` dichiarava "0 matches" su 205 file esaminati. Causa trovata: il `testMatch` generato
+contiene `C:/Users/berto/appevolution\.worktrees/...` e in glob `\.` è un **escape**, quindi il
+pattern non può matchare nulla. Non è un problema di indicizzazione. Aggiro:
+`node node_modules/@craco/craco/dist/bin/craco.js test --watchAll=false --testMatch "**/<file>.test.jsx"`.
+(Una junction su un path senza punto **non basta**: jest risolve il path reale.)
+Nel worktree serve anche `node_modules` — junction al `frontend/node_modules` del repo principale,
+poi rimossa con `[System.IO.Directory]::Delete(path, $false)`, che cancella solo il reparse point.
+⛔ Non usare `Remove-Item -Recurse` su una junction: rischia di svuotare il target.
+
+**APERTO**
+- ⛔ **Non pushato e non mergiato.** Dipende dal Blocco 0, che a sua volta non è su `main`. Un push
+  su `main` deploya in produzione: **decide Claudio**, e il PROTOCOL §5 chiede la review Codex.
+- 🔗 **Aggancio al Blocco 1 (ponte di identità), una funzione sola:** lo stato di avanzamento si
+  legge **solo** in `_stato_tappe(client)` e si scrive **solo** in `apply_milestone_status`, in
+  `ciak_start_milestones.py`. Quando la journey unica (`partner_journey_steps` + `tier`) atterra,
+  si cambiano quelle due e nient'altro. `start_progress` non è sparso nel pannello.
+- Il pannello **non** manda niente al cliente: nessun promemoria, nessun sollecito. Deliberato —
+  un'email in più a chi ha già una promessa aperta è un rischio, non un aiuto.
+- Il pannello **non** dipende dai generatori dei deliverable (Blocco 2, che non esistono): la
+  consegna si segna a mano, che è la situazione dei primi clienti.
+- Lo **step 7** del percorso (readiness partnership) non ha una data promessa nell'email: non
+  compare fra le tappe, ed è detto esplicitamente in fondo alla pagina.
+- Segnare una tappa consegnata **non sblocca** la tappa successiva: la progressione degli step è
+  materia del Blocco 1 (`journey_progression.py`, in lavorazione in un'altra sessione), non di un
+  pannello di scadenze. Un test lo fissa.
+- La CI **non esegue** i test Jest (solo il build del frontend): `ConsegneStart.test.jsx` gira solo
+  in locale, col comando qui sopra.
+
+---
+
 ### 2026-08-12 · Claude Code (Luca) · cc/ciak-start-attivazione-manuale — Blocco 0: si incassa e si consegna
 
 Primo dei 4 blocchi decisi con Claudio per l'erogazione di Ciak Start (0 attivazione+acconto ·

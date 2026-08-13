@@ -3936,3 +3936,107 @@ async def attiva_ciak_start(
         "access_sent": access_sent,
         "recovery_open": not access_sent,
     }
+
+
+# ─── Pannello delle 3 tappe datate di Ciak Start ───────────────────────────
+# L'email di attivazione promette per iscritto tre consegne con date precise
+# (7/14/21 giorni da `start_purchased_at`). Fino a qui quelle date non le
+# ricordava nessuno. Con l'Edizione Settembre — 8 posti, partenza unica — sono
+# 24 consegne datate in 21 giorni tenute a memoria.
+#
+# Le regole stanno in `services/ciak_start_milestones.py`, che condivide con
+# l'email la stessa sorgente delle date. Qui restano solo le query.
+
+class SegnaTappaStartRequest(BaseModel):
+    client_id: str
+    tappa: int = Field(ge=1, le=3)
+    stato: str
+    riferimento: Optional[str] = None
+    nota: Optional[str] = None
+
+
+@router.get("/start/consegne")
+async def consegne_start(
+    _admin=Depends(require_ciak_admin),
+    max_items: int = Query(500, ge=1, le=2000),
+):
+    """Le 3 tappe promesse a ogni cliente Start, ordinate per urgenza."""
+    from services.ciak_client_accounts import ACCESS_START
+    from services.ciak_start_milestones import build_report
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    clients = await db.ciak_clients.find(
+        {"$or": [
+            {"access_level": ACCESS_START},
+            {"start_purchased_at": {"$nin": [None, ""]}},
+            {"start_credit_amount": {"$nin": [None, "", 0, "0"]}},
+        ]},
+        {
+            "_id": 0,
+            "id": 1,
+            "email": 1,
+            "name": 1,
+            "access_level": 1,
+            "start_purchased_at": 1,
+            "start_credit_amount": 1,
+            "start_progress": 1,
+        },
+    ).sort("start_purchased_at", -1).to_list(max_items)
+
+    return build_report(clients)
+
+
+@router.post("/start/consegne/segna")
+async def segna_tappa_start(
+    body: SegnaTappaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Segna una tappa come pronta da approvare o come consegnata.
+
+    Il pannello resta utile anche con la consegna fatta a mano — che e' la
+    situazione dei primi clienti: nessun generatore automatico e' richiesto qui.
+    """
+    from services.ciak_client_accounts import has_start_entitlement
+    from services.ciak_start_milestones import apply_milestone_status
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    client = await db.ciak_clients.find_one({"id": body.client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente non trovato")
+    if not has_start_entitlement(client):
+        raise HTTPException(409, "Il cliente non ha Ciak Start: nessuna tappa da consegnare")
+
+    actor = getattr(admin, "email", None) or "admin"
+    try:
+        progress = apply_milestone_status(
+            client,
+            tappa=body.tappa,
+            stato=body.stato,
+            attore=actor,
+            riferimento=(body.riferimento or "").strip() or None,
+            nota=(body.nota or "").strip() or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
+    await db.ciak_clients.update_one(
+        {"id": body.client_id},
+        {"$set": {
+            "start_progress": progress,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    logger.info(
+        "[CIAK_ADMIN] Tappa Start %s -> %s per %s da %s",
+        body.tappa, body.stato, client.get("email"), actor,
+    )
+    return {
+        "success": True,
+        "client_id": body.client_id,
+        "tappa": body.tappa,
+        "stato": body.stato,
+    }

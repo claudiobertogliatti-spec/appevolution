@@ -6,26 +6,24 @@ import asyncio
 import logging
 import os
 import smtplib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from uuid import uuid4
 
 from services.ciak_client_accounts import create_magic_login_token
 
+# Le tre date promesse qui sotto sono le stesse che il pannello admin delle
+# consegne mostra al team: sorgente unica in `ciak_start_milestones`. Se le due
+# si sdoppiassero, il cliente e il team leggerebbero scadenze diverse — e la
+# versione giusta e' sempre quella nell'email del cliente.
+from services.ciak_start_milestones import format_delivery_dates as _delivery_dates
+
 logger = logging.getLogger(__name__)
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _delivery_dates(paid_at: str) -> list[str]:
-    try:
-        base = datetime.fromisoformat(paid_at.replace("Z", "+00:00"))
-    except (TypeError, ValueError):
-        base = datetime.now(timezone.utc)
-    return [(base + timedelta(days=days)).strftime("%d/%m/%Y") for days in (7, 14, 21)]
 
 
 def _send_email(email: str, name: str | None, access_url: str, paid_at: str) -> tuple[bool, str | None]:
