@@ -20,7 +20,7 @@
  *
  * Tutte le chiamate passano per adminFetch (token admin). Partner da GET /api/admin/ciak/partners.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarDays, Loader2, Sparkles, Megaphone, Radio, ShoppingCart,
   ArrowRight, Users, RefreshCw, ExternalLink, Presentation, Tag, ListChecks,
@@ -28,6 +28,7 @@ import {
 import { adminFetch, getToken, getAdminUser } from "../api";
 
 const PJ = "/api/partner-journey";
+const LAUNCH_CALENDAR_API = "/api/partner/calendar";
 
 const FORMATO_ICON = { reel: Radio, carosello: Sparkles, post: Megaphone, storie: Megaphone, webinar: Radio };
 
@@ -69,6 +70,18 @@ function formatDate(value) {
   return Number.isNaN(date.valueOf()) ? value : date.toLocaleDateString("it-IT");
 }
 
+function describeReviewError(payload, fallback) {
+  const detail = payload?.detail;
+  if (detail?.code === "launch_calendar_not_ready") {
+    const messages = [...new Set(detail.failed_checks || [])]
+      .map((check) => REVIEW_CHECKS[check] || "Completa il controllo richiesto prima di approvare.");
+    return messages.length ? messages.join(" ") : fallback;
+  }
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (typeof detail?.message === "string" && detail.message.trim()) return detail.message;
+  return fallback;
+}
+
 function ReviewQueue({ onAuthExpired }) {
   const [items, setItems] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -78,24 +91,42 @@ function ReviewQueue({ onAuthExpired }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [outcome, setOutcome] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const detailRequest = useRef({ sequence: 0, controller: null });
 
-  const loadQueue = useCallback(async () => {
+  const loadQueue = useCallback(async (cursor = null) => {
     setError(null);
+    if (cursor) setLoadingMore(true);
     try {
-      const res = await adminFetch(`${PJ}/admin/pending-review`);
+      const query = new URLSearchParams({ limit: "25" });
+      if (cursor) query.set("cursor", cursor);
+      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/admin/pending-review?${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setItems(data.items || []);
+      setItems((current) => cursor ? [...(current || []), ...(data.items || [])] : (data.items || []));
+      setNextCursor(data.next_cursor || null);
+      setHasMore(Boolean(data.has_more));
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       setError("Non riesco a caricare la coda delle revisioni.");
-      setItems([]);
+      if (!cursor) setItems([]);
+    } finally {
+      if (cursor) setLoadingMore(false);
     }
   }, [onAuthExpired]);
 
-  useEffect(() => { loadQueue(); }, [loadQueue]);
+  useEffect(() => {
+    loadQueue();
+    return () => detailRequest.current.controller?.abort();
+  }, [loadQueue]);
 
   const openReview = async (item) => {
+    detailRequest.current.controller?.abort();
+    const sequence = detailRequest.current.sequence + 1;
+    const controller = new AbortController();
+    detailRequest.current = { sequence, controller };
     setError(null);
     setOutcome(null);
     setSelected(item);
@@ -103,14 +134,16 @@ function ReviewQueue({ onAuthExpired }) {
     setNote("");
     setConfirming(false);
     try {
-      const res = await adminFetch(`${PJ}/${item.partner_id}/versions/${item.version}`);
+      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/${item.partner_id}/versions/${item.version}`, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      if (sequence !== detailRequest.current.sequence) return;
       if (data.status !== "pending_review" || data.checksum !== item.checksum) {
         throw new Error("La versione non coincide piu con la riga della coda.");
       }
       setDocument(data);
     } catch (e) {
+      if (sequence !== detailRequest.current.sequence || e?.name === "AbortError") return;
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       setError(e.message || "Non riesco a caricare questa versione.");
     }
@@ -118,17 +151,25 @@ function ReviewQueue({ onAuthExpired }) {
 
   const decide = async (decision) => {
     if (!selected || !document || busy || (decision === "reject" && !note.trim())) return;
+    if (
+      document.partner_id !== selected.partner_id
+      || document.version !== selected.version
+      || document.checksum !== selected.checksum
+    ) {
+      setError("La versione visualizzata non coincide con la selezione. Riapri la revisione prima di decidere.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const res = await adminFetch(`${PJ}/${selected.partner_id}/versions/${selected.version}/review`, {
+      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/${selected.partner_id}/versions/${selected.version}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision, note: decision === "reject" ? note.trim() : "" }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.detail?.message || data?.detail || "La decisione non e stata registrata.");
+        throw new Error(describeReviewError(data, "La decisione non e stata registrata."));
       }
       const responseDocument = await res.json();
       if (responseDocument.status !== (decision === "approve" ? "approved" : "rejected")) {
@@ -163,7 +204,7 @@ function ReviewQueue({ onAuthExpired }) {
           <h2 className="text-lg font-semibold text-slate-900">Da approvare</h2>
           <p className="text-sm text-slate-500">Marco decide solo sulla versione confermata dal partner.</p>
         </div>
-        <button onClick={loadQueue} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+        <button onClick={() => loadQueue()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
           <RefreshCw className="w-3.5 h-3.5" /> Aggiorna coda
         </button>
       </div>
@@ -185,6 +226,7 @@ function ReviewQueue({ onAuthExpired }) {
           </button>
         </article>
       ))}
+      {hasMore && <button onClick={() => loadQueue(nextCursor)} disabled={loadingMore || !nextCursor} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">{loadingMore ? "Caricamento…" : "Carica altre revisioni"}</button>}
 
       {selected && (
         <section aria-label="Revisione calendario" className="rounded-2xl border border-slate-300 bg-white p-5 space-y-5">

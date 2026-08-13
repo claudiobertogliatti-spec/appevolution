@@ -41,9 +41,25 @@ const pendingDocument = {
   },
 };
 
+function pendingDocumentFor(item) {
+  return {
+    ...pendingDocument,
+    partner_id: item.partner_id,
+    version: item.version,
+    checksum: item.checksum,
+    calendar: { ...pendingDocument.calendar, commercial_terms: { bonus: item.bonus } },
+  };
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((next) => { resolve = next; });
+  return { promise, resolve };
+}
+
 function mockQueue(items = [pendingItem]) {
   adminFetch.mockImplementation((path, options = {}) => {
-    if (path === "/api/partner/calendar/admin/pending-review") return Promise.resolve(response({ items }));
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items, has_more: false, next_cursor: null }));
     if (path === "/api/partner/calendar/p1/versions/3") return Promise.resolve(response(pendingDocument));
     if (path === "/api/partner/calendar/p1/versions/3/review" && options.method === "POST") {
       return Promise.resolve(response({ ...pendingDocument, status: options.body.includes("approve") ? "approved" : "rejected" }));
@@ -73,6 +89,69 @@ test("Marco approva la stessa versione e checksum mostrati solo dopo conferma", 
     expect.objectContaining({ method: "POST", body: JSON.stringify({ decision: "approve", note: "" }) })
   ));
   await waitFor(() => expect(screen.queryByText("Partner Uno")).toBeNull());
+});
+
+test("la risposta lenta della revisione A non sostituisce B e non puo approvare A", async () => {
+  const secondItem = { ...pendingItem, partner_id: "p2", partner_name: "Partner Due", version: 4, checksum: "checksum-versione-4-lungo" };
+  const firstDetail = deferred();
+  const secondDetail = deferred();
+  adminFetch.mockImplementation((path, options = {}) => {
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items: [pendingItem, secondItem], has_more: false, next_cursor: null }));
+    if (path === "/api/partner/calendar/p1/versions/3") return firstDetail.promise;
+    if (path === "/api/partner/calendar/p2/versions/4") return secondDetail.promise;
+    if (path === "/api/partner/calendar/p2/versions/4/review" && options.method === "POST") return Promise.resolve(response({ ...pendingDocumentFor(secondItem), status: "approved" }));
+    return Promise.resolve(response({ items: [] }));
+  });
+  render(<CalendarioEditoriale />);
+
+  const openButtons = await screen.findAllByRole("button", { name: /apri revisione/i });
+  fireEvent.click(openButtons[0]);
+  fireEvent.click(openButtons[1]);
+  secondDetail.resolve(response(pendingDocumentFor(secondItem)));
+  expect(await screen.findByRole("heading", { name: /partner due.*versione 4/i })).toBeTruthy();
+  firstDetail.resolve(response(pendingDocumentFor(pendingItem)));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(screen.queryByRole("heading", { name: /partner uno.*versione 3/i })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: /approva calendario/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /conferma approvazione/i }));
+  await waitFor(() => expect(adminFetch).toHaveBeenCalledWith(
+    "/api/partner/calendar/p2/versions/4/review",
+    expect.objectContaining({ method: "POST" })
+  ));
+  expect(adminFetch.mock.calls.some(([path]) => path === "/api/partner/calendar/p1/versions/3/review")).toBe(false);
+});
+
+test("la coda espone un'azione per caricare la pagina successiva", async () => {
+  const secondItem = { ...pendingItem, partner_id: "p2", partner_name: "Partner Due", version: 4, checksum: "checksum-versione-4-lungo" };
+  adminFetch.mockImplementation((path) => {
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items: [pendingItem], has_more: true, next_cursor: "cursor-1" }));
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25&cursor=cursor-1") return Promise.resolve(response({ items: [secondItem], has_more: false, next_cursor: null }));
+    return Promise.resolve(response({ items: [] }));
+  });
+  render(<CalendarioEditoriale />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /carica altre revisioni/i }));
+  expect(await screen.findByText("Partner Due")).toBeTruthy();
+});
+
+test("un errore 409 strutturato mostra i controlli leggibili", async () => {
+  adminFetch.mockImplementation((path, options = {}) => {
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items: [pendingItem], has_more: false, next_cursor: null }));
+    if (path === "/api/partner/calendar/p1/versions/3") return Promise.resolve(response(pendingDocument));
+    if (path === "/api/partner/calendar/p1/versions/3/review" && options.method === "POST") {
+      return Promise.resolve(response({ detail: { code: "launch_calendar_not_ready", failed_checks: ["verified_destination_urls"] } }, false, 409));
+    }
+    return Promise.resolve(response({ items: [] }));
+  });
+  render(<CalendarioEditoriale />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /apri revisione/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /approva calendario/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /conferma approvazione/i }));
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toMatch(/url.*https pubblica/i);
+  expect(alert.textContent).not.toContain("[object Object]");
 });
 
 test("Marco non puo rifiutare senza nota e la coda cambia solo dalla risposta server", async () => {

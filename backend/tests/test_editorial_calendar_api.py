@@ -72,6 +72,8 @@ class FakeCollection:
                 continue
             actual = doc.get(key)
             if isinstance(value, dict):
+                if "$in" in value and actual not in value["$in"]:
+                    return False
                 if "$lte" in value and not (actual is not None and actual <= value["$lte"]):
                     return False
                 if "$gt" in value and not (actual is not None and actual > value["$gt"]):
@@ -110,7 +112,10 @@ class FakeCursor:
     def __init__(self, docs):
         self.docs = [dict(doc) for doc in docs]
 
-    def sort(self, _field, _direction):
+    def sort(self, field, direction=None):
+        pairs = field if isinstance(field, list) else [(field, direction)]
+        for sort_field, sort_direction in reversed(pairs):
+            self.docs.sort(key=lambda doc: doc.get(sort_field, ""), reverse=sort_direction < 0)
         return self
 
     async def to_list(self, limit=None, length=None):
@@ -2133,6 +2138,41 @@ def test_calendar_reject_requires_a_note(client, partner_token, admin_token):
     assert client.get(
         "/api/partner/calendar/p1/versions/1", headers=_headers(admin_token)
     ).json()["status"] == "pending_review"
+
+
+def test_admin_pending_review_queue_is_paged_without_hiding_later_versions(client, admin_token, fake_db):
+    for index in range(1, 4):
+        partner_id = f"p{index}"
+        fake_db.partner_launch_calendar_versions.docs.append({
+            "partner_id": partner_id,
+            "version": 1,
+            "status": "pending_review",
+            "checksum": f"checksum-{partner_id}",
+            "created_at": f"2026-08-12T10:00:0{index}+00:00",
+            "partner_confirmed_at": f"2026-08-12T11:00:0{index}+00:00",
+            "calendar": {"days": []},
+        })
+        fake_db.partners.docs.append({"id": partner_id, "name": f"Partner {index}"})
+
+    first = client.get(
+        "/api/partner/calendar/admin/pending-review?limit=2", headers=_headers(admin_token)
+    )
+
+    assert first.status_code == 200
+    assert [item["partner_id"] for item in first.json()["items"]] == ["p1", "p2"]
+    assert first.json()["has_more"] is True
+    assert first.json()["next_cursor"]
+
+    second = client.get(
+        "/api/partner/calendar/admin/pending-review",
+        params={"limit": 2, "cursor": first.json()["next_cursor"]},
+        headers=_headers(admin_token),
+    )
+
+    assert second.status_code == 200
+    assert [item["partner_id"] for item in second.json()["items"]] == ["p3"]
+    assert second.json()["has_more"] is False
+    assert second.json()["next_cursor"] is None
 
 
 def test_current_version_response_whitelists_public_fields(client, partner_token, fake_db):

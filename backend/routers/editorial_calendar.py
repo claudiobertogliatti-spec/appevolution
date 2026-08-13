@@ -13,8 +13,10 @@ La generazione non blocca mai: il servizio ricade su uno scheletro deterministic
 from __future__ import annotations
 
 from copy import deepcopy
+import base64
 from datetime import timedelta
 import ipaddress
+import json
 import logging
 import os
 from datetime import date, datetime, timezone
@@ -22,7 +24,7 @@ from typing import Literal
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
@@ -175,6 +177,34 @@ def _pending_review_summary(document: dict) -> dict:
         "bonus": deepcopy((calendar.get("commercial_terms") or {}).get("bonus") or {}),
         "failed_checks": sorted(failed_checks),
     }
+
+
+def _encode_pending_review_cursor(document: dict) -> str:
+    """Cursor opaco, ordinato su creazione + identita' stabile della versione."""
+    payload = {
+        "created_at": document.get("created_at") or "",
+        "partner_id": document.get("partner_id") or "",
+        "version": int(document.get("version") or 0),
+    }
+    return base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).decode("ascii").rstrip("=")
+
+
+def _decode_pending_review_cursor(cursor: str) -> dict:
+    try:
+        padded = cursor + ("=" * (-len(cursor) % 4))
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
+        if (
+            not isinstance(payload, dict)
+            or not isinstance(payload.get("created_at"), str)
+            or not isinstance(payload.get("partner_id"), str)
+            or not isinstance(payload.get("version"), int)
+        ):
+            raise ValueError("cursor fields")
+        return payload
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(422, "Cursor della coda non valido") from exc
 
 
 def _raise_calendar_not_ready(failed_checks: list[str]) -> None:
@@ -583,20 +613,40 @@ async def generate_calendar(
 
 @router.get("/admin/pending-review")
 async def list_pending_calendar_reviews(
+    limit: int = Query(default=25, ge=1, le=100),
+    cursor: str | None = None,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
-    """Coda server-side, visibile solo a Marco/admin, delle sole versioni pendenti."""
+    """Coda server-side paginata, visibile solo a Marco/admin."""
     await _require_calendar_admin(credentials)
+    query: dict = {"status": "pending_review"}
+    if cursor:
+        after = _decode_pending_review_cursor(cursor)
+        query["$or"] = [
+            {"created_at": {"$gt": after["created_at"]}},
+            {"created_at": after["created_at"], "partner_id": {"$gt": after["partner_id"]}},
+            {
+                "created_at": after["created_at"],
+                "partner_id": after["partner_id"],
+                "version": {"$gt": after["version"]},
+            },
+        ]
     documents = await db.partner_launch_calendar_versions.find(
-        {"status": "pending_review"}, {"_id": 0}
-    ).sort("partner_confirmed_at", 1).to_list(200)
-    items = []
-    for document in documents:
-        partner = await db.partners.find_one(
-            {"id": document.get("partner_id")}, {"_id": 0, "name": 1, "email": 1}
-        )
-        items.append(_pending_review_summary({**document, "partner": partner or {}}))
-    return {"items": items}
+        query, {"_id": 0}
+    ).sort([("created_at", 1), ("partner_id", 1), ("version", 1)]).to_list(limit + 1)
+    has_more = len(documents) > limit
+    page = documents[:limit]
+    partner_ids = sorted({str(document.get("partner_id")) for document in page if document.get("partner_id")})
+    partners = await db.partners.find(
+        {"id": {"$in": partner_ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}
+    ).to_list(len(partner_ids)) if partner_ids else []
+    partners_by_id = {str(partner.get("id")): partner for partner in partners}
+    items = [_pending_review_summary({**document, "partner": partners_by_id.get(str(document.get("partner_id")), {})}) for document in page]
+    return {
+        "items": items,
+        "has_more": has_more,
+        "next_cursor": _encode_pending_review_cursor(page[-1]) if has_more and page else None,
+    }
 
 
 @router.post("/{partner_id}/versions", status_code=status.HTTP_201_CREATED)
