@@ -17415,6 +17415,14 @@ from routers.admin_diagnostics import router as admin_diagnostics_router, set_db
 set_admin_diagnostics_db(db)
 app.include_router(admin_diagnostics_router)
 
+# Form di contatto del sito vetrina Ciak Start (POST /api/vetrina/{id}/contatto).
+# PUBBLICO di proposito: la pagina sta sul dominio del cliente e il form e'
+# nativo, quindi arriva una navigazione senza header di autenticazione. Le
+# difese sono dentro il router: honeypot, tetto orario per IP, consenso.
+from routers.vetrina_contatti import router as vetrina_contatti_router, set_db as set_vetrina_contatti_db
+set_vetrina_contatti_db(db)
+app.include_router(vetrina_contatti_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
