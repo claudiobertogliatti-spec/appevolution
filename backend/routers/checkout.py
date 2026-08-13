@@ -361,6 +361,13 @@ async def get_session_status(session_id: str):
     # Accetta sia ciak_blueprint che legacy ciak_analisi
     if metadata.get("tipo") not in ("ciak_blueprint", "ciak_analisi"):
         raise HTTPException(403, "Session is not a Ciak Blueprint checkout")
+    if (
+        stripe_session.mode != "payment"
+        or stripe_session.currency != "eur"
+        or stripe_session.amount_total != 2700
+    ):
+        logger.warning("[CIAK_CHECKOUT] session-status product mismatch: %s", session_id)
+        raise HTTPException(403, "Session does not match the Ciak Blueprint product")
 
     diagnostic_token = metadata.get("diagnostic_session_token")
 

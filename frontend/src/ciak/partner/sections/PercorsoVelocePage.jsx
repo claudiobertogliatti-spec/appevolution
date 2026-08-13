@@ -51,7 +51,7 @@ function CountdownHero({ currentDay }) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-white/40">
-              Go Live in 21 giorni
+              Obiettivo go live: 21 giorni operativi
             </p>
             <p className="text-4xl font-semibold text-white">
               {completed ? "LIVE" : `Giorno ${currentDay}`}
@@ -253,10 +253,10 @@ function ActivationScreen({ onActivate, isActivating, onBack }) {
             <Zap className="w-10 h-10 text-yellow-500" />
           </div>
           <h1 className="text-3xl font-semibold mb-3 text-slate-900">
-            Go Live in 21 giorni
+            Obiettivo go live: 21 giorni operativi
           </h1>
           <p className="text-base leading-relaxed text-slate-600">
-            Un percorso accelerato per portarti online
+            Un percorso operativo per portarti online, se materiali e approvazioni arrivano nei tempi concordati,
             <br />
             con funnel, webinar e traffico reale.
           </p>
@@ -290,7 +290,7 @@ function ActivationScreen({ onActivate, isActivating, onBack }) {
 
         <div className="rounded-2xl p-5 mb-6 bg-slate-900">
           <p className="text-sm leading-relaxed text-slate-400">
-            <strong className="text-white">Tra 21 giorni avrai:</strong>
+            <strong className="text-white">Al completamento del percorso avrai:</strong>
           </p>
           <ul className="mt-3 space-y-2">
             {[

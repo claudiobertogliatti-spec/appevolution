@@ -153,6 +153,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
       <div className="max-w-5xl mx-auto px-4 py-6">
         {!allDone && !isBenvenuto && (
           <GoLive21Banner
+            stepStatus={stepToShow?.status}
             startDate={
               (state.steps?.find((s) => s.step_id === "01-contratto") || {}).completed_at ||
               (state.steps?.find((s) => s.step_id === "01-contratto") || {}).started_at ||

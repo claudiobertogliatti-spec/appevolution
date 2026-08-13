@@ -118,7 +118,7 @@ function computeMetrics(deptId, d) {
       return {
         "Nuovi lead 7 giorni": fmtNum(last7Sum(mc.trend_optin_30d)),
         "Lead qualificati": fmtNum(stato34(mc.diagnostic_per_stato)),
-        "Masterclass avviate": fmtNum(mc.funnel?.checkpoint_done),
+        "Masterclass avviate": fmtNum(mc.funnel?.video_started),
         "8 Domande completate": fmtNum(mc.funnel?.diagnostic_completed),
         "Ciak Start €499": ciakStart,
         "Blueprint acquistati": fmtNum(f.blueprint_purchased),

@@ -47,6 +47,10 @@ ALLOWED_SOURCES = {
     "masterclass_gate",    # gate fallback su /masterclass se utente arriva diretto
     "masterclass_landing", # landing principale /masterclass
 }
+ALLOWED_MASTERCLASS_EVENTS = {
+    "video_started", "video_25", "video_50", "video_75", "video_completed",
+    "cta_shown", "cta_clicked",
+}
 
 # Slug-safe UTM (Systeme tag names devono evitare caratteri strani).
 _UTM_SLUG_RE = re.compile(r"[^a-z0-9_]+")
@@ -81,6 +85,34 @@ class LeadCaptureRequest(BaseModel):
 class LeadCaptureResponse(BaseModel):
     ok: bool
     is_new: bool
+
+
+class MasterclassEventRequest(BaseModel):
+    viewer_id: str = Field(..., min_length=8, max_length=100)
+    event: str = Field(..., min_length=1, max_length=40)
+    email: Optional[EmailStr] = None
+    video_id: str = Field(..., min_length=1, max_length=40)
+    progress: Optional[int] = Field(None, ge=0, le=100)
+    source_url: Optional[str] = Field(None, max_length=1000)
+
+
+@router.post("/masterclass-event")
+async def masterclass_event(payload: MasterclassEventRequest):
+    """Registra gli snodi reali del viewer, idempotenti per viewer ed evento."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if payload.event not in ALLOWED_MASTERCLASS_EVENTS:
+        raise HTTPException(422, "Evento masterclass non valido")
+    now = datetime.now(timezone.utc).isoformat()
+    key = {"viewer_id": payload.viewer_id, "event": payload.event, "video_id": payload.video_id}
+    await db.ciak_masterclass_events.update_one(key, {"$setOnInsert": {
+        **key,
+        "email": str(payload.email).lower() if payload.email else None,
+        "progress": payload.progress,
+        "source_url": payload.source_url,
+        "created_at": now,
+    }}, upsert=True)
+    return {"ok": True}
 
 
 # ─── Endpoint ──────────────────────────────────────────────────────────

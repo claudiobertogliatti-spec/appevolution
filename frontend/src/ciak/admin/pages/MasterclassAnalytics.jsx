@@ -101,6 +101,11 @@ export function MasterclassAnalytics({ onAuthExpired }) {
       </h2>
       <div className="flex flex-wrap gap-3 mb-2">
         <FunnelStep label="Opt-in masterclass" value={f.opt_in} pct={null} />
+        <FunnelStep label="Video avviato" value={f.video_started} pct={null} />
+        <FunnelStep label="Visto al 50%" value={f.video_50} pct={null} />
+        <FunnelStep label="Video completato" value={f.video_completed} pct={null} />
+        <FunnelStep label="CTA mostrata" value={f.cta_shown} pct={null} />
+        <FunnelStep label="CTA cliccata" value={f.cta_clicked} pct={null} />
         <FunnelStep label="Checkpoint compilato" value={f.checkpoint_done} pct={conv.optin_to_checkpoint} />
         <FunnelStep label="8 Domande avviate" value={f.diagnostic_started} pct={null} />
         <FunnelStep label="8 Domande completate" value={f.diagnostic_completed} pct={null} />

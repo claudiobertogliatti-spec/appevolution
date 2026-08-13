@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+const { progressMilestones, shouldEmitMasterclassEvent } = require("../lib/masterclassTracking.cjs");
 
 const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
 const CTA_UNLOCK_SECONDS = 20 * 60;
@@ -13,17 +14,38 @@ export function CiakMasterclass() {
     new URLSearchParams(window.location.search).get("fast") === "1";
   const unlockSeconds = isFastMode ? FAST_CTA_SECONDS : CTA_UNLOCK_SECONDS;
   const [ctaAvailable, setCtaAvailable] = useState(false);
+  const emittedRef = useRef(new Set());
+
+  const emitEvent = useCallback((event, progress) => {
+    if (!shouldEmitMasterclassEvent(event, emittedRef.current)) return;
+    emittedRef.current.add(event);
+    let viewerId = localStorage.getItem("ciak_masterclass_viewer_id");
+    if (!viewerId) {
+      viewerId = (window.crypto?.randomUUID?.() || `viewer_${Date.now()}_${Math.random().toString(16).slice(2)}`);
+      localStorage.setItem("ciak_masterclass_viewer_id", viewerId);
+    }
+    fetch("/api/ciak/masterclass-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      viewer_id: viewerId, event, progress, video_id: MASTERCLASS_YOUTUBE_ID,
+      email: localStorage.getItem("ciak_lead_email") || undefined,
+      source_url: window.location.href,
+    }) }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setCtaAvailable(true), unlockSeconds * 1000);
     return () => clearTimeout(timer);
   }, [unlockSeconds]);
 
+  useEffect(() => { if (ctaAvailable) emitEvent("cta_shown"); }, [ctaAvailable, emitEvent]);
+
   useEffect(() => {
     let player = null;
     let cancelled = false;
+    let progressTimer = null;
+    let previousProgress = 0;
 
     const onEnded = () => {
+      emitEvent("video_completed", 100);
       setCtaAvailable(true);
       setTimeout(() => {
         document.getElementById("ep-cta-8domande")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -33,7 +55,25 @@ export function CiakMasterclass() {
     const initPlayer = () => {
       if (cancelled || !window.YT || !window.YT.Player) return;
       player = new window.YT.Player("yt-masterclass", {
-        events: { onStateChange: (event) => event.data === 0 && onEnded() },
+        events: { onStateChange: (event) => {
+          if (event.data === 1) {
+            emitEvent("video_started", 0);
+            if (!progressTimer) progressTimer = setInterval(() => {
+              const duration = player?.getDuration?.() || 0;
+              const current = player?.getCurrentTime?.() || 0;
+              if (!duration) return;
+              const progress = Math.min(100, Math.round((current / duration) * 100));
+              const emittedThresholds = new Set([...emittedRef.current]
+                .filter((name) => /^video_(25|50|75)$/.test(name))
+                .map((name) => Number(name.replace("video_", ""))));
+              progressMilestones(previousProgress, progress, emittedThresholds)
+                .filter((milestone) => milestone < 100)
+                .forEach((milestone) => emitEvent(`video_${milestone}`, milestone));
+              previousProgress = progress;
+            }, 5000);
+          }
+          if (event.data === 0) onEnded();
+        } },
       });
     };
 
@@ -55,9 +95,10 @@ export function CiakMasterclass() {
 
     return () => {
       cancelled = true;
+      clearInterval(progressTimer);
       try { if (player?.destroy) player.destroy(); } catch (_) { /* noop */ }
     };
-  }, []);
+  }, [emitEvent]);
 
   return (
     <>
@@ -92,7 +133,7 @@ export function CiakMasterclass() {
                 Rispondi alle 8 Domande Ciak (2-3 minuti). Prima di pensare a strumenti, campagne o percorsi più
                 grandi, capisci dove sei e da quale direzione partire.
               </p>
-              <Link to="/diagnostica" className="inline-block rounded-lg bg-slate-900 px-8 py-4 font-semibold text-yellow-400 transition hover:bg-slate-800">
+              <Link onClick={() => emitEvent("cta_clicked")} to="/diagnostica" className="inline-block rounded-lg bg-slate-900 px-8 py-4 font-semibold text-yellow-400 transition hover:bg-slate-800">
                 Inizia le 8 Domande Ciak →
               </Link>
             </div>
@@ -104,7 +145,7 @@ export function CiakMasterclass() {
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-yellow-400 bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
           <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
             <p className="text-sm leading-snug text-slate-700 md:text-base">Hai visto abbastanza: ora scopri il tuo stato attuale.</p>
-            <Link to="/diagnostica" className="flex-shrink-0 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-slate-800 md:text-base">
+            <Link onClick={() => emitEvent("cta_clicked")} to="/diagnostica" className="flex-shrink-0 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-slate-800 md:text-base">
               Vai alle 8 Domande Ciak →
             </Link>
           </div>

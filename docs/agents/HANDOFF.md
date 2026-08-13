@@ -12,6 +12,29 @@ Regole:
 
 ---
 
+### 2026-08-13 · Codex · codex/ciak-funnel-promesse — Blueprint, Masterclass, Go Live
+
+**FATTO**
+- La thank-you Blueprint conferma acquisto, calendario e Meta Purchase solo dopo verifica
+  server-side della sessione Stripe `paid`; stati mancanti, non pagati o non verificabili
+  mostrano un recupero esplicito senza falsa conferma.
+- La Masterclass registra in modo idempotente avvio, 25/50/75%, completamento e CTA
+  mostrata/cliccata; i contatori sono esposti nella Masterclass Analytics admin.
+- La promessa Go Live e' ora un obiettivo di 21 giorni operativi condizionato a materiali,
+  approvazioni e assenza di blocchi; uno step `blocked` mette l'obiettivo in pausa.
+
+**VERIFICATO**
+- `node --test src/ciak/lib/commercialJourney.test.cjs`: 7 test passati, 0 falliti.
+- Parsing Babel degli 8 file JSX/JS modificati: tutti `PARSE OK`.
+- `py_compile` sui tre router Python modificati: exit 0; `git diff --check`: exit 0.
+
+**APERTO**
+- Build/test Jest completi non eseguiti: il worktree non aveva le dipendenze frontend e
+  `npm install --legacy-peer-deps --ignore-scripts` e' scaduto dopo 120 secondi.
+- Nessun deploy o smoke test live ancora eseguito.
+
+---
+
 ### 2026-08-13 · Codex · main — release live calendario versionato F-14
 
 **FATTO**

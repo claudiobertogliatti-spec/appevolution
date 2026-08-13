@@ -14,9 +14,16 @@ import { useEffect, useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { trackPurchase } from "../lib/metaPixel";
+const { blueprintThankYouState } = require("../lib/blueprintThankYouState.cjs");
 
 export function CiakGrazie() {
   const [calcomUrl, setCalcomUrl] = useState("");
+  const [payment, setPayment] = useState(() => blueprintThankYouState({
+    sessionId: new URLSearchParams(window.location.search).get("session_id") ||
+      new URLSearchParams(window.location.search).get("session") || "",
+  }));
+  const sessionId = new URLSearchParams(window.location.search).get("session_id") ||
+    new URLSearchParams(window.location.search).get("session") || "";
 
   // Meta Pixel — Purchase (€27). No-op senza consenso marketing.
   // Dedup per session_id Stripe (se presente nel redirect success_url) salvato
@@ -24,26 +31,56 @@ export function CiakGrazie() {
   // L'eventID passato al pixel coincide col session_id: aiuta la futura
   // deduplica con la Conversions API server-side.
   useEffect(() => {
+    if (!sessionId) return undefined;
+    let cancelled = false;
+    let attempts = 0;
+    let timer;
+    const verify = async () => {
+      attempts += 1;
+      try {
+        const response = await fetch(`/api/checkout/session-status?session_id=${encodeURIComponent(sessionId)}`);
+        if (!response.ok) throw new Error("session_not_verified");
+        const data = await response.json();
+        const next = blueprintThankYouState({ sessionId, paymentStatus: data.payment_status });
+        if (!cancelled) setPayment(next);
+        if (next.kind === "verifying" && attempts < 4 && !cancelled) timer = setTimeout(verify, 1500);
+      } catch (error) {
+        if (!cancelled) setPayment(blueprintThankYouState({ sessionId, error }));
+      }
+    };
+    verify();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (payment.kind !== "paid" || !sessionId) return;
     try {
-      const params = new URLSearchParams(window.location.search);
-      const sessionId =
-        params.get("session_id") || params.get("session") || "";
-      const dedupeKey = "ciak_purchase_tracked_" + (sessionId || "noid");
+      const dedupeKey = `ciak_purchase_tracked_${sessionId}`;
       if (sessionStorage.getItem(dedupeKey)) return;
-      trackPurchase(27, "EUR", sessionId || undefined);
+      trackPurchase(27, "EUR", sessionId);
       sessionStorage.setItem(dedupeKey, "1");
-    } catch {
-      /* no-op */
-    }
-  }, []);
+    } catch { /* no-op */ }
+  }, [payment.kind, sessionId]);
 
   // Carica config pubblica (cal.com booking url, settato da admin in /admin/configurazione)
   useEffect(() => {
+    if (payment.kind !== "paid") return;
     fetch("/api/admin/ciak/public-config")
       .then((r) => r.json())
       .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
       .catch(() => {}); // silent: il fallback testuale resta valido
-  }, []);
+  }, [payment.kind]);
+
+  if (payment.kind !== "paid") {
+    const copy = payment.kind === "missing"
+      ? ["Pagamento non verificato", "Per confermare l’acquisto serve il link completo ricevuto al termine del pagamento."]
+      : payment.kind === "unpaid"
+        ? ["Pagamento non completato", "Stripe non ha ancora confermato il pagamento. Puoi tornare al Blueprint e riprovare."]
+        : payment.kind === "verifying"
+          ? ["Stiamo verificando il pagamento", "Attendi qualche secondo: la pagina si aggiorna automaticamente."]
+          : ["Non riusciamo a verificare il pagamento", "Non effettueremo una seconda transazione. Contatta l’assistenza indicando l’email usata su Stripe."];
+    return <><CiakHeader /><main className="bg-slate-900 text-white"><div className="mx-auto max-w-3xl px-6 py-24"><p className="mb-4 text-xs font-semibold uppercase tracking-widest text-yellow-400">Blueprint Ciak</p><h1 className="mb-5 text-3xl font-semibold md:text-5xl">{copy[0]}</h1><p className="mb-8 max-w-2xl text-slate-300">{copy[1]}</p><div className="flex flex-wrap gap-4"><a href="/blueprint" className="rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-slate-900">Torna al Blueprint</a><a href="mailto:assistenza@evolution-pro.it" className="rounded-lg border border-slate-600 px-6 py-3 font-semibold">Contatta l’assistenza</a></div></div></main><CiakFooter /></>;
+  }
 
   return (
     <>

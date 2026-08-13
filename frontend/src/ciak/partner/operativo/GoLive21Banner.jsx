@@ -1,5 +1,6 @@
 import React from "react";
 import { Rocket } from "lucide-react";
+const { goLivePromise } = require("./goLivePromise.cjs");
 
 /**
  * Fascia "Go Live in 21 giorni" in cima alla home partner.
@@ -9,17 +10,9 @@ import { Rocket } from "lucide-react";
  * Se passato `startDate` (ISO, es. data di avvio percorso), mostra anche
  * "Giorno X" con barra di avanzamento. Senza, mostra solo la promessa.
  */
-export default function GoLive21Banner({ startDate }) {
-  let dayInfo = null;
-  if (startDate) {
-    const start = new Date(startDate);
-    if (!isNaN(start.getTime())) {
-      const diffDays = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
-      const current = Math.min(Math.max(diffDays, 1), 21);
-      const remaining = Math.max(21 - current, 0);
-      dayInfo = { current, remaining, progress: Math.min((current / 21) * 100, 100) };
-    }
-  }
+export default function GoLive21Banner({ startDate, stepStatus }) {
+  const promise = goLivePromise({ startDate, stepStatus });
+  const dayInfo = promise.currentDay ? { current: promise.currentDay, remaining: promise.remaining, progress: promise.progress } : null;
 
   return (
     <div className="bg-slate-900 rounded-md p-4 mb-3">
@@ -30,20 +23,19 @@ export default function GoLive21Banner({ startDate }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-yellow-400">
-              Go Live in 21 giorni
+              {promise.label}
             </p>
-            {dayInfo && (
+            {promise.paused ? <p className="text-[11px] font-semibold text-amber-300">Obiettivo in pausa</p> : dayInfo && (
               <p className="text-[11px] font-medium text-slate-400">
                 Giorno <span className="text-white font-semibold">{dayInfo.current}</span> ·{" "}
-                {dayInfo.remaining === 0 ? "traguardo!" : `${dayInfo.remaining} al traguardo`}
+                {dayInfo.remaining === 0 ? "previsione da aggiornare" : `${dayInfo.remaining} stimati`}
               </p>
             )}
           </div>
           <p className="text-sm text-white leading-relaxed mt-1">
-            Segui il nostro <strong className="text-yellow-400">Metodo</strong> e saremo online in 21
-            giorni. <strong className="text-yellow-400">Prima lanciamo e prima incassiamo!</strong>
+            {promise.message}
           </p>
-          {dayInfo && (
+          {dayInfo && !promise.paused && (
             <div className="h-1.5 rounded-full overflow-hidden bg-white/15 mt-3">
               <div
                 className="h-full rounded-full bg-yellow-400 transition-all duration-700"

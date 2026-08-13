@@ -12,13 +12,13 @@ describe("CiakGrazie", () => {
   });
 
   test("descrive solo i prossimi passi realmente disponibili", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      json: async () => ({ calcom_booking_url: "https://cal.com/evolution/test" }),
-    });
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ payment_status: "paid" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ calcom_booking_url: "https://cal.com/evolution/test" }) });
     render(<CiakGrazie />);
 
-    expect(screen.getByText(/acquisto confermato/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /apri il calendario/i })).toHaveAttribute(
+    expect(await screen.findByText(/acquisto confermato/i)).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /apri il calendario/i })).toHaveAttribute(
       "href",
       "https://cal.com/evolution/test"
     );
@@ -28,7 +28,9 @@ describe("CiakGrazie", () => {
   });
 
   test("senza calendario mostra un contatto utile senza promettere email automatiche", async () => {
-    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({}) });
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ payment_status: "paid" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     render(<CiakGrazie />);
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
@@ -37,5 +39,23 @@ describe("CiakGrazie", () => {
       "mailto:assistenza@evolution-pro.it"
     );
     expect(screen.queryByText(/riceverai.*email/i)).not.toBeInTheDocument();
+  });
+
+  test("senza sessione non conferma, non mostra calendario e non traccia Purchase", async () => {
+    window.history.pushState({}, "", "/blueprint/grazie");
+    global.fetch = jest.fn();
+    const { trackPurchase } = require("../lib/metaPixel");
+    render(<CiakGrazie />);
+    expect(screen.getByText(/pagamento non verificato/i)).toBeInTheDocument();
+    expect(screen.queryByText(/acquisto confermato/i)).not.toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(trackPurchase).not.toHaveBeenCalled();
+  });
+
+  test("una sessione non pagata non sblocca la conferma", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ payment_status: "unpaid" }) });
+    render(<CiakGrazie />);
+    expect(await screen.findByText(/pagamento non completato/i)).toBeInTheDocument();
+    expect(screen.queryByText(/acquisto confermato/i)).not.toBeInTheDocument();
   });
 });

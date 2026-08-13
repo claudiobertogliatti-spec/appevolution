@@ -728,6 +728,9 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
     purchased = await db.diagnostic_sessions.count_documents(
         {"current_state": {"$in": list(_PURCHASED_STATES)}}
     )
+    viewer_events = {}
+    for event in ("video_started", "video_25", "video_50", "video_75", "video_completed", "cta_shown", "cta_clicked"):
+        viewer_events[event] = await db.ciak_masterclass_events.count_documents({"event": event})
     orphan_purchases = await db.ciak_orphan_purchases.count_documents({})
 
     return {
@@ -1868,6 +1871,7 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
     return {
         "funnel": {
             "opt_in": opt_in,
+            **viewer_events,
             "checkpoint_done": checkpoint_done,
             "diagnostic_started": diagnostic_started,
             "diagnostic_completed": diagnostic_completed,
