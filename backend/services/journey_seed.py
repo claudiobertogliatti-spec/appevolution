@@ -1,35 +1,46 @@
 """
-Servizio per seedare i 20 step iniziali per un partner che entra
+Servizio per seedare gli step iniziali per un partner che entra
 per la prima volta nell'Operativo Stefania.
 
 Idempotente: re-run non duplica record (check su partner_id + step_id).
+
+Consapevole del livello (`tier`): un cliente Ciak Start riceve la journey
+ridotta, un partner i 20 step canonici F-1..F-20. Il check per
+`partner_id + step_id` e' cio' che rende l'upgrade ADDITIVO: chi arriva da
+Start riceve gli step che gli mancano e non perde quelli che ha gia' compilato.
 """
 from datetime import datetime
+from typing import Any, Optional
+
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from models.partner_journey_step import (
-    JOURNEY_STEPS_DEFINITION,
-    JourneyStepStatus,
-)
+from models.partner_journey_step import JourneyStepStatus
+from models.start_journey import journey_definition_for_tier
 
 
 async def seed_partner_journey(
     db: AsyncIOMotorDatabase,
     partner_id: str,
-    start_step_number: int = 1,
+    start_step_number: float = 1,
+    tier: Optional[Any] = None,
 ) -> int:
-    """Seeda i 20 step per un partner. Marca come done gli step < start_step_number,
-    in_progress lo step start_step_number, pending il resto.
+    """Seeda gli step del livello per un partner. Marca come done gli step
+    < start_step_number, in_progress lo step start_step_number, pending il resto.
+
+    `tier=None` (default) = journey canonica: e' il comportamento storico e vale
+    per i 26 partner in produzione, che il campo `tier` non ce l'hanno.
 
     Ritorna il numero di step creati (0 se erano già tutti seedati).
     """
+    definitions = journey_definition_for_tier(tier)
+
     existing = await db.partner_journey_steps.count_documents({"partner_id": partner_id})
-    if existing >= len(JOURNEY_STEPS_DEFINITION):
+    if existing >= len(definitions):
         return 0
 
     now = datetime.utcnow()
     created = 0
-    for definition in JOURNEY_STEPS_DEFINITION:
+    for definition in definitions:
         already = await db.partner_journey_steps.find_one(
             {"partner_id": partner_id, "step_id": definition["step_id"]}
         )
@@ -71,7 +82,7 @@ async def seed_partner_journey(
 
     # Aggiorna anche partners.journey_current_step per accesso rapido
     current_step_id = next(
-        (d["step_id"] for d in JOURNEY_STEPS_DEFINITION if d["step_number"] == start_step_number),
+        (d["step_id"] for d in definitions if d["step_number"] == start_step_number),
         None,
     )
     if current_step_id:

@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 import uuid
 import logging
+from models.start_journey import only_real_partners
 
 router = APIRouter(prefix="/api/operations", tags=["operations"])
 
@@ -75,12 +76,12 @@ async def get_partners_attivi():
     """
     try:
         # Query PRINCIPALE: cerca partner con status ACTIVE o phase attiva
-        partners = await db.partners.find({
+        partners = await db.partners.find(only_real_partners({
             "$or": [
                 {"status": {"$in": ["ACTIVE", "active"]}},
                 {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
-        }, {"_id": 0}).to_list(200)
+        }), {"_id": 0}).to_list(200)
         
         # Normalizza campi per il frontend
         oggi = datetime.now(timezone.utc)
@@ -424,24 +425,24 @@ async def get_operations_stats():
     """
     try:
         # Conta partner attivi dalla collection PARTNERS
-        partner_count = await db.partners.count_documents({
+        partner_count = await db.partners.count_documents(only_real_partners({
             "$or": [
                 {"status": {"$in": ["ACTIVE", "active"]}},
                 {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
-        })
+        }))
         
         # Conta campagne attive
         campagne_attive = await db.campagne_adv.count_documents({"stato": "attiva"})
         
         # Partner in ritardo (>7 giorni senza update)
         oggi = datetime.now(timezone.utc)
-        partners = await db.partners.find({
+        partners = await db.partners.find(only_real_partners({
             "$or": [
                 {"status": {"$in": ["ACTIVE", "active"]}},
                 {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
-        }, {"ultimo_aggiornamento": 1, "updated_at": 1}).to_list(200)
+        }), {"ultimo_aggiornamento": 1, "updated_at": 1}).to_list(200)
         
         in_ritardo = 0
         for p in partners:

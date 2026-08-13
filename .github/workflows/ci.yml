@@ -116,6 +116,12 @@ jobs:
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
           tests/test_ciak_clients_router.py
+          tests/test_start_journey_tiers.py
+          tests/test_start_partner_bridge.py
+          tests/test_start_client_partner_guard.py
+          tests/test_start_journey_state.py
+          tests/test_partner_tier_counts.py
+          tests/test_start_client_posizionamento.py
 
   frontend:
     name: Frontend (build smoke)

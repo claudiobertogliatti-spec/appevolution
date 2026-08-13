@@ -15,6 +15,7 @@ Modellato su admin_stefania.py. Anthropic SDK nativo.
 
 import os
 import logging
+from models.start_journey import only_real_partners
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
@@ -258,7 +259,7 @@ async def build_luca_context() -> str:
     all_partners: List[Dict[str, Any]] = []
     try:
         all_partners = await db.partners.find(
-            {},
+            only_real_partners(),
             {"_id": 0, "id": 1, "name": 1, "phase": 1, "status": 1,
              "last_activity": 1, "updated_at": 1, "alert": 1}
         ).to_list(300)
@@ -521,19 +522,19 @@ async def luca_daily_report(token_data=Depends(require_admin_or_report_key)):
     target_optimal = 4
     target_new_contacts = 20
 
-    partnerships_month = await db.partners.count_documents({
+    partnerships_month = await db.partners.count_documents(only_real_partners({
         "$or": [
             {"partnership_pagata_at": {"$gte": month_start}},
             {"contract_signed_at": {"$gte": month_start}},
         ]
-    })
+    }))
     gap_ingressi = max(target_optimal - partnerships_month, 0)
 
     # ── Delivery ──────────────────────────────────────────────────────────
     STEP_META = {d["step_id"]: d for d in JOURNEY_STEPS_DEFINITION}
     partners = []
     async for p in db.partners.find(
-        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]},
+        only_real_partners({"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}),
         {
             "_id": 0,
             "id": 1,

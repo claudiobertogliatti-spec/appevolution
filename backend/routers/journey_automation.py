@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 import logging
+from models.start_journey import only_real_partners
 import os
 import httpx
 
@@ -421,13 +422,13 @@ async def check_stuck_partners(request: CheckStuckPartnersRequest):
     threshold_date = (datetime.now(timezone.utc) - timedelta(days=request.days_threshold)).isoformat()
     
     # Trova partner con last_activity vecchia
-    stuck_partners = await db.partners.find({
+    stuck_partners = await db.partners.find(only_real_partners({
         "$or": [
             {"last_activity": {"$lt": threshold_date}},
             {"last_activity": None}
         ],
         "phase": {"$in": ["F1", "F2", "F3", "F4", "F5", "F6"]}  # Solo fasi attive
-    }, {"_id": 0}).to_list(100)
+    }), {"_id": 0}).to_list(100)
     
     alerts = []
     for partner in stuck_partners:
@@ -489,22 +490,23 @@ async def get_journey_dashboard():
     
     # Count per fase
     pipeline = [
+        {"$match": only_real_partners()},
         {"$group": {"_id": "$phase", "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}
     ]
     phase_counts = await db.partners.aggregate(pipeline).to_list(20)
     
     # Partner con alert
-    alert_count = await db.partners.count_documents({"alert": True})
+    alert_count = await db.partners.count_documents(only_real_partners({"alert": True}))
     
     # Partner attivi oggi
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()
-    active_today = await db.partners.count_documents({
+    active_today = await db.partners.count_documents(only_real_partners({
         "last_activity": {"$gte": today_start}
-    })
+    }))
     
     # Totali
-    total_partners = await db.partners.count_documents({})
+    total_partners = await db.partners.count_documents(only_real_partners())
     
     # Ultimi avanzamenti
     recent_advances = await db.journey_logs.find(

@@ -19,6 +19,7 @@ Controlli implementati:
 """
 
 import logging
+from models.start_journey import only_real_partners
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -282,7 +283,7 @@ async def get_partners_diagnostics(
         )
 
     try:
-        partners_cursor = db.partners.find({}, {"_id": 0})
+        partners_cursor = db.partners.find(only_real_partners(), {"_id": 0})
         partners_list = await partners_cursor.to_list(length=1000)
     except Exception as e:
         logger.error("Errore durante la lettura dei partner da DB: %s", e)
