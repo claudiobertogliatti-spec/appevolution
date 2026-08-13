@@ -101,43 +101,38 @@ Primo dei 4 blocchi decisi con Claudio per l'erogazione di Ciak Start (0 attivaz
 **FATTO**
 - `POST /api/admin/ciak/start/attiva`: da **una sola email** crea l'account se manca
   (`ensure_client_for_direct_start`, per chi non ha mai comprato il Blueprint), scrive entitlement e
-  credito, registra l'incasso e **consegna l'accesso** con `deliver_start_access` — il pezzo che
-  `/start/activate` non faceva. Idempotente: su chi ha già saldato non risomma, riconsegna il link.
-- Il webhook accetta `ciak_start_acconto` / `ciak_start_saldo`. Prima `process_ciak_start_payment`
-  sollevava `RuntimeError` su qualsiasi importo ≠ 49900: **l'acconto da 199 dell'Edizione Settembre
-  veniva rifiutato**. Entitlement alla prima rata, accesso consegnato una volta sola.
-- Regola nuova solo sul percorso nuovo: **col piano rateale aperto il credito verso la Partnership
-  vale l'incassato**, non i 499 promessi; col saldo il piano si chiude e torna pieno. Il pagamento
-  unico non cambia comportamento (test esistenti invariati).
+  credito, registra l'incasso da 499 e **consegna l'accesso** con `deliver_start_access` — il pezzo
+  che `/start/activate` non faceva. Su chi è già attivo non registra un secondo incasso: riconsegna
+  solo il link (caso «non mi è arrivata la mail»).
 - Pannello "Attiva Ciak Start" in Clienti Ciak, che distingue *accesso consegnato* da *entitlement
   scritto ma email non partita* → in quel caso rimanda a Consegne mancate.
 - I test Start non erano nella lista esplicita della CI: aggiunti 4 file a `ci.yml`.
+- 🔄 **Rate rimosse (decisione di Claudio, commit `f2930392`):** una prima versione gestiva acconto
+  199 + saldo 300 per l'Edizione Settembre, con la regola "credito = incassato finché il piano è
+  aperto". **Ciak Start resta a pagamento intero**, quindi sono stati tolti il routing webhook, il
+  piano rateale e la modifica al pricing. `stripe_webhook.py` è tornato **identico a main**.
 
 **VERIFICATO**
-- RED osservato prima del codice: 11 test rossi (6 attivazione + 4 rate + 1 pricing).
-- `pytest tests/test_ciak_start_attivazione.py tests/test_ciak_client_accounts.py
-  tests/test_ciak_start_recovery.py tests/test_ciak_clients_router.py` → **50 passed**.
-  `tests/test_checkout_trigger.py + test_ciak_client_accounts.py` → **31 passed**.
-- Jest `ClientiCiak.test.jsx` → **2 passed**. Build frontend produzione: OK,
-  `main.e866887d.js` (solo warning ESLint preesistenti in file estranei).
-- `py_compile` sui 6 file toccati e `git diff --check`: exit 0. Commit `d0d91d94`.
+- RED osservato prima del codice: 11 test rossi (poi 7, tolte le rate).
+- `pytest test_ciak_start_attivazione + test_checkout_trigger + test_ciak_client_accounts +
+  test_ciak_start_recovery + test_ciak_clients_router + test_ciak_delivery_gaps` → **72 passed**.
+- Jest `ClientiCiak.test.jsx` → **2 passed**.
+- Build frontend con gli stessi flag della CI (`DISABLE_ESLINT_PLUGIN=true CI=false`): **exit 0**,
+  `Compiled successfully`, bundle `main.59064f5e.js`. ⚠️ Con `CI=true` fallisce, ma per un warning
+  `react-hooks/exhaustive-deps` **preesistente in `AgentDashboard.jsx`**, estraneo a questo lavoro.
+- `py_compile` sui file toccati e `git diff --check`: exit 0.
+- Diff netto vs `origin/main`: 7 file, **nessuna modifica a `stripe_webhook.py`**.
 
 **APERTO**
-- ⛔ **Non pushato: il merge su `main` deploya in produzione e questo diff tocca i pagamenti.**
-  Il PROTOCOL §5 chiede la review Codex proprio in questo caso. Decide Claudio.
-- 💰 **Decisione commerciale sospesa:** la regola "credito = incassato finché il piano è aperto" è
-  una scelta prudente presa da me. Se Claudio vuole che chi versa solo l'acconto porti comunque
-  499 pieni, si toglie il blocco in cima a `partnership_price_for_client` (una riga).
-- I due Payment Link dell'Edizione Settembre (€199 e €300) **non hanno `metadata.tipo`**: finché non
-  vengono creati con `tipo=ciak_start_acconto|ciak_start_saldo` e `client_id`, il percorso automatico
-  resta spento e si passa dal pannello admin. Il pannello copre il caso, il webhook è pronto.
+- ⛔ **Non mergiato su `main`: il merge deploya in produzione.** Il diff tocca il percorso dei
+  pagamenti, e il PROTOCOL §5 chiede la review Codex in questo caso. Decide Claudio.
 - Errori di collection **preesistenti** (verificati con le mie modifiche stashate, non miei):
   `tests/test_admin_diagnostics.py` (import `auth` che risolve `routers/auth.py`) e
   `tests/test_partner_rewards_protocollo_evo.py` (FileNotFoundError).
 - ⚠️ Un'altra sessione parte sul **Blocco 1** (ponte di identità, `tier="start"`). Deve agganciare
-  il bridge in due punti che stanno **in questi file**: `process_ciak_start_installment` /
-  `process_ciak_start_payment` (`stripe_webhook.py`) e `attiva_ciak_start` (`ciak_admin.py`).
-  Le due righe le applica **chi merge per secondo**.
+  il bridge in due punti: `process_ciak_start_payment` (`stripe_webhook.py`, **non toccato da questo
+  branch**, quindi nessun conflitto) e `attiva_ciak_start` (`ciak_admin.py`, qui). La riga in
+  `ciak_admin.py` la applica **chi merge per secondo**.
 
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 

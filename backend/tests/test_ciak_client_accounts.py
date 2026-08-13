@@ -266,31 +266,3 @@ async def test_verify_magic_login_token_rejects_replay_after_first_use():
     assert len(failures) == 1
     assert isinstance(failures[0], ValueError)
     assert str(failures[0]) == "token non valido"
-
-
-def test_partnership_price_with_incomplete_installment_plan_credits_only_what_was_paid():
-    """Chi ha versato solo l'acconto non porta in dote i 499 pieni.
-
-    Il minimo garantito resta per il pagamento unico: qui c'e' un piano rateale
-    aperto, quindi si scala l'incassato. Quando il saldo arriva, il piano si
-    chiude e il credito torna pieno.
-    """
-    client = {
-        "access_level": "cliente_start",
-        "start_credit_amount": 19900,
-        "start_paid_cents": 19900,
-        "start_payment_plan": {"total_cents": 49900, "paid_cents": 19900, "complete": False},
-    }
-    price = partnership_price_for_client(client)
-    assert price["credit_amount_cents"] == 19900
-    assert price["due_amount_cents"] == 259100
-
-
-def test_partnership_price_with_completed_installment_plan_credits_full_amount():
-    client = {
-        "access_level": "cliente_start",
-        "start_credit_amount": 49900,
-        "start_paid_cents": 49900,
-        "start_payment_plan": {"total_cents": 49900, "paid_cents": 49900, "complete": True},
-    }
-    assert partnership_price_for_client(client)["credit_amount_cents"] == 49900

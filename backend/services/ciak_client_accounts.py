@@ -44,21 +44,6 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
 
 def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
     stored_credit = client.get("start_credit_amount")
-    plan = client.get("start_payment_plan") or {}
-    if plan and not plan.get("complete"):
-        # Piano rateale ancora aperto: si scala l'incassato, non i 499 promessi.
-        # Col saldo il piano si chiude e il credito torna pieno.
-        try:
-            credit = int(plan.get("paid_cents") or client.get("start_paid_cents") or 0)
-        except (TypeError, ValueError):
-            credit = 0
-        credit = max(0, min(credit, PARTNERSHIP_AMOUNT_CENTS))
-        return {
-            "full_amount_cents": PARTNERSHIP_AMOUNT_CENTS,
-            "credit_amount_cents": credit,
-            "due_amount_cents": PARTNERSHIP_AMOUNT_CENTS - credit,
-            "currency": "eur",
-        }
     if has_start_entitlement(client):
         try:
             credit = max(START_AMOUNT_CENTS, int(stored_credit or 0))
@@ -242,62 +227,30 @@ async def ensure_client_for_direct_start(
     return doc, True
 
 
-def build_start_payment_updates(
+def build_start_entitlement_updates(
     client: dict[str, Any],
     *,
-    amount_cents: int,
     reference_id: str,
-    kind: str,
     now: str,
 ) -> dict[str, Any] | None:
-    """Applica una rata Ciak Start a un cliente e ritorna i campi da scrivere.
+    """Campi da scrivere per attivare Ciak Start su un cliente.
 
-    Ritorna None se quella rata risulta gia' registrata (stesso reference_id):
-    un webhook consegnato due volte non deve raddoppiare l'incasso.
-    Solleva ValueError se l'importo non e' valido o supera i 499 EUR.
+    Ciak Start si paga intero: nessun piano rateale, il credito verso la
+    Partnership e' sempre quello garantito. Ritorna None se quel pagamento
+    risulta gia' registrato (stesso reference_id) — riattivare per rimandare
+    l'accesso non deve registrare un secondo incasso.
     """
-    try:
-        amount = int(amount_cents)
-    except (TypeError, ValueError):
-        raise ValueError("importo non valido")
-    if amount <= 0:
-        raise ValueError("importo non valido")
-
-    plan = dict(client.get("start_payment_plan") or {})
-    installments = [dict(item) for item in (plan.get("installments") or [])]
-    if any(item.get("reference_id") == reference_id for item in installments):
+    registrati = [dict(item) for item in (client.get("start_payments") or [])]
+    if any(item.get("reference_id") == reference_id for item in registrati):
         return None
-
-    try:
-        already_paid = int(plan.get("paid_cents") or client.get("start_paid_cents") or 0)
-    except (TypeError, ValueError):
-        already_paid = 0
-    paid = already_paid + amount
-    if paid > START_AMOUNT_CENTS:
-        raise ValueError(
-            f"rata da {amount} su {already_paid} gia' versati: supera i {START_AMOUNT_CENTS} di Ciak Start"
-        )
-
-    installments.append({
-        "kind": kind,
-        "amount_cents": amount,
-        "reference_id": reference_id,
-        "at": now,
-    })
-    complete = paid >= START_AMOUNT_CENTS
+    registrati.append({"amount_cents": START_AMOUNT_CENTS, "reference_id": reference_id, "at": now})
 
     return {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
         "start_progress": client.get("start_progress") or default_start_progress(),
-        "start_paid_cents": paid,
-        "start_credit_amount": START_AMOUNT_CENTS if complete else paid,
-        "start_payment_plan": {
-            "total_cents": START_AMOUNT_CENTS,
-            "paid_cents": paid,
-            "complete": complete,
-            "installments": installments,
-        },
+        "start_credit_amount": START_AMOUNT_CENTS,
+        "start_payments": registrati,
         "updated_at": now,
     }
 

@@ -149,26 +149,23 @@ async def test_attiva_su_cliente_gia_attivo_rimanda_l_accesso_senza_riscrivere_l
 
 @pytest.mark.asyncio
 async def test_attiva_registra_l_incasso_del_payment_link(monkeypatch):
+    """Ciak Start si paga intero: l'incasso registrato e' sempre 499."""
     database = DB()
     monkeypatch.setattr(ciak_admin, "db", database)
     _patch_delivery(monkeypatch)
 
     await ciak_admin.attiva_ciak_start(
-        ciak_admin.AttivaStartRequest(
-            email="incasso@example.it",
-            amount_cents=19900,
-            riferimento="pi_3ABC",
-        ),
+        ciak_admin.AttivaStartRequest(email="incasso@example.it", riferimento="pi_3ABC"),
         admin=ADMIN,
     )
 
     transaction = database.payment_transactions.docs[0]
     assert transaction["session_id"] == "pi_3ABC"
     assert transaction["tipo"] == "ciak_start"
-    assert transaction["amount_cents"] == 19900
-    assert database.payments.docs[0]["amount"] == 199.0
+    assert transaction["amount_cents"] == 49900
+    assert database.payments.docs[0]["amount"] == 499.0
     client = database.ciak_clients.docs[0]
-    assert client["start_paid_cents"] == 19900
+    assert client["start_credit_amount"] == 49900
 
 
 @pytest.mark.asyncio
@@ -207,10 +204,10 @@ async def test_attiva_rifiuta_una_email_non_valida(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_riattivare_un_cliente_gia_saldato_rimanda_solo_l_accesso(monkeypatch):
-    """«Non mi e' arrivata la mail» su chi ha gia' pagato tutto.
+async def test_riattivare_un_cliente_gia_pagante_rimanda_solo_l_accesso(monkeypatch):
+    """«Non mi e' arrivata la mail» su chi ha gia' pagato.
 
-    Non e' un errore: non si somma una seconda volta l'incasso, si riconsegna
+    Non e' un errore: non si registra un secondo incasso, si riconsegna
     l'accesso e basta.
     """
     database = DB([
@@ -220,13 +217,7 @@ async def test_riattivare_un_cliente_gia_saldato_rimanda_solo_l_accesso(monkeypa
             "access_level": "cliente_start",
             "start_purchased_at": "2026-08-01T09:00:00+00:00",
             "start_credit_amount": 49900,
-            "start_paid_cents": 49900,
-            "start_payment_plan": {
-                "total_cents": 49900,
-                "paid_cents": 49900,
-                "complete": True,
-                "installments": [{"kind": "acconto", "amount_cents": 49900, "reference_id": "cs_1"}],
-            },
+            "start_payments": [{"amount_cents": 49900, "reference_id": "cs_1"}],
             "start_progress": [{"id": "start_1", "status": "done"}],
             "events": [],
         }
@@ -242,6 +233,5 @@ async def test_riattivare_un_cliente_gia_saldato_rimanda_solo_l_accesso(monkeypa
     assert result["already_active"] is True
     assert result["access_sent"] is True
     client = database.ciak_clients.docs[0]
-    assert client["start_paid_cents"] == 49900
-    assert len(client["start_payment_plan"]["installments"]) == 1
+    assert client["start_payments"] == [{"amount_cents": 49900, "reference_id": "cs_1"}]
     assert database.payment_transactions.docs == []

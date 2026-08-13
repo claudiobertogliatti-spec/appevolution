@@ -86,12 +86,6 @@ function AccessBadge({ value }) {
   );
 }
 
-const IMPORTI_START = [
-  { value: 49900, label: "Pagamento unico — 499€" },
-  { value: 19900, label: "Acconto Edizione Settembre — 199€" },
-  { value: 30000, label: "Saldo Edizione Settembre — 300€" },
-];
-
 /**
  * Attivazione manuale di Ciak Start.
  *
@@ -102,7 +96,6 @@ const IMPORTI_START = [
 function AttivaStartCard({ onAuthExpired, onAttivato }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [amountCents, setAmountCents] = useState(49900);
   const [riferimento, setRiferimento] = useState("");
   const [busy, setBusy] = useState(false);
   const [esito, setEsito] = useState(null);
@@ -118,7 +111,6 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
       const data = await apiPost("/start/attiva", {
         email: email.trim(),
         name: name.trim() || null,
-        amount_cents: amountCents,
         riferimento: riferimento.trim() || null,
       });
       setEsito(data);
@@ -143,8 +135,8 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Attiva Ciak Start</h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
-            Per chi ha pagato da Payment Link e non passa dal checkout interno. Crea l'account se manca,
-            registra l'incasso e manda subito il link di accesso.
+            Per chi ha pagato i 499€ da Payment Link e non passa dal checkout interno. Crea l'account se
+            manca, registra l'incasso e manda subito il link di accesso.
           </p>
         </div>
       </div>
@@ -171,19 +163,7 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
             className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
           />
         </label>
-        <label className="text-sm">
-          <span className="font-medium text-slate-700">Quanto è entrato</span>
-          <select
-            value={amountCents}
-            onChange={(e) => setAmountCents(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400"
-          >
-            {IMPORTI_START.map((opzione) => (
-              <option key={opzione.value} value={opzione.value}>{opzione.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
+        <label className="text-sm md:col-span-2">
           <span className="font-medium text-slate-700">Riferimento Stripe <span className="text-slate-400">(consigliato)</span></span>
           <input
             type="text"
