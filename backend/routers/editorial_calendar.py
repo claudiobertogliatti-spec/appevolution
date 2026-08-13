@@ -137,6 +137,46 @@ def _response_document(document: dict) -> dict:
     return {field: document[field] for field in public_fields if field in document}
 
 
+def _pending_review_summary(document: dict) -> dict:
+    """Riepilogo admin della versione esatta in attesa, senza campi interni Mongo."""
+    calendar = document.get("calendar") or {}
+    days = calendar.get("days") or []
+    complete_days = sum(
+        isinstance(day, dict)
+        and all(isinstance(day.get(field), str) and day[field].strip() for field in ("theme", "how_to", "cta", "destination_url"))
+        for day in days
+    )
+    reviewed_at = datetime.now(timezone.utc).isoformat()
+    resources, resource_failures = _admin_review_resources(calendar, reviewed_at)
+    failed_checks = set(resource_failures + evaluate_launch_calendar(calendar, resources).failed_codes)
+    # La decisione admin manca per definizione finche la riga e' in questa coda:
+    # non la presentiamo come difetto del lavoro del partner.
+    failed_checks.discard("admin_approval")
+    partner = document.get("partner") or {}
+    urls = []
+    for day in days:
+        url = day.get("destination_url") if isinstance(day, dict) else None
+        if isinstance(url, str) and url and url not in urls:
+            urls.append(url)
+    return {
+        "partner_id": document.get("partner_id"),
+        "partner_name": partner.get("name"),
+        "partner_email": partner.get("email"),
+        "version": document.get("version"),
+        "status": document.get("status"),
+        "checksum": document.get("checksum"),
+        "partner_confirmed_at": document.get("partner_confirmed_at"),
+        "dates": {
+            "start_date": calendar.get("start_date"),
+            "live_date": calendar.get("live_date"),
+        },
+        "completeness": {"complete_days": complete_days, "total_days": len(days)},
+        "destination_urls": urls,
+        "bonus": deepcopy((calendar.get("commercial_terms") or {}).get("bonus") or {}),
+        "failed_checks": sorted(failed_checks),
+    }
+
+
 def _raise_calendar_not_ready(failed_checks: list[str]) -> None:
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
@@ -541,6 +581,24 @@ async def generate_calendar(
     return await build_editorial_calendar(answers, outline)
 
 
+@router.get("/admin/pending-review")
+async def list_pending_calendar_reviews(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Coda server-side, visibile solo a Marco/admin, delle sole versioni pendenti."""
+    await _require_calendar_admin(credentials)
+    documents = await db.partner_launch_calendar_versions.find(
+        {"status": "pending_review"}, {"_id": 0}
+    ).sort("partner_confirmed_at", 1).to_list(200)
+    items = []
+    for document in documents:
+        partner = await db.partners.find_one(
+            {"id": document.get("partner_id")}, {"_id": 0, "name": 1, "email": 1}
+        )
+        items.append(_pending_review_summary({**document, "partner": partner or {}}))
+    return {"items": items}
+
+
 @router.post("/{partner_id}/versions", status_code=status.HTTP_201_CREATED)
 async def create_calendar_version(
     partner_id: str,
@@ -593,6 +651,22 @@ async def get_current_calendar_version(
     )
     if not document:
         raise HTTPException(404, "Nessuna versione del calendario disponibile")
+    return _response_document(document)
+
+
+@router.get("/{partner_id}/versions/{version}")
+async def get_calendar_version_for_review(
+    partner_id: str,
+    version: int,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Dettaglio immutabile di una versione: esclusivamente per la review admin."""
+    await _require_calendar_admin(credentials)
+    document = await db.partner_launch_calendar_versions.find_one(
+        {"partner_id": partner_id, "version": version}, {"_id": 0}
+    )
+    if not document:
+        raise HTTPException(404, "Versione del calendario non trovata")
     return _response_document(document)
 
 
@@ -765,6 +839,9 @@ async def review_calendar_version(
     )
     if not existing:
         raise HTTPException(404, "Versione del calendario non trovata")
+
+    if body.decision == "reject" and not body.note.strip():
+        raise HTTPException(422, "Inserisci una nota per rimandare il calendario al partner")
 
     target_status = "approved" if body.decision == "approve" else "rejected"
     existing_review = existing.get("admin_review") or {}

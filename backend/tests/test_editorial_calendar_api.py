@@ -2083,6 +2083,58 @@ def test_superadmin_can_review_ready_calendar(client, partner_token, superadmin_
     assert response.json()["status"] == "approved"
 
 
+def test_admin_pending_review_queue_and_exact_version_are_admin_only(client, partner_token, admin_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_ready_review_resources(client, partner_token, created)
+    submitted = _submit(client, partner_token, created)
+    assert submitted.status_code == 200
+
+    missing = client.get("/api/partner/calendar/admin/pending-review")
+    partner = client.get("/api/partner/calendar/admin/pending-review", headers=_headers(partner_token))
+    listed = client.get("/api/partner/calendar/admin/pending-review", headers=_headers(admin_token))
+    detail = client.get("/api/partner/calendar/p1/versions/1", headers=_headers(admin_token))
+
+    assert missing.status_code == 401
+    assert partner.status_code == 403
+    assert listed.status_code == 200
+    item = listed.json()["items"][0]
+    assert item["partner_id"] == "p1"
+    assert item["version"] == 1
+    assert item["checksum"] == submitted.json()["checksum"]
+    assert item["completeness"] == {"complete_days": 30, "total_days": 30}
+    assert item["destination_urls"] == ["https://www.ciak.io/masterclass"]
+    assert item["bonus"]["name"] == "Sessione di orientamento"
+    assert item["failed_checks"] == []
+    assert detail.status_code == 200
+    assert detail.json()["version"] == 1
+    assert detail.json()["checksum"] == submitted.json()["checksum"]
+
+
+def test_calendar_reject_requires_a_note(client, partner_token, admin_token):
+    created = client.post(
+        "/api/partner/calendar/p1/versions",
+        headers=_headers(partner_token),
+        json=_generation_payload(),
+    ).json()
+    created = _with_ready_review_resources(client, partner_token, created)
+    assert _submit(client, partner_token, created).status_code == 200
+
+    response = client.post(
+        "/api/partner/calendar/p1/versions/1/review",
+        headers=_headers(admin_token),
+        json={"decision": "reject", "note": "   "},
+    )
+
+    assert response.status_code == 422
+    assert client.get(
+        "/api/partner/calendar/p1/versions/1", headers=_headers(admin_token)
+    ).json()["status"] == "pending_review"
+
+
 def test_current_version_response_whitelists_public_fields(client, partner_token, fake_db):
     client.post(
         "/api/partner/calendar/p1/versions",
