@@ -149,7 +149,10 @@ async def test_un_colore_non_valido_non_finisce_nel_css(monkeypatch):
 
     out = await sv.build_vetrina({**DATI, "brand_kit": kit})
 
-    assert "display:none" not in out["html"]
+    # Si cerca l'iniezione, non "display:none": quello compare legittimamente nel
+    # CSS delle FAQ per nascondere il marker nativo di <details>.
+    assert "verde bosco" not in out["html"]
+    assert "}body{" not in out["html"]
     assert out["brand_applicato"] is False
 
 
@@ -312,3 +315,110 @@ async def test_un_accento_troppo_chiaro_non_viene_usato_dove_serve_leggerlo(monk
 
     html = (await sv.build_vetrina({**DATI, "brand_kit": kit}))["html"]
     assert 'stroke="var(--accento-forte)"' in html
+
+
+# ─── FAQ e testimonianze ─────────────────────────────────────────────────────
+# Le FAQ tolgono attrito prima del contatto. Le testimonianze sono prova sociale
+# e per questo sono il punto piu' pericoloso della pagina: inventarne una e'
+# illecito (Codice del Consumo artt. 21-23), ed e' il motivo per cui
+# `POST /funnel/{id}/genera-ai` e' stato ritirato con 410. Qui si difende quello.
+
+def _con_faq(**override):
+    return _risposta_modello(faq=[
+        {"domanda": "Come si lavora insieme?", "risposta": "Ci sentiamo, guardiamo la tua situazione e decidiamo se ha senso."},
+        {"domanda": "Quanto dura il percorso?", "risposta": "Otto settimane, con un incontro ogni quindici giorni."},
+    ], **override)
+
+
+VERE = [
+    {"testo": "Ho smesso di abbassare le tariffe e l'agenda si e' riempita lo stesso.",
+     "autore": "Giulia Ferrero", "ruolo": "Terapista, Torino"},
+    {"testo": "In due mesi ho capito a chi mi rivolgo davvero, e i clienti sono cambiati.",
+     "autore": "Marco Lippi", "ruolo": "Massaggiatore sportivo"},
+]
+
+
+@pytest.mark.asyncio
+async def test_le_faq_usano_details_cosi_si_aprono_anche_senza_javascript(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    html = (await sv.build_vetrina(DATI))["html"]
+
+    assert "<details class=\"faq\">" in html
+    assert "<summary>Come si lavora insieme?</summary>" in html
+    assert "Domande che mi fanno spesso" in html
+
+
+@pytest.mark.asyncio
+async def test_senza_faq_la_sezione_sparisce_invece_di_restare_vuota(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _risposta_modello())
+
+    out = await sv.build_vetrina(DATI)
+
+    assert "Domande che mi fanno spesso" not in out["html"]
+    assert "elenco-faq" not in out["html"].split("<style>")[1].split("</style>")[1]
+
+
+@pytest.mark.asyncio
+async def test_le_testimonianze_vere_si_pubblicano_con_nome_e_ruolo(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    out = await sv.build_vetrina({**DATI, "testimonianze": VERE})
+
+    assert out["testimonianze_pubblicate"] == 2
+    assert "Giulia Ferrero" in out["html"]
+    assert "Terapista, Torino" in out["html"]
+    assert "<blockquote>" in out["html"]
+
+
+@pytest.mark.asyncio
+async def test_senza_testimonianze_la_sezione_non_esiste_e_il_cliente_sa_come_averle(monkeypatch):
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    out = await sv.build_vetrina(DATI)
+
+    assert out["testimonianze_pubblicate"] == 0
+    assert "Chi ha lavorato con me" not in out["html"]
+    assert any("Testimonianze" in v for v in out["da_completare"])
+
+
+@pytest.mark.asyncio
+async def test_una_testimonianza_anonima_non_si_pubblica(monkeypatch):
+    """Anonima vale zero e sembra inventata: chi la rilascia deve poterlo confermare."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+    miste = VERE + [{"testo": "Bravissima, la consiglio a tutti quanti davvero!", "autore": ""}]
+
+    out = await sv.build_vetrina({**DATI, "testimonianze": miste})
+
+    assert out["testimonianze_pubblicate"] == 2
+    assert "Bravissima" not in out["html"]
+
+
+@pytest.mark.asyncio
+async def test_il_modello_non_puo_inventare_testimonianze(monkeypatch):
+    """Anche se l'AI ne restituisse, non entrano: non sono un campo dello schema."""
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq(
+        testimonianze=[{"testo": "Mi ha cambiato la vita, incredibile!", "autore": "Un cliente"}],
+    ))
+
+    out = await sv.build_vetrina(DATI)
+
+    assert "testimonianze" not in sv._SCHEMA["properties"]
+    assert "Mi ha cambiato la vita" not in out["html"]
+    assert out["testimonianze_pubblicate"] == 0
+
+
+@pytest.mark.asyncio
+async def test_nessun_carattere_di_controllo_nella_pagina(monkeypatch):
+    """Un `\201C` scritto in Python diventa un carattere di controllo, non una virgoletta.
+
+    Sulla pagina si vedeva un quadratino. Vale per tutto l'HTML: i caratteri di
+    controllo non hanno nulla da fare in un documento consegnato al cliente.
+    """
+    monkeypatch.setattr(sv, "_call_claude", lambda dati: _con_faq())
+
+    html = (await sv.build_vetrina({**DATI, "testimonianze": VERE}))["html"]
+
+    controllo = [c for c in html if ord(c) < 32 and c not in "\n\t\r"] + \
+                [c for c in html if 127 <= ord(c) <= 159]
+    assert controllo == [], f"caratteri di controllo trovati: {[hex(ord(c)) for c in controllo]}"

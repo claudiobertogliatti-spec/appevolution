@@ -76,7 +76,13 @@ _SYSTEM = (
     "'per_chi_no' e' la sezione piu' importante: dire a chi NON ci si rivolge rende "
     "credibile tutto il resto ed e' il metodo De Veglia applicato. Non addolcirla.\n"
     "'punti_chiave' sono due frasi brevissime (max 6 parole) che stanno sotto il "
-    "titolo: fatti, non slogan."
+    "titolo: fatti, non slogan.\n"
+    "'faq' sono 4 domande che una persona si fa DAVVERO prima di scrivere a un "
+    "professionista: come si lavora insieme, quanto dura, cosa serve per iniziare, "
+    "cosa succede dopo il primo contatto. ⛔ Nessuna domanda sul prezzo e nessuna "
+    "risposta che promette un risultato: qui non si vende, si tolgono dubbi.\n"
+    "⛔ NON scrivere testimonianze o recensioni. Non ti vengono chieste e non "
+    "esistono finche' non le fornisce il cliente: inventarle e' illecito."
 )
 
 _CAMPI = ["headline", "sottotitolo", "cosa_faccio", "per_chi_si", "per_chi_no", "bio"]
@@ -103,9 +109,24 @@ _SCHEMA = {
         "per_chi_si": {"type": "array", "items": {"type": "string"}, "description": "2-4 profili a cui si rivolge."},
         "per_chi_no": {"type": "array", "items": {"type": "string"}, "description": "2-4 profili a cui NON si rivolge."},
         "bio": {"type": "string", "description": "Presentazione in prima persona, 4-6 frasi brevi."},
+        "faq": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"domanda": {"type": "string"}, "risposta": {"type": "string"}},
+                "required": ["domanda", "risposta"],
+            },
+            "description": "4 domande vere che una persona si fa prima di scrivere. Mai sul prezzo.",
+        },
     },
     "required": _CAMPI,
 }
+
+# ⛔ Le testimonianze NON sono nello schema, di proposito: il modello non deve
+# poterle produrre. Arrivano solo dai dati che il cliente fornisce, con nome e
+# ruolo di chi le ha dette. Recensioni inventate = illecito (Codice del Consumo
+# artt. 21-23), ed e' il motivo per cui `POST /funnel/{id}/genera-ai` e' stato
+# ritirato con HTTP 410.
 
 _EMOJI = re.compile(
     "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\U00002190-\U000021FF\U00002B00-\U00002BFF️‍]"
@@ -276,6 +297,22 @@ h2{font-size:clamp(24px,3vw,34px);font-weight:600;letter-spacing:-.015em;line-he
 .colonna li svg{flex:0 0 20px;width:20px;height:20px;margin-top:3px}
 .colonna.no li{color:var(--secondario)}
 
+.parole{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:24px}
+.parola{background:var(--fondo);border:1px solid var(--bordo);border-left:3px solid var(--accento-forte);border-radius:var(--radius);padding:30px}
+.parola blockquote p{font-size:17px;line-height:1.65}
+.parola figcaption{margin-top:18px;display:grid;gap:2px}
+.parola .chi{font-weight:600;font-size:15px}
+.parola .ruolo{font-size:14px;color:var(--secondario)}
+
+.elenco-faq{display:grid;gap:0;max-width:76ch;border-top:1px solid var(--bordo)}
+details.faq{border-bottom:1px solid var(--bordo)}
+details.faq summary{cursor:pointer;list-style:none;padding:22px 44px 22px 0;font-size:17px;font-weight:600;position:relative;min-height:44px;display:flex;align-items:center}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"";position:absolute;right:8px;top:50%;width:11px;height:11px;border-right:2.5px solid var(--secondario);border-bottom:2.5px solid var(--secondario);transform:translateY(-70%) rotate(45deg);transition:transform .2s ease}
+details.faq[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+details.faq summary:hover{color:var(--accento-forte)}
+details.faq .risposta{padding:0 44px 24px 0;color:var(--secondario);font-size:16.5px}
+
 .chi-sono{display:grid;grid-template-columns:{BIO_COLONNE};gap:48px;align-items:start}
 .chi-sono img{border-radius:var(--radius);aspect-ratio:1/1;object-fit:cover}
 .chi-sono p{color:var(--secondario);margin-top:14px}
@@ -353,10 +390,14 @@ footer{padding:36px 0 56px;color:var(--secondario);font-size:14.5px}
   </div>
 </div></section>
 
+{SEZIONE_TESTIMONIANZE}
+
 <section><div class="wrap chi-sono rivela">
   {FOTO_BIO}
   <div><h2>{NOME}</h2><p>{BIO}</p></div>
 </div></section>
+
+{SEZIONE_FAQ}
 
 <section class="contatti" id="contatti"><div class="wrap">
   <div class="testa"><h2>Parliamone</h2><p>{INVITO_CONTATTO}</p></div>
@@ -416,6 +457,52 @@ def _voci(elenco: Any, icona: str) -> str:
     return "".join(
         f"<li>{icona}<span>{_esc(v)}</span></li>" for v in (elenco or []) if _pulisci(v)
     )
+
+
+def _faq(voci: Any) -> str:
+    """FAQ in `<details>`: si apre senza JavaScript ed e' navigabile da tastiera."""
+    righe = []
+    for voce in voci or []:
+        if not isinstance(voce, dict):
+            continue
+        domanda, risposta = _pulisci(voce.get("domanda")), _pulisci(voce.get("risposta"))
+        if not domanda or not risposta:
+            continue
+        righe.append(
+            f"<details class=\"faq\"><summary>{_esc(domanda)}</summary>"
+            f"<div class=\"risposta\"><p>{_esc(risposta)}</p></div></details>"
+        )
+    return "".join(righe)
+
+
+def testimonianze_pubblicabili(elenco: Any) -> list[dict]:
+    """Solo le testimonianze REALI e attribuite.
+
+    ⛔ Non si generano e non si completano: arrivano dal cliente. Una senza
+    autore non si pubblica — anonima vale zero e sembra inventata. Chi la
+    rilascia deve poterlo confermare: e' la differenza fra prova sociale e
+    pubblicita' ingannevole (Codice del Consumo artt. 21-23).
+    """
+    valide = []
+    for voce in elenco or []:
+        if not isinstance(voce, dict):
+            continue
+        testo, autore = _pulisci(voce.get("testo")), _pulisci(voce.get("autore"))
+        if len(testo) < 30 or not autore:
+            continue
+        valide.append({"testo": testo, "autore": autore, "ruolo": _pulisci(voce.get("ruolo"))})
+    return valide
+
+
+def _testimonianze(voci: list[dict]) -> str:
+    carte = []
+    for voce in voci:
+        ruolo = f"<span class=\"ruolo\">{_esc(voce['ruolo'])}</span>" if voce["ruolo"] else ""
+        carte.append(
+            f"<figure class=\"parola rivela\"><blockquote><p>{_esc(voce['testo'])}</p></blockquote>"
+            f"<figcaption><span class=\"chi\">{_esc(voce['autore'])}</span>{ruolo}</figcaption></figure>"
+        )
+    return "".join(carte)
 
 
 def _form(dati: dict) -> str:
@@ -612,6 +699,27 @@ async def build_vetrina(dati: dict) -> dict:
         f'<img src="{_attr(foto_bio)}" alt="" loading="lazy">' if foto_bio.startswith("http") else ""
     )
     has_form = _pulisci(dati.get("form_action")).startswith("http")
+    voci_testimonianze = testimonianze_pubblicabili(dati.get("testimonianze"))
+    faq_html = _faq(testi.get("faq"))
+
+    # Le sezioni assenti non lasciano un contenitore vuoto: spariscono.
+    sezione_testimonianze = (
+        '<section><div class="wrap">'
+        '<div class="testa rivela"><h2>Chi ha lavorato con me</h2>'
+        "<p>Parole di chi il percorso lo ha gia' fatto.</p></div>"
+        f'<div class="parole">{_testimonianze(voci_testimonianze)}</div>'
+        "</div></section>"
+        if voci_testimonianze
+        else ""
+    )
+    sezione_faq = (
+        '<section><div class="wrap">'
+        '<div class="testa rivela"><h2>Domande che mi fanno spesso</h2></div>'
+        f'<div class="elenco-faq rivela">{faq_html}</div>'
+        "</div></section>"
+        if faq_html
+        else ""
+    )
 
     params = {
         "TITOLO_PAGINA": _attr(f"{nome} · {_pulisci(pos.get('categoria')) or _pulisci(dati.get('nicchia'))}".strip(" ·")),
@@ -653,6 +761,8 @@ async def build_vetrina(dati: dict) -> dict:
         "CONTATTI_COLONNE": "1.3fr .7fr" if has_form else "1fr",
         "RECAPITI": _recapiti(dati),
         "DOMINIO": _esc(dominio),
+        "SEZIONE_TESTIMONIANZE": sezione_testimonianze,
+        "SEZIONE_FAQ": sezione_faq,
     }
     pagina = _render(VETRINA_TEMPLATE, params)
 
@@ -667,9 +777,23 @@ async def build_vetrina(dati: dict) -> dict:
     if not brand_presente:
         note.append(_NOTA_BRAND_MANCANTE)
 
+    da_completare = []
+    if not voci_testimonianze:
+        da_completare.append(
+            "Testimonianze: la sezione compare solo quando ne hai di vere. Chiedile a 2 o 3 "
+            "clienti con cui hai lavorato bene, falle scrivere a loro e fatti dare nome e "
+            "ruolo. ⛔ Non si scrivono al posto loro: una recensione inventata e' illecita."
+        )
+    if not faq_html:
+        da_completare.append("Domande frequenti: non sono state generate, vanno scritte con Valentina.")
+    if not _pulisci(dati.get("foto_url")).startswith("http"):
+        da_completare.append("Foto: serve un ritratto tuo, e' la prima cosa che si guarda.")
+
     return {
         "_fallback": fallback,
         "brand_applicato": brand_presente,
+        "testimonianze_pubblicate": len(voci_testimonianze),
+        "da_completare": da_completare,
         "nota": " ".join(note),
         "html": pagina,
         "dominio": dominio,
