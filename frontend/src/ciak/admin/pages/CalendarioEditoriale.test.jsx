@@ -78,7 +78,8 @@ test("Marco approva la stessa versione e checksum mostrati solo dopo conferma", 
 
   fireEvent.click(await screen.findByRole("button", { name: /apri revisione/i }));
   expect(await screen.findByRole("heading", { name: /partner uno.*versione 3/i })).toBeTruthy();
-  expect(screen.getByText("Checksum checksum-versione-3-lungo")).toBeTruthy();
+  const review = screen.getByRole("region", { name: /revisione calendario/i });
+  expect(review.textContent).toMatch(/checksum\s+checksum-versione-3-lungo/i);
 
   fireEvent.click(screen.getByRole("button", { name: /approva calendario/i }));
   expect(await screen.findByRole("dialog", { name: /conferma approvazione/i })).toBeTruthy();
@@ -91,48 +92,61 @@ test("Marco approva la stessa versione e checksum mostrati solo dopo conferma", 
   await waitFor(() => expect(screen.queryByText("Partner Uno")).toBeNull());
 });
 
-test("la risposta lenta della revisione A non sostituisce B e non puo approvare A", async () => {
+test("la decisione lenta su A rimuove A ma non chiude la revisione B aperta nel frattempo", async () => {
   const secondItem = { ...pendingItem, partner_id: "p2", partner_name: "Partner Due", version: 4, checksum: "checksum-versione-4-lungo" };
-  const firstDetail = deferred();
-  const secondDetail = deferred();
+  const firstDecision = deferred();
   adminFetch.mockImplementation((path, options = {}) => {
     if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items: [pendingItem, secondItem], has_more: false, next_cursor: null }));
-    if (path === "/api/partner/calendar/p1/versions/3") return firstDetail.promise;
-    if (path === "/api/partner/calendar/p2/versions/4") return secondDetail.promise;
-    if (path === "/api/partner/calendar/p2/versions/4/review" && options.method === "POST") return Promise.resolve(response({ ...pendingDocumentFor(secondItem), status: "approved" }));
+    if (path === "/api/partner/calendar/p1/versions/3") return Promise.resolve(response(pendingDocumentFor(pendingItem)));
+    if (path === "/api/partner/calendar/p2/versions/4") return Promise.resolve(response(pendingDocumentFor(secondItem)));
+    if (path === "/api/partner/calendar/p1/versions/3/review" && options.method === "POST") return firstDecision.promise;
     return Promise.resolve(response({ items: [] }));
   });
   render(<CalendarioEditoriale />);
 
   const openButtons = await screen.findAllByRole("button", { name: /apri revisione/i });
   fireEvent.click(openButtons[0]);
-  fireEvent.click(openButtons[1]);
-  secondDetail.resolve(response(pendingDocumentFor(secondItem)));
-  expect(await screen.findByRole("heading", { name: /partner due.*versione 4/i })).toBeTruthy();
-  firstDetail.resolve(response(pendingDocumentFor(pendingItem)));
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  expect(screen.queryByRole("heading", { name: /partner uno.*versione 3/i })).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: /approva calendario/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /approva calendario/i }));
   fireEvent.click(await screen.findByRole("button", { name: /conferma approvazione/i }));
-  await waitFor(() => expect(adminFetch).toHaveBeenCalledWith(
-    "/api/partner/calendar/p2/versions/4/review",
-    expect.objectContaining({ method: "POST" })
-  ));
-  expect(adminFetch.mock.calls.some(([path]) => path === "/api/partner/calendar/p1/versions/3/review")).toBe(false);
+  expect(screen.getByRole("button", { name: /conferma approvazione/i }).disabled).toBe(true);
+
+  fireEvent.click(openButtons[1]);
+  expect(await screen.findByRole("heading", { name: /partner due.*versione 4/i })).toBeTruthy();
+  firstDecision.resolve(response({ ...pendingDocumentFor(pendingItem), status: "approved" }));
+  await waitFor(() => expect(screen.queryByText("Partner Uno")).toBeNull());
+  expect(screen.getByRole("heading", { name: /partner due.*versione 4/i })).toBeTruthy();
 });
 
-test("la coda espone un'azione per caricare la pagina successiva", async () => {
+test("refresh e pagina concorrenti preservano cache, ignorano stale e deduplicano", async () => {
   const secondItem = { ...pendingItem, partner_id: "p2", partner_name: "Partner Due", version: 4, checksum: "checksum-versione-4-lungo" };
+  const stalePage = deferred();
+  let initialCalls = 0;
   adminFetch.mockImplementation((path) => {
-    if (path === "/api/partner/calendar/admin/pending-review?limit=25") return Promise.resolve(response({ items: [pendingItem], has_more: true, next_cursor: "cursor-1" }));
-    if (path === "/api/partner/calendar/admin/pending-review?limit=25&cursor=cursor-1") return Promise.resolve(response({ items: [secondItem], has_more: false, next_cursor: null }));
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25") {
+      initialCalls += 1;
+      if (initialCalls === 1) return Promise.resolve(response({ items: [pendingItem], has_more: true, next_cursor: "cursor-1" }));
+      if (initialCalls === 2) return Promise.reject(new Error("rete giu"));
+      return Promise.resolve(response({ items: [secondItem, secondItem], has_more: false, next_cursor: null }));
+    }
+    if (path === "/api/partner/calendar/admin/pending-review?limit=25&cursor=cursor-1") return stalePage.promise;
     return Promise.resolve(response({ items: [] }));
   });
   render(<CalendarioEditoriale />);
 
-  fireEvent.click(await screen.findByRole("button", { name: /carica altre revisioni/i }));
+  const loadMore = await screen.findByRole("button", { name: /carica altre revisioni/i });
+  fireEvent.click(screen.getByRole("button", { name: /aggiorna coda/i }));
+  expect((await screen.findByRole("alert")).textContent).toMatch(/dati gia caricati/i);
+  expect(screen.getByText("Partner Uno")).toBeTruthy();
+  expect(screen.queryByText(/non ci sono calendari/i)).toBeNull();
+  expect(screen.getByRole("button", { name: /carica altre revisioni/i })).toBeTruthy();
+
+  fireEvent.click(loadMore);
+  fireEvent.click(screen.getByRole("button", { name: /aggiorna coda/i }));
   expect(await screen.findByText("Partner Due")).toBeTruthy();
+  stalePage.resolve(response({ items: [pendingItem, secondItem], has_more: false, next_cursor: null }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(screen.queryByText("Partner Uno")).toBeNull();
+  expect(screen.getAllByText("Partner Due")).toHaveLength(1);
 });
 
 test("un errore 409 strutturato mostra i controlli leggibili", async () => {

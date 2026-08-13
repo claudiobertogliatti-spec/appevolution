@@ -82,6 +82,16 @@ function describeReviewError(payload, fallback) {
   return fallback;
 }
 
+function reviewKey(item) {
+  return `${item?.partner_id || ""}:${item?.version || ""}`;
+}
+
+function dedupeReviews(items) {
+  const byKey = new Map();
+  (items || []).forEach((item) => byKey.set(reviewKey(item), item));
+  return [...byKey.values()];
+}
+
 function ReviewQueue({ onAuthExpired }) {
   const [items, setItems] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -95,31 +105,52 @@ function ReviewQueue({ onAuthExpired }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const detailRequest = useRef({ sequence: 0, controller: null });
+  const queueRequest = useRef({ generation: 0, controller: null });
+  const itemsCache = useRef(null);
+  const selectedIdentity = useRef(null);
+  const decisionSequence = useRef(0);
 
   const loadQueue = useCallback(async (cursor = null) => {
+    queueRequest.current.controller?.abort();
+    const generation = queueRequest.current.generation + 1;
+    const controller = new AbortController();
+    queueRequest.current = { generation, controller };
     setError(null);
     if (cursor) setLoadingMore(true);
     try {
       const query = new URLSearchParams({ limit: "25" });
       if (cursor) query.set("cursor", cursor);
-      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/admin/pending-review?${query}`);
+      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/admin/pending-review?${query}`, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setItems((current) => cursor ? [...(current || []), ...(data.items || [])] : (data.items || []));
+      if (generation !== queueRequest.current.generation) return;
+      setItems((current) => {
+        const next = dedupeReviews(cursor ? [...(current || []), ...(data.items || [])] : (data.items || []));
+        itemsCache.current = next;
+        return next;
+      });
       setNextCursor(data.next_cursor || null);
       setHasMore(Boolean(data.has_more));
     } catch (e) {
+      if (generation !== queueRequest.current.generation || e?.name === "AbortError") return;
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
-      setError("Non riesco a caricare la coda delle revisioni.");
-      if (!cursor) setItems([]);
+      if (itemsCache.current !== null) {
+        setError("Aggiornamento non riuscito. Mostriamo i dati gia caricati, che potrebbero non essere aggiornati.");
+      } else {
+        setError("Non riesco a caricare la coda delle revisioni.");
+        setItems([]);
+      }
     } finally {
-      if (cursor) setLoadingMore(false);
+      if (generation === queueRequest.current.generation && cursor) setLoadingMore(false);
     }
   }, [onAuthExpired]);
 
   useEffect(() => {
     loadQueue();
-    return () => detailRequest.current.controller?.abort();
+    return () => {
+      detailRequest.current.controller?.abort();
+      queueRequest.current.controller?.abort();
+    };
   }, [loadQueue]);
 
   const openReview = async (item) => {
@@ -130,6 +161,7 @@ function ReviewQueue({ onAuthExpired }) {
     setError(null);
     setOutcome(null);
     setSelected(item);
+    selectedIdentity.current = { partner_id: item.partner_id, version: item.version, checksum: item.checksum };
     setDocument(null);
     setNote("");
     setConfirming(false);
@@ -159,10 +191,17 @@ function ReviewQueue({ onAuthExpired }) {
       setError("La versione visualizzata non coincide con la selezione. Riapri la revisione prima di decidere.");
       return;
     }
+    const identity = {
+      partner_id: selected.partner_id,
+      version: selected.version,
+      checksum: selected.checksum,
+    };
+    const sequence = decisionSequence.current + 1;
+    decisionSequence.current = sequence;
     setBusy(true);
     setError(null);
     try {
-      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/${selected.partner_id}/versions/${selected.version}/review`, {
+      const res = await adminFetch(`${LAUNCH_CALENDAR_API}/${identity.partner_id}/versions/${identity.version}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision, note: decision === "reject" ? note.trim() : "" }),
@@ -175,18 +214,27 @@ function ReviewQueue({ onAuthExpired }) {
       if (responseDocument.status !== (decision === "approve" ? "approved" : "rejected")) {
         throw new Error("Il server non ha confermato la decisione richiesta.");
       }
-      setItems((current) => (current || []).filter((item) => !(
-        item.partner_id === responseDocument.partner_id && item.version === responseDocument.version
-      )));
+      setItems((current) => {
+        const next = (current || []).filter((item) => reviewKey(item) !== reviewKey(identity));
+        itemsCache.current = next;
+        return next;
+      });
       setOutcome(decision === "approve" ? "Calendario approvato e registrato." : "Calendario rimandato al partner con la nota indicata.");
-      setSelected(null);
-      setDocument(null);
-      setConfirming(false);
+      const stillSelected = selectedIdentity.current
+        && selectedIdentity.current.partner_id === identity.partner_id
+        && selectedIdentity.current.version === identity.version
+        && selectedIdentity.current.checksum === identity.checksum;
+      if (stillSelected) {
+        selectedIdentity.current = null;
+        setSelected(null);
+        setDocument(null);
+        setConfirming(false);
+      }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       setError(e.message || "La decisione non e stata registrata.");
     } finally {
-      setBusy(false);
+      if (sequence === decisionSequence.current) setBusy(false);
     }
   };
 
@@ -213,7 +261,7 @@ function ReviewQueue({ onAuthExpired }) {
       {outcome && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{outcome}</div>}
 
       {items === null && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-400">Caricamento revisioni…</div>}
-      {items?.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-500">Non ci sono calendari in attesa di decisione.</div>}
+      {items?.length === 0 && !error && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-500">Non ci sono calendari in attesa di decisione.</div>}
       {items?.map((item) => (
         <article key={`${item.partner_id}-${item.version}`} className="rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between gap-4 flex-wrap">
           <div>
