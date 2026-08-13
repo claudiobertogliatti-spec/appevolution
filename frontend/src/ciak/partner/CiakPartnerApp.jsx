@@ -429,6 +429,7 @@ export default function CiakPartnerApp() {
   const partnerId = admin ? viewPartner?.id : status?.partner_id;
   const partnerContext = {
     ...(admin ? viewPartner || {} : user || {}),
+    ...(status || {}),
     id: partnerId,
     name: status?.partner_name || viewPartner?.name || user?.name,
   };
@@ -511,10 +512,10 @@ export default function CiakPartnerApp() {
         <Route path="percorso" element={<MetodoEvoPage partnerId={partnerId} />} />
         <Route path="metodo-evo" element={<MetodoEvoPage partnerId={partnerId} />} />
         <Route path="materiali" element={<MaterialiPage partnerId={partnerId} />} />
-        <Route path="team" element={<TeamSupportoPage partnerId={partnerId} />} />
-        <Route path="team-ciak" element={<TeamSupportoPage partnerId={partnerId} />} />
-        <Route path="telegram" element={<TeamSupportoPage partnerId={partnerId} />} />
-        <Route path="supporto" element={<TeamSupportoPage partnerId={partnerId} />} />
+        <Route path="team" element={<TeamSupportoPage partner={partnerContext} />} />
+        <Route path="team-ciak" element={<TeamSupportoPage partner={partnerContext} />} />
+        <Route path="telegram" element={<TeamSupportoPage partner={partnerContext} />} />
+        <Route path="supporto" element={<TeamSupportoPage partner={partnerContext} />} />
         <Route path="servizi-extra" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="servizi-extra/:serviceId" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="booster-evo" element={<ServiziExtraPage partnerId={partnerId} />} />

@@ -447,6 +447,18 @@ async def dashboard(client: dict[str, Any] = Depends(require_client)):
     return await _dashboard_for_client(client)
 
 
+@router.get("/start/deliverables")
+async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
+    """Rende visibili al cliente solo gli output Start approvati dal team."""
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    docs = await db.ciak_start_deliverables.find(
+        {"partner_id": client["id"], "approval_status": "approved"},
+        {"_id": 0, "generated_by": 0, "approved_by": 0},
+    ).sort("approved_at", 1).to_list(20)
+    return {"items": docs}
+
+
 @router.post("/admin/offer-decision")
 async def offer_decision(
     body: OfferDecisionRequest,

@@ -3959,6 +3959,165 @@ class SegnaTappaStartRequest(BaseModel):
     nota: Optional[str] = None
 
 
+class ApprovaStartDeliverableRequest(BaseModel):
+    tipo: str
+
+
+async def _cliente_start_o_errore(client_id: str) -> dict:
+    from services.ciak_client_accounts import has_start_entitlement
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente non trovato")
+    if not has_start_entitlement(client):
+        raise HTTPException(409, "Il cliente non ha Ciak Start")
+    return client
+
+
+async def _start_step(client_id: str, step_id: str) -> dict:
+    return await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": step_id}, {"_id": 0}
+    ) or {}
+
+
+@router.post("/start/{client_id}/calendario-90/genera")
+async def genera_calendario_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Genera la bozza del calendario Start, senza approvarla automaticamente."""
+    from services.start_final_deliverables import build_start_content_plan
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    positioning = await _start_step(client_id, "04-posizionamento")
+    answers = (positioning.get("data") or {}).get("answers") or {}
+    if not any(answers.get(key) for key in ("metodo_nome", "nicchia", "promessa")):
+        raise HTTPException(409, "Posizionamento incompleto: il calendario non puo' essere generato")
+
+    deliverable = await build_start_content_plan({"answers": answers})
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "content_plan_90d"},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-contenuti-90"},
+        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+@router.post("/start/{client_id}/readiness/genera")
+async def genera_readiness_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Valuta evidenze approvate; se ne manca una la Partnership resta bloccata."""
+    from services.start_final_deliverables import build_partnership_readiness
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    step_ids = ["03-brand-kit", "04-posizionamento", "start-profili", "start-vetrina", "start-contenuti-90"]
+    steps = {step_id: await _start_step(client_id, step_id) for step_id in step_ids}
+
+    def approved(step_id: str) -> dict:
+        step = steps[step_id]
+        data = step.get("data") or {}
+        approved_at = data.get("approved_at") or step.get("approved_at")
+        if step.get("approval_status") != "approved":
+            approved_at = None
+        return {**data, "approved_at": approved_at}
+
+    evidence = {
+        "brand_kit": approved("03-brand-kit"),
+        "positioning": approved("04-posizionamento"),
+        "social_profiles": approved("start-profili"),
+        "showcase": approved("start-vetrina"),
+        "content_plan": approved("start-contenuti-90"),
+    }
+    deliverable = build_partnership_readiness(evidence)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "partnership_readiness"},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-readiness"},
+        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+@router.post("/start/{client_id}/deliverable/approva")
+async def approva_deliverable_start(
+    client_id: str,
+    body: ApprovaStartDeliverableRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Approva esplicitamente un output Start gia' generato."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    mapping = {
+        "content_plan_90d": "start-contenuti-90",
+        "partnership_readiness": "start-readiness",
+        "social_profiles": "start-profili",
+        "showcase": "start-vetrina",
+    }
+    step_id = mapping.get(body.tipo)
+    if not step_id:
+        raise HTTPException(422, "Tipo deliverable non valido")
+    generated_types = {"content_plan_90d", "partnership_readiness"}
+    existing = None
+    if body.tipo in generated_types:
+        existing = await db.ciak_start_deliverables.find_one(
+            {"partner_id": client_id, "type": body.tipo}, {"_id": 0}
+        )
+        if not existing:
+            raise HTTPException(409, "Genera prima il deliverable")
+        if body.tipo == "partnership_readiness" and not existing.get("ready"):
+            raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
+    else:
+        step = await _start_step(client_id, step_id)
+        if step.get("status") != "done" or not (step.get("data") or {}):
+            raise HTTPException(409, "Completa prima lo step con dati verificabili")
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}
+    if body.tipo in generated_types:
+        await db.ciak_start_deliverables.update_one(
+            {"partner_id": client_id, "type": body.tipo}, {"$set": approval}
+        )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": step_id},
+        {"$set": {"status": "done", **approval, "data.approved_at": now, "updated_at": now}},
+    )
+    return {"success": True, "type": body.tipo, **approval}
+
+
 @router.get("/start/consegne")
 async def consegne_start(
     _admin=Depends(require_ciak_admin),

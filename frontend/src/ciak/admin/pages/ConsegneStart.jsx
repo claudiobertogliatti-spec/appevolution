@@ -273,6 +273,37 @@ export function ConsegneStart({ onAuthExpired }) {
     }
   };
 
+  const onDeliverable = async (client, azione) => {
+    const chiave = `${client.client_id}-${azione}`;
+    setInCorso(chiave);
+    setEsito(null);
+    const routes = {
+      genera_calendario: [`/start/${client.client_id}/calendario-90/genera`, null],
+      approva_calendario: [`/start/${client.client_id}/deliverable/approva`, { tipo: "content_plan_90d" }],
+      approva_profili: [`/start/${client.client_id}/deliverable/approva`, { tipo: "social_profiles" }],
+      approva_vetrina: [`/start/${client.client_id}/deliverable/approva`, { tipo: "showcase" }],
+      genera_readiness: [`/start/${client.client_id}/readiness/genera`, null],
+      approva_readiness: [`/start/${client.client_id}/deliverable/approva`, { tipo: "partnership_readiness" }],
+    };
+    try {
+      const [route, body] = routes[azione];
+      const result = await apiPost(route, body || {});
+      const missing = result?.deliverable?.missing || [];
+      setEsito({
+        ok: true,
+        testo: missing.length
+          ? `Verifica generata: restano ${missing.length} evidenze mancanti. Nessun via libera automatico.`
+          : `Operazione completata per ${client.nome || client.email}.`,
+      });
+      load();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setEsito({ ok: false, testo: e.message });
+    } finally {
+      setInCorso(null);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-10 max-w-6xl">
@@ -287,6 +318,10 @@ export function ConsegneStart({ onAuthExpired }) {
     );
   }
   if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+
+  const clienti = Array.from(
+    new Map(data.items.map((item) => [item.client_id, item])).values(),
+  );
 
   return (
     <div className="p-10 max-w-6xl">
@@ -312,6 +347,42 @@ export function ConsegneStart({ onAuthExpired }) {
           tono={data.entro_48_ore > 0 ? "amber" : "slate"}
         />
       </div>
+
+      {clienti.length ? (
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="font-semibold text-slate-900">Output finali Start</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            La generazione crea una bozza. La pubblicazione richiede sempre la tua approvazione esplicita.
+          </p>
+          <div className="mt-4 space-y-4">
+            {clienti.map((client) => (
+              <div key={client.client_id} className="rounded-xl border border-slate-200 p-4">
+                <p className="text-sm font-semibold text-slate-900">{client.nome || client.email}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    ["approva_profili", "Approva profili sistemati"],
+                    ["approva_vetrina", "Approva sito vetrina"],
+                    ["genera_calendario", "Genera calendario 90 giorni"],
+                    ["approva_calendario", "Approva calendario"],
+                    ["genera_readiness", "Genera verifica readiness"],
+                    ["approva_readiness", "Approva report readiness"],
+                  ].map(([azione, label]) => (
+                    <button
+                      key={azione}
+                      type="button"
+                      disabled={inCorso === `${client.client_id}-${azione}`}
+                      onClick={() => onDeliverable(client, azione)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {inCorso === `${client.client_id}-${azione}` ? "Attendi…" : label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {esito && (
         <p
@@ -348,8 +419,7 @@ export function ConsegneStart({ onAuthExpired }) {
       )}
 
       <p className="text-xs text-slate-400 mt-6">
-        Lo step 7 del percorso (revisione finale e readiness partnership) non compare qui:
-        l'email non gli promette nessuna data.
+        La readiness non ha una data promessa: viene valutata solo su evidenze completate e approvate.
       </p>
 
       <button

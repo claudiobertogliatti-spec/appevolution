@@ -137,6 +137,7 @@ async def get_partner_status(
     return {
         "partner_id": partner.get("id"),
         "partner_name": partner.get("name"),
+        "telegram_group_url": partner.get("telegram_group_url"),
         "current_state": guided["current_state"],
         "current_step": guided["current_step"],
         "assigned_agent": guided["assigned_agent"],

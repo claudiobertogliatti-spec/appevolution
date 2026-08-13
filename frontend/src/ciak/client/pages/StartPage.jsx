@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, LockKeyhole, Loader2 } from "lucide-react";
-import { clientPost, journeyGet } from "../api";
+import { clientGet, clientPost, journeyGet } from "../api";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
@@ -55,6 +55,7 @@ export function StartPage({ dashboard }) {
   const [journey, setJourney] = useState(null);
   const [journeyError, setJourneyError] = useState("");
   const [journeyLoading, setJourneyLoading] = useState(false);
+  const [deliverables, setDeliverables] = useState([]);
 
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
@@ -88,6 +89,13 @@ export function StartPage({ dashboard }) {
     return () => {
       annullato = true;
     };
+  }, [active, clientId]);
+
+  useEffect(() => {
+    if (!active) return;
+    clientGet("/start/deliverables")
+      .then((data) => setDeliverables(data.items || []))
+      .catch(() => setDeliverables([]));
   }, [active, clientId]);
 
   const steps = journey?.steps || [];
@@ -206,6 +214,46 @@ export function StartPage({ dashboard }) {
                 <span className="font-medium text-slate-800">{label}</span>
                 <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">proposto</span>
               </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {active && deliverables.length ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Materiali approvati</h2>
+          <p className="mt-1 text-sm text-slate-500">Qui compaiono soltanto gli output revisionati dal team.</p>
+          <div className="mt-4 space-y-3">
+            {deliverables.map((item) => (
+              <details key={item.type} className="rounded-lg border border-slate-200 p-4">
+                <summary className="cursor-pointer font-semibold text-slate-800">
+                  {item.type === "content_plan_90d" ? "Calendario contenuti — 90 giorni" : "Verifica finale Partnership"}
+                </summary>
+                {item.type === "content_plan_90d" ? (
+                  <div className="mt-4 space-y-5">
+                    {(item.calendar?.months || []).map((month) => (
+                      <div key={month.mese}>
+                        <h3 className="text-sm font-semibold text-slate-900">Mese {month.mese}</h3>
+                        {(month.blocchi || []).map((block) => (
+                          <div key={block.fase} className="mt-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{block.fase}</p>
+                            <ul className="mt-2 space-y-2">
+                              {(block.giorni || []).map((day) => (
+                                <li key={`${month.mese}-${day.giorno}`} className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                                  <span className="font-semibold">Giorno {day.giorno} · {day.formato}</span> — {day.tema}
+                                  <p className="mt-1 text-xs text-slate-500">{day.come_farlo} · CTA: {day.cta}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.note}</p>
+                )}
+              </details>
             ))}
           </div>
         </section>
