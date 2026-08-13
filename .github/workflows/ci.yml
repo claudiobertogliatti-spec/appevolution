@@ -110,6 +110,7 @@ jobs:
           tests/test_blueprint_delivery_durability.py
           tests/test_launch_calendar.py
           tests/test_editorial_calendar_api.py
+          tests/test_calendario_lancio.py
 
   frontend:
     name: Frontend (build smoke)

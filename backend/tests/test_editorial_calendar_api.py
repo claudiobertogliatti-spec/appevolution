@@ -237,7 +237,10 @@ def client(fake_db, monkeypatch):
 
     monkeypatch.setattr(editorial_calendar, "build_editorial_calendar", deterministic_calendar)
 
-    async def render_workbook(_payload):
+    fake_db.rendered_workbook_payloads = []
+
+    async def render_workbook(payload):
+        fake_db.rendered_workbook_payloads.append(deepcopy(payload))
         return b"%PDF-1.4\n" + (b"approved-workbook\n" * 10)
 
     monkeypatch.setattr(partner_rewards, "genera_project_book_pdf", render_workbook)

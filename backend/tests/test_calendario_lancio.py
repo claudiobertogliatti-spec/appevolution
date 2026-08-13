@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import pytest
 
-from backend.tests.test_editorial_calendar_api import (
+from test_editorial_calendar_api import (
     _f14_step,
     _headers,
     _make_workbook_eligible,
@@ -131,6 +131,15 @@ def test_local_e2e_auth_version_edit_submit_review_f14_workbook_and_immutability
     archived_workbook = fake_db.partner_document_versions.docs[-1]
     assert archived_workbook["provenance"]["calendar_version"] == 2
     assert archived_workbook["provenance"]["calendar_checksum"] == approved_two.json()["checksum"]
+    rendered_payload = fake_db.rendered_workbook_payloads[-1]
+    rendered_calendar = next(
+        section["body"]
+        for section in rendered_payload["sections"]
+        if section["title"] == "Calendario di Lancio"
+    )
+    assert "Tema corretto della versione due" in rendered_calendar
+    assert "Tema della versione uno" not in rendered_calendar
+    assert "BOZZA INVENTATA DOPO APPROVAZIONE" not in rendered_calendar
 
     rejected_update = client.put(
         "/api/partner/calendar/p1/versions/1/draft",

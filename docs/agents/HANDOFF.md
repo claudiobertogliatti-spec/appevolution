@@ -29,10 +29,13 @@ Regole:
 - Commit applicativo locale `da7b99bf` (`refactor(lancio): retire duplicate calendar generator`).
 - TDD RED: l'alias entrava ancora nel generatore autonomo e falliva tentando di leggere
   `partner_posizionamento`; GREEN mirato: `2 passed`.
-- E2E locale autenticato: 401 senza token; v1 creata/modificata/inviata; partner respinto
+- E2E ASGI locale con token di test: 401 senza token; v1 creata/modificata/inviata; partner respinto
   con 403 sulla review; rifiuto admin con nota; v2 creata, approvata e F-14 `done`;
-  Workbook archiviato con provenance della v2; v1 ancora leggibile e non modificabile (409).
+  Workbook archiviato con provenance e contenuto della v2 (tema v1/bozza assenti dal payload
+  renderer); v1 ancora leggibile e non modificabile (409). Non e' uno smoke pre-produzione.
 - Backend rilevante: `168 passed, 2 skipped` sui cinque file indicati dal brief.
+- Fix round 1: collection dal vero `working-directory: backend` -> `2 tests collected`;
+  allowlist backend CI aggiornata ed eseguita con le quattro env del workflow -> `326 passed`.
 - Frontend mirato, eseguito da copia temporanea fuori da `.worktrees`: `2 suites passed`,
   `19 tests passed`. Build col gate CI versionato (`DISABLE_ESLINT_PLUGIN=true CI=false`):
   compilata, bundle `main.d490b250.js`, postbuild Ciak completato.
@@ -40,8 +43,12 @@ Regole:
   preesistenti in 12 file estranei; nessun warning riguarda i due componenti calendario.
 
 **APERTO**
-- Task 8: review finale, push, CI/deploy e smoke live. Non e' stato usato alcun token o dato
-  partner reale in questa task.
+- Gate obbligatorio Task 8, solo dopo la release: smoke autenticato pre-produzione con partner
+  autorizzato sui dieci passaggi del brief — genera v1, modifica/autosave, invia a Marco,
+  partner non approva, admin respinge con nota, genera v2, admin approva, F-14 `done`, Workbook
+  su v2, v1 disponibile e immutata. Conservare prova per ogni passaggio.
+- Non e' stato usato alcun token o dato partner reale in Task 7; Task 7 e' verificata localmente,
+  non live/pre-produzione. Task 8 include inoltre review finale, push, CI e deploy.
 
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 
