@@ -12,6 +12,65 @@ Regole:
 
 ---
 
+### 2026-08-13 (sera) · Claude Code (Luca) · main — audit operativo cliente/partner, nessun deploy da fare
+
+Richiesta: "deploy definitivo verificando che non ci siano commit arretrati" + ripetere l'audit
+escludendo Casi studio. Esito: **non c'era niente da deployare**, l'arretrato era solo il clone locale.
+
+**VERIFICATO — il deploy era gia' completo**
+- Locale era 1 commit indietro (`3f1d973c`). Fast-forward eseguito: `origin/main...HEAD` -> `0 0`.
+- Backend live: revision `evolution-pro-backend-00552-fp4` (14:50 UTC), commit delle 14:41 UTC.
+  Prova funzionale, non solo temporale: `GET /api/ciak/client/start/deliverables` ->
+  `401 {"detail":"Token non fornito"}` (rotta esistente e protetta), non 404.
+- Worker: `evolution-pro-worker-00146-2vb` (15:01 UTC).
+- Frontend live: `main.bd40ad47.js` da `www.ciak.io` contiene "Calendario contenuti" e
+  "Verifica finale Partnership", entrambe introdotte da `3f1d973c` (23 chunk scaricati e grepati).
+- `/cliente/accesso` (atterraggio del magic link) -> `200`. `/api/stefania/chat` -> `405` (esiste).
+  `/api/vetrina/{id}/contatto` -> `405` (esiste).
+- Test: allowlist CI (47 file) **527 passed**; i 2 file backend nuovi **7 passed**;
+  `node --test src/ciak/supportContract.test.cjs` **3 passed**.
+
+**VERIFICATO — i buchi che restano (esclusa la sezione Casi studio, che e' admin-only)**
+1. 🔴 **Il gruppo Telegram partner non esiste.** `TeamSupportoPage.jsx:365` ricade su
+   `https://t.me/ciak_partner_support`; quella pagina ha `og:description` **vuoto** (un canale
+   reale, `t.me/telegram`, ce l'ha pieno) = username non assegnato. E `telegram_group_url` e'
+   **letto** in `partner_guided.py:140` ma **mai scritto** da nessuna riga del repo (git grep
+   completo: 8 occorrenze, tutte letture/test/doc). Ogni partner senza il campo popolato a mano
+   finisce su un link morto.
+2. 🔴 **Il supporto al cliente e' solo un `mailto:`.** `ClientLayout.jsx:55` ->
+   `assistenza@evolution-pro.it`. Il partner ha 6 agenti AI + team + Telegram; il cliente che ha
+   pagato 499 ha una casella. In piu' l'email di attivazione usa Reply-To `info@evolution-pro.it`
+   (default di `ciak_start_delivery.py`): due indirizzi diversi per la stessa domanda.
+3. 🟡 **Le 3 date promesse il cliente le vede solo nell'email.** `ciak_start_milestones` e'
+   importato da `ciak_start_delivery.py` (email) e da `ciak_admin.py` (pannello team). Nessun
+   endpoint cliente le espone, `StartPage.jsx` non le mostra. Chi perde l'email perde le scadenze.
+4. 🟡 **La CI non vede il lavoro di oggi.** L'allowlist e' una lista esplicita di 47 file: i test
+   aggiunti da `3f1d973c` (`test_start_final_deliverables*.py`, `ClientLayout.test.jsx`,
+   `TeamSupportoPage.test.jsx`, `supportContract.test.cjs`, `ConsegneStart.test.jsx`) non ci sono.
+   Passano tutti a mano, ma una regressione domani non verrebbe intercettata.
+5. 🟡 **Il calendario 90 giorni non fallisce mai.** `build_quarterly_calendar` cade sullo scheletro
+   deterministico a ogni errore AI, con un solo `logger.warning`. Il cliente riceve comunque un
+   deliverable, generico, e in admin non risulta nulla.
+
+**VERIFICATO — igiene, non bloccante**
+- `app.evolution-pro.it` **non ha record DNS A/AAAA** (`nslookup`) e Cloud Run
+  `evolution-pro-frontend-v2` e' fermo alla revision del 2026-07-30. Servizio orfano: nessun
+  riferimento nel codice attivo, resta solo `backend/docs/CELERY_SETUP.md:61`. L'unico frontend
+  vivo e' `www.ciak.io` su Vercel.
+- 8 path non tracciati in working tree, fra cui `backend/services/journey_progression.py` (53 righe)
+  e il suo test: **nessun file tracciato li importa** (git grep vuoto), quindi la produzione non ne
+  dipende. Lavoro orfano di una sessione parallela, lasciato dov'e'.
+
+**APERTO**
+- ⛔ **Non verificabile da qui**: quanti partner abbiano `telegram_group_url` valorizzato a mano su
+  Mongo. Nessuna `MONGO_URL` nel `.env` locale. Va guardato prima di stimare l'impatto del punto 1.
+- Branch con lavoro non mergiato e recente: `cc/security-and-money-path` (3 commit, 11/8),
+  `origin/feat/agenti-esperti-deliverable` (2, 12/8), `origin/test/finalize-idempotency` (1, 12/8),
+  `feat/ciak-onboarding-email` (25, 30/7). Non toccati in questa sessione.
+- Prossimo step dichiarato da Claudio: inserire i dati reali dentro Ciak.
+
+---
+
 ### 2026-08-13 · Claude Code (Luca) · main — Ciak Start: i quattro blocchi allineati su main
 
 **COSA E' ENTRATO**
