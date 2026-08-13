@@ -122,6 +122,9 @@ jobs:
           tests/test_start_journey_state.py
           tests/test_partner_tier_counts.py
           tests/test_start_client_posizionamento.py
+          tests/test_start_profili_social.py
+          tests/test_start_vetrina.py
+          tests/test_vetrina_contatti.py
 
   frontend:
     name: Frontend (build smoke)

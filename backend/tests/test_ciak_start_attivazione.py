@@ -43,6 +43,13 @@ class DB:
         self.ciak_client_access_recovery = Collection()
         self.payments = Collection()
         self.payment_transactions = Collection()
+        # Collection lette dal ponte verso i motori partner: l'attivazione non
+        # scrive solo l'entitlement, rende il cliente un soggetto che brand kit
+        # e posizionamento accettano.
+        self.partners = Collection()
+        self.users = Collection()
+        self.diagnostic_sessions = Collection()
+        self.partner_journey_steps = Collection()
 
 
 ADMIN = type("Admin", (), {"email": "claudio@evolution-pro.it"})()
@@ -235,3 +242,26 @@ async def test_riattivare_un_cliente_gia_pagante_rimanda_solo_l_accesso(monkeypa
     client = database.ciak_clients.docs[0]
     assert client["start_payments"] == [{"amount_cents": 49900, "reference_id": "cs_1"}]
     assert database.payment_transactions.docs == []
+
+
+@pytest.mark.asyncio
+async def test_l_attivazione_accende_i_motori_partner(monkeypatch):
+    """L'aggancio al ponte: e' quello che rende utile tutto il resto.
+
+    Senza, il cliente ha l'entitlement ma trova sette etichette in sola lettura,
+    perche' brand kit e posizionamento girano dietro la guardia partner.
+    """
+    database = DB()
+    monkeypatch.setattr(ciak_admin, "db", database)
+    _patch_delivery(monkeypatch)
+
+    await ciak_admin.attiva_ciak_start(
+        ciak_admin.AttivaStartRequest(email="motori@example.it", name="Maria Restifo"),
+        admin=ADMIN,
+    )
+
+    cliente = database.ciak_clients.docs[0]
+    partner = database.partners.docs[0]
+    assert partner["id"] == cliente["id"], "partner e cliente devono avere lo stesso id"
+    assert partner["tier"] == "start"
+    assert partner["email"] == "motori@example.it"

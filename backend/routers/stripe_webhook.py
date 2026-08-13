@@ -471,6 +471,13 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
         {"id": client_id},
         {"$set": {**updates, "events": events}},
     )
+    # Ponte verso i motori partner: da qui il cliente Start puo' usare brand kit e
+    # posizionamento, che girano su `partner_journey_steps`. Si passa il documento
+    # AGGIORNATO: quello letto sopra non ha ancora l'entitlement, e il ponte
+    # rifiuta per progetto un cliente senza. Idempotente.
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    await ensure_start_partner_bridge(db, {**client, **updates})
     await _record_checkout_payment(
         db,
         session_id=reference_id,

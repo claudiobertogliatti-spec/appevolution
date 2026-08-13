@@ -3904,6 +3904,12 @@ async def attiva_ciak_start(
         {"$set": {**updates, "events": events, "updated_at": now}},
     )
 
+    # Stesso ponte del webhook: anche chi viene attivato a mano deve trovare i
+    # motori partner accesi. Documento aggiornato, non quello letto prima.
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    await ensure_start_partner_bridge(db, {**client, **updates})
+
     if incasso_da_registrare:
         await _record_checkout_payment(
             db,
