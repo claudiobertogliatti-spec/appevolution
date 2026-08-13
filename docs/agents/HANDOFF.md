@@ -16,7 +16,15 @@ Regole:
 
 Quarto dei 4 blocchi per l'erogazione di Ciak Start. Branch partito da
 `cc/ciak-start-attivazione-manuale` (Blocco 0, `7f9c9eae`), **non** da `main`: senza quello non
-esistono l'endpoint di attivazione né i campi del piano rateale.
+esiste l'endpoint di attivazione. Commit del blocco: `611ad737`.
+
+⚠️ **Divergenza intercettata e chiusa nella stessa sessione.** Mentre lavoravo, un'altra sessione
+ha aggiunto 3 commit alla mia base — fra cui `f2930392`, il **revert del piano rateale** deciso da
+Claudio (Ciak Start resta a pagamento intero). Me ne sono accorto solo perché una riga di memoria
+diceva una cosa diversa dal mio branch. `cc/ciak-start-attivazione-manuale` è stato **mergiato**
+dentro questo branch (`54467730`): merge automatico, nessun conflitto, e le due entry di HANDOFF si
+sono impilate da sole. È il caso esatto di `feedback_task_paralleli_stesso_file`: il segnale è il
+file modificato da entrambi, qui `routers/ciak_admin.py` e questo file.
 
 **Il problema che chiude**
 L'email di attivazione promette per iscritto tre tappe datate (7/14/21 giorni da
@@ -73,8 +81,11 @@ poi rimossa con `[System.IO.Directory]::Delete(path, $false)`, che cancella solo
 ⛔ Non usare `Remove-Item -Recurse` su una junction: rischia di svuotare il target.
 
 **APERTO**
-- ⛔ **Non pushato e non mergiato.** Dipende dal Blocco 0, che a sua volta non è su `main`. Un push
-  su `main` deploya in produzione: **decide Claudio**, e il PROTOCOL §5 chiede la review Codex.
+- ⛔ **Non su `main`.** Il branch è su GitHub (`origin/cc/ciak-start-consegne`), ma il merge su
+  `main` deploya in produzione e questo ramo porta con sé anche il Blocco 0, che tocca i pagamenti:
+  **decide Claudio**, e il PROTOCOL §5 chiede la review Codex prima.
+- ♻️ Dopo il merge della base i test della lista CI sono **237 passed** invece di 243: i 6 in meno
+  sono quelli delle rate, rimossi da `f2930392`. Zero rossi, i miei 27 invariati.
 - 🔗 **Aggancio al Blocco 1 (ponte di identità), una funzione sola:** lo stato di avanzamento si
   legge **solo** in `_stato_tappe(client)` e si scrive **solo** in `apply_milestone_status`, in
   `ciak_start_milestones.py`. Quando la journey unica (`partner_journey_steps` + `tier`) atterra,
