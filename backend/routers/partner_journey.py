@@ -3,11 +3,11 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import os
 import asyncio
 import uuid
@@ -4515,6 +4515,8 @@ async def genera_caso_studio(
 
 class GeneraCalendarioRequest(BaseModel):
     partner_id: str
+    start_date: date
+    live_date: date
 
 class ExportCalendarioRequest(BaseModel):
     partner_id: str
@@ -4540,182 +4542,29 @@ async def get_calendario_lancio(
     }
 
 
-async def _rispecchia_calendario_su_step(partner_id: str, calendario: list, fallback: bool = False):
-    """Il calendario generato vive in `partner_lancio`, ma il Libretto di Progetto
-    lo legge dallo STEP `11-calendario-30gg` (`partner_rewards.py:365` e `:450`,
-    che cerca `data.calendario | data.summary | data.piano`). Senza questo ponte
-    la sezione del Libretto resta vuota anche dopo aver generato, e il collaudo
-    del percorso vede lo step a 0 campi (verificato su Andolfi il 06/08/2026).
-
-    Si scrive TESTO, non la lista grezza: `_primo()` fa `str()` sul valore, quindi
-    una lista di dict finirebbe nel PDF come letterale Python.
-    Lo `status` non si tocca: generare non e' approvare (regola 7 del protocollo).
-    Nessun upsert: se lo step non esiste non lo si inventa."""
-    righe = [
-        f"Giorno {g.get('giorno', '?')} - {g.get('tipo', '')} ({g.get('formato', '')}): {g.get('idea', '')}".strip()
-        for g in (calendario or []) if isinstance(g, dict)
-    ]
-    if not righe:
-        return
-    now = datetime.utcnow()
-    await db.partner_journey_steps.update_one(
-        {"partner_id": str(partner_id), "step_id": "11-calendario-30gg"},
-        {"$set": {
-            "data.calendario": "\n".join(righe),
-            "data.calendario_generated_at": now.isoformat(),
-            "data.calendario_fallback": fallback,
-            "updated_at": now,
-        }},
-    )
-
-
-@router.post("/lancio/genera-calendario")
+@router.post("/lancio/genera-calendario", status_code=status.HTTP_201_CREATED)
 async def genera_calendario_lancio(
     request: GeneraCalendarioRequest,
+    response: Response,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    """Genera il calendario editoriale di 30 giorni usando AI"""
-    await require_partner_or_admin_for_partner(request.partner_id, credentials)
-    partner = await get_partner_or_404(request.partner_id)
-    
-    # Recupera posizionamento
-    posizionamento = await db.partner_posizionamento.find_one(
-        {"partner_id": request.partner_id}, {"_id": 0}
+    """Alias legacy: usa lo stesso flusso versionato dell'endpoint canonico."""
+    from routers.editorial_calendar import (
+        CreateCalendarVersionBody,
+        create_calendar_version,
     )
-    
-    prompt = f"""Sei un social media strategist esperto di lanci di corsi online.
-Genera un calendario editoriale di 30 giorni per il lancio di un videocorso.
 
-PARTNER: {partner.get('name')}
-NICCHIA: {partner.get('niche', 'N/D')}
-
-POSIZIONAMENTO:
-- Studente ideale: {posizionamento.get('step_1_studente_ideale', 'N/D') if posizionamento else 'N/D'}
-- Obiettivo: {posizionamento.get('step_2_obiettivo', 'N/D') if posizionamento else 'N/D'}
-- Trasformazione: {posizionamento.get('step_3_trasformazione', 'N/D') if posizionamento else 'N/D'}
-- Metodo: {posizionamento.get('step_4_metodo', 'N/D') if posizionamento else 'N/D'}
-
-STRUTTURA:
-- Settimana 1 (giorni 1-7): ATTENZIONE - Far emergere il problema
-- Settimana 2 (giorni 8-14): AUTORITÀ - Mostrare competenza  
-- Settimana 3 (giorni 15-21): COINVOLGIMENTO - Preparare il pubblico
-- Settimana 4 (giorni 22-30): LANCIO - Vendere
-
-Per ogni giorno genera:
-- giorno: numero (1-30)
-- tipo: tipo di contenuto (es. "Storia personale", "Mini lezione", etc.)
-- idea: descrizione breve dell'idea
-- formato: uno tra "post", "reel", "story", "live", "carousel"
-- obiettivo: obiettivo specifico del contenuto
-
-Rispondi SOLO in formato JSON con questa struttura:
-{{
-  "calendario": [
-    {{"giorno": 1, "tipo": "...", "idea": "...", "formato": "post", "obiettivo": "..."}}
-  ]
-}}"""
-
-    try:
-        llm = await get_llm_chat()
-        
-        
-        response = await llm.send_message(UserMessage(text=prompt))
-        response_text = response.strip()
-        
-        # Parse JSON
-        if "```json" in response_text:
-            json_start = response_text.find("```json") + 7
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        elif "```" in response_text:
-            json_start = response_text.find("```") + 3
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        
-        calendario_data = json.loads(response_text)
-        calendario = calendario_data.get("calendario", [])
-        
-        # Salva
-        await db.partner_lancio.update_one(
-            {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "calendario": calendario,
-                    "calendario_generated_at": datetime.now(timezone.utc).isoformat()
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            upsert=True
-        )
-        await _rispecchia_calendario_su_step(request.partner_id, calendario)
-
-        return {
-            "success": True,
-            "calendario": calendario
-        }
-
-    except Exception as e:
-        logging.error(f"Calendario generation error: {e}")
-        # Fallback con calendario generico
-        fallback_calendario = generate_fallback_calendario()
-        
-        # Save fallback calendario to database
-        await db.partner_lancio.update_one(
-            {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "calendario": fallback_calendario,
-                    "calendario_generated_at": datetime.now(timezone.utc).isoformat(),
-                    "calendario_fallback": True
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            upsert=True
-        )
-        await _rispecchia_calendario_su_step(request.partner_id, fallback_calendario, fallback=True)
-
-        return {
-            "success": True,
-            "calendario": fallback_calendario,
-            "fallback": True
-        }
-
-
-def generate_fallback_calendario():
-    """Genera un calendario di fallback se l'AI fallisce"""
-    settimane = {
-        1: {"tema": "Attenzione", "tipi": ["Storia personale", "Errore comune", "Contenuto educativo", "Problema del pubblico", "Statistica shock", "Domanda provocatoria", "Mito da sfatare"]},
-        2: {"tema": "Autorità", "tipi": ["Mini lezione", "Case study", "Dietro le quinte", "Testimonianza", "Processo creativo", "Tool che uso", "Lezione appresa"]},
-        3: {"tema": "Coinvolgimento", "tipi": ["FAQ", "Risposta a obiezione", "Invito masterclass", "Countdown", "Sneak peek", "Sondaggio", "Q&A"]},
-        4: {"tema": "Lancio", "tipi": ["Apertura iscrizioni", "Bonus reveal", "Testimonianza", "Scadenza reminder", "FAQ corso", "Behind the scenes", "Ultimo giorno", "Chiusura", "Risultati"]}
-    }
-    
-    formati = ["post", "reel", "story", "carousel", "post", "reel", "live"]
-    calendario = []
-    
-    for giorno in range(1, 31):
-        settimana = min((giorno - 1) // 7 + 1, 4)
-        config = settimane[settimana]
-        tipo_idx = (giorno - 1) % len(config["tipi"])
-        formato_idx = (giorno - 1) % len(formati)
-        
-        calendario.append({
-            "giorno": giorno,
-            "tipo": config["tipi"][tipo_idx],
-            "idea": f"Contenuto {config['tema'].lower()} - {config['tipi'][tipo_idx]}",
-            "formato": formati[formato_idx],
-            "obiettivo": f"Obiettivo settimana {settimana}: {config['tema']}"
-        })
-    
-    return calendario
+    document = await create_calendar_version(
+        request.partner_id,
+        CreateCalendarVersionBody(
+            start_date=request.start_date,
+            live_date=request.live_date,
+        ),
+        credentials,
+    )
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = "Thu, 31 Dec 2026 23:59:59 GMT"
+    return document
 
 
 @router.post("/lancio/export-calendario")

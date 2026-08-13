@@ -12,6 +12,37 @@ Regole:
 
 ---
 
+### 2026-08-13 · Codex · codex/strategia-lancio-ottimizza — ritiro generatore legacy calendario F-14
+
+**FATTO**
+- `POST /api/partner-journey/lancio/genera-calendario` non contiene piu' prompt, parser,
+  fallback o scritture in `partner_lancio`: e' un alias deprecato che richiede le date e
+  delega alla creazione versionata canonica `/api/partner/calendar/{partner_id}/versions`.
+- L'alias restituisce `201`, `Deprecation: true` e `Sunset`; il frontend usa gia' soltanto
+  gli endpoint canonici. La vecchia suite HTTP verso il dominio preview e' stata sostituita
+  da regressioni ASGI locali autenticate e deterministiche.
+
+**DICHIARATO**
+- Commit locale previsto: `refactor(lancio): retire duplicate calendar generator`.
+- Nessun deploy o push eseguito: restano di competenza della Task 8.
+
+**VERIFICATO**
+- TDD RED: l'alias entrava ancora nel generatore autonomo e falliva tentando di leggere
+  `partner_posizionamento`; GREEN mirato: `2 passed`.
+- E2E locale autenticato: 401 senza token; v1 creata/modificata/inviata; partner respinto
+  con 403 sulla review; rifiuto admin con nota; v2 creata, approvata e F-14 `done`;
+  Workbook archiviato con provenance della v2; v1 ancora leggibile e non modificabile (409).
+- Backend rilevante: `168 passed, 2 skipped` sui cinque file indicati dal brief.
+- Frontend mirato, eseguito da copia temporanea fuori da `.worktrees`: `2 suites passed`,
+  `19 tests passed`. Build col gate CI versionato (`DISABLE_ESLINT_PLUGIN=true CI=false`):
+  compilata, bundle `main.d490b250.js`, postbuild Ciak completato.
+- La build letterale con `CI=true` e' invece bloccata dai warning `exhaustive-deps`
+  preesistenti in 12 file estranei; nessun warning riguarda i due componenti calendario.
+
+**APERTO**
+- Task 8: review finale, push, CI/deploy e smoke live. Non e' stato usato alcun token o dato
+  partner reale in questa task.
+
 ### 2026-08-12 · Codex · codex/ciak-start-blueprint-gate — chiusura bypass Blueprint → firma
 
 **FATTO**
