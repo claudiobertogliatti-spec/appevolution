@@ -115,7 +115,22 @@ class FakeCursor:
     def sort(self, field, direction=None):
         pairs = field if isinstance(field, list) else [(field, direction)]
         for sort_field, sort_direction in reversed(pairs):
-            self.docs.sort(key=lambda doc: doc.get(sort_field, ""), reverse=sort_direction < 0)
+            # Motor/Mongo permette nello stesso campo valori assenti, numerici e
+            # stringhe. Il fake deve mantenere un ordine deterministico senza
+            # affidarsi al confronto diretto Python fra tipi incompatibili.
+            def mongo_like_key(document):
+                value = document.get(sort_field)
+                if value is None:
+                    return (1, "")
+                if isinstance(value, bool):
+                    return (2, int(value))
+                if isinstance(value, (int, float)):
+                    return (3, value)
+                if isinstance(value, str):
+                    return (4, value)
+                return (99, repr(value))
+
+            self.docs.sort(key=mongo_like_key, reverse=sort_direction < 0)
         return self
 
     async def to_list(self, limit=None, length=None):
@@ -2111,7 +2126,11 @@ def test_admin_pending_review_queue_and_exact_version_are_admin_only(client, par
     assert item["version"] == 1
     assert item["checksum"] == submitted.json()["checksum"]
     assert item["completeness"] == {"complete_days": 30, "total_days": 30}
-    assert item["destination_urls"] == ["https://www.ciak.io/masterclass"]
+    assert item["destination_urls"] == [
+        "https://www.ciak.io/masterclass",
+        "https://www.ciak.io/live",
+        "https://www.ciak.io/checkout",
+    ]
     assert item["bonus"]["name"] == "Sessione di orientamento"
     assert item["failed_checks"] == []
     assert detail.status_code == 200
