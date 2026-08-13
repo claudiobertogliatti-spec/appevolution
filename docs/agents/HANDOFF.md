@@ -29,9 +29,9 @@ Regole:
 - CI merge SHA: run `31659355991` success. Deploy Cloud Run: run `31659355978` success.
 - Backend `evolution-pro-backend-00548-dsh` e worker
   `evolution-pro-worker-00138-g7h`: latest ready, 100% traffico.
-- Deployment Vercel production GitHub ID `5880530636`: success. `www.ciak.io` serve
-  `main.e1b14caf.js`; il chunk lazy F-14 `188.bcf75505.chunk.js` contiene endpoint
-  canonico, CTA review e avviso persistenza.
+- Deployment Vercel production del merge, GitHub ID `5880530636`: success. Il chunk
+  lazy F-14 servito da `www.ciak.io`, `188.bcf75505.chunk.js`, contiene endpoint canonico,
+  CTA review e avviso persistenza; l'hash dell'entrypoint varia a ogni rebuild Vercel.
 - `GET https://www.ciak.io/api/health`: `200`, servizio healthy. I sei probe anonimi
   su route canoniche/admin/legacy rispondono `401 Token non fornito`.
 - ASGI locale autenticato: alias legacy `201` con `Deprecation: true` e `Sunset`,
