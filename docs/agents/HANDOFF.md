@@ -12,6 +12,39 @@ Regole:
 
 ---
 
+### 2026-08-13 · Codex · main — release live calendario versionato F-14
+
+**FATTO**
+- PR `#25` revisionata, corretta e unita su `main` al merge commit `39c6284c`.
+- Chiusi prima del merge due bypass rilevati dalla review indipendente: lo status admin
+  legacy non puo' piu' completare F-14 senza versione approvata; l'identita' del Workbook
+  include ora anche il checksum della provenance journey.
+- Release backend/worker e frontend completata; report sanificato in
+  `.superpowers/sdd/2026-08-12-lancio-30gg-f14/task-8-report.md`.
+
+**VERIFICATO**
+- Pre-release: backend CI allowlist `328 passed`; frontend `2 suites / 19 tests passed`;
+  build completata; `compileall`, flake8 `E9,F821`, `git diff --check` e secret scan
+  differenziale tutti exit 0.
+- CI merge SHA: run `31659355991` success. Deploy Cloud Run: run `31659355978` success.
+- Backend `evolution-pro-backend-00548-dsh` e worker
+  `evolution-pro-worker-00138-g7h`: latest ready, 100% traffico.
+- Deployment Vercel production GitHub ID `5880530636`: success. `www.ciak.io` serve
+  `main.e1b14caf.js`; il chunk lazy F-14 `188.bcf75505.chunk.js` contiene endpoint
+  canonico, CTA review e avviso persistenza.
+- `GET https://www.ciak.io/api/health`: `200`, servizio healthy. I sei probe anonimi
+  su route canoniche/admin/legacy rispondono `401 Token non fornito`.
+- ASGI locale autenticato: alias legacy `201` con `Deprecation: true` e `Sunset`,
+  review vietata al partner, completamento F-14 solo con versione approvata e Workbook
+  legato alla provenance corretta.
+
+**APERTO**
+- Smoke autenticato live completo non eseguito: era disponibile solo una sessione admin,
+  non una sessione partner di test autorizzata. Servono partner di test e admin per provare
+  partner proprio `200`, altro partner `403`, submit `pending`, review e F-14 `done`, oltre
+  agli header legacy post-auth. Nessun token/cookie/localStorage e nessun dato reale sono
+  stati letti o persistiti; non sono state fatte mutazioni live.
+
 ### 2026-08-13 · Codex · codex/strategia-lancio-ottimizza — ritiro generatore legacy calendario F-14
 
 **FATTO**
