@@ -41,6 +41,19 @@ git -C /c/Users/berto/appevolution checkout -b cc/luca-fase1-occhi-memoria
 
 Il branch parte da `515b75c4`, che contiene già la spec.
 
+⚠️ **Isolamento: branch, non worktree.** Su questo repo `git worktree add` supera i 2 minuti e, se
+il tool Bash lo uccide a metà, lascia `index.lock` vuoto e nessun `index` — da lì `git status` mostra
+l'intero repo come cancellato e committare significa committare la cancellazione del repo.
+
+🧹 **`scripts/stato/` non va mai in git.** `cartella_stato()` fa `mkdir` a ogni chiamata: **il solo
+leggere lo stato crea la cartella**, anche eseguendo dal repo. Prima della Task 1:
+
+```bash
+cd /c/Users/berto/appevolution && printf 'scripts/stato/\n' >> .gitignore && git add .gitignore && git commit -m "chore(luca): keep the runtime state folder out of git"
+```
+
+⛔ E nella Task 7 si usa `git add` sui file nominati, **mai** `git add -A scripts/`.
+
 ---
 
 ### Task 1: La busta uniforme e il sensore Ciak
@@ -1108,8 +1121,11 @@ Expected: PASS, 29 test.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /c/Users/berto/appevolution && git add -A scripts/ && git commit -m "chore(luca): put phase 1 into service and record the first measurement"
+cd /c/Users/berto/appevolution && git add scripts/sensori.py scripts/stato.py scripts/briefing_luca.py scripts/scheduled/ && git status --porcelain scripts/ && git commit -m "chore(luca): put phase 1 into service and record the first measurement"
 ```
+
+⛔ **Mai `git add -A scripts/`**: `scripts/stato/` è stato di runtime e resta fuori da git.
+Il `git status` prima del commit serve a vedere che non stia entrando nulla di non voluto.
 
 - [ ] **Step 7: Hand the three prerequisites back to Claudio**
 
