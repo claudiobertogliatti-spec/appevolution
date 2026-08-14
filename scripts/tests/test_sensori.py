@@ -85,6 +85,24 @@ class TestLeggiSito(unittest.TestCase):
         for esito in b["dati"]["url"].values():
             self.assertIsInstance(esito["ms"], int)
 
+    def test_404_reale_solleva_httperror_ed_e_comunque_una_misura(self):
+        """Il ramo di PRODUZIONE: urlopen su un 404 SOLLEVA HTTPError, non ritorna 404.
+
+        Senza questo test, fondere i due except (`except (URLError, OSError, HTTPError)`)
+        passerebbe lo stesso, e ogni 404 reale diventerebbe un punto cieco.
+        """
+        def fetch(url):
+            if url.endswith("/masterclass"):
+                raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+            return 200
+
+        b = sensori.leggi_sito(fetch_fn=fetch)
+        masterclass = b["dati"]["url"]["https://www.ciak.io/masterclass"]
+        self.assertTrue(b["ok"])
+        self.assertEqual(masterclass["status"], 404)
+        self.assertIsNone(masterclass["errore"], "un 404 e' una misura, non un errore di lettura")
+        self.assertFalse(b["dati"]["tutte_ok"])
+
 
 if __name__ == "__main__":
     unittest.main()
