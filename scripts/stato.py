@@ -137,13 +137,27 @@ def leggi_coda():
 
 
 def _scrivi_coda(azioni):
-    _file_coda().write_text(
+    """Scrittura ATOMICA, per lo stesso motivo di scrivi_numeri() — e qui pesa di piu'.
+
+    `coda.json` viene RISCRITTO PER INTERO a ogni apertura o chiusura di azione: non e'
+    un append. E un JSON troncato non e' leggibile a meta' come un CSV — fa fallire
+    json.loads() alla lettura successiva e si perde TUTTA la coda, non qualche riga.
+    """
+    percorso = _file_coda()
+    temporaneo = percorso.with_name(percorso.name + ".tmp")
+    temporaneo.write_text(
         json.dumps(azioni, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    os.replace(temporaneo, percorso)
 
 
 def apri_azione(cosa, chi, entro):
-    """Un'azione ha SEMPRE un solo responsabile: principio 10, reso non violabile."""
+    """Un'azione ha SEMPRE un solo responsabile: principio 10, reso non violabile.
+
+    ⚠️ `chi` deve essere un nome proprio di persona o di agente. Il controllo rifiuta
+    qualunque stringa contenente una virgola o " e ", quindi un nome di reparto composto
+    ("Marketing e Social") verrebbe respinto anche se e' un proprietario solo.
+    """
     if "," in chi or " e " in f" {chi} ":
         raise ValueError(
             f"'{chi}' sono piu' persone: un'azione ha un solo responsabile, "

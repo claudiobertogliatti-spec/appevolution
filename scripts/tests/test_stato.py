@@ -113,6 +113,27 @@ class TestCoda(BaseStato):
         with self.assertRaises(KeyError):
             stato.chiudi_azione("non-esiste", "fatto")
 
+    def test_una_scrittura_interrotta_non_distrugge_la_coda(self):
+        """Un JSON troncato non e' leggibile a meta': si perde TUTTA la coda.
+
+        Con la scrittura non atomica questo test FALLISCE: write_text sul file finale
+        lo tronca prima ancora di scrivere.
+        """
+        stato.apri_azione("Prima azione", "Luca", "2026-08-15")
+
+        def write_text_che_tronca_e_muore(self, *args, **kwargs):
+            with self.open("w", encoding="utf-8"):
+                pass  # come ogni scrittura reale: prima tronca, poi scrive
+            raise OSError("disco pieno")
+
+        with mock.patch.object(Path, "write_text", write_text_che_tronca_e_muore):
+            with self.assertRaises(OSError):
+                stato.apri_azione("Seconda azione", "Luca", "2026-08-15")
+
+        azioni = stato.leggi_coda()
+        self.assertEqual(len(azioni), 1, "la coda precedente deve sopravvivere")
+        self.assertEqual(azioni[0]["cosa"], "Prima azione")
+
     def test_gli_id_non_si_ripetono(self):
         a = stato.apri_azione("A", "Luca", "2026-08-15")
         b = stato.apri_azione("B", "Luca", "2026-08-15")
