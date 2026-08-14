@@ -33,10 +33,14 @@ Regole:
   sostitutivi. Tutte le 14 pagine renderizzate in PNG e controllate visivamente.
 - `backend/tests/test_partner_step_materials.py`: 8 passed.
 - Build frontend produzione completata; soli warning eslint preesistenti.
+- CI `31830317230`: backend, frontend e gitleaks verdi. Backend `00553-6q8` e worker
+  `00148-4bl` ready con traffico 100%; Vercel production `dpl_4my6zH1e2yEkZZsZZn23bJUjwbqY`
+  ready e alias `www.ciak.io`.
+- Smoke autenticato su Daniele: F-1/F-3/F-5 senza CTA, F-2/F-4/F-7 con CTA; F-2 mostra
+  contratto e distinta; anteprime contratto e Brand Kit caricate nell'iframe senza blocco CSP.
 
 **APERTO**
-- Deploy del fix applicativo e smoke autenticato su `www.ciak.io` da completare in questa stessa
-  sessione; i dati e i quattro file di Daniele sono gia' stati riallineati in produzione.
+- Nessun controllo aperto per questa correzione.
 
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — CTA materiali Fase 1
 
