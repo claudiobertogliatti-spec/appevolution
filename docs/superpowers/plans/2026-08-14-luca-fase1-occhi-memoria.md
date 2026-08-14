@@ -19,7 +19,9 @@
 - **Pavimento su Ciak.** Se cade una delle due fonti Ciak si aborta tutto con exit ≠ 0, esattamente come oggi. Le altre fonti degradano dichiarandosi.
 - **Retrocompatibilità obbligatoria:** l'output JSON deve continuare ad avere le chiavi top-level `report` e `acq`, perché il `SKILL.md` in produzione le legge. Si **aggiunge** `fonti`, non si sostituisce nulla.
 - **Due copie da tenere sincronizzate:** `appevolution/scripts/` è la fonte di verità, `C:\Users\berto\Claude\Scheduled\briefing-luca-ad\` è ciò che gira. Se cambia una, si ricopia l'altra (regola del 30/7).
-- **Lingua:** messaggi all'utente e commenti in italiano, nomi di file/funzioni e messaggi di commit in inglese.
+- **Lingua:** messaggi all'utente, commenti e docstring in **italiano**; **messaggi di commit in inglese**. I nomi di funzioni e file seguono i termini di dominio in italiano (`busta`, `leggi_ciak`, `stato`).
+  ⚠️ **Deviazione dichiarata da CLAUDE.md** (*"nomi di file in inglese"*), corretta dopo la revisione della Task 1. Motivo, verificato e non dedotto: il repo è **di fatto bilingue** — `backend/services/stato_cliente.py`, `scripts/migrazione_partner.py`, `scripts/video/verifica.py`, `def aggiorna_stato`, `def calcola_scoring`, `def genera_analisi_strategica` convivono con `def create_access_token`, su 391 file Python. Rinominare solo questi 3 moduli creerebbe un'isola inglese dentro un repo bilingue.
+  👉 Se si vuole il lock stretto sull'inglese, **si rinomina il repo, non questi tre file**: è una decisione di Claudio e un cantiere a parte.
 - **Path assoluti** in `SKILL.md`: la cartella di lavoro configurata nel task non è affidabile.
 
 ## File Structure
