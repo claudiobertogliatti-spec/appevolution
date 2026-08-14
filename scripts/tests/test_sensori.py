@@ -54,5 +54,37 @@ class TestLeggiCiak(unittest.TestCase):
         self.assertIn("irraggiungibile", b["errore"])
 
 
+class TestLeggiSito(unittest.TestCase):
+    def test_tre_url_tutte_200(self):
+        b = sensori.leggi_sito(fetch_fn=lambda url: 200)
+        self.assertTrue(b["ok"])
+        self.assertTrue(b["dati"]["tutte_ok"])
+        self.assertEqual(len(b["dati"]["url"]), 3)
+
+    def test_un_404_non_e_un_punto_cieco_ma_una_misura(self):
+        def fetch(url):
+            return 404 if url.endswith("/masterclass") else 200
+
+        b = sensori.leggi_sito(fetch_fn=fetch)
+        self.assertTrue(b["ok"], "misurare un 404 e' comunque una misura riuscita")
+        self.assertFalse(b["dati"]["tutte_ok"])
+        self.assertEqual(b["dati"]["url"]["https://www.ciak.io/masterclass"]["status"], 404)
+
+    def test_url_irraggiungibile_registra_errore_e_status_none(self):
+        def fetch(url):
+            raise urllib.error.URLError("dns fallito")
+
+        b = sensori.leggi_sito(fetch_fn=fetch)
+        primo = b["dati"]["url"][sensori.URL_SITO[0]]
+        self.assertIsNone(primo["status"])
+        self.assertIn("dns fallito", primo["errore"])
+        self.assertFalse(b["dati"]["tutte_ok"])
+
+    def test_registra_i_millisecondi(self):
+        b = sensori.leggi_sito(fetch_fn=lambda url: 200)
+        for esito in b["dati"]["url"].values():
+            self.assertIsInstance(esito["ms"], int)
+
+
 if __name__ == "__main__":
     unittest.main()

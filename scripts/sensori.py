@@ -10,6 +10,7 @@ buste con la stessa identica forma di queste.
 Solo stdlib: questo script gira su una macchina dove non si installa nulla.
 """
 import json
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -59,3 +60,42 @@ def leggi_ciak(base_url, key, path, nome, fetch_fn=None):
         return busta(nome, False, errore=f"backend irraggiungibile: {err.reason}")
     except (ValueError, OSError) as err:
         return busta(nome, False, errore=f"risposta illeggibile: {err}")
+
+
+URL_SITO = (
+    "https://www.ciak.io/",
+    "https://www.ciak.io/masterclass",
+    "https://www.ciak.io/api/health",
+)
+TIMEOUT_SITO = 20
+
+
+def _fetch_status(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "briefing-luca"})
+    with urllib.request.urlopen(request, timeout=TIMEOUT_SITO) as response:
+        return response.status
+
+
+def leggi_sito(urls=URL_SITO, fetch_fn=None):
+    """Misura status code e tempo di risposta delle pagine che devono essere vive.
+
+    Nessun parsing del contenuto: un funnel che risponde 200 con la pagina
+    sbagliata e' un problema di Fase 2, non di questo sensore.
+    """
+    fetch_fn = fetch_fn or _fetch_status
+    esiti = {}
+    for url in urls:
+        inizio = time.monotonic()
+        try:
+            status, errore = fetch_fn(url), None
+        except urllib.error.HTTPError as err:
+            status, errore = err.code, None
+        except (urllib.error.URLError, OSError) as err:
+            status, errore = None, f"non raggiunto: {getattr(err, 'reason', err)}"
+        esiti[url] = {
+            "status": status,
+            "ms": round((time.monotonic() - inizio) * 1000),
+            "errore": errore,
+        }
+    tutte_ok = all(e["status"] == 200 for e in esiti.values())
+    return busta("sito", True, {"url": esiti, "tutte_ok": tutte_ok})
