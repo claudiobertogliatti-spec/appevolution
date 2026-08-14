@@ -897,6 +897,25 @@ class TestRaccogli(unittest.TestCase):
         self.assertIn("report", out)
         self.assertIn("acq", out)
 
+    def test_report_e_acq_contengono_il_DATO_non_la_busta(self):
+        """La regressione piu' cara che questo file possa avere.
+
+        Se in `report`/`acq` finisse la BUSTA invece del suo `dati`, il prompt che
+        gira in produzione leggerebbe una struttura diversa da quella che si aspetta
+        e il briefing di domani sarebbe vuoto — passando tutti gli altri test.
+        Sostituendo la riga `{nome: fonti[nome]["dati"] ...}` con `{nome: fonti[nome] ...}`
+        questo test FALLISCE, gli altri no.
+        """
+        out, _ = briefing_luca.raccogli(
+            "https://x", "k", leggi_ciak_fn=_ciak_ok, leggi_sito_fn=_sito_ok
+        )
+        self.assertEqual(out["report"], {"eco": "/api/admin/luca/daily-report"})
+        self.assertEqual(out["acq"], {"eco": "/api/admin/ciak/acquisizione-command-center"})
+        for chiave in sensori.CHIAVI_BUSTA:
+            self.assertNotIn(
+                chiave, out["report"], "qui deve esserci il dato, non la busta che lo avvolge"
+            )
+
     def test_output_aggiunge_le_buste_in_fonti(self):
         out, _ = briefing_luca.raccogli(
             "https://x", "k", leggi_ciak_fn=_ciak_ok, leggi_sito_fn=_sito_ok
@@ -1037,7 +1056,7 @@ if __name__ == "__main__":
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 32 test
+Expected: PASS, 33 test
 
 - [ ] **Step 5: Verify against the live backend**
 
@@ -1205,7 +1224,7 @@ Expected: `numeri.csv` con le 14 colonne, `coda.json` una lista valida.
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 32 test.
+Expected: PASS, 33 test.
 
 - [ ] **Step 6: Commit**
 
