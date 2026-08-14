@@ -10,6 +10,8 @@ E' l'UNICO modulo che tocca la cartella stato/. Solo stdlib.
 import csv
 import json
 import os
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 COLONNE = (
@@ -113,3 +115,75 @@ def confronta(oggi):
             "delta": None if n_oggi is None or n_ieri is None else n_oggi - n_ieri,
         }
     return esito
+
+
+def _file_coda():
+    return cartella_stato() / "coda.json"
+
+
+def _file_registro():
+    return cartella_stato() / "registro.md"
+
+
+def _adesso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def leggi_coda():
+    percorso = _file_coda()
+    if not percorso.exists():
+        return []
+    return json.loads(percorso.read_text(encoding="utf-8") or "[]")
+
+
+def _scrivi_coda(azioni):
+    _file_coda().write_text(
+        json.dumps(azioni, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def apri_azione(cosa, chi, entro):
+    """Un'azione ha SEMPRE un solo responsabile: principio 10, reso non violabile."""
+    if "," in chi or " e " in f" {chi} ":
+        raise ValueError(
+            f"'{chi}' sono piu' persone: un'azione ha un solo responsabile, "
+            "altrimenti non ce l'ha nessuno"
+        )
+    azione = {
+        "id": uuid.uuid4().hex[:8],
+        "cosa": cosa,
+        "chi": chi,
+        "entro": entro,
+        "stato": "aperta",
+        "aperta_il": _adesso(),
+        "chiusa_il": None,
+        "esito": None,
+    }
+    azioni = leggi_coda()
+    azioni.append(azione)
+    _scrivi_coda(azioni)
+    return azione
+
+
+def chiudi_azione(id_azione, esito):
+    azioni = leggi_coda()
+    for azione in azioni:
+        if azione["id"] == id_azione:
+            azione.update(stato="chiusa", esito=esito, chiusa_il=_adesso())
+            _scrivi_coda(azioni)
+            return azione
+    raise KeyError(f"azione '{id_azione}' non trovata in coda")
+
+
+def registra(cosa, perche, risultato):
+    """Il registro degli errori di Dalio: append-only, non si riscrive il passato."""
+    percorso = _file_registro()
+    if not percorso.exists():
+        percorso.write_text("# Registro di Luca\n\n", encoding="utf-8")
+    with percorso.open("a", encoding="utf-8") as f:
+        f.write(f"- **{_adesso()}** · {cosa} · _perche':_ {perche} · _risultato:_ {risultato}\n")
+
+
+def leggi_registro():
+    percorso = _file_registro()
+    return percorso.read_text(encoding="utf-8") if percorso.exists() else ""

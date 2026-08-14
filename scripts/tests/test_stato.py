@@ -86,5 +86,54 @@ class TestNumeri(BaseStato):
         self.assertEqual(esito["meta_campagna_obiettivo"]["ieri"], "OUTCOME_TRAFFIC")
 
 
+class TestCoda(BaseStato):
+    def test_coda_vuota_su_cartella_nuova(self):
+        self.assertEqual(stato.leggi_coda(), [])
+
+    def test_apri_azione_assegna_un_id_e_stato_aperta(self):
+        azione = stato.apri_azione("Rimettere la campagna su Lead", "Luca", "2026-08-15")
+        self.assertTrue(azione["id"])
+        self.assertEqual(azione["stato"], "aperta")
+        self.assertEqual(len(stato.leggi_coda()), 1)
+
+    def test_due_responsabili_sono_rifiutati(self):
+        with self.assertRaises(ValueError):
+            stato.apri_azione("Cosa", "Luca, Claudio", "2026-08-15")
+        with self.assertRaises(ValueError):
+            stato.apri_azione("Cosa", "Luca e Claudio", "2026-08-15")
+
+    def test_chiudi_azione_registra_esito_e_data(self):
+        azione = stato.apri_azione("Cosa", "Luca", "2026-08-15")
+        chiusa = stato.chiudi_azione(azione["id"], "fatto")
+        self.assertEqual(chiusa["stato"], "chiusa")
+        self.assertEqual(chiusa["esito"], "fatto")
+        self.assertTrue(chiusa["chiusa_il"])
+
+    def test_chiudere_un_id_inesistente_solleva(self):
+        with self.assertRaises(KeyError):
+            stato.chiudi_azione("non-esiste", "fatto")
+
+    def test_gli_id_non_si_ripetono(self):
+        a = stato.apri_azione("A", "Luca", "2026-08-15")
+        b = stato.apri_azione("B", "Luca", "2026-08-15")
+        self.assertNotEqual(a["id"], b["id"])
+
+
+class TestRegistro(BaseStato):
+    def test_registro_e_append_only(self):
+        stato.registra("Campagna su Lead", "60 giorni su Traffico", "obiettivo cambiato")
+        stato.registra("Pubblicato carosello", "coda vuota", "post online")
+        testo = stato.leggi_registro()
+        self.assertIn("Campagna su Lead", testo)
+        self.assertIn("Pubblicato carosello", testo)
+        self.assertLess(testo.index("Campagna su Lead"), testo.index("Pubblicato carosello"))
+
+    def test_registro_contiene_cosa_perche_risultato(self):
+        stato.registra("C", "P", "R")
+        testo = stato.leggi_registro()
+        for pezzo in ("C", "P", "R"):
+            self.assertIn(pezzo, testo)
+
+
 if __name__ == "__main__":
     unittest.main()
