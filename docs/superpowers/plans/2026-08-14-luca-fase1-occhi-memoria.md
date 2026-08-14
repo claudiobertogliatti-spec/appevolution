@@ -279,7 +279,27 @@ class TestLeggiSito(unittest.TestCase):
         b = sensori.leggi_sito(fetch_fn=lambda url: 200)
         for esito in b["dati"]["url"].values():
             self.assertIsInstance(esito["ms"], int)
+
+    def test_404_reale_solleva_httperror_ed_e_comunque_una_misura(self):
+        """Il ramo di PRODUZIONE: urlopen su un 404 SOLLEVA HTTPError, non ritorna 404.
+
+        Senza questo test, fondere i due except (`except (URLError, OSError, HTTPError)`)
+        passerebbe lo stesso, e ogni 404 reale diventerebbe un punto cieco.
+        """
+        def fetch(url):
+            if url.endswith("/masterclass"):
+                raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+            return 200
+
+        b = sensori.leggi_sito(fetch_fn=fetch)
+        masterclass = b["dati"]["url"]["https://www.ciak.io/masterclass"]
+        self.assertTrue(b["ok"])
+        self.assertEqual(masterclass["status"], 404)
+        self.assertIsNone(masterclass["errore"], "un 404 e' una misura, non un errore di lettura")
+        self.assertFalse(b["dati"]["tutte_ok"])
 ```
+
+⚠️ **Perché questo quinto test esiste** (aggiunto dopo la revisione della Task 2): gli altri quattro passano un `fetch_fn` che **restituisce** lo status come intero, ma il vero `_fetch_status` chiama `urlopen`, che su un 404 **solleva `HTTPError`**. Senza questo test il ramo che gira davvero in produzione non è mai esercitato.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -341,7 +361,7 @@ def leggi_sito(urls=URL_SITO, fetch_fn=None):
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 10 test
+Expected: PASS, 11 test
 
 - [ ] **Step 5: Commit**
 
@@ -570,7 +590,7 @@ def confronta(oggi):
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 17 test
+Expected: PASS, 18 test
 
 - [ ] **Step 5: Commit**
 
@@ -748,7 +768,7 @@ def leggi_registro():
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 25 test
+Expected: PASS, 26 test
 
 - [ ] **Step 5: Commit**
 
@@ -950,7 +970,7 @@ if __name__ == "__main__":
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 29 test
+Expected: PASS, 30 test
 
 - [ ] **Step 5: Verify against the live backend**
 
@@ -1118,7 +1138,7 @@ Expected: `numeri.csv` con le 14 colonne, `coda.json` una lista valida.
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 29 test.
+Expected: PASS, 30 test.
 
 - [ ] **Step 6: Commit**
 
