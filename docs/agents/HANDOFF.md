@@ -17,6 +17,8 @@ Regole:
 **FATTO**
 - Corretto il proxy materiali: i PDF storici senza `content_type`, serviti dallo storage come
   `application/octet-stream`, vengono ora restituiti al browser come `application/pdf`.
+- Consentiti gli URL `blob:` in `frame-src` nelle CSP Vercel e nginx: era il secondo blocco che
+  impediva a tutte le finestre materiali di mostrare il PDF nell'iframe.
 - I nuovi record Brand Kit e Posizionamento salvano sempre il MIME PDF; F-2 riconosce anche le
   categorie canoniche `contratto_firmato` e `distinta_pagamento`.
 - Rigenerati con i template condivisi del 12/8 Brand Kit e Posizionamento di Daniele Andolfi;
