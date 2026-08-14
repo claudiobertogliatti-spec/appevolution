@@ -166,6 +166,7 @@ async def finalize_brand_kit(
         "partner_id": body.partner_id,
         "category": CATEGORY,
         "file_type": "document",
+        "content_type": "application/pdf",
         "original_name": f"Brand Kit - {partner.get('name', 'Partner')}.pdf",
         "stored_name": filename,
         "internal_url": upload["url"],

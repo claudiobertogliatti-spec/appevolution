@@ -12,6 +12,30 @@ Regole:
 
 ---
 
+### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
+
+**FATTO**
+- Corretto il proxy materiali: i PDF storici senza `content_type`, serviti dallo storage come
+  `application/octet-stream`, vengono ora restituiti al browser come `application/pdf`.
+- I nuovi record Brand Kit e Posizionamento salvano sempre il MIME PDF; F-2 riconosce anche le
+  categorie canoniche `contratto_firmato` e `distinta_pagamento`.
+- Rigenerati con i template condivisi del 12/8 Brand Kit e Posizionamento di Daniele Andolfi;
+  corretti prima i caratteri corrotti nei dati sorgente. Pubblicati inoltre contratto firmato e
+  distinta di pagamento come PDF canonici Cloudinary. I quattro record hanno checksum SHA-256,
+  chiave migrazione e collegamento ai journey step; i vecchi PDF restano storici superseded.
+- Aggiunto script idempotente e auditabile `backend/scripts/refresh_daniele_phase1_materials.py`.
+
+**VERIFICATO**
+- Migrazione produzione: output `APPLIED 4 current file records and repaired Phase 1 text`.
+- PDF finali: Brand Kit 3 pagine, Posizionamento 11 pagine; zero pagine vuote e zero caratteri
+  sostitutivi. Tutte le 14 pagine renderizzate in PNG e controllate visivamente.
+- `backend/tests/test_partner_step_materials.py`: 8 passed.
+- Build frontend produzione completata; soli warning eslint preesistenti.
+
+**APERTO**
+- Deploy del fix applicativo e smoke autenticato su `www.ciak.io` da completare in questa stessa
+  sessione; i dati e i quattro file di Daniele sono gia' stati riallineati in produzione.
+
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — CTA materiali Fase 1
 
 **FATTO**

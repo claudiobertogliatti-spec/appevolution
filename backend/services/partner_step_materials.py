@@ -1,5 +1,6 @@
 """Normalizzazione sicura dei materiali mostrati nel Percorso partner."""
 
+import mimetypes
 from pathlib import PurePosixPath
 from typing import Any, Dict, Iterable, Optional
 from urllib.parse import urlparse
@@ -8,7 +9,10 @@ WORKBOOK_NOTICE = ("Puoi consultare e scaricare questo materiale ora. Al termine
                    "riceverai anche il Workbook completo, con tutti gli output ordinati fase per fase.")
 
 STEP_CATEGORIES = {
-    "01-contratto": {"contratto", "distinta_ingresso", "contract"},
+    "01-contratto": {
+        "contratto", "contratto_firmato", "contract",
+        "distinta_ingresso", "distinta_pagamento",
+    },
     "02-discovery-video": {"video_benvenuto", "discovery_video"},
     "burocrazia": {"dati_burocratici", "anagrafica"},
     "03-brand-kit": {"brand_kit", "brand-kit", "logo", "palette"},
@@ -69,6 +73,33 @@ def material_type(doc: Dict[str, Any]) -> str:
     if mime.startswith("image/") or suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg"}: return "image"
     if mime.startswith("video/") or suffix in {".mp4", ".mov", ".webm"}: return "video"
     return "document"
+
+
+def content_type_for_material(doc: Dict[str, Any], upstream_content_type: Optional[str] = None) -> str:
+    """Restituisce un MIME visualizzabile anche per i record storici incompleti.
+
+    Molti PDF archiviati prima del nuovo registry non hanno `content_type` e
+    Cloudinary li serve come `application/octet-stream`. Quel MIME conserva i
+    byte ma impedisce al browser di renderizzare il blob dentro l'iframe.
+    """
+    registered = str(doc.get("content_type") or doc.get("mime_type") or "").split(";", 1)[0].strip().lower()
+    upstream = str(upstream_content_type or "").split(";", 1)[0].strip().lower()
+    generic = {"", "application/octet-stream", "binary/octet-stream"}
+    if registered not in generic:
+        return registered
+    if upstream not in generic:
+        return upstream
+
+    filename = str(doc.get("original_name") or doc.get("filename") or doc.get("stored_name") or "")
+    guessed, _ = mimetypes.guess_type(filename)
+    if guessed:
+        return guessed
+
+    return {
+        "pdf": "application/pdf",
+        "image": "image/jpeg",
+        "video": "video/mp4",
+    }.get(material_type(doc), "application/octet-stream")
 
 
 def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:

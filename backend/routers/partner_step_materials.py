@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, current_files,
+    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
     normalize_file_material, safe_step_data, trusted_storage_url,
 )
 
@@ -94,7 +94,7 @@ async def _serve(file_id: str, disposition: str, credentials):
             upstream.raise_for_status()
     except Exception as exc:
         raise HTTPException(502, "Materiale temporaneamente non disponibile") from exc
-    content_type = doc.get("content_type") or upstream.headers.get("content-type") or "application/octet-stream"
+    content_type = content_type_for_material(doc, upstream.headers.get("content-type"))
     filename = str(doc.get("original_name") or doc.get("filename") or "materiale").replace('"', "")
     return Response(upstream.content, media_type=content_type,
                     headers={"Content-Disposition": f'{disposition}; filename="{filename}"', "Cache-Control": "private, max-age=300"})

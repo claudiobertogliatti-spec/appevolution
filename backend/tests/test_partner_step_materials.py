@@ -1,5 +1,13 @@
 import pytest
-from services.partner_step_materials import allowed_public_url, categories_for_step, current_files, normalize_file_material, safe_step_data, trusted_storage_url
+from services.partner_step_materials import (
+    allowed_public_url,
+    categories_for_step,
+    content_type_for_material,
+    current_files,
+    normalize_file_material,
+    safe_step_data,
+    trusted_storage_url,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -22,6 +30,22 @@ def test_file_urls_are_always_internal_and_video_has_no_download():
     assert "drive" not in str(pdf)
     video = normalize_file_material({"file_id": "v1", "original_name": "lezione.mp4"})
     assert video["download_url"] is None
+
+
+def test_pdf_proxy_uses_pdf_mime_when_storage_returns_octet_stream():
+    doc = {"original_name": "Brand_Kit.pdf"}
+
+    assert content_type_for_material(doc, "application/octet-stream") == "application/pdf"
+
+
+def test_proxy_preserves_a_specific_registered_mime_type():
+    doc = {"original_name": "brand-kit.pdf", "content_type": "application/pdf"}
+
+    assert content_type_for_material(doc, "application/octet-stream") == "application/pdf"
+
+
+def test_contract_step_accepts_canonical_signed_contract_and_receipt_categories():
+    assert {"contratto_firmato", "distinta_pagamento"} <= categories_for_step("01-contratto")
 
 def test_structured_data_is_whitelisted():
     result = safe_step_data("burocrazia", {"ragione_sociale": "ACME", "partita_iva": "IT1", "password": "secret"})
