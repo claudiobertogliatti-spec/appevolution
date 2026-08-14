@@ -395,11 +395,13 @@ Create `scripts/tests/test_stato.py`:
 
 ```python
 """Test dei file di stato di Luca. Girano tutti su una cartella temporanea."""
+import csv
 import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -451,6 +453,27 @@ class TestNumeri(BaseStato):
         stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": None})
         esito = stato.confronta({"data": "2026-08-15", "lead_oggi": 5})
         self.assertIsNone(esito["lead_oggi"]["delta"])
+
+    def test_una_scrittura_interrotta_non_distrugge_lo_storico(self):
+        """Il CSV e' TUTTA la memoria: una scrittura fallita non deve troncarlo.
+
+        Con la scrittura non atomica questo test FALLISCE: open(...,"w") sul file
+        finale lo tronca prima ancora di scrivere, e resta la sola intestazione.
+        """
+        stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": 2})
+
+        class DictWriterRotto(csv.DictWriter):
+            def writerows(self, righe):
+                raise OSError("disco pieno")
+
+        with mock.patch.object(stato.csv, "DictWriter", DictWriterRotto):
+            with self.assertRaises(OSError):
+                stato.scrivi_numeri({"data": "2026-08-15", "lead_oggi": 9})
+
+        righe = stato.leggi_numeri()
+        self.assertEqual(len(righe), 1, "lo storico precedente deve sopravvivere")
+        self.assertEqual(righe[0]["data"], "2026-08-14")
+        self.assertEqual(righe[0]["lead_oggi"], "2")
 
     def test_valore_non_numerico_non_produce_delta(self):
         stato.scrivi_numeri({"data": "2026-08-14", "meta_campagna_obiettivo": "OUTCOME_TRAFFIC"})
@@ -534,7 +557,13 @@ def leggi_numeri():
 
 
 def scrivi_numeri(riga):
-    """Upsert sulla data: due run nello stesso giorno aggiornano, non duplicano."""
+    """Upsert sulla data: due run nello stesso giorno aggiornano, non duplicano.
+
+    Scrittura ATOMICA (file temporaneo + os.replace). Questo CSV e' tutta la memoria
+    storica di Luca: aprire il file finale in "w" lo troncherebbe subito, e
+    un'interruzione a meta' (disco pieno, kill, crash) lascerebbe la sola intestazione
+    — distruggendo esattamente la cosa che questo modulo esiste per conservare.
+    """
     data = riga.get("data")
     if not data:
         raise ValueError("la riga dei numeri deve avere una 'data'")
@@ -543,10 +572,13 @@ def scrivi_numeri(riga):
     righe.append({colonna: _cella(riga.get(colonna)) for colonna in COLONNE})
     righe.sort(key=lambda r: r["data"])
 
-    with _file_numeri().open("w", encoding="utf-8", newline="") as f:
+    percorso = _file_numeri()
+    temporaneo = percorso.with_name(percorso.name + ".tmp")
+    with temporaneo.open("w", encoding="utf-8", newline="") as f:
         scrittore = csv.DictWriter(f, fieldnames=list(COLONNE))
         scrittore.writeheader()
         scrittore.writerows(righe)
+    os.replace(temporaneo, percorso)
 
 
 def _numero(valore):
@@ -590,7 +622,7 @@ def confronta(oggi):
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 18 test
+Expected: PASS, 19 test
 
 - [ ] **Step 5: Commit**
 
@@ -768,7 +800,7 @@ def leggi_registro():
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 26 test
+Expected: PASS, 27 test
 
 - [ ] **Step 5: Commit**
 
@@ -970,7 +1002,7 @@ if __name__ == "__main__":
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 30 test
+Expected: PASS, 31 test
 
 - [ ] **Step 5: Verify against the live backend**
 
@@ -1138,7 +1170,7 @@ Expected: `numeri.csv` con le 14 colonne, `coda.json` una lista valida.
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 30 test.
+Expected: PASS, 31 test.
 
 - [ ] **Step 6: Commit**
 
