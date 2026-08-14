@@ -34,6 +34,8 @@ Regole di questo passo, senza eccezioni:
 - ⛔ E' VIETATO stimare, dedurre o riusare il valore di ieri per riempire un buco. Vale qui esattamente come nel PASSO 1.
 - ⛔ Se cade Ciak (PASSO 1) ci si ferma comunque: quello e' il pavimento, queste fonti non lo sostituiscono.
 - Il "Saldo" di `meta_get_account_info` NON e' credito residuo: e' spesa maturata non ancora addebitata, e cresce mentre la campagna gira.
+- QUESTI DATI VANNO RIPORTATI, non solo letti. Nel messaggio del PASSO 2, dentro "1) ACQUISIZIONE", aggiungi una riga FUORI CASA con: obiettivo e stato della campagna attiva -- e se l'obiettivo NON e' di tipo Lead dillo come problema, con da quanti giorni dura -- piu' spesa di oggi, lead di oggi e giorni di silenzio sui social. Una fonte non letta si scrive li' come "non letta", non si omette.
+  Motivo: leggere una cosa e non riportarla equivale a non averla letta. Il 14/8 tutto cio' che era rotto stava fuori casa: serve che Claudio lo VEDA nel messaggio, non che sia stato guardato.
 
 PASSO 2 — Se i dati sono arrivati, scrivi a Claudio UN SOLO messaggio, in questo ordine, corto:
 
