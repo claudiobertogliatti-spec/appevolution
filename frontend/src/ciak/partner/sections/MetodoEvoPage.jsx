@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Eye, Lock } from "lucide-react";
 import { PianoOperativoWidget } from "../components/PianoOperativoWidget";
 import { useJourneyState } from "../operativo/hooks/useJourneyState";
-import { groupJourneySteps } from "../operativo/journeyPresentation";
+import { groupJourneySteps, hasMaterialOutput } from "../operativo/journeyPresentation";
 import StepMaterialsModal from "./StepMaterialsModal";
 
 const PHASE_COPY = {
@@ -45,7 +45,7 @@ export function MetodoEvoPage({ partnerId }) {
           <div>
             <p className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600">Protocollo EVO™ · F-1–F-20</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold mt-1">Il tuo percorso</h1>
-            <p className="text-sm text-slate-600 mt-3 max-w-2xl">Tre macro-fasi, venti passaggi. In ogni step completato puoi rivedere e scaricare il materiale prodotto.</p>
+            <p className="text-sm text-slate-600 mt-3 max-w-2xl">Tre macro-fasi, venti passaggi. Negli step che producono una consegna puoi rivedere e scaricare i materiali.</p>
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 min-w-[250px]">
             <div className="flex justify-between text-xs font-bold mb-2"><span>Avanzamento</span><span>{completedCount}/{totalSteps} · {progress}%</span></div>
@@ -73,6 +73,7 @@ export function MetodoEvoPage({ partnerId }) {
                   const status = displayStatus(step.status);
                   const done = step.status === "done";
                   const active = step.status === "in_progress";
+                  const canViewMaterials = done && hasMaterialOutput(step);
                   return (
                     <article key={step.step_id} className={`p-5 rounded-2xl border ${active ? "border-2 border-yellow-400" : "border-slate-200 bg-slate-50/60"}`}>
                       <div className="flex items-center justify-between gap-3">
@@ -82,15 +83,15 @@ export function MetodoEvoPage({ partnerId }) {
                       <h3 className="font-extrabold mt-3">{step.label}</h3>
                       <p className="text-xs text-slate-500 mt-1">Agente: {(step.owner || "STEFANIA").toLowerCase()}</p>
                       <div className="pt-4 mt-4 border-t border-slate-200">
-                        {done ? (
+                        {canViewMaterials ? (
                           <button type="button" onClick={() => setSelectedStep({ ...step, id: step.step_id, title: step.label })} className="inline-flex items-center gap-2 text-xs font-bold border border-slate-300 bg-white rounded-xl px-3 py-2 hover:bg-slate-100">
                             <Eye className="w-4 h-4 text-amber-600" /> Visualizza materiali
                           </button>
                         ) : active ? (
                           <Link to="/partner" className="inline-flex text-xs font-extrabold bg-yellow-400 rounded-xl px-4 py-2">Vai all’azione →</Link>
-                        ) : (
+                        ) : !done ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400"><Lock className="w-3.5 h-3.5" /> Sblocco automatico</span>
-                        )}
+                        ) : null}
                       </div>
                     </article>
                   );

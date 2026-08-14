@@ -12,6 +12,24 @@ Regole:
 
 ---
 
+### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — CTA materiali Fase 1
+
+**FATTO**
+- Nella pagina partner `Percorso`, gli step completati di Esamina che non producono una
+  consegna (F-1 Benvenuto, F-3 I tuoi dati, F-5 La tua storia, F-6 Il tuo obiettivo) non
+  mostrano piu' il pulsante `Visualizza materiali`.
+- Il pulsante resta su F-2 Contratto + distinta, F-4 Brand kit e F-7 Posizionamento.
+- Il testo introduttivo ora chiarisce che i materiali sono disponibili solo negli step che
+  producono una consegna.
+
+**VERIFICATO**
+- `journeyPresentation.test.js`: 3 test passati, incluso il contratto esplicito F-1..F-7.
+- `git diff --check`: exit 0.
+
+**APERTO**
+- Modifica isolata nel worktree `C:\Users\berto\appevolution-codex-materiali`; nessun deploy
+  su `main`, per non interferire con la migrazione partner concorrente.
+
 ### 2026-08-13 · Claude Code (Luca) · main — Ciak Start: i quattro blocchi allineati su main
 
 **COSA E' ENTRATO**

@@ -1,4 +1,4 @@
-import { activeAgentForStep, groupJourneySteps } from "./journeyPresentation";
+import { activeAgentForStep, groupJourneySteps, hasMaterialOutput } from "./journeyPresentation";
 
 describe("journeyPresentation", () => {
   it("raggruppa venti step nelle sole tre macro-fasi canoniche", () => {
@@ -22,5 +22,16 @@ describe("journeyPresentation", () => {
     expect(activeAgentForStep({ owner: "ANDREA" }).name).toBe("Andrea");
     expect(activeAgentForStep({ owner: "GAIA" }).name).toBe("Gaia");
     expect(activeAgentForStep({ owner: "MARCO" }).name).toBe("Marco");
+  });
+
+  it("mostra i materiali in Esamina solo negli step che producono una consegna", () => {
+    expect(hasMaterialOutput({ step_id: "01-contratto" })).toBe(true);
+    expect(hasMaterialOutput({ step_id: "03-brand-kit" })).toBe(true);
+    expect(hasMaterialOutput({ step_id: "04-posizionamento" })).toBe(true);
+
+    expect(hasMaterialOutput({ step_id: "02-discovery-video" })).toBe(false);
+    expect(hasMaterialOutput({ step_id: "burocrazia" })).toBe(false);
+    expect(hasMaterialOutput({ step_id: "la-tua-storia" })).toBe(false);
+    expect(hasMaterialOutput({ step_id: "obiettivo" })).toBe(false);
   });
 });
