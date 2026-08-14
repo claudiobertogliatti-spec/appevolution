@@ -1,9 +1,11 @@
 """Test dei file di stato di Luca. Girano tutti su una cartella temporanea."""
+import csv
 import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -55,6 +57,27 @@ class TestNumeri(BaseStato):
         stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": None})
         esito = stato.confronta({"data": "2026-08-15", "lead_oggi": 5})
         self.assertIsNone(esito["lead_oggi"]["delta"])
+
+    def test_una_scrittura_interrotta_non_distrugge_lo_storico(self):
+        """Il CSV e' TUTTA la memoria: una scrittura fallita non deve troncarlo.
+
+        Con la scrittura non atomica questo test FALLISCE: open(...,"w") sul file
+        finale lo tronca prima ancora di scrivere, e resta la sola intestazione.
+        """
+        stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": 2})
+
+        class DictWriterRotto(csv.DictWriter):
+            def writerows(self, righe):
+                raise OSError("disco pieno")
+
+        with mock.patch.object(stato.csv, "DictWriter", DictWriterRotto):
+            with self.assertRaises(OSError):
+                stato.scrivi_numeri({"data": "2026-08-15", "lead_oggi": 9})
+
+        righe = stato.leggi_numeri()
+        self.assertEqual(len(righe), 1, "lo storico precedente deve sopravvivere")
+        self.assertEqual(righe[0]["data"], "2026-08-14")
+        self.assertEqual(righe[0]["lead_oggi"], "2")
 
     def test_valore_non_numerico_non_produce_delta(self):
         stato.scrivi_numeri({"data": "2026-08-14", "meta_campagna_obiettivo": "OUTCOME_TRAFFIC"})

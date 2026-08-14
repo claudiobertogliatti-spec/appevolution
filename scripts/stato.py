@@ -56,7 +56,13 @@ def leggi_numeri():
 
 
 def scrivi_numeri(riga):
-    """Upsert sulla data: due run nello stesso giorno aggiornano, non duplicano."""
+    """Upsert sulla data: due run nello stesso giorno aggiornano, non duplicano.
+
+    Scrittura ATOMICA (file temporaneo + os.replace). Questo CSV e' tutta la memoria
+    storica di Luca: aprire il file finale in "w" lo troncherebbe subito, e
+    un'interruzione a meta' (disco pieno, kill, crash) lascerebbe la sola intestazione
+    — distruggendo esattamente la cosa che questo modulo esiste per conservare.
+    """
     data = riga.get("data")
     if not data:
         raise ValueError("la riga dei numeri deve avere una 'data'")
@@ -65,10 +71,13 @@ def scrivi_numeri(riga):
     righe.append({colonna: _cella(riga.get(colonna)) for colonna in COLONNE})
     righe.sort(key=lambda r: r["data"])
 
-    with _file_numeri().open("w", encoding="utf-8", newline="") as f:
+    percorso = _file_numeri()
+    temporaneo = percorso.with_name(percorso.name + ".tmp")
+    with temporaneo.open("w", encoding="utf-8", newline="") as f:
         scrittore = csv.DictWriter(f, fieldnames=list(COLONNE))
         scrittore.writeheader()
         scrittore.writerows(righe)
+    os.replace(temporaneo, percorso)
 
 
 def _numero(valore):
