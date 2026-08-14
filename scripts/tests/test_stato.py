@@ -79,6 +79,28 @@ class TestNumeri(BaseStato):
         self.assertEqual(righe[0]["data"], "2026-08-14")
         self.assertEqual(righe[0]["lead_oggi"], "2")
 
+    def test_confronta_con_la_sola_data_rilegge_la_riga_dal_csv(self):
+        """E' la forma con cui la chiama il prompt del mattino.
+
+        Con la vecchia versione questo test FALLISCE: tutti i delta erano None.
+        """
+        stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": 2})
+        stato.scrivi_numeri({"data": "2026-08-15", "lead_oggi": 5})
+        esito = stato.confronta({"data": "2026-08-15"})
+        self.assertNotIn("prima_misurazione", esito)
+        self.assertEqual(esito["lead_oggi"]["oggi"], "5")
+        self.assertEqual(esito["lead_oggi"]["delta"], 3)
+
+    def test_ieri_e_la_riga_piu_recente_non_la_piu_vecchia(self):
+        """Con `precedenti[0]` al posto di `precedenti[-1]` i delta sarebbero
+        plausibili e tutti sbagliati, e nessun altro test se ne accorgerebbe."""
+        stato.scrivi_numeri({"data": "2026-08-12", "lead_oggi": 100})
+        stato.scrivi_numeri({"data": "2026-08-13", "lead_oggi": 1})
+        stato.scrivi_numeri({"data": "2026-08-14", "lead_oggi": 4})
+        esito = stato.confronta({"data": "2026-08-14"})
+        self.assertEqual(esito["lead_oggi"]["ieri"], "1", "deve confrontare col 13, non col 12")
+        self.assertEqual(esito["lead_oggi"]["delta"], 3)
+
     def test_valore_non_numerico_non_produce_delta(self):
         stato.scrivi_numeri({"data": "2026-08-14", "meta_campagna_obiettivo": "OUTCOME_TRAFFIC"})
         esito = stato.confronta({"data": "2026-08-15", "meta_campagna_obiettivo": "OUTCOME_LEADS"})

@@ -94,10 +94,21 @@ def _numero(valore):
 def confronta(oggi):
     """Confronta i numeri di oggi con l'ultima riga precedente.
 
+    Se riceve solo {"data": ...} rilegge dal CSV la riga gia' scritta per quella
+    data: e' cosi' che lo chiama il prompt del mattino, e ricopiare i valori a mano
+    nel dict sarebbe una seconda fonte di verita' che puo' divergere dalla prima.
+
     Nessun delta se una delle due celle e' vuota o non numerica: preferiamo un
     "non confrontabile" esplicito a un trend inventato.
     """
-    precedenti = [r for r in leggi_numeri() if r.get("data") != oggi.get("data")]
+    righe = leggi_numeri()
+    data = oggi.get("data")
+    if set(oggi) <= {"data"}:
+        scritta = next((r for r in righe if r.get("data") == data), None)
+        if scritta is not None:
+            oggi = scritta
+
+    precedenti = [r for r in righe if r.get("data") != data]
     if not precedenti:
         return {"prima_misurazione": True}
 

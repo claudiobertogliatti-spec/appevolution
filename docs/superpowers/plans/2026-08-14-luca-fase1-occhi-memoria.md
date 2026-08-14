@@ -1256,3 +1256,50 @@ Non sono implementabili da qui: richiedono l'interfaccia dell'app desktop o una 
 ## Cosa resta fuori (Fase 2)
 
 Le mani e la procedura a 6 passi: Luca che *esegue* le porte a due vie — cioè che la campagna la rimette lui su Lead — e che scrive in `registro.md` cosa ha fatto e perché. Questa fase gli dà gli occhi per vederla e la memoria per ricordare da quanti giorni è così.
+
+---
+
+## Correzioni dopo la revisione finale (14/8/2026)
+
+La revisione finale ha trovato 2 difetti Critici, 3 Importanti e 2 Minori. Nessuno stava nel codice Python dei sensori: stavano tutti **nella cucitura fra i moduli e il prompt**, cioè nel punto in cui il `SKILL.md` chiama `stato.py` e in cui descrive a Luca cosa può leggere davvero.
+
+### C1 — La memoria era cablata morta (`scripts/stato.py`)
+
+Il `SKILL.md` chiama `stato.confronta({'data':'AAAA-MM-GG'})` passando **solo la data**, ma `confronta()` faceva `oggi.get(colonna)` su quel dict: tutti i valori di oggi erano `None`, quindi **ogni `delta` era `None` tutti i giorni**. E il prompt istruisce a dire "non confrontabile" quando il delta è `null` → Luca avrebbe annunciato per sempre che niente è confrontabile. La memoria c'era, ma non arrivava mai al messaggio.
+
+`confronta()` è ora robusta alla forma con cui viene davvero chiamata: se riceve un dict che contiene **solo** `data`, rilegge dal CSV la riga già scritta per quella data. Una sola fonte di verità, invece di un dict ricopiato a mano dall'agente che può divergere dalla riga su disco.
+
+Due test nuovi in `TestNumeri` di `scripts/tests/test_stato.py`, entrambi visti fallire prima della correzione:
+- `test_confronta_con_la_sola_data_rilegge_la_riga_dal_csv` — è la forma del prompt del mattino. Sul codice vecchio: `AssertionError: None != '5'`.
+- `test_ieri_e_la_riga_piu_recente_non_la_piu_vecchia` — presidia `precedenti[-1]`. Con `precedenti[0]` al suo posto i delta sarebbero plausibili e tutti sbagliati, e nessun altro test se ne accorgerebbe: mutazione provata, `AssertionError: '100' != '1'`.
+
+### C2 — La quinta fonte non esisteva nel prompt, e `sito_ok` era una costante (`SKILL.md`)
+
+Il prompt dichiarava ancora che lo script stampa *"un unico JSON con due chiavi"*: la chiave `fonti` — e con lei il sito pubblico, la quinta fonte aggiunta in F1.2 — non era nominata da nessuna parte. Peggio: nel template che scrive lo stato c'era `'sito_ok':True` **scritto in chiaro**, non un valore da sostituire. Ogni riga di `numeri.csv` avrebbe contenuto un dato **mai misurato**, nel primo campo che scrive: esattamente il peccato che questo progetto esiste per impedire.
+
+Tre correzioni:
+1. La descrizione dell'output dice ora **tre** chiavi — `report`, `acq` e `fonti` — con la forma della busta (`fonte`, `ok`, `letto_a`, `dati`, `errore`), e indica dove stanno `fonti.sito.dati.tutte_ok` e `fonti.sito.dati.url`.
+2. `'sito_ok':True` è diventato `'sito_ok':TUTTE_OK`, segnaposto con accanto l'istruzione di copiarlo da `fonti.sito.dati.tutte_ok` (e `None` se la busta manca). Nel template non resta nessun valore costante.
+3. Nuova regola nel PASSO 1-BIS: se `tutte_ok` è falso, la riga FUORI CASA **si apre col sito**, con gli URL e gli status che hanno fallito. Un funnel giù è la notizia più urgente che il briefing possa dare.
+
+### I3 — Spesa e lead di oggi non erano ottenibili dai tool prescritti (`SKILL.md`)
+
+Il PASSO 1-BIS prescriveva `meta_list_campaigns` e `meta_get_account_info`, ma quest'ultimo dà solo la **spesa lifetime** e il saldo maturato — non spesa e lead **di oggi**, che il prompt ordina di riportare e di scrivere in `numeri.csv`. Aggiunto **`meta_get_insights`**, l'unico che accetta un intervallo temporale, come sorgente di quei due numeri; `meta_list_campaigns` resta per obiettivo/stato/data di inizio e `meta_get_account_info` per stato account e saldo. Regola esplicita: se `meta_get_insights` non risponde si scrive `None`, **mai `0`**, mai la spesa lifetime al posto di quella di oggi.
+
+⚠️ **Conseguenza sul prerequisito 1 dello Step 7**: `meta_get_insights` va aggiunto agli `approvedPermissions` del task, insieme ai cinque tool già elencati. Senza, questa correzione resta sulla carta.
+
+### I4 — Due passi che si contraddicevano sull'ordine (`SKILL.md`)
+
+Il blocco che scrive lo stato diceva *"PRIMA di scrivere il messaggio a Claudio, leggi il confronto"* ma era numerato **PASSO 3**, dopo il passo che il messaggio lo manda. Un agente che segue la numerazione manda il messaggio e poi calcola un confronto che non può più usare. Il blocco è stato **rinumerato `PASSO 1-TER`** e spostato subito dopo il PASSO 1-BIS: l'ordine ora è **1 → 1-BIS → 1-TER → 2**. Il contenuto del PASSO 2 non è stato toccato. Nelle regole del blocco rinumerato è stato aggiunto che il confronto **va riportato nel messaggio**, dentro `1) ACQUISIZIONE`, come già si fa per la riga FUORI CASA, e che i `delta` a `null` si dichiarano non confrontabili invece di essere omessi.
+
+### I5 — Il totale contatti non era ottenibile come scritto (`SKILL.md`)
+
+*"`get_contacts` con limit 1 → ti serve solo il totale dei contatti"* non è eseguibile: l'API risponde paginata e un totale non lo fornisce. Nella prima riga reale di `numeri.csv`, `contatti_systeme` è infatti rimasto vuoto. L'istruzione ora dice di leggere il totale **solo se la risposta lo contiene davvero**, e altrimenti di scrivere `None` dichiarando Systeme come fonte non letta. Vietato paginare l'intero archivio, vietato spacciare il parziale per totale, vietato `0`.
+
+### M6 — `coda.json` e `registro.md` non esistevano
+
+La consegna F1.3 li dava per inizializzati, ma la cartella di stato viva conteneva solo `numeri.csv`. Creati con le funzioni del modulo: `coda.json` contiene `[]` (`stato.leggi_coda()` restituisce `[]`), `registro.md` ha l'intestazione più una voce che registra la propria inizializzazione — il modulo non ha una funzione che crei il registro senza scrivere una voce, e scrivere il file a mano avrebbe aggirato l'unico punto che tocca la cartella di stato.
+
+### Sincronizzazione repo ↔ cartella viva
+
+`scripts/stato.py` e `scripts/scheduled/briefing-luca-ad/SKILL.md` sono stati ricopiati in `C:\Users\berto\Claude\Scheduled\briefing-luca-ad\` e verificati con `diff`: entrambi vuoti. Il backup `SKILL.md.bak-fase1` non è stato toccato.
