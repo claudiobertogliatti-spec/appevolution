@@ -682,6 +682,27 @@ class TestCoda(BaseStato):
         with self.assertRaises(KeyError):
             stato.chiudi_azione("non-esiste", "fatto")
 
+    def test_una_scrittura_interrotta_non_distrugge_la_coda(self):
+        """Un JSON troncato non e' leggibile a meta': si perde TUTTA la coda.
+
+        Con la scrittura non atomica questo test FALLISCE: write_text sul file finale
+        lo tronca prima ancora di scrivere.
+        """
+        stato.apri_azione("Prima azione", "Luca", "2026-08-15")
+
+        def write_text_che_tronca_e_muore(self, *args, **kwargs):
+            with self.open("w", encoding="utf-8"):
+                pass  # come ogni scrittura reale: prima tronca, poi scrive
+            raise OSError("disco pieno")
+
+        with mock.patch.object(Path, "write_text", write_text_che_tronca_e_muore):
+            with self.assertRaises(OSError):
+                stato.apri_azione("Seconda azione", "Luca", "2026-08-15")
+
+        azioni = stato.leggi_coda()
+        self.assertEqual(len(azioni), 1, "la coda precedente deve sopravvivere")
+        self.assertEqual(azioni[0]["cosa"], "Prima azione")
+
     def test_gli_id_non_si_ripetono(self):
         a = stato.apri_azione("A", "Luca", "2026-08-15")
         b = stato.apri_azione("B", "Luca", "2026-08-15")
@@ -742,13 +763,27 @@ def leggi_coda():
 
 
 def _scrivi_coda(azioni):
-    _file_coda().write_text(
+    """Scrittura ATOMICA, per lo stesso motivo di scrivi_numeri() — e qui pesa di piu'.
+
+    `coda.json` viene RISCRITTO PER INTERO a ogni apertura o chiusura di azione: non e'
+    un append. E un JSON troncato non e' leggibile a meta' come un CSV — fa fallire
+    json.loads() alla lettura successiva e si perde TUTTA la coda, non qualche riga.
+    """
+    percorso = _file_coda()
+    temporaneo = percorso.with_name(percorso.name + ".tmp")
+    temporaneo.write_text(
         json.dumps(azioni, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    os.replace(temporaneo, percorso)
 
 
 def apri_azione(cosa, chi, entro):
-    """Un'azione ha SEMPRE un solo responsabile: principio 10, reso non violabile."""
+    """Un'azione ha SEMPRE un solo responsabile: principio 10, reso non violabile.
+
+    ⚠️ `chi` deve essere un nome proprio di persona o di agente. Il controllo rifiuta
+    qualunque stringa contenente una virgola o " e ", quindi un nome di reparto composto
+    ("Marketing e Social") verrebbe respinto anche se e' un proprietario solo.
+    """
     if "," in chi or " e " in f" {chi} ":
         raise ValueError(
             f"'{chi}' sono piu' persone: un'azione ha un solo responsabile, "
@@ -800,7 +835,7 @@ def leggi_registro():
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 27 test
+Expected: PASS, 28 test
 
 - [ ] **Step 5: Commit**
 
@@ -1002,7 +1037,7 @@ if __name__ == "__main__":
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 31 test
+Expected: PASS, 32 test
 
 - [ ] **Step 5: Verify against the live backend**
 
@@ -1170,7 +1205,7 @@ Expected: `numeri.csv` con le 14 colonne, `coda.json` una lista valida.
 cd /c/Users/berto/appevolution && python -m unittest discover -s scripts/tests -v
 ```
 
-Expected: PASS, 31 test.
+Expected: PASS, 32 test.
 
 - [ ] **Step 6: Commit**
 
