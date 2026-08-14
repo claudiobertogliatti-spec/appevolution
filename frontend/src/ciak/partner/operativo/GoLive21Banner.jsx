@@ -1,13 +1,6 @@
 import React from "react";
 import { Rocket } from "lucide-react";
-import * as goLivePromiseModule from "./goLivePromise.cjs";
-
-// Webpack espone i moduli CommonJS come namespace nel bundle browser.
-// La destrutturazione via require produceva una funzione non invocabile in produzione.
-const goLivePromise =
-  goLivePromiseModule.goLivePromise ||
-  goLivePromiseModule.default?.goLivePromise ||
-  goLivePromiseModule.default;
+import { goLivePromise } from "./goLivePromise";
 
 /**
  * Fascia "Go Live in 21 giorni" in cima alla home partner.
