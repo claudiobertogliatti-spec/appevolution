@@ -7,40 +7,55 @@ ciak.io/admin, leggendo il JWT dal localStorage. Quel canale e' interattivo: se
 il browser non e' connesso o il token e' scaduto (dura 24h) il briefing salta.
 Il 30/7/2026 e' saltato esattamente cosi'.
 
-Questo script parla direttamente col backend usando la chiave di sola lettura
-(header X-Report-Key), quindi funziona headless.
+Dal 14/8/2026 non legge piu' solo dentro Ciak: aggiunge il sito pubblico, e le
+fonti che vivono dietro un tool MCP (Meta, Systeme, social) le legge Luca
+stesso, guidato da SKILL.md, con buste della stessa forma. Un report che guarda
+solo dentro casa non e' un report.
 
 Uso:
     python scripts/briefing_luca.py            # legge LUCA_REPORT_KEY dall'ambiente
     python scripts/briefing_luca.py --base-url http://localhost:8001
 
-Stampa su stdout un unico JSON {"report": ..., "acq": ...}.
-Esce con codice != 0 e un messaggio chiaro su stderr se i dati non sono
-disponibili: meglio fallire in modo evidente che produrre un briefing a meta'.
-Solo stdlib: nessuna dipendenza da installare sulla macchina che lo esegue.
+Stampa su stdout un unico JSON {"report": ..., "acq": ..., "fonti": ...}.
+Le chiavi "report" e "acq" restano al primo livello per non rompere SKILL.md.
+Esce con codice != 0 se cade Ciak: meglio fallire in modo evidente che produrre
+un briefing a meta'. Solo stdlib.
 """
 import argparse
 import json
 import os
 import sys
-import urllib.error
-import urllib.request
+
+import sensori
 
 DEFAULT_BASE_URL = "https://www.ciak.io"
 ENDPOINTS = {
     "report": "/api/admin/luca/daily-report",
     "acq": "/api/admin/ciak/acquisizione-command-center",
 }
-TIMEOUT_SECONDS = 60
 
 
-def fetch(base_url, path, key):
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}{path}",
-        headers={"X-Report-Key": key, "Accept": "application/json"},
-    )
-    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
-        return json.loads(response.read().decode("utf-8"))
+def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
+    """Legge le fonti Python e restituisce (output, errore).
+
+    Pavimento: se cade una delle due fonti Ciak si aborta tutto. Le altre fonti
+    degradano dichiarandosi, perche' dichiarare un punto cieco non e' un
+    briefing parziale: inventare un numero lo sarebbe.
+    """
+    leggi_ciak_fn = leggi_ciak_fn or sensori.leggi_ciak
+    leggi_sito_fn = leggi_sito_fn or sensori.leggi_sito
+
+    fonti = {}
+    for nome, path in ENDPOINTS.items():
+        fonti[nome] = leggi_ciak_fn(base_url, key, path, nome)
+        if not fonti[nome]["ok"]:
+            return None, f"{path} -> {fonti[nome]['errore']}"
+
+    fonti["sito"] = leggi_sito_fn()
+
+    output = {nome: fonti[nome]["dati"] for nome in ENDPOINTS}
+    output["fonti"] = fonti
+    return output, None
 
 
 def main():
@@ -59,23 +74,12 @@ def main():
         )
         return 2
 
-    out = {}
-    for name, path in ENDPOINTS.items():
-        try:
-            out[name] = fetch(args.base_url, path, key)
-        except urllib.error.HTTPError as err:
-            hint = {
-                401: "chiave assente o non configurata sul server",
-                403: "chiave non valida per questo endpoint",
-                503: "il backend non ha il database collegato",
-            }.get(err.code, "risposta inattesa dal backend")
-            print(f"{path} -> HTTP {err.code} ({hint})", file=sys.stderr)
-            return 1
-        except urllib.error.URLError as err:
-            print(f"{path} -> backend irraggiungibile: {err.reason}", file=sys.stderr)
-            return 1
+    output, errore = raccogli(args.base_url, key)
+    if errore:
+        print(errore, file=sys.stderr)
+        return 1
 
-    json.dump(out, sys.stdout, ensure_ascii=False, indent=2)
+    json.dump(output, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
 
