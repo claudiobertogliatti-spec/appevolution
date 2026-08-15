@@ -49,7 +49,37 @@ revisione per task e review finale sull'intero branch.
   nel sistema non esiste. Si rimette quando la coda dei contenuti esiste davvero.
 - Il messaggio a Claudio resta a valle del passo MCP: se quello blocca, il briefing non arriva (la
   memoria si', ora). La causa vera sono i permessi mancanti.
+### 2026-08-15 · Codex · codex/fase2-daniele-design — gate fondazione canonica Fase 2
 
+**DICHIARATO**
+- Task 6 prepara la release della fondazione Fase 2 costruita nei commit applicativi
+  `d09ea0ba..b6b2d906`; nessun codice applicativo e stato modificato in questo task.
+- La allowlist esplicita della CI include ora esattamente le quattro nuove suite
+  `test_phase2_output_versions.py`, `test_phase2_conformity.py`,
+  `test_phase2_migration.py` e `test_phase2_migration_api.py`.
+- Review indipendente del diff completata sui vincoli del brief: nessun P1/P2 trovato.
+
+**VERIFICATO**
+- Suite focalizzata estesa anche a `test_editorial_calendar_api.py`: **204 passed, 8 skipped**,
+  1 warning Starlette, in 12.47s.
+- Allowlist CI reale estratta dal workflow dopo la modifica: **51 file, 627 passed**,
+  31 warning di deprecazione preesistenti, in 143.12s.
+- `python -m compileall -q backend`, `python -m flake8 backend --select=E9,F821` e
+  `git diff --check origin/main...HEAD`: exit 0.
+- Review strutturale: nessun `delete_one`, `delete_many` o `find_one_and_delete` aggiunto;
+  i soli `$unset` rimuovono lease/fence transitori dal report. Le evidenze governate sono
+  calcolate server-side, snapshot e audit precedono le scritture journey, ogni scrittura usa
+  stale check + CAS, e retry/versioni/snapshot/audit sono idempotenti. API e CLI espongono
+  summary in allowlist, non documenti privati raw.
+- Il secret scan letterale del piano trova soltanto la propria riga-regex nel file di piano
+  (`docs/superpowers/plans/2026-08-15-fase-2-daniele-foundation.md:572`), non una credenziale.
+  Escludendo esattamente quella sola riga di guardia: `NO_CREDENTIAL_MATCHES...`, exit 0.
+
+**APERTO**
+- Nessun apply di migrazione eseguito su Daniele; il primo deploy produce soltanto il dry run.
+- Nessun dry-run live e stato eseguito in Task 6. Nessun push o deploy eseguito.
+- Concern non applicativa: il comando secret scan letterale resta auto-referenziale e torna 1;
+  il piano non e stato modificato, come richiesto dal perimetro del task.
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
 
 **FATTO**

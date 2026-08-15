@@ -102,6 +102,10 @@ jobs:
           tests/test_sales_system_readiness.py
           tests/test_partner_launch_readiness.py
           tests/test_partner_document_versions.py
+          tests/test_phase2_output_versions.py
+          tests/test_phase2_conformity.py
+          tests/test_phase2_migration.py
+          tests/test_phase2_migration_api.py
           tests/test_f20_unlock.py
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
