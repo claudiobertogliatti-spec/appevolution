@@ -2453,6 +2453,8 @@ async def recover_phase2_migration(
     report = await reports.find_one({"report_id": str(report_id)})
     if not report:
         raise MigrationConflict("migration report not found")
+    if report.get("status") == "applied":
+        return _apply_result_from_document(report)
     error_code = sanitized_migration_error_code(report.get("error_code"))
     if (
         report.get("status") != "conflict"

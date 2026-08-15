@@ -1414,8 +1414,8 @@ async def test_explicit_recovery_retries_one_transient_snapshot_conflict(
     recovered = await recover_phase2_migration(
         daniele_db, report.report_id, "admin-recovery"
     )
-    repeated = await apply_phase2_migration(
-        daniele_db, report.report_id, "admin-retry"
+    repeated = await recover_phase2_migration(
+        daniele_db, report.report_id, "admin-recovery-retry"
     )
 
     assert recovered == repeated
