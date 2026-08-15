@@ -1,10 +1,16 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+import os
 
 import pytest
 
+os.environ.setdefault("MONGO_URL", "mongodb://phase2-migration-test.invalid:27017")
+os.environ.setdefault("APP_ENV", "test")
+os.environ.setdefault("JWT_SECRET_KEY", "phase2-migration-test-secret-not-for-production")
+
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+from routers.partner_rewards import _workbook_binding, _workbook_payload
 from services.launch_calendar import calendar_checksum
 from services.phase2_migration import build_phase2_evidence, plan_phase2_migration
 
@@ -49,6 +55,7 @@ class FakeDB:
         "partners",
         "partner_hub",
         "partner_funnel",
+        "partner_brand_kits",
         "masterclass_factory",
         "partner_videocorso",
         "partner_launch_calendar_versions",
@@ -304,6 +311,122 @@ async def test_first_nonconformant_step_is_active_and_later_reopens_are_blocked(
     )
 
 
+@pytest.mark.asyncio
+async def test_existing_in_progress_is_the_only_front_and_later_done_is_blocked(daniele_db):
+    by_id = {
+        step["step_id"]: step
+        for step in daniele_db.partner_journey_steps.documents
+    }
+    by_id["05-script-masterclass"]["status"] = "in_progress"
+    by_id["12-prezzo-webinar"]["status"] = "pending"
+
+    plan = await plan_phase2_migration(daniele_db, "23", "admin-1")
+    proposed = {step_id: step["status"] for step_id, step in by_id.items()}
+    for action in plan.actions:
+        if action["kind"] in ("reopen_step", "transition_downstream"):
+            proposed[action["step_id"]] = action["after"]["status"]
+
+    assert proposed["05-script-masterclass"] == "in_progress"
+    assert proposed["06-outline-lezioni"] == "pending"
+    assert [step_id for step_id, status in proposed.items() if status == "in_progress"] == [
+        "05-script-masterclass"
+    ]
+
+
+class MutatingOutputCursor(FakeCursor):
+    def __init__(self, documents, mutate):
+        super().__init__(documents)
+        self.mutate = mutate
+
+    async def to_list(self, length):
+        result = await super().to_list(length)
+        self.mutate()
+        return result
+
+
+class MutatingOutputCollection(FakeCollection):
+    def __init__(self):
+        super().__init__()
+        self.mutated = False
+
+    def find(self, query, projection=None):
+        documents = [
+            document for document in self.documents if _matches(document, query)
+        ]
+
+        def mutate():
+            if self.mutated:
+                return
+            self.mutated = True
+            self.documents.append({
+                "partner_id": "23",
+                "step_id": "05-script-masterclass",
+                "output_id": "approved-after-freeze",
+                "version": 1,
+                "status": "approved",
+                "is_current": True,
+                "checksum": "new-checksum",
+            })
+
+        return MutatingOutputCursor(documents, mutate)
+
+
+@pytest.mark.asyncio
+async def test_plan_uses_frozen_output_snapshot_and_next_checksum_detects_change(daniele_db):
+    daniele_db.partner_phase2_output_versions = MutatingOutputCollection()
+
+    frozen = await plan_phase2_migration(daniele_db, "23", "admin-1")
+    changed = await plan_phase2_migration(daniele_db, "23", "admin-1")
+
+    assert "05-script-masterclass" in frozen.reopen_step_ids
+    assert "05-script-masterclass" not in changed.reopen_step_ids
+    assert frozen.source_checksum != changed.source_checksum
+
+
+@pytest.mark.asyncio
+async def test_legacy_scripts_and_raw_media_use_sanitized_real_source_references(daniele_db):
+    by_id = {
+        step["step_id"]: step
+        for step in daniele_db.partner_journey_steps.documents
+    }
+    by_id["05-script-masterclass"]["data"] = {}
+    by_id["07-script-videolezioni"]["data"] = {}
+    masterclass = daniele_db.masterclass_factory.documents[0]
+    masterclass.pop("full_script")
+    masterclass.update({
+        "script_content": "Script corrente reale",
+        "video_raw_url": "gs://private-bucket/raw/masterclass.mp4",
+    })
+    course = daniele_db.partner_videocorso.documents[0]
+    course["lessons"]["lesson-01"].update({
+        "approved_script": "Script lezione approvato",
+        "video_raw_url": "gs://private-bucket/raw/lesson-01.mp4",
+    })
+
+    plan = await plan_phase2_migration(daniele_db, "23", "admin-1")
+    archives = {action["step_id"]: action for action in plan.archive_actions}
+    preserved = {
+        action["step_id"]: action
+        for action in plan.actions
+        if action["kind"] == "preserve_source"
+    }
+
+    assert archives["05-script-masterclass"]["before"]["source_refs"] == [{
+        "collection": "masterclass_factory",
+        "field": "script_content",
+    }]
+    assert archives["07-script-videolezioni"]["before"]["source_refs"] == [{
+        "collection": "partner_videocorso",
+        "field": "lessons.lesson-01.approved_script",
+    }]
+    assert "course_data" not in json.dumps(archives["07-script-videolezioni"])
+    assert preserved["08-registra-masterclass"]["before"]["raw_source_fields"] == [
+        "video_raw_url"
+    ]
+    assert preserved["09-registra-lezioni"]["before"]["raw_lesson_count"] == 1
+    assert "private-bucket" not in json.dumps(plan.to_dict())
+
+
 def _approved_video(url):
     return {
         "output_version": 1,
@@ -353,30 +476,50 @@ def conformant_db():
     ]
     calendar = {"days": [{"day": day} for day in range(1, 31)]}
     checksum = calendar_checksum(calendar)
+    partner = {
+        "id": "ok",
+        "systeme_subdomain": "partner.example.test",
+        "launch_date": "2026-09-01",
+    }
+    hub = {"partner_id": "ok", "offerPrice": "297 EUR"}
+    funnel = {
+        "partner_id": "ok",
+        "domain": "partner.example.test",
+        "legal_completed": True,
+        "published": True,
+        "funnel_url": "https://partner.example.test",
+        "checkout_url": "https://checkout.example.test",
+        "automation_active": True,
+    }
+    masterclass = {"partner_id": "ok", **_approved_video("https://youtu.be/mc")}
+    videocorso = {
+        "partner_id": "ok",
+        "course_data": {"moduli": [{"lezioni": [{"id": "lesson-1"}]}]},
+        "lessons": {"lesson-1": _approved_video("https://youtu.be/lesson-1")},
+    }
+    calendar_context = {
+        "partner": partner,
+        "steps": steps,
+        "steps_by_id": {step["step_id"]: step for step in steps},
+        "hub": hub,
+        "masterclass": masterclass,
+        "videocorso": videocorso,
+        "brand_kit": {},
+        "funnel": funnel,
+        "launch_calendar": calendar,
+        "launch_calendar_version": 1,
+        "launch_calendar_checksum": checksum,
+        "launch_calendar_approved_at": now,
+    }
+    binding = _workbook_binding(calendar_context, _workbook_payload(calendar_context))
     return FakeDB(
         partner_journey_steps=steps,
         partner_phase2_output_versions=outputs,
-        partners=[{
-            "id": "ok",
-            "systeme_subdomain": "partner.example.test",
-            "launch_date": "2026-09-01",
-        }],
-        partner_hub=[{"partner_id": "ok", "offerPrice": "297 EUR"}],
-        partner_funnel=[{
-            "partner_id": "ok",
-            "domain": "partner.example.test",
-            "legal_completed": True,
-            "published": True,
-            "funnel_url": "https://partner.example.test",
-            "checkout_url": "https://checkout.example.test",
-            "automation_active": True,
-        }],
-        masterclass_factory=[{"partner_id": "ok", **_approved_video("https://youtu.be/mc")}],
-        partner_videocorso=[{
-            "partner_id": "ok",
-            "course_data": {"moduli": [{"lezioni": [{"id": "lesson-1"}]}]},
-            "lessons": {"lesson-1": _approved_video("https://youtu.be/lesson-1")},
-        }],
+        partners=[partner],
+        partner_hub=[hub],
+        partner_funnel=[funnel],
+        masterclass_factory=[masterclass],
+        partner_videocorso=[videocorso],
         partner_launch_calendar_versions=[{
             "partner_id": "ok",
             "version": 1,
@@ -407,6 +550,8 @@ def conformant_db():
                 "kind": "workbook_final",
                 "version": 1,
                 "checksum": "workbook-checksum",
+                "source_version": binding["source_version"],
+                "provenance": binding["provenance"],
             },
         ],
     )
@@ -427,3 +572,20 @@ async def test_already_conformant_partner_has_no_reopen_or_archive_actions(confo
         for definition in JOURNEY_STEPS_DEFINITION
         if 8 <= definition["step_number"] <= 19
     }
+
+
+@pytest.mark.asyncio
+async def test_legacy_workbook_checksum_without_current_binding_reopens_f19(conformant_db):
+    workbook = next(
+        document
+        for document in conformant_db.partner_document_versions.documents
+        if document["kind"] == "workbook_final"
+    )
+    workbook["source_version"] = "legacy-unbound-workbook"
+    workbook["provenance"] = {}
+
+    evidence = await build_phase2_evidence(conformant_db, "ok")
+    plan = await plan_phase2_migration(conformant_db, "ok", "admin-1")
+
+    assert evidence["final_workbook_archived"] is False
+    assert "19-workbook-finale" in plan.reopen_step_ids

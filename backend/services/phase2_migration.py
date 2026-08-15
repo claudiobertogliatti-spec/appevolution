@@ -6,6 +6,7 @@ import hashlib
 import json
 from typing import Any
 
+from fastapi import HTTPException
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 from services.journey_completion import (
     all_required_lessons_approved,
@@ -13,7 +14,6 @@ from services.journey_completion import (
     masterclass_current_version_approved,
 )
 from services.phase2_conformity import evaluate_phase2_conformity
-from services.phase2_output_versions import current_approved_output
 from services.sales_system_readiness import (
     evaluate_launch_readiness,
     evaluate_sales_system,
@@ -59,6 +59,7 @@ _SOURCE_COLLECTIONS = (
     "partners",
     "partner_hub",
     "partner_funnel",
+    "partner_brand_kits",
     "masterclass_factory",
     "partner_videocorso",
     "partner_launch_calendar_versions",
@@ -202,6 +203,20 @@ def _approved_output_reference(output: dict[str, Any] | None) -> dict[str, Any] 
     }
 
 
+def _current_approved_output_from_snapshot(
+    snapshot: dict[str, list[dict[str, Any]]], partner_id: str, step_id: str
+) -> dict[str, Any] | None:
+    candidates = [
+        document
+        for document in snapshot["partner_phase2_output_versions"]
+        if document.get("partner_id") == partner_id
+        and document.get("step_id") == step_id
+        and document.get("status") == "approved"
+        and document.get("is_current") is True
+    ]
+    return _latest_by_version(candidates)
+
+
 def _latest_by_version(documents: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not documents:
         return None
@@ -258,6 +273,46 @@ def _sales_report(snapshot: dict[str, list[dict[str, Any]]]):
     })
 
 
+def _current_workbook_archived(
+    snapshot: dict[str, list[dict[str, Any]]],
+    calendar_document: dict[str, Any] | None,
+    calendar_context: dict[str, Any],
+) -> bool:
+    if calendar_context.get("launch_calendar_approved") is not True:
+        return False
+    from routers.partner_rewards import _workbook_binding, _workbook_payload
+
+    steps = sorted(
+        snapshot["partner_journey_steps"],
+        key=lambda step: (float(step.get("step_number") or 0), str(step.get("step_id") or "")),
+    )
+    context = {
+        "partner": _latest_by_version(snapshot["partners"]) or {},
+        "steps": steps,
+        "steps_by_id": {step.get("step_id"): step for step in steps},
+        "hub": _latest_by_version(snapshot["partner_hub"]) or {},
+        "masterclass": _latest_by_version(snapshot["masterclass_factory"]) or {},
+        "videocorso": _latest_by_version(snapshot["partner_videocorso"]) or {},
+        "brand_kit": _latest_by_version(snapshot["partner_brand_kits"]) or {},
+        "funnel": _latest_by_version(snapshot["partner_funnel"]) or {},
+        "launch_calendar": (calendar_document or {}).get("calendar") or {},
+        "launch_calendar_version": calendar_context.get("calendar_version"),
+        "launch_calendar_checksum": calendar_context.get("calendar_checksum"),
+        "launch_calendar_approved_at": calendar_context.get("approved_at"),
+    }
+    try:
+        payload = _workbook_payload(context)
+        binding = _workbook_binding(context, payload)
+    except HTTPException:
+        return False
+    return any(
+        document.get("kind") == "workbook_final"
+        and document.get("source_version") == binding["source_version"]
+        and bool(document.get("checksum"))
+        for document in snapshot["partner_document_versions"]
+    )
+
+
 async def _build_phase2_evidence_from_snapshot(
     db, partner_id: str, snapshot: dict[str, list[dict[str, Any]]]
 ) -> dict[str, Any]:
@@ -265,7 +320,7 @@ async def _build_phase2_evidence_from_snapshot(
     outputs = {}
     output_flags = {}
     for step_id, evidence_key in _OUTPUT_EVIDENCE.items():
-        output = await current_approved_output(db, partner_id, step_id)
+        output = _current_approved_output_from_snapshot(snapshot, partner_id, step_id)
         outputs[step_id] = _approved_output_reference(output)
         output_flags[evidence_key] = output is not None
 
@@ -287,9 +342,6 @@ async def _build_phase2_evidence_from_snapshot(
     documents = snapshot["partner_document_versions"]
     certificate = _latest_by_version([
         document for document in documents if document.get("kind") == "certificate_valida"
-    ])
-    workbook = _latest_by_version([
-        document for document in documents if document.get("kind") == "workbook_final"
     ])
 
     masterclass_approved = masterclass_current_version_approved(masterclass)
@@ -338,7 +390,11 @@ async def _build_phase2_evidence_from_snapshot(
         "launch_readiness_verified": launch_report.ready,
         "launch_verified": bool(launch.get("launched") and launch.get("probe_verified")),
         "valida_certificate_archived": bool(certificate and certificate.get("checksum")),
-        "final_workbook_archived": bool(workbook and workbook.get("checksum")),
+        "final_workbook_archived": _current_workbook_archived(
+            snapshot,
+            _latest_by_version(approved_calendars),
+            calendar_context,
+        ),
     }
 
 
@@ -390,12 +446,25 @@ def _legacy_source_refs(
         refs.append({"collection": "partner_journey_steps", "step_id": step_id})
     if step_id == "05-script-masterclass":
         masterclass = _latest_by_version(snapshot["masterclass_factory"]) or {}
-        if masterclass.get("full_script") or masterclass.get("script"):
-            refs.append({"collection": "masterclass_factory", "field": "full_script"})
-    elif step_id in ("06-outline-lezioni", "07-script-videolezioni"):
+        for field in ("script_content", "approved_script", "full_script", "script"):
+            if masterclass.get(field):
+                refs.append({"collection": "masterclass_factory", "field": field})
+    elif step_id == "06-outline-lezioni":
         course = _latest_by_version(snapshot["partner_videocorso"]) or {}
-        if course.get("course_data") or course.get("outline"):
-            refs.append({"collection": "partner_videocorso", "field": "course_data"})
+        for field in ("course_data", "outline"):
+            if course.get(field):
+                refs.append({"collection": "partner_videocorso", "field": field})
+    elif step_id == "07-script-videolezioni":
+        course = _latest_by_version(snapshot["partner_videocorso"]) or {}
+        for lesson_id, lesson in sorted((course.get("lessons") or {}).items()):
+            if not isinstance(lesson, dict):
+                continue
+            for field in ("script_content", "approved_script", "full_script", "script"):
+                if lesson.get(field):
+                    refs.append({
+                        "collection": "partner_videocorso",
+                        "field": f"lessons.{lesson_id}.{field}",
+                    })
     elif step_id == "12-prezzo-webinar":
         hub = _latest_by_version(snapshot["partner_hub"]) or {}
         if hub.get("offerPrice"):
@@ -409,28 +478,66 @@ def _preservation_actions(
 ) -> list[dict[str, Any]]:
     actions = []
     masterclass = _latest_by_version(snapshot["masterclass_factory"]) or {}
-    masterclass_urls = [
+    final_source_fields = [
         key
         for key in ("output_gcs_url", "video_ciak_url", "video_embed_url", "video_youtube_url")
         if masterclass.get(key)
     ]
-    if masterclass_urls:
+    raw_source_fields = [
+        key
+        for key in (
+            "video_raw_url",
+            "raw_video_url",
+            "original_video_url",
+            "video_url",
+            "video_uploaded",
+            "drive_file_id",
+        )
+        if masterclass.get(key)
+    ]
+    if final_source_fields or raw_source_fields:
         actions.append(_action(
             "preserve_source",
             "08-registra-masterclass",
             "historical_masterclass_media_preserved",
-            {"collection": "masterclass_factory", "url_fields": masterclass_urls},
+            {
+                "collection": "masterclass_factory",
+                "final_source_fields": final_source_fields,
+                "raw_source_fields": raw_source_fields,
+            },
             {"change": "none"},
         ))
 
     course = _latest_by_version(snapshot["partner_videocorso"]) or {}
     lessons = course.get("lessons") or {}
     if lessons:
+        raw_fields = (
+            "video_raw_url",
+            "raw_video_url",
+            "original_video_url",
+            "video_url",
+            "drive_file_id",
+        )
+        raw_lessons = [
+            lesson
+            for lesson in lessons.values()
+            if isinstance(lesson, dict) and any(lesson.get(field) for field in raw_fields)
+        ]
         actions.append(_action(
             "preserve_source",
             "09-registra-lezioni",
             "historical_lesson_records_preserved",
-            {"collection": "partner_videocorso", "lesson_count": len(lessons)},
+            {
+                "collection": "partner_videocorso",
+                "lesson_count": len(lessons),
+                "raw_lesson_count": len(raw_lessons),
+                "raw_source_fields": sorted({
+                    field
+                    for lesson in raw_lessons
+                    for field in raw_fields
+                    if lesson.get(field)
+                }),
+            },
             {"change": "none"},
         ))
 
@@ -504,8 +611,11 @@ async def plan_phase2_migration(
     actions.extend(_preservation_actions(raw_steps, snapshot))
 
     nonconformant_done = []
+    in_progress_ids = []
     for step_id in _CANONICAL_STEP_IDS:
         step = raw_steps.get(step_id) or {}
+        if step.get("status") == "in_progress":
+            in_progress_ids.append(step_id)
         if step.get("status") != "done":
             continue
         conformity = evaluate_phase2_conformity(step_id, evidence)
@@ -524,11 +634,39 @@ async def plan_phase2_migration(
                 {"change": "none"},
             ))
 
-    first_reopened = nonconformant_done[0][0] if nonconformant_done else None
+    candidates = [step_id for step_id, _ in nonconformant_done] + in_progress_ids
+    active_front = min(
+        candidates,
+        key=_CANONICAL_STEP_IDS.index,
+    ) if candidates else None
+    transitioned_ids = set()
+    for step_id in in_progress_ids:
+        step = raw_steps[step_id]
+        if step_id == active_front:
+            actions.append(_action(
+                "preserve_step",
+                step_id,
+                "existing_migration_front_preserved",
+                {"status": "in_progress", "updated_at": step.get("updated_at")},
+                {"change": "none"},
+            ))
+            continue
+        actions.append(_action(
+            "transition_downstream",
+            step_id,
+            "upstream_output_not_current",
+            {"status": "in_progress", "updated_at": step.get("updated_at")},
+            {
+                "status": "pending",
+                "blocked_reason_code": "upstream_output_not_current",
+            },
+        ))
+        transitioned_ids.add(step_id)
+
     for step_id, reason in nonconformant_done:
         step = raw_steps[step_id]
         after = {"status": "in_progress", "completed_at": None}
-        if step_id != first_reopened:
+        if step_id != active_front:
             after = {
                 "status": "pending",
                 "completed_at": None,
@@ -546,11 +684,11 @@ async def plan_phase2_migration(
             after,
         ))
 
-    if first_reopened:
-        first_index = _CANONICAL_STEP_IDS.index(first_reopened)
+    if active_front:
+        first_index = _CANONICAL_STEP_IDS.index(active_front)
         reopened_ids = {step_id for step_id, _ in nonconformant_done}
         for step_id in _CANONICAL_STEP_IDS[first_index + 1:]:
-            if step_id in reopened_ids:
+            if step_id in reopened_ids or step_id in transitioned_ids:
                 continue
             step = raw_steps.get(step_id)
             if not step or step.get("status") in ("pending", "blocked"):
