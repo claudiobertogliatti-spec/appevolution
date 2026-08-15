@@ -60,10 +60,22 @@ revisione per task e review finale sull'intero branch.
 - Review indipendente del diff completata sui vincoli del brief: nessun P1/P2 trovato.
 
 **VERIFICATO**
-- Suite focalizzata estesa anche a `test_editorial_calendar_api.py`: **204 passed, 8 skipped**,
-  1 warning Starlette, in 12.47s.
-- Allowlist CI reale estratta dal workflow dopo la modifica: **51 file, 627 passed**,
-  31 warning di deprecazione preesistenti, in 143.12s.
+- Suite focalizzata estesa anche a `test_editorial_calendar_api.py`, eseguita da `backend`:
+
+  ```powershell
+  $env:MONGO_URL='mongodb://localhost:27017'; $env:DB_NAME='ciak_ci'; $env:JWT_SECRET_KEY='ci-test-secret'; $env:APP_ENV='test'; python -m pytest tests/test_phase2_output_versions.py tests/test_phase2_conformity.py tests/test_phase2_migration.py tests/test_phase2_migration_api.py tests/test_editorial_calendar_api.py tests/test_journey_completion.py tests/test_journey_video_gates.py tests/test_protocollo_evo_valida.py tests/test_partner_journey_operativo.py tests/test_partner_document_versions.py -q
+  ```
+
+  Output: `204 passed, 8 skipped, 1 warning in 12.47s`, exit 0. Riesecuzione
+  post-commit `fd398ed2`: `204 passed, 8 skipped, 1 warning in 12.31s`, exit 0.
+- Allowlist CI completa estratta ed eseguita direttamente dal workflow, da `backend`:
+
+  ```powershell
+  $env:MONGO_URL='mongodb://localhost:27017'; $env:DB_NAME='ciak_ci'; $env:JWT_SECRET_KEY='ci-test-secret'; $env:APP_ENV='test'; $lines=Get-Content -LiteralPath '..\.github\workflows\ci.yml'; $start=($lines | Select-String -SimpleMatch 'pytest -q').LineNumber; $tests=@(); for($i=$start;$i -lt $lines.Count;$i++){ $trim=$lines[$i].Trim(); if($trim -match '^tests/.+\.py$'){ $tests += $trim; continue }; if($tests.Count -gt 0){ break } }; "CI_ALLOWLIST_FILES=$($tests.Count)"; python -m pytest -q @tests
+  ```
+
+  Output: `CI_ALLOWLIST_FILES=51`; `627 passed, 31 warnings in 143.12s (0:02:23)`,
+  exit 0.
 - `python -m compileall -q backend`, `python -m flake8 backend --select=E9,F821` e
   `git diff --check origin/main...HEAD`: exit 0.
 - Review strutturale: nessun `delete_one`, `delete_many` o `find_one_and_delete` aggiunto;
