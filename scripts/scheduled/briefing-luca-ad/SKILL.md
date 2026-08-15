@@ -31,7 +31,7 @@ Esegui con lo strumento PowerShell, mettendo i valori dal PASSO 1 e `None` in TU
 
     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; stato.scrivi_numeri({'data':'AAAA-MM-GG','lead_oggi':N,'diagnosi_oggi':N,'ingressi_evo_mese':N,'partner_attivi':N,'partner_fermi':N,'partner_attesa_ok':N,'checkout_non_pagati':N,'meta_campagna_obiettivo':None,'meta_spesa_giorno':None,'meta_lead_giorno':None,'giorni_silenzio_social':None,'contatti_systeme':None,'sito_ok':TUTTE_OK})"
 
-⛔ `TUTTE_OK` e' un segnaposto: sostituiscilo con `True` o `False` copiando `fonti.sito.dati.tutte_ok` dall'output del PASSO 1. Se la busta `fonti.sito` manca o non e' `ok`, scrivi `None`.
+⛔ `TUTTE_OK` e' un segnaposto: sostituiscilo con `True` o `False` copiando `fonti.sito.dati.tutte_ok` dall'output del PASSO 1. Il valore da guardare e' quello: `fonti.sito.ok` dice solo che il sensore ha girato, ed e' sempre `true` anche quando tutti e tre gli URL sono giu' — non usarlo per decidere. Solo se la busta `fonti.sito` manca del tutto dall'output, scrivi `None`.
 
 PASSO 3 — Guarda anche FUORI casa. I due endpoint sopra vedono solo dentro Ciak: il 14/8/2026 tutto cio' che era rotto (campagna su obiettivo sbagliato da 60 giorni, social fermi 49 giorni) stava fuori e il briefing non lo vedeva. Un report che guarda solo dentro casa non e' un report.
 
@@ -73,26 +73,30 @@ Poi classifica ogni cosa che hai visto:
 - PORTA A DUE VIE (reversibile): decidila subito e falla, se e' in whitelist.
 - PORTA A UNA VIA (costosa o irreversibile): NON la fai. Porti 2-3 opzioni con i numeri e una raccomandazione, e decide Claudio.
 
-Il confine non e' "quanto e' importante" ma "e' reversibile?". Un obiettivo di campagna si rimette com'era. Un messaggio partito a una persona no, un budget speso nemmeno.
+Il confine non e' "quanto e' importante" ma "e' reversibile?". Un obiettivo di campagna si rimette com'era (il setting si rimette; l'apprendimento azzerato e il budget speso nel frattempo no — per questo l'attesa e' di 7 giorni). Un messaggio partito a una persona no, un budget speso nemmeno.
 
 PRIMA di ogni azione chiedi il permesso al codice, non a te stesso:
 
     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; print(stato.azione_permessa('TIPO'))"
 
-⛔ `TIPO` e' un SEGNAPOSTO, non un valore: sostituiscilo con uno dei nomi della lista qui sotto (`campagna_obiettivo`, `pubblica_post`, `coda_apri`, `coda_chiudi`). Se lo lasci scritto cosi', il cancello risponde `False` perche' "TIPO" non e' un'azione consentita — ed e' giusto che risponda cosi'.
+⛔ `TIPO` e' un SEGNAPOSTO, non un valore: sostituiscilo con uno dei nomi della lista qui sotto (`campagna_obiettivo`, `coda_apri`, `coda_chiudi`). Se lo lasci scritto cosi', il cancello risponde `False` perche' "TIPO" non e' un'azione consentita — ed e' giusto che risponda cosi'.
 
 Se risponde `(False, motivo)` NON eseguire: riporta il motivo nel messaggio come azione dovuta ma in attesa. Se risponde `(True, '')` esegui, e SUBITO DOPO registra (anche qui `TIPO` va sostituito):
 
-    python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; stato.registra_azione('TIPO','cosa hai fatto','perche','risultato')"
+    python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; print(stato.registra_azione(*sys.argv[1:])['id'])" TIPO "cosa hai fatto" "perche'" "risultato"
+
+⛔ I quattro argomenti vanno DOPO il comando, fra virgolette doppie, non dentro il codice Python: cosi' un apostrofo in "perche'" o in "l'obiettivo" non rompe niente. Se un testo contiene una virgoletta doppia, sostituiscila con una singola.
 
 ⛔ Un'azione NON e' fatta finche' non e' registrata: domani nemmeno tu sapresti di averla fatta, e nessuno potrebbe annullarla.
 
-⛔ Chiamare direttamente uno strumento di azione (per esempio `meta_update_campaign` o `ig_publish_carousel`) SENZA essere passato prima da `azione_permessa` e' una violazione, anche se l'azione in se' sarebbe stata consentita. Il controllo non e' un lucchetto che ti blocca: e' una regola che devi rispettare tu. Saltarlo significa che l'attesa fra due esecuzioni non viene calcolata, che l'azione non finisce nel registro, e che domani nessuno — nemmeno tu — sapra' che e' successa.
+Se l'azione FALLISCE a meta' (l'API risponde errore, il tool non e' disponibile, il permesso manca): registrala lo stesso, con `risultato` = il messaggio d'errore testuale. Un tentativo fallito e' un fatto, non un non-evento: se non lo scrivi, domani riproverai la stessa cosa senza sapere che non funziona.
+
+⛔ Chiamare direttamente uno strumento di azione (per esempio `meta_update_campaign`) SENZA essere passato prima da `azione_permessa` e' una violazione, anche se l'azione in se' sarebbe stata consentita. Gli strumenti di pubblicazione (`ig_publish_carousel`, `fb_publish_post`) non hanno piu' un tipo consentito: per quelli il cancello risponde sempre `False`, e non si chiamano affatto. Il controllo non e' un lucchetto che ti blocca: e' una regola che devi rispettare tu. Saltarlo significa che l'attesa fra due esecuzioni non viene calcolata, che l'azione non finisce nel registro, e che domani nessuno — nemmeno tu — sapra' che e' successa.
 
 LE AZIONI CHE PUOI FARE, e nessun'altra:
 - `campagna_obiettivo` — se una campagna ATTIVA non ha un obiettivo di tipo Lead, rimettila su Lead con `meta_update_campaign`. La regola vale per qualunque campagna attiva, oggi e in futuro: non e' legata a una in particolare. (Caso che ha fatto nascere questa regola, vero al 15/8/2026: la campagna 120251843794950188 era su OUTCOME_TRAFFIC dal 15/6, spendendo senza ottimizzare per i contatti. Se leggendo questo la campagna e' gia' a posto, non c'e' niente da fare: verifica, non eseguire per abitudine.)
   Attesa fra due esecuzioni: 7 giorni, perche' cambiare obiettivo azzera l'apprendimento di Meta.
-- `pubblica_post` — pubblica un contenuto GIA' in coda e GIA' approvato, con `ig_publish_carousel` o `fb_publish_post`. Attesa: 1 giorno. ⛔ Non inventare il contenuto: se la coda e' vuota, la mossa e' preparare il contenuto, non pubblicarne uno nuovo di tua iniziativa.
+⛔ Pubblicare sui social NON e' fra le tue mani in questa versione: la coda dei contenuti approvati non esiste ancora nel sistema, quindi non hai modo di verificare che un contenuto sia stato approvato. Se serve pubblicare, lo PREPARI e lo dici nel messaggio.
 - `coda_apri` / `coda_chiudi` — assegna o chiudi un'azione in coda, con UN SOLO responsabile. Si eseguono con `stato.apri_azione(cosa, chi, entro)` e `stato.chiudi_azione(id_azione, esito)`. ⛔ `chi` deve essere un nome proprio di UNA persona o di UN agente: la funzione rifiuta una virgola o " e " perche' un'azione con due proprietari non ne ha nessuno.
 
 ⛔ FUORI DALLE TUE MANI, sempre: budget e ricariche · prezzi e sconti · contratti · credenziali · deploy · QUALUNQUE messaggio 1:1 verso una persona (un post si cancella, un DM no) · OGNI scrittura dentro Ciak, che passa dal token di Claudio. Su queste prepari e decide lui.
@@ -102,7 +106,9 @@ PASSO 6 — Se i dati sono arrivati, scrivi a Claudio UN SOLO messaggio, in ques
 1) ACQUISIZIONE
    - COSA HO FATTO IO dall'ultimo briefing: leggi le azioni con
      python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato, json; print(json.dumps(stato.azioni_dal('DATA-PENULTIMA-RIGA'), ensure_ascii=False))"
-     dove DATA-PENULTIMA-RIGA e' la data della penultima riga di numeri.csv, cioe' il giorno del briefing precedente. Per ognuna: cosa, perche', risultato. Se non ne hai fatta nessuna scrivi "nessuna azione" — non omettere la riga. Va per PRIMA: Claudio deve sapere cosa si e' mosso senza di lui prima di ogni altro numero.
+     dove DATA-PENULTIMA-RIGA e' la data della penultima riga di numeri.csv, cioe' il giorno del briefing precedente. Non indovinarla e non calcolarla a mente: leggila con
+     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; r=stato.leggi_numeri(); print(r[-2]['data'] if len(r)>1 else 'nessuna riga precedente')"
+     Se risponde "nessuna riga precedente" non ci sono briefing prima di oggi: scrivi "nessuna azione". Per ognuna: cosa, perche', risultato. Se non ne hai fatta nessuna scrivi "nessuna azione" — non omettere la riga. Va per PRIMA: Claudio deve sapere cosa si e' mosso senza di lui prima di ogni altro numero.
    - Ingressi Metodo EVO nel mese: X/4 (gap Y). Se gap alto, dillo chiaro.
    - Oggi: N nuovi lead, M diagnosi (target 20 contatti). Se 0, e' un segnale rosso.
    - Recuperi caldi da lavorare oggi: quanti checkout non pagati, quante 8-Domande senza Blueprint, quanti Blueprint senza call (con 2-3 nomi se ci sono).

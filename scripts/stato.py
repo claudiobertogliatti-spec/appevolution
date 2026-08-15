@@ -64,13 +64,29 @@ def scrivi_numeri(riga):
     storica di Luca: aprire il file finale in "w" lo troncherebbe subito, e
     un'interruzione a meta' (disco pieno, kill, crash) lascerebbe la sola intestazione
     — distruggendo esattamente la cosa che questo modulo esiste per conservare.
+
+    L'upsert FONDE sulle chiavi ASSENTI: il prompt scrive la riga di oggi due volte
+    (una all'inizio con i dati interni, una dopo con quelli esterni), e se la seconda
+    ricopiasse solo le colonne esterne una riscrittura completa cancellerebbe i valori
+    interni gia' messi al sicuro. Un `None` esplicito continua a svuotare la cella:
+    "non l'ho letto" resta una cosa che si puo' dire.
     """
     data = riga.get("data")
     if not data:
         raise ValueError("la riga dei numeri deve avere una 'data'")
 
+    esistente = next((r for r in leggi_numeri() if r.get("data") == data), None)
+    nuova = {}
+    for colonna in COLONNE:
+        if colonna in riga:
+            nuova[colonna] = _cella(riga.get(colonna))
+        elif esistente is not None:
+            nuova[colonna] = esistente.get(colonna, "")
+        else:
+            nuova[colonna] = ""
+
     righe = [r for r in leggi_numeri() if r.get("data") != data]
-    righe.append({colonna: _cella(riga.get(colonna)) for colonna in COLONNE})
+    righe.append(nuova)
     righe.sort(key=lambda r: r["data"])
 
     percorso = _file_numeri()
@@ -216,14 +232,14 @@ def leggi_registro():
 
 # ─── Le mani di Luca: whitelist, cancello, registro delle azioni ──────────────
 
+# pubblica_post e' stata rimossa il 15/8: autorizzava a pubblicare da una "coda approvata"
+# che nel sistema non esiste. Un permesso la cui precondizione non e' verificabile in codice
+# non e' un permesso: e' un incidente in attesa. Si rimette quando la coda dei contenuti
+# esiste davvero.
 AZIONI_CONSENTITE = {
     "campagna_obiettivo": {
         "attesa_giorni": 7,
         "descrizione": "rimettere una campagna Meta su un obiettivo di tipo Lead",
-    },
-    "pubblica_post": {
-        "attesa_giorni": 1,
-        "descrizione": "pubblicare un contenuto gia' in coda e approvato",
     },
     "coda_apri": {"attesa_giorni": 0, "descrizione": "aprire un'azione in coda"},
     "coda_chiudi": {"attesa_giorni": 0, "descrizione": "chiudere un'azione in coda"},
@@ -332,6 +348,9 @@ def azioni_dal(data_iso):
     sarebbe quella di oggi e una funzione che la deducesse restituirebbe sempre
     zero azioni. Il prompt le passa la PENULTIMA riga di numeri.csv.
 
-    Il confronto fra stringhe ISO funziona: "2026-08-15T09:00:00+00:00" > "2026-08-14".
+    Il confine e' la FINE del giorno indicato, non la sua mezzanotte: un'azione delle
+    05:52 del 16/8 ha `quando = "2026-08-16T05:52..."`, che e' gia' maggiore della
+    stringa "2026-08-16". Senza il suffisso, l'azione del briefing di ieri ricomparirebbe
+    sotto "cosa ho fatto" anche in quello di oggi.
     """
-    return [a for a in leggi_azioni() if a.get("quando", "") > data_iso]
+    return [a for a in leggi_azioni() if a.get("quando", "") > data_iso + "T23:59:59"]

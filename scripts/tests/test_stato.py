@@ -103,6 +103,21 @@ class TestNumeri(BaseStato):
         self.assertEqual(esito["lead_oggi"]["ieri"], "1", "deve confrontare col 13, non col 12")
         self.assertEqual(esito["lead_oggi"]["delta"], 3)
 
+    def test_una_seconda_scrittura_parziale_non_cancella_la_prima(self):
+        """Il PASSO 4 riscrive la riga del PASSO 2: se ricopia solo le colonne esterne,
+        i valori interni non devono sparire."""
+        stato.scrivi_numeri({"data": "2026-08-16", "lead_oggi": 7, "partner_attivi": 10})
+        stato.scrivi_numeri({"data": "2026-08-16", "meta_spesa_giorno": 1.5})
+        riga = stato.leggi_numeri()[0]
+        self.assertEqual(riga["lead_oggi"], "7", "il valore interno deve sopravvivere")
+        self.assertEqual(riga["partner_attivi"], "10")
+        self.assertEqual(riga["meta_spesa_giorno"], "1.5")
+
+    def test_un_None_esplicito_svuota_la_cella(self):
+        stato.scrivi_numeri({"data": "2026-08-16", "lead_oggi": 7})
+        stato.scrivi_numeri({"data": "2026-08-16", "lead_oggi": None})
+        self.assertEqual(stato.leggi_numeri()[0]["lead_oggi"], "")
+
     def test_valore_non_numerico_non_produce_delta(self):
         stato.scrivi_numeri({"data": "2026-08-14", "meta_campagna_obiettivo": "OUTCOME_TRAFFIC"})
         esito = stato.confronta({"data": "2026-08-15", "meta_campagna_obiettivo": "OUTCOME_LEADS"})
@@ -219,18 +234,23 @@ class TestCancello(BaseStato):
         self.assertTrue(ok)
 
     def test_l_attesa_di_un_tipo_non_blocca_un_altro_tipo(self):
+        """Un'azione appena fatta di un ALTRO tipo non deve chiudere il cancello.
+
+        Se `azione_permessa` guardasse l'ultima azione qualunque invece dell'ultima
+        dello stesso tipo, questo test fallirebbe.
+        """
         adesso = datetime(2026, 8, 15, 9, 0, tzinfo=timezone.utc)
-        self._scrivi_azioni([{"tipo": "campagna_obiettivo", "quando": adesso.isoformat()}])
-        ok, _ = stato.azione_permessa("pubblica_post", adesso=adesso)
+        self._scrivi_azioni([{"tipo": "coda_apri", "quando": adesso.isoformat()}])
+        ok, _ = stato.azione_permessa("campagna_obiettivo", adesso=adesso)
         self.assertTrue(ok, "l'attesa e' per tipo, non globale")
 
     def test_ultima_azione_prende_la_piu_recente_dello_stesso_tipo(self):
         self._scrivi_azioni([
-            {"tipo": "pubblica_post", "quando": "2026-08-10T09:00:00+00:00", "cosa": "vecchia"},
+            {"tipo": "coda_apri", "quando": "2026-08-10T09:00:00+00:00", "cosa": "vecchia"},
             {"tipo": "campagna_obiettivo", "quando": "2026-08-11T09:00:00+00:00", "cosa": "altra"},
-            {"tipo": "pubblica_post", "quando": "2026-08-12T09:00:00+00:00", "cosa": "recente"},
+            {"tipo": "coda_apri", "quando": "2026-08-12T09:00:00+00:00", "cosa": "recente"},
         ])
-        self.assertEqual(stato.ultima_azione("pubblica_post")["cosa"], "recente")
+        self.assertEqual(stato.ultima_azione("coda_apri")["cosa"], "recente")
         self.assertIsNone(stato.ultima_azione("mai_fatta"))
 
 
@@ -276,6 +296,39 @@ class TestRegistraAzione(BaseStato):
 
     def test_azioni_dal_senza_azioni_restituisce_lista_vuota(self):
         self.assertEqual(stato.azioni_dal("2026-08-14"), [])
+
+    def test_azioni_dal_esclude_le_azioni_DEL_giorno_indicato(self):
+        """Il confine e' il caso che si presenta davvero: l'azione del briefing di ieri
+        non deve ricomparire in quello di oggi."""
+        percorso = stato.cartella_stato() / "azioni.json"
+        percorso.write_text(json.dumps([
+            {"tipo": "coda_apri", "quando": "2026-08-16T05:52:00+00:00", "cosa": "di ieri"},
+            {"tipo": "coda_apri", "quando": "2026-08-17T05:52:00+00:00", "cosa": "di oggi"},
+        ]), encoding="utf-8")
+        self.assertEqual([a["cosa"] for a in stato.azioni_dal("2026-08-16")], ["di oggi"])
+
+    def test_il_comando_da_shell_regge_un_apostrofo(self):
+        """E' il modo in cui registra_azione viene chiamata DAVVERO: da riga di comando.
+
+        Il prompt e' scritto senza accenti e insegna a scrivere "perche'" e "l'obiettivo":
+        con gli argomenti come letterali Python fra apici singoli, il primo apostrofo
+        produce SyntaxError, l'azione risulta fatta su Meta e non registrata.
+        """
+        import subprocess
+        cartella = str(Path(__file__).resolve().parents[1])
+        codice = (
+            "import sys; sys.path.insert(0, r'" + cartella + "'); "
+            "import stato; print(stato.registra_azione(*sys.argv[1:])['id'])"
+        )
+        esito = subprocess.run(
+            [sys.executable, "-c", codice, "campagna_obiettivo",
+             "rimesso l'obiettivo su Lead", "perche' spendeva senza lead", "fatto"],
+            capture_output=True, text=True, env={**os.environ, "LUCA_STATO_DIR": str(stato.cartella_stato())},
+        )
+        self.assertEqual(esito.returncode, 0, f"stderr: {esito.stderr}")
+        azioni = stato.leggi_azioni()
+        self.assertEqual(len(azioni), 1)
+        self.assertIn("l'obiettivo", azioni[0]["cosa"])
 
 
 if __name__ == "__main__":
