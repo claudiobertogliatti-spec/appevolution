@@ -1,19 +1,29 @@
-"""Piano read-only e conservativo per migrare la Fase 2 canonica."""
+"""Piano e apply conservativo per migrare la Fase 2 canonica."""
+import asyncio
+from copy import deepcopy
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import base64
 import hashlib
 import json
+import time
 from typing import Any
+import uuid
 
 from fastapi import HTTPException
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+from pymongo import ReturnDocument
 from services.journey_completion import (
     all_required_lessons_approved,
     approved_launch_calendar_context,
     masterclass_current_version_approved,
 )
 from services.phase2_conformity import evaluate_phase2_conformity
+from services.phase2_output_versions import (
+    OutputVersionRequest,
+    archive_phase2_output,
+    canonical_source_checksum,
+)
 from services.sales_system_readiness import (
     evaluate_launch_readiness,
     evaluate_sales_system,
@@ -75,6 +85,14 @@ _SENSITIVE_KEYS = {
     "secret",
     "token",
 }
+_APPLY_LEASE_SECONDS = 30
+_APPLY_WAIT_SECONDS = 10
+_APPLY_POLL_SECONDS = 0.01
+_MIGRATION_MARKER_FIELDS = (
+    "phase2_migration_report_id",
+    "phase2_migration_action_ids",
+    "phase2_migration_applied_at",
+)
 
 
 @dataclass(frozen=True)
@@ -106,6 +124,50 @@ class MigrationPlan:
         }
 
 
+class MigrationConflict(RuntimeError):
+    """Il report non rappresenta piu' lo stato corrente o ha perso il CAS."""
+
+
+@dataclass(frozen=True)
+class MigrationReport:
+    report_id: str
+    partner_id: str
+    actor_id: str
+    status: str
+    source_checksum: str
+    actions: list[dict[str, Any]]
+    created_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return _normalize_for_json({
+            "report_id": self.report_id,
+            "partner_id": self.partner_id,
+            "actor_id": self.actor_id,
+            "status": self.status,
+            "source_checksum": self.source_checksum,
+            "actions": self.actions,
+            "created_at": self.created_at,
+        })
+
+
+@dataclass(frozen=True)
+class MigrationApplyResult:
+    report_id: str
+    partner_id: str
+    snapshot_id: str
+    audit_id: str
+    applied_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return _normalize_for_json({
+            "report_id": self.report_id,
+            "partner_id": self.partner_id,
+            "snapshot_id": self.snapshot_id,
+            "audit_id": self.audit_id,
+            "applied_at": self.applied_at,
+        })
+
+
 def _matches_partner(collection_name: str, partner_id: str) -> dict[str, str]:
     return {"id": partner_id} if collection_name == "partners" else {"partner_id": partner_id}
 
@@ -115,11 +177,29 @@ async def _find_many(collection, query: dict[str, Any]) -> list[dict[str, Any]]:
     return await cursor.to_list(length=1000)
 
 
+async def _find_many_full(collection, query: dict[str, Any]) -> list[dict[str, Any]]:
+    cursor = collection.find(query)
+    return await cursor.to_list(length=1000)
+
+
 async def _load_source_snapshot(db, partner_id: str) -> dict[str, list[dict[str, Any]]]:
     snapshot = {}
     for collection_name in _SOURCE_COLLECTIONS:
         collection = getattr(db, collection_name)
         documents = await _find_many(
+            collection, _matches_partner(collection_name, partner_id)
+        )
+        snapshot[collection_name] = sorted(documents, key=_canonical_json)
+    return snapshot
+
+
+async def _load_full_source_snapshot(
+    db, partner_id: str
+) -> dict[str, list[dict[str, Any]]]:
+    snapshot = {}
+    for collection_name in _SOURCE_COLLECTIONS:
+        collection = getattr(db, collection_name)
+        documents = await _find_many_full(
             collection, _matches_partner(collection_name, partner_id)
         )
         snapshot[collection_name] = sorted(documents, key=_canonical_json)
@@ -162,6 +242,20 @@ def _canonical_json(value: Any) -> str:
 
 def _source_checksum(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(snapshot).encode("utf-8")).hexdigest()
+
+
+def _checksum_from_full_snapshot(snapshot: dict[str, Any]) -> str:
+    without_mongo_ids = {
+        collection: sorted(
+            [
+                {key: value for key, value in document.items() if key != "_id"}
+                for document in documents
+            ],
+            key=_canonical_json,
+        )
+        for collection, documents in snapshot.items()
+    }
+    return _source_checksum(without_mongo_ids)
 
 
 def _safe_value(value: Any) -> Any:
@@ -712,3 +806,789 @@ async def plan_phase2_migration(
         source_checksum=_source_checksum(snapshot),
         actions=actions,
     )
+
+
+def _report_from_document(document: dict[str, Any]) -> MigrationReport:
+    return MigrationReport(
+        report_id=document["report_id"],
+        partner_id=document["partner_id"],
+        actor_id=document["actor_id"],
+        status=document["status"],
+        source_checksum=document["source_checksum"],
+        actions=deepcopy(document["actions"]),
+        created_at=document["created_at"],
+    )
+
+
+def _apply_result_from_document(document: dict[str, Any]) -> MigrationApplyResult:
+    return MigrationApplyResult(
+        report_id=document["report_id"],
+        partner_id=document["partner_id"],
+        snapshot_id=document["snapshot_id"],
+        audit_id=document["audit_id"],
+        applied_at=document["applied_at"],
+    )
+
+
+def _step_expectations(snapshot: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for document in snapshot["partner_journey_steps"]:
+        step_id = document.get("step_id")
+        if step_id in _CANONICAL_BY_ID:
+            grouped.setdefault(step_id, []).append(document)
+    expectations = {}
+    for step_id in _CANONICAL_STEP_IDS:
+        documents = grouped.get(step_id, [])
+        selected = _steps_by_id(documents).get(step_id) if documents else None
+        expectations[step_id] = {
+            "record_count": len(documents),
+            "updated_at_exists": bool(selected and "updated_at" in selected),
+            "updated_at": selected.get("updated_at") if selected else None,
+            "status_exists": bool(selected and "status" in selected),
+            "status": selected.get("status") if selected else None,
+        }
+    return expectations
+
+
+async def create_phase2_dry_run(
+    db, partner_id: str, actor_id: str
+) -> MigrationReport:
+    """Persiste un report revisionabile; azioni e checksum non vengono piu' mutati."""
+    partner_id = str(partner_id)
+    actor_id = str(actor_id)
+    plan = None
+    snapshot = None
+    for _ in range(3):
+        plan = await plan_phase2_migration(db, partner_id, actor_id)
+        snapshot = await _load_source_snapshot(db, partner_id)
+        if _source_checksum(snapshot) == plan.source_checksum:
+            break
+    else:
+        raise MigrationConflict("source changed while creating dry-run report")
+
+    now = datetime.now(timezone.utc)
+    document = {
+        "report_id": uuid.uuid4().hex,
+        "partner_id": partner_id,
+        "actor_id": actor_id,
+        "status": "review_required",
+        "source_checksum": plan.source_checksum,
+        "actions": deepcopy(plan.actions),
+        "expected_steps": _step_expectations(snapshot),
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.partner_phase2_migration_reports.insert_one(document)
+    return _report_from_document(document)
+
+
+def _journey_patches(actions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    patches: dict[str, dict[str, Any]] = {}
+    for action in actions:
+        if action["kind"] not in {
+            "normalize_metadata",
+            "reopen_step",
+            "transition_downstream",
+        }:
+            continue
+        step_id = action["step_id"]
+        target = patches.setdefault(step_id, {"fields": {}, "action_ids": []})
+        target["fields"].update(deepcopy(action["after"]))
+        target["action_ids"].append(action["action_id"])
+    for patch in patches.values():
+        if patch["fields"].get("status") == "in_progress":
+            patch["fields"].setdefault("blocked_reason_code", None)
+    return patches
+
+
+def _same_documents(left: list[dict[str, Any]], right: list[dict[str, Any]]) -> bool:
+    return sorted(map(_canonical_json, left)) == sorted(map(_canonical_json, right))
+
+
+def _step_documents_compatible(
+    original: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+    report: dict[str, Any],
+) -> bool:
+    patches = _journey_patches(report["actions"])
+    original_by_id: dict[str, list[dict[str, Any]]] = {}
+    current_by_id: dict[str, list[dict[str, Any]]] = {}
+    for document in original:
+        original_by_id.setdefault(str(document.get("step_id")), []).append(document)
+    for document in current:
+        current_by_id.setdefault(str(document.get("step_id")), []).append(document)
+    if set(original_by_id) != set(current_by_id):
+        return False
+    for step_id, originals in original_by_id.items():
+        currents = current_by_id[step_id]
+        if _same_documents(originals, currents):
+            continue
+        if step_id not in patches or len(originals) != 1 or len(currents) != 1:
+            return False
+        before = deepcopy(originals[0])
+        after = deepcopy(currents[0])
+        if after.get("phase2_migration_report_id") != report["report_id"]:
+            return False
+        for field in patches[step_id]["fields"]:
+            if field in before:
+                after[field] = deepcopy(before[field])
+            else:
+                after.pop(field, None)
+        if "updated_at" in before:
+            after["updated_at"] = deepcopy(before["updated_at"])
+        else:
+            after.pop("updated_at", None)
+        for marker in _MIGRATION_MARKER_FIELDS:
+            after.pop(marker, None)
+        if _canonical_json(before) != _canonical_json(after):
+            return False
+    return True
+
+
+def _output_identity(document: dict[str, Any]) -> tuple[Any, ...]:
+    if document.get("_id") is not None:
+        return ("_id", str(document["_id"]))
+    return tuple(
+        document.get(field)
+        for field in (
+            "partner_id",
+            "step_id",
+            "template_id",
+            "template_version",
+            "checksum",
+            "source_checksum",
+            "output_id",
+        )
+    )
+
+
+def _output_version_identity(document: dict[str, Any]) -> tuple[Any, ...]:
+    return tuple(
+        document.get(field)
+        for field in (
+            "partner_id",
+            "step_id",
+            "template_id",
+            "template_version",
+            "checksum",
+            "source_checksum",
+        )
+    )
+
+
+def _legacy_output_request(
+    report: dict[str, Any], action: dict[str, Any]
+) -> OutputVersionRequest:
+    category = action.get("after", {}).get("category") or (
+        "calendario_30gg" if action["step_id"] == "11-calendario-30gg"
+        else _OUTPUT_CATEGORY.get(action["step_id"], "legacy_phase2")
+    )
+    return OutputVersionRequest(
+        partner_id=report["partner_id"],
+        step_id=action["step_id"],
+        category=category,
+        template_id=f"legacy-reference-{category}",
+        template_version="migration-v1",
+        content={
+            "migration_report_id": report["report_id"],
+            "source_refs": deepcopy(action.get("before", {}).get("source_refs", [])),
+        },
+        source_checksums={
+            "migration_report_id": report["report_id"],
+            "migration_source_checksum": report["source_checksum"],
+            "migration_action_id": action["action_id"],
+        },
+        actor_id=report.get("apply_actor_id") or report["actor_id"],
+        initial_status="legacy",
+    )
+
+
+def _request_output_identity(request: OutputVersionRequest) -> tuple[Any, ...]:
+    payload = json.dumps(
+        request.content,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return (
+        request.partner_id,
+        request.step_id,
+        request.template_id,
+        request.template_version,
+        hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+        canonical_source_checksum(request.source_checksums),
+    )
+
+
+def _is_expected_migration_output(
+    document: dict[str, Any], request: OutputVersionRequest
+) -> bool:
+    if _output_version_identity(document) != _request_output_identity(request):
+        return False
+    if not document.get("output_id"):
+        allowed_partial_fields = {
+            "_id",
+            "partner_id",
+            "step_id",
+            "template_id",
+            "template_version",
+            "checksum",
+            "source_checksum",
+            "reservation_token",
+            "reservation_state",
+            "reservation_expires_at",
+            "reservation_recovered_at",
+            "reserved_version",
+            "created_at",
+        }
+        return (
+            document.get("reservation_state") == "allocating"
+            and set(document) <= allowed_partial_fields
+        )
+    return (
+        document.get("status") == "legacy"
+        and document.get("category") == request.category
+        and _canonical_json(document.get("content"))
+        == _canonical_json(request.content)
+        and _canonical_json(document.get("source_checksums"))
+        == _canonical_json(request.source_checksums)
+        and document.get("partner_approved") is not True
+        and document.get("approved_at") is None
+    )
+
+
+def _output_documents_compatible(
+    original: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+    report: dict[str, Any],
+) -> bool:
+    archived_step_ids = {
+        action["step_id"]
+        for action in report["actions"]
+        if action["kind"] == "archive_legacy"
+    }
+    expected_migration_requests = {
+        _request_output_identity(request): request
+        for action in report["actions"]
+        if action["kind"] == "archive_legacy"
+        for request in [_legacy_output_request(report, action)]
+    }
+    current_originals = {}
+    for document in current:
+        request = expected_migration_requests.get(_output_version_identity(document))
+        if request and _is_expected_migration_output(document, request):
+            continue
+        current_originals[_output_identity(document)] = document
+    if len(current_originals) != len(original):
+        return False
+    for before in original:
+        after = current_originals.get(_output_identity(before))
+        if after is None:
+            return False
+        if _canonical_json(before) == _canonical_json(after):
+            continue
+        restored = deepcopy(after)
+        if before.get("step_id") not in archived_step_ids:
+            return False
+        for field in ("status", "is_current"):
+            if field in before:
+                restored[field] = deepcopy(before[field])
+            else:
+                restored.pop(field, None)
+        if _canonical_json(before) != _canonical_json(restored):
+            return False
+    return True
+
+
+def _partner_documents_compatible(
+    original: list[dict[str, Any]], current: list[dict[str, Any]]
+) -> bool:
+    if len(original) != len(current):
+        return False
+    by_id = {str(document.get("id")): document for document in current}
+    for before in original:
+        after = by_id.get(str(before.get("id")))
+        if after is None:
+            return False
+        restored = deepcopy(after)
+        if "phase" in before:
+            restored["phase"] = deepcopy(before["phase"])
+        else:
+            restored.pop("phase", None)
+        if _canonical_json(before) != _canonical_json(restored):
+            return False
+    return True
+
+
+def _source_state_compatible(
+    original: dict[str, list[dict[str, Any]]],
+    current: dict[str, list[dict[str, Any]]],
+    report: dict[str, Any],
+) -> bool:
+    for collection_name in _SOURCE_COLLECTIONS:
+        before = original.get(collection_name, [])
+        after = current.get(collection_name, [])
+        if collection_name == "partner_journey_steps":
+            compatible = _step_documents_compatible(before, after, report)
+        elif collection_name == "partner_phase2_output_versions":
+            compatible = _output_documents_compatible(before, after, report)
+        elif collection_name == "partners":
+            compatible = _partner_documents_compatible(before, after)
+        else:
+            compatible = _same_documents(before, after)
+        if not compatible:
+            return False
+    return True
+
+
+async def _assert_source_compatible(db, report: dict[str, Any], snapshot: dict[str, Any]):
+    current = await _load_full_source_snapshot(db, report["partner_id"])
+    if not _source_state_compatible(snapshot["source"], current, report):
+        raise MigrationConflict("stale source detected during apply")
+
+
+async def _ensure_snapshot(
+    db,
+    report: dict[str, Any],
+    full_snapshot: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    snapshot_id = f"phase2-snapshot-{report['report_id']}"
+    snapshot = await db.partner_phase2_migration_snapshots.find_one_and_update(
+        {"report_id": report["report_id"]},
+        {
+            "$setOnInsert": {
+                "snapshot_id": snapshot_id,
+                "report_id": report["report_id"],
+                "partner_id": report["partner_id"],
+                "source_checksum": report["source_checksum"],
+                "source": deepcopy(full_snapshot),
+                "created_at": now,
+                "created_by": report.get("apply_actor_id") or report["actor_id"],
+            }
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    if (
+        snapshot.get("source_checksum") != report["source_checksum"]
+        or snapshot.get("partner_id") != report["partner_id"]
+    ):
+        raise MigrationConflict("snapshot identity conflict")
+    return snapshot
+
+
+def _before_step_audit(source: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    steps = _steps_by_id(source["partner_journey_steps"])
+    return {
+        step_id: {
+            field: deepcopy(step[field])
+            for field in ("status", "completed_at", "updated_at")
+            if field in step
+        }
+        for step_id, step in steps.items()
+        if step_id in _CANONICAL_BY_ID
+    }
+
+
+async def _ensure_audit(
+    db, report: dict[str, Any], snapshot: dict[str, Any]
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    audit_id = f"phase2-audit-{report['report_id']}"
+    return await db.partner_phase2_migration_audit.find_one_and_update(
+        {"report_id": report["report_id"]},
+        {
+            "$setOnInsert": {
+                "audit_id": audit_id,
+                "report_id": report["report_id"],
+                "partner_id": report["partner_id"],
+                "snapshot_id": snapshot["snapshot_id"],
+                "source_checksum": report["source_checksum"],
+                "planned_actions": deepcopy(report["actions"]),
+                "before_steps": _before_step_audit(snapshot["source"]),
+                "effects": {},
+                "created_at": now,
+            },
+            "$set": {
+                "status": "applying",
+                "last_attempt_at": now,
+                "last_actor_id": report.get("apply_actor_id") or report["actor_id"],
+            },
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+async def _record_effect(db, report_id: str, action_id: str, effect: dict[str, Any]):
+    await db.partner_phase2_migration_audit.update_one(
+        {"report_id": report_id},
+        {"$set": {f"effects.{action_id}": deepcopy(effect)}},
+    )
+
+
+async def _renew_lease(db, report_id: str, lease_id: str):
+    now = datetime.now(timezone.utc)
+    renewed = await db.partner_phase2_migration_reports.find_one_and_update(
+        {"report_id": report_id, "status": "applying", "lease_id": lease_id},
+        {"$set": {"lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS)}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not renewed:
+        raise MigrationConflict("migration apply lease lost")
+
+
+async def _archive_legacy_action(
+    db, report: dict[str, Any], action: dict[str, Any]
+) -> dict[str, Any]:
+    request = _legacy_output_request(report, action)
+    result = await archive_phase2_output(
+        db,
+        request,
+    )
+    return {
+        "status": "applied",
+        "kind": "archive_legacy",
+        "output_id": result.output_id,
+        "version": result.version,
+        "created": result.created,
+    }
+
+
+def _patch_matches(document: dict[str, Any], fields: dict[str, Any]) -> bool:
+    return all(_canonical_json(document.get(key)) == _canonical_json(value) for key, value in fields.items())
+
+
+async def _apply_journey_patch(
+    db,
+    report: dict[str, Any],
+    step_id: str,
+    patch: dict[str, Any],
+) -> bool:
+    collection = db.partner_journey_steps
+    current = await collection.find_one(
+        {"partner_id": report["partner_id"], "step_id": step_id}
+    )
+    desired = deepcopy(patch["fields"])
+    if (
+        current
+        and current.get("phase2_migration_report_id") == report["report_id"]
+        and _patch_matches(current, desired)
+    ):
+        return False
+
+    expected = report["expected_steps"].get(step_id) or {}
+    if expected.get("record_count") != 1:
+        raise MigrationConflict(
+            f"compare-and-set failed for {step_id}: expected exactly one journey record"
+        )
+    query: dict[str, Any] = {
+        "partner_id": report["partner_id"],
+        "step_id": step_id,
+    }
+    if expected.get("updated_at_exists"):
+        query["updated_at"] = expected.get("updated_at")
+    else:
+        query["updated_at"] = {"$exists": False}
+    if expected.get("status_exists"):
+        query["status"] = expected.get("status")
+    else:
+        query["status"] = {"$exists": False}
+
+    now = datetime.now(timezone.utc)
+    fields = {
+        **desired,
+        "updated_at": now,
+        "phase2_migration_report_id": report["report_id"],
+        "phase2_migration_action_ids": list(patch["action_ids"]),
+        "phase2_migration_applied_at": now,
+    }
+    result = await collection.update_one(query, {"$set": fields})
+    if getattr(result, "matched_count", 0) != 1:
+        raced = await collection.find_one(
+            {"partner_id": report["partner_id"], "step_id": step_id}
+        )
+        if not (
+            raced
+            and raced.get("phase2_migration_report_id") == report["report_id"]
+            and _patch_matches(raced, desired)
+        ):
+            raise MigrationConflict(f"compare-and-set failed for {step_id}")
+        return False
+    return True
+
+
+async def _project_partner_phase(db, partner_id: str):
+    # Usa la proiezione gia' adottata dalla migrazione canonica; phase resta derivata.
+    from scripts.migrate_to_canonical_journey import _project_phase
+
+    await _project_phase(db, partner_id, apply=True)
+
+
+async def _wait_for_applied_report(db, report_id: str) -> MigrationApplyResult:
+    deadline = time.monotonic() + _APPLY_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        latest = await db.partner_phase2_migration_reports.find_one({"report_id": report_id})
+        if latest and latest.get("status") == "applied":
+            return _apply_result_from_document(latest)
+        if latest and latest.get("status") == "conflict":
+            raise MigrationConflict("migration report is in conflict")
+        await asyncio.sleep(_APPLY_POLL_SECONDS)
+    raise MigrationConflict("migration apply lease is still active")
+
+
+async def _mark_conflict(db, report_id: str, lease_id: str, reason: str):
+    now = datetime.now(timezone.utc)
+    await db.partner_phase2_migration_audit.update_one(
+        {"report_id": report_id},
+        {
+            "$set": {
+                "status": "conflict",
+                "conflict_at": now,
+                "conflict_reason": reason,
+            }
+        },
+    )
+    await db.partner_phase2_migration_reports.update_one(
+        {"report_id": report_id, "status": "applying", "lease_id": lease_id},
+        {
+            "$set": {
+                "status": "conflict",
+                "conflict_at": now,
+                "conflict_reason": reason,
+            },
+            "$unset": {"lease_id": "", "lease_expires_at": ""},
+        },
+    )
+
+
+async def apply_phase2_migration(
+    db, report_id: str, actor_id: str
+) -> MigrationApplyResult:
+    """Applica un report revisionato con lease, snapshot, CAS e retry idempotente."""
+    reports = db.partner_phase2_migration_reports
+    report = await reports.find_one({"report_id": str(report_id)})
+    if not report:
+        raise MigrationConflict("migration report not found")
+    if report.get("status") == "applied":
+        return _apply_result_from_document(report)
+    if report.get("status") == "conflict":
+        raise MigrationConflict("migration report is in conflict")
+
+    now = datetime.now(timezone.utc)
+    lease_id = uuid.uuid4().hex
+    claimed = None
+    full_snapshot = None
+    if report.get("status") == "review_required":
+        current = await _load_source_snapshot(db, report["partner_id"])
+        current_checksum = _source_checksum(current)
+        if current_checksum != report["source_checksum"]:
+            raise MigrationConflict("stale migration report: source changed")
+        claimed = await reports.find_one_and_update(
+            {
+                "report_id": report["report_id"],
+                "status": "review_required",
+                "source_checksum": current_checksum,
+            },
+            {
+                "$set": {
+                    "status": "applying",
+                    "lease_id": lease_id,
+                    "lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS),
+                    "apply_started_at": now,
+                    "apply_actor_id": str(actor_id),
+                    "updated_at": now,
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if not claimed:
+            latest = await reports.find_one({"report_id": report["report_id"]})
+            if latest and latest.get("status") == "applied":
+                return _apply_result_from_document(latest)
+            if latest and latest.get("status") == "applying":
+                return await _wait_for_applied_report(db, report["report_id"])
+            raise MigrationConflict("migration report could not be claimed")
+        full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
+        if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
+            await reports.update_one(
+                {"report_id": report["report_id"], "lease_id": lease_id},
+                {
+                    "$set": {"status": "review_required", "last_conflict_at": now},
+                    "$unset": {"lease_id": "", "lease_expires_at": ""},
+                },
+            )
+            raise MigrationConflict("stale migration report: source changed after claim")
+    elif report.get("status") == "applying":
+        expires_at = report.get("lease_expires_at")
+        if expires_at and expires_at > now:
+            return await _wait_for_applied_report(db, report["report_id"])
+        stored_snapshot = await db.partner_phase2_migration_snapshots.find_one(
+            {"report_id": report["report_id"]}
+        )
+        claim_query = {
+            "report_id": report["report_id"],
+            "status": "applying",
+            "source_checksum": report["source_checksum"],
+            "lease_id": report.get("lease_id"),
+            "lease_expires_at": {"$lte": now},
+        }
+        claimed = await reports.find_one_and_update(
+            claim_query,
+            {
+                "$set": {
+                    "lease_id": lease_id,
+                    "lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS),
+                    "apply_recovered_at": now,
+                    "apply_actor_id": str(actor_id),
+                    "updated_at": now,
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if not claimed:
+            latest = await reports.find_one({"report_id": report["report_id"]})
+            if latest and latest.get("status") == "applied":
+                return _apply_result_from_document(latest)
+            return await _wait_for_applied_report(db, report["report_id"])
+        if stored_snapshot:
+            try:
+                await _assert_source_compatible(db, claimed, stored_snapshot)
+            except MigrationConflict as exc:
+                await _mark_conflict(db, report["report_id"], lease_id, str(exc))
+                raise
+            full_snapshot = stored_snapshot["source"]
+        else:
+            current = await _load_source_snapshot(db, report["partner_id"])
+            if _source_checksum(current) != report["source_checksum"]:
+                reason = "stale migration report without recovery snapshot"
+                await _mark_conflict(db, report["report_id"], lease_id, reason)
+                raise MigrationConflict(reason)
+            full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
+    else:
+        raise MigrationConflict(f"migration report status {report.get('status')} is not applicable")
+
+    report = claimed
+    snapshot = await _ensure_snapshot(db, report, full_snapshot)
+    audit = await _ensure_audit(db, report, snapshot)
+    if audit.get("status") == "applied":
+        applied_at = audit["applied_at"]
+        finalized = await reports.find_one_and_update(
+            {"report_id": report["report_id"], "status": "applying", "lease_id": lease_id},
+            {
+                "$set": {
+                    "status": "applied",
+                    "snapshot_id": snapshot["snapshot_id"],
+                    "audit_id": audit["audit_id"],
+                    "applied_at": applied_at,
+                    "updated_at": applied_at,
+                },
+                "$unset": {"lease_id": "", "lease_expires_at": ""},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if finalized:
+            return _apply_result_from_document(finalized)
+
+    try:
+        await _assert_source_compatible(db, report, snapshot)
+        for action in report["actions"]:
+            if action["kind"] != "archive_legacy":
+                continue
+            await _renew_lease(db, report["report_id"], lease_id)
+            await _assert_source_compatible(db, report, snapshot)
+            effect = await _archive_legacy_action(db, report, action)
+            await _record_effect(db, report["report_id"], action["action_id"], effect)
+
+        patches = _journey_patches(report["actions"])
+        for step_id in _CANONICAL_STEP_IDS:
+            patch = patches.get(step_id)
+            if not patch:
+                continue
+            await _renew_lease(db, report["report_id"], lease_id)
+            await _assert_source_compatible(db, report, snapshot)
+            created = await _apply_journey_patch(db, report, step_id, patch)
+            for action_id in patch["action_ids"]:
+                await _record_effect(
+                    db,
+                    report["report_id"],
+                    action_id,
+                    {
+                        "status": "applied",
+                        "kind": "journey_compare_and_set",
+                        "created": created,
+                    },
+                )
+
+        for action in report["actions"]:
+            if action["kind"] in {
+                "archive_legacy",
+                "normalize_metadata",
+                "reopen_step",
+                "transition_downstream",
+            }:
+                continue
+            if action["kind"] not in {"preserve_source", "preserve_step"}:
+                raise MigrationConflict(f"unsupported migration action {action['kind']}")
+            await _record_effect(
+                db,
+                report["report_id"],
+                action["action_id"],
+                {"status": "preserved", "kind": action["kind"]},
+            )
+
+        await _assert_source_compatible(db, report, snapshot)
+        await _renew_lease(db, report["report_id"], lease_id)
+        await _project_partner_phase(db, report["partner_id"])
+        await db.partner_phase2_migration_audit.update_one(
+            {"report_id": report["report_id"]},
+            {"$set": {"projection_status": "applied"}},
+        )
+    except MigrationConflict as exc:
+        await _mark_conflict(db, report["report_id"], lease_id, str(exc))
+        raise
+    except Exception as exc:
+        await db.partner_phase2_migration_audit.update_one(
+            {"report_id": report["report_id"]},
+            {
+                "$set": {
+                    "status": "partial_failure",
+                    "failed_at": datetime.now(timezone.utc),
+                    "failure_type": type(exc).__name__,
+                }
+            },
+        )
+        raise
+
+    applied_at = datetime.now(timezone.utc)
+    await db.partner_phase2_migration_audit.update_one(
+        {"report_id": report["report_id"]},
+        {
+            "$set": {
+                "status": "applied",
+                "applied_at": applied_at,
+                "applied_by": str(actor_id),
+            }
+        },
+    )
+    finalized = await reports.find_one_and_update(
+        {"report_id": report["report_id"], "status": "applying", "lease_id": lease_id},
+        {
+            "$set": {
+                "status": "applied",
+                "snapshot_id": snapshot["snapshot_id"],
+                "audit_id": audit["audit_id"],
+                "applied_at": applied_at,
+                "updated_at": applied_at,
+            },
+            "$unset": {"lease_id": "", "lease_expires_at": ""},
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not finalized:
+        latest = await reports.find_one({"report_id": report["report_id"]})
+        if latest and latest.get("status") == "applied":
+            return _apply_result_from_document(latest)
+        raise MigrationConflict("migration result could not be finalized")
+    return _apply_result_from_document(finalized)

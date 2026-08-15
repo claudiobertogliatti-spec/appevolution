@@ -89,6 +89,21 @@ _CRITICAL_COMPOUND_INDEXES = [
         [("partner_id", 1), ("step_id", 1)],
         {"unique": True, "name": "phase2_output_counter_unique"},
     ),
+    (
+        "partner_phase2_migration_reports",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_report_id_unique"},
+    ),
+    (
+        "partner_phase2_migration_snapshots",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_snapshot_report_unique"},
+    ),
+    (
+        "partner_phase2_migration_audit",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_audit_report_unique"},
+    ),
 ]
 
 _RETIRED_CRITICAL_INDEXES = [
