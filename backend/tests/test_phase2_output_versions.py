@@ -20,6 +20,8 @@ def _matches(document, query):
     for key, expected in query.items():
         actual = document.get(key)
         if isinstance(expected, dict):
+            if "$exists" in expected and ((key in document) != expected["$exists"]):
+                return False
             if "$lt" in expected and (actual is None or not actual < expected["$lt"]):
                 return False
             if "$gt" in expected and (actual is None or not actual > expected["$gt"]):
@@ -53,10 +55,13 @@ class Collection:
                 for key, value in update.get("$max", {}).items():
                     doc[key] = max(doc.get(key, value), value)
                 doc.update(update.get("$set", {}))
+                for key in update.get("$unset", {}):
+                    doc.pop(key, None)
                 return
         if upsert:
             document = dict(query)
             document.update(update.get("$max", {}))
+            document.update(update.get("$set", {}))
             self.docs.append(document)
 
     async def find_one_and_update(self, query, update, upsert=False, return_document=None):
@@ -65,6 +70,8 @@ class Collection:
                 for key, value in update.get("$inc", {}).items():
                     doc[key] = doc.get(key, 0) + value
                 doc.update(update.get("$set", {}))
+                for key in update.get("$unset", {}):
+                    doc.pop(key, None)
                 return doc.copy()
         if upsert:
             document = dict(query)
@@ -262,11 +269,11 @@ async def test_retry_waits_for_in_progress_identity_reservation():
             self.finalization_started = asyncio.Event()
             self.release_finalization = asyncio.Event()
 
-        async def update_one(self, query, update, upsert=False):
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
             if update.get("$set", {}).get("version") == 1:
                 self.finalization_started.set()
                 await self.release_finalization.wait()
-            await super().update_one(query, update, upsert)
+            return await super().find_one_and_update(query, update, upsert, return_document)
 
     db = FakeDb()
     db.partner_phase2_output_versions = DelayedFinalizationCollection()
@@ -320,6 +327,43 @@ async def test_expired_reservation_is_recovered_once_and_finalized():
 
 
 @pytest.mark.asyncio
+async def test_reclaim_after_counter_increment_returns_only_winning_output():
+    class DelayedVersionPersistenceCollection(Collection):
+        def __init__(self):
+            super().__init__()
+            self.version_persist_started = asyncio.Event()
+            self.release_version_persist = asyncio.Event()
+            self.delayed_once = False
+
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
+            if "reserved_version" in update.get("$set", {}) and not self.delayed_once:
+                self.delayed_once = True
+                self.version_persist_started.set()
+                await self.release_version_persist.wait()
+            return await super().find_one_and_update(query, update, upsert, return_document)
+
+    db = FakeDb()
+    db.partner_phase2_output_versions = DelayedVersionPersistenceCollection()
+    request = make_request()
+    owner_task = asyncio.create_task(archive_phase2_output(db, request))
+    await db.partner_phase2_output_versions.version_persist_started.wait()
+
+    db.partner_phase2_output_versions.docs[0]["reservation_expires_at"] = (
+        datetime.now(timezone.utc) - timedelta(seconds=1)
+    )
+    winner = await archive_phase2_output(db, request)
+    db.partner_phase2_output_versions.release_version_persist.set()
+    old_owner = await owner_task
+
+    assert winner.version == 1
+    assert old_owner.output_id == winner.output_id
+    assert old_owner.version == winner.version
+    assert old_owner.created is False
+    assert db.partner_phase2_output_counters.docs[0]["version"] == 1
+    assert len(db.partner_phase2_output_versions.docs) == 1
+
+
+@pytest.mark.asyncio
 async def test_late_older_insert_does_not_remain_current_after_newer_version():
     class DelayedFirstInsertCollection(Collection):
         def __init__(self):
@@ -327,11 +371,11 @@ async def test_late_older_insert_does_not_remain_current_after_newer_version():
             self.first_insert_started = asyncio.Event()
             self.release_first_insert = asyncio.Event()
 
-        async def update_one(self, query, update, upsert=False):
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
             if update.get("$set", {}).get("version") == 1:
                 self.first_insert_started.set()
                 await self.release_first_insert.wait()
-            await super().update_one(query, update, upsert)
+            return await super().find_one_and_update(query, update, upsert, return_document)
 
     db = FakeDb()
     db.partner_phase2_output_versions = DelayedFirstInsertCollection()
@@ -340,9 +384,13 @@ async def test_late_older_insert_does_not_remain_current_after_newer_version():
     )
     await db.partner_phase2_output_versions.first_insert_started.wait()
 
-    second = await archive_phase2_output(db, make_request(content={"v": 2}))
+    second_task = asyncio.create_task(
+        archive_phase2_output(db, make_request(content={"v": 2}))
+    )
+    await asyncio.sleep(0.02)
+    assert not second_task.done()
     db.partner_phase2_output_versions.release_first_insert.set()
-    first = await first_task
+    first, second = await asyncio.gather(first_task, second_task)
 
     by_version = {document["version"]: document for document in db.partner_phase2_output_versions.docs}
     assert (first.version, second.version) == (1, 2)

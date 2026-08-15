@@ -98,6 +98,62 @@ async def _await_reserved_output(versions, identity: dict):
         backoff = min(backoff * 2, _MAX_RESERVATION_BACKOFF_SECONDS)
 
 
+def _allocation_identity(identity: dict) -> str:
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _reserve_counter_version(db, versions, identity: dict, reservation_token: str) -> int:
+    """Assegna o riusa una versione nel lock atomico del contatore per-step."""
+    counter_identity = {"partner_id": identity["partner_id"], "step_id": identity["step_id"]}
+    allocation_identity = _allocation_identity(identity)
+    latest = await versions.find_one(
+        counter_identity, {"_id": 0, "version": 1}, sort=[("version", -1)]
+    )
+    latest_version = int((latest or {}).get("version") or 0)
+    counters = db.partner_phase2_output_counters
+    try:
+        await counters.update_one(counter_identity, {"$max": {"version": latest_version}}, upsert=True)
+    except DuplicateKeyError:
+        pass
+
+    deadline = time.monotonic() + _RESERVATION_WAIT_SECONDS
+    backoff = _INITIAL_RESERVATION_BACKOFF_SECONDS
+    while True:
+        counter = await counters.find_one(counter_identity, {"_id": 0})
+        if counter and counter.get("allocation_identity") == allocation_identity:
+            return int(counter["version"])
+
+        now = datetime.now(timezone.utc)
+        if counter and counter.get("allocation_identity") and counter.get("allocation_expires_at") > now:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("Allocazione versione Fase 2 ancora in corso; riprovare")
+            await asyncio.sleep(min(backoff, remaining))
+            backoff = min(backoff * 2, _MAX_RESERVATION_BACKOFF_SECONDS)
+            continue
+
+        available = {**counter_identity}
+        if counter and counter.get("allocation_identity"):
+            available["allocation_expires_at"] = {"$lte": now}
+        else:
+            available["allocation_identity"] = {"$exists": False}
+        claimed = await counters.find_one_and_update(
+            available,
+            {
+                "$inc": {"version": 1},
+                "$set": {
+                    "allocation_identity": allocation_identity,
+                    "allocation_token": reservation_token,
+                    "allocation_expires_at": now + timedelta(seconds=_RESERVATION_LEASE_SECONDS),
+                },
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if claimed and claimed.get("allocation_identity") == allocation_identity:
+            return int(claimed["version"])
+
+
 async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVersionResult:
     """Archivia un output immutabile, versionato e idempotente per identita'."""
     payload = json.dumps(
@@ -159,35 +215,14 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
                     return completed
                 reservation_token = reservation["reservation_token"]
 
-    version = int((reservation or {}).get("reserved_version") or 0)
-    if not version:
-        latest = await versions.find_one(
-            {"partner_id": request.partner_id, "step_id": request.step_id},
-            {"_id": 0, "version": 1},
-            sort=[("version", -1)],
-        )
-        latest_version = int((latest or {}).get("version") or 0)
-        counter_identity = {"partner_id": request.partner_id, "step_id": request.step_id}
-        counters = db.partner_phase2_output_counters
-        try:
-            await counters.update_one(
-                counter_identity,
-                {"$max": {"version": latest_version}},
-                upsert=True,
-            )
-        except DuplicateKeyError:
-            pass
-        counter = await counters.find_one_and_update(
-            counter_identity,
-            {"$inc": {"version": 1}},
-            upsert=True,
-            return_document=ReturnDocument.AFTER,
-        )
-        version = int(counter["version"])
-        await versions.update_one(
-            {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
-            {"$set": {"reserved_version": version}},
-        )
+    version = await _reserve_counter_version(db, versions, identity, reservation_token)
+    persisted_reservation = await versions.find_one_and_update(
+        {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
+        {"$set": {"reserved_version": version}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not persisted_reservation or persisted_reservation.get("reservation_token") != reservation_token:
+        return await archive_phase2_output(db, request)
     output_id = uuid.uuid4().hex
     output = {
         "output_id": output_id,
@@ -201,9 +236,18 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
         "reservation_state": "stored",
         "reservation_expires_at": None,
     }
-    await versions.update_one(
+    finalized = await versions.find_one_and_update(
         {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
         {"$set": output},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not finalized or finalized.get("output_id") != output_id:
+        return await archive_phase2_output(db, request)
+
+    counter_identity = {"partner_id": request.partner_id, "step_id": request.step_id}
+    await db.partner_phase2_output_counters.update_one(
+        {**counter_identity, "allocation_identity": _allocation_identity(identity)},
+        {"$unset": {"allocation_identity": "", "allocation_token": "", "allocation_expires_at": ""}},
     )
 
     await versions.update_many(
@@ -228,7 +272,7 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
             {"output_id": output_id, "is_current": True},
             {"$set": {"status": "superseded", "is_current": False}},
         )
-    return OutputVersionResult(output_id, version, checksum, True)
+    return OutputVersionResult(finalized["output_id"], finalized["version"], finalized["checksum"], True)
 
 
 async def current_approved_output(db, partner_id, step_id):
