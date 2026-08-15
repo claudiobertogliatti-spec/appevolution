@@ -12,6 +12,44 @@ Regole:
 
 ---
 
+### 2026-08-15 · Claude Code (Luca) · cc/luca-fase1-occhi-memoria — Luca da consulente ad agente esecutivo (Fasi 1 e 2)
+
+Richiesta: rendere Luca un vero agente esecutivo. Due fasi, spec + piano + esecuzione a subagent con
+revisione per task e review finale sull'intero branch.
+
+**VERIFICATO**
+- **Il briefing vedeva solo dentro casa.** `briefing_luca.py` leggeva 2 endpoint interni: tutto cio' che
+  era rotto il 14/8 stava fuori. Ora le fonti sono 5 su due sensori (HTTP per Ciak e sito, MCP per
+  Meta/social/Systeme, letti dall'agente perche' un processo Python headless non ha quei tool).
+- **La chat di Ciak non ha tool**: `grep -n "tools" backend/routers/admin_luca.py` -> 0 occorrenze,
+  `messages.create` senza il parametro. Il mandato "ESEGUE dentro Ciak" scritto il 12/8 era dato a un
+  agente senza mani. Corretto: ora quel prompt dice che in chat legge e prepara.
+- **Dentro Ciak nessuno dei due Luca scrive**: dal commit `fa110052` ogni scrittura sui dati partner
+  richiede il token admin. Non aggirato: si prepara, esegue Claudio.
+- **Memoria che sopravvive alla notte**: `stato.py` con `numeri.csv` (serie storica, scrittura atomica),
+  `coda.json`, `registro.md`, `azioni.json`. 52 test, tutti verdi.
+- **Il 15/8 il briefing e' partito e non ha scritto memoria**: la scrittura stava a valle del passo MCP,
+  che senza permessi blocca l'agente. Corretto spostandola PRIMA (l'upsert sulla data lo consentiva).
+- **Il comando di registrazione si rompeva su un apostrofo** (il file e' senza accenti e insegna a
+  scrivere `perche'`): azione fatta su Meta e non registrata. Riprodotto (`SyntaxError`, exit 1),
+  corretto passando gli argomenti via `argv`, e coperto da un test che esercita la riga di comando.
+- **Le mani**: whitelist di azioni nominate in `stato.py` con attesa fra due esecuzioni
+  (`campagna_obiettivo` 7 giorni). Il cancello nega per default e per tipo sconosciuto.
+
+**DICHIARATO (non verificabile da qui)**
+- Che il briefing di domani mattina scriva davvero la riga: si vede solo domani in `numeri.csv`.
+
+**APERTO**
+- 🔑 **I 6 tool MCP sul task `briefing-luca-ad` NON sono approvati** (`approvedPermissions` = 0,
+  verificato nel registro degli scheduled task). Senza, il passo che guarda fuori casa non gira.
+  Li approva Claudio facendo partire il task una volta a mano.
+- ⚠️ **Il cancello NON e' un lucchetto**: nulla impedisce tecnicamente di chiamare un tool MCP
+  saltandolo. La difesa e' procedurale e il prompt lo dice. La frontiera dura sono i permessi sopra.
+- ⛔ **`pubblica_post` rimossa dalla whitelist**: autorizzava a pubblicare da una "coda approvata" che
+  nel sistema non esiste. Si rimette quando la coda dei contenuti esiste davvero.
+- Il messaggio a Claudio resta a valle del passo MCP: se quello blocca, il briefing non arriva (la
+  memoria si', ora). La causa vera sono i permessi mancanti.
+
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
 
 **FATTO**
