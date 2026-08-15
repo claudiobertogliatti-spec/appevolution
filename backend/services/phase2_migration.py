@@ -182,6 +182,16 @@ _PUBLIC_RAW_SOURCE_FIELDS = frozenset({
     "video_uploaded",
     "drive_file_id",
 })
+_PUBLIC_TEMPLATE_IDS = frozenset(
+    f"legacy-reference-{category}" for category in _PUBLIC_CATEGORIES
+)
+_PUBLIC_CANONICAL_STEP_IDS = frozenset(_CANONICAL_STEP_IDS)
+_PUBLIC_STEP_ACTION_KINDS = frozenset({
+    "normalize_metadata",
+    "preserve_step",
+    "reopen_step",
+    "transition_downstream",
+})
 _CHECKSUM_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _ACTION_ID_PATTERN = re.compile(r"^[0-9a-f]{24}$")
 
@@ -678,18 +688,24 @@ def _action(
     return {"action_id": action_id, **body}
 
 
+def _is_allowlisted_string(value: Any, allowed: frozenset[str]) -> bool:
+    return isinstance(value, str) and value in allowed
+
+
 def _public_action_target(action: dict[str, Any]) -> str:
-    target = (action.get("after") or {}).get("target")
-    if not target and action.get("kind") == "preserve_source":
-        target = (action.get("before") or {}).get("collection")
-    if not target and action.get("kind") in {
-        "normalize_metadata",
-        "preserve_step",
-        "reopen_step",
-        "transition_downstream",
-    }:
+    after = action.get("after")
+    target = after.get("target") if isinstance(after, dict) else None
+    kind = action.get("kind")
+    if not target and kind == "preserve_source":
+        before = action.get("before")
+        target = before.get("collection") if isinstance(before, dict) else None
+    if not target and _is_allowlisted_string(kind, _PUBLIC_STEP_ACTION_KINDS):
         target = "partner_journey_steps"
-    return str(target) if target in _PUBLIC_ACTION_TARGETS else "unsupported_target"
+    return (
+        target
+        if _is_allowlisted_string(target, _PUBLIC_ACTION_TARGETS)
+        else "unsupported_target"
+    )
 
 
 def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
@@ -730,48 +746,62 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
         if field not in value:
             continue
         item = value.get(field)
-        if field == "status" and item in _PUBLIC_STATUSES:
+        if field == "status" and _is_allowlisted_string(item, _PUBLIC_STATUSES):
             sanitized[field] = item
-        elif field == "step_number" and isinstance(item, int) and 0 <= item <= 99:
+        elif field == "step_number" and (
+            isinstance(item, int) and not isinstance(item, bool) and 0 <= item <= 99
+        ):
             sanitized[field] = item
-        elif field == "code" and item in _PUBLIC_CODES:
+        elif field == "code" and _is_allowlisted_string(item, _PUBLIC_CODES):
             sanitized[field] = item
-        elif field == "fase_legacy" and item in _PUBLIC_FASE_LEGACY:
+        elif field == "fase_legacy" and _is_allowlisted_string(
+            item, _PUBLIC_FASE_LEGACY
+        ):
             sanitized[field] = item
-        elif field == "macro_phase" and item in _PUBLIC_MACRO_PHASES:
+        elif field == "macro_phase" and _is_allowlisted_string(
+            item, _PUBLIC_MACRO_PHASES
+        ):
             sanitized[field] = item
-        elif field == "label" and item in _PUBLIC_LABELS:
+        elif field == "label" and _is_allowlisted_string(item, _PUBLIC_LABELS):
             sanitized[field] = item
-        elif field == "owner" and item in _PUBLIC_OWNERS:
+        elif field == "owner" and _is_allowlisted_string(item, _PUBLIC_OWNERS):
             sanitized[field] = item
-        elif field == "completion_policy" and item in _PUBLIC_COMPLETION_POLICIES:
+        elif field == "completion_policy" and _is_allowlisted_string(
+            item, _PUBLIC_COMPLETION_POLICIES
+        ):
             sanitized[field] = item
         elif field == "material_categories" and (
             isinstance(item, (list, tuple))
-            and all(category in _PUBLIC_MATERIAL_CATEGORIES for category in item)
+            and all(
+                _is_allowlisted_string(category, _PUBLIC_MATERIAL_CATEGORIES)
+                for category in item
+            )
         ):
             sanitized[field] = list(item)
-        elif field == "blocked_reason_code" and item in {
-            None,
-            _UPSTREAM_BLOCK_REASON,
-        }:
-            sanitized[field] = item
-        elif field == "recovery_action_code" and item in {
-            None,
-            _UPSTREAM_RECOVERY_ACTION,
-        }:
-            sanitized[field] = item
-        elif field == "next_action_step_id" and (
-            item is None or item in _CANONICAL_BY_ID
+        elif field == "blocked_reason_code" and (
+            item is None or item == _UPSTREAM_BLOCK_REASON
         ):
             sanitized[field] = item
-        elif field == "version" and isinstance(item, int) and item >= 0:
+        elif field == "recovery_action_code" and (
+            item is None or item == _UPSTREAM_RECOVERY_ACTION
+        ):
             sanitized[field] = item
-        elif field == "category" and item in _PUBLIC_CATEGORIES:
+        elif field == "next_action_step_id" and (
+            item is None
+            or _is_allowlisted_string(item, _PUBLIC_CANONICAL_STEP_IDS)
+        ):
             sanitized[field] = item
-        elif field == "template_id" and item in {
-            f"legacy-reference-{category}" for category in _PUBLIC_CATEGORIES
-        }:
+        elif field == "version" and (
+            isinstance(item, int) and not isinstance(item, bool) and item >= 0
+        ):
+            sanitized[field] = item
+        elif field == "category" and _is_allowlisted_string(
+            item, _PUBLIC_CATEGORIES
+        ):
+            sanitized[field] = item
+        elif field == "template_id" and _is_allowlisted_string(
+            item, _PUBLIC_TEMPLATE_IDS
+        ):
             sanitized[field] = item
         elif field == "template_version" and item == "migration-v1":
             sanitized[field] = item
@@ -782,23 +812,33 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
             "legacy_calendar_checksum",
         } and isinstance(item, str) and _CHECKSUM_PATTERN.fullmatch(item):
             sanitized[field] = item
-        elif field == "collection" and item in _PUBLIC_ACTION_TARGETS:
+        elif field == "collection" and _is_allowlisted_string(
+            item, _PUBLIC_ACTION_TARGETS
+        ):
             sanitized[field] = item
         elif field == "final_source_fields" and (
             isinstance(item, (list, tuple))
-            and all(source_field in _PUBLIC_FINAL_SOURCE_FIELDS for source_field in item)
+            and all(
+                _is_allowlisted_string(source_field, _PUBLIC_FINAL_SOURCE_FIELDS)
+                for source_field in item
+            )
         ):
             sanitized[field] = list(item)
         elif field == "raw_source_fields" and (
             isinstance(item, (list, tuple))
-            and all(source_field in _PUBLIC_RAW_SOURCE_FIELDS for source_field in item)
+            and all(
+                _is_allowlisted_string(source_field, _PUBLIC_RAW_SOURCE_FIELDS)
+                for source_field in item
+            )
         ):
             sanitized[field] = list(item)
         elif field in {"lesson_count", "raw_lesson_count"} and (
             isinstance(item, int) and not isinstance(item, bool) and item >= 0
         ):
             sanitized[field] = item
-        elif field == "evidence_key" and item in _PUBLIC_COMPLETION_POLICIES:
+        elif field == "evidence_key" and _is_allowlisted_string(
+            item, _PUBLIC_COMPLETION_POLICIES
+        ):
             sanitized[field] = item
         elif field == "change" and item == "none":
             sanitized[field] = item
@@ -815,9 +855,17 @@ def sanitize_phase2_migration_action(action: dict[str, Any]) -> dict[str, Any]:
         "action_id": (
             action_id if _ACTION_ID_PATTERN.fullmatch(action_id) else "invalid_action"
         ),
-        "kind": kind if kind in _PUBLIC_ACTION_KINDS else "unsupported_action",
+        "kind": (
+            kind
+            if _is_allowlisted_string(kind, _PUBLIC_ACTION_KINDS)
+            else "unsupported_action"
+        ),
         "step_id": step_id if step_id in _CANONICAL_BY_ID else "legacy_record",
-        "reason": reason if reason in _PUBLIC_ACTION_REASONS else "unrecognized_reason",
+        "reason": (
+            reason
+            if _is_allowlisted_string(reason, _PUBLIC_ACTION_REASONS)
+            else "unrecognized_reason"
+        ),
         "target": _public_action_target(action),
         "before": _sanitize_operational_fields(action.get("before")),
         "after": _sanitize_operational_fields(action.get("after")),
