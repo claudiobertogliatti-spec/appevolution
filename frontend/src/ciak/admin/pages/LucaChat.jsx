@@ -2,7 +2,8 @@
  * Ciak Admin — Chat con LUCA, l'Amministratore Delegato AI.
  * Coordina i reparti (Acquisizione, Vendite, Delivery, Back office),
  * legge i dati live di tutti e da' a Claudio direzione operativa.
- * Solo consulenza: legge, consiglia, scrive bozze. Non esegue azioni.
+ * Qui in chat legge, consiglia e prepara: senza tool non puo' toccare nulla.
+ * Le mani ce le ha altrove, nel briefing schedulato del mattino sul PC di Claudio.
  *
  * Pensato per essere incastonato nella Cabina di Regia (home /admin) come
  * pannello a riquadro (non a tutta pagina). Riusa il pattern di StefaniaAdmin.
@@ -217,7 +218,7 @@ export function LucaChat({ onAuthExpired, compact = false }) {
             <div className="font-semibold text-base text-slate-900">Luca — Amministratore Delegato</div>
             <div className="flex items-center gap-1.5 text-xs text-slate-600">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Coordina i reparti · legge i dati live · consiglia (non esegue)
+              Coordina i reparti · legge i dati live · qui prepara, agisce nel briefing del mattino
             </div>
           </div>
         </div>

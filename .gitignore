@@ -393,3 +393,4 @@ evolution-pro-site/playwright-artifacts/
 evolution-pro-site/playwright-report/
 evolution-pro-site/tsconfig.tsbuildinfo
 .claude/
+scripts/stato/

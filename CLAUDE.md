@@ -1172,7 +1172,7 @@ Struttura (organigramma a reparti):
 
 **Antonella = reparto Delivery**: vede solo Dashboard + Delivery. Vista da rifinire (panoramica/Oggi dedicati a Delivery) — TODO.
 
-**Luca = nuovo Agente di Riferimento della Dashboard (AD/amministratore delegato di Claudio)**. È un agente **lato admin** (diverso dai 6 customer-facing in `agents.js`): interfaccia unica verso tutti gli agenti, risponde su qualsiasi tema anche tecnico. Fase 1 fatta (etichetta in sidebar). **Fase 2 FATTA (2026-06-29)**: chat AD `LucaChat` dentro la Cabina di Regia (home `/admin`); backend `backend/routers/admin_luca.py` con endpoint `/api/admin/luca/chat` e `/history` (registrato in `server.py` subito dopo `admin_stefania`); contesto live che legge i reparti (partner/fasi/inattivi + step da `partners`/`partner_journey_steps`, lead + analisi 67 EUR da `ciak_leads`/`diagnostic_sessions`, MRR/health da `agent_hub_service`, semaforo da `approval_workflow`); **sistema operativo iniettato nel prompt** rubato dai migliori AD del mondo (Grove, Bezos, Collins, Wickman/EOS, Slootman, Dalio, Benioff, Doerr, Hastings, Campbell, Lencioni, Lean/Toyota, Drucker) = 20 principi + ritmo operativo giorno/settimana/trimestre + protocollo decisionale. Modalita' SOLA CONSULENZA (legge e consiglia, non esegue, non approva). Storico chat in collezione `admin_luca_conversations`. **Resta solo la foto reale** `/agents/luca.jpg`: il connettore GitHub non carica file binari, quindi l'avatar usa il fallback monogramma "L" oro su antracite; la foto va caricata a mano (drag-drop su GitHub) o con un generatore di ritratti. Vincolo: NON toccare il system prompt di Matteo.
+**Luca = nuovo Agente di Riferimento della Dashboard (AD/amministratore delegato di Claudio)**. È un agente **lato admin** (diverso dai 6 customer-facing in `agents.js`): interfaccia unica verso tutti gli agenti, risponde su qualsiasi tema anche tecnico. Fase 1 fatta (etichetta in sidebar). **Fase 2 FATTA (2026-06-29)**: chat AD `LucaChat` dentro la Cabina di Regia (home `/admin`); backend `backend/routers/admin_luca.py` con endpoint `/api/admin/luca/chat` e `/history` (registrato in `server.py` subito dopo `admin_stefania`); contesto live che legge i reparti (partner/fasi/inattivi + step da `partners`/`partner_journey_steps`, lead + analisi 67 EUR da `ciak_leads`/`diagnostic_sessions`, MRR/health da `agent_hub_service`, semaforo da `approval_workflow`); **sistema operativo iniettato nel prompt** rubato dai migliori AD del mondo (Grove, Bezos, Collins, Wickman/EOS, Slootman, Dalio, Benioff, Doerr, Hastings, Campbell, Lencioni, Lean/Toyota, Drucker) = 20 principi + ritmo operativo giorno/settimana/trimestre + protocollo decisionale. Modalita' SOLA CONSULENZA (legge e consiglia, non esegue, non approva). ⚠️ **SUPERATO IL 15/8/2026 — vedi il riquadro "Stato di Luca" più sotto (sessione 2026-08-15): la chat continua a non eseguire, ma il briefing schedulato del mattino sì.** Storico chat in collezione `admin_luca_conversations`. **Resta solo la foto reale** `/agents/luca.jpg`: il connettore GitHub non carica file binari, quindi l'avatar usa il fallback monogramma "L" oro su antracite; la foto va caricata a mano (drag-drop su GitHub) o con un generatore di ritratti. Vincolo: NON toccare il system prompt di Matteo.
 
 Tutte le route preesistenti restano registrate (è un filtro di vista). Pagine fuori sidebar ma vive via URL: `leads`, `clienti-analisi`, `partner-setup-pending`, `automazione` (serve all'area partner), `metriche`, `analisi-prompt`, `template-email`.
 
@@ -1217,6 +1217,36 @@ Sandbox bash Cowork: NESSUNA credenziale git push + DNS ristretto (no ssh github
 ### 2. Verifica onesta del sistema agenti (analisi, non codice)
 - Gli agenti NON dialogano tra loro: sono personaggi (swap del system prompt via target_agent) con cronologia separata. Coordinano via STATO CONDIVISO nel DB (partners, agent_tasks/coda approvazione) + Claudio umano-nel-loop. Lo smistamento di Stefania (route_message) e solo un consiglio, non innesca nessun agente. run_daily_monitoring produce etichette, non azioni.
 - Luca NON e un orchestratore: e read+advise. Per coordinamento vero (futuro): bus task agente-verso-agente, Luca Fase 3 con poteri approva/assegna, memoria condivisa di squadra.
+
+---
+
+## ⚠️ STATO DI LUCA — aggiornato il 15/8/2026. Questo riquadro SUPERA le due righe "SOLA CONSULENZA" qui sopra.
+
+Le note del 27 e 29 giugno restano com'erano scritte: erano vere allora. Cos'e' cambiato:
+
+**Ci sono DUE Luca, e solo uno ha le mani.**
+
+1. **Luca in chat** (`/api/admin/luca/chat`, `LucaChat.jsx`) — **continua a NON eseguire**, e ora il suo
+   prompt lo dice invece di promettere il contrario. Motivo tecnico, non scelta: quella chiamata non
+   passa `tools` a Anthropic, quindi non ha strumenti; e il cancello delle azioni vive sul PC di
+   Claudio, non su Cloud Run. Qui Luca legge lo stato live e **prepara** — cioe' scrive in chiaro cosa
+   va fatto, su quale entita', con quali valori e perche'. ⛔ Non deve dire "me ne occupo io".
+2. **Luca schedulato** (azione programmata delle 7:45, `C:\Users\berto\Claude\Scheduled\briefing-luca-ad\`,
+   **fuori da questo repo**) — **questo AGISCE**, sull'acquisizione, entro una whitelist di azioni
+   nominate: oggi rimettere una campagna Meta su un obiettivo di tipo Lead (attesa 7 giorni fra due
+   esecuzioni, perche' il cambio azzera l'apprendimento). Ogni azione va registrata in `azioni.json` +
+   `registro.md`, altrimenti non e' considerata fatta.
+
+⛔ **Dentro Ciak Luca NON scrive, in nessuna delle due forme:** dal commit `fa110052` (30/7/2026) ogni
+scrittura sui dati partner richiede il token admin di Claudio. E' una decisione di sicurezza voluta,
+non si aggira: si prepara il contenuto e lo esegue lui.
+
+🔑 **La frontiera dura non e' il codice, sono i permessi:** il cancello `azione_permessa()` non e' un
+lucchetto — nulla impedisce tecnicamente a un agente di chiamare un tool MCP saltandolo. Cio' che
+decide davvero cosa Luca puo' toccare e' **quali tool MCP sono approvati sul task schedulato**.
+
+📄 Spec e piano: `docs/superpowers/specs/2026-08-14-luca-agente-esecutivo-design.md` (Fase 1: le fonti
+e la memoria) e `docs/superpowers/specs/2026-08-15-luca-fase2-mani-procedura-design.md` (Fase 2: le mani).
 
 ### 3. Revisione Video stile-Descript dentro Ciak — COSTRUITA, DEPLOYATA, PROVATA
 Idea: la pipeline si ferma DOPO la trascrizione; chi revisiona legge il testo contro lo SCRIPT del team (che il team Ciak produce gia), toglie i tagli sbagliati con un click, approva -> montaggio. Circa 1/10 del tempo vs guardarsi il video.
