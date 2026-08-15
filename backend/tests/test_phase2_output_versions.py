@@ -1,4 +1,7 @@
 import asyncio
+import hashlib
+import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from pymongo.errors import DuplicateKeyError
@@ -20,6 +23,8 @@ def _matches(document, query):
             if "$lt" in expected and (actual is None or not actual < expected["$lt"]):
                 return False
             if "$gt" in expected and (actual is None or not actual > expected["$gt"]):
+                return False
+            if "$lte" in expected and (actual is None or not actual <= expected["$lte"]):
                 return False
             if "$ne" in expected and actual == expected["$ne"]:
                 return False
@@ -269,12 +274,49 @@ async def test_retry_waits_for_in_progress_identity_reservation():
     await db.partner_phase2_output_versions.finalization_started.wait()
 
     retry_task = asyncio.create_task(archive_phase2_output(db, make_request()))
-    await asyncio.sleep(0)
+    await asyncio.sleep(0.02)
+    assert not retry_task.done()
     db.partner_phase2_output_versions.release_finalization.set()
     first, retry = await asyncio.gather(first_task, retry_task)
+    distinct = await archive_phase2_output(db, make_request(content={"v": 2}))
+
+    assert (first.version, retry.version, distinct.version) == (1, 1, 2)
+    assert {first.created, retry.created} == {True, False}
+
+
+@pytest.mark.asyncio
+async def test_expired_reservation_is_recovered_once_and_finalized():
+    request = make_request()
+    content_payload = json.dumps(
+        request.content, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    checksum = hashlib.sha256(content_payload.encode("utf-8")).hexdigest()
+    source_payload = json.dumps(
+        request.source_checksums, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    source_checksum = hashlib.sha256(source_payload.encode("utf-8")).hexdigest()
+    db = FakeDb()
+    db.partner_phase2_output_versions.docs.append({
+        "partner_id": request.partner_id,
+        "step_id": request.step_id,
+        "template_id": request.template_id,
+        "template_version": request.template_version,
+        "checksum": checksum,
+        "source_checksum": source_checksum,
+        "reservation_token": "abandoned-owner",
+        "reservation_state": "allocating",
+        "reservation_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1),
+    })
+
+    first, retry = await asyncio.gather(
+        archive_phase2_output(db, request),
+        archive_phase2_output(db, request),
+    )
 
     assert (first.version, retry.version) == (1, 1)
     assert {first.created, retry.created} == {True, False}
+    assert len(db.partner_phase2_output_versions.docs) == 1
+    assert db.partner_phase2_output_versions.docs[0]["reservation_state"] == "stored"
 
 
 @pytest.mark.asyncio
