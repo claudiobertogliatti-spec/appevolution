@@ -72,6 +72,23 @@ _CRITICAL_COMPOUND_INDEXES = [
             "name": "partner_document_version_counters_partner_kind_unique",
         },
     ),
+    (
+        "partner_phase2_output_versions",
+        [
+            ("partner_id", 1),
+            ("step_id", 1),
+            ("template_id", 1),
+            ("template_version", 1),
+            ("checksum", 1),
+            ("source_checksum", 1),
+        ],
+        {"unique": True, "name": "phase2_output_identity_unique"},
+    ),
+    (
+        "partner_phase2_output_counters",
+        [("partner_id", 1), ("step_id", 1)],
+        {"unique": True, "name": "phase2_output_counter_unique"},
+    ),
 ]
 
 _RETIRED_CRITICAL_INDEXES = [
