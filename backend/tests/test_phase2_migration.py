@@ -6,7 +6,7 @@ import os
 from types import SimpleNamespace
 
 import pytest
-from pymongo.errors import DocumentTooLarge
+from pymongo.errors import AutoReconnect, DocumentTooLarge, OperationFailure
 
 os.environ.setdefault("MONGO_URL", "mongodb://phase2-migration-test.invalid:27017")
 os.environ.setdefault("APP_ENV", "test")
@@ -1156,6 +1156,94 @@ async def test_snapshot_document_too_large_is_terminal_sanitized_and_retryable(d
     ) == 1
 
 
+class AlwaysFailSnapshotCollection:
+    def __init__(self, error):
+        self.error = error
+        self.write_attempts = 0
+        self.read_attempts = 0
+
+    async def find_one_and_update(
+        self, query, update, upsert=False, return_document=None
+    ):
+        self.write_attempts += 1
+        raise self.error
+
+    async def find_one(self, query, projection=None, sort=None):
+        self.read_attempts += 1
+        raise self.error
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("snapshot_error", "error_code", "raw_marker"),
+    [
+        (
+            AutoReconnect("connection lost to raw-host.invalid:27017"),
+            "snapshot_store_unavailable",
+            "raw-host.invalid",
+        ),
+        (
+            OperationFailure(
+                "authentication failed for private-user at auth-host.invalid",
+                code=18,
+            ),
+            "snapshot_store_unauthorized",
+            "auth-host.invalid",
+        ),
+        (
+            RuntimeError("raw-snapshot-private-content"),
+            "snapshot_persist_error",
+            "raw-snapshot-private-content",
+        ),
+    ],
+)
+async def test_snapshot_failure_is_sanitized_and_audit_repairs_without_snapshot_read(
+    daniele_db,
+    snapshot_error,
+    error_code,
+    raw_marker,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    failing_snapshots = AlwaysFailSnapshotCollection(snapshot_error)
+    daniele_db.partner_phase2_migration_snapshots = failing_snapshots
+
+    with pytest.raises(
+        MigrationConflict,
+        match="migration snapshot could not be persisted",
+    ) as caught:
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == error_code
+    assert audit["status"] == "conflict"
+    assert audit["error_code"] == error_code
+    assert failing_snapshots.write_attempts == 1
+    assert failing_snapshots.read_attempts == 0
+    serialized = json.dumps(
+        {"report": stored, "audit": audit, "public_error": str(caught.value)},
+        default=str,
+    )
+    assert raw_marker not in serialized
+
+    daniele_db.partner_phase2_migration_audit.documents.clear()
+    with pytest.raises(MigrationConflict, match="conflict"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    repaired = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert repaired["status"] == "conflict"
+    assert repaired["error_code"] == error_code
+    assert failing_snapshots.write_attempts == 1
+    assert failing_snapshots.read_attempts == 0
+
+
 @pytest.mark.asyncio
 async def test_expired_naive_bson_lease_is_reclaimed(daniele_db):
     report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
@@ -1292,6 +1380,127 @@ async def test_expired_lease_recovers_partial_apply_without_duplicates(daniele_d
         for action in report.actions
     )
     assert len(legacy_outputs) == archive_count
+
+
+class CrashBeforeReportAppliedCollection(FakeCollection):
+    def __init__(self, documents, remaining_crashes=1):
+        super().__init__(documents)
+        self.remaining_crashes = remaining_crashes
+
+    async def find_one_and_update(
+        self, query, update, upsert=False, return_document=None
+    ):
+        if (
+            self.remaining_crashes
+            and update.get("$set", {}).get("status") == "applied"
+        ):
+            self.remaining_crashes -= 1
+            raise RuntimeError("simulated crash before report applied CAS")
+        return await super().find_one_and_update(
+            query,
+            update,
+            upsert=upsert,
+            return_document=return_document,
+        )
+
+
+@pytest.mark.asyncio
+async def test_recovery_finalizes_compatible_applied_audit_before_stale_check(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_reports = CrashBeforeReportAppliedCollection(
+        daniele_db.partner_phase2_migration_reports.documents,
+        remaining_crashes=2,
+    )
+
+    with pytest.raises(RuntimeError, match="before report applied CAS"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    crashed_report = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    completed_audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    terminal_audit_lease = completed_audit["lease_id"]
+    assert crashed_report["status"] == "applying"
+    assert completed_audit["status"] == "applied"
+
+    unavailable_snapshots = AlwaysFailSnapshotCollection(
+        RuntimeError("snapshot-must-not-be-read-after-audit-applied")
+    )
+    daniele_db.partner_phase2_migration_snapshots = unavailable_snapshots
+    daniele_db.partner_hub.documents[0]["offerPrice"] = "external-after-success"
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "lease_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)
+            }
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="before report applied CAS"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "lease_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)
+            }
+        },
+    )
+
+    recovered = await apply_phase2_migration(daniele_db, report.report_id, "admin-3")
+    repeated = await apply_phase2_migration(daniele_db, report.report_id, "admin-4")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    final_audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "applied"
+    assert final_audit["status"] == "applied"
+    assert final_audit["lease_id"] == terminal_audit_lease
+    assert stored["applied_at"] == final_audit["applied_at"]
+    assert recovered == repeated
+    assert recovered.snapshot_id == final_audit["snapshot_id"]
+    assert recovered.audit_id == final_audit["audit_id"]
+    assert "conflict_reason" not in stored
+    assert unavailable_snapshots.read_attempts == 0
+    assert unavailable_snapshots.write_attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_recovery_refuses_applied_audit_with_incomplete_effects(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_reports = CrashBeforeReportAppliedCollection(
+        daniele_db.partner_phase2_migration_reports.documents
+    )
+    with pytest.raises(RuntimeError, match="before report applied CAS"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    audit = daniele_db.partner_phase2_migration_audit.documents[0]
+    missing_action_id = report.actions[0]["action_id"]
+    audit["effects"].pop(missing_action_id)
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "lease_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)
+            }
+        },
+    )
+
+    with pytest.raises(MigrationConflict, match="audit is incompatible"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "applying"
+    assert audit["status"] == "applied"
+    assert "applied_at" not in stored
 
 
 class CrashAfterOutputReservationCollection(FakeCollection):

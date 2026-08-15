@@ -13,7 +13,12 @@ import uuid
 from fastapi import HTTPException
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 from pymongo import ReturnDocument
-from pymongo.errors import DocumentTooLarge, DuplicateKeyError
+from pymongo.errors import (
+    AutoReconnect,
+    DocumentTooLarge,
+    DuplicateKeyError,
+    OperationFailure,
+)
 from services.launch_calendar import calendar_checksum
 from services.journey_completion import (
     all_required_lessons_approved,
@@ -1466,6 +1471,148 @@ async def _update_audit_owned(
         raise MigrationConflict("migration audit lease lost")
 
 
+def _applied_effect_matches_action(
+    action: dict[str, Any], effect: dict[str, Any]
+) -> bool:
+    kind = action.get("kind")
+    if kind == "archive_legacy":
+        target = action.get("after", {}).get("target")
+        if target == "partner_launch_calendar_versions":
+            return (
+                effect.get("status") == "applied"
+                and effect.get("kind") == "archive_legacy_calendar"
+                and isinstance(effect.get("calendar_version"), int)
+                and bool(effect.get("calendar_checksum"))
+                and isinstance(effect.get("created"), bool)
+            )
+        return (
+            target == "partner_phase2_output_versions"
+            and effect.get("status") == "applied"
+            and effect.get("kind") == "archive_legacy"
+            and bool(effect.get("output_id"))
+            and isinstance(effect.get("version"), int)
+            and isinstance(effect.get("created"), bool)
+        )
+    if kind in {"normalize_metadata", "reopen_step", "transition_downstream"}:
+        return (
+            effect.get("status") == "applied"
+            and effect.get("kind") == "journey_compare_and_set"
+            and isinstance(effect.get("created"), bool)
+        )
+    if kind in {"preserve_source", "preserve_step"}:
+        return effect == {"status": "preserved", "kind": kind}
+    return False
+
+
+def _applied_audit_compatible(
+    report: dict[str, Any],
+    audit: dict[str, Any],
+    *,
+    expected_audit_lease_id: str | None,
+) -> bool:
+    if (
+        audit.get("status") != "applied"
+        or audit.get("report_id") != report.get("report_id")
+        or audit.get("partner_id") != report.get("partner_id")
+        or audit.get("source_checksum") != report.get("source_checksum")
+        or audit.get("lease_id") != expected_audit_lease_id
+        or not audit.get("audit_id")
+        or not audit.get("snapshot_id")
+        or not audit.get("applied_at")
+        or audit.get("projection_status") != "applied"
+        or not audit.get("post_projection_checksum")
+        or _canonical_json(audit.get("planned_actions"))
+        != _canonical_json(report.get("actions"))
+    ):
+        return False
+    actions = report.get("actions") or []
+    effects = audit.get("effects")
+    if not isinstance(effects, dict):
+        return False
+    expected_action_ids = {action.get("action_id") for action in actions}
+    if None in expected_action_ids or set(effects) != expected_action_ids:
+        return False
+    return all(
+        isinstance(effects[action["action_id"]], dict)
+        and _applied_effect_matches_action(action, effects[action["action_id"]])
+        for action in actions
+    )
+
+
+async def _finalize_from_applied_audit(
+    db,
+    report: dict[str, Any],
+    audit: dict[str, Any],
+    report_lease_id: str,
+    *,
+    expected_audit_lease_id: str | None,
+) -> MigrationApplyResult:
+    if not _applied_audit_compatible(
+        report,
+        audit,
+        expected_audit_lease_id=expected_audit_lease_id,
+    ):
+        raise MigrationConflict("terminal migration audit is incompatible")
+    finalized = await db.partner_phase2_migration_reports.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "applying",
+            "lease_id": report_lease_id,
+        },
+        {
+            "$set": {
+                "status": "applied",
+                "snapshot_id": audit["snapshot_id"],
+                "audit_id": audit["audit_id"],
+                "applied_at": audit["applied_at"],
+                "updated_at": audit["applied_at"],
+                "terminal_audit_lease_id": audit["lease_id"],
+            },
+            "$unset": {
+                "lease_id": "",
+                "lease_expires_at": "",
+                "expected_terminal_audit_lease_id": "",
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if finalized:
+        return _apply_result_from_document(finalized)
+    latest = await db.partner_phase2_migration_reports.find_one(
+        {"report_id": report["report_id"]}
+    )
+    if (
+        latest
+        and latest.get("status") == "applied"
+        and latest.get("snapshot_id") == audit["snapshot_id"]
+        and latest.get("audit_id") == audit["audit_id"]
+        and latest.get("applied_at") == audit["applied_at"]
+        and latest.get("terminal_audit_lease_id") == audit["lease_id"]
+    ):
+        return _apply_result_from_document(latest)
+    raise MigrationConflict("migration result could not be finalized")
+
+
+async def _prepare_terminal_audit_fence(
+    db,
+    report_id: str,
+    lease_id: str,
+) -> None:
+    now = datetime.now(timezone.utc)
+    prepared = await db.partner_phase2_migration_reports.find_one_and_update(
+        {"report_id": report_id, "status": "applying", "lease_id": lease_id},
+        {
+            "$set": {
+                "expected_terminal_audit_lease_id": lease_id,
+                "lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS),
+            }
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not prepared:
+        raise MigrationConflict("migration apply lease lost")
+
+
 async def _renew_lease(db, report_id: str, lease_id: str):
     now = datetime.now(timezone.utc)
     renewed = await db.partner_phase2_migration_reports.find_one_and_update(
@@ -1746,18 +1893,15 @@ async def _repair_conflict_audit(db, report: dict[str, Any]) -> None:
     collection = db.partner_phase2_migration_audit
     existing = await collection.find_one({"report_id": report["report_id"]})
     if existing is None:
-        snapshot = await db.partner_phase2_migration_snapshots.find_one(
-            {"report_id": report["report_id"]}
-        )
         now = report.get("conflict_at") or datetime.now(timezone.utc)
         conflict_document = {
             "audit_id": f"phase2-audit-{report['report_id']}",
             "report_id": report["report_id"],
             "partner_id": report["partner_id"],
-            "snapshot_id": (snapshot or {}).get("snapshot_id"),
+            "snapshot_id": report.get("snapshot_id"),
             "source_checksum": report["source_checksum"],
             "planned_actions": deepcopy(report.get("actions") or []),
-            "before_steps": _before_step_audit(snapshot["source"]) if snapshot else {},
+            "before_steps": {},
             "effects": {},
             "created_at": now,
             "created_by": report.get("apply_actor_id") or report["actor_id"],
@@ -1843,6 +1987,32 @@ async def _mark_review_conflict(
     return True
 
 
+def _snapshot_failure_code(exc: Exception) -> str:
+    if isinstance(exc, DocumentTooLarge):
+        return "snapshot_document_too_large"
+    if isinstance(exc, AutoReconnect):
+        return "snapshot_store_unavailable"
+    if isinstance(exc, OperationFailure) and exc.code in {13, 18}:
+        return "snapshot_store_unauthorized"
+    return "snapshot_persist_error"
+
+
+async def _raise_snapshot_failure(
+    db,
+    report_id: str,
+    lease_id: str,
+    exc: Exception,
+) -> None:
+    await _mark_conflict(
+        db,
+        report_id,
+        lease_id,
+        "snapshot_persist_failed",
+        error_code=_snapshot_failure_code(exc),
+    )
+    raise MigrationConflict("migration snapshot could not be persisted") from None
+
+
 async def apply_phase2_migration(
     db, report_id: str, actor_id: str
 ) -> MigrationApplyResult:
@@ -1922,8 +2092,9 @@ async def apply_phase2_migration(
         expires_at = _as_utc(report.get("lease_expires_at"))
         if expires_at and expires_at > now:
             return await _wait_for_applied_report(db, report["report_id"])
-        stored_snapshot = await db.partner_phase2_migration_snapshots.find_one(
-            {"report_id": report["report_id"]}
+        previous_lease_id = report.get("lease_id")
+        expected_terminal_audit_lease_id = (
+            report.get("expected_terminal_audit_lease_id") or previous_lease_id
         )
         claim_query = {
             "report_id": report["report_id"],
@@ -1950,6 +2121,28 @@ async def apply_phase2_migration(
             if latest and latest.get("status") == "applied":
                 return _apply_result_from_document(latest)
             return await _wait_for_applied_report(db, report["report_id"])
+        terminal_audit = await db.partner_phase2_migration_audit.find_one(
+            {"report_id": report["report_id"]}
+        )
+        if terminal_audit and terminal_audit.get("status") == "applied":
+            return await _finalize_from_applied_audit(
+                db,
+                claimed,
+                terminal_audit,
+                lease_id,
+                expected_audit_lease_id=expected_terminal_audit_lease_id,
+            )
+        try:
+            stored_snapshot = await db.partner_phase2_migration_snapshots.find_one(
+                {"report_id": report["report_id"]}
+            )
+        except Exception as exc:
+            await _raise_snapshot_failure(
+                db,
+                report["report_id"],
+                lease_id,
+                exc,
+            )
         if stored_snapshot:
             audit = await _ensure_audit(db, claimed, stored_snapshot, lease_id)
             try:
@@ -1987,39 +2180,22 @@ async def apply_phase2_migration(
     try:
         snapshot = await _ensure_snapshot(db, report, full_snapshot)
     except Exception as exc:
-        error_code = (
-            "snapshot_document_too_large"
-            if isinstance(exc, DocumentTooLarge)
-            else "snapshot_persist_error"
-        )
-        await _mark_conflict(
+        await _raise_snapshot_failure(
             db,
             report["report_id"],
             lease_id,
-            "snapshot_persist_failed",
-            error_code=error_code,
+            exc,
         )
-        raise MigrationConflict("migration snapshot could not be persisted") from None
     if audit is None:
         audit = await _ensure_audit(db, report, snapshot, lease_id)
     if audit.get("status") == "applied":
-        applied_at = audit["applied_at"]
-        finalized = await reports.find_one_and_update(
-            {"report_id": report["report_id"], "status": "applying", "lease_id": lease_id},
-            {
-                "$set": {
-                    "status": "applied",
-                    "snapshot_id": snapshot["snapshot_id"],
-                    "audit_id": audit["audit_id"],
-                    "applied_at": applied_at,
-                    "updated_at": applied_at,
-                },
-                "$unset": {"lease_id": "", "lease_expires_at": ""},
-            },
-            return_document=ReturnDocument.AFTER,
+        return await _finalize_from_applied_audit(
+            db,
+            report,
+            audit,
+            lease_id,
+            expected_audit_lease_id=lease_id,
         )
-        if finalized:
-            return _apply_result_from_document(finalized)
 
     try:
         await _assert_source_compatible(db, report, snapshot)
@@ -2121,6 +2297,11 @@ async def apply_phase2_migration(
         raise
 
     applied_at = datetime.now(timezone.utc)
+    await _prepare_terminal_audit_fence(
+        db,
+        report["report_id"],
+        lease_id,
+    )
     await _update_audit_owned(
         db,
         report["report_id"],
@@ -2131,23 +2312,13 @@ async def apply_phase2_migration(
             "applied_by": str(actor_id),
         },
     )
-    finalized = await reports.find_one_and_update(
-        {"report_id": report["report_id"], "status": "applying", "lease_id": lease_id},
-        {
-            "$set": {
-                "status": "applied",
-                "snapshot_id": snapshot["snapshot_id"],
-                "audit_id": audit["audit_id"],
-                "applied_at": applied_at,
-                "updated_at": applied_at,
-            },
-            "$unset": {"lease_id": "", "lease_expires_at": ""},
-        },
-        return_document=ReturnDocument.AFTER,
+    terminal_audit = await db.partner_phase2_migration_audit.find_one(
+        {"report_id": report["report_id"]}
     )
-    if not finalized:
-        latest = await reports.find_one({"report_id": report["report_id"]})
-        if latest and latest.get("status") == "applied":
-            return _apply_result_from_document(latest)
-        raise MigrationConflict("migration result could not be finalized")
-    return _apply_result_from_document(finalized)
+    return await _finalize_from_applied_audit(
+        db,
+        report,
+        terminal_audit or {},
+        lease_id,
+        expected_audit_lease_id=lease_id,
+    )
