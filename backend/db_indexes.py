@@ -86,17 +86,18 @@ _CRITICAL_COMPOUND_INDEXES = [
         [
             ("partner_id", 1),
             ("step_id", 1),
+            ("category", 1),
             ("template_id", 1),
             ("template_version", 1),
             ("checksum", 1),
             ("source_checksum", 1),
         ],
-        {"unique": True, "name": "phase2_output_identity_unique"},
+        {"unique": True, "name": "phase2_output_identity_category_unique"},
     ),
     (
         "partner_phase2_output_counters",
-        [("partner_id", 1), ("step_id", 1)],
-        {"unique": True, "name": "phase2_output_counter_unique"},
+        [("partner_id", 1), ("step_id", 1), ("category", 1)],
+        {"unique": True, "name": "phase2_output_counter_category_unique"},
     ),
     (
         "partner_phase2_migration_reports",
@@ -119,6 +120,14 @@ _RETIRED_CRITICAL_INDEXES = [
     (
         "partner_document_versions",
         "partner_document_versions_workbook_calendar_unique",
+    ),
+    (
+        "partner_phase2_output_versions",
+        "phase2_output_identity_unique",
+    ),
+    (
+        "partner_phase2_output_counters",
+        "phase2_output_counter_unique",
     ),
 ]
 

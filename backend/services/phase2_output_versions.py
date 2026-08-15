@@ -78,6 +78,7 @@ async def _reconcile_current_version(versions, existing: dict) -> dict:
         {
             "partner_id": existing["partner_id"],
             "step_id": existing["step_id"],
+            "category": existing["category"],
             "is_current": True,
             "version": {"$lt": version},
         },
@@ -87,6 +88,7 @@ async def _reconcile_current_version(versions, existing: dict) -> dict:
         {
             "partner_id": existing["partner_id"],
             "step_id": existing["step_id"],
+            "category": existing["category"],
             "version": {"$gt": version},
         },
         {"_id": 0, "version": 1},
@@ -146,8 +148,12 @@ def _identity_hash(identity: dict) -> str:
 
 
 async def _allocate_counter_version(db, versions, identity: dict) -> int:
-    """Assegna una sola versione durevole a ogni identita' nel ledger per-step."""
-    counter_identity = {"partner_id": identity["partner_id"], "step_id": identity["step_id"]}
+    """Assegna una versione durevole nel flusso partner/step/categoria."""
+    counter_identity = {
+        "partner_id": identity["partner_id"],
+        "step_id": identity["step_id"],
+        "category": identity["category"],
+    }
     identity_hash = _identity_hash(identity)
     allocation_path = f"allocations.{identity_hash}"
     allocation_reference = f"$allocations.{identity_hash}"
@@ -161,6 +167,7 @@ async def _allocate_counter_version(db, versions, identity: dict) -> int:
             "$set": {
                 "partner_id": {"$literal": identity["partner_id"]},
                 "step_id": {"$literal": identity["step_id"]},
+                "category": {"$literal": identity["category"]},
                 "version": {
                     "$max": [
                         {"$ifNull": ["$version", 0]},
@@ -220,6 +227,7 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     identity = {
         "partner_id": request.partner_id,
         "step_id": request.step_id,
+        "category": request.category,
         "template_id": request.template_id,
         "template_version": request.template_version,
         "checksum": checksum,
@@ -301,12 +309,13 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     return OutputVersionResult(finalized["output_id"], finalized["version"], finalized["checksum"], True)
 
 
-async def current_approved_output(db, partner_id, step_id):
+async def current_approved_output(db, partner_id, step_id, category):
     """Recupera esclusivamente la versione corrente gia' approvata."""
     return await db.partner_phase2_output_versions.find_one(
         {
             "partner_id": partner_id,
             "step_id": step_id,
+            "category": category,
             "status": "approved",
             "is_current": True,
         }

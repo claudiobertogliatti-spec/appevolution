@@ -6,11 +6,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 from services.phase2_migration import (
     MigrationConflict,
+    MigrationRecoveryNotAllowed,
     apply_phase2_migration,
     create_phase2_dry_run,
+    migration_recovery_action,
+    recover_phase2_migration,
+    sanitize_phase2_migration_action,
+    sanitized_migration_error_code,
 )
 
 
@@ -30,13 +34,7 @@ _REPORT_FIELDS = (
     "updated_at",
     "applied_at",
 )
-_ACTION_FIELDS = ("action_id", "kind", "step_id", "reason")
 _APPLICABLE_STATUSES = {"review_required", "applying", "applied"}
-_CANONICAL_STEP_IDS = frozenset(
-    str(definition["step_id"])
-    for definition in JOURNEY_STEPS_DEFINITION
-    if 8 <= int(definition["step_number"]) <= 19
-)
 
 
 def set_db(database) -> None:
@@ -67,17 +65,7 @@ def _conflict(code: str = "phase2_migration_conflict") -> HTTPException:
 
 
 def _action_summary(action: dict[str, Any]) -> dict[str, Any]:
-    summary = {
-        field: action[field]
-        for field in _ACTION_FIELDS
-        if field in action and field != "step_id"
-    }
-    if "step_id" in action:
-        step_id = str(action["step_id"])
-        summary["step_id"] = (
-            step_id if step_id in _CANONICAL_STEP_IDS else "legacy_record"
-        )
-    return summary
+    return sanitize_phase2_migration_action(action)
 
 
 def _report_summary(report: dict[str, Any]) -> dict[str, Any]:
@@ -89,6 +77,10 @@ def _report_summary(report: dict[str, Any]) -> dict[str, Any]:
     }
     summary["action_count"] = len(actions)
     summary["actions"] = [_action_summary(action) for action in actions]
+    if report.get("status") == "conflict":
+        error_code = sanitized_migration_error_code(report.get("error_code"))
+        summary["error_code"] = error_code
+        summary["recovery_action"] = migration_recovery_action(error_code)
     return summary
 
 
@@ -134,6 +126,7 @@ async def get_report(
             "created_at": 1,
             "updated_at": 1,
             "applied_at": 1,
+            "error_code": 1,
         },
     )
     if not report:
@@ -159,6 +152,51 @@ async def apply_report(
         result = await apply_phase2_migration(
             db, str(report_id), _actor_id(admin)
         )
+    except MigrationConflict:
+        raise _conflict() from None
+    applied = result.to_dict()
+    return {
+        "report_id": applied["report_id"],
+        "partner_id": applied["partner_id"],
+        "status": "applied",
+        "action_count": len(report.get("actions") or []),
+        "audit_id": applied["audit_id"],
+        "applied_at": applied["applied_at"],
+    }
+
+
+@router.post("/reports/{report_id}/recover")
+async def recover_report(
+    report_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    admin = await require_admin(credentials)
+    report = await db.partner_phase2_migration_reports.find_one(
+        {"report_id": str(report_id)},
+        {
+            "_id": 0,
+            "report_id": 1,
+            "partner_id": 1,
+            "status": 1,
+            "error_code": 1,
+            "actions": 1,
+        },
+    )
+    if not report:
+        raise _not_found("phase2_migration_report_not_found")
+    try:
+        result = await recover_phase2_migration(
+            db, str(report_id), _actor_id(admin)
+        )
+    except MigrationRecoveryNotAllowed as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "phase2_migration_conflict_not_recoverable",
+                "error_code": exc.error_code,
+                "recovery_action": exc.recovery_action,
+            },
+        ) from None
     except MigrationConflict:
         raise _conflict() from None
     applied = result.to_dict()

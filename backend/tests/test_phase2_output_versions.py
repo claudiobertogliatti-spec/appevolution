@@ -201,6 +201,58 @@ async def test_new_content_supersedes_without_mutating_old_version(fake_db):
 
 
 @pytest.mark.asyncio
+async def test_categories_partition_identity_versions_and_supersede_scope(fake_db):
+    script = make_request(
+        category="script_masterclass",
+        content={"shared": "payload"},
+    )
+    worksheet = make_request(
+        category="worksheet_masterclass",
+        content={"shared": "payload"},
+    )
+
+    first_script = await archive_phase2_output(fake_db, script)
+    first_worksheet = await archive_phase2_output(fake_db, worksheet)
+    script_retry = await archive_phase2_output(fake_db, script)
+    second_script = await archive_phase2_output(
+        fake_db,
+        make_request(category="script_masterclass", content={"shared": "updated"}),
+    )
+
+    assert (
+        first_script.version,
+        first_worksheet.version,
+        script_retry.version,
+        second_script.version,
+    ) == (1, 1, 1, 2)
+    assert script_retry.output_id == first_script.output_id
+    assert script_retry.created is False
+    assert len(fake_db.partner_phase2_output_versions.docs) == 3
+    by_output_id = {
+        document["output_id"]: document
+        for document in fake_db.partner_phase2_output_versions.docs
+    }
+    assert by_output_id[first_script.output_id]["status"] == "superseded"
+    assert by_output_id[first_script.output_id]["is_current"] is False
+    assert by_output_id[first_worksheet.output_id]["status"] == "draft"
+    assert by_output_id[first_worksheet.output_id]["is_current"] is True
+    assert by_output_id[second_script.output_id]["is_current"] is True
+    assert {
+        (
+            document["partner_id"],
+            document["step_id"],
+            document["category"],
+            document["version"],
+        )
+        for document in fake_db.partner_phase2_output_versions.docs
+    } == {
+        ("23", "05-script-masterclass", "script_masterclass", 1),
+        ("23", "05-script-masterclass", "worksheet_masterclass", 1),
+        ("23", "05-script-masterclass", "script_masterclass", 2),
+    }
+
+
+@pytest.mark.asyncio
 async def test_archive_accepts_only_draft_or_legacy_initial_status(fake_db):
     legacy = await archive_phase2_output(fake_db, make_request(initial_status="legacy"))
 
@@ -213,15 +265,28 @@ async def test_archive_accepts_only_draft_or_legacy_initial_status(fake_db):
 @pytest.mark.asyncio
 async def test_current_approved_output_uses_only_exact_current_approved_filter(fake_db):
     fake_db.partner_phase2_output_versions.docs.extend([
-        {"partner_id": "23", "step_id": "05-script-masterclass", "status": "draft", "is_current": True},
-        {"partner_id": "23", "step_id": "05-script-masterclass", "status": "approved", "is_current": False},
-        {"partner_id": "23", "step_id": "other", "status": "approved", "is_current": True},
-        {"partner_id": "23", "step_id": "05-script-masterclass", "status": "approved", "is_current": True, "version": 2},
+        {"partner_id": "23", "step_id": "05-script-masterclass", "category": "script_masterclass", "status": "draft", "is_current": True},
+        {"partner_id": "23", "step_id": "05-script-masterclass", "category": "script_masterclass", "status": "approved", "is_current": False},
+        {"partner_id": "23", "step_id": "other", "category": "script_masterclass", "status": "approved", "is_current": True},
+        {"partner_id": "23", "step_id": "05-script-masterclass", "category": "worksheet_masterclass", "status": "approved", "is_current": True, "version": 3},
+        {"partner_id": "23", "step_id": "05-script-masterclass", "category": "script_masterclass", "status": "approved", "is_current": True, "version": 2},
     ])
 
-    result = await current_approved_output(fake_db, "23", "05-script-masterclass")
+    result = await current_approved_output(
+        fake_db,
+        "23",
+        "05-script-masterclass",
+        "script_masterclass",
+    )
 
-    assert result == {"partner_id": "23", "step_id": "05-script-masterclass", "status": "approved", "is_current": True, "version": 2}
+    assert result == {
+        "partner_id": "23",
+        "step_id": "05-script-masterclass",
+        "category": "script_masterclass",
+        "status": "approved",
+        "is_current": True,
+        "version": 2,
+    }
 
 
 @pytest.mark.asyncio
@@ -267,7 +332,7 @@ async def test_concurrent_same_identity_returns_winning_version_once():
 
         async def insert_one(self, doc):
             identity = {key: doc[key] for key in (
-                "partner_id", "step_id", "template_id", "template_version", "checksum", "source_checksum",
+                "partner_id", "step_id", "category", "template_id", "template_version", "checksum", "source_checksum",
             )}
             if any(_matches(existing, identity) for existing in self.docs):
                 raise DuplicateKeyError("duplicate phase2 output identity")
@@ -305,7 +370,7 @@ async def test_concurrent_same_identity_does_not_leave_counter_gap():
 
         async def insert_one(self, doc):
             identity = {key: doc[key] for key in (
-                "partner_id", "step_id", "template_id", "template_version", "checksum", "source_checksum",
+                "partner_id", "step_id", "category", "template_id", "template_version", "checksum", "source_checksum",
             )}
             if any(_matches(existing, identity) for existing in self.docs):
                 raise DuplicateKeyError("duplicate phase2 output identity")
@@ -369,6 +434,7 @@ async def test_expired_reservation_is_recovered_once_and_finalized():
     db.partner_phase2_output_versions.docs.append({
         "partner_id": request.partner_id,
         "step_id": request.step_id,
+        "category": request.category,
         "template_id": request.template_id,
         "template_version": request.template_version,
         "checksum": checksum,

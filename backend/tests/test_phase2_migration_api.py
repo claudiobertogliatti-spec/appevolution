@@ -20,7 +20,11 @@ os.environ.setdefault("MONGO_URL", "mongodb://phase2-migration-api-test.invalid:
 
 from routers import phase2_migration
 from scripts import migrate_phase2_partner
-from services.phase2_migration import MigrationConflict
+from services.phase2_migration import (
+    MigrationConflict,
+    MigrationRecoveryNotAllowed,
+    sanitize_phase2_migration_action,
+)
 
 
 pytestmark = pytest.mark.unit
@@ -73,12 +77,20 @@ def fake_db(monkeypatch):
         "source_checksum": "a" * 64,
         "actions": [
             {
-                "action_id": "action-1",
+                "action_id": "a" * 24,
                 "kind": "reopen_step",
                 "step_id": "05-script-masterclass",
-                "reason": "output_not_current",
-                "before": {"material_body": "PRIVATE RAW SCRIPT"},
-                "after": {"status": "in_progress"},
+                "reason": "server_evidence_missing",
+                "before": {
+                    "status": "done",
+                    "completed_at": "2026-08-01T08:00:00Z",
+                    "material_body": "PRIVATE RAW SCRIPT",
+                },
+                "after": {
+                    "status": "in_progress",
+                    "completed_at": None,
+                    "blocked_reason_code": None,
+                },
             }
         ],
         "expected_steps": {"05-script-masterclass": {"status": "done"}},
@@ -100,8 +112,12 @@ def client(fake_db):
 
 def test_anonymous_dry_run_is_401(client):
     response = client.post("/api/admin/phase2-migrations/23/dry-run")
+    recovery = client.post(
+        "/api/admin/phase2-migrations/reports/report-1/recover"
+    )
 
     assert response.status_code == 401
+    assert recovery.status_code == 401
 
 
 def test_partner_cannot_create_or_apply_migration(client, admin_auth):
@@ -113,9 +129,14 @@ def test_partner_cannot_create_or_apply_migration(client, admin_auth):
         "/api/admin/phase2-migrations/reports/report-1/apply",
         headers=admin_auth["partner"],
     )
+    recover = client.post(
+        "/api/admin/phase2-migrations/reports/report-1/recover",
+        headers=admin_auth["partner"],
+    )
 
     assert dry_run.status_code == 403
     assert apply.status_code == 403
+    assert recover.status_code == 403
 
 
 def test_apply_requires_existing_report(client, admin_auth):
@@ -153,11 +174,23 @@ def test_admin_dry_run_returns_only_sanitized_report_summary(
                 "source_checksum": "b" * 64,
                 "actions": [
                     {
-                        "action_id": "action-2",
+                        "action_id": "b" * 24,
                         "kind": "archive_legacy",
                         "step_id": "05-script-masterclass",
                         "reason": "historical_output_requires_current_approval",
-                        "before": {"material_body": "PRIVATE RAW SCRIPT"},
+                        "before": {
+                            "source_field_checksum": "c" * 64,
+                            "material_body": "PRIVATE RAW SCRIPT",
+                            "url": "https://private.example.test/raw",
+                            "token": "PRIVATE TOKEN",
+                        },
+                        "after": {
+                            "target": "partner_phase2_output_versions",
+                            "category": "script_masterclass",
+                            "template_id": "legacy-reference-script_masterclass",
+                            "template_version": "migration-v1",
+                            "status": "legacy",
+                        },
                     }
                 ],
                 "expected_steps": {"05-script-masterclass": {"raw": "PRIVATE"}},
@@ -182,10 +215,18 @@ def test_admin_dry_run_returns_only_sanitized_report_summary(
         "action_count": 1,
         "actions": [
             {
-                "action_id": "action-2",
+                "action_id": "b" * 24,
                 "kind": "archive_legacy",
                 "step_id": "05-script-masterclass",
                 "reason": "historical_output_requires_current_approval",
+                "target": "partner_phase2_output_versions",
+                "before": {"source_field_checksum": "c" * 64},
+                "after": {
+                    "status": "legacy",
+                    "category": "script_masterclass",
+                    "template_id": "legacy-reference-script_masterclass",
+                    "template_version": "migration-v1",
+                },
             }
         ],
         "created_at": "2026-08-15T09:30:00Z",
@@ -207,7 +248,7 @@ def test_dry_run_redacts_noncanonical_step_id(
                 "source_checksum": "c" * 64,
                 "actions": [
                     {
-                        "action_id": "legacy-action",
+                        "action_id": "d" * 24,
                         "kind": "preserve_source",
                         "step_id": private_step_id,
                         "reason": "legacy_journey_record_preserved",
@@ -240,10 +281,20 @@ def test_superadmin_can_read_report_without_snapshot_or_raw_fields(
     assert response.status_code == 200
     assert response.json()["action_count"] == 1
     assert response.json()["actions"][0] == {
-        "action_id": "action-1",
+        "action_id": "a" * 24,
         "kind": "reopen_step",
         "step_id": "05-script-masterclass",
-        "reason": "output_not_current",
+        "reason": "server_evidence_missing",
+        "target": "partner_journey_steps",
+        "before": {
+            "status": "done",
+            "completed_at_present": True,
+        },
+        "after": {
+            "status": "in_progress",
+            "completed_at_present": False,
+            "blocked_reason_code": None,
+        },
     }
     assert "PRIVATE" not in response.text
     assert "snapshot" not in response.json()
@@ -254,7 +305,7 @@ def test_get_report_redacts_noncanonical_step_id(client, admin_auth):
     private_step_id = "legacy/private-client@example.test/raw-title"
     phase2_migration.db.partner_phase2_migration_reports.documents[0]["actions"].append(
         {
-            "action_id": "legacy-action",
+            "action_id": "e" * 24,
             "kind": "preserve_source",
             "step_id": private_step_id,
             "reason": "legacy_journey_record_preserved",
@@ -269,6 +320,117 @@ def test_get_report_redacts_noncanonical_step_id(client, admin_auth):
     assert response.status_code == 200
     assert response.json()["actions"][1]["step_id"] == "legacy_record"
     assert private_step_id not in response.text
+
+
+def test_get_report_allowlists_action_values_and_never_reflects_raw_fields(
+    client, admin_auth
+):
+    private_marker = "private-token-and-url.example.test"
+    phase2_migration.db.partner_phase2_migration_reports.documents[0]["actions"] = [{
+        "action_id": private_marker,
+        "kind": private_marker,
+        "step_id": private_marker,
+        "reason": private_marker,
+        "before": {"status": private_marker, "content": private_marker},
+        "after": {"target": private_marker, "url": private_marker},
+    }]
+
+    response = client.get(
+        "/api/admin/phase2-migrations/reports/report-1",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["actions"] == [{
+        "action_id": "invalid_action",
+        "kind": "unsupported_action",
+        "step_id": "legacy_record",
+        "reason": "unrecognized_reason",
+        "target": "unsupported_target",
+        "before": {},
+        "after": {},
+    }]
+    assert private_marker not in response.text
+
+
+def test_get_conflict_exposes_only_sanitized_error_and_recovery_action(
+    client, admin_auth
+):
+    report = phase2_migration.db.partner_phase2_migration_reports.documents[0]
+    report.update({
+        "status": "conflict",
+        "error_code": "source_checksum_mismatch",
+        "conflict_reason": "private-host.invalid raw stale detail",
+    })
+
+    response = client.get(
+        "/api/admin/phase2-migrations/reports/report-1",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["error_code"] == "source_checksum_mismatch"
+    assert response.json()["recovery_action"] == "create_new_dry_run"
+    assert "conflict_reason" not in response.json()
+    assert "private-host.invalid" not in response.text
+
+
+def test_admin_can_recover_one_report_with_sanitized_response(
+    client, admin_auth, monkeypatch
+):
+    report = phase2_migration.db.partner_phase2_migration_reports.documents[0]
+    report.update({
+        "status": "conflict",
+        "error_code": "snapshot_store_unavailable",
+    })
+
+    async def recover(_db, report_id, actor_id):
+        assert report_id == "report-1"
+        assert actor_id == "admin-1"
+        return SimpleNamespace(to_dict=lambda: {
+            "report_id": report_id,
+            "partner_id": "23",
+            "snapshot_id": "private-snapshot",
+            "audit_id": "audit-1",
+            "applied_at": "2026-08-15T10:00:00Z",
+        })
+
+    monkeypatch.setattr(phase2_migration, "recover_phase2_migration", recover)
+    response = client.post(
+        "/api/admin/phase2-migrations/reports/report-1/recover",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "report_id": "report-1",
+        "partner_id": "23",
+        "status": "applied",
+        "action_count": 1,
+        "audit_id": "audit-1",
+        "applied_at": "2026-08-15T10:00:00Z",
+    }
+    assert "private-snapshot" not in response.text
+
+
+def test_stale_report_recovery_requires_new_dry_run(
+    client, admin_auth, monkeypatch
+):
+    async def refuse(*_args, **_kwargs):
+        raise MigrationRecoveryNotAllowed("source_checksum_mismatch")
+
+    monkeypatch.setattr(phase2_migration, "recover_phase2_migration", refuse)
+    response = client.post(
+        "/api/admin/phase2-migrations/reports/report-1/recover",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "phase2_migration_conflict_not_recoverable",
+        "error_code": "source_checksum_mismatch",
+        "recovery_action": "create_new_dry_run",
+    }
 
 
 def test_apply_accepts_existing_review_report_and_sanitizes_result(
@@ -345,6 +507,7 @@ def test_cli_parser_defaults_to_single_partner_dry_run():
 
     assert args.partner_id == "23"
     assert args.apply is False
+    assert args.recover is False
     assert args.report_id is None
 
 
@@ -355,6 +518,15 @@ def test_cli_parser_defaults_to_single_partner_dry_run():
         ["--apply", "--report-id", "report-1"],
         ["--partner-id", "23", "--apply"],
         ["--partner-id", "23", "--report-id", "report-1"],
+        ["--partner-id", "23", "--recover"],
+        [
+            "--partner-id",
+            "23",
+            "--apply",
+            "--recover",
+            "--report-id",
+            "report-1",
+        ],
         ["--partner-id", "23", "--all"],
     ],
 )
@@ -518,7 +690,18 @@ async def test_cli_json_result_contains_counts_but_no_raw_or_credentials(monkeyp
         "report_id": "report-1",
         "partner_id": "23",
         "status": "review_required",
-        "actions": [{"action_id": "action-1", "before": {"raw": "PRIVATE"}}],
+        "actions": [{
+            "action_id": "f" * 24,
+            "kind": "reopen_step",
+            "step_id": "05-script-masterclass",
+            "reason": "server_evidence_missing",
+            "before": {
+                "status": "done",
+                "completed_at": "2026-08-01T08:00:00Z",
+                "raw": "PRIVATE",
+            },
+            "after": {"status": "in_progress", "completed_at": None},
+        }],
         "mongo_url": "configured-only-through-environment",
     }
     database = FakeDb(partners=[{"id": "23"}], reports=[report])
@@ -532,6 +715,11 @@ async def test_cli_json_result_contains_counts_but_no_raw_or_credentials(monkeyp
         )
 
     monkeypatch.setattr(migrate_phase2_partner, "create_phase2_dry_run", create_report)
+    monkeypatch.setattr(
+        migrate_phase2_partner,
+        "sanitize_phase2_migration_action",
+        sanitize_phase2_migration_action,
+    )
     args = migrate_phase2_partner.parse_args(["--partner-id", "23"])
 
     result = await migrate_phase2_partner.execute(database, args, actor_id="cli-admin")
@@ -543,6 +731,21 @@ async def test_cli_json_result_contains_counts_but_no_raw_or_credentials(monkeyp
         "report_id": "report-1",
         "status": "review_required",
         "action_count": 1,
+        "actions": [{
+            "action_id": "f" * 24,
+            "kind": "reopen_step",
+            "step_id": "05-script-masterclass",
+            "reason": "server_evidence_missing",
+            "target": "partner_journey_steps",
+            "before": {
+                "status": "done",
+                "completed_at_present": True,
+            },
+            "after": {
+                "status": "in_progress",
+                "completed_at_present": False,
+            },
+        }],
     }
     assert "PRIVATE" not in encoded
     assert "password" not in encoded
@@ -577,6 +780,166 @@ async def test_cli_apply_requires_report_for_same_partner(monkeypatch):
 
     assert exc.value.code == "phase2_migration_report_partner_mismatch"
     assert called is False
+
+
+@pytest.mark.asyncio
+async def test_cli_recovery_calls_same_single_report_service(monkeypatch):
+    database = FakeDb(
+        partners=[{"id": "23"}],
+        reports=[{
+            "report_id": "report-1",
+            "partner_id": "23",
+            "status": "conflict",
+            "error_code": "snapshot_store_unavailable",
+            "actions": [{"action_id": "a" * 24}],
+        }],
+    )
+
+    async def recover(_db, report_id, actor_id):
+        assert report_id == "report-1"
+        assert actor_id == "cli-admin"
+        return SimpleNamespace(
+            partner_id="23",
+            report_id=report_id,
+        )
+
+    monkeypatch.setattr(
+        migrate_phase2_partner, "recover_phase2_migration", recover
+    )
+    args = migrate_phase2_partner.parse_args([
+        "--partner-id",
+        "23",
+        "--recover",
+        "--report-id",
+        "report-1",
+    ])
+
+    result = await migrate_phase2_partner.execute(
+        database, args, actor_id="cli-admin"
+    )
+
+    assert result == {
+        "mode": "recover",
+        "partner_id": "23",
+        "report_id": "report-1",
+        "status": "applied",
+        "action_count": 1,
+    }
+
+
+@pytest.mark.asyncio
+async def test_cli_stale_recovery_returns_sanitized_direction(monkeypatch):
+    database = FakeDb(reports=[{
+        "report_id": "report-1",
+        "partner_id": "23",
+        "status": "conflict",
+        "error_code": "source_checksum_mismatch",
+        "actions": [],
+    }])
+
+    async def refuse(*_args, **_kwargs):
+        raise MigrationRecoveryNotAllowed("source_checksum_mismatch")
+
+    monkeypatch.setattr(
+        migrate_phase2_partner, "MigrationRecoveryNotAllowed",
+        MigrationRecoveryNotAllowed,
+    )
+    monkeypatch.setattr(
+        migrate_phase2_partner, "recover_phase2_migration", refuse
+    )
+    args = migrate_phase2_partner.parse_args([
+        "--partner-id",
+        "23",
+        "--recover",
+        "--report-id",
+        "report-1",
+    ])
+
+    with pytest.raises(migrate_phase2_partner.CliError) as caught:
+        await migrate_phase2_partner.execute(
+            database, args, actor_id="cli-admin"
+        )
+
+    assert caught.value.to_dict() == {
+        "ok": False,
+        "code": "phase2_migration_conflict_not_recoverable",
+        "error_code": "source_checksum_mismatch",
+        "recovery_action": "create_new_dry_run",
+    }
+
+
+@pytest.mark.asyncio
+async def test_cli_dead_cluster_uses_atlas_fallback_and_backend_db_name(
+    monkeypatch, capsys
+):
+    captured = {}
+
+    class Client:
+        def __init__(self, uri):
+            captured["uri"] = uri
+
+        def __getitem__(self, database_name):
+            captured["database_name"] = database_name
+            return object()
+
+        def close(self):
+            captured["closed"] = True
+
+    async def execute(_db, _args, *, actor_id):
+        assert actor_id == "phase2-migration-cli-dry-run"
+        return {"mode": "dry-run"}
+
+    monkeypatch.setattr(migrate_phase2_partner, "_load_dependencies", lambda: None)
+    monkeypatch.setattr(migrate_phase2_partner, "AsyncIOMotorClient", Client)
+    monkeypatch.setattr(migrate_phase2_partner, "execute", execute)
+    monkeypatch.setenv(
+        "MONGO_URL", "mongodb://customer-apps.dead.invalid:27017/private"
+    )
+    monkeypatch.setenv("MONGO_ATLAS_URL", "mongodb://atlas.example.test/evolution")
+    monkeypatch.setenv("DB_NAME", "wrong_database")
+    monkeypatch.delenv("PHASE2_MIGRATION_ACTOR_ID", raising=False)
+
+    exit_code = await migrate_phase2_partner._run(["--partner-id", "23"])
+    captured_io = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured["uri"] == "mongodb://atlas.example.test/evolution"
+    assert captured["database_name"] == "evolution_pro"
+    assert captured["closed"] is True
+    assert json.loads(captured_io.out) == {"ok": True, "mode": "dry-run"}
+
+
+@pytest.mark.asyncio
+async def test_cli_apply_requires_explicit_actor_before_connecting(
+    monkeypatch, capsys
+):
+    connected = False
+
+    def connect(_uri):
+        nonlocal connected
+        connected = True
+        raise AssertionError("must not connect")
+
+    monkeypatch.setattr(migrate_phase2_partner, "_load_dependencies", lambda: None)
+    monkeypatch.setattr(migrate_phase2_partner, "AsyncIOMotorClient", connect)
+    monkeypatch.setenv("MONGO_URL", "mongodb://configured.example.test/db")
+    monkeypatch.delenv("PHASE2_MIGRATION_ACTOR_ID", raising=False)
+
+    exit_code = await migrate_phase2_partner._run([
+        "--partner-id",
+        "23",
+        "--apply",
+        "--report-id",
+        "report-1",
+    ])
+    captured_io = capsys.readouterr()
+
+    assert exit_code == 2
+    assert connected is False
+    assert json.loads(captured_io.err) == {
+        "ok": False,
+        "code": "phase2_migration_actor_not_configured",
+    }
 
 
 @pytest.mark.asyncio

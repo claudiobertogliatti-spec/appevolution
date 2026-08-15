@@ -18,10 +18,12 @@ from db_indexes import ensure_indexes
 from services.launch_calendar import calendar_checksum
 from services.phase2_migration import (
     MigrationConflict,
+    MigrationRecoveryNotAllowed,
     apply_phase2_migration,
     build_phase2_evidence,
     create_phase2_dry_run,
     plan_phase2_migration,
+    recover_phase2_migration,
 )
 
 
@@ -213,6 +215,15 @@ def _matches(document, query):
     return True
 
 
+def _legacy_outputs(db):
+    return [
+        document
+        for document in db.partner_phase2_output_versions.documents
+        if document.get("template_version") == "migration-v1"
+        and (document.get("content") or {}).get("kind") == "legacy_reference"
+    ]
+
+
 class FakeDB:
     COLLECTIONS = (
         "partner_journey_steps",
@@ -394,6 +405,7 @@ async def test_evidence_is_derived_from_current_server_records_and_sanitized(dan
     daniele_db.partner_phase2_output_versions.documents.append({
         "partner_id": "23",
         "step_id": "05-script-masterclass",
+        "category": "script_masterclass",
         "output_id": "out-script",
         "version": 1,
         "status": "approved",
@@ -414,6 +426,7 @@ async def test_evidence_is_derived_from_current_server_records_and_sanitized(dan
     assert approved == {
         "output_id": "out-script",
         "step_id": "05-script-masterclass",
+        "category": "script_masterclass",
         "version": 1,
         "status": "approved",
         "is_current": True,
@@ -474,6 +487,9 @@ async def test_first_nonconformant_step_is_active_and_later_reopens_are_blocked(
     assert reopened["05-script-masterclass"]["after"] == {
         "status": "in_progress",
         "completed_at": None,
+        "blocked_reason_code": None,
+        "recovery_action_code": None,
+        "next_action_step_id": None,
     }
     assert reopened["10-sistema-vendita"]["after"]["status"] == "pending"
     assert reopened["10-sistema-vendita"]["after"]["blocked_reason_code"] == (
@@ -501,6 +517,60 @@ async def test_existing_in_progress_is_the_only_front_and_later_done_is_blocked(
     assert [step_id for step_id, status in proposed.items() if status == "in_progress"] == [
         "05-script-masterclass"
     ]
+
+
+@pytest.mark.asyncio
+async def test_pending_and_blocked_downstream_receive_stable_recovery_state_once(
+    daniele_db,
+):
+    by_id = {
+        step["step_id"]: step
+        for step in daniele_db.partner_journey_steps.documents
+    }
+    by_id["16-readiness-lancio"].update({
+        "status": "pending",
+        "completed_at": datetime(2026, 8, 1, tzinfo=timezone.utc),
+        "blocked_reason_code": "old_reason",
+        "recovery_action_code": "old_action",
+        "next_action_step_id": "19-workbook-finale",
+    })
+    by_id["18-certificato-valida"].update({
+        "status": "blocked",
+        "completed_at": datetime(2026, 8, 2, tzinfo=timezone.utc),
+    })
+
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    transitions = {
+        action["step_id"]: action
+        for action in report.actions
+        if action["kind"] == "transition_downstream"
+    }
+    expected = {
+        "status": "pending",
+        "completed_at": None,
+        "blocked_reason_code": "upstream_output_not_current",
+        "recovery_action_code": "complete_upstream_current_output",
+        "next_action_step_id": "05-script-masterclass",
+    }
+    assert transitions["16-readiness-lancio"]["after"] == expected
+    assert transitions["18-certificato-valida"]["after"] == expected
+
+    await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    assert sum(
+        step.get("status") == "in_progress" for step in by_id.values()
+    ) == 1
+    assert all(
+        by_id[step_id].get(field) == value
+        for step_id in ("16-readiness-lancio", "18-certificato-valida")
+        for field, value in expected.items()
+    )
+    repeated_plan = await plan_phase2_migration(daniele_db, "23", "admin-2")
+    assert not any(
+        action["kind"] == "transition_downstream"
+        and action["step_id"] in {"16-readiness-lancio", "18-certificato-valida"}
+        for action in repeated_plan.actions
+    )
 
 
 class MutatingOutputCursor(FakeCursor):
@@ -531,6 +601,7 @@ class MutatingOutputCollection(FakeCollection):
             self.documents.append({
                 "partner_id": "23",
                 "step_id": "05-script-masterclass",
+                "category": "script_masterclass",
                 "output_id": "approved-after-freeze",
                 "version": 1,
                 "status": "approved",
@@ -636,6 +707,12 @@ def conformant_db():
         {
             "partner_id": "ok",
             "step_id": step_id,
+            "category": {
+                "05-script-masterclass": "script_masterclass",
+                "06-outline-lezioni": "outline_corso",
+                "07-script-videolezioni": "script_videolezioni",
+                "12-prezzo-webinar": "prezzo_webinar",
+            }[step_id],
             "output_id": f"output-{step_id}",
             "version": 1,
             "status": "approved",
@@ -828,6 +905,16 @@ async def test_apply_rejects_report_when_source_changed(daniele_db):
     assert audit["status"] == "conflict"
     assert audit["conflict_reason"] == "stale_source_before_claim"
 
+    daniele_db.partner_phase2_migration_audit.documents.clear()
+    with pytest.raises(MigrationRecoveryNotAllowed) as caught:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-recovery"
+        )
+    assert caught.value.error_code == "source_checksum_mismatch"
+    assert caught.value.recovery_action == "create_new_dry_run"
+    assert not daniele_db.partner_phase2_migration_audit.documents
+    assert not daniele_db.partner_phase2_output_versions.documents
+
 
 @pytest.mark.asyncio
 async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniele_db):
@@ -859,12 +946,7 @@ async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniel
     assert await daniele_db.partner_phase2_migration_audit.count_documents(
         {"report_id": report.report_id}
     ) == 1
-    legacy_outputs = [
-        document
-        for document in daniele_db.partner_phase2_output_versions.documents
-        if (document.get("source_checksums") or {}).get("migration_report_id")
-        == report.report_id
-    ]
+    legacy_outputs = _legacy_outputs(daniele_db)
     archive_count = sum(
         action["kind"] == "archive_legacy"
         and action["after"].get("target") == "partner_phase2_output_versions"
@@ -946,9 +1028,7 @@ async def test_calendar_archive_creates_one_canonical_legacy_draft_never_approve
     assert draft.get("admin_review") is None
     assert not any(
         document.get("step_id") == "11-calendario-30gg"
-        and (document.get("source_checksums") or {}).get("migration_report_id")
-        == report.report_id
-        for document in daniele_db.partner_phase2_output_versions.documents
+        for document in _legacy_outputs(daniele_db)
     )
 
 
@@ -990,6 +1070,76 @@ async def test_two_reports_reuse_one_calendar_draft_by_action_identity(daniele_d
     assert await daniele_db.partner_phase2_migration_audit.count_documents(
         {"status": "applied"}
     ) == 2
+
+
+@pytest.mark.asyncio
+async def test_two_equivalent_reports_reuse_legacy_outputs_across_report_ids(
+    daniele_db,
+):
+    first_report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    await apply_phase2_migration(
+        daniele_db, first_report.report_id, "admin-1"
+    )
+    first_outputs = {
+        (document["step_id"], document["category"]): (
+            document["output_id"],
+            document["version"],
+        )
+        for document in _legacy_outputs(daniele_db)
+    }
+
+    second_report = await create_phase2_dry_run(daniele_db, "23", "admin-2")
+    await apply_phase2_migration(
+        daniele_db, second_report.report_id, "admin-2"
+    )
+    second_outputs = {
+        (document["step_id"], document["category"]): (
+            document["output_id"],
+            document["version"],
+        )
+        for document in _legacy_outputs(daniele_db)
+    }
+
+    assert first_report.report_id != second_report.report_id
+    assert first_outputs == second_outputs
+    assert len(first_outputs) == 4
+    assert all(
+        "migration_report_id" not in json.dumps(document, default=str)
+        and first_report.source_checksum not in json.dumps(document, default=str)
+        and second_report.source_checksum not in json.dumps(document, default=str)
+        for document in _legacy_outputs(daniele_db)
+    )
+    assert await daniele_db.partner_phase2_migration_audit.count_documents(
+        {"status": "applied"}
+    ) == 2
+
+
+@pytest.mark.asyncio
+async def test_cross_report_legacy_output_payload_incompatibility_fails_closed(
+    daniele_db,
+):
+    first_report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    await apply_phase2_migration(
+        daniele_db, first_report.report_id, "admin-1"
+    )
+    stored = daniele_db.partner_phase2_output_versions.documents
+    _legacy_outputs(daniele_db)[0]["content"] = {
+        "kind": "legacy_reference",
+        "forged": True,
+    }
+
+    second_report = await create_phase2_dry_run(daniele_db, "23", "admin-2")
+    before_count = len(stored)
+    with pytest.raises(MigrationConflict, match="stale"):
+        await apply_phase2_migration(
+            daniele_db, second_report.report_id, "admin-2"
+        )
+
+    assert len(stored) == before_count
+    conflict = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": second_report.report_id}
+    )
+    assert conflict["status"] == "conflict"
 
 
 @pytest.mark.asyncio
@@ -1085,22 +1235,23 @@ async def test_apply_rechecks_exact_checksum_after_full_snapshot_before_source_w
 
 
 @pytest.mark.asyncio
-async def test_retry_repairs_missing_audit_for_terminal_pre_snapshot_conflict(daniele_db):
+async def test_stale_conflict_retry_never_repairs_or_reapplies_old_report(daniele_db):
     report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
     daniele_db.partner_hub.documents[0]["offerPrice"] = "external stale value"
     with pytest.raises(MigrationConflict, match="stale"):
         await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
     daniele_db.partner_phase2_migration_audit.documents.clear()
 
-    with pytest.raises(MigrationConflict, match="conflict"):
+    with pytest.raises(MigrationRecoveryNotAllowed):
         await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
-    with pytest.raises(MigrationConflict, match="conflict"):
-        await apply_phase2_migration(daniele_db, report.report_id, "admin-3")
+    with pytest.raises(MigrationRecoveryNotAllowed) as recovery:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-3"
+        )
 
-    audits = daniele_db.partner_phase2_migration_audit.documents
-    assert len(audits) == 1
-    assert audits[0]["status"] == "conflict"
-    assert audits[0]["conflict_reason"] == "stale_source_before_claim"
+    assert recovery.value.error_code == "source_checksum_mismatch"
+    assert recovery.value.recovery_action == "create_new_dry_run"
+    assert not daniele_db.partner_phase2_migration_audit.documents
 
 
 class DocumentTooLargeSnapshotCollection(FakeCollection):
@@ -1150,6 +1301,12 @@ async def test_snapshot_document_too_large_is_terminal_sanitized_and_retryable(d
 
     with pytest.raises(MigrationConflict, match="conflict"):
         await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+    with pytest.raises(MigrationRecoveryNotAllowed) as recovery:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-3"
+        )
+    assert recovery.value.error_code == "snapshot_document_too_large"
+    assert recovery.value.recovery_action == "create_new_dry_run"
     assert failing_snapshots.attempts == 1
     assert await daniele_db.partner_phase2_migration_audit.count_documents(
         {"report_id": report.report_id}
@@ -1232,16 +1389,85 @@ async def test_snapshot_failure_is_sanitized_and_audit_repairs_without_snapshot_
     assert raw_marker not in serialized
 
     daniele_db.partner_phase2_migration_audit.documents.clear()
-    with pytest.raises(MigrationConflict, match="conflict"):
+    with pytest.raises(MigrationRecoveryNotAllowed) as retry:
         await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
-
-    repaired = await daniele_db.partner_phase2_migration_audit.find_one(
-        {"report_id": report.report_id}
-    )
-    assert repaired["status"] == "conflict"
-    assert repaired["error_code"] == error_code
+    assert retry.value.error_code == error_code
+    assert retry.value.recovery_action == "retry_single_report"
+    assert not daniele_db.partner_phase2_migration_audit.documents
     assert failing_snapshots.write_attempts == 1
     assert failing_snapshots.read_attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_explicit_recovery_retries_one_transient_snapshot_conflict(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    failing_snapshots = AlwaysFailSnapshotCollection(
+        AutoReconnect("transient private snapshot host")
+    )
+    daniele_db.partner_phase2_migration_snapshots = failing_snapshots
+    with pytest.raises(MigrationConflict, match="snapshot"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    daniele_db.partner_phase2_migration_snapshots = FakeCollection()
+    recovered = await recover_phase2_migration(
+        daniele_db, report.report_id, "admin-recovery"
+    )
+    repeated = await apply_phase2_migration(
+        daniele_db, report.report_id, "admin-retry"
+    )
+
+    assert recovered == repeated
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "applied"
+    assert stored["recovery_attempt"] == 1
+    assert stored["recovery_requested_by"] == "admin-recovery"
+    assert audit["status"] == "applied"
+    assert await daniele_db.partner_phase2_migration_snapshots.count_documents(
+        {"report_id": report.report_id}
+    ) == 1
+
+
+@pytest.mark.asyncio
+async def test_transient_recovery_detects_stale_data_and_requires_new_dry_run(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_snapshots = AlwaysFailSnapshotCollection(
+        AutoReconnect("temporary snapshot outage")
+    )
+    with pytest.raises(MigrationConflict, match="snapshot"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    daniele_db.partner_phase2_migration_snapshots = FakeCollection()
+    daniele_db.partner_hub.documents[0]["offerPrice"] = "497 EUR stale"
+    with pytest.raises(MigrationConflict, match="stale"):
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-recovery"
+        )
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == "source_checksum_mismatch"
+    assert audit["status"] == "conflict"
+    assert audit["error_code"] == "source_checksum_mismatch"
+    assert not daniele_db.partner_phase2_output_versions.documents
+    with pytest.raises(MigrationRecoveryNotAllowed) as caught:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-recovery-2"
+        )
+    assert caught.value.recovery_action == "create_new_dry_run"
 
 
 @pytest.mark.asyncio
@@ -1527,12 +1753,7 @@ async def test_expired_lease_recovers_partial_apply_without_duplicates(daniele_d
     assert await daniele_db.partner_phase2_migration_audit.count_documents(
         {"report_id": report.report_id}
     ) == 1
-    legacy_outputs = [
-        document
-        for document in daniele_db.partner_phase2_output_versions.documents
-        if (document.get("source_checksums") or {}).get("migration_report_id")
-        == report.report_id
-    ]
+    legacy_outputs = _legacy_outputs(daniele_db)
     archive_count = sum(
         action["kind"] == "archive_legacy"
         and action["after"].get("target") == "partner_phase2_output_versions"
@@ -1715,12 +1936,7 @@ async def test_expired_lease_recovers_partial_output_reservation(daniele_db):
         and action["after"].get("target") == "partner_phase2_output_versions"
         for action in report.actions
     )
-    legacy_outputs = [
-        document
-        for document in daniele_db.partner_phase2_output_versions.documents
-        if (document.get("source_checksums") or {}).get("migration_report_id")
-        == report.report_id
-    ]
+    legacy_outputs = _legacy_outputs(daniele_db)
     assert len(legacy_outputs) == archive_count
 
 
@@ -1771,7 +1987,7 @@ async def test_recovery_rejects_tampered_migration_tagged_output(daniele_db):
         "version": 99,
         "status": "approved",
         "content": {"forged": True},
-        "source_checksums": {"migration_report_id": report.report_id},
+        "source_checksums": {"forged": True},
     })
     await daniele_db.partner_phase2_migration_reports.update_one(
         {"report_id": report.report_id},
@@ -1953,27 +2169,45 @@ async def test_expired_owner_cannot_regress_winner_audit_after_lease_reclaim(dan
 
 
 class RecordingIndexCollection:
-    def __init__(self, collection_name, calls):
+    def __init__(self, collection_name, calls, drops, events, indexes=None):
         self.collection_name = collection_name
         self.calls = calls
+        self.drops = drops
+        self.events = events
+        self.indexes = deepcopy(indexes or {})
 
     async def create_index(self, fields, **options):
         self.calls.append((self.collection_name, fields, options))
+        self.events.append(("create", self.collection_name, options.get("name")))
         return options.get("name", str(fields))
 
     async def index_information(self):
-        return {}
+        return deepcopy(self.indexes)
+
+    async def drop_index(self, name):
+        self.drops.append((self.collection_name, name))
+        self.events.append(("drop", self.collection_name, name))
+        self.indexes.pop(name, None)
 
 
 class RecordingIndexDb:
-    def __init__(self):
+    def __init__(self, indexes=None):
         self.calls = []
+        self.drops = []
+        self.events = []
         self.collections = {}
+        self.indexes = indexes or {}
 
     def __getitem__(self, collection_name):
         return self.collections.setdefault(
             collection_name,
-            RecordingIndexCollection(collection_name, self.calls),
+            RecordingIndexCollection(
+                collection_name,
+                self.calls,
+                self.drops,
+                self.events,
+                self.indexes.get(collection_name),
+            ),
         )
 
 
@@ -2016,3 +2250,60 @@ async def test_migration_collections_receive_unique_report_indexes():
             "partialFilterExpression": {"migration_action_id": {"$exists": True}},
         },
     ) in db.calls
+
+
+@pytest.mark.asyncio
+async def test_category_indexes_retire_conflicting_legacy_names_before_creation():
+    db = RecordingIndexDb(indexes={
+        "partner_phase2_output_versions": {
+            "phase2_output_identity_unique": {"unique": True},
+        },
+        "partner_phase2_output_counters": {
+            "phase2_output_counter_unique": {"unique": True},
+        },
+    })
+
+    await ensure_indexes(db)
+
+    expected_drops = {
+        (
+            "partner_phase2_output_versions",
+            "phase2_output_identity_unique",
+        ),
+        (
+            "partner_phase2_output_counters",
+            "phase2_output_counter_unique",
+        ),
+    }
+    assert set(db.drops) == expected_drops
+    expected_new_indexes = {
+        "phase2_output_identity_category_unique": (
+            ("partner_id", 1),
+            ("step_id", 1),
+            ("category", 1),
+            ("template_id", 1),
+            ("template_version", 1),
+            ("checksum", 1),
+            ("source_checksum", 1),
+        ),
+        "phase2_output_counter_category_unique": (
+            ("partner_id", 1),
+            ("step_id", 1),
+            ("category", 1),
+        ),
+    }
+    actual_new_indexes = {
+        options.get("name"): tuple(fields)
+        for _collection, fields, options in db.calls
+        if options.get("name") in expected_new_indexes
+    }
+    assert actual_new_indexes == expected_new_indexes
+    for collection, old_name in expected_drops:
+        new_name = (
+            "phase2_output_identity_category_unique"
+            if collection == "partner_phase2_output_versions"
+            else "phase2_output_counter_category_unique"
+        )
+        assert db.events.index(("drop", collection, old_name)) < db.events.index(
+            ("create", collection, new_name)
+        )

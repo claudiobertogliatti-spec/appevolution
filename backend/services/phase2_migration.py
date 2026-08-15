@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 import base64
 import hashlib
 import json
+import re
 import time
 from typing import Any
 import uuid
@@ -95,11 +96,66 @@ _SENSITIVE_KEYS = {
 _APPLY_LEASE_SECONDS = 30
 _APPLY_WAIT_SECONDS = 10
 _APPLY_POLL_SECONDS = 0.01
+_UPSTREAM_BLOCK_REASON = "upstream_output_not_current"
+_UPSTREAM_RECOVERY_ACTION = "complete_upstream_current_output"
 _MIGRATION_MARKER_FIELDS = (
     "phase2_migration_report_id",
     "phase2_migration_action_ids",
     "phase2_migration_applied_at",
 )
+_PUBLIC_ACTION_KINDS = frozenset({
+    "normalize_metadata",
+    "archive_legacy",
+    "preserve_source",
+    "preserve_step",
+    "reopen_step",
+    "transition_downstream",
+})
+_PUBLIC_ACTION_REASONS = frozenset({
+    "canonical_phase2_definition",
+    "historical_output_requires_current_approval",
+    "legacy_calendar_requires_canonical_review",
+    "historical_masterclass_media_preserved",
+    "historical_lesson_records_preserved",
+    "legacy_journey_record_preserved",
+    "server_evidence_missing",
+    "current_server_evidence_conformant",
+    "existing_migration_front_preserved",
+    _UPSTREAM_BLOCK_REASON,
+})
+_PUBLIC_ACTION_TARGETS = frozenset({
+    "partner_journey_steps",
+    "partner_phase2_output_versions",
+    "partner_launch_calendar_versions",
+    "masterclass_factory",
+    "partner_videocorso",
+})
+_PUBLIC_STATUSES = frozenset({
+    "pending",
+    "blocked",
+    "in_progress",
+    "done",
+    "draft",
+    "legacy",
+    "approved",
+    "superseded",
+})
+_PUBLIC_CATEGORIES = frozenset({
+    category
+    for definition in _CANONICAL_DEFINITIONS
+    for category in definition.get("material_categories", [])
+} | set(_OUTPUT_CATEGORY.values()) | {"calendario_30gg", "legacy_phase2"})
+_PUBLIC_CODES = frozenset(
+    str(definition["code"]) for definition in _CANONICAL_DEFINITIONS
+)
+_PUBLIC_OWNERS = frozenset(
+    str(definition["owner"]) for definition in _CANONICAL_DEFINITIONS
+)
+_PUBLIC_COMPLETION_POLICIES = frozenset(
+    str(definition["completion_policy"]) for definition in _CANONICAL_DEFINITIONS
+)
+_CHECKSUM_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+_ACTION_ID_PATTERN = re.compile(r"^[0-9a-f]{24}$")
 
 
 @dataclass(frozen=True)
@@ -133,6 +189,43 @@ class MigrationPlan:
 
 class MigrationConflict(RuntimeError):
     """Il report non rappresenta piu' lo stato corrente o ha perso il CAS."""
+
+
+_RECOVERABLE_CONFLICT_CODES = frozenset({
+    "snapshot_store_unavailable",
+    "snapshot_store_unauthorized",
+    "snapshot_persist_error",
+})
+_CONFLICT_RECOVERY_ACTIONS = {
+    "snapshot_store_unavailable": "retry_single_report",
+    "snapshot_store_unauthorized": "retry_single_report",
+    "snapshot_persist_error": "retry_single_report",
+    "snapshot_document_too_large": "create_new_dry_run",
+    "source_checksum_mismatch": "create_new_dry_run",
+    "source_checksum_mismatch_after_claim": "create_new_dry_run",
+    "canonical_step_cardinality_invalid": "create_new_dry_run",
+    "migration_conflict": "create_new_dry_run",
+}
+
+
+def sanitized_migration_error_code(error_code: Any) -> str:
+    code = str(error_code or "migration_conflict")
+    return code if code in _CONFLICT_RECOVERY_ACTIONS else "migration_conflict"
+
+
+def migration_recovery_action(error_code: Any) -> str:
+    return _CONFLICT_RECOVERY_ACTIONS[
+        sanitized_migration_error_code(error_code)
+    ]
+
+
+class MigrationRecoveryNotAllowed(MigrationConflict):
+    """Il conflitto richiede un nuovo dry-run, non la replica del report vecchio."""
+
+    def __init__(self, error_code: Any):
+        self.error_code = sanitized_migration_error_code(error_code)
+        self.recovery_action = migration_recovery_action(self.error_code)
+        super().__init__("migration report conflict is not recoverable")
 
 
 @dataclass(frozen=True)
@@ -309,13 +402,17 @@ def _approved_output_reference(output: dict[str, Any] | None) -> dict[str, Any] 
 
 
 def _current_approved_output_from_snapshot(
-    snapshot: dict[str, list[dict[str, Any]]], partner_id: str, step_id: str
+    snapshot: dict[str, list[dict[str, Any]]],
+    partner_id: str,
+    step_id: str,
+    category: str,
 ) -> dict[str, Any] | None:
     candidates = [
         document
         for document in snapshot["partner_phase2_output_versions"]
         if document.get("partner_id") == partner_id
         and document.get("step_id") == step_id
+        and document.get("category") == category
         and document.get("status") == "approved"
         and document.get("is_current") is True
     ]
@@ -427,7 +524,12 @@ async def _build_phase2_evidence_from_snapshot(
     outputs = {}
     output_flags = {}
     for step_id, evidence_key in _OUTPUT_EVIDENCE.items():
-        output = _current_approved_output_from_snapshot(snapshot, partner_id, step_id)
+        output = _current_approved_output_from_snapshot(
+            snapshot,
+            partner_id,
+            step_id,
+            _OUTPUT_CATEGORY[step_id],
+        )
         outputs[step_id] = _approved_output_reference(output)
         output_flags[evidence_key] = output is not None
 
@@ -543,6 +645,110 @@ def _action(
     return {"action_id": action_id, **body}
 
 
+def _public_action_target(action: dict[str, Any]) -> str:
+    target = (action.get("after") or {}).get("target")
+    if not target and action.get("kind") == "preserve_source":
+        target = (action.get("before") or {}).get("collection")
+    if not target and action.get("kind") in {
+        "normalize_metadata",
+        "preserve_step",
+        "reopen_step",
+        "transition_downstream",
+    }:
+        target = "partner_journey_steps"
+    return str(target) if target in _PUBLIC_ACTION_TARGETS else "unsupported_target"
+
+
+def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    sanitized: dict[str, Any] = {}
+    if "completed_at" in value:
+        sanitized["completed_at_present"] = value.get("completed_at") is not None
+    for field in (
+        "status",
+        "step_number",
+        "code",
+        "owner",
+        "completion_policy",
+        "blocked_reason_code",
+        "recovery_action_code",
+        "next_action_step_id",
+        "version",
+        "category",
+        "template_id",
+        "template_version",
+        "checksum",
+        "source_checksum",
+        "source_field_checksum",
+        "legacy_calendar_checksum",
+    ):
+        if field not in value:
+            continue
+        item = value.get(field)
+        if field == "status" and item in _PUBLIC_STATUSES:
+            sanitized[field] = item
+        elif field == "step_number" and isinstance(item, int) and 0 <= item <= 99:
+            sanitized[field] = item
+        elif field == "code" and item in _PUBLIC_CODES:
+            sanitized[field] = item
+        elif field == "owner" and item in _PUBLIC_OWNERS:
+            sanitized[field] = item
+        elif field == "completion_policy" and item in _PUBLIC_COMPLETION_POLICIES:
+            sanitized[field] = item
+        elif field == "blocked_reason_code" and item in {
+            None,
+            _UPSTREAM_BLOCK_REASON,
+        }:
+            sanitized[field] = item
+        elif field == "recovery_action_code" and item in {
+            None,
+            _UPSTREAM_RECOVERY_ACTION,
+        }:
+            sanitized[field] = item
+        elif field == "next_action_step_id" and (
+            item is None or item in _CANONICAL_BY_ID
+        ):
+            sanitized[field] = item
+        elif field == "version" and isinstance(item, int) and item >= 0:
+            sanitized[field] = item
+        elif field == "category" and item in _PUBLIC_CATEGORIES:
+            sanitized[field] = item
+        elif field == "template_id" and item in {
+            f"legacy-reference-{category}" for category in _PUBLIC_CATEGORIES
+        }:
+            sanitized[field] = item
+        elif field == "template_version" and item == "migration-v1":
+            sanitized[field] = item
+        elif field in {
+            "checksum",
+            "source_checksum",
+            "source_field_checksum",
+            "legacy_calendar_checksum",
+        } and isinstance(item, str) and _CHECKSUM_PATTERN.fullmatch(item):
+            sanitized[field] = item
+    return sanitized
+
+
+def sanitize_phase2_migration_action(action: dict[str, Any]) -> dict[str, Any]:
+    """Proiezione condivisa API/CLI: revisionabile ma priva di payload grezzi."""
+    action_id = str(action.get("action_id") or "")
+    kind = action.get("kind")
+    reason = action.get("reason")
+    step_id = str(action.get("step_id") or "")
+    return {
+        "action_id": (
+            action_id if _ACTION_ID_PATTERN.fullmatch(action_id) else "invalid_action"
+        ),
+        "kind": kind if kind in _PUBLIC_ACTION_KINDS else "unsupported_action",
+        "step_id": step_id if step_id in _CANONICAL_BY_ID else "legacy_record",
+        "reason": reason if reason in _PUBLIC_ACTION_REASONS else "unrecognized_reason",
+        "target": _public_action_target(action),
+        "before": _sanitize_operational_fields(action.get("before")),
+        "after": _sanitize_operational_fields(action.get("after")),
+    }
+
+
 def _legacy_source_refs(
     step_id: str,
     step: dict[str, Any],
@@ -577,6 +783,67 @@ def _legacy_source_refs(
         if hub.get("offerPrice"):
             refs.append({"collection": "partner_hub", "field": "offerPrice"})
     return refs
+
+
+def _nested_source_value(document: dict[str, Any], path: str) -> Any:
+    value: Any = document
+    for part in path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            return None
+        value = value[part]
+    return value
+
+
+def _legacy_source_field_checksum(
+    step_id: str,
+    source_refs: list[dict[str, Any]],
+    snapshot: dict[str, list[dict[str, Any]]],
+) -> str:
+    """Lega l'identita' legacy ai soli campi referenziati, senza copiarli."""
+    bound_fields = []
+    for source_ref in source_refs:
+        collection_name = str(source_ref.get("collection") or "")
+        documents = snapshot.get(collection_name) or []
+        if collection_name == "partner_journey_steps":
+            document = _steps_by_id(documents).get(
+                str(source_ref.get("step_id") or step_id)
+            ) or {}
+            field = str(source_ref.get("field") or "data")
+        else:
+            document = _latest_by_version(documents) or {}
+            field = str(source_ref.get("field") or "")
+        bound_fields.append({
+            "collection": collection_name,
+            "step_id": source_ref.get("step_id"),
+            "field": field,
+            "value": _nested_source_value(document, field) if field else document,
+        })
+    return hashlib.sha256(
+        _canonical_json(bound_fields).encode("utf-8")
+    ).hexdigest()
+
+
+def _downstream_state(active_front: str) -> dict[str, Any]:
+    return {
+        "status": "pending",
+        "completed_at": None,
+        "blocked_reason_code": _UPSTREAM_BLOCK_REASON,
+        "recovery_action_code": _UPSTREAM_RECOVERY_ACTION,
+        "next_action_step_id": active_front,
+    }
+
+
+def _operational_step_state(step: dict[str, Any]) -> dict[str, Any]:
+    return {
+        field: _safe_value(step.get(field))
+        for field in (
+            "status",
+            "completed_at",
+            "blocked_reason_code",
+            "recovery_action_code",
+            "next_action_step_id",
+        )
+    }
 
 
 def _preservation_actions(
@@ -693,14 +960,24 @@ async def plan_phase2_migration(
         if evidence["approved_outputs"].get(step_id) is None:
             refs = _legacy_source_refs(step_id, step, snapshot)
             if refs:
+                source_field_checksum = _legacy_source_field_checksum(
+                    step_id, refs, snapshot
+                )
                 actions.append(_action(
                     "archive_legacy",
                     step_id,
                     "historical_output_requires_current_approval",
-                    {"source_refs": refs},
+                    {
+                        "source_refs": refs,
+                        "source_field_checksum": source_field_checksum,
+                    },
                     {
                         "target": "partner_phase2_output_versions",
                         "category": _OUTPUT_CATEGORY[step_id],
+                        "template_id": (
+                            f"legacy-reference-{_OUTPUT_CATEGORY[step_id]}"
+                        ),
+                        "template_version": "migration-v1",
                         "status": "legacy",
                     },
                 ))
@@ -769,25 +1046,23 @@ async def plan_phase2_migration(
         actions.append(_action(
             "transition_downstream",
             step_id,
-            "upstream_output_not_current",
-            {"status": "in_progress", "updated_at": step.get("updated_at")},
-            {
-                "status": "pending",
-                "completed_at": None,
-                "blocked_reason_code": "upstream_output_not_current",
-            },
+            _UPSTREAM_BLOCK_REASON,
+            _operational_step_state(step),
+            _downstream_state(active_front),
         ))
         transitioned_ids.add(step_id)
 
     for step_id, reason in nonconformant_done:
         step = raw_steps[step_id]
-        after = {"status": "in_progress", "completed_at": None}
+        after = {
+            "status": "in_progress",
+            "completed_at": None,
+            "blocked_reason_code": None,
+            "recovery_action_code": None,
+            "next_action_step_id": None,
+        }
         if step_id != active_front:
-            after = {
-                "status": "pending",
-                "completed_at": None,
-                "blocked_reason_code": "upstream_output_not_current",
-            }
+            after = _downstream_state(active_front)
         actions.append(_action(
             "reopen_step",
             step_id,
@@ -807,18 +1082,20 @@ async def plan_phase2_migration(
             if step_id in reopened_ids or step_id in transitioned_ids:
                 continue
             step = raw_steps.get(step_id)
-            if not step or step.get("status") in ("pending", "blocked"):
+            if not step:
+                continue
+            desired = _downstream_state(active_front)
+            if all(
+                _canonical_json(step.get(field)) == _canonical_json(value)
+                for field, value in desired.items()
+            ):
                 continue
             actions.append(_action(
                 "transition_downstream",
                 step_id,
-                "upstream_output_not_current",
-                {"status": step.get("status"), "updated_at": step.get("updated_at")},
-                {
-                    "status": "pending",
-                    "completed_at": None,
-                    "blocked_reason_code": "upstream_output_not_current",
-                },
+                _UPSTREAM_BLOCK_REASON,
+                _operational_step_state(step),
+                desired,
             ))
 
     return MigrationPlan(
@@ -946,9 +1223,6 @@ def _journey_patches(actions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
         target = patches.setdefault(step_id, {"fields": {}, "action_ids": []})
         target["fields"].update(deepcopy(action["after"]))
         target["action_ids"].append(action["action_id"])
-    for patch in patches.values():
-        if patch["fields"].get("status") == "in_progress":
-            patch["fields"].setdefault("blocked_reason_code", None)
     return patches
 
 
@@ -1004,6 +1278,7 @@ def _output_identity(document: dict[str, Any]) -> tuple[Any, ...]:
         for field in (
             "partner_id",
             "step_id",
+            "category",
             "template_id",
             "template_version",
             "checksum",
@@ -1019,6 +1294,7 @@ def _output_version_identity(document: dict[str, Any]) -> tuple[Any, ...]:
         for field in (
             "partner_id",
             "step_id",
+            "category",
             "template_id",
             "template_version",
             "checksum",
@@ -1038,16 +1314,19 @@ def _legacy_output_request(
         partner_id=report["partner_id"],
         step_id=action["step_id"],
         category=category,
-        template_id=f"legacy-reference-{category}",
-        template_version="migration-v1",
+        template_id=action.get("after", {}).get("template_id")
+        or f"legacy-reference-{category}",
+        template_version=action.get("after", {}).get("template_version")
+        or "migration-v1",
         content={
-            "migration_report_id": report["report_id"],
+            "kind": "legacy_reference",
             "source_refs": deepcopy(action.get("before", {}).get("source_refs", [])),
         },
         source_checksums={
-            "migration_report_id": report["report_id"],
-            "migration_source_checksum": report["source_checksum"],
             "migration_action_id": action["action_id"],
+            "source_field_checksum": action.get("before", {}).get(
+                "source_field_checksum"
+            ),
         },
         actor_id=report.get("apply_actor_id") or report["actor_id"],
         initial_status="legacy",
@@ -1064,6 +1343,7 @@ def _request_output_identity(request: OutputVersionRequest) -> tuple[Any, ...]:
     return (
         request.partner_id,
         request.step_id,
+        request.category,
         request.template_id,
         request.template_version,
         hashlib.sha256(payload.encode("utf-8")).hexdigest(),
@@ -1081,6 +1361,7 @@ def _is_expected_migration_output_payload(
             "_id",
             "partner_id",
             "step_id",
+            "category",
             "template_id",
             "template_version",
             "checksum",
@@ -1129,23 +1410,38 @@ def _output_documents_compatible(
     if len(original_by_identity) != len(original):
         return False
     current_originals: dict[tuple[Any, ...], dict[str, Any]] = {}
-    migration_outputs: list[tuple[dict[str, Any], OutputVersionRequest]] = []
+    expected_matches = {
+        identity: [] for identity in expected_migration_requests
+    }
     for document in current:
-        request = expected_migration_requests.get(_output_version_identity(document))
-        if request:
-            if not _is_expected_migration_output_payload(document, request):
-                return False
-            migration_outputs.append((document, request))
-            continue
         identity = _output_identity(document)
-        if identity in current_originals:
+        request_identity = _output_version_identity(document)
+        request = expected_migration_requests.get(request_identity)
+        if request and not _is_expected_migration_output_payload(document, request):
             return False
-        current_originals[identity] = document
+        if identity in original_by_identity:
+            if identity in current_originals:
+                return False
+            current_originals[identity] = document
+        elif request:
+            pass
+        else:
+            return False
+        if request:
+            expected_matches[request_identity].append(document)
     if len(current_originals) != len(original):
+        return False
+    if any(
+        len(matches) > 1 or (strict and len(matches) != 1)
+        for matches in expected_matches.values()
+    ):
         return False
 
     stored_migration_outputs = [
-        document for document, _request in migration_outputs if document.get("output_id")
+        document
+        for matches in expected_matches.values()
+        for document in matches
+        if document.get("output_id")
     ]
     for before in original:
         after = current_originals.get(_output_identity(before))
@@ -1157,6 +1453,7 @@ def _output_documents_compatible(
             for document in stored_migration_outputs
             if document.get("partner_id") == before.get("partner_id")
             and document.get("step_id") == before.get("step_id")
+            and document.get("category") == before.get("category")
             and int(document.get("version") or 0) > int(before.get("version") or 0)
         ]
         if superseding_versions and before.get("is_current") is True:
@@ -1168,7 +1465,10 @@ def _output_documents_compatible(
         if _canonical_json(after) not in allowed:
             return False
 
-    for document, _request in migration_outputs:
+    for matches in expected_matches.values():
+        if not matches:
+            continue
+        document = matches[0]
         if not document.get("output_id"):
             if strict:
                 return False
@@ -1176,6 +1476,7 @@ def _output_documents_compatible(
         has_newer = any(
             candidate.get("partner_id") == document.get("partner_id")
             and candidate.get("step_id") == document.get("step_id")
+            and candidate.get("category") == document.get("category")
             and int(candidate.get("version") or 0) > int(document.get("version") or 0)
             for candidate in [*original, *stored_migration_outputs]
             if candidate is not document
@@ -1190,11 +1491,15 @@ def _output_documents_compatible(
             return False
 
     if strict:
-        current_counts: dict[tuple[Any, Any], int] = {}
+        current_counts: dict[tuple[Any, Any, Any], int] = {}
         for document in current:
             if document.get("is_current") is not True:
                 continue
-            key = (document.get("partner_id"), document.get("step_id"))
+            key = (
+                document.get("partner_id"),
+                document.get("step_id"),
+                document.get("category"),
+            )
             current_counts[key] = current_counts.get(key, 0) + 1
         if any(count > 1 for count in current_counts.values()):
             return False
@@ -2140,6 +2445,116 @@ async def _raise_snapshot_failure(
     raise MigrationConflict("migration snapshot could not be persisted") from None
 
 
+async def recover_phase2_migration(
+    db, report_id: str, actor_id: str
+) -> MigrationApplyResult:
+    """Riprova un solo report esclusivamente dopo conflitti infrastrutturali."""
+    reports = db.partner_phase2_migration_reports
+    report = await reports.find_one({"report_id": str(report_id)})
+    if not report:
+        raise MigrationConflict("migration report not found")
+    error_code = sanitized_migration_error_code(report.get("error_code"))
+    if (
+        report.get("status") != "conflict"
+        or error_code not in _RECOVERABLE_CONFLICT_CODES
+    ):
+        raise MigrationRecoveryNotAllowed(error_code)
+
+    repaired = await _repair_conflict_audit(db, report)
+    if repaired:
+        return repaired
+    conflict_lease_id = report.get("conflict_lease_id")
+    if not conflict_lease_id:
+        raise MigrationConflict("terminal conflict report is missing its fence")
+
+    now = datetime.now(timezone.utc)
+    recovery_lease_id = uuid.uuid4().hex
+    audit = await db.partner_phase2_migration_audit.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "conflict",
+            "lease_id": conflict_lease_id,
+            "error_code": error_code,
+        },
+        {
+            "$set": {
+                "status": "applying",
+                "lease_id": recovery_lease_id,
+                "snapshot_id": report.get("snapshot_id")
+                or f"phase2-snapshot-{report['report_id']}",
+                "recovery_requested_at": now,
+                "recovery_requested_by": str(actor_id),
+            },
+            "$unset": {
+                "terminal_report_status": "",
+                "conflict_at": "",
+                "conflict_reason": "",
+                "error_code": "",
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not audit:
+        raise MigrationConflict("migration conflict audit fence mismatch")
+
+    recovered_report = await reports.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "conflict",
+            "conflict_lease_id": conflict_lease_id,
+            "error_code": error_code,
+        },
+        {
+            "$set": {
+                "status": "applying",
+                "lease_id": recovery_lease_id,
+                "lease_expires_at": now - timedelta(seconds=1),
+                "recovery_requested_at": now,
+                "recovery_requested_by": str(actor_id),
+                "recovery_attempt": int(report.get("recovery_attempt") or 0) + 1,
+                "updated_at": now,
+            },
+            "$unset": {
+                "conflict_lease_id": "",
+                "conflict_at": "",
+                "conflict_reason": "",
+                "error_code": "",
+                "expected_terminal_audit_lease_id": "",
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not recovered_report:
+        await db.partner_phase2_migration_audit.find_one_and_update(
+            {
+                "report_id": report["report_id"],
+                "status": "applying",
+                "lease_id": recovery_lease_id,
+            },
+            {
+                "$set": {
+                    "status": "conflict",
+                    "lease_id": conflict_lease_id,
+                    "terminal_report_status": "conflict",
+                    "conflict_at": report.get("conflict_at"),
+                    "conflict_reason": report.get("conflict_reason"),
+                    "error_code": error_code,
+                },
+                "$unset": {
+                    "recovery_requested_at": "",
+                    "recovery_requested_by": "",
+                },
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        latest = await reports.find_one({"report_id": report["report_id"]})
+        if latest and latest.get("status") == "applied":
+            return _apply_result_from_document(latest)
+        raise MigrationConflict("migration report recovery fence mismatch")
+
+    return await apply_phase2_migration(db, report["report_id"], str(actor_id))
+
+
 async def apply_phase2_migration(
     db, report_id: str, actor_id: str
 ) -> MigrationApplyResult:
@@ -2151,10 +2566,7 @@ async def apply_phase2_migration(
     if report.get("status") == "applied":
         return _apply_result_from_document(report)
     if report.get("status") == "conflict":
-        recovered = await _repair_conflict_audit(db, report)
-        if recovered:
-            return recovered
-        raise MigrationConflict("migration report is in conflict")
+        raise MigrationRecoveryNotAllowed(report.get("error_code"))
 
     now = datetime.now(timezone.utc)
     lease_id = uuid.uuid4().hex
@@ -2283,7 +2695,11 @@ async def apply_phase2_migration(
                 await _assert_source_compatible(db, claimed, stored_snapshot)
             except MigrationConflict as exc:
                 recovered = await _mark_conflict(
-                    db, report["report_id"], lease_id, str(exc)
+                    db,
+                    report["report_id"],
+                    lease_id,
+                    str(exc),
+                    error_code="source_checksum_mismatch_after_claim",
                 )
                 if recovered:
                     return recovered
@@ -2294,7 +2710,11 @@ async def apply_phase2_migration(
             if _source_checksum(current) != report["source_checksum"]:
                 reason = "stale migration report without recovery snapshot"
                 recovered = await _mark_conflict(
-                    db, report["report_id"], lease_id, reason
+                    db,
+                    report["report_id"],
+                    lease_id,
+                    reason,
+                    error_code="source_checksum_mismatch",
                 )
                 if recovered:
                     return recovered
@@ -2303,7 +2723,11 @@ async def apply_phase2_migration(
             if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
                 reason = "stale migration report: source changed after recovery claim"
                 recovered = await _mark_conflict(
-                    db, report["report_id"], lease_id, reason
+                    db,
+                    report["report_id"],
+                    lease_id,
+                    reason,
+                    error_code="source_checksum_mismatch_after_claim",
                 )
                 if recovered:
                     return recovered
