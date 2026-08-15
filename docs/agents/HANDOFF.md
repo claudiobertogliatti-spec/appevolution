@@ -54,7 +54,8 @@ revisione per task e review finale sull'intero branch.
 **DICHIARATO**
 - La precedente dichiarazione "review clean / nessun P1-P2" e superata dalla review finale:
   sono emersi cinque Important e due minor. Il commit applicativo `f3be42fe` li corregge
-  insieme, con regressioni nei tre file di test Fase 2 gia inclusi nella CI.
+  insieme; il follow-up `75de2680` rende idempotente anche il repeat della recovery esplicita.
+  Le regressioni restano nei tre file di test Fase 2 gia inclusi nella CI.
 - Il gate umano espone ora in GET/dry-run API e dry-run CLI la stessa lista di azioni:
   kind/step/reason/target e before/after passano da allowlist; content, URL, token e documenti
   raw non vengono proiettati. `completed_at` e mostrato solo come booleano di presenza.
@@ -71,7 +72,7 @@ revisione per task e review finale sull'intero branch.
   conflitti stale richiedono sempre un nuovo dry-run. Apply/recovery CLI richiedono un actor
   esplicito; il cluster Mongo legacy morto usa lo stesso fallback Atlas del backend.
 - Base post-rebase verificata `1616b433`; range applicativo corrente
-  `1616b433..f3be42fe` (`0 behind / 23 ahead` rispetto a `origin/main`). Nessuna modifica alla
+  `1616b433..75de2680` (`0 behind / 25 ahead` rispetto a `origin/main`). Nessuna modifica alla
   allowlist CI: i nuovi test sono nei quattro file gia presenti.
 
 **VERIFICATO**
@@ -79,7 +80,8 @@ revisione per task e review finale sull'intero branch.
   8 skipped, 1 warning in 14.98s`, exit 0.
 - Allowlist CI completa di 51 file, estratta da `.github/workflows/ci.yml` ed eseguita con
   `MONGO_URL=mongodb://localhost:27017`, `DB_NAME=ciak_ci`, `JWT_SECRET_KEY=ci-test-secret`,
-  `APP_ENV=test`: `644 passed, 31 warnings in 140.99s`, exit 0.
+  `APP_ENV=test`, rieseguita sul tail applicativo `75de2680`: `644 passed,
+  31 warnings in 149.89s`, exit 0.
 - `python -m compileall -q backend`: exit 0. `python -m flake8 backend --select=E9,F821
   --exclude='backend/__pycache__,backend/tests/__pycache__'`: exit 0.
 - `git diff --check`: exit 0. Secret scan sugli added lines dal range `origin/main`, con
@@ -87,6 +89,8 @@ revisione per task e review finale sull'intero branch.
 - Regressioni dedicate provano separazione e retry category-aware, indice nuovo/ritiro del
   precedente, downstream idempotente, riuso cross-report e tamper fail-closed, allowlist
   API/CLI, auth recovery, recovery transient e rifiuto stale/document-too-large.
+- Post follow-up `75de2680`: `test_explicit_recovery_retries_one_transient_snapshot_conflict`
+  verde (`1 passed, 46 deselected`), incluso repeat recovery sul report gia `applied`.
 
 **APERTO**
 - Nessun dry-run/apply sul partner Daniele e nessuna operazione su dati reali sono stati
