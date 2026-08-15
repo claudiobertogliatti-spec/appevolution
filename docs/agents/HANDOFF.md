@@ -12,6 +12,47 @@ Regole:
 
 ---
 
+### 2026-08-15 · Codex · codex/fase2-daniele-design — chiusura residui review Fase 2
+
+**DICHIARATO**
+- La dichiarazione precedente di chiusura dei finding e superata da due Important residui.
+  Il commit applicativo post-rebase `51d4c2ff` chiude entrambi e include il minor sicuro
+  `before_steps`; le regressioni restano nei due file migrazione gia inclusi nella CI.
+- GET report, POST dry-run e dry-run CLI usano la stessa proiezione. Le azioni
+  `normalize_metadata` espongono ora tutti gli otto campi canonici revisionabili
+  (`step_number`, `code`, `fase_legacy`, `macro_phase`, `label`, `owner`,
+  `completion_policy`, `material_categories`). Le azioni `preserve_source` mostrano solo
+  collection, nomi-campo allowlistati e conteggi; `preserve_step` mostra status ed evidence key.
+  Content, URL, token, timestamp raw e documenti sorgente non attraversano il boundary.
+- Uno snapshot viene accettato solo se id deterministico, report, partner, checksum dichiarato,
+  insieme completo delle collection e checksum del contenuto coincidono. Collisione o snapshot
+  incompleto produce `snapshot_identity_conflict`, non recuperabile, con nuovo dry-run richiesto.
+- Il primo apply persiste e valida lo snapshot prima di creare il lease `applying`. Un lease
+  scaduto senza snapshot viene chiuso in conflict; la recovery esplicita persiste/valida lo
+  snapshot mentre report e audit sono ancora conflict e li riapre solo dopo. In quel passaggio
+  l'audit riceve anche il `before_steps` derivato dallo snapshot valido.
+- Rebase completato sulla base `1455151a`; range applicativo verificato
+  `1455151a..51d4c2ff`, `0 behind / 27 ahead` prima di questa voce documentale.
+
+**VERIFICATO**
+- RED mirato pre-fix: `7 failed, 86 deselected`; i failure coprivano i quattro metadati omessi,
+  `preserve_*` non revisionabili, `before_steps` vuoto e snapshot incompleto trattato come stale.
+- Suite Fase 2 post-fix: `125 passed, 1 warning in 6.97s`, exit 0.
+- Suite integrata post-rebase Fase 2 + calendario + journey + auth: `316 passed, 8 skipped,
+  1 warning in 17.19s`, exit 0.
+- Allowlist CI post-rebase estratta dal workflow: `CI_ALLOWLIST_FILES=51`; `652 passed,
+  31 warnings in 148.98s`, exit 0.
+- `compileall`, flake `E9,F821`, diff-check e secret scan degli added lines sono verdi; il secret
+  scan esclude soltanto la self-pattern esatta gia documentata nel piano.
+- Nessun marker di conflitto resta dopo il rebase; la voce concorrente Luca in HANDOFF e stata
+  conservata integralmente.
+
+**APERTO**
+- Nessun push/deploy, dry-run live o apply su Daniele e stato eseguito in questa wave. Il rilascio
+  e le verifiche produzione restano al coordinatore root.
+- Al primo boot va osservato il rollout degli indici category-aware e il ritiro dei nomi legacy,
+  gia fail-closed in caso di errore.
+
 ### 2026-08-15 · Claude Code (Luca) · cc/luca-fase1-occhi-memoria — Luca da consulente ad agente esecutivo (Fasi 1 e 2)
 
 Richiesta: rendere Luca un vero agente esecutivo. Due fasi, spec + piano + esecuzione a subagent con
@@ -49,6 +90,7 @@ revisione per task e review finale sull'intero branch.
   nel sistema non esiste. Si rimette quando la coda dei contenuti esiste davvero.
 - Il messaggio a Claudio resta a valle del passo MCP: se quello blocca, il briefing non arriva (la
   memoria si', ora). La causa vera sono i permessi mancanti.
+
 ### 2026-08-15 · Codex · codex/fase2-daniele-design — final review fix Fase 2
 
 **DICHIARATO**
@@ -141,6 +183,7 @@ revisione per task e review finale sull'intero branch.
 - Nessun dry-run live e stato eseguito in Task 6. Nessun push o deploy eseguito.
 - Concern non applicativa: il comando secret scan letterale resta auto-referenziale e torna 1;
   il piano non e stato modificato, come richiesto dal perimetro del task.
+
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
 
 **FATTO**
