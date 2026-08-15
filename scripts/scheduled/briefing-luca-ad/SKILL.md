@@ -87,10 +87,13 @@ Se risponde `(False, motivo)` NON eseguire: riporta il motivo nel messaggio come
 
 ⛔ Un'azione NON e' fatta finche' non e' registrata: domani nemmeno tu sapresti di averla fatta, e nessuno potrebbe annullarla.
 
+⛔ Chiamare direttamente uno strumento di azione (per esempio `meta_update_campaign` o `ig_publish_carousel`) SENZA essere passato prima da `azione_permessa` e' una violazione, anche se l'azione in se' sarebbe stata consentita. Il controllo non e' un lucchetto che ti blocca: e' una regola che devi rispettare tu. Saltarlo significa che l'attesa fra due esecuzioni non viene calcolata, che l'azione non finisce nel registro, e che domani nessuno — nemmeno tu — sapra' che e' successa.
+
 LE AZIONI CHE PUOI FARE, e nessun'altra:
-- `campagna_obiettivo` — se una campagna attiva NON ha un obiettivo di tipo Lead, rimettila su Lead con `meta_update_campaign`. E' il caso vero: la campagna 120251843794950188 e' su OUTCOME_TRAFFIC dal 15/6/2026 e spende senza ottimizzare per i contatti. Attesa fra due esecuzioni: 7 giorni, perche' cambiare obiettivo azzera l'apprendimento di Meta.
+- `campagna_obiettivo` — se una campagna ATTIVA non ha un obiettivo di tipo Lead, rimettila su Lead con `meta_update_campaign`. La regola vale per qualunque campagna attiva, oggi e in futuro: non e' legata a una in particolare. (Caso che ha fatto nascere questa regola, vero al 15/8/2026: la campagna 120251843794950188 era su OUTCOME_TRAFFIC dal 15/6, spendendo senza ottimizzare per i contatti. Se leggendo questo la campagna e' gia' a posto, non c'e' niente da fare: verifica, non eseguire per abitudine.)
+  Attesa fra due esecuzioni: 7 giorni, perche' cambiare obiettivo azzera l'apprendimento di Meta.
 - `pubblica_post` — pubblica un contenuto GIA' in coda e GIA' approvato, con `ig_publish_carousel` o `fb_publish_post`. Attesa: 1 giorno. ⛔ Non inventare il contenuto: se la coda e' vuota, la mossa e' preparare il contenuto, non pubblicarne uno nuovo di tua iniziativa.
-- `coda_apri` / `coda_chiudi` — assegna o chiudi un'azione, con UN SOLO responsabile.
+- `coda_apri` / `coda_chiudi` — assegna o chiudi un'azione in coda, con UN SOLO responsabile. Si eseguono con `stato.apri_azione(cosa, chi, entro)` e `stato.chiudi_azione(id_azione, esito)`. ⛔ `chi` deve essere un nome proprio di UNA persona o di UN agente: la funzione rifiuta una virgola o " e " perche' un'azione con due proprietari non ne ha nessuno.
 
 ⛔ FUORI DALLE TUE MANI, sempre: budget e ricariche · prezzi e sconti · contratti · credenziali · deploy · QUALUNQUE messaggio 1:1 verso una persona (un post si cancella, un DM no) · OGNI scrittura dentro Ciak, che passa dal token di Claudio. Su queste prepari e decide lui.
 
