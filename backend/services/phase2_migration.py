@@ -309,6 +309,8 @@ def _current_workbook_archived(
         document.get("kind") == "workbook_final"
         and document.get("source_version") == binding["source_version"]
         and bool(document.get("checksum"))
+        and _canonical_json(document.get("provenance"))
+        == _canonical_json(binding["provenance"])
         for document in snapshot["partner_document_versions"]
     )
 

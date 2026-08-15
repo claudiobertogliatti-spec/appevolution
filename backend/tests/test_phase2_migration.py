@@ -589,3 +589,23 @@ async def test_legacy_workbook_checksum_without_current_binding_reopens_f19(conf
 
     assert evidence["final_workbook_archived"] is False
     assert "19-workbook-finale" in plan.reopen_step_ids
+
+
+@pytest.mark.asyncio
+async def test_workbook_with_current_source_but_tampered_provenance_reopens_f19(conformant_db):
+    workbook = next(
+        document
+        for document in conformant_db.partner_document_versions.documents
+        if document["kind"] == "workbook_final"
+    )
+    original_source_version = workbook["source_version"]
+    original_checksum = workbook["checksum"]
+    workbook["provenance"]["calendar_checksum"] = "tampered-calendar-checksum"
+
+    evidence = await build_phase2_evidence(conformant_db, "ok")
+    plan = await plan_phase2_migration(conformant_db, "ok", "admin-1")
+
+    assert workbook["source_version"] == original_source_version
+    assert workbook["checksum"] == original_checksum
+    assert evidence["final_workbook_archived"] is False
+    assert "19-workbook-finale" in plan.reopen_step_ids
