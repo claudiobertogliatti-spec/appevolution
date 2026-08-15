@@ -13,7 +13,7 @@ import uuid
 from fastapi import HTTPException
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DocumentTooLarge, DuplicateKeyError
 from services.launch_calendar import calendar_checksum
 from services.journey_completion import (
     all_required_lessons_approved,
@@ -1066,7 +1066,7 @@ def _request_output_identity(request: OutputVersionRequest) -> tuple[Any, ...]:
     )
 
 
-def _is_expected_migration_output(
+def _is_expected_migration_output_payload(
     document: dict[str, Any], request: OutputVersionRequest
 ) -> bool:
     if _output_version_identity(document) != _request_output_identity(request):
@@ -1092,8 +1092,9 @@ def _is_expected_migration_output(
             and set(document) <= allowed_partial_fields
         )
     return (
-        document.get("status") == "legacy"
-        and document.get("category") == request.category
+        document.get("category") == request.category
+        and document.get("reservation_state") == "stored"
+        and document.get("reservation_expires_at") is None
         and _canonical_json(document.get("content"))
         == _canonical_json(request.content)
         and _canonical_json(document.get("source_checksums"))
@@ -1107,13 +1108,9 @@ def _output_documents_compatible(
     original: list[dict[str, Any]],
     current: list[dict[str, Any]],
     report: dict[str, Any],
+    *,
+    strict: bool = False,
 ) -> bool:
-    archived_step_ids = {
-        action["step_id"]
-        for action in report["actions"]
-        if action["kind"] == "archive_legacy"
-        and action.get("after", {}).get("target") == "partner_phase2_output_versions"
-    }
     expected_migration_requests = {
         _request_output_identity(request): request
         for action in report["actions"]
@@ -1121,29 +1118,80 @@ def _output_documents_compatible(
         and action.get("after", {}).get("target") == "partner_phase2_output_versions"
         for request in [_legacy_output_request(report, action)]
     }
-    current_originals = {}
+    original_by_identity = {
+        _output_identity(document): document for document in original
+    }
+    if len(original_by_identity) != len(original):
+        return False
+    current_originals: dict[tuple[Any, ...], dict[str, Any]] = {}
+    migration_outputs: list[tuple[dict[str, Any], OutputVersionRequest]] = []
     for document in current:
         request = expected_migration_requests.get(_output_version_identity(document))
-        if request and _is_expected_migration_output(document, request):
+        if request:
+            if not _is_expected_migration_output_payload(document, request):
+                return False
+            migration_outputs.append((document, request))
             continue
-        current_originals[_output_identity(document)] = document
+        identity = _output_identity(document)
+        if identity in current_originals:
+            return False
+        current_originals[identity] = document
     if len(current_originals) != len(original):
         return False
+
+    stored_migration_outputs = [
+        document for document, _request in migration_outputs if document.get("output_id")
+    ]
     for before in original:
         after = current_originals.get(_output_identity(before))
         if after is None:
             return False
-        if _canonical_json(before) == _canonical_json(after):
-            continue
-        restored = deepcopy(after)
-        if before.get("step_id") not in archived_step_ids:
+        expected = deepcopy(before)
+        superseding_versions = [
+            int(document.get("version") or 0)
+            for document in stored_migration_outputs
+            if document.get("partner_id") == before.get("partner_id")
+            and document.get("step_id") == before.get("step_id")
+            and int(document.get("version") or 0) > int(before.get("version") or 0)
+        ]
+        if superseding_versions and before.get("is_current") is True:
+            expected["status"] = "superseded"
+            expected["is_current"] = False
+        allowed = {_canonical_json(expected)}
+        if not strict:
+            allowed.add(_canonical_json(before))
+        if _canonical_json(after) not in allowed:
             return False
-        for field in ("status", "is_current"):
-            if field in before:
-                restored[field] = deepcopy(before[field])
-            else:
-                restored.pop(field, None)
-        if _canonical_json(before) != _canonical_json(restored):
+
+    for document, _request in migration_outputs:
+        if not document.get("output_id"):
+            if strict:
+                return False
+            continue
+        has_newer = any(
+            candidate.get("partner_id") == document.get("partner_id")
+            and candidate.get("step_id") == document.get("step_id")
+            and int(candidate.get("version") or 0) > int(document.get("version") or 0)
+            for candidate in [*original, *stored_migration_outputs]
+            if candidate is not document
+        )
+        expected_state = (
+            ("superseded", False) if has_newer else ("legacy", True)
+        )
+        allowed_states = {expected_state}
+        if not strict and has_newer:
+            allowed_states.add(("legacy", True))
+        if (document.get("status"), document.get("is_current")) not in allowed_states:
+            return False
+
+    if strict:
+        current_counts: dict[tuple[Any, Any], int] = {}
+        for document in current:
+            if document.get("is_current") is not True:
+                continue
+            key = (document.get("partner_id"), document.get("step_id"))
+            current_counts[key] = current_counts.get(key, 0) + 1
+        if any(count > 1 for count in current_counts.values()):
             return False
     return True
 
@@ -1165,9 +1213,20 @@ def _calendar_documents_compatible(
         if action["kind"] == "archive_legacy"
         and action.get("after", {}).get("target") == "partner_launch_calendar_versions"
     }
+    original_by_identity = {
+        _calendar_identity(document): document for document in original
+    }
+    if len(original_by_identity) != len(original):
+        return False
     current_originals = {}
     for document in current:
-        if document.get("migration_report_id") == report["report_id"]:
+        identity = _calendar_identity(document)
+        if identity in original_by_identity:
+            if identity in current_originals:
+                return False
+            current_originals[identity] = document
+            continue
+        if document.get("partner_id") == report["partner_id"]:
             action = actions_by_id.get(document.get("migration_action_id"))
             if not action:
                 return False
@@ -1182,17 +1241,21 @@ def _calendar_documents_compatible(
                 or document.get("checksum") != calendar_checksum(calendar)
                 or document.get("checksum")
                 != action.get("before", {}).get("legacy_calendar_checksum")
-                or migration_source.get("source_checksum")
-                != report["source_checksum"]
+                or _canonical_json(document.get("source"))
+                != _canonical_json(calendar.get("source"))
                 or _canonical_json(migration_source.get("source_refs", []))
                 != _canonical_json(action.get("before", {}).get("source_refs", []))
+                or migration_source.get("action_id") != action.get("action_id")
+                or migration_source.get("legacy_calendar_checksum")
+                != action.get("before", {}).get("legacy_calendar_checksum")
+                or not migration_source.get("source_checksum")
                 or document.get("approved_at") is not None
                 or document.get("admin_review") is not None
                 or document.get("partner_confirmed_at") is not None
             ):
                 return False
             continue
-        current_originals[_calendar_identity(document)] = document
+        return False
     if len(current_originals) != len(original):
         return False
     return all(
@@ -1226,6 +1289,8 @@ def _source_state_compatible(
     original: dict[str, list[dict[str, Any]]],
     current: dict[str, list[dict[str, Any]]],
     report: dict[str, Any],
+    *,
+    strict_outputs: bool = False,
 ) -> bool:
     for collection_name in _SOURCE_COLLECTIONS:
         before = original.get(collection_name, [])
@@ -1233,7 +1298,12 @@ def _source_state_compatible(
         if collection_name == "partner_journey_steps":
             compatible = _step_documents_compatible(before, after, report)
         elif collection_name == "partner_phase2_output_versions":
-            compatible = _output_documents_compatible(before, after, report)
+            compatible = _output_documents_compatible(
+                before,
+                after,
+                report,
+                strict=strict_outputs,
+            )
         elif collection_name == "partner_launch_calendar_versions":
             compatible = _calendar_documents_compatible(before, after, report)
         elif collection_name == "partners":
@@ -1245,9 +1315,20 @@ def _source_state_compatible(
     return True
 
 
-async def _assert_source_compatible(db, report: dict[str, Any], snapshot: dict[str, Any]):
+async def _assert_source_compatible(
+    db,
+    report: dict[str, Any],
+    snapshot: dict[str, Any],
+    *,
+    strict_outputs: bool = False,
+):
     current = await _load_full_source_snapshot(db, report["partner_id"])
-    if not _source_state_compatible(snapshot["source"], current, report):
+    if not _source_state_compatible(
+        snapshot["source"],
+        current,
+        report,
+        strict_outputs=strict_outputs,
+    ):
         raise MigrationConflict("stale source detected during apply")
     return _source_checksum(current)
 
@@ -1420,7 +1501,6 @@ async def _archive_legacy_calendar_action(
     versions = db.partner_launch_calendar_versions
     identity = {
         "partner_id": report["partner_id"],
-        "migration_report_id": report["report_id"],
         "migration_action_id": action["action_id"],
     }
     existing = await versions.find_one(identity)
@@ -1468,6 +1548,7 @@ async def _archive_legacy_calendar_action(
     now = datetime.now(timezone.utc)
     document = {
         **identity,
+        "migration_report_id": report["report_id"],
         "version": version,
         "status": "draft",
         "calendar": calendar,
@@ -1477,6 +1558,10 @@ async def _archive_legacy_calendar_action(
             "kind": "phase2_legacy_migration",
             "source_checksum": report["source_checksum"],
             "source_refs": deepcopy(action.get("before", {}).get("source_refs", [])),
+            "action_id": action["action_id"],
+            "legacy_calendar_checksum": action.get("before", {}).get(
+                "legacy_calendar_checksum"
+            ),
         },
         "legacy_import": True,
         "created_at": now.isoformat(),
@@ -1607,17 +1692,22 @@ async def _wait_for_applied_report(db, report_id: str) -> MigrationApplyResult:
         if latest and latest.get("status") == "applied":
             return _apply_result_from_document(latest)
         if latest and latest.get("status") == "conflict":
+            await _repair_conflict_audit(db, latest)
             raise MigrationConflict("migration report is in conflict")
         await asyncio.sleep(_APPLY_POLL_SECONDS)
     raise MigrationConflict("migration apply lease is still active")
 
 
-async def _mark_conflict(db, report_id: str, lease_id: str, reason: str):
+async def _mark_conflict(
+    db,
+    report_id: str,
+    lease_id: str,
+    reason: str,
+    *,
+    error_code: str = "migration_conflict",
+):
     now = datetime.now(timezone.utc)
-    existing_audit = await db.partner_phase2_migration_audit.find_one(
-        {"report_id": report_id}
-    )
-    report_result = await db.partner_phase2_migration_reports.update_one(
+    terminal = await db.partner_phase2_migration_reports.find_one_and_update(
         {"report_id": report_id, "status": "applying", "lease_id": lease_id},
         {
             "$set": {
@@ -1625,45 +1715,132 @@ async def _mark_conflict(db, report_id: str, lease_id: str, reason: str):
                 "conflict_at": now,
                 "conflict_reason": reason,
                 "conflict_lease_id": lease_id,
+                "error_code": error_code,
             },
             "$unset": {"lease_id": "", "lease_expires_at": ""},
         },
+        return_document=ReturnDocument.AFTER,
     )
-    if getattr(report_result, "matched_count", 0) != 1:
+    if not terminal:
         return False
-    audit_result = await db.partner_phase2_migration_audit.update_one(
-        {"report_id": report_id, "status": "applying", "lease_id": lease_id},
+    await _repair_conflict_audit(db, terminal)
+    return True
+
+
+async def _repair_conflict_audit(db, report: dict[str, Any]) -> None:
+    if report.get("status") != "conflict":
+        raise MigrationConflict("terminal report required to repair conflict audit")
+    lease_id = report.get("conflict_lease_id")
+    if not lease_id:
+        raise MigrationConflict("terminal conflict report is missing its fence")
+    terminal = await db.partner_phase2_migration_reports.find_one(
+        {
+            "report_id": report["report_id"],
+            "status": "conflict",
+            "conflict_lease_id": lease_id,
+        }
+    )
+    if not terminal:
+        raise MigrationConflict("terminal conflict report fence mismatch")
+    report = terminal
+    collection = db.partner_phase2_migration_audit
+    existing = await collection.find_one({"report_id": report["report_id"]})
+    if existing is None:
+        snapshot = await db.partner_phase2_migration_snapshots.find_one(
+            {"report_id": report["report_id"]}
+        )
+        now = report.get("conflict_at") or datetime.now(timezone.utc)
+        conflict_document = {
+            "audit_id": f"phase2-audit-{report['report_id']}",
+            "report_id": report["report_id"],
+            "partner_id": report["partner_id"],
+            "snapshot_id": (snapshot or {}).get("snapshot_id"),
+            "source_checksum": report["source_checksum"],
+            "planned_actions": deepcopy(report.get("actions") or []),
+            "before_steps": _before_step_audit(snapshot["source"]) if snapshot else {},
+            "effects": {},
+            "created_at": now,
+            "created_by": report.get("apply_actor_id") or report["actor_id"],
+            "status": "conflict",
+            "lease_id": lease_id,
+            "terminal_report_status": "conflict",
+            "conflict_at": now,
+            "conflict_reason": report.get("conflict_reason"),
+            "error_code": report.get("error_code") or "migration_conflict",
+        }
+        try:
+            existing = await collection.find_one_and_update(
+                {"report_id": report["report_id"]},
+                {"$setOnInsert": conflict_document},
+                upsert=True,
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError:
+            existing = await collection.find_one({"report_id": report["report_id"]})
+
+    if not existing or existing.get("lease_id") != lease_id:
+        raise MigrationConflict("migration conflict audit fence mismatch")
+    terminal_fields = {
+        "status": "conflict",
+        "terminal_report_status": "conflict",
+        "conflict_at": report.get("conflict_at"),
+        "conflict_reason": report.get("conflict_reason"),
+        "error_code": report.get("error_code") or "migration_conflict",
+    }
+    if all(
+        _canonical_json(existing.get(field)) == _canonical_json(value)
+        for field, value in terminal_fields.items()
+    ):
+        return
+    repaired = await collection.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": existing.get("status"),
+            "lease_id": lease_id,
+        },
+        {"$set": terminal_fields},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not repaired:
+        raise MigrationConflict("migration conflict audit could not be repaired")
+
+
+async def _mark_review_conflict(
+    db,
+    report: dict[str, Any],
+    reason: str,
+    *,
+    error_code: str,
+) -> bool:
+    now = datetime.now(timezone.utc)
+    conflict_lease_id = uuid.uuid4().hex
+    terminal = await db.partner_phase2_migration_reports.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "review_required",
+            "source_checksum": report["source_checksum"],
+        },
         {
             "$set": {
                 "status": "conflict",
                 "conflict_at": now,
                 "conflict_reason": reason,
+                "conflict_lease_id": conflict_lease_id,
+                "error_code": error_code,
+                "updated_at": now,
             }
         },
+        return_document=ReturnDocument.AFTER,
     )
-    if existing_audit and getattr(audit_result, "matched_count", 0) != 1:
-        raise MigrationConflict("migration conflict audit could not be fenced")
+    if not terminal:
+        latest = await db.partner_phase2_migration_reports.find_one(
+            {"report_id": report["report_id"]}
+        )
+        if latest and latest.get("status") == "conflict":
+            await _repair_conflict_audit(db, latest)
+        return False
+    await _repair_conflict_audit(db, terminal)
     return True
-
-
-async def _repair_conflict_audit(db, report: dict[str, Any]) -> None:
-    lease_id = report.get("conflict_lease_id")
-    if not lease_id:
-        return
-    await db.partner_phase2_migration_audit.update_one(
-        {
-            "report_id": report["report_id"],
-            "status": "applying",
-            "lease_id": lease_id,
-        },
-        {
-            "$set": {
-                "status": "conflict",
-                "conflict_at": report.get("conflict_at"),
-                "conflict_reason": report.get("conflict_reason"),
-            }
-        },
-    )
 
 
 async def apply_phase2_migration(
@@ -1679,7 +1856,6 @@ async def apply_phase2_migration(
     if report.get("status") == "conflict":
         await _repair_conflict_audit(db, report)
         raise MigrationConflict("migration report is in conflict")
-    _validate_canonical_step_cardinality(report)
 
     now = datetime.now(timezone.utc)
     lease_id = uuid.uuid4().hex
@@ -1687,9 +1863,25 @@ async def apply_phase2_migration(
     full_snapshot = None
     audit = None
     if report.get("status") == "review_required":
+        try:
+            _validate_canonical_step_cardinality(report)
+        except MigrationConflict:
+            await _mark_review_conflict(
+                db,
+                report,
+                "canonical_step_cardinality_invalid",
+                error_code="canonical_step_cardinality_invalid",
+            )
+            raise
         current = await _load_source_snapshot(db, report["partner_id"])
         current_checksum = _source_checksum(current)
         if current_checksum != report["source_checksum"]:
+            await _mark_review_conflict(
+                db,
+                report,
+                "stale_source_before_claim",
+                error_code="source_checksum_mismatch",
+            )
             raise MigrationConflict("stale migration report: source changed")
         claimed = await reports.find_one_and_update(
             {
@@ -1718,16 +1910,12 @@ async def apply_phase2_migration(
             raise MigrationConflict("migration report could not be claimed")
         full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
         if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
-            await reports.update_one(
-                {
-                    "report_id": report["report_id"],
-                    "status": "applying",
-                    "lease_id": lease_id,
-                },
-                {
-                    "$set": {"status": "review_required", "last_conflict_at": now},
-                    "$unset": {"lease_id": "", "lease_expires_at": ""},
-                },
+            await _mark_conflict(
+                db,
+                report["report_id"],
+                lease_id,
+                "stale_source_after_claim",
+                error_code="source_checksum_mismatch_after_claim",
             )
             raise MigrationConflict("stale migration report: source changed after claim")
     elif report.get("status") == "applying":
@@ -1785,8 +1973,33 @@ async def apply_phase2_migration(
         raise MigrationConflict(f"migration report status {report.get('status')} is not applicable")
 
     report = claimed
-    _validate_canonical_step_cardinality(report, full_snapshot)
-    snapshot = await _ensure_snapshot(db, report, full_snapshot)
+    try:
+        _validate_canonical_step_cardinality(report, full_snapshot)
+    except MigrationConflict as exc:
+        await _mark_conflict(
+            db,
+            report["report_id"],
+            lease_id,
+            "canonical_step_cardinality_invalid",
+            error_code="canonical_step_cardinality_invalid",
+        )
+        raise exc
+    try:
+        snapshot = await _ensure_snapshot(db, report, full_snapshot)
+    except Exception as exc:
+        error_code = (
+            "snapshot_document_too_large"
+            if isinstance(exc, DocumentTooLarge)
+            else "snapshot_persist_error"
+        )
+        await _mark_conflict(
+            db,
+            report["report_id"],
+            lease_id,
+            "snapshot_persist_failed",
+            error_code=error_code,
+        )
+        raise MigrationConflict("migration snapshot could not be persisted") from None
     if audit is None:
         audit = await _ensure_audit(db, report, snapshot, lease_id)
     if audit.get("status") == "applied":
@@ -1863,11 +2076,21 @@ async def apply_phase2_migration(
                 {"status": "preserved", "kind": action["kind"]},
             )
 
-        await _assert_source_compatible(db, report, snapshot)
+        await _assert_source_compatible(
+            db,
+            report,
+            snapshot,
+            strict_outputs=True,
+        )
         await _renew_lease(db, report["report_id"], lease_id)
         await _project_partner_phase(db, report["partner_id"])
         await _renew_lease(db, report["report_id"], lease_id)
-        post_projection_checksum = await _assert_source_compatible(db, report, snapshot)
+        post_projection_checksum = await _assert_source_compatible(
+            db,
+            report,
+            snapshot,
+            strict_outputs=True,
+        )
         await _update_audit_owned(
             db,
             report["report_id"],
