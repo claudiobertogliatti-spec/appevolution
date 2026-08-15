@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
     WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
-    normalize_file_material, safe_step_data, trusted_storage_url,
+    file_visible_to_partner, normalize_file_material, safe_step_data, trusted_storage_url,
 )
 
 router = APIRouter(tags=["partner-step-materials"])
@@ -28,7 +28,9 @@ async def _file_or_404(file_id: str, credentials):
     doc = await db.files.find_one({"file_id": file_id}, {"_id": 0})
     if not doc or doc.get("superseded"):
         raise HTTPException(404, "Materiale non trovato")
-    await _authorize(str(doc.get("partner_id")), credentials)
+    token_data = await _authorize(str(doc.get("partner_id")), credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin") and not file_visible_to_partner(doc):
+        raise HTTPException(404, "Materiale non trovato")
     return doc
 
 

@@ -3810,6 +3810,7 @@ async def register_partner_drive_files(partner_id: str, body: dict, _admin=Depen
     category: document | image | audio | video
     """
     import uuid as _uuid
+    from services.partner_step_materials import register_drive_file_once
     partner = await db.partners.find_one(_partner_id_query(partner_id))
     if not partner:
         raise HTTPException(status_code=404, detail="Partner non trovato")
@@ -3821,34 +3822,27 @@ async def register_partner_drive_files(partner_id: str, body: dict, _admin=Depen
         raise HTTPException(status_code=400, detail="Nessun file da registrare")
 
     inserted = []
+    existing = []
     now = datetime.now(timezone.utc).isoformat()
 
     for f in files:
-        category = f.get("category", "document")
-        record = {
-            "id": str(_uuid.uuid4()),
-            "file_id": f.get("drive_id", str(_uuid.uuid4())),
-            "partner_id": canonical_id,
-            "original_name": f.get("name", ""),
-            "stored_name": f.get("name", ""),
-            "file_type": category,
-            "category": category,
-            "internal_url": f.get("url", ""),
-            "drive_url": f.get("url", ""),
-            "drive_id": f.get("drive_id", ""),
-            "mime_type": f.get("mime_type", "application/octet-stream"),
-            "size": f.get("size", 0),
-            "folder": f.get("folder", ""),
-            "status": "approved",
-            "source": "drive",
-            "uploaded_at": now,
-            "registered_at": now,
-            "last_edited_by": "admin"
-        }
-        await db.files.insert_one(record)
-        inserted.append(f.get("name"))
+        try:
+            outcome, record = await register_drive_file_once(
+                db.files, canonical_id, f, now, str(_uuid.uuid4())
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        target = inserted if outcome == "inserted" else existing
+        target.append({"name": record["original_name"], "drive_id": record["drive_id"]})
 
-    return {"success": True, "inserted": inserted, "count": len(inserted)}
+    return {
+        "success": True,
+        "inserted": inserted,
+        "existing": existing,
+        "inserted_count": len(inserted),
+        "existing_count": len(existing),
+        "count": len(files),
+    }
 
 
 @api_router.delete("/admin/clienti-analisi/{user_id}")

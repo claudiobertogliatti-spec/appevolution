@@ -39,6 +39,8 @@ DATA_WHITELISTS = {
 PUBLIC_HOSTS = {"youtube.com", "www.youtube.com", "youtu.be", "ciak.io", "www.ciak.io"}
 STORAGE_HOSTS = {"res.cloudinary.com", "storage.googleapis.com"}
 BLOCKED_HOST_MARKERS = ("drive.google", "googleusercontent", "storage.googleapis", "googleapis.com")
+PARTNER_HIDDEN_VISIBILITIES = {"admin_only", "legal_dispute", "needs_review", "foreign_owner"}
+MIGRATION_VISIBILITIES = PARTNER_HIDDEN_VISIBILITIES | {"partner_visible"}
 
 
 def categories_for_step(step_id: str) -> set[str]:
@@ -125,5 +127,77 @@ def safe_step_data(step_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
 def current_files(files: Iterable[Dict[str, Any]]) -> list[Dict[str, Any]]:
     return [f for f in files if not f.get("superseded")
+            and file_visible_to_partner(f)
             and f.get("approval_status", "approved") in ("approved", "final")
             and f.get("status", "approved") in ("approved", "final")]
+
+
+def file_visible_to_partner(file_doc: Dict[str, Any]) -> bool:
+    """I record legacy restano visibili; le nuove classi fail-closed no."""
+    return file_doc.get("visibility") not in PARTNER_HIDDEN_VISIBILITIES
+
+
+def build_drive_registration_record(
+    partner_id: str,
+    item: Dict[str, Any],
+    now: str,
+    record_id: str,
+) -> Dict[str, Any]:
+    visibility = str(item.get("visibility") or "admin_only")
+    if visibility not in MIGRATION_VISIBILITIES:
+        raise ValueError("visibility non valida")
+    drive_id = str(item.get("drive_id") or "").strip()
+    if not drive_id:
+        raise ValueError("drive_id obbligatorio")
+    url = str(item.get("url") or "")
+    explicitly_approved = item.get("approval_status") in ("approved", "final")
+    serveable = bool(trusted_storage_url(url) or allowed_public_url(url))
+    approved = visibility == "partner_visible" and explicitly_approved and serveable
+    state = "approved" if approved else "pending_review"
+    name = str(item.get("name") or "")
+    return {
+        "id": record_id,
+        "file_id": drive_id,
+        "partner_id": str(partner_id),
+        "original_name": name,
+        "stored_name": name,
+        "file_type": item.get("category", "document"),
+        "category": item.get("category", "document"),
+        "internal_url": url,
+        "drive_url": url,
+        "drive_id": drive_id,
+        "mime_type": item.get("mime_type", "application/octet-stream"),
+        "size": item.get("size", 0),
+        "folder": item.get("folder", ""),
+        "step_id": item.get("step_id"),
+        "step_ref": item.get("step_ref") or item.get("step_id"),
+        "visibility": visibility,
+        "status": state,
+        "approval_status": state,
+        "source": "drive",
+        "uploaded_at": now,
+        "registered_at": now,
+        "last_edited_by": "admin",
+    }
+
+
+def drive_registration_key(partner_id: str, record: Dict[str, Any]) -> Dict[str, Any]:
+    return {"partner_id": str(partner_id), "drive_id": record["drive_id"]}
+
+
+async def register_drive_file_once(
+    files_collection,
+    partner_id: str,
+    item: Dict[str, Any],
+    now: str,
+    record_id: str,
+):
+    """Registra una sola volta per partner+Drive ID, preservando ogni review esistente."""
+    record = build_drive_registration_record(partner_id, item, now, record_id)
+    result = await files_collection.update_one(
+        drive_registration_key(partner_id, record),
+        {"$setOnInsert": record},
+        upsert=True,
+    )
+    outcome = "inserted" if result.upserted_id is not None else "existing"
+    return outcome, record
