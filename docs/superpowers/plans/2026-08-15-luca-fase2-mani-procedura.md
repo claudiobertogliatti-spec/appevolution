@@ -214,7 +214,8 @@ Expected: PASS, 42 test
 
 - [ ] **Step 5: Controprova — il cancello morde davvero**
 
-Sostituire temporaneamente il corpo di `azione_permessa` con `return True, ""` e verificare che **quattro** test diventino rossi (`test_azione_sconosciuta...`, `test_attesa_non_scaduta...`) e che gli altri restino verdi. Poi ripristinare e verificare 42/42.
+Sostituire temporaneamente il corpo di `azione_permessa` con `return True, ""` e verificare che diventino rossi **esattamente i due test che verificano un DINIEGO** — `test_azione_sconosciuta_e_negata_e_dice_quali_sono_consentite` e `test_attesa_non_scaduta_nega_e_dice_quanto_manca` — e che gli altri **40 restino verdi**. Poi ripristinare e verificare 42/42.
+ℹ️ Due e non di più è il numero **giusto**: gli altri test del cancello asseriscono un permesso *concesso*, che un cancello sempre-aperto continua a concedere. Se ne fallissero di più, avresti rotto altro.
 ⚠️ Un test mai visto fallire non è provato. Riportare l'output di entrambe le esecuzioni nel report.
 
 - [ ] **Step 6: Commit**
