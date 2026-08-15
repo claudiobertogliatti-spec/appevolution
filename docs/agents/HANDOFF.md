@@ -12,6 +12,55 @@ Regole:
 
 ---
 
+### 2026-08-15 · Codex · codex/fase2-daniele-design — chiusura residui review Fase 2
+
+**DICHIARATO**
+- La dichiarazione precedente di chiusura dei finding e superata da due Important residui.
+  I commit applicativi post-rebase `51d4c2ff` e `566b0719` chiudono entrambi e includono il
+  minor sicuro `before_steps`; le regressioni restano nei due file migrazione gia inclusi
+  nella CI.
+- GET report, POST dry-run e dry-run CLI usano la stessa proiezione. Le azioni
+  `normalize_metadata` espongono ora tutti gli otto campi canonici revisionabili
+  (`step_number`, `code`, `fase_legacy`, `macro_phase`, `label`, `owner`,
+  `completion_policy`, `material_categories`). Le azioni `preserve_source` mostrano solo
+  collection, nomi-campo allowlistati e conteggi; `preserve_step` mostra status ed evidence key.
+  Content, URL, token, timestamp raw e documenti sorgente non attraversano il boundary.
+- Il boundary rifiuta per tipo prima di interrogare le allowlist: anche un report persistito
+  con valori dict/list nei campi operativi viene proiettato come unsupported/vuoto, senza 500
+  e senza riflettere il valore privato.
+- Uno snapshot viene accettato solo se id deterministico, report, partner, checksum dichiarato,
+  insieme completo delle collection e checksum del contenuto coincidono. Collisione o snapshot
+  incompleto produce `snapshot_identity_conflict`, non recuperabile, con nuovo dry-run richiesto.
+- Il primo apply persiste e valida lo snapshot prima di creare il lease `applying`. Un lease
+  scaduto senza snapshot viene chiuso in conflict; la recovery esplicita persiste/valida lo
+  snapshot mentre report e audit sono ancora conflict e li riapre solo dopo. In quel passaggio
+  l'audit riceve anche il `before_steps` derivato dallo snapshot valido.
+- Rebase completato sulla base `1455151a`; commit applicativi verificati `51d4c2ff` e
+  `566b0719`, range corrente `1455151a..566b0719`, `0 behind / 29 ahead` prima di questo
+  aggiornamento documentale.
+
+**VERIFICATO**
+- RED mirato pre-fix: `7 failed, 86 deselected`; i failure coprivano i quattro metadati omessi,
+  `preserve_*` non revisionabili, `before_steps` vuoto e snapshot incompleto trattato come stale.
+- RED hardening finale: il valore dict in una allowlist riproduceva HTTP 500 con
+  `TypeError: unhashable type: 'dict'` (`1 failed, 42 deselected`); dopo il fix lo stesso test
+  e verde (`1 passed, 42 deselected`).
+- Suite Fase 2 sul tail `566b0719`: `125 passed, 1 warning in 18.01s`, exit 0.
+- Suite integrata post-rebase Fase 2 + calendario + journey + auth: `316 passed, 8 skipped,
+  1 warning in 17.78s`, exit 0.
+- Allowlist CI post-rebase estratta dal workflow: `CI_ALLOWLIST_FILES=51`; `652 passed,
+  31 warnings in 149.08s`, exit 0.
+- `compileall`, flake `E9,F821`, diff-check e secret scan degli added lines sono verdi; il secret
+  scan esclude soltanto la self-pattern esatta gia documentata nel piano.
+- Nessun marker di conflitto resta dopo il rebase; la voce concorrente Luca in HANDOFF e stata
+  conservata integralmente.
+
+**APERTO**
+- Nessun push/deploy, dry-run live o apply su Daniele e stato eseguito in questa wave. Il rilascio
+  e le verifiche produzione restano al coordinatore root.
+- Al primo boot va osservato il rollout degli indici category-aware e il ritiro dei nomi legacy,
+  gia fail-closed in caso di errore.
+
 ### 2026-08-15 · Claude Code (Luca) · cc/luca-fase1-occhi-memoria — Luca da consulente ad agente esecutivo (Fasi 1 e 2)
 
 Richiesta: rendere Luca un vero agente esecutivo. Due fasi, spec + piano + esecuzione a subagent con
@@ -49,6 +98,99 @@ revisione per task e review finale sull'intero branch.
   nel sistema non esiste. Si rimette quando la coda dei contenuti esiste davvero.
 - Il messaggio a Claudio resta a valle del passo MCP: se quello blocca, il briefing non arriva (la
   memoria si', ora). La causa vera sono i permessi mancanti.
+
+### 2026-08-15 · Codex · codex/fase2-daniele-design — final review fix Fase 2
+
+**DICHIARATO**
+- La precedente dichiarazione "review clean / nessun P1-P2" e superata dalla review finale:
+  sono emersi cinque Important e due minor. Il commit applicativo `f3be42fe` li corregge
+  insieme; il follow-up `75de2680` rende idempotente anche il repeat della recovery esplicita.
+  Le regressioni restano nei tre file di test Fase 2 gia inclusi nella CI.
+- Il gate umano espone ora in GET/dry-run API e dry-run CLI la stessa lista di azioni:
+  kind/step/reason/target e before/after passano da allowlist; content, URL, token e documenti
+  raw non vengono proiettati. `completed_at` e mostrato solo come booleano di presenza.
+- Il planner normalizza anche gli step downstream gia `pending`/`blocked`, con motivo,
+  recovery e next action deterministici, azzerando `completed_at` e mantenendo un solo front.
+- Categoria, contatore, supersede, lookup e indici degli output condividono ora la stessa
+  identita. Gli indici legacy incompatibili vengono ritirati per nome e sostituiti con nomi
+  nuovi category-aware.
+- Gli output legacy usano identita stabile per partner/step/category/template/action e checksum
+  dei soli campi sorgente: report id e checksum globale del report non entrano piu nel materiale.
+  Report equivalenti riusano output/versioni; payload incompatibili falliscono chiusi.
+- GET espone `error_code` e `recovery_action` sanificati. L'endpoint admin `recover` e la CLI
+  `--recover` operano su un solo report e ritentano soltanto conflitti snapshot transient;
+  conflitti stale richiedono sempre un nuovo dry-run. Apply/recovery CLI richiedono un actor
+  esplicito; il cluster Mongo legacy morto usa lo stesso fallback Atlas del backend.
+- Base post-rebase verificata `1616b433`; range applicativo corrente
+  `1616b433..75de2680` (`0 behind / 25 ahead` rispetto a `origin/main`). Nessuna modifica alla
+  allowlist CI: i nuovi test sono nei quattro file gia presenti.
+
+**VERIFICATO**
+- Suite integrata Fase 2 + calendario + journey + auth, da `backend`: `308 passed,
+  8 skipped, 1 warning in 14.98s`, exit 0.
+- Allowlist CI completa di 51 file, estratta da `.github/workflows/ci.yml` ed eseguita con
+  `MONGO_URL=mongodb://localhost:27017`, `DB_NAME=ciak_ci`, `JWT_SECRET_KEY=ci-test-secret`,
+  `APP_ENV=test`, rieseguita sul tail applicativo `75de2680`: `644 passed,
+  31 warnings in 149.89s`, exit 0.
+- `python -m compileall -q backend`: exit 0. `python -m flake8 backend --select=E9,F821
+  --exclude='backend/__pycache__,backend/tests/__pycache__'`: exit 0.
+- `git diff --check`: exit 0. Secret scan sugli added lines dal range `origin/main`, con
+  esclusione della sola riga-regex auto-referenziale del piano: `secret-scan-clean`, exit 0.
+- Regressioni dedicate provano separazione e retry category-aware, indice nuovo/ritiro del
+  precedente, downstream idempotente, riuso cross-report e tamper fail-closed, allowlist
+  API/CLI, auth recovery, recovery transient e rifiuto stale/document-too-large.
+- Post follow-up `75de2680`: `test_explicit_recovery_retries_one_transient_snapshot_conflict`
+  verde (`1 passed, 46 deselected`), incluso repeat recovery sul report gia `applied`.
+
+**APERTO**
+- Nessun dry-run/apply sul partner Daniele e nessuna operazione su dati reali sono stati
+  eseguiti. Nessun push, deploy o verifica produzione in questa wave.
+- Al primo rilascio va osservata la creazione degli indici category-aware e il ritiro dei due
+  indici legacy; un errore su un indice critico resta fail-closed allo startup.
+
+### 2026-08-15 · Codex · codex/fase2-daniele-design — gate fondazione canonica Fase 2
+
+**DICHIARATO**
+- Task 6 prepara la release della fondazione Fase 2 costruita nei commit applicativi
+  `d09ea0ba..b6b2d906`; nessun codice applicativo e stato modificato in questo task.
+- La allowlist esplicita della CI include ora esattamente le quattro nuove suite
+  `test_phase2_output_versions.py`, `test_phase2_conformity.py`,
+  `test_phase2_migration.py` e `test_phase2_migration_api.py`.
+- Review indipendente del diff completata sui vincoli del brief: nessun P1/P2 trovato.
+
+**VERIFICATO**
+- Suite focalizzata estesa anche a `test_editorial_calendar_api.py`, eseguita da `backend`:
+
+  ```powershell
+  $env:MONGO_URL='mongodb://localhost:27017'; $env:DB_NAME='ciak_ci'; $env:JWT_SECRET_KEY='ci-test-secret'; $env:APP_ENV='test'; python -m pytest tests/test_phase2_output_versions.py tests/test_phase2_conformity.py tests/test_phase2_migration.py tests/test_phase2_migration_api.py tests/test_editorial_calendar_api.py tests/test_journey_completion.py tests/test_journey_video_gates.py tests/test_protocollo_evo_valida.py tests/test_partner_journey_operativo.py tests/test_partner_document_versions.py -q
+  ```
+
+  Output: `204 passed, 8 skipped, 1 warning in 12.47s`, exit 0. Riesecuzione
+  post-commit `fd398ed2`: `204 passed, 8 skipped, 1 warning in 12.31s`, exit 0.
+- Allowlist CI completa estratta ed eseguita direttamente dal workflow, da `backend`:
+
+  ```powershell
+  $env:MONGO_URL='mongodb://localhost:27017'; $env:DB_NAME='ciak_ci'; $env:JWT_SECRET_KEY='ci-test-secret'; $env:APP_ENV='test'; $lines=Get-Content -LiteralPath '..\.github\workflows\ci.yml'; $start=($lines | Select-String -SimpleMatch 'pytest -q').LineNumber; $tests=@(); for($i=$start;$i -lt $lines.Count;$i++){ $trim=$lines[$i].Trim(); if($trim -match '^tests/.+\.py$'){ $tests += $trim; continue }; if($tests.Count -gt 0){ break } }; "CI_ALLOWLIST_FILES=$($tests.Count)"; python -m pytest -q @tests
+  ```
+
+  Output: `CI_ALLOWLIST_FILES=51`; `627 passed, 31 warnings in 143.12s (0:02:23)`,
+  exit 0.
+- `python -m compileall -q backend`, `python -m flake8 backend --select=E9,F821` e
+  `git diff --check origin/main...HEAD`: exit 0.
+- Review strutturale: nessun `delete_one`, `delete_many` o `find_one_and_delete` aggiunto;
+  i soli `$unset` rimuovono lease/fence transitori dal report. Le evidenze governate sono
+  calcolate server-side, snapshot e audit precedono le scritture journey, ogni scrittura usa
+  stale check + CAS, e retry/versioni/snapshot/audit sono idempotenti. API e CLI espongono
+  summary in allowlist, non documenti privati raw.
+- Il secret scan letterale del piano trova soltanto la propria riga-regex nel file di piano
+  (`docs/superpowers/plans/2026-08-15-fase-2-daniele-foundation.md:572`), non una credenziale.
+  Escludendo esattamente quella sola riga di guardia: `NO_CREDENTIAL_MATCHES...`, exit 0.
+
+**APERTO**
+- Nessun apply di migrazione eseguito su Daniele; il primo deploy produce soltanto il dry run.
+- Nessun dry-run live e stato eseguito in Task 6. Nessun push o deploy eseguito.
+- Concern non applicativa: il comando secret scan letterale resta auto-referenziale e torna 1;
+  il piano non e stato modificato, come richiesto dal perimetro del task.
 
 ### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
 

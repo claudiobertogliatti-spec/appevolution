@@ -50,6 +50,15 @@ _CRITICAL_COMPOUND_INDEXES = [
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ),
     (
+        "partner_launch_calendar_versions",
+        [("partner_id", 1), ("migration_action_id", 1)],
+        {
+            "unique": True,
+            "name": "partner_launch_calendar_migration_action_unique",
+            "partialFilterExpression": {"migration_action_id": {"$exists": True}},
+        },
+    ),
+    (
         "partner_document_versions",
         [
             ("partner_id", 1),
@@ -72,12 +81,53 @@ _CRITICAL_COMPOUND_INDEXES = [
             "name": "partner_document_version_counters_partner_kind_unique",
         },
     ),
+    (
+        "partner_phase2_output_versions",
+        [
+            ("partner_id", 1),
+            ("step_id", 1),
+            ("category", 1),
+            ("template_id", 1),
+            ("template_version", 1),
+            ("checksum", 1),
+            ("source_checksum", 1),
+        ],
+        {"unique": True, "name": "phase2_output_identity_category_unique"},
+    ),
+    (
+        "partner_phase2_output_counters",
+        [("partner_id", 1), ("step_id", 1), ("category", 1)],
+        {"unique": True, "name": "phase2_output_counter_category_unique"},
+    ),
+    (
+        "partner_phase2_migration_reports",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_report_id_unique"},
+    ),
+    (
+        "partner_phase2_migration_snapshots",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_snapshot_report_unique"},
+    ),
+    (
+        "partner_phase2_migration_audit",
+        [("report_id", 1)],
+        {"unique": True, "name": "phase2_migration_audit_report_unique"},
+    ),
 ]
 
 _RETIRED_CRITICAL_INDEXES = [
     (
         "partner_document_versions",
         "partner_document_versions_workbook_calendar_unique",
+    ),
+    (
+        "partner_phase2_output_versions",
+        "phase2_output_identity_unique",
+    ),
+    (
+        "partner_phase2_output_counters",
+        "phase2_output_counter_unique",
     ),
 ]
 

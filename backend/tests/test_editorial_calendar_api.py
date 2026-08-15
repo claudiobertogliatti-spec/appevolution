@@ -17,7 +17,12 @@ os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET_KEY", "calendar-test-secret-not-for-production")
 
 from routers import editorial_calendar, partner_journey, partner_rewards
-from db_indexes import CriticalIndexError, ensure_indexes
+from db_indexes import (
+    CriticalIndexError,
+    _CRITICAL_COMPOUND_INDEXES,
+    _INDEXES,
+    ensure_indexes,
+)
 from services.editorial_calendar import _deterministic
 
 pytestmark = pytest.mark.unit
@@ -2318,7 +2323,7 @@ def test_calendar_version_index_is_unique_per_partner_and_version():
         [("partner_id", 1), ("version", 1)],
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ) in calls
-    assert result["total"] == 23
+    assert result["total"] == len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
 
 
 def test_workbook_source_index_is_unique_critical_and_excludes_legacy_documents():
@@ -2355,7 +2360,7 @@ def test_workbook_source_index_is_unique_critical_and_excludes_legacy_documents(
             "name": "partner_document_version_counters_partner_kind_unique",
         },
     ) in calls
-    assert result["total"] == 23
+    assert result["total"] == len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
 
 
 def test_workbook_unique_index_failure_is_fatal():
@@ -2454,4 +2459,5 @@ def test_hot_index_failure_stays_best_effort_when_critical_index_succeeds():
 
     result = asyncio.run(ensure_indexes(IndexDb()))
 
-    assert result == {"ok": 21, "failed": 2, "total": 23}
+    total = len(_INDEXES) + len(_CRITICAL_COMPOUND_INDEXES)
+    assert result == {"ok": total - 2, "failed": 2, "total": total}

@@ -1,0 +1,322 @@
+"""Archivio append-only per gli output generati nella Fase 2."""
+import asyncio
+import hashlib
+import json
+import time
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
+
+
+_RESERVATION_LEASE_SECONDS = 30
+_RESERVATION_WAIT_SECONDS = 5
+_INITIAL_RESERVATION_BACKOFF_SECONDS = 0.01
+_MAX_RESERVATION_BACKOFF_SECONDS = 0.1
+
+
+def canonical_source_checksum(source_checksums: dict[str, str]) -> str:
+    """Restituisce l'hash stabile delle fonti che hanno prodotto un output."""
+    payload = json.dumps(
+        source_checksums,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class OutputVersionRequest:
+    partner_id: str
+    step_id: str
+    category: str
+    template_id: str
+    template_version: str
+    content: dict[str, Any]
+    source_checksums: dict[str, str]
+    actor_id: str
+    initial_status: str = "draft"
+
+    def __post_init__(self):
+        if self.initial_status not in {"draft", "legacy"}:
+            raise ValueError("initial_status deve essere 'draft' o 'legacy'")
+
+
+@dataclass(frozen=True)
+class OutputVersionResult:
+    output_id: str
+    version: int
+    checksum: str
+    created: bool
+
+
+def _result_from_existing(existing: dict) -> OutputVersionResult:
+    return OutputVersionResult(
+        existing["output_id"],
+        existing["version"],
+        existing["checksum"],
+        False,
+    )
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+async def _reconcile_current_version(versions, existing: dict) -> dict:
+    """Ripara l'invariante current anche al retry dopo un crash parziale."""
+    version = int(existing["version"])
+    await versions.update_many(
+        {
+            "partner_id": existing["partner_id"],
+            "step_id": existing["step_id"],
+            "category": existing["category"],
+            "is_current": True,
+            "version": {"$lt": version},
+        },
+        {"$set": {"status": "superseded", "is_current": False}},
+    )
+    newer = await versions.find_one(
+        {
+            "partner_id": existing["partner_id"],
+            "step_id": existing["step_id"],
+            "category": existing["category"],
+            "version": {"$gt": version},
+        },
+        {"_id": 0, "version": 1},
+    )
+    if newer:
+        await versions.update_one(
+            {"output_id": existing["output_id"], "is_current": True},
+            {"$set": {"status": "superseded", "is_current": False}},
+        )
+    return await versions.find_one({"output_id": existing["output_id"]}, {"_id": 0}) or existing
+
+
+async def _existing_result(versions, existing: dict) -> OutputVersionResult:
+    reconciled = await _reconcile_current_version(versions, existing)
+    return _result_from_existing(reconciled)
+
+
+async def _await_reserved_output(versions, identity: dict):
+    """Attende il proprietario oppure acquisisce atomicamente una lease scaduta."""
+    deadline = time.monotonic() + _RESERVATION_WAIT_SECONDS
+    backoff = _INITIAL_RESERVATION_BACKOFF_SECONDS
+    while True:
+        existing = await versions.find_one(identity, {"_id": 0})
+        if existing and existing.get("output_id"):
+            return await _existing_result(versions, existing), None
+        now = datetime.now(timezone.utc)
+        expires_at = _as_utc((existing or {}).get("reservation_expires_at"))
+        if existing and expires_at and expires_at <= now:
+            reservation_token = uuid.uuid4().hex
+            reclaimed = await versions.find_one_and_update(
+                {
+                    **identity,
+                    "reservation_state": "allocating",
+                    "reservation_expires_at": {"$lte": now},
+                },
+                {
+                    "$set": {
+                        "reservation_token": reservation_token,
+                        "reservation_expires_at": now + timedelta(seconds=_RESERVATION_LEASE_SECONDS),
+                        "reservation_recovered_at": now,
+                    }
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+            if reclaimed and reclaimed.get("reservation_token") == reservation_token:
+                return None, reclaimed
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Reservation output Fase 2 ancora in corso; riprovare")
+        await asyncio.sleep(min(backoff, remaining))
+        backoff = min(backoff * 2, _MAX_RESERVATION_BACKOFF_SECONDS)
+
+
+def _identity_hash(identity: dict) -> str:
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _allocate_counter_version(db, versions, identity: dict) -> int:
+    """Assegna una versione durevole nel flusso partner/step/categoria."""
+    counter_identity = {
+        "partner_id": identity["partner_id"],
+        "step_id": identity["step_id"],
+        "category": identity["category"],
+    }
+    identity_hash = _identity_hash(identity)
+    allocation_path = f"allocations.{identity_hash}"
+    allocation_reference = f"$allocations.{identity_hash}"
+    latest = await versions.find_one(
+        counter_identity, {"_id": 0, "version": 1}, sort=[("version", -1)]
+    )
+    latest_version = int((latest or {}).get("version") or 0)
+    counters = db.partner_phase2_output_counters
+    update_pipeline = [
+        {
+            "$set": {
+                "partner_id": {"$literal": identity["partner_id"]},
+                "step_id": {"$literal": identity["step_id"]},
+                "category": {"$literal": identity["category"]},
+                "version": {
+                    "$max": [
+                        {"$ifNull": ["$version", 0]},
+                        latest_version,
+                    ]
+                },
+            }
+        },
+        {
+            "$set": {
+                allocation_path: {
+                    "$cond": [
+                        {"$eq": [{"$type": allocation_reference}, "missing"]},
+                        {"$add": ["$version", 1]},
+                        allocation_reference,
+                    ]
+                },
+                "version": {
+                    "$cond": [
+                        {"$eq": [{"$type": allocation_reference}, "missing"]},
+                        {"$add": ["$version", 1]},
+                        "$version",
+                    ]
+                },
+            }
+        },
+    ]
+    try:
+        allocated = await counters.find_one_and_update(
+            counter_identity,
+            update_pipeline,
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+    except DuplicateKeyError:
+        allocated = await counters.find_one_and_update(
+            counter_identity,
+            update_pipeline,
+            return_document=ReturnDocument.AFTER,
+        )
+    version = (allocated or {}).get("allocations", {}).get(identity_hash)
+    if version is None:
+        raise RuntimeError("Allocazione versione Fase 2 non persistita")
+    return int(version)
+
+
+async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVersionResult:
+    """Archivia un output immutabile, versionato e idempotente per identita'."""
+    payload = json.dumps(
+        request.content,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    checksum = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    source_hash = canonical_source_checksum(request.source_checksums)
+    identity = {
+        "partner_id": request.partner_id,
+        "step_id": request.step_id,
+        "category": request.category,
+        "template_id": request.template_id,
+        "template_version": request.template_version,
+        "checksum": checksum,
+        "source_checksum": source_hash,
+    }
+    versions = db.partner_phase2_output_versions
+    existing = await versions.find_one(identity, {"_id": 0})
+    if existing:
+        if existing.get("output_id"):
+            return await _existing_result(versions, existing)
+        completed, reservation = await _await_reserved_output(versions, identity)
+        if completed:
+            return completed
+        reservation_token = reservation["reservation_token"]
+    else:
+        reservation_token = uuid.uuid4().hex
+        now = datetime.now(timezone.utc)
+        try:
+            reservation = await versions.find_one_and_update(
+                identity,
+                {
+                    "$setOnInsert": {
+                        "reservation_token": reservation_token,
+                        "reservation_state": "allocating",
+                        "reservation_expires_at": now + timedelta(seconds=_RESERVATION_LEASE_SECONDS),
+                        "created_at": now,
+                    }
+                },
+                upsert=True,
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError:
+            existing = await versions.find_one(identity, {"_id": 0})
+            if existing and existing.get("output_id"):
+                return await _existing_result(versions, existing)
+            completed, reservation = await _await_reserved_output(versions, identity)
+            if completed:
+                return completed
+            reservation_token = reservation["reservation_token"]
+        else:
+            if reservation.get("output_id"):
+                return await _existing_result(versions, reservation)
+            if reservation.get("reservation_token") != reservation_token:
+                completed, reservation = await _await_reserved_output(versions, identity)
+                if completed:
+                    return completed
+                reservation_token = reservation["reservation_token"]
+
+    version = await _allocate_counter_version(db, versions, identity)
+    persisted_reservation = await versions.find_one_and_update(
+        {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
+        {"$set": {"reserved_version": version}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not persisted_reservation or persisted_reservation.get("reservation_token") != reservation_token:
+        return await archive_phase2_output(db, request)
+    output_id = uuid.uuid4().hex
+    output = {
+        "output_id": output_id,
+        "category": request.category,
+        "content": request.content,
+        "source_checksums": request.source_checksums,
+        "version": version,
+        "status": request.initial_status,
+        "is_current": True,
+        "actor_id": request.actor_id,
+        "reservation_state": "stored",
+        "reservation_expires_at": None,
+    }
+    finalized = await versions.find_one_and_update(
+        {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
+        {"$set": output},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not finalized or finalized.get("output_id") != output_id:
+        return await archive_phase2_output(db, request)
+
+    finalized = await _reconcile_current_version(versions, finalized)
+    return OutputVersionResult(finalized["output_id"], finalized["version"], finalized["checksum"], True)
+
+
+async def current_approved_output(db, partner_id, step_id, category):
+    """Recupera esclusivamente la versione corrente gia' approvata."""
+    return await db.partner_phase2_output_versions.find_one(
+        {
+            "partner_id": partner_id,
+            "step_id": step_id,
+            "category": category,
+            "status": "approved",
+            "is_current": True,
+        }
+    )
