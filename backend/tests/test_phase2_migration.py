@@ -1245,6 +1245,165 @@ async def test_snapshot_failure_is_sanitized_and_audit_repairs_without_snapshot_
 
 
 @pytest.mark.asyncio
+async def test_reclaim_snapshot_outage_transfers_expired_applying_audit_to_conflict_fence(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    expired_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    old_lease_id = "expired-report-and-audit-owner"
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "status": "applying",
+                "lease_id": old_lease_id,
+                "lease_expires_at": expired_at,
+                "apply_actor_id": "admin-1",
+            }
+        },
+    )
+    await daniele_db.partner_phase2_migration_audit.insert_one({
+        "audit_id": f"phase2-audit-{report.report_id}",
+        "report_id": report.report_id,
+        "partner_id": "23",
+        "snapshot_id": f"phase2-snapshot-{report.report_id}",
+        "source_checksum": report.source_checksum,
+        "planned_actions": deepcopy(report.actions),
+        "before_steps": {},
+        "effects": {},
+        "created_at": expired_at,
+        "status": "applying",
+        "lease_id": old_lease_id,
+    })
+    unavailable_snapshots = AlwaysFailSnapshotCollection(
+        AutoReconnect("persistent snapshot outage at private-host.invalid:27017")
+    )
+    daniele_db.partner_phase2_migration_snapshots = unavailable_snapshots
+
+    with pytest.raises(
+        MigrationConflict,
+        match="migration snapshot could not be persisted",
+    ):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == "snapshot_store_unavailable"
+    assert audit["status"] == "conflict"
+    assert audit["lease_id"] == stored["conflict_lease_id"]
+    assert audit["error_code"] == "snapshot_store_unavailable"
+    assert audit["conflict_reason"] == "snapshot_persist_failed"
+    assert unavailable_snapshots.read_attempts == 1
+    assert unavailable_snapshots.write_attempts == 0
+
+    with pytest.raises(MigrationConflict, match="conflict"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-3")
+
+    repeated_audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert repeated_audit == audit
+    assert unavailable_snapshots.read_attempts == 1
+    assert unavailable_snapshots.write_attempts == 0
+    serialized = json.dumps({"report": stored, "audit": audit}, default=str)
+    assert "private-host.invalid" not in serialized
+
+
+class RaceAuditToAppliedOnConflictTransferCollection(FakeCollection):
+    def __init__(self, applying_document, applied_document):
+        super().__init__([applying_document])
+        self.applied_document = deepcopy(applied_document)
+        self.raced = False
+
+    async def find_one_and_update(
+        self, query, update, upsert=False, return_document=None
+    ):
+        if (
+            not self.raced
+            and query.get("status") == "applying"
+            and update.get("$set", {}).get("status") == "conflict"
+        ):
+            self.raced = True
+            self.documents[0] = deepcopy(self.applied_document)
+            await asyncio.sleep(0)
+            return None
+        return await super().find_one_and_update(
+            query,
+            update,
+            upsert=upsert,
+            return_document=return_document,
+        )
+
+
+@pytest.mark.asyncio
+async def test_conflict_audit_transfer_never_overwrites_racing_applied_audit(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_reports = CrashBeforeReportAppliedCollection(
+        daniele_db.partner_phase2_migration_reports.documents
+    )
+    with pytest.raises(RuntimeError, match="before report applied CAS"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    crashed_report = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    applied_audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    old_audit_lease_id = applied_audit["lease_id"]
+    applying_audit = deepcopy(applied_audit)
+    applying_audit["status"] = "applying"
+    applying_audit.pop("applied_at", None)
+    applying_audit.pop("applied_by", None)
+    racing_audits = RaceAuditToAppliedOnConflictTransferCollection(
+        applying_audit,
+        applied_audit,
+    )
+    daniele_db.partner_phase2_migration_audit = racing_audits
+    unavailable_snapshots = AlwaysFailSnapshotCollection(
+        AutoReconnect("snapshot must remain unavailable during applied race")
+    )
+    daniele_db.partner_phase2_migration_snapshots = unavailable_snapshots
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "lease_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)
+            }
+        },
+    )
+
+    recovered = await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+    repeated = await apply_phase2_migration(daniele_db, report.report_id, "admin-3")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    final_audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert crashed_report["expected_terminal_audit_lease_id"] == old_audit_lease_id
+    assert racing_audits.raced is True
+    assert recovered == repeated
+    assert stored["status"] == "applied"
+    assert final_audit == applied_audit
+    assert final_audit["status"] == "applied"
+    assert final_audit["lease_id"] == old_audit_lease_id
+    assert "conflict_lease_id" not in stored
+    assert "conflict_reason" not in stored
+    assert "error_code" not in stored
+    assert unavailable_snapshots.read_attempts == 1
+    assert unavailable_snapshots.write_attempts == 0
+
+
+@pytest.mark.asyncio
 async def test_expired_naive_bson_lease_is_reclaimed(daniele_db):
     report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
     await daniele_db.partner_phase2_migration_reports.update_one(

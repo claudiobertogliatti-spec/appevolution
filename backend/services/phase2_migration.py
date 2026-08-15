@@ -1839,7 +1839,9 @@ async def _wait_for_applied_report(db, report_id: str) -> MigrationApplyResult:
         if latest and latest.get("status") == "applied":
             return _apply_result_from_document(latest)
         if latest and latest.get("status") == "conflict":
-            await _repair_conflict_audit(db, latest)
+            recovered = await _repair_conflict_audit(db, latest)
+            if recovered:
+                return recovered
             raise MigrationConflict("migration report is in conflict")
         await asyncio.sleep(_APPLY_POLL_SECONDS)
     raise MigrationConflict("migration apply lease is still active")
@@ -1852,29 +1854,127 @@ async def _mark_conflict(
     reason: str,
     *,
     error_code: str = "migration_conflict",
-):
+    expected_terminal_audit_lease_id: str | None = None,
+) -> MigrationApplyResult | None:
     now = datetime.now(timezone.utc)
+    terminal_fields = {
+        "status": "conflict",
+        "conflict_at": now,
+        "conflict_reason": reason,
+        "conflict_lease_id": lease_id,
+        "error_code": error_code,
+        "expected_terminal_audit_lease_id": (
+            expected_terminal_audit_lease_id or lease_id
+        ),
+    }
     terminal = await db.partner_phase2_migration_reports.find_one_and_update(
         {"report_id": report_id, "status": "applying", "lease_id": lease_id},
         {
-            "$set": {
-                "status": "conflict",
-                "conflict_at": now,
-                "conflict_reason": reason,
-                "conflict_lease_id": lease_id,
-                "error_code": error_code,
-            },
+            "$set": terminal_fields,
             "$unset": {"lease_id": "", "lease_expires_at": ""},
         },
         return_document=ReturnDocument.AFTER,
     )
     if not terminal:
-        return False
-    await _repair_conflict_audit(db, terminal)
-    return True
+        latest = await db.partner_phase2_migration_reports.find_one(
+            {"report_id": report_id}
+        )
+        if latest and latest.get("status") == "applied":
+            return _apply_result_from_document(latest)
+        if latest and latest.get("status") == "conflict":
+            return await _repair_conflict_audit(db, latest)
+        return None
+    return await _repair_conflict_audit(db, terminal)
 
 
-async def _repair_conflict_audit(db, report: dict[str, Any]) -> None:
+def _conflict_audit_identity_compatible(
+    report: dict[str, Any], audit: dict[str, Any]
+) -> bool:
+    return (
+        audit.get("audit_id") == f"phase2-audit-{report['report_id']}"
+        and audit.get("report_id") == report.get("report_id")
+        and audit.get("partner_id") == report.get("partner_id")
+        and audit.get("source_checksum") == report.get("source_checksum")
+        and _canonical_json(audit.get("planned_actions"))
+        == _canonical_json(report.get("actions") or [])
+    )
+
+
+def _terminal_conflict_audit_compatible(
+    report: dict[str, Any], audit: dict[str, Any]
+) -> bool:
+    return (
+        _conflict_audit_identity_compatible(report, audit)
+        and audit.get("status") == "conflict"
+        and audit.get("lease_id") == report.get("conflict_lease_id")
+        and audit.get("terminal_report_status") == "conflict"
+        and _canonical_json(audit.get("conflict_at"))
+        == _canonical_json(report.get("conflict_at"))
+        and audit.get("conflict_reason") == report.get("conflict_reason")
+        and audit.get("error_code")
+        == (report.get("error_code") or "migration_conflict")
+    )
+
+
+async def _finalize_conflict_from_applied_audit(
+    db,
+    report: dict[str, Any],
+    audit: dict[str, Any],
+) -> MigrationApplyResult:
+    expected_audit_lease_id = report.get("expected_terminal_audit_lease_id")
+    if not expected_audit_lease_id or not _applied_audit_compatible(
+        report,
+        audit,
+        expected_audit_lease_id=expected_audit_lease_id,
+    ):
+        raise MigrationConflict("terminal migration audit is incompatible")
+    finalized = await db.partner_phase2_migration_reports.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "conflict",
+            "conflict_lease_id": report["conflict_lease_id"],
+        },
+        {
+            "$set": {
+                "status": "applied",
+                "snapshot_id": audit["snapshot_id"],
+                "audit_id": audit["audit_id"],
+                "applied_at": audit["applied_at"],
+                "updated_at": audit["applied_at"],
+                "terminal_audit_lease_id": audit["lease_id"],
+            },
+            "$unset": {
+                "lease_id": "",
+                "lease_expires_at": "",
+                "expected_terminal_audit_lease_id": "",
+                "conflict_lease_id": "",
+                "conflict_at": "",
+                "conflict_reason": "",
+                "error_code": "",
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if finalized:
+        return _apply_result_from_document(finalized)
+    latest = await db.partner_phase2_migration_reports.find_one(
+        {"report_id": report["report_id"]}
+    )
+    if (
+        latest
+        and latest.get("status") == "applied"
+        and latest.get("snapshot_id") == audit["snapshot_id"]
+        and latest.get("audit_id") == audit["audit_id"]
+        and latest.get("applied_at") == audit["applied_at"]
+        and latest.get("terminal_audit_lease_id") == audit["lease_id"]
+    ):
+        return _apply_result_from_document(latest)
+    raise MigrationConflict("migration result could not be finalized")
+
+
+async def _repair_conflict_audit(
+    db, report: dict[str, Any]
+) -> MigrationApplyResult | None:
     if report.get("status") != "conflict":
         raise MigrationConflict("terminal report required to repair conflict audit")
     lease_id = report.get("conflict_lease_id")
@@ -1922,31 +2022,53 @@ async def _repair_conflict_audit(db, report: dict[str, Any]) -> None:
         except DuplicateKeyError:
             existing = await collection.find_one({"report_id": report["report_id"]})
 
-    if not existing or existing.get("lease_id") != lease_id:
+    if not existing:
+        raise MigrationConflict("migration conflict audit could not be repaired")
+    if existing.get("status") == "applied":
+        return await _finalize_conflict_from_applied_audit(db, report, existing)
+    if existing.get("status") == "conflict":
+        if _terminal_conflict_audit_compatible(report, existing):
+            return None
         raise MigrationConflict("migration conflict audit fence mismatch")
+    if (
+        existing.get("status") not in {"applying", "partial_failure"}
+        or not _conflict_audit_identity_compatible(report, existing)
+        or not existing.get("snapshot_id")
+    ):
+        raise MigrationConflict("migration conflict audit fence mismatch")
+
     terminal_fields = {
         "status": "conflict",
+        "lease_id": lease_id,
         "terminal_report_status": "conflict",
         "conflict_at": report.get("conflict_at"),
         "conflict_reason": report.get("conflict_reason"),
         "error_code": report.get("error_code") or "migration_conflict",
     }
-    if all(
-        _canonical_json(existing.get(field)) == _canonical_json(value)
-        for field, value in terminal_fields.items()
-    ):
-        return
+    audit_query = {
+        "report_id": report["report_id"],
+        "status": existing.get("status"),
+    }
+    if "lease_id" in existing:
+        audit_query["lease_id"] = existing.get("lease_id")
+    else:
+        audit_query["lease_id"] = {"$exists": False}
     repaired = await collection.find_one_and_update(
-        {
-            "report_id": report["report_id"],
-            "status": existing.get("status"),
-            "lease_id": lease_id,
-        },
+        audit_query,
         {"$set": terminal_fields},
         return_document=ReturnDocument.AFTER,
     )
-    if not repaired:
-        raise MigrationConflict("migration conflict audit could not be repaired")
+    if repaired:
+        if _terminal_conflict_audit_compatible(report, repaired):
+            return None
+        raise MigrationConflict("migration conflict audit fence mismatch")
+
+    latest = await collection.find_one({"report_id": report["report_id"]})
+    if latest and latest.get("status") == "applied":
+        return await _finalize_conflict_from_applied_audit(db, report, latest)
+    if latest and _terminal_conflict_audit_compatible(report, latest):
+        return None
+    raise MigrationConflict("migration conflict audit could not be repaired")
 
 
 async def _mark_review_conflict(
@@ -2002,14 +2124,19 @@ async def _raise_snapshot_failure(
     report_id: str,
     lease_id: str,
     exc: Exception,
-) -> None:
-    await _mark_conflict(
+    *,
+    expected_terminal_audit_lease_id: str | None = None,
+) -> MigrationApplyResult:
+    recovered = await _mark_conflict(
         db,
         report_id,
         lease_id,
         "snapshot_persist_failed",
         error_code=_snapshot_failure_code(exc),
+        expected_terminal_audit_lease_id=expected_terminal_audit_lease_id,
     )
+    if recovered:
+        return recovered
     raise MigrationConflict("migration snapshot could not be persisted") from None
 
 
@@ -2024,7 +2151,9 @@ async def apply_phase2_migration(
     if report.get("status") == "applied":
         return _apply_result_from_document(report)
     if report.get("status") == "conflict":
-        await _repair_conflict_audit(db, report)
+        recovered = await _repair_conflict_audit(db, report)
+        if recovered:
+            return recovered
         raise MigrationConflict("migration report is in conflict")
 
     now = datetime.now(timezone.utc)
@@ -2080,13 +2209,15 @@ async def apply_phase2_migration(
             raise MigrationConflict("migration report could not be claimed")
         full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
         if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
-            await _mark_conflict(
+            recovered = await _mark_conflict(
                 db,
                 report["report_id"],
                 lease_id,
                 "stale_source_after_claim",
                 error_code="source_checksum_mismatch_after_claim",
             )
+            if recovered:
+                return recovered
             raise MigrationConflict("stale migration report: source changed after claim")
     elif report.get("status") == "applying":
         expires_at = _as_utc(report.get("lease_expires_at"))
@@ -2137,30 +2268,45 @@ async def apply_phase2_migration(
                 {"report_id": report["report_id"]}
             )
         except Exception as exc:
-            await _raise_snapshot_failure(
+            return await _raise_snapshot_failure(
                 db,
                 report["report_id"],
                 lease_id,
                 exc,
+                expected_terminal_audit_lease_id=(
+                    expected_terminal_audit_lease_id
+                ),
             )
         if stored_snapshot:
             audit = await _ensure_audit(db, claimed, stored_snapshot, lease_id)
             try:
                 await _assert_source_compatible(db, claimed, stored_snapshot)
             except MigrationConflict as exc:
-                await _mark_conflict(db, report["report_id"], lease_id, str(exc))
+                recovered = await _mark_conflict(
+                    db, report["report_id"], lease_id, str(exc)
+                )
+                if recovered:
+                    return recovered
                 raise
             full_snapshot = stored_snapshot["source"]
         else:
             current = await _load_source_snapshot(db, report["partner_id"])
             if _source_checksum(current) != report["source_checksum"]:
                 reason = "stale migration report without recovery snapshot"
-                await _mark_conflict(db, report["report_id"], lease_id, reason)
+                recovered = await _mark_conflict(
+                    db, report["report_id"], lease_id, reason
+                )
+                if recovered:
+                    return recovered
                 raise MigrationConflict(reason)
             full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
             if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
                 reason = "stale migration report: source changed after recovery claim"
-                await _mark_conflict(db, report["report_id"], lease_id, reason)
+                recovered = await _mark_conflict(
+                    db, report["report_id"], lease_id, reason
+                )
+                if recovered:
+                    return recovered
                 raise MigrationConflict(reason)
     else:
         raise MigrationConflict(f"migration report status {report.get('status')} is not applicable")
@@ -2169,18 +2315,20 @@ async def apply_phase2_migration(
     try:
         _validate_canonical_step_cardinality(report, full_snapshot)
     except MigrationConflict as exc:
-        await _mark_conflict(
+        recovered = await _mark_conflict(
             db,
             report["report_id"],
             lease_id,
             "canonical_step_cardinality_invalid",
             error_code="canonical_step_cardinality_invalid",
         )
+        if recovered:
+            return recovered
         raise exc
     try:
         snapshot = await _ensure_snapshot(db, report, full_snapshot)
     except Exception as exc:
-        await _raise_snapshot_failure(
+        return await _raise_snapshot_failure(
             db,
             report["report_id"],
             lease_id,
@@ -2277,7 +2425,11 @@ async def apply_phase2_migration(
             },
         )
     except MigrationConflict as exc:
-        await _mark_conflict(db, report["report_id"], lease_id, str(exc))
+        recovered = await _mark_conflict(
+            db, report["report_id"], lease_id, str(exc)
+        )
+        if recovered:
+            return recovered
         raise
     except Exception as exc:
         await db.partner_phase2_migration_audit.update_one(
