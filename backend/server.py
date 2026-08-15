@@ -17150,6 +17150,11 @@ from routers.partner_journey import router as partner_journey_router, set_db as 
 set_partner_journey_db(db)
 app.include_router(partner_journey_router)
 
+# Include reviewed Phase 2 migration admin router
+from routers.phase2_migration import router as phase2_migration_router, set_db as set_phase2_migration_db
+set_phase2_migration_db(db)
+app.include_router(phase2_migration_router)
+
 # Init notification service DB
 from services.notifications import init_notification_db
 init_notification_db(db)
