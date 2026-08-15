@@ -49,6 +49,51 @@ revisione per task e review finale sull'intero branch.
   nel sistema non esiste. Si rimette quando la coda dei contenuti esiste davvero.
 - Il messaggio a Claudio resta a valle del passo MCP: se quello blocca, il briefing non arriva (la
   memoria si', ora). La causa vera sono i permessi mancanti.
+### 2026-08-15 · Codex · codex/fase2-daniele-design — final review fix Fase 2
+
+**DICHIARATO**
+- La precedente dichiarazione "review clean / nessun P1-P2" e superata dalla review finale:
+  sono emersi cinque Important e due minor. Il commit applicativo `f3be42fe` li corregge
+  insieme, con regressioni nei tre file di test Fase 2 gia inclusi nella CI.
+- Il gate umano espone ora in GET/dry-run API e dry-run CLI la stessa lista di azioni:
+  kind/step/reason/target e before/after passano da allowlist; content, URL, token e documenti
+  raw non vengono proiettati. `completed_at` e mostrato solo come booleano di presenza.
+- Il planner normalizza anche gli step downstream gia `pending`/`blocked`, con motivo,
+  recovery e next action deterministici, azzerando `completed_at` e mantenendo un solo front.
+- Categoria, contatore, supersede, lookup e indici degli output condividono ora la stessa
+  identita. Gli indici legacy incompatibili vengono ritirati per nome e sostituiti con nomi
+  nuovi category-aware.
+- Gli output legacy usano identita stabile per partner/step/category/template/action e checksum
+  dei soli campi sorgente: report id e checksum globale del report non entrano piu nel materiale.
+  Report equivalenti riusano output/versioni; payload incompatibili falliscono chiusi.
+- GET espone `error_code` e `recovery_action` sanificati. L'endpoint admin `recover` e la CLI
+  `--recover` operano su un solo report e ritentano soltanto conflitti snapshot transient;
+  conflitti stale richiedono sempre un nuovo dry-run. Apply/recovery CLI richiedono un actor
+  esplicito; il cluster Mongo legacy morto usa lo stesso fallback Atlas del backend.
+- Base post-rebase verificata `1616b433`; range applicativo corrente
+  `1616b433..f3be42fe` (`0 behind / 23 ahead` rispetto a `origin/main`). Nessuna modifica alla
+  allowlist CI: i nuovi test sono nei quattro file gia presenti.
+
+**VERIFICATO**
+- Suite integrata Fase 2 + calendario + journey + auth, da `backend`: `308 passed,
+  8 skipped, 1 warning in 14.98s`, exit 0.
+- Allowlist CI completa di 51 file, estratta da `.github/workflows/ci.yml` ed eseguita con
+  `MONGO_URL=mongodb://localhost:27017`, `DB_NAME=ciak_ci`, `JWT_SECRET_KEY=ci-test-secret`,
+  `APP_ENV=test`: `644 passed, 31 warnings in 140.99s`, exit 0.
+- `python -m compileall -q backend`: exit 0. `python -m flake8 backend --select=E9,F821
+  --exclude='backend/__pycache__,backend/tests/__pycache__'`: exit 0.
+- `git diff --check`: exit 0. Secret scan sugli added lines dal range `origin/main`, con
+  esclusione della sola riga-regex auto-referenziale del piano: `secret-scan-clean`, exit 0.
+- Regressioni dedicate provano separazione e retry category-aware, indice nuovo/ritiro del
+  precedente, downstream idempotente, riuso cross-report e tamper fail-closed, allowlist
+  API/CLI, auth recovery, recovery transient e rifiuto stale/document-too-large.
+
+**APERTO**
+- Nessun dry-run/apply sul partner Daniele e nessuna operazione su dati reali sono stati
+  eseguiti. Nessun push, deploy o verifica produzione in questa wave.
+- Al primo rilascio va osservata la creazione degli indici category-aware e il ritiro dei due
+  indici legacy; un errore su un indice critico resta fail-closed allo startup.
+
 ### 2026-08-15 · Codex · codex/fase2-daniele-design — gate fondazione canonica Fase 2
 
 **DICHIARATO**
