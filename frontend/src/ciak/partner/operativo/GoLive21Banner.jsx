@@ -1,6 +1,6 @@
 import React from "react";
 import { Rocket } from "lucide-react";
-const { goLivePromise } = require("./goLivePromise.cjs");
+import { goLivePromise } from "./goLivePromise";
 
 /**
  * Fascia "Go Live in 21 giorni" in cima alla home partner.

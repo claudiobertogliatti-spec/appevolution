@@ -229,6 +229,7 @@ async def finalize_posizionamento(
         "partner_id": body.partner_id,
         "category": "posizionamento",
         "file_type": "document",
+        "content_type": "application/pdf",
         "original_name": f"Documento di Posizionamento - {partner.get('name', 'Partner')}.pdf",
         "stored_name": filename,
         "internal_url": upload["url"],

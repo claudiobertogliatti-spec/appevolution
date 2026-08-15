@@ -12,6 +12,54 @@ Regole:
 
 ---
 
+### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — Materiali Fase 1 Daniele
+
+**FATTO**
+- Corretto il proxy materiali: i PDF storici senza `content_type`, serviti dallo storage come
+  `application/octet-stream`, vengono ora restituiti al browser come `application/pdf`.
+- Consentiti gli URL `blob:` in `frame-src` nelle CSP Vercel e nginx: era il secondo blocco che
+  impediva a tutte le finestre materiali di mostrare il PDF nell'iframe.
+- I nuovi record Brand Kit e Posizionamento salvano sempre il MIME PDF; F-2 riconosce anche le
+  categorie canoniche `contratto_firmato` e `distinta_pagamento`.
+- Rigenerati con i template condivisi del 12/8 Brand Kit e Posizionamento di Daniele Andolfi;
+  corretti prima i caratteri corrotti nei dati sorgente. Pubblicati inoltre contratto firmato e
+  distinta di pagamento come PDF canonici Cloudinary. I quattro record hanno checksum SHA-256,
+  chiave migrazione e collegamento ai journey step; i vecchi PDF restano storici superseded.
+- Aggiunto script idempotente e auditabile `backend/scripts/refresh_daniele_phase1_materials.py`.
+
+**VERIFICATO**
+- Migrazione produzione: output `APPLIED 4 current file records and repaired Phase 1 text`.
+- PDF finali: Brand Kit 3 pagine, Posizionamento 11 pagine; zero pagine vuote e zero caratteri
+  sostitutivi. Tutte le 14 pagine renderizzate in PNG e controllate visivamente.
+- `backend/tests/test_partner_step_materials.py`: 8 passed.
+- Build frontend produzione completata; soli warning eslint preesistenti.
+- CI `31830317230`: backend, frontend e gitleaks verdi. Backend `00553-6q8` e worker
+  `00148-4bl` ready con traffico 100%; Vercel production `dpl_4my6zH1e2yEkZZsZZn23bJUjwbqY`
+  ready e alias `www.ciak.io`.
+- Smoke autenticato su Daniele: F-1/F-3/F-5 senza CTA, F-2/F-4/F-7 con CTA; F-2 mostra
+  contratto e distinta; anteprime contratto e Brand Kit caricate nell'iframe senza blocco CSP.
+
+**APERTO**
+- Nessun controllo aperto per questa correzione.
+
+### 2026-08-14 · Codex · codex/nascondi-materiali-step-senza-output — CTA materiali Fase 1
+
+**FATTO**
+- Nella pagina partner `Percorso`, gli step completati di Esamina che non producono una
+  consegna (F-1 Benvenuto, F-3 I tuoi dati, F-5 La tua storia, F-6 Il tuo obiettivo) non
+  mostrano piu' il pulsante `Visualizza materiali`.
+- Il pulsante resta su F-2 Contratto + distinta, F-4 Brand kit e F-7 Posizionamento.
+- Il testo introduttivo ora chiarisce che i materiali sono disponibili solo negli step che
+  producono una consegna.
+
+**VERIFICATO**
+- `journeyPresentation.test.js`: 3 test passati, incluso il contratto esplicito F-1..F-7.
+- `git diff --check`: exit 0.
+
+**APERTO**
+- Modifica isolata nel worktree `C:\Users\berto\appevolution-codex-materiali`; nessun deploy
+  su `main`, per non interferire con la migrazione partner concorrente.
+
 ### 2026-08-13 (sera) · Claude Code (Luca) · main — audit operativo cliente/partner, nessun deploy da fare
 
 Richiesta: "deploy definitivo verificando che non ci siano commit arretrati" + ripetere l'audit

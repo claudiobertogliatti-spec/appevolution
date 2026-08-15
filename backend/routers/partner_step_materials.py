@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, current_files,
-    normalize_file_material, safe_step_data, trusted_storage_url,
+    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
+    file_visible_to_partner, normalize_file_material, safe_step_data, trusted_storage_url,
 )
 
 router = APIRouter(tags=["partner-step-materials"])
@@ -28,7 +28,9 @@ async def _file_or_404(file_id: str, credentials):
     doc = await db.files.find_one({"file_id": file_id}, {"_id": 0})
     if not doc or doc.get("superseded"):
         raise HTTPException(404, "Materiale non trovato")
-    await _authorize(str(doc.get("partner_id")), credentials)
+    token_data = await _authorize(str(doc.get("partner_id")), credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin") and not file_visible_to_partner(doc):
+        raise HTTPException(404, "Materiale non trovato")
     return doc
 
 
@@ -94,7 +96,7 @@ async def _serve(file_id: str, disposition: str, credentials):
             upstream.raise_for_status()
     except Exception as exc:
         raise HTTPException(502, "Materiale temporaneamente non disponibile") from exc
-    content_type = doc.get("content_type") or upstream.headers.get("content-type") or "application/octet-stream"
+    content_type = content_type_for_material(doc, upstream.headers.get("content-type"))
     filename = str(doc.get("original_name") or doc.get("filename") or "materiale").replace('"', "")
     return Response(upstream.content, media_type=content_type,
                     headers={"Content-Disposition": f'{disposition}; filename="{filename}"', "Cache-Control": "private, max-age=300"})
