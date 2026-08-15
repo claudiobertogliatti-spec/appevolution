@@ -16,14 +16,18 @@ Regole:
 
 **DICHIARATO**
 - La dichiarazione precedente di chiusura dei finding e superata da due Important residui.
-  Il commit applicativo post-rebase `51d4c2ff` chiude entrambi e include il minor sicuro
-  `before_steps`; le regressioni restano nei due file migrazione gia inclusi nella CI.
+  I commit applicativi post-rebase `51d4c2ff` e `566b0719` chiudono entrambi e includono il
+  minor sicuro `before_steps`; le regressioni restano nei due file migrazione gia inclusi
+  nella CI.
 - GET report, POST dry-run e dry-run CLI usano la stessa proiezione. Le azioni
   `normalize_metadata` espongono ora tutti gli otto campi canonici revisionabili
   (`step_number`, `code`, `fase_legacy`, `macro_phase`, `label`, `owner`,
   `completion_policy`, `material_categories`). Le azioni `preserve_source` mostrano solo
   collection, nomi-campo allowlistati e conteggi; `preserve_step` mostra status ed evidence key.
   Content, URL, token, timestamp raw e documenti sorgente non attraversano il boundary.
+- Il boundary rifiuta per tipo prima di interrogare le allowlist: anche un report persistito
+  con valori dict/list nei campi operativi viene proiettato come unsupported/vuoto, senza 500
+  e senza riflettere il valore privato.
 - Uno snapshot viene accettato solo se id deterministico, report, partner, checksum dichiarato,
   insieme completo delle collection e checksum del contenuto coincidono. Collisione o snapshot
   incompleto produce `snapshot_identity_conflict`, non recuperabile, con nuovo dry-run richiesto.
@@ -31,17 +35,21 @@ Regole:
   scaduto senza snapshot viene chiuso in conflict; la recovery esplicita persiste/valida lo
   snapshot mentre report e audit sono ancora conflict e li riapre solo dopo. In quel passaggio
   l'audit riceve anche il `before_steps` derivato dallo snapshot valido.
-- Rebase completato sulla base `1455151a`; range applicativo verificato
-  `1455151a..51d4c2ff`, `0 behind / 27 ahead` prima di questa voce documentale.
+- Rebase completato sulla base `1455151a`; commit applicativi verificati `51d4c2ff` e
+  `566b0719`, range corrente `1455151a..566b0719`, `0 behind / 29 ahead` prima di questo
+  aggiornamento documentale.
 
 **VERIFICATO**
 - RED mirato pre-fix: `7 failed, 86 deselected`; i failure coprivano i quattro metadati omessi,
   `preserve_*` non revisionabili, `before_steps` vuoto e snapshot incompleto trattato come stale.
-- Suite Fase 2 post-fix: `125 passed, 1 warning in 6.97s`, exit 0.
+- RED hardening finale: il valore dict in una allowlist riproduceva HTTP 500 con
+  `TypeError: unhashable type: 'dict'` (`1 failed, 42 deselected`); dopo il fix lo stesso test
+  e verde (`1 passed, 42 deselected`).
+- Suite Fase 2 sul tail `566b0719`: `125 passed, 1 warning in 18.01s`, exit 0.
 - Suite integrata post-rebase Fase 2 + calendario + journey + auth: `316 passed, 8 skipped,
-  1 warning in 17.19s`, exit 0.
+  1 warning in 17.78s`, exit 0.
 - Allowlist CI post-rebase estratta dal workflow: `CI_ALLOWLIST_FILES=51`; `652 passed,
-  31 warnings in 148.98s`, exit 0.
+  31 warnings in 149.08s`, exit 0.
 - `compileall`, flake `E9,F821`, diff-check e secret scan degli added lines sono verdi; il secret
   scan esclude soltanto la self-pattern esatta gia documentata nel piano.
 - Nessun marker di conflitto resta dopo il rebase; la voce concorrente Luca in HANDOFF e stata
