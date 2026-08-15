@@ -17,9 +17,9 @@ def _matches(document, query):
     for key, expected in query.items():
         actual = document.get(key)
         if isinstance(expected, dict):
-            if "$lt" in expected and not actual < expected["$lt"]:
+            if "$lt" in expected and (actual is None or not actual < expected["$lt"]):
                 return False
-            if "$gt" in expected and not actual > expected["$gt"]:
+            if "$gt" in expected and (actual is None or not actual > expected["$gt"]):
                 return False
             if "$ne" in expected and actual == expected["$ne"]:
                 return False
@@ -59,10 +59,13 @@ class Collection:
             if _matches(doc, query):
                 for key, value in update.get("$inc", {}).items():
                     doc[key] = doc.get(key, 0) + value
+                doc.update(update.get("$set", {}))
                 return doc.copy()
         if upsert:
             document = dict(query)
             document.update(update.get("$inc", {}))
+            document.update(update.get("$setOnInsert", {}))
+            document.update(update.get("$set", {}))
             self.docs.append(document)
             return document.copy()
         return None
@@ -209,6 +212,72 @@ async def test_concurrent_same_identity_returns_winning_version_once():
 
 
 @pytest.mark.asyncio
+async def test_concurrent_same_identity_does_not_leave_counter_gap():
+    class UniqueBarrierCollection(Collection):
+        def __init__(self):
+            super().__init__()
+            self.identity_reads = 0
+            self.two_readers = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            result = await super().find_one(query, projection, sort)
+            if "checksum" in query and self.identity_reads < 2:
+                self.identity_reads += 1
+                if self.identity_reads == 2:
+                    self.two_readers.set()
+                await self.two_readers.wait()
+            return result
+
+        async def insert_one(self, doc):
+            identity = {key: doc[key] for key in (
+                "partner_id", "step_id", "template_id", "template_version", "checksum", "source_checksum",
+            )}
+            if any(_matches(existing, identity) for existing in self.docs):
+                raise DuplicateKeyError("duplicate phase2 output identity")
+            self.docs.append(doc.copy())
+
+    db = FakeDb()
+    db.partner_phase2_output_versions = UniqueBarrierCollection()
+
+    first, retry = await asyncio.gather(
+        archive_phase2_output(db, make_request()),
+        archive_phase2_output(db, make_request()),
+    )
+    distinct = await archive_phase2_output(db, make_request(content={"v": 2}))
+
+    assert (first.version, retry.version, distinct.version) == (1, 1, 2)
+    assert len(db.partner_phase2_output_versions.docs) == 2
+
+
+@pytest.mark.asyncio
+async def test_retry_waits_for_in_progress_identity_reservation():
+    class DelayedFinalizationCollection(Collection):
+        def __init__(self):
+            super().__init__()
+            self.finalization_started = asyncio.Event()
+            self.release_finalization = asyncio.Event()
+
+        async def update_one(self, query, update, upsert=False):
+            if update.get("$set", {}).get("version") == 1:
+                self.finalization_started.set()
+                await self.release_finalization.wait()
+            await super().update_one(query, update, upsert)
+
+    db = FakeDb()
+    db.partner_phase2_output_versions = DelayedFinalizationCollection()
+    first_task = asyncio.create_task(archive_phase2_output(db, make_request()))
+    await db.partner_phase2_output_versions.finalization_started.wait()
+
+    retry_task = asyncio.create_task(archive_phase2_output(db, make_request()))
+    await asyncio.sleep(0)
+    db.partner_phase2_output_versions.release_finalization.set()
+    first, retry = await asyncio.gather(first_task, retry_task)
+
+    assert (first.version, retry.version) == (1, 1)
+    assert {first.created, retry.created} == {True, False}
+
+
+@pytest.mark.asyncio
 async def test_late_older_insert_does_not_remain_current_after_newer_version():
     class DelayedFirstInsertCollection(Collection):
         def __init__(self):
@@ -216,11 +285,11 @@ async def test_late_older_insert_does_not_remain_current_after_newer_version():
             self.first_insert_started = asyncio.Event()
             self.release_first_insert = asyncio.Event()
 
-        async def insert_one(self, doc):
-            if doc["version"] == 1:
+        async def update_one(self, query, update, upsert=False):
+            if update.get("$set", {}).get("version") == 1:
                 self.first_insert_started.set()
                 await self.release_first_insert.wait()
-            await super().insert_one(doc)
+            await super().update_one(query, update, upsert)
 
     db = FakeDb()
     db.partner_phase2_output_versions = DelayedFirstInsertCollection()

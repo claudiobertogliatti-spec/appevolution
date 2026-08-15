@@ -1,4 +1,5 @@
 """Archivio append-only per gli output generati nella Fase 2."""
+import asyncio
 import hashlib
 import json
 import uuid
@@ -46,6 +47,25 @@ class OutputVersionResult:
     created: bool
 
 
+def _result_from_existing(existing: dict) -> OutputVersionResult:
+    return OutputVersionResult(
+        existing["output_id"],
+        existing["version"],
+        existing["checksum"],
+        False,
+    )
+
+
+async def _await_reserved_output(versions, identity: dict) -> OutputVersionResult:
+    """Attende che il proprietario della reservation completi l'archivio."""
+    for _ in range(100):
+        await asyncio.sleep(0)
+        existing = await versions.find_one(identity, {"_id": 0})
+        if existing and existing.get("output_id"):
+            return _result_from_existing(existing)
+    raise RuntimeError("Reservation output Fase 2 non completata")
+
+
 async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVersionResult:
     """Archivia un output immutabile, versionato e idempotente per identita'."""
     payload = json.dumps(
@@ -67,12 +87,33 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     versions = db.partner_phase2_output_versions
     existing = await versions.find_one(identity, {"_id": 0})
     if existing:
-        return OutputVersionResult(
-            existing["output_id"],
-            existing["version"],
-            existing["checksum"],
-            False,
+        if existing.get("output_id"):
+            return _result_from_existing(existing)
+        return await _await_reserved_output(versions, identity)
+
+    reservation_token = uuid.uuid4().hex
+    try:
+        reservation = await versions.find_one_and_update(
+            identity,
+            {
+                "$setOnInsert": {
+                    "reservation_token": reservation_token,
+                    "reservation_state": "allocating",
+                    "created_at": datetime.now(timezone.utc),
+                }
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
         )
+    except DuplicateKeyError:
+        existing = await versions.find_one(identity, {"_id": 0})
+        if existing and existing.get("output_id"):
+            return _result_from_existing(existing)
+        return await _await_reserved_output(versions, identity)
+    if reservation.get("output_id"):
+        return _result_from_existing(reservation)
+    if reservation.get("reservation_token") != reservation_token:
+        return await _await_reserved_output(versions, identity)
 
     latest = await versions.find_one(
         {"partner_id": request.partner_id, "step_id": request.step_id},
@@ -100,7 +141,6 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     output_id = uuid.uuid4().hex
     output = {
         "output_id": output_id,
-        **identity,
         "category": request.category,
         "content": request.content,
         "source_checksums": request.source_checksums,
@@ -108,20 +148,12 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
         "status": request.initial_status,
         "is_current": True,
         "actor_id": request.actor_id,
-        "created_at": datetime.now(timezone.utc),
+        "reservation_state": "stored",
     }
-    try:
-        await versions.insert_one(output)
-    except DuplicateKeyError:
-        existing = await versions.find_one(identity, {"_id": 0})
-        if not existing:
-            raise
-        return OutputVersionResult(
-            existing["output_id"],
-            existing["version"],
-            existing["checksum"],
-            False,
-        )
+    await versions.update_one(
+        {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
+        {"$set": output},
+    )
 
     await versions.update_many(
         {
