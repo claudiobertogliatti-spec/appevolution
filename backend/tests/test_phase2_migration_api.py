@@ -5,6 +5,9 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import os
+from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -190,6 +193,42 @@ def test_admin_dry_run_returns_only_sanitized_report_summary(
     assert "PRIVATE" not in response.text
 
 
+def test_dry_run_redacts_noncanonical_step_id(
+    client, admin_auth, monkeypatch
+):
+    private_step_id = "legacy/private-client@example.test/raw-title"
+
+    async def create_report(_db, partner_id, actor_id):
+        return SimpleNamespace(
+            to_dict=lambda: {
+                "report_id": "legacy-report",
+                "partner_id": partner_id,
+                "status": "review_required",
+                "source_checksum": "c" * 64,
+                "actions": [
+                    {
+                        "action_id": "legacy-action",
+                        "kind": "preserve_source",
+                        "step_id": private_step_id,
+                        "reason": "legacy_journey_record_preserved",
+                    }
+                ],
+                "created_at": "2026-08-15T09:30:00Z",
+            }
+        )
+
+    monkeypatch.setattr(phase2_migration, "create_phase2_dry_run", create_report)
+
+    response = client.post(
+        "/api/admin/phase2-migrations/23/dry-run",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 201
+    assert response.json()["actions"][0]["step_id"] == "legacy_record"
+    assert private_step_id not in response.text
+
+
 def test_superadmin_can_read_report_without_snapshot_or_raw_fields(
     client, admin_auth
 ):
@@ -209,6 +248,27 @@ def test_superadmin_can_read_report_without_snapshot_or_raw_fields(
     assert "PRIVATE" not in response.text
     assert "snapshot" not in response.json()
     assert "expected_steps" not in response.json()
+
+
+def test_get_report_redacts_noncanonical_step_id(client, admin_auth):
+    private_step_id = "legacy/private-client@example.test/raw-title"
+    phase2_migration.db.partner_phase2_migration_reports.documents[0]["actions"].append(
+        {
+            "action_id": "legacy-action",
+            "kind": "preserve_source",
+            "step_id": private_step_id,
+            "reason": "legacy_journey_record_preserved",
+        }
+    )
+
+    response = client.get(
+        "/api/admin/phase2-migrations/reports/report-1",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["actions"][1]["step_id"] == "legacy_record"
+    assert private_step_id not in response.text
 
 
 def test_apply_accepts_existing_review_report_and_sanitizes_result(
@@ -299,10 +359,80 @@ def test_cli_parser_defaults_to_single_partner_dry_run():
     ],
 )
 def test_cli_parser_rejects_ambiguous_or_bulk_invocations(argv):
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(migrate_phase2_partner.CliArgumentError) as exc:
         migrate_phase2_partner.parse_args(argv)
 
-    assert exc.value.code == 2
+    assert exc.value.code == "phase2_migration_invalid_arguments"
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--all"],
+        ["--partner-id", "23", "--apply"],
+        ["--apply", "--report-id", "report-1"],
+        ["--help", "--all"],
+    ],
+)
+def test_cli_invalid_arguments_emit_only_stable_json(argv):
+    completed = subprocess.run(
+        [sys.executable, "-m", "scripts.migrate_phase2_partner", *argv],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 2
+    assert completed.stdout == ""
+    assert json.loads(completed.stderr) == {
+        "ok": False,
+        "code": "phase2_migration_invalid_arguments",
+    }
+    assert "usage:" not in completed.stderr.lower()
+    assert "--all" not in completed.stderr
+
+
+def test_cli_invalid_arguments_do_not_echo_raw_uri():
+    secret_uri = (
+        "mongodb://" + "private-user:private-password" + "@private-host/database"
+    )
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.migrate_phase2_partner",
+            "--partner-id",
+            "23",
+            "--mongo-url",
+            secret_uri,
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 2
+    assert json.loads(completed.stderr) == {
+        "ok": False,
+        "code": "phase2_migration_invalid_arguments",
+    }
+    assert secret_uri not in completed.stderr
+
+
+def test_cli_help_remains_normal_help():
+    completed = subprocess.run(
+        [sys.executable, "-m", "scripts.migrate_phase2_partner", "--help"],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert "--partner-id" in completed.stdout
+    assert completed.stderr == ""
 
 
 @pytest.mark.asyncio

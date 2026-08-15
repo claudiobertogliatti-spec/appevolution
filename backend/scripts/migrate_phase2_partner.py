@@ -28,8 +28,21 @@ class CliError(RuntimeError):
         self.code = code
 
 
+class CliArgumentError(RuntimeError):
+    code = "phase2_migration_invalid_arguments"
+
+
+class JsonBoundaryArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise CliArgumentError(self.prog) from None
+
+
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    help_flags = [argument for argument in arguments if argument in ("-h", "--help")]
+    if help_flags and len(arguments) != 1:
+        raise CliArgumentError("help_must_be_standalone")
+    parser = JsonBoundaryArgumentParser(
         description="Crea o applica un report Fase 2 per un solo partner."
     )
     parser.add_argument("--partner-id", required=True)
@@ -37,7 +50,7 @@ def parse_args(argv=None):
         "--apply", action="store_true", help="applica un report esistente"
     )
     parser.add_argument("--report-id")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(arguments)
     if args.apply and not args.report_id:
         parser.error("--apply richiede --report-id")
     if args.report_id and not args.apply:
@@ -91,7 +104,14 @@ async def execute(db, args, *, actor_id: str) -> dict:
 
 
 async def _run(argv=None) -> int:
-    args = parse_args(argv)
+    try:
+        args = parse_args(argv)
+    except CliArgumentError as exc:
+        print(
+            json.dumps({"ok": False, "code": exc.code}),
+            file=sys.stderr,
+        )
+        return 2
     mongo_url = (
         os.environ.get("MONGO_URL")
         or os.environ.get("MONGODB_URL")

@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 from services.phase2_migration import (
     MigrationConflict,
     apply_phase2_migration,
@@ -31,6 +32,11 @@ _REPORT_FIELDS = (
 )
 _ACTION_FIELDS = ("action_id", "kind", "step_id", "reason")
 _APPLICABLE_STATUSES = {"review_required", "applying", "applied"}
+_CANONICAL_STEP_IDS = frozenset(
+    str(definition["step_id"])
+    for definition in JOURNEY_STEPS_DEFINITION
+    if 8 <= int(definition["step_number"]) <= 19
+)
 
 
 def set_db(database) -> None:
@@ -61,11 +67,17 @@ def _conflict(code: str = "phase2_migration_conflict") -> HTTPException:
 
 
 def _action_summary(action: dict[str, Any]) -> dict[str, Any]:
-    return {
+    summary = {
         field: action[field]
         for field in _ACTION_FIELDS
-        if field in action
+        if field in action and field != "step_id"
     }
+    if "step_id" in action:
+        step_id = str(action["step_id"])
+        summary["step_id"] = (
+            step_id if step_id in _CANONICAL_STEP_IDS else "legacy_record"
+        )
+    return summary
 
 
 def _report_summary(report: dict[str, Any]) -> dict[str, Any]:
