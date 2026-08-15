@@ -284,3 +284,54 @@ def azione_permessa(tipo, adesso=None):
         f"mancano {attesa - passati} giorni. Riportalo nel messaggio come azione "
         f"dovuta ma in attesa, con la data in cui si sblocca."
     )
+
+
+def registra_azione(tipo, cosa, perche, risultato):
+    """Registra un'azione eseguita nei DUE posti, con una sola chiamata.
+
+    `azioni.json` la legge la macchina (il cancello, i conteggi), `registro.md` lo
+    legge Claudio. Un'azione presente in uno solo o non e' verificabile o non e'
+    governabile: per questo la scrittura e' una sola e li tocca entrambi.
+
+    Un'azione NON e' fatta finche' non e' registrata: domani nemmeno Luca saprebbe
+    di averla fatta.
+    """
+    if tipo not in AZIONI_CONSENTITE:
+        raise ValueError(
+            f"'{tipo}' non e' un'azione consentita: si prepara per Claudio, "
+            f"non si registra come fatta"
+        )
+
+    azione = {
+        "id": uuid.uuid4().hex[:8],
+        "tipo": tipo,
+        "cosa": cosa,
+        "perche": perche,
+        "risultato": risultato,
+        "quando": _adesso(),
+    }
+
+    azioni = leggi_azioni()
+    azioni.append(azione)
+    percorso = _file_azioni()
+    temporaneo = percorso.with_name(percorso.name + ".tmp")
+    temporaneo.write_text(
+        json.dumps(azioni, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    os.replace(temporaneo, percorso)
+
+    registra(f"[{tipo}] {cosa}", perche, risultato)
+    return azione
+
+
+def azioni_dal(data_iso):
+    """Le azioni registrate DOPO quella data, in ordine cronologico.
+
+    Prende la data esplicitamente e non la indovina: dalla Fase 2 la riga di oggi
+    in numeri.csv viene scritta all'INIZIO della giornata, quindi "l'ultima riga"
+    sarebbe quella di oggi e una funzione che la deducesse restituirebbe sempre
+    zero azioni. Il prompt le passa la PENULTIMA riga di numeri.csv.
+
+    Il confronto fra stringhe ISO funziona: "2026-08-15T09:00:00+00:00" > "2026-08-14".
+    """
+    return [a for a in leggi_azioni() if a.get("quando", "") > data_iso]

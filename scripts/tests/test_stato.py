@@ -234,5 +234,49 @@ class TestCancello(BaseStato):
         self.assertIsNone(stato.ultima_azione("mai_fatta"))
 
 
+class TestRegistraAzione(BaseStato):
+    def test_scrive_in_ENTRAMBI_i_file(self):
+        stato.registra_azione(
+            "campagna_obiettivo",
+            "campagna 120251843794950188 da OUTCOME_TRAFFIC a OUTCOME_LEADS",
+            "61 giorni su un obiettivo che non ottimizza per i lead",
+            "obiettivo cambiato",
+        )
+        azioni = stato.leggi_azioni()
+        self.assertEqual(len(azioni), 1)
+        self.assertEqual(azioni[0]["tipo"], "campagna_obiettivo")
+        testo = stato.leggi_registro()
+        self.assertIn("campagna_obiettivo", testo, "l'azione deve comparire anche nel registro")
+        self.assertIn("61 giorni", testo)
+
+    def test_un_tipo_fuori_whitelist_solleva(self):
+        with self.assertRaises(ValueError):
+            stato.registra_azione("manda_email", "a un lead", "perche' si", "fatto")
+        self.assertEqual(stato.leggi_azioni(), [], "nulla deve essere scritto")
+
+    def test_ogni_azione_ha_id_e_quando(self):
+        azione = stato.registra_azione("coda_apri", "cosa", "perche'", "risultato")
+        self.assertTrue(azione["id"])
+        self.assertTrue(azione["quando"].endswith("+00:00"))
+
+    def test_dopo_averla_registrata_il_cancello_la_blocca(self):
+        stato.registra_azione("campagna_obiettivo", "cosa", "perche'", "fatto")
+        ok, motivo = stato.azione_permessa("campagna_obiettivo")
+        self.assertFalse(ok, "l'attesa di 7 giorni deve scattare subito")
+        self.assertIn("attesa", motivo)
+
+    def test_azioni_dal_filtra_per_data(self):
+        percorso = stato.cartella_stato() / "azioni.json"
+        percorso.write_text(json.dumps([
+            {"tipo": "coda_apri", "quando": "2026-08-13T09:00:00+00:00", "cosa": "vecchia"},
+            {"tipo": "coda_apri", "quando": "2026-08-15T09:00:00+00:00", "cosa": "nuova"},
+        ]), encoding="utf-8")
+        recenti = stato.azioni_dal("2026-08-14")
+        self.assertEqual([a["cosa"] for a in recenti], ["nuova"])
+
+    def test_azioni_dal_senza_azioni_restituisce_lista_vuota(self):
+        self.assertEqual(stato.azioni_dal("2026-08-14"), [])
+
+
 if __name__ == "__main__":
     unittest.main()
