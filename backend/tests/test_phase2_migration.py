@@ -99,15 +99,18 @@ def _apply_update(document, update, *, is_insert=False):
 
 
 class FakeCursor:
-    def __init__(self, documents):
+    def __init__(self, documents, projection=None):
         self.documents = deepcopy(list(documents))
+        if projection and projection.get("_id") == 0:
+            for document in self.documents:
+                document.pop("_id", None)
 
     def sort(self, key, direction):
         self.documents.sort(key=lambda item: item.get(key, 0), reverse=direction < 0)
         return self
 
     async def to_list(self, length):
-        return deepcopy(self.documents[:length])
+        return deepcopy(self.documents if length is None else self.documents[:length])
 
 
 class FakeCollection:
@@ -122,7 +125,10 @@ class FakeCollection:
         return deepcopy(matches[0]) if matches else None
 
     def find(self, query, projection=None):
-        return FakeCursor(document for document in self.documents if _matches(document, query))
+        return FakeCursor(
+            (document for document in self.documents if _matches(document, query)),
+            projection,
+        )
 
     async def insert_one(self, document):
         await asyncio.sleep(0)
@@ -219,6 +225,7 @@ class FakeDB:
         "partner_launch_calendar_versions",
         "partner_lancio",
         "partner_document_versions",
+        "partner_launch_calendar_counters",
         "partner_phase2_output_counters",
         "partner_phase2_migration_reports",
         "partner_phase2_migration_snapshots",
@@ -786,6 +793,8 @@ async def test_dry_run_persists_immutable_review_report_without_material_content
     assert stored["status"] == "review_required"
     assert stored["source_checksum"] == report.source_checksum
     assert stored["actions"] == report.actions
+    assert report.expected_steps == stored["expected_steps"]
+    assert report.to_dict()["expected_steps"]["08-registra-masterclass"]["record_count"] == 1
     assert "raw-video-bytes" not in json.dumps(report.to_dict())
 
     report.actions[0]["reason"] = "mutated-by-caller"
@@ -823,6 +832,12 @@ async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniel
         if document["step_id"] == "05-script-masterclass"
     )
     step["completed_at"] = historical_completed_at
+    transitioned = next(
+        document
+        for document in daniele_db.partner_journey_steps.documents
+        if document["step_id"] == "09-registra-lezioni"
+    )
+    transitioned["completed_at"] = historical_completed_at
     daniele_db.partners.documents[0]["phase"] = "F2"
     daniele_db.masterclass_factory.documents[0]["private_binary"] = b"raw-video-bytes"
     report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
@@ -844,7 +859,11 @@ async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniel
         if (document.get("source_checksums") or {}).get("migration_report_id")
         == report.report_id
     ]
-    archive_count = sum(action["kind"] == "archive_legacy" for action in report.actions)
+    archive_count = sum(
+        action["kind"] == "archive_legacy"
+        and action["after"].get("target") == "partner_phase2_output_versions"
+        for action in report.actions
+    )
     assert len(legacy_outputs) == archive_count
     assert all(document["status"] == "legacy" for document in legacy_outputs)
     assert all("partner_approved" not in document for document in legacy_outputs)
@@ -874,6 +893,8 @@ async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniel
     assert applied_step["completed_at"] is None
     assert later_step["status"] == "pending"
     assert later_step["blocked_reason_code"] == "upstream_output_not_current"
+    assert transitioned["status"] == "pending"
+    assert transitioned["completed_at"] is None
     assert daniele_db.partners.documents[0]["phase"] == "F3"
     assert any(
         document["step_id"] == "09-funnel-asset"
@@ -887,6 +908,142 @@ async def test_apply_retry_returns_same_snapshot_and_no_duplicate_effects(daniel
     assert audit["before_steps"]["05-script-masterclass"]["completed_at"] == (
         historical_completed_at
     )
+
+
+@pytest.mark.asyncio
+async def test_calendar_archive_creates_one_canonical_legacy_draft_never_approved(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    calendar_action = next(
+        action
+        for action in report.actions
+        if action["kind"] == "archive_legacy"
+        and action["after"].get("target") == "partner_launch_calendar_versions"
+    )
+
+    first = await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+    retry = await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    assert retry.snapshot_id == first.snapshot_id
+    drafts = [
+        document
+        for document in daniele_db.partner_launch_calendar_versions.documents
+        if document.get("migration_report_id") == report.report_id
+    ]
+    assert len(drafts) == 1
+    draft = drafts[0]
+    assert draft["migration_action_id"] == calendar_action["action_id"]
+    assert draft["status"] == "draft"
+    assert draft["legacy_import"] is True
+    assert draft["calendar"] == {"days": 30}
+    assert draft["checksum"] == calendar_checksum(draft["calendar"])
+    assert draft.get("approved_at") is None
+    assert draft.get("admin_review") is None
+    assert not any(
+        document.get("step_id") == "11-calendario-30gg"
+        and (document.get("source_checksums") or {}).get("migration_report_id")
+        == report.report_id
+        for document in daniele_db.partner_phase2_output_versions.documents
+    )
+
+
+@pytest.mark.asyncio
+async def test_apply_rejects_duplicate_canonical_step_even_when_plan_would_preserve_it(
+    conformant_db,
+):
+    duplicate = deepcopy(
+        next(
+            document
+            for document in conformant_db.partner_journey_steps.documents
+            if document["step_id"] == "08-registra-masterclass"
+        )
+    )
+    duplicate["_id"] = "duplicate-canonical-step"
+    conformant_db.partner_journey_steps.documents.append(duplicate)
+    report = await create_phase2_dry_run(conformant_db, "ok", "admin-1")
+
+    assert report.expected_steps["08-registra-masterclass"]["record_count"] == 2
+    with pytest.raises(MigrationConflict, match="exactly one journey record"):
+        await apply_phase2_migration(conformant_db, report.report_id, "admin-1")
+
+    assert await conformant_db.partner_phase2_migration_snapshots.count_documents({}) == 0
+    assert await conformant_db.partner_phase2_migration_audit.count_documents({}) == 0
+
+
+@pytest.mark.asyncio
+async def test_source_checksum_reads_more_than_one_thousand_documents(daniele_db):
+    daniele_db.partner_document_versions.documents = [
+        {"_id": f"document-{index}", "partner_id": "23", "kind": "evidence", "seq": index}
+        for index in range(1001)
+    ]
+
+    before = await plan_phase2_migration(daniele_db, "23", "admin-1")
+    daniele_db.partner_document_versions.documents[1000]["marker"] = "changed"
+    after = await plan_phase2_migration(daniele_db, "23", "admin-1")
+
+    assert after.source_checksum != before.source_checksum
+
+
+@pytest.mark.asyncio
+async def test_byte_identical_reinsert_with_new_mongo_id_makes_report_stale(daniele_db):
+    daniele_db.partner_hub.documents[0]["_id"] = "hub-old-id"
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    reinserted = deepcopy(daniele_db.partner_hub.documents[0])
+    reinserted["_id"] = "hub-new-id"
+    daniele_db.partner_hub.documents[:] = [reinserted]
+
+    with pytest.raises(MigrationConflict, match="stale"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    assert await daniele_db.partner_phase2_migration_snapshots.count_documents({}) == 0
+
+
+class MutateIdAfterSanitizedReadCollection(FakeCollection):
+    def __init__(self, documents):
+        super().__init__(documents)
+        self.injected = False
+
+    def find(self, query, projection=None):
+        cursor = super().find(query, projection)
+        if not self.injected:
+            self.injected = True
+            self.documents[0]["_id"] = "hub-id-after-initial-read"
+        return cursor
+
+
+@pytest.mark.asyncio
+async def test_apply_rechecks_exact_checksum_after_full_snapshot_before_source_writes(daniele_db):
+    daniele_db.partner_hub.documents[0]["_id"] = "hub-id-in-report"
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_hub = MutateIdAfterSanitizedReadCollection(
+        daniele_db.partner_hub.documents
+    )
+
+    with pytest.raises(MigrationConflict, match="after claim"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    assert await daniele_db.partner_phase2_migration_snapshots.count_documents({}) == 0
+    assert await daniele_db.partner_phase2_migration_audit.count_documents({}) == 0
+    assert not daniele_db.partner_phase2_output_versions.documents
+
+
+@pytest.mark.asyncio
+async def test_expired_naive_bson_lease_is_reclaimed(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "status": "applying",
+                "lease_id": "expired-owner",
+                "lease_expires_at": datetime.now(timezone.utc).replace(tzinfo=None)
+                - timedelta(seconds=1),
+            }
+        },
+    )
+
+    applied = await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    assert applied.report_id == report.report_id
 
 
 @pytest.mark.asyncio
@@ -999,7 +1156,11 @@ async def test_expired_lease_recovers_partial_apply_without_duplicates(daniele_d
         if (document.get("source_checksums") or {}).get("migration_report_id")
         == report.report_id
     ]
-    archive_count = sum(action["kind"] == "archive_legacy" for action in report.actions)
+    archive_count = sum(
+        action["kind"] == "archive_legacy"
+        and action["after"].get("target") == "partner_phase2_output_versions"
+        for action in report.actions
+    )
     assert len(legacy_outputs) == archive_count
 
 
@@ -1051,7 +1212,11 @@ async def test_expired_lease_recovers_partial_output_reservation(daniele_db):
     assert await daniele_db.partner_phase2_migration_audit.count_documents(
         {"report_id": report.report_id}
     ) == 1
-    archive_count = sum(action["kind"] == "archive_legacy" for action in report.actions)
+    archive_count = sum(
+        action["kind"] == "archive_legacy"
+        and action["after"].get("target") == "partner_phase2_output_versions"
+        for action in report.actions
+    )
     legacy_outputs = [
         document
         for document in daniele_db.partner_phase2_output_versions.documents
@@ -1128,6 +1293,101 @@ async def test_recovery_rejects_tampered_migration_tagged_output(daniele_db):
     assert stored["status"] == "conflict"
 
 
+class ConcurrentChangeDuringProjectionCollection(FakeCollection):
+    def __init__(self, documents, source_collection):
+        super().__init__(documents)
+        self.source_collection = source_collection
+        self.injected = False
+
+    async def update_one(self, query, update, upsert=False):
+        result = await super().update_one(query, update, upsert=upsert)
+        if not self.injected and "phase" in update.get("$set", {}):
+            self.injected = True
+            self.source_collection.documents[0]["offerPrice"] = "external projection race"
+        return result
+
+
+@pytest.mark.asyncio
+async def test_concurrent_change_during_projection_is_audited_as_conflict(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partners = ConcurrentChangeDuringProjectionCollection(
+        daniele_db.partners.documents,
+        daniele_db.partner_hub,
+    )
+
+    with pytest.raises(MigrationConflict, match="stale"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert audit["status"] == "conflict"
+    assert audit.get("projection_status") != "applied"
+
+
+class PauseFirstAuditOwnerCollection(FakeCollection):
+    def __init__(self, documents=None):
+        super().__init__(documents)
+        self.first_owner_paused = asyncio.Event()
+        self.release_first_owner = asyncio.Event()
+        self.did_pause = False
+
+    async def find_one_and_update(
+        self, query, update, upsert=False, return_document=None
+    ):
+        result = await super().find_one_and_update(
+            query, update, upsert=upsert, return_document=return_document
+        )
+        if (
+            not self.did_pause
+            and update.get("$set", {}).get("status") == "applying"
+        ):
+            self.did_pause = True
+            self.first_owner_paused.set()
+            await self.release_first_owner.wait()
+        return result
+
+
+@pytest.mark.asyncio
+async def test_expired_owner_cannot_regress_winner_audit_after_lease_reclaim(daniele_db):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    audit_collection = PauseFirstAuditOwnerCollection()
+    daniele_db.partner_phase2_migration_audit = audit_collection
+
+    expired_owner = asyncio.create_task(
+        apply_phase2_migration(daniele_db, report.report_id, "admin-old")
+    )
+    await audit_collection.first_owner_paused.wait()
+    await daniele_db.partner_phase2_migration_reports.update_one(
+        {"report_id": report.report_id},
+        {
+            "$set": {
+                "lease_expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)
+            }
+        },
+    )
+
+    winner = await apply_phase2_migration(daniele_db, report.report_id, "admin-winner")
+    audit_collection.release_first_owner.set()
+    with pytest.raises(MigrationConflict, match="lease lost"):
+        await expired_owner
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert winner.report_id == report.report_id
+    assert stored["status"] == "applied"
+    assert audit["status"] == "applied"
+    assert audit["lease_id"] != "expired-owner"
+
+
 class RecordingIndexCollection:
     def __init__(self, collection_name, calls):
         self.collection_name = collection_name
@@ -1183,3 +1443,12 @@ async def test_migration_collections_receive_unique_report_indexes():
         and options.get("unique") is True
     }
     assert actual == expected
+    assert (
+        "partner_launch_calendar_versions",
+        [("partner_id", 1), ("migration_action_id", 1)],
+        {
+            "unique": True,
+            "name": "partner_launch_calendar_migration_action_unique",
+            "partialFilterExpression": {"migration_action_id": {"$exists": True}},
+        },
+    ) in db.calls

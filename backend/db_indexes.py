@@ -50,6 +50,15 @@ _CRITICAL_COMPOUND_INDEXES = [
         {"unique": True, "name": "partner_launch_calendar_versions_partner_version_unique"},
     ),
     (
+        "partner_launch_calendar_versions",
+        [("partner_id", 1), ("migration_action_id", 1)],
+        {
+            "unique": True,
+            "name": "partner_launch_calendar_migration_action_unique",
+            "partialFilterExpression": {"migration_action_id": {"$exists": True}},
+        },
+    ),
+    (
         "partner_document_versions",
         [
             ("partner_id", 1),

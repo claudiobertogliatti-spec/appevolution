@@ -534,3 +534,33 @@ async def test_late_older_insert_does_not_remain_current_after_newer_version():
     assert by_version[1]["status"] == "superseded"
     assert by_version[1]["is_current"] is False
     assert by_version[2]["is_current"] is True
+
+
+@pytest.mark.asyncio
+async def test_existing_retry_repairs_two_current_versions_after_supersede_crash(fake_db):
+    old = await archive_phase2_output(fake_db, make_request(content={"v": 1}))
+    new_request = make_request(content={"v": 2})
+    new = await archive_phase2_output(fake_db, new_request)
+    old_document = next(
+        document
+        for document in fake_db.partner_phase2_output_versions.docs
+        if document["output_id"] == old.output_id
+    )
+    old_document["status"] = "draft"
+    old_document["is_current"] = True
+
+    retry = await archive_phase2_output(fake_db, new_request)
+
+    by_output_id = {
+        document["output_id"]: document
+        for document in fake_db.partner_phase2_output_versions.docs
+    }
+    assert retry.output_id == new.output_id
+    assert retry.created is False
+    assert by_output_id[old.output_id]["status"] == "superseded"
+    assert by_output_id[old.output_id]["is_current"] is False
+    assert by_output_id[new.output_id]["is_current"] is True
+    assert sum(
+        document.get("is_current") is True
+        for document in fake_db.partner_phase2_output_versions.docs
+    ) == 1

@@ -63,6 +63,47 @@ def _result_from_existing(existing: dict) -> OutputVersionResult:
     )
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+async def _reconcile_current_version(versions, existing: dict) -> dict:
+    """Ripara l'invariante current anche al retry dopo un crash parziale."""
+    version = int(existing["version"])
+    await versions.update_many(
+        {
+            "partner_id": existing["partner_id"],
+            "step_id": existing["step_id"],
+            "is_current": True,
+            "version": {"$lt": version},
+        },
+        {"$set": {"status": "superseded", "is_current": False}},
+    )
+    newer = await versions.find_one(
+        {
+            "partner_id": existing["partner_id"],
+            "step_id": existing["step_id"],
+            "version": {"$gt": version},
+        },
+        {"_id": 0, "version": 1},
+    )
+    if newer:
+        await versions.update_one(
+            {"output_id": existing["output_id"], "is_current": True},
+            {"$set": {"status": "superseded", "is_current": False}},
+        )
+    return await versions.find_one({"output_id": existing["output_id"]}, {"_id": 0}) or existing
+
+
+async def _existing_result(versions, existing: dict) -> OutputVersionResult:
+    reconciled = await _reconcile_current_version(versions, existing)
+    return _result_from_existing(reconciled)
+
+
 async def _await_reserved_output(versions, identity: dict):
     """Attende il proprietario oppure acquisisce atomicamente una lease scaduta."""
     deadline = time.monotonic() + _RESERVATION_WAIT_SECONDS
@@ -70,9 +111,10 @@ async def _await_reserved_output(versions, identity: dict):
     while True:
         existing = await versions.find_one(identity, {"_id": 0})
         if existing and existing.get("output_id"):
-            return _result_from_existing(existing), None
+            return await _existing_result(versions, existing), None
         now = datetime.now(timezone.utc)
-        if existing and existing.get("reservation_expires_at") and existing["reservation_expires_at"] <= now:
+        expires_at = _as_utc((existing or {}).get("reservation_expires_at"))
+        if existing and expires_at and expires_at <= now:
             reservation_token = uuid.uuid4().hex
             reclaimed = await versions.find_one_and_update(
                 {
@@ -187,7 +229,7 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     existing = await versions.find_one(identity, {"_id": 0})
     if existing:
         if existing.get("output_id"):
-            return _result_from_existing(existing)
+            return await _existing_result(versions, existing)
         completed, reservation = await _await_reserved_output(versions, identity)
         if completed:
             return completed
@@ -212,14 +254,14 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
         except DuplicateKeyError:
             existing = await versions.find_one(identity, {"_id": 0})
             if existing and existing.get("output_id"):
-                return _result_from_existing(existing)
+                return await _existing_result(versions, existing)
             completed, reservation = await _await_reserved_output(versions, identity)
             if completed:
                 return completed
             reservation_token = reservation["reservation_token"]
         else:
             if reservation.get("output_id"):
-                return _result_from_existing(reservation)
+                return await _existing_result(versions, reservation)
             if reservation.get("reservation_token") != reservation_token:
                 completed, reservation = await _await_reserved_output(versions, identity)
                 if completed:
@@ -255,28 +297,7 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     if not finalized or finalized.get("output_id") != output_id:
         return await archive_phase2_output(db, request)
 
-    await versions.update_many(
-        {
-            "partner_id": request.partner_id,
-            "step_id": request.step_id,
-            "is_current": True,
-            "version": {"$lt": version},
-        },
-        {"$set": {"status": "superseded", "is_current": False}},
-    )
-    newer = await versions.find_one(
-        {
-            "partner_id": request.partner_id,
-            "step_id": request.step_id,
-            "version": {"$gt": version},
-        },
-        {"_id": 0, "version": 1},
-    )
-    if newer:
-        await versions.update_one(
-            {"output_id": output_id, "is_current": True},
-            {"$set": {"status": "superseded", "is_current": False}},
-        )
+    finalized = await _reconcile_current_version(versions, finalized)
     return OutputVersionResult(finalized["output_id"], finalized["version"], finalized["checksum"], True)
 
 
