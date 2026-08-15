@@ -10,16 +10,43 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from motor.motor_asyncio import AsyncIOMotorClient
-
-from services.phase2_migration import (
-    MigrationConflict,
-    apply_phase2_migration,
-    create_phase2_dry_run,
-)
-
-
 _APPLICABLE_STATUSES = {"review_required", "applying", "applied"}
+
+
+class _UnloadedMigrationConflict(RuntimeError):
+    pass
+
+
+AsyncIOMotorClient = None
+MigrationConflict = _UnloadedMigrationConflict
+apply_phase2_migration = None
+create_phase2_dry_run = None
+
+
+def _load_dependencies() -> None:
+    global AsyncIOMotorClient
+    global MigrationConflict
+    global apply_phase2_migration
+    global create_phase2_dry_run
+
+    if AsyncIOMotorClient is None:
+        from motor.motor_asyncio import AsyncIOMotorClient as motor_client
+
+        AsyncIOMotorClient = motor_client
+    if (
+        apply_phase2_migration is None
+        or create_phase2_dry_run is None
+        or MigrationConflict is _UnloadedMigrationConflict
+    ):
+        from services.phase2_migration import (
+            MigrationConflict as migration_conflict,
+            apply_phase2_migration as apply_migration,
+            create_phase2_dry_run as create_dry_run,
+        )
+
+        MigrationConflict = migration_conflict
+        apply_phase2_migration = apply_migration
+        create_phase2_dry_run = create_dry_run
 
 
 class CliError(RuntimeError):
@@ -112,6 +139,16 @@ async def _run(argv=None) -> int:
             file=sys.stderr,
         )
         return 2
+    try:
+        _load_dependencies()
+    except ImportError:
+        print(
+            json.dumps(
+                {"ok": False, "code": "phase2_migration_dependency_unavailable"}
+            ),
+            file=sys.stderr,
+        )
+        return 1
     mongo_url = (
         os.environ.get("MONGO_URL")
         or os.environ.get("MONGODB_URL")

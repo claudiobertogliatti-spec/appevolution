@@ -435,6 +435,83 @@ def test_cli_help_remains_normal_help():
     assert completed.stderr == ""
 
 
+def _blocked_import_env(tmp_path, blocked_module):
+    sitecustomize = tmp_path / "sitecustomize.py"
+    sitecustomize.write_text(
+        """
+import builtins
+import os
+
+_real_import = builtins.__import__
+_blocked = os.environ["PHASE2_TEST_BLOCKED_IMPORT"]
+
+def _block_import(name, *args, **kwargs):
+    if name == _blocked or name.startswith(_blocked + "."):
+        raise ModuleNotFoundError("dependency intentionally unavailable")
+    return _real_import(name, *args, **kwargs)
+
+builtins.__import__ = _block_import
+""".lstrip(),
+        encoding="utf-8",
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(tmp_path)
+    environment["PHASE2_TEST_BLOCKED_IMPORT"] = blocked_module
+    return environment
+
+
+@pytest.mark.parametrize("blocked_module", ["motor", "services.phase2_migration"])
+def test_cli_invalid_arguments_stay_json_when_dependency_is_missing(
+    tmp_path, blocked_module
+):
+    completed = subprocess.run(
+        [sys.executable, "-m", "scripts.migrate_phase2_partner", "--all"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=_blocked_import_env(tmp_path, blocked_module),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 2
+    assert completed.stdout == ""
+    assert json.loads(completed.stderr) == {
+        "ok": False,
+        "code": "phase2_migration_invalid_arguments",
+    }
+    assert "Traceback" not in completed.stderr
+    assert blocked_module not in completed.stderr
+
+
+@pytest.mark.parametrize("blocked_module", ["motor", "services.phase2_migration"])
+def test_cli_valid_arguments_report_missing_dependency_as_stable_json(
+    tmp_path, blocked_module
+):
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.migrate_phase2_partner",
+            "--partner-id",
+            "23",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        env=_blocked_import_env(tmp_path, blocked_module),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert completed.stdout == ""
+    assert json.loads(completed.stderr) == {
+        "ok": False,
+        "code": "phase2_migration_dependency_unavailable",
+    }
+    assert "Traceback" not in completed.stderr
+    assert blocked_module not in completed.stderr
+
+
 @pytest.mark.asyncio
 async def test_cli_json_result_contains_counts_but_no_raw_or_credentials(monkeypatch):
     report = {
