@@ -23,7 +23,17 @@ In particolare, quando i dati non arrivano ti e' VIETATO:
 - scrivere un briefing parziale o "indicativo".
 Un briefing mancato e' un problema piccolo. Un briefing con numeri inventati e' un problema grosso: Claudio decide su quei numeri.
 
-PASSO 1-BIS — Guarda anche FUORI casa. I due endpoint sopra vedono solo dentro Ciak: il 14/8/2026 tutto cio' che era rotto (campagna su obiettivo sbagliato da 60 giorni, social fermi 49 giorni) stava fuori e il briefing non lo vedeva. Un report che guarda solo dentro casa non e' un report.
+PASSO 2 — Scrivi SUBITO lo stato con i dati che hai. Non aspettare le fonti esterne.
+
+Il 15/8/2026 questo passo stava dopo il PASSO 3 e il briefing e' partito senza scrivere nulla: il passo MCP si e' bloccato e si e' portato dietro anche la memoria, che dipende solo dai dati Ciak. Un dato che hai in mano si scrive quando ce l'hai, non alla fine.
+
+Esegui con lo strumento PowerShell, mettendo i valori dal PASSO 1 e `None` in TUTTE le colonne esterne (`meta_campagna_obiettivo`, `meta_spesa_giorno`, `meta_lead_giorno`, `giorni_silenzio_social`, `contatti_systeme`): al PASSO 4 le riempirai se arrivano.
+
+    python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; stato.scrivi_numeri({'data':'AAAA-MM-GG','lead_oggi':N,'diagnosi_oggi':N,'ingressi_evo_mese':N,'partner_attivi':N,'partner_fermi':N,'partner_attesa_ok':N,'checkout_non_pagati':N,'meta_campagna_obiettivo':None,'meta_spesa_giorno':None,'meta_lead_giorno':None,'giorni_silenzio_social':None,'contatti_systeme':None,'sito_ok':TUTTE_OK})"
+
+⛔ `TUTTE_OK` e' un segnaposto: sostituiscilo con `True` o `False` copiando `fonti.sito.dati.tutte_ok` dall'output del PASSO 1. Se la busta `fonti.sito` manca o non e' `ok`, scrivi `None`.
+
+PASSO 3 — Guarda anche FUORI casa. I due endpoint sopra vedono solo dentro Ciak: il 14/8/2026 tutto cio' che era rotto (campagna su obiettivo sbagliato da 60 giorni, social fermi 49 giorni) stava fuori e il briefing non lo vedeva. Un report che guarda solo dentro casa non e' un report.
 
 Leggi queste tre fonti con i tool MCP, una alla volta:
 - Meta Ads, tre tool e tre dati diversi — non sono intercambiabili: `meta_list_campaigns` (obiettivo, stato e data di inizio di ogni campagna attiva), `meta_get_insights` (SPESA DI OGGI e LEAD DI OGGI: e' l'unico che accetta un intervallo o un preset temporale, quindi l'unico da cui possono venire questi due numeri) e `meta_get_account_info` (stato account e saldo maturato, che e' spesa lifetime — NON la spesa di oggi).
@@ -36,27 +46,25 @@ Regole di questo passo, senza eccezioni:
 - ⛔ Se cade Ciak (PASSO 1) ci si ferma comunque: quello e' il pavimento, queste fonti non lo sostituiscono.
 - Il "Saldo" di `meta_get_account_info` NON e' credito residuo: e' spesa maturata non ancora addebitata, e cresce mentre la campagna gira.
 - Se `meta_get_insights` non risponde, o non ha il dato del giorno, allora spesa di oggi e lead di oggi valgono `None` e si dichiarano non letti. ⛔ MAI `0` (zero e' una misura, e direbbe a Claudio che la campagna non ha speso), e MAI la spesa lifetime di `meta_get_account_info` al posto di quella di oggi: sono due numeri diversi.
-- QUESTI DATI VANNO RIPORTATI, non solo letti. Nel messaggio del PASSO 2, dentro "1) ACQUISIZIONE", aggiungi una riga FUORI CASA con: obiettivo e stato della campagna attiva -- e se l'obiettivo NON e' di tipo Lead dillo come problema, con da quanti giorni dura -- piu' spesa di oggi, lead di oggi e giorni di silenzio sui social. Una fonte non letta si scrive li' come "non letta", non si omette.
+- QUESTI DATI VANNO RIPORTATI, non solo letti. Nel messaggio del PASSO 6, dentro "1) ACQUISIZIONE", aggiungi una riga FUORI CASA con: obiettivo e stato della campagna attiva -- e se l'obiettivo NON e' di tipo Lead dillo come problema, con da quanti giorni dura -- piu' spesa di oggi, lead di oggi e giorni di silenzio sui social. Una fonte non letta si scrive li' come "non letta", non si omette.
   E se `fonti.sito.dati.tutte_ok` (letto dall'output del PASSO 1) e' FALSO, la riga FUORI CASA si apre col sito: elenca gli URL che non hanno risposto 200 con il loro status, presi da `fonti.sito.dati.url`. Un funnel giu' e' la notizia piu' urgente che questo briefing possa dare: va prima di ogni altro numero, anche se tutto il resto e' verde.
   Motivo: leggere una cosa e non riportarla equivale a non averla letta. Il 14/8 tutto cio' che era rotto stava fuori casa: serve che Claudio lo VEDA nel messaggio, non che sia stato guardato.
 
-PASSO 1-TER — Scrivi lo stato, sempre, anche quando il briefing e' tutto verde. Senza questo passo domani mattina riparti da zero e non puoi dire cosa e' cambiato. Va fatto QUI, prima del PASSO 2: il confronto con ieri serve mentre scrivi il messaggio, non dopo averlo mandato.
+PASSO 4 — Aggiorna la riga di oggi con cio' che il PASSO 3 ha portato, e leggi il confronto con ieri.
 
-Esegui con lo strumento PowerShell, sostituendo i valori con quelli letti (usa `None` per ogni numero che una fonte caduta non ti ha dato — MAI zero: zero e' una misura, vuoto e' un punto cieco):
+La scrittura fa UPSERT sulla data: rieseguirla aggiorna la riga di oggi, non ne aggiunge una seconda. Rimetti gli stessi valori interni del PASSO 2 e in piu' quelli esterni; per ogni fonte non letta lascia `None` — MAI `0`, che direbbe a Claudio che la campagna non ha speso.
 
     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; stato.scrivi_numeri({'data':'AAAA-MM-GG','lead_oggi':N,'diagnosi_oggi':N,'ingressi_evo_mese':N,'partner_attivi':N,'partner_fermi':N,'partner_attesa_ok':N,'checkout_non_pagati':N,'meta_campagna_obiettivo':'OUTCOME_X','meta_spesa_giorno':N,'meta_lead_giorno':N,'giorni_silenzio_social':N,'contatti_systeme':N,'sito_ok':TUTTE_OK})"
 
-⛔ `TUTTE_OK` e' un segnaposto, non un valore: sostituiscilo con `True` o `False` copiando `fonti.sito.dati.tutte_ok` dall'output del PASSO 1. Se la busta `fonti.sito` manca o non e' `ok`, scrivi `None`. Nessun campo di questa riga puo' restare una costante scritta a mano: una cella non misurata e' esattamente il difetto che questo file esiste per impedire.
-
-Poi, PRIMA di scrivere il messaggio a Claudio, leggi il confronto con ieri:
+Poi leggi il confronto:
 
     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato, json; print(json.dumps(stato.confronta({'data':'AAAA-MM-GG'}), ensure_ascii=False))"
 
-Usa quel confronto per dire "su o giu' rispetto a ieri" con il numero vero. Se risponde `prima_misurazione`, scrivi "prima misurazione, nessun confronto" — non inventare un andamento. Se un `delta` e' `null`, quella colonna NON e' confrontabile: dillo, non arrotondare.
+Se il PASSO 3 non e' stato eseguito affatto, salta l'aggiornamento e leggi solo il confronto: la riga di oggi c'e' gia' dal PASSO 2 e va bene cosi', con le colonne esterne vuote.
 
-Il confronto VA RIPORTATO nel messaggio del PASSO 2, dentro "1) ACQUISIZIONE", come gia' si fa per la riga FUORI CASA: per ogni numero che si muove si dice di quanto rispetto a ieri, e le colonne con `delta` a `null` si dichiarano non confrontabili invece di essere omesse. Un confronto calcolato e non scritto e' un confronto che Claudio non ha.
+Il confronto VA RIPORTATO nel messaggio del PASSO 6, dentro "1) ACQUISIZIONE": per ogni numero che si muove si dice di quanto rispetto a ieri, e le colonne con `delta` a `null` si dichiarano non confrontabili invece di essere omesse. Se risponde `prima_misurazione`, scrivi "prima misurazione, nessun confronto" — non inventare un andamento. Un confronto calcolato e non scritto e' un confronto che Claudio non ha.
 
-PASSO 2 — Se i dati sono arrivati, scrivi a Claudio UN SOLO messaggio, in questo ordine, corto:
+PASSO 6 — Se i dati sono arrivati, scrivi a Claudio UN SOLO messaggio, in questo ordine, corto:
 
 1) ACQUISIZIONE
    - Ingressi Metodo EVO nel mese: X/4 (gap Y). Se gap alto, dillo chiaro.
