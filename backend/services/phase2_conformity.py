@@ -6,7 +6,7 @@ from typing import Any, Mapping
 from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
 
 
-PHASE2_POLICY_EVIDENCE = {
+PHASE2_POLICY_EVIDENCE = MappingProxyType({
     "05-script-masterclass": "masterclass_script_approved",
     "06-outline-lezioni": "course_outline_approved",
     "07-script-videolezioni": "lesson_scripts_approved",
@@ -19,7 +19,7 @@ PHASE2_POLICY_EVIDENCE = {
     "13-lancio": "launch_verified",
     "18-certificato-valida": "valida_certificate_archived",
     "19-workbook-finale": "final_workbook_archived",
-}
+})
 
 
 _PHASE2_STEP_IDS = tuple(

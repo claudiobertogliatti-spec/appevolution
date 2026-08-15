@@ -1,6 +1,7 @@
 import pytest
 
 from services.phase2_conformity import (
+    PHASE2_POLICY_EVIDENCE,
     dependent_step_ids,
     evaluate_phase2_conformity,
 )
@@ -49,6 +50,24 @@ def test_conformity_details_expose_only_the_governing_boolean():
     )
 
     assert result.details == {"launch_verified": True}
+
+
+def test_policy_cannot_be_mutated_at_runtime():
+    step_id = "11-calendario-30gg"
+    original_policy = PHASE2_POLICY_EVIDENCE[step_id]
+
+    try:
+        PHASE2_POLICY_EVIDENCE[step_id] = "client_claimed_done"
+    except TypeError:
+        pass
+    else:
+        PHASE2_POLICY_EVIDENCE[step_id] = original_policy
+        pytest.fail("La policy Fase 2 deve essere immutabile")
+
+    result = evaluate_phase2_conformity(step_id, {original_policy: True})
+
+    assert result.conformant is True
+    assert result.evidence_key == original_policy
 
 
 def test_dependent_step_ids_follow_the_canonical_phase2_sequence():
