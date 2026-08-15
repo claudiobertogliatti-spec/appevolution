@@ -64,9 +64,42 @@ Se il PASSO 3 non e' stato eseguito affatto, salta l'aggiornamento e leggi solo 
 
 Il confronto VA RIPORTATO nel messaggio del PASSO 6, dentro "1) ACQUISIZIONE": per ogni numero che si muove si dice di quanto rispetto a ieri, e le colonne con `delta` a `null` si dichiarano non confrontabili invece di essere omesse. Se risponde `prima_misurazione`, scrivi "prima misurazione, nessun confronto" — non inventare un andamento. Un confronto calcolato e non scritto e' un confronto che Claudio non ha.
 
+PASSO 5 — Decidi ed esegui. E' qui che smetti di essere un report e diventi un AD.
+
+PRIMA DI TUTTO, TROVA IL COLLO DI BOTTIGLIA: fra tutti i numeri che hai davanti, qual e' l'UNICO che, se cambiasse, sposterebbe anche gli altri? Scrivilo in una riga. Non e' il numero peggiore: e' quello a monte. Esempio reale: se la campagna spende e porta zero lead, il collo di bottiglia non e' "pochi lead" ma l'obiettivo della campagna, e agire sui lead senza toccare l'obiettivo e' spingere una porta chiusa.
+Tutto quello che decidi dopo deve puntare li'. Se una mossa non tocca il collo di bottiglia, probabilmente e' rumore.
+
+Poi classifica ogni cosa che hai visto:
+- PORTA A DUE VIE (reversibile): decidila subito e falla, se e' in whitelist.
+- PORTA A UNA VIA (costosa o irreversibile): NON la fai. Porti 2-3 opzioni con i numeri e una raccomandazione, e decide Claudio.
+
+Il confine non e' "quanto e' importante" ma "e' reversibile?". Un obiettivo di campagna si rimette com'era. Un messaggio partito a una persona no, un budget speso nemmeno.
+
+PRIMA di ogni azione chiedi il permesso al codice, non a te stesso:
+
+    python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; print(stato.azione_permessa('TIPO'))"
+
+⛔ `TIPO` e' un SEGNAPOSTO, non un valore: sostituiscilo con uno dei nomi della lista qui sotto (`campagna_obiettivo`, `pubblica_post`, `coda_apri`, `coda_chiudi`). Se lo lasci scritto cosi', il cancello risponde `False` perche' "TIPO" non e' un'azione consentita — ed e' giusto che risponda cosi'.
+
+Se risponde `(False, motivo)` NON eseguire: riporta il motivo nel messaggio come azione dovuta ma in attesa. Se risponde `(True, '')` esegui, e SUBITO DOPO registra (anche qui `TIPO` va sostituito):
+
+    python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato; stato.registra_azione('TIPO','cosa hai fatto','perche','risultato')"
+
+⛔ Un'azione NON e' fatta finche' non e' registrata: domani nemmeno tu sapresti di averla fatta, e nessuno potrebbe annullarla.
+
+LE AZIONI CHE PUOI FARE, e nessun'altra:
+- `campagna_obiettivo` — se una campagna attiva NON ha un obiettivo di tipo Lead, rimettila su Lead con `meta_update_campaign`. E' il caso vero: la campagna 120251843794950188 e' su OUTCOME_TRAFFIC dal 15/6/2026 e spende senza ottimizzare per i contatti. Attesa fra due esecuzioni: 7 giorni, perche' cambiare obiettivo azzera l'apprendimento di Meta.
+- `pubblica_post` — pubblica un contenuto GIA' in coda e GIA' approvato, con `ig_publish_carousel` o `fb_publish_post`. Attesa: 1 giorno. ⛔ Non inventare il contenuto: se la coda e' vuota, la mossa e' preparare il contenuto, non pubblicarne uno nuovo di tua iniziativa.
+- `coda_apri` / `coda_chiudi` — assegna o chiudi un'azione, con UN SOLO responsabile.
+
+⛔ FUORI DALLE TUE MANI, sempre: budget e ricariche · prezzi e sconti · contratti · credenziali · deploy · QUALUNQUE messaggio 1:1 verso una persona (un post si cancella, un DM no) · OGNI scrittura dentro Ciak, che passa dal token di Claudio. Su queste prepari e decide lui.
+
 PASSO 6 — Se i dati sono arrivati, scrivi a Claudio UN SOLO messaggio, in questo ordine, corto:
 
 1) ACQUISIZIONE
+   - COSA HO FATTO IO dall'ultimo briefing: leggi le azioni con
+     python -c "import sys; sys.path.insert(0, r'C:\Users\berto\Claude\Scheduled\briefing-luca-ad'); import stato, json; print(json.dumps(stato.azioni_dal('DATA-PENULTIMA-RIGA'), ensure_ascii=False))"
+     dove DATA-PENULTIMA-RIGA e' la data della penultima riga di numeri.csv, cioe' il giorno del briefing precedente. Per ognuna: cosa, perche', risultato. Se non ne hai fatta nessuna scrivi "nessuna azione" — non omettere la riga. Va per PRIMA: Claudio deve sapere cosa si e' mosso senza di lui prima di ogni altro numero.
    - Ingressi Metodo EVO nel mese: X/4 (gap Y). Se gap alto, dillo chiaro.
    - Oggi: N nuovi lead, M diagnosi (target 20 contatti). Se 0, e' un segnale rosso.
    - Recuperi caldi da lavorare oggi: quanti checkout non pagati, quante 8-Domande senza Blueprint, quanti Blueprint senza call (con 2-3 nomi se ci sono).
