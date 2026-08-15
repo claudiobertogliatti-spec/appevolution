@@ -331,7 +331,17 @@ def test_get_report_allowlists_action_values_and_never_reflects_raw_fields(
         "kind": private_marker,
         "step_id": private_marker,
         "reason": private_marker,
-        "before": {"status": private_marker, "content": private_marker},
+        "before": {
+            "status": private_marker,
+            "fase_legacy": private_marker,
+            "macro_phase": private_marker,
+            "label": private_marker,
+            "material_categories": [private_marker],
+            "collection": private_marker,
+            "raw_source_fields": [private_marker],
+            "evidence_key": private_marker,
+            "content": private_marker,
+        },
         "after": {"target": private_marker, "url": private_marker},
     }]
 
@@ -351,6 +361,133 @@ def test_get_report_allowlists_action_values_and_never_reflects_raw_fields(
         "after": {},
     }]
     assert private_marker not in response.text
+
+
+def test_get_report_exposes_exact_safe_normalization_and_preservation_actions(
+    client, admin_auth, monkeypatch
+):
+    private_marker = "private-content-at-sensitive.example.test"
+    actions = [
+        {
+            "action_id": "1" * 24,
+            "kind": "normalize_metadata",
+            "step_id": "05-script-masterclass",
+            "reason": "canonical_phase2_definition",
+            "before": {
+                "step_number": 9,
+                "code": "F-9",
+                "fase_legacy": "F3",
+                "macro_phase": "valida",
+                "label": "Outline lezioni",
+                "owner": "ANDREA",
+                "completion_policy": "course_outline_approved",
+                "material_categories": ["outline_corso"],
+                "content": private_marker,
+            },
+            "after": {
+                "step_number": 8,
+                "code": "F-8",
+                "fase_legacy": "F3",
+                "macro_phase": "valida",
+                "label": "Script masterclass",
+                "owner": "ANDREA",
+                "completion_policy": "masterclass_script_approved",
+                "material_categories": ["script_masterclass"],
+                "url": private_marker,
+            },
+        },
+        {
+            "action_id": "2" * 24,
+            "kind": "preserve_source",
+            "step_id": "09-registra-lezioni",
+            "reason": "historical_lesson_records_preserved",
+            "before": {
+                "collection": "partner_videocorso",
+                "lesson_count": 32,
+                "raw_lesson_count": 2,
+                "raw_source_fields": ["video_raw_url", "drive_file_id"],
+                "raw_document": private_marker,
+            },
+            "after": {"change": "none"},
+        },
+        {
+            "action_id": "3" * 24,
+            "kind": "preserve_step",
+            "step_id": "05-script-masterclass",
+            "reason": "current_server_evidence_conformant",
+            "before": {
+                "status": "done",
+                "evidence_key": "masterclass_script_approved",
+                "updated_at": private_marker,
+                "token": private_marker,
+            },
+            "after": {"change": "none"},
+        },
+    ]
+    phase2_migration.db.partner_phase2_migration_reports.documents[0]["actions"] = (
+        actions
+    )
+
+    response = client.get(
+        "/api/admin/phase2-migrations/reports/report-1",
+        headers=admin_auth["admin"],
+    )
+
+    assert response.status_code == 200
+    projected = response.json()["actions"]
+    assert projected[0]["before"] == {
+        "step_number": 9,
+        "code": "F-9",
+        "fase_legacy": "F3",
+        "macro_phase": "valida",
+        "label": "Outline lezioni",
+        "owner": "ANDREA",
+        "completion_policy": "course_outline_approved",
+        "material_categories": ["outline_corso"],
+    }
+    assert projected[0]["after"] == {
+        "step_number": 8,
+        "code": "F-8",
+        "fase_legacy": "F3",
+        "macro_phase": "valida",
+        "label": "Script masterclass",
+        "owner": "ANDREA",
+        "completion_policy": "masterclass_script_approved",
+        "material_categories": ["script_masterclass"],
+    }
+    assert projected[1]["before"] == {
+        "collection": "partner_videocorso",
+        "lesson_count": 32,
+        "raw_lesson_count": 2,
+        "raw_source_fields": ["video_raw_url", "drive_file_id"],
+    }
+    assert projected[1]["after"] == {"change": "none"}
+    assert projected[2]["before"] == {
+        "status": "done",
+        "evidence_key": "masterclass_script_approved",
+    }
+    assert projected[2]["after"] == {"change": "none"}
+    assert private_marker not in response.text
+
+    async def create_report(_db, partner_id, actor_id):
+        return SimpleNamespace(to_dict=lambda: {
+            "report_id": "dry-run-exact-actions",
+            "partner_id": partner_id,
+            "actor_id": actor_id,
+            "status": "review_required",
+            "source_checksum": "d" * 64,
+            "actions": actions,
+            "created_at": "2026-08-15T12:00:00Z",
+        })
+
+    monkeypatch.setattr(phase2_migration, "create_phase2_dry_run", create_report)
+    dry_run = client.post(
+        "/api/admin/phase2-migrations/23/dry-run",
+        headers=admin_auth["admin"],
+    )
+    assert dry_run.status_code == 201
+    assert dry_run.json()["actions"] == projected
+    assert private_marker not in dry_run.text
 
 
 def test_get_conflict_exposes_only_sanitized_error_and_recovery_action(
@@ -413,11 +550,15 @@ def test_admin_can_recover_one_report_with_sanitized_response(
     assert "private-snapshot" not in response.text
 
 
-def test_stale_report_recovery_requires_new_dry_run(
-    client, admin_auth, monkeypatch
+@pytest.mark.parametrize(
+    "error_code",
+    ["source_checksum_mismatch", "snapshot_identity_conflict"],
+)
+def test_nonrecoverable_report_requires_new_dry_run(
+    client, admin_auth, monkeypatch, error_code
 ):
     async def refuse(*_args, **_kwargs):
-        raise MigrationRecoveryNotAllowed("source_checksum_mismatch")
+        raise MigrationRecoveryNotAllowed(error_code)
 
     monkeypatch.setattr(phase2_migration, "recover_phase2_migration", refuse)
     response = client.post(
@@ -428,7 +569,7 @@ def test_stale_report_recovery_requires_new_dry_run(
     assert response.status_code == 409
     assert response.json()["detail"] == {
         "code": "phase2_migration_conflict_not_recoverable",
-        "error_code": "source_checksum_mismatch",
+        "error_code": error_code,
         "recovery_action": "create_new_dry_run",
     }
 
@@ -749,6 +890,78 @@ async def test_cli_json_result_contains_counts_but_no_raw_or_credentials(monkeyp
     }
     assert "PRIVATE" not in encoded
     assert "password" not in encoded
+
+
+@pytest.mark.asyncio
+async def test_cli_dry_run_uses_same_exact_safe_action_projection(monkeypatch):
+    private_marker = "private-raw-document.example.test"
+    actions = [
+        {
+            "action_id": "4" * 24,
+            "kind": "normalize_metadata",
+            "step_id": "05-script-masterclass",
+            "reason": "canonical_phase2_definition",
+            "before": {},
+            "after": {
+                "step_number": 8,
+                "code": "F-8",
+                "fase_legacy": "F3",
+                "macro_phase": "valida",
+                "label": "Script masterclass",
+                "owner": "ANDREA",
+                "completion_policy": "masterclass_script_approved",
+                "material_categories": ["script_masterclass"],
+                "content": private_marker,
+            },
+        },
+        {
+            "action_id": "5" * 24,
+            "kind": "preserve_source",
+            "step_id": "08-registra-masterclass",
+            "reason": "historical_masterclass_media_preserved",
+            "before": {
+                "collection": "masterclass_factory",
+                "final_source_fields": ["video_youtube_url"],
+                "raw_source_fields": ["video_raw_url"],
+                "url": private_marker,
+            },
+            "after": {"change": "none"},
+        },
+    ]
+    database = FakeDb(partners=[{"id": "23"}])
+
+    async def create_report(_db, partner_id, actor_id):
+        return SimpleNamespace(
+            report_id="report-exact-projection",
+            partner_id=partner_id,
+            status="review_required",
+            actions=actions,
+        )
+
+    monkeypatch.setattr(migrate_phase2_partner, "create_phase2_dry_run", create_report)
+    monkeypatch.setattr(
+        migrate_phase2_partner,
+        "sanitize_phase2_migration_action",
+        sanitize_phase2_migration_action,
+    )
+    args = migrate_phase2_partner.parse_args(["--partner-id", "23"])
+
+    result = await migrate_phase2_partner.execute(
+        database, args, actor_id="cli-reviewer"
+    )
+
+    assert result["actions"] == [
+        sanitize_phase2_migration_action(action) for action in actions
+    ]
+    assert result["actions"][0]["after"]["material_categories"] == [
+        "script_masterclass"
+    ]
+    assert result["actions"][1]["before"] == {
+        "collection": "masterclass_factory",
+        "final_source_fields": ["video_youtube_url"],
+        "raw_source_fields": ["video_raw_url"],
+    }
+    assert private_marker not in json.dumps(result)
 
 
 @pytest.mark.asyncio

@@ -24,6 +24,7 @@ from services.phase2_migration import (
     create_phase2_dry_run,
     plan_phase2_migration,
     recover_phase2_migration,
+    sanitize_phase2_migration_action,
 )
 
 
@@ -473,6 +474,67 @@ async def test_only_f8_to_f19_metadata_is_canonicalized(daniele_db):
         for definition in JOURNEY_STEPS_DEFINITION
         if 8 <= definition["step_number"] <= 19
     }
+
+
+@pytest.mark.asyncio
+async def test_public_projection_exposes_all_exact_safe_metadata_and_preservation_fields(
+    daniele_db,
+):
+    plan = await plan_phase2_migration(daniele_db, "23", "admin-1")
+    normalized = next(
+        action
+        for action in plan.actions
+        if action["kind"] == "normalize_metadata"
+        and action["step_id"] == "05-script-masterclass"
+    )
+    preserved_source = next(
+        action
+        for action in plan.actions
+        if action["kind"] == "preserve_source"
+        and action["step_id"] == "08-registra-masterclass"
+    )
+
+    public_normalized = sanitize_phase2_migration_action(normalized)
+    public_preserved_source = sanitize_phase2_migration_action(preserved_source)
+
+    assert public_normalized["after"] == {
+        "step_number": 8,
+        "code": "F-8",
+        "fase_legacy": "F3",
+        "macro_phase": "valida",
+        "label": "Script masterclass",
+        "owner": "ANDREA",
+        "completion_policy": "masterclass_script_approved",
+        "material_categories": ["script_masterclass"],
+    }
+    assert public_preserved_source["before"] == {
+        "collection": "masterclass_factory",
+        "final_source_fields": ["video_youtube_url"],
+        "raw_source_fields": [],
+    }
+    assert public_preserved_source["after"] == {"change": "none"}
+
+
+@pytest.mark.asyncio
+async def test_public_projection_exposes_safe_preserve_step_evidence_without_timestamps(
+    conformant_db,
+):
+    plan = await plan_phase2_migration(conformant_db, "ok", "admin-1")
+    preserved = next(
+        action
+        for action in plan.actions
+        if action["kind"] == "preserve_step"
+        and action["step_id"] == "05-script-masterclass"
+    )
+
+    public = sanitize_phase2_migration_action(preserved)
+
+    assert public["before"] == {
+        "status": "done",
+        "evidence_key": "masterclass_script_approved",
+    }
+    assert public["after"] == {"change": "none"}
+    assert "updated_at" not in json.dumps(public)
 
 
 @pytest.mark.asyncio
@@ -1224,7 +1286,7 @@ async def test_apply_rechecks_exact_checksum_after_full_snapshot_before_source_w
         daniele_db.partner_hub.documents
     )
 
-    with pytest.raises(MigrationConflict, match="after claim"):
+    with pytest.raises(MigrationConflict, match="snapshot capture"):
         await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
 
     assert await daniele_db.partner_phase2_migration_snapshots.count_documents({}) == 0
@@ -1402,6 +1464,10 @@ async def test_snapshot_failure_is_sanitized_and_audit_repairs_without_snapshot_
 async def test_explicit_recovery_retries_one_transient_snapshot_conflict(
     daniele_db,
 ):
+    original_completed_at = datetime(2026, 8, 14, 16, 0, tzinfo=timezone.utc)
+    daniele_db.partner_journey_steps.documents[0]["completed_at"] = (
+        original_completed_at
+    )
     report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
     failing_snapshots = AlwaysFailSnapshotCollection(
         AutoReconnect("transient private snapshot host")
@@ -1429,9 +1495,114 @@ async def test_explicit_recovery_retries_one_transient_snapshot_conflict(
     assert stored["recovery_attempt"] == 1
     assert stored["recovery_requested_by"] == "admin-recovery"
     assert audit["status"] == "applied"
+    assert audit["before_steps"]["05-script-masterclass"] == {
+        "status": "done",
+        "completed_at": original_completed_at,
+        "updated_at": datetime(2026, 8, 15, 9, 30, tzinfo=timezone.utc),
+    }
     assert await daniele_db.partner_phase2_migration_snapshots.count_documents(
         {"report_id": report.report_id}
     ) == 1
+
+
+@pytest.mark.asyncio
+async def test_existing_incomplete_snapshot_is_permanent_conflict_and_never_recovered(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_snapshots.documents.append({
+        "snapshot_id": f"phase2-snapshot-{report.report_id}",
+        "report_id": report.report_id,
+        "partner_id": "23",
+        "source_checksum": report.source_checksum,
+        "source": {"partner_journey_steps": []},
+    })
+
+    with pytest.raises(MigrationConflict, match="snapshot identity"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == "snapshot_identity_conflict"
+    assert audit["status"] == "conflict"
+    assert audit["error_code"] == "snapshot_identity_conflict"
+    assert not daniele_db.partner_phase2_output_versions.documents
+
+    with pytest.raises(MigrationRecoveryNotAllowed) as caught:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-recovery"
+        )
+    assert caught.value.error_code == "snapshot_identity_conflict"
+    assert caught.value.recovery_action == "create_new_dry_run"
+
+
+@pytest.mark.asyncio
+async def test_existing_snapshot_id_collision_is_permanent_and_never_applies(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_snapshots.documents.append({
+        "snapshot_id": "phase2-snapshot-colliding-other-report",
+        "report_id": report.report_id,
+        "partner_id": "23",
+        "source_checksum": report.source_checksum,
+        "source": {},
+    })
+
+    with pytest.raises(MigrationConflict, match="snapshot identity"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == "snapshot_identity_conflict"
+    assert not daniele_db.partner_phase2_output_versions.documents
+
+
+@pytest.mark.asyncio
+async def test_recovery_validates_existing_snapshot_before_mutating_audit_or_report(
+    daniele_db,
+):
+    report = await create_phase2_dry_run(daniele_db, "23", "admin-1")
+    daniele_db.partner_phase2_migration_snapshots = AlwaysFailSnapshotCollection(
+        AutoReconnect("temporary snapshot outage")
+    )
+    with pytest.raises(MigrationConflict, match="snapshot"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-1")
+
+    daniele_db.partner_phase2_migration_snapshots = FakeCollection([{
+        "snapshot_id": f"phase2-snapshot-{report.report_id}",
+        "report_id": report.report_id,
+        "partner_id": "23",
+        "source_checksum": report.source_checksum,
+        "source": {"partner_journey_steps": []},
+    }])
+    with pytest.raises(MigrationRecoveryNotAllowed) as caught:
+        await recover_phase2_migration(
+            daniele_db, report.report_id, "admin-recovery"
+        )
+
+    stored = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    audit = await daniele_db.partner_phase2_migration_audit.find_one(
+        {"report_id": report.report_id}
+    )
+    assert caught.value.error_code == "snapshot_identity_conflict"
+    assert caught.value.recovery_action == "create_new_dry_run"
+    assert stored["status"] == "conflict"
+    assert stored["error_code"] == "snapshot_identity_conflict"
+    assert "lease_id" not in stored
+    assert audit["status"] == "conflict"
+    assert audit["error_code"] == "snapshot_identity_conflict"
+    assert audit["before_steps"] == {}
+    assert not daniele_db.partner_phase2_output_versions.documents
 
 
 @pytest.mark.asyncio
@@ -1644,7 +1815,18 @@ async def test_expired_naive_bson_lease_is_reclaimed(daniele_db):
         },
     )
 
-    applied = await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+    with pytest.raises(MigrationConflict, match="snapshot"):
+        await apply_phase2_migration(daniele_db, report.report_id, "admin-2")
+
+    conflicted = await daniele_db.partner_phase2_migration_reports.find_one(
+        {"report_id": report.report_id}
+    )
+    assert conflicted["status"] == "conflict"
+    assert conflicted["error_code"] == "snapshot_persist_error"
+
+    applied = await recover_phase2_migration(
+        daniele_db, report.report_id, "admin-recovery"
+    )
 
     assert applied.report_id == report.report_id
 

@@ -154,6 +154,34 @@ _PUBLIC_OWNERS = frozenset(
 _PUBLIC_COMPLETION_POLICIES = frozenset(
     str(definition["completion_policy"]) for definition in _CANONICAL_DEFINITIONS
 )
+_PUBLIC_FASE_LEGACY = frozenset(
+    str(definition["fase_legacy"]) for definition in _CANONICAL_DEFINITIONS
+)
+_PUBLIC_MACRO_PHASES = frozenset(
+    str(definition["macro_phase"]) for definition in _CANONICAL_DEFINITIONS
+)
+_PUBLIC_LABELS = frozenset(
+    str(definition["label"]) for definition in _CANONICAL_DEFINITIONS
+)
+_PUBLIC_MATERIAL_CATEGORIES = frozenset(
+    str(category)
+    for definition in _CANONICAL_DEFINITIONS
+    for category in definition.get("material_categories", [])
+)
+_PUBLIC_FINAL_SOURCE_FIELDS = frozenset({
+    "output_gcs_url",
+    "video_ciak_url",
+    "video_embed_url",
+    "video_youtube_url",
+})
+_PUBLIC_RAW_SOURCE_FIELDS = frozenset({
+    "video_raw_url",
+    "raw_video_url",
+    "original_video_url",
+    "video_url",
+    "video_uploaded",
+    "drive_file_id",
+})
 _CHECKSUM_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _ACTION_ID_PATTERN = re.compile(r"^[0-9a-f]{24}$")
 
@@ -191,6 +219,10 @@ class MigrationConflict(RuntimeError):
     """Il report non rappresenta piu' lo stato corrente o ha perso il CAS."""
 
 
+class _MigrationSnapshotIdentityConflict(MigrationConflict):
+    """Uno snapshot esistente collide con l'identita' immutabile del report."""
+
+
 _RECOVERABLE_CONFLICT_CODES = frozenset({
     "snapshot_store_unavailable",
     "snapshot_store_unauthorized",
@@ -201,6 +233,7 @@ _CONFLICT_RECOVERY_ACTIONS = {
     "snapshot_store_unauthorized": "retry_single_report",
     "snapshot_persist_error": "retry_single_report",
     "snapshot_document_too_large": "create_new_dry_run",
+    "snapshot_identity_conflict": "create_new_dry_run",
     "source_checksum_mismatch": "create_new_dry_run",
     "source_checksum_mismatch_after_claim": "create_new_dry_run",
     "canonical_step_cardinality_invalid": "create_new_dry_run",
@@ -669,8 +702,12 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
         "status",
         "step_number",
         "code",
+        "fase_legacy",
+        "macro_phase",
+        "label",
         "owner",
         "completion_policy",
+        "material_categories",
         "blocked_reason_code",
         "recovery_action_code",
         "next_action_step_id",
@@ -682,6 +719,13 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
         "source_checksum",
         "source_field_checksum",
         "legacy_calendar_checksum",
+        "collection",
+        "final_source_fields",
+        "raw_source_fields",
+        "lesson_count",
+        "raw_lesson_count",
+        "evidence_key",
+        "change",
     ):
         if field not in value:
             continue
@@ -692,10 +736,21 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
             sanitized[field] = item
         elif field == "code" and item in _PUBLIC_CODES:
             sanitized[field] = item
+        elif field == "fase_legacy" and item in _PUBLIC_FASE_LEGACY:
+            sanitized[field] = item
+        elif field == "macro_phase" and item in _PUBLIC_MACRO_PHASES:
+            sanitized[field] = item
+        elif field == "label" and item in _PUBLIC_LABELS:
+            sanitized[field] = item
         elif field == "owner" and item in _PUBLIC_OWNERS:
             sanitized[field] = item
         elif field == "completion_policy" and item in _PUBLIC_COMPLETION_POLICIES:
             sanitized[field] = item
+        elif field == "material_categories" and (
+            isinstance(item, (list, tuple))
+            and all(category in _PUBLIC_MATERIAL_CATEGORIES for category in item)
+        ):
+            sanitized[field] = list(item)
         elif field == "blocked_reason_code" and item in {
             None,
             _UPSTREAM_BLOCK_REASON,
@@ -726,6 +781,26 @@ def _sanitize_operational_fields(value: Any) -> dict[str, Any]:
             "source_field_checksum",
             "legacy_calendar_checksum",
         } and isinstance(item, str) and _CHECKSUM_PATTERN.fullmatch(item):
+            sanitized[field] = item
+        elif field == "collection" and item in _PUBLIC_ACTION_TARGETS:
+            sanitized[field] = item
+        elif field == "final_source_fields" and (
+            isinstance(item, (list, tuple))
+            and all(source_field in _PUBLIC_FINAL_SOURCE_FIELDS for source_field in item)
+        ):
+            sanitized[field] = list(item)
+        elif field == "raw_source_fields" and (
+            isinstance(item, (list, tuple))
+            and all(source_field in _PUBLIC_RAW_SOURCE_FIELDS for source_field in item)
+        ):
+            sanitized[field] = list(item)
+        elif field in {"lesson_count", "raw_lesson_count"} and (
+            isinstance(item, int) and not isinstance(item, bool) and item >= 0
+        ):
+            sanitized[field] = item
+        elif field == "evidence_key" and item in _PUBLIC_COMPLETION_POLICIES:
+            sanitized[field] = item
+        elif field == "change" and item == "none":
             sanitized[field] = item
     return sanitized
 
@@ -1650,27 +1725,65 @@ async def _ensure_snapshot(
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     snapshot_id = f"phase2-snapshot-{report['report_id']}"
-    snapshot = await db.partner_phase2_migration_snapshots.find_one_and_update(
-        {"report_id": report["report_id"]},
-        {
-            "$setOnInsert": {
-                "snapshot_id": snapshot_id,
-                "report_id": report["report_id"],
-                "partner_id": report["partner_id"],
-                "source_checksum": report["source_checksum"],
-                "source": deepcopy(full_snapshot),
-                "created_at": now,
-                "created_by": report.get("apply_actor_id") or report["actor_id"],
-            }
-        },
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-    )
+    collection = db.partner_phase2_migration_snapshots
+    try:
+        snapshot = await collection.find_one_and_update(
+            {"report_id": report["report_id"]},
+            {
+                "$setOnInsert": {
+                    "snapshot_id": snapshot_id,
+                    "report_id": report["report_id"],
+                    "partner_id": report["partner_id"],
+                    "source_checksum": report["source_checksum"],
+                    "source": deepcopy(full_snapshot),
+                    "created_at": now,
+                    "created_by": report.get("apply_actor_id") or report["actor_id"],
+                }
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+    except DuplicateKeyError:
+        snapshot = await collection.find_one({"report_id": report["report_id"]})
+        if snapshot is None:
+            raise _MigrationSnapshotIdentityConflict(
+                "migration snapshot identity conflict"
+            ) from None
+    return _validate_snapshot_identity(snapshot, report)
+
+
+def _validate_snapshot_identity(
+    snapshot: Any,
+    report: dict[str, Any],
+) -> dict[str, Any]:
+    expected_snapshot_id = f"phase2-snapshot-{report['report_id']}"
     if (
-        snapshot.get("source_checksum") != report["source_checksum"]
-        or snapshot.get("partner_id") != report["partner_id"]
+        not isinstance(snapshot, dict)
+        or snapshot.get("snapshot_id") != expected_snapshot_id
+        or snapshot.get("report_id") != report.get("report_id")
+        or snapshot.get("partner_id") != report.get("partner_id")
+        or snapshot.get("source_checksum") != report.get("source_checksum")
     ):
-        raise MigrationConflict("snapshot identity conflict")
+        raise _MigrationSnapshotIdentityConflict(
+            "migration snapshot identity conflict"
+        )
+    source = snapshot.get("source")
+    if (
+        not isinstance(source, dict)
+        or set(source) != set(_SOURCE_COLLECTIONS)
+        or any(
+            not isinstance(source.get(collection_name), list)
+            or any(
+                not isinstance(document, dict)
+                for document in source.get(collection_name, [])
+            )
+            for collection_name in _SOURCE_COLLECTIONS
+        )
+        or _checksum_from_full_snapshot(source) != report.get("source_checksum")
+    ):
+        raise _MigrationSnapshotIdentityConflict(
+            "migration snapshot identity conflict"
+        )
     return snapshot
 
 
@@ -1693,6 +1806,7 @@ async def _ensure_audit(
     snapshot: dict[str, Any],
     lease_id: str,
 ) -> dict[str, Any]:
+    snapshot = _validate_snapshot_identity(snapshot, report)
     await _renew_lease(db, report["report_id"], lease_id)
     now = datetime.now(timezone.utc)
     audit_id = f"phase2-audit-{report['report_id']}"
@@ -2331,17 +2445,6 @@ async def _repair_conflict_audit(
         raise MigrationConflict("migration conflict audit could not be repaired")
     if existing.get("status") == "applied":
         return await _finalize_conflict_from_applied_audit(db, report, existing)
-    if existing.get("status") == "conflict":
-        if _terminal_conflict_audit_compatible(report, existing):
-            return None
-        raise MigrationConflict("migration conflict audit fence mismatch")
-    if (
-        existing.get("status") not in {"applying", "partial_failure"}
-        or not _conflict_audit_identity_compatible(report, existing)
-        or not existing.get("snapshot_id")
-    ):
-        raise MigrationConflict("migration conflict audit fence mismatch")
-
     terminal_fields = {
         "status": "conflict",
         "lease_id": lease_id,
@@ -2350,6 +2453,32 @@ async def _repair_conflict_audit(
         "conflict_reason": report.get("conflict_reason"),
         "error_code": report.get("error_code") or "migration_conflict",
     }
+    if existing.get("status") == "conflict":
+        if _terminal_conflict_audit_compatible(report, existing):
+            return None
+        if (
+            _conflict_audit_identity_compatible(report, existing)
+            and existing.get("lease_id") == lease_id
+        ):
+            repaired = await collection.find_one_and_update(
+                {
+                    "report_id": report["report_id"],
+                    "status": "conflict",
+                    "lease_id": lease_id,
+                },
+                {"$set": terminal_fields},
+                return_document=ReturnDocument.AFTER,
+            )
+            if repaired and _terminal_conflict_audit_compatible(report, repaired):
+                return None
+        raise MigrationConflict("migration conflict audit fence mismatch")
+    if (
+        existing.get("status") not in {"applying", "partial_failure"}
+        or not _conflict_audit_identity_compatible(report, existing)
+        or not existing.get("snapshot_id")
+    ):
+        raise MigrationConflict("migration conflict audit fence mismatch")
+
     audit_query = {
         "report_id": report["report_id"],
         "status": existing.get("status"),
@@ -2415,6 +2544,8 @@ async def _mark_review_conflict(
 
 
 def _snapshot_failure_code(exc: Exception) -> str:
+    if isinstance(exc, DuplicateKeyError):
+        return "snapshot_identity_conflict"
     if isinstance(exc, DocumentTooLarge):
         return "snapshot_document_too_large"
     if isinstance(exc, AutoReconnect):
@@ -2445,6 +2576,69 @@ async def _raise_snapshot_failure(
     raise MigrationConflict("migration snapshot could not be persisted") from None
 
 
+async def _raise_snapshot_identity_conflict(
+    db,
+    report_id: str,
+    lease_id: str,
+    *,
+    expected_terminal_audit_lease_id: str | None = None,
+) -> MigrationApplyResult:
+    recovered = await _mark_conflict(
+        db,
+        report_id,
+        lease_id,
+        "snapshot_identity_conflict",
+        error_code="snapshot_identity_conflict",
+        expected_terminal_audit_lease_id=expected_terminal_audit_lease_id,
+    )
+    if recovered:
+        return recovered
+    raise MigrationConflict("migration snapshot identity conflict") from None
+
+
+async def _retag_terminal_conflict(
+    db,
+    report: dict[str, Any],
+    reason: str,
+    *,
+    error_code: str,
+) -> dict[str, Any]:
+    lease_id = report.get("conflict_lease_id")
+    if not lease_id:
+        raise MigrationConflict("terminal conflict report is missing its fence")
+    now = datetime.now(timezone.utc)
+    updated = await db.partner_phase2_migration_reports.find_one_and_update(
+        {
+            "report_id": report["report_id"],
+            "status": "conflict",
+            "conflict_lease_id": lease_id,
+            "error_code": report.get("error_code"),
+        },
+        {
+            "$set": {
+                "conflict_reason": reason,
+                "error_code": error_code,
+                "updated_at": now,
+            }
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        latest = await db.partner_phase2_migration_reports.find_one(
+            {"report_id": report["report_id"]}
+        )
+        if latest and latest.get("status") == "applied":
+            return latest
+        raise MigrationConflict("migration report conflict fence mismatch")
+    repaired = await _repair_conflict_audit(db, updated)
+    if repaired:
+        latest = await db.partner_phase2_migration_reports.find_one(
+            {"report_id": report["report_id"]}
+        )
+        return latest or updated
+    return updated
+
+
 async def recover_phase2_migration(
     db, report_id: str, actor_id: str
 ) -> MigrationApplyResult:
@@ -2461,6 +2655,132 @@ async def recover_phase2_migration(
         or error_code not in _RECOVERABLE_CONFLICT_CODES
     ):
         raise MigrationRecoveryNotAllowed(error_code)
+
+    existing_audit = await db.partner_phase2_migration_audit.find_one(
+        {"report_id": report["report_id"]}
+    )
+    if existing_audit and existing_audit.get("status") == "applied":
+        repaired = await _repair_conflict_audit(db, report)
+        if repaired:
+            return repaired
+
+    try:
+        snapshot = await db.partner_phase2_migration_snapshots.find_one(
+            {"report_id": report["report_id"]}
+        )
+    except Exception:
+        raise MigrationConflict(
+            "migration snapshot could not be validated"
+        ) from None
+
+    if snapshot is not None:
+        try:
+            snapshot = _validate_snapshot_identity(snapshot, report)
+        except _MigrationSnapshotIdentityConflict:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "snapshot_identity_conflict",
+                error_code="snapshot_identity_conflict",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationRecoveryNotAllowed("snapshot_identity_conflict")
+        try:
+            _validate_canonical_step_cardinality(report, snapshot["source"])
+        except MigrationConflict:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "canonical_step_cardinality_invalid",
+                error_code="canonical_step_cardinality_invalid",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationConflict("canonical step cardinality is invalid") from None
+        try:
+            await _assert_source_compatible(db, report, snapshot)
+        except MigrationConflict:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "stale_source_before_recovery",
+                error_code="source_checksum_mismatch_after_claim",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationConflict(
+                "stale migration report: source changed before recovery"
+            ) from None
+    else:
+        current = await _load_source_snapshot(db, report["partner_id"])
+        if _source_checksum(current) != report["source_checksum"]:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "stale_source_before_recovery",
+                error_code="source_checksum_mismatch",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationConflict(
+                "stale migration report: source changed before recovery"
+            ) from None
+        full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
+        if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "stale_source_during_recovery",
+                error_code="source_checksum_mismatch_after_claim",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationConflict(
+                "stale migration report: source changed during recovery"
+            ) from None
+        try:
+            _validate_canonical_step_cardinality(report, full_snapshot)
+        except MigrationConflict:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "canonical_step_cardinality_invalid",
+                error_code="canonical_step_cardinality_invalid",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationConflict("canonical step cardinality is invalid") from None
+        recovery_report = {**report, "apply_actor_id": str(actor_id)}
+        try:
+            snapshot = await _ensure_snapshot(
+                db, recovery_report, full_snapshot
+            )
+        except _MigrationSnapshotIdentityConflict:
+            report = await _retag_terminal_conflict(
+                db,
+                report,
+                "snapshot_identity_conflict",
+                error_code="snapshot_identity_conflict",
+            )
+            if report.get("status") == "applied":
+                return _apply_result_from_document(report)
+            raise MigrationRecoveryNotAllowed("snapshot_identity_conflict")
+        except Exception as exc:
+            failure_code = _snapshot_failure_code(exc)
+            if failure_code not in _RECOVERABLE_CONFLICT_CODES:
+                report = await _retag_terminal_conflict(
+                    db,
+                    report,
+                    "snapshot_persist_failed",
+                    error_code=failure_code,
+                )
+                if report.get("status") == "applied":
+                    return _apply_result_from_document(report)
+                raise MigrationRecoveryNotAllowed(failure_code)
+            raise MigrationConflict(
+                "migration snapshot could not be persisted"
+            ) from None
 
     repaired = await _repair_conflict_audit(db, report)
     if repaired:
@@ -2482,8 +2802,8 @@ async def recover_phase2_migration(
             "$set": {
                 "status": "applying",
                 "lease_id": recovery_lease_id,
-                "snapshot_id": report.get("snapshot_id")
-                or f"phase2-snapshot-{report['report_id']}",
+                "snapshot_id": snapshot["snapshot_id"],
+                "before_steps": _before_step_audit(snapshot["source"]),
                 "recovery_requested_at": now,
                 "recovery_requested_by": str(actor_id),
             },
@@ -2511,6 +2831,7 @@ async def recover_phase2_migration(
                 "status": "applying",
                 "lease_id": recovery_lease_id,
                 "lease_expires_at": now - timedelta(seconds=1),
+                "snapshot_id": snapshot["snapshot_id"],
                 "recovery_requested_at": now,
                 "recovery_requested_by": str(actor_id),
                 "recovery_attempt": int(report.get("recovery_attempt") or 0) + 1,
@@ -2574,6 +2895,7 @@ async def apply_phase2_migration(
     lease_id = uuid.uuid4().hex
     claimed = None
     full_snapshot = None
+    snapshot = None
     audit = None
     if report.get("status") == "review_required":
         try:
@@ -2596,6 +2918,38 @@ async def apply_phase2_migration(
                 error_code="source_checksum_mismatch",
             )
             raise MigrationConflict("stale migration report: source changed")
+        full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
+        if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
+            await _mark_review_conflict(
+                db,
+                report,
+                "stale_source_during_snapshot_capture",
+                error_code="source_checksum_mismatch_after_claim",
+            )
+            raise MigrationConflict(
+                "stale migration report: source changed during snapshot capture"
+            )
+        snapshot_report = {**report, "apply_actor_id": str(actor_id)}
+        try:
+            snapshot = await _ensure_snapshot(db, snapshot_report, full_snapshot)
+        except _MigrationSnapshotIdentityConflict:
+            await _mark_review_conflict(
+                db,
+                report,
+                "snapshot_identity_conflict",
+                error_code="snapshot_identity_conflict",
+            )
+            raise MigrationConflict("migration snapshot identity conflict") from None
+        except Exception as exc:
+            await _mark_review_conflict(
+                db,
+                report,
+                "snapshot_persist_failed",
+                error_code=_snapshot_failure_code(exc),
+            )
+            raise MigrationConflict(
+                "migration snapshot could not be persisted"
+            ) from None
         claimed = await reports.find_one_and_update(
             {
                 "report_id": report["report_id"],
@@ -2609,6 +2963,7 @@ async def apply_phase2_migration(
                     "lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS),
                     "apply_started_at": now,
                     "apply_actor_id": str(actor_id),
+                    "snapshot_id": snapshot["snapshot_id"],
                     "updated_at": now,
                 }
             },
@@ -2621,8 +2976,9 @@ async def apply_phase2_migration(
             if latest and latest.get("status") == "applying":
                 return await _wait_for_applied_report(db, report["report_id"])
             raise MigrationConflict("migration report could not be claimed")
-        full_snapshot = await _load_full_source_snapshot(db, report["partner_id"])
-        if _checksum_from_full_snapshot(full_snapshot) != report["source_checksum"]:
+        try:
+            await _assert_source_compatible(db, claimed, snapshot)
+        except MigrationConflict:
             recovered = await _mark_conflict(
                 db,
                 report["report_id"],
@@ -2633,6 +2989,7 @@ async def apply_phase2_migration(
             if recovered:
                 return recovered
             raise MigrationConflict("stale migration report: source changed after claim")
+        full_snapshot = snapshot["source"]
     elif report.get("status") == "applying":
         expires_at = _as_utc(report.get("lease_expires_at"))
         if expires_at and expires_at > now:
@@ -2641,6 +2998,55 @@ async def apply_phase2_migration(
         expected_terminal_audit_lease_id = (
             report.get("expected_terminal_audit_lease_id") or previous_lease_id
         )
+        terminal_audit_before_claim = (
+            await db.partner_phase2_migration_audit.find_one(
+                {"report_id": report["report_id"]}
+            )
+        )
+        prevalidated_snapshot = None
+        if not (
+            terminal_audit_before_claim
+            and terminal_audit_before_claim.get("status") == "applied"
+        ):
+            try:
+                prevalidated_snapshot = (
+                    await db.partner_phase2_migration_snapshots.find_one(
+                        {"report_id": report["report_id"]}
+                    )
+                )
+            except Exception as exc:
+                return await _raise_snapshot_failure(
+                    db,
+                    report["report_id"],
+                    previous_lease_id,
+                    exc,
+                    expected_terminal_audit_lease_id=(
+                        expected_terminal_audit_lease_id
+                    ),
+                )
+            if prevalidated_snapshot is None:
+                return await _raise_snapshot_failure(
+                    db,
+                    report["report_id"],
+                    previous_lease_id,
+                    MigrationConflict("migration snapshot is missing"),
+                    expected_terminal_audit_lease_id=(
+                        expected_terminal_audit_lease_id
+                    ),
+                )
+            try:
+                prevalidated_snapshot = _validate_snapshot_identity(
+                    prevalidated_snapshot, report
+                )
+            except _MigrationSnapshotIdentityConflict:
+                return await _raise_snapshot_identity_conflict(
+                    db,
+                    report["report_id"],
+                    previous_lease_id,
+                    expected_terminal_audit_lease_id=(
+                        expected_terminal_audit_lease_id
+                    ),
+                )
         claim_query = {
             "report_id": report["report_id"],
             "status": "applying",
@@ -2656,6 +3062,9 @@ async def apply_phase2_migration(
                     "lease_expires_at": now + timedelta(seconds=_APPLY_LEASE_SECONDS),
                     "apply_recovered_at": now,
                     "apply_actor_id": str(actor_id),
+                    "snapshot_id": (
+                        prevalidated_snapshot or report
+                    ).get("snapshot_id"),
                     "updated_at": now,
                 }
             },
@@ -2692,6 +3101,19 @@ async def apply_phase2_migration(
                 ),
             )
         if stored_snapshot:
+            try:
+                stored_snapshot = _validate_snapshot_identity(
+                    stored_snapshot, claimed
+                )
+            except _MigrationSnapshotIdentityConflict:
+                return await _raise_snapshot_identity_conflict(
+                    db,
+                    report["report_id"],
+                    lease_id,
+                    expected_terminal_audit_lease_id=(
+                        expected_terminal_audit_lease_id
+                    ),
+                )
             audit = await _ensure_audit(db, claimed, stored_snapshot, lease_id)
             try:
                 await _assert_source_compatible(db, claimed, stored_snapshot)
@@ -2707,6 +3129,7 @@ async def apply_phase2_migration(
                     return recovered
                 raise
             full_snapshot = stored_snapshot["source"]
+            snapshot = stored_snapshot
         else:
             current = await _load_source_snapshot(db, report["partner_id"])
             if _source_checksum(current) != report["source_checksum"]:
@@ -2751,15 +3174,22 @@ async def apply_phase2_migration(
         if recovered:
             return recovered
         raise exc
-    try:
-        snapshot = await _ensure_snapshot(db, report, full_snapshot)
-    except Exception as exc:
-        return await _raise_snapshot_failure(
-            db,
-            report["report_id"],
-            lease_id,
-            exc,
-        )
+    if snapshot is None:
+        try:
+            snapshot = await _ensure_snapshot(db, report, full_snapshot)
+        except _MigrationSnapshotIdentityConflict:
+            return await _raise_snapshot_identity_conflict(
+                db,
+                report["report_id"],
+                lease_id,
+            )
+        except Exception as exc:
+            return await _raise_snapshot_failure(
+                db,
+                report["report_id"],
+                lease_id,
+                exc,
+            )
     if audit is None:
         audit = await _ensure_audit(db, report, snapshot, lease_id)
     if audit.get("status") == "applied":
