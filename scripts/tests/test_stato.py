@@ -1,9 +1,11 @@
 """Test dei file di stato di Luca. Girano tutti su una cartella temporanea."""
 import csv
+import json
 import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -176,6 +178,60 @@ class TestRegistro(BaseStato):
         testo = stato.leggi_registro()
         for pezzo in ("C", "P", "R"):
             self.assertIn(pezzo, testo)
+
+
+class TestCancello(BaseStato):
+    def _scrivi_azioni(self, azioni):
+        """Scrive azioni.json a mano: chi lo scrive davvero arriva nella Task 2."""
+        percorso = stato.cartella_stato() / "azioni.json"
+        percorso.write_text(json.dumps(azioni, ensure_ascii=False), encoding="utf-8")
+
+    def test_azione_sconosciuta_e_negata_e_dice_quali_sono_consentite(self):
+        ok, motivo = stato.azione_permessa("cancella_tutto")
+        self.assertFalse(ok)
+        self.assertIn("cancella_tutto", motivo)
+        self.assertIn("campagna_obiettivo", motivo, "il motivo deve elencare le azioni consentite")
+
+    def test_azione_consentita_mai_eseguita_e_permessa(self):
+        ok, motivo = stato.azione_permessa("campagna_obiettivo")
+        self.assertTrue(ok)
+        self.assertEqual(motivo, "")
+
+    def test_attesa_non_scaduta_nega_e_dice_quanto_manca(self):
+        ieri = datetime(2026, 8, 14, 9, 0, tzinfo=timezone.utc)
+        self._scrivi_azioni([{"tipo": "campagna_obiettivo", "quando": ieri.isoformat()}])
+        adesso = datetime(2026, 8, 15, 9, 0, tzinfo=timezone.utc)
+        ok, motivo = stato.azione_permessa("campagna_obiettivo", adesso=adesso)
+        self.assertFalse(ok)
+        self.assertIn("6", motivo, "deve dire quanti giorni mancano")
+
+    def test_attesa_scaduta_permette(self):
+        vecchia = datetime(2026, 8, 1, 9, 0, tzinfo=timezone.utc)
+        self._scrivi_azioni([{"tipo": "campagna_obiettivo", "quando": vecchia.isoformat()}])
+        adesso = datetime(2026, 8, 15, 9, 0, tzinfo=timezone.utc)
+        ok, _ = stato.azione_permessa("campagna_obiettivo", adesso=adesso)
+        self.assertTrue(ok)
+
+    def test_azione_senza_attesa_non_e_mai_bloccata(self):
+        adesso = datetime(2026, 8, 15, 9, 0, tzinfo=timezone.utc)
+        self._scrivi_azioni([{"tipo": "coda_apri", "quando": adesso.isoformat()}])
+        ok, _ = stato.azione_permessa("coda_apri", adesso=adesso)
+        self.assertTrue(ok)
+
+    def test_l_attesa_di_un_tipo_non_blocca_un_altro_tipo(self):
+        adesso = datetime(2026, 8, 15, 9, 0, tzinfo=timezone.utc)
+        self._scrivi_azioni([{"tipo": "campagna_obiettivo", "quando": adesso.isoformat()}])
+        ok, _ = stato.azione_permessa("pubblica_post", adesso=adesso)
+        self.assertTrue(ok, "l'attesa e' per tipo, non globale")
+
+    def test_ultima_azione_prende_la_piu_recente_dello_stesso_tipo(self):
+        self._scrivi_azioni([
+            {"tipo": "pubblica_post", "quando": "2026-08-10T09:00:00+00:00", "cosa": "vecchia"},
+            {"tipo": "campagna_obiettivo", "quando": "2026-08-11T09:00:00+00:00", "cosa": "altra"},
+            {"tipo": "pubblica_post", "quando": "2026-08-12T09:00:00+00:00", "cosa": "recente"},
+        ])
+        self.assertEqual(stato.ultima_azione("pubblica_post")["cosa"], "recente")
+        self.assertIsNone(stato.ultima_azione("mai_fatta"))
 
 
 if __name__ == "__main__":

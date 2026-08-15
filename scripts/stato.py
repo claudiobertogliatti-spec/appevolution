@@ -212,3 +212,75 @@ def registra(cosa, perche, risultato):
 def leggi_registro():
     percorso = _file_registro()
     return percorso.read_text(encoding="utf-8") if percorso.exists() else ""
+
+
+# ─── Le mani di Luca: whitelist, cancello, registro delle azioni ──────────────
+
+AZIONI_CONSENTITE = {
+    "campagna_obiettivo": {
+        "attesa_giorni": 7,
+        "descrizione": "rimettere una campagna Meta su un obiettivo di tipo Lead",
+    },
+    "pubblica_post": {
+        "attesa_giorni": 1,
+        "descrizione": "pubblicare un contenuto gia' in coda e approvato",
+    },
+    "coda_apri": {"attesa_giorni": 0, "descrizione": "aprire un'azione in coda"},
+    "coda_chiudi": {"attesa_giorni": 0, "descrizione": "chiudere un'azione in coda"},
+}
+
+
+def _file_azioni():
+    return cartella_stato() / "azioni.json"
+
+
+def leggi_azioni():
+    percorso = _file_azioni()
+    if not percorso.exists():
+        return []
+    return json.loads(percorso.read_text(encoding="utf-8") or "[]")
+
+
+def ultima_azione(tipo):
+    """L'ultima azione registrata di quel tipo, o None."""
+    dello_stesso_tipo = [a for a in leggi_azioni() if a.get("tipo") == tipo]
+    return dello_stesso_tipo[-1] if dello_stesso_tipo else None
+
+
+def azione_permessa(tipo, adesso=None):
+    """Il cancello: (True, "") oppure (False, motivo).
+
+    Sta nel CODICE e non nel prompt di proposito. Un'istruzione scritta si puo'
+    interpretare male, dimenticare, o sovrascrivere con una riga successiva; una
+    funzione che restituisce False no. Luca tocca un account pubblicitario vero.
+
+    L'attesa non e' burocrazia: cambiare l'obiettivo di una campagna azzera
+    l'apprendimento di Meta, e un agente che "ottimizza" ogni mattina su tre
+    giorni di rumore fa piu' danno di uno fermo.
+    """
+    regola = AZIONI_CONSENTITE.get(tipo)
+    if regola is None:
+        consentite = ", ".join(sorted(AZIONI_CONSENTITE))
+        return False, (
+            f"'{tipo}' non e' un'azione consentita: si PREPARA per Claudio, non si esegue. "
+            f"Consentite: {consentite}"
+        )
+
+    attesa = regola["attesa_giorni"]
+    if attesa <= 0:
+        return True, ""
+
+    ultima = ultima_azione(tipo)
+    if ultima is None:
+        return True, ""
+
+    adesso = adesso or datetime.now(timezone.utc)
+    passati = (adesso - datetime.fromisoformat(ultima["quando"])).days
+    if passati >= attesa:
+        return True, ""
+
+    return False, (
+        f"'{tipo}' eseguita {passati} giorni fa e l'attesa e' di {attesa}: "
+        f"mancano {attesa - passati} giorni. Riportalo nel messaggio come azione "
+        f"dovuta ma in attesa, con la data in cui si sblocca."
+    )
