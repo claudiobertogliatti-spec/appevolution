@@ -16,6 +16,75 @@ from services.phase2_output_versions import (
 pytestmark = pytest.mark.unit
 
 
+_MISSING = object()
+
+
+def _path_value(document, path):
+    value = document
+    for part in path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            return _MISSING
+        value = value[part]
+    return value
+
+
+def _set_path(document, path, value):
+    target = document
+    parts = path.split(".")
+    for part in parts[:-1]:
+        target = target.setdefault(part, {})
+    target[parts[-1]] = value
+
+
+def _evaluate(expression, document):
+    if isinstance(expression, str) and expression.startswith("$"):
+        return _path_value(document, expression[1:])
+    if isinstance(expression, list):
+        return [_evaluate(item, document) for item in expression]
+    if not isinstance(expression, dict):
+        return expression
+    if "$literal" in expression:
+        return expression["$literal"]
+    if "$ifNull" in expression:
+        value, fallback = (_evaluate(item, document) for item in expression["$ifNull"])
+        return fallback if value is _MISSING or value is None else value
+    if "$max" in expression:
+        return max(_evaluate(item, document) for item in expression["$max"])
+    if "$add" in expression:
+        return sum(_evaluate(item, document) for item in expression["$add"])
+    if "$eq" in expression:
+        left, right = (_evaluate(item, document) for item in expression["$eq"])
+        return left == right
+    if "$type" in expression:
+        value = _evaluate(expression["$type"], document)
+        return "missing" if value is _MISSING else type(value).__name__
+    if "$cond" in expression:
+        condition, when_true, when_false = expression["$cond"]
+        branch = when_true if _evaluate(condition, document) else when_false
+        return _evaluate(branch, document)
+    raise AssertionError(f"Operatore pipeline fake non supportato: {expression}")
+
+
+def _apply_update(document, update, *, is_insert=False):
+    if isinstance(update, list):
+        for stage in update:
+            snapshot = document.copy()
+            changes = {
+                path: _evaluate(expression, snapshot)
+                for path, expression in stage.get("$set", {}).items()
+            }
+            for path, value in changes.items():
+                _set_path(document, path, value)
+        return
+    for key, value in update.get("$inc", {}).items():
+        document[key] = document.get(key, 0) + value
+    if is_insert:
+        document.update(update.get("$setOnInsert", {}))
+    document.update(update.get("$set", {}))
+    for key in update.get("$unset", {}):
+        document.pop(key, None)
+
+
 def _matches(document, query):
     for key, expected in query.items():
         actual = document.get(key)
@@ -67,17 +136,11 @@ class Collection:
     async def find_one_and_update(self, query, update, upsert=False, return_document=None):
         for doc in self.docs:
             if _matches(doc, query):
-                for key, value in update.get("$inc", {}).items():
-                    doc[key] = doc.get(key, 0) + value
-                doc.update(update.get("$set", {}))
-                for key in update.get("$unset", {}):
-                    doc.pop(key, None)
+                _apply_update(doc, update)
                 return doc.copy()
         if upsert:
             document = dict(query)
-            document.update(update.get("$inc", {}))
-            document.update(update.get("$setOnInsert", {}))
-            document.update(update.get("$set", {}))
+            _apply_update(document, update, is_insert=True)
             self.docs.append(document)
             return document.copy()
         return None
@@ -364,6 +427,81 @@ async def test_reclaim_after_counter_increment_returns_only_winning_output():
 
 
 @pytest.mark.asyncio
+async def test_reclaim_survives_distinct_allocation_without_orphaning_first_version():
+    class DelayedVersionPersistenceCollection(Collection):
+        def __init__(self):
+            super().__init__()
+            self.version_persist_started = asyncio.Event()
+            self.release_version_persist = asyncio.Event()
+            self.delayed_once = False
+
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
+            if "reserved_version" in update.get("$set", {}) and not self.delayed_once:
+                self.delayed_once = True
+                self.version_persist_started.set()
+                await self.release_version_persist.wait()
+            return await super().find_one_and_update(query, update, upsert, return_document)
+
+    class ReclaimInterleavingCounterCollection(Collection):
+        def __init__(self):
+            super().__init__()
+            self.counter_reads = 0
+            self.pipeline_updates = 0
+            self.reclaimer_counter_read_started = asyncio.Event()
+            self.release_reclaimer_counter_read = asyncio.Event()
+
+        async def find_one(self, query, projection=None, sort=None):
+            self.counter_reads += 1
+            if self.counter_reads == 2:
+                self.reclaimer_counter_read_started.set()
+                await self.release_reclaimer_counter_read.wait()
+            return await super().find_one(query, projection, sort)
+
+        async def find_one_and_update(self, query, update, upsert=False, return_document=None):
+            if isinstance(update, list):
+                self.pipeline_updates += 1
+                if self.pipeline_updates == 2:
+                    self.reclaimer_counter_read_started.set()
+                    await self.release_reclaimer_counter_read.wait()
+            return await super().find_one_and_update(query, update, upsert, return_document)
+
+    db = FakeDb()
+    db.partner_phase2_output_versions = DelayedVersionPersistenceCollection()
+    db.partner_phase2_output_counters = ReclaimInterleavingCounterCollection()
+    request = make_request(content={"v": 1})
+
+    old_owner_task = asyncio.create_task(archive_phase2_output(db, request))
+    await db.partner_phase2_output_versions.version_persist_started.wait()
+    db.partner_phase2_output_versions.docs[0]["reservation_expires_at"] = (
+        datetime.now(timezone.utc) - timedelta(seconds=1)
+    )
+    db.partner_phase2_output_counters.docs[0]["allocation_expires_at"] = (
+        datetime.now(timezone.utc) - timedelta(seconds=1)
+    )
+
+    winner_task = asyncio.create_task(archive_phase2_output(db, request))
+    await db.partner_phase2_output_counters.reclaimer_counter_read_started.wait()
+    distinct = await archive_phase2_output(db, make_request(content={"v": 2}))
+    db.partner_phase2_output_counters.release_reclaimer_counter_read.set()
+    winner = await winner_task
+    db.partner_phase2_output_versions.release_version_persist.set()
+    old_owner = await old_owner_task
+
+    assert (old_owner.version, winner.version, distinct.version) == (1, 1, 2)
+    assert old_owner.output_id == winner.output_id
+    assert old_owner.created is False
+    assert {document["version"] for document in db.partner_phase2_output_versions.docs} == {1, 2}
+    assert {
+        document["output_id"] for document in db.partner_phase2_output_versions.docs
+    } == {winner.output_id, distinct.output_id}
+    assert all(
+        document["reservation_state"] == "stored"
+        for document in db.partner_phase2_output_versions.docs
+    )
+    assert sorted(db.partner_phase2_output_counters.docs[0]["allocations"].values()) == [1, 2]
+
+
+@pytest.mark.asyncio
 async def test_late_older_insert_does_not_remain_current_after_newer_version():
     class DelayedFirstInsertCollection(Collection):
         def __init__(self):
@@ -387,8 +525,7 @@ async def test_late_older_insert_does_not_remain_current_after_newer_version():
     second_task = asyncio.create_task(
         archive_phase2_output(db, make_request(content={"v": 2}))
     )
-    await asyncio.sleep(0.02)
-    assert not second_task.done()
+    await asyncio.wait_for(asyncio.shield(second_task), timeout=0.5)
     db.partner_phase2_output_versions.release_first_insert.set()
     first, second = await asyncio.gather(first_task, second_task)
 

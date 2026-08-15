@@ -98,60 +98,71 @@ async def _await_reserved_output(versions, identity: dict):
         backoff = min(backoff * 2, _MAX_RESERVATION_BACKOFF_SECONDS)
 
 
-def _allocation_identity(identity: dict) -> str:
+def _identity_hash(identity: dict) -> str:
     payload = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-async def _reserve_counter_version(db, versions, identity: dict, reservation_token: str) -> int:
-    """Assegna o riusa una versione nel lock atomico del contatore per-step."""
+async def _allocate_counter_version(db, versions, identity: dict) -> int:
+    """Assegna una sola versione durevole a ogni identita' nel ledger per-step."""
     counter_identity = {"partner_id": identity["partner_id"], "step_id": identity["step_id"]}
-    allocation_identity = _allocation_identity(identity)
+    identity_hash = _identity_hash(identity)
+    allocation_path = f"allocations.{identity_hash}"
+    allocation_reference = f"$allocations.{identity_hash}"
     latest = await versions.find_one(
         counter_identity, {"_id": 0, "version": 1}, sort=[("version", -1)]
     )
     latest_version = int((latest or {}).get("version") or 0)
     counters = db.partner_phase2_output_counters
-    try:
-        await counters.update_one(counter_identity, {"$max": {"version": latest_version}}, upsert=True)
-    except DuplicateKeyError:
-        pass
-
-    deadline = time.monotonic() + _RESERVATION_WAIT_SECONDS
-    backoff = _INITIAL_RESERVATION_BACKOFF_SECONDS
-    while True:
-        counter = await counters.find_one(counter_identity, {"_id": 0})
-        if counter and counter.get("allocation_identity") == allocation_identity:
-            return int(counter["version"])
-
-        now = datetime.now(timezone.utc)
-        if counter and counter.get("allocation_identity") and counter.get("allocation_expires_at") > now:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError("Allocazione versione Fase 2 ancora in corso; riprovare")
-            await asyncio.sleep(min(backoff, remaining))
-            backoff = min(backoff * 2, _MAX_RESERVATION_BACKOFF_SECONDS)
-            continue
-
-        available = {**counter_identity}
-        if counter and counter.get("allocation_identity"):
-            available["allocation_expires_at"] = {"$lte": now}
-        else:
-            available["allocation_identity"] = {"$exists": False}
-        claimed = await counters.find_one_and_update(
-            available,
-            {
-                "$inc": {"version": 1},
-                "$set": {
-                    "allocation_identity": allocation_identity,
-                    "allocation_token": reservation_token,
-                    "allocation_expires_at": now + timedelta(seconds=_RESERVATION_LEASE_SECONDS),
+    update_pipeline = [
+        {
+            "$set": {
+                "partner_id": {"$literal": identity["partner_id"]},
+                "step_id": {"$literal": identity["step_id"]},
+                "version": {
+                    "$max": [
+                        {"$ifNull": ["$version", 0]},
+                        latest_version,
+                    ]
                 },
-            },
+            }
+        },
+        {
+            "$set": {
+                allocation_path: {
+                    "$cond": [
+                        {"$eq": [{"$type": allocation_reference}, "missing"]},
+                        {"$add": ["$version", 1]},
+                        allocation_reference,
+                    ]
+                },
+                "version": {
+                    "$cond": [
+                        {"$eq": [{"$type": allocation_reference}, "missing"]},
+                        {"$add": ["$version", 1]},
+                        "$version",
+                    ]
+                },
+            }
+        },
+    ]
+    try:
+        allocated = await counters.find_one_and_update(
+            counter_identity,
+            update_pipeline,
+            upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        if claimed and claimed.get("allocation_identity") == allocation_identity:
-            return int(claimed["version"])
+    except DuplicateKeyError:
+        allocated = await counters.find_one_and_update(
+            counter_identity,
+            update_pipeline,
+            return_document=ReturnDocument.AFTER,
+        )
+    version = (allocated or {}).get("allocations", {}).get(identity_hash)
+    if version is None:
+        raise RuntimeError("Allocazione versione Fase 2 non persistita")
+    return int(version)
 
 
 async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVersionResult:
@@ -215,7 +226,7 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
                     return completed
                 reservation_token = reservation["reservation_token"]
 
-    version = await _reserve_counter_version(db, versions, identity, reservation_token)
+    version = await _allocate_counter_version(db, versions, identity)
     persisted_reservation = await versions.find_one_and_update(
         {**identity, "reservation_token": reservation_token, "reservation_state": "allocating"},
         {"$set": {"reserved_version": version}},
@@ -243,12 +254,6 @@ async def archive_phase2_output(db, request: OutputVersionRequest) -> OutputVers
     )
     if not finalized or finalized.get("output_id") != output_id:
         return await archive_phase2_output(db, request)
-
-    counter_identity = {"partner_id": request.partner_id, "step_id": request.step_id}
-    await db.partner_phase2_output_counters.update_one(
-        {**counter_identity, "allocation_identity": _allocation_identity(identity)},
-        {"$unset": {"allocation_identity": "", "allocation_token": "", "allocation_expires_at": ""}},
-    )
 
     await versions.update_many(
         {
