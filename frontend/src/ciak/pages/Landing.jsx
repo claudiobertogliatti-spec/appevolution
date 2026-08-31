@@ -5,7 +5,8 @@
  *  - Accenti & CTA Primaria: Giallo CIAK (#FACC15 / #F59E0B) + Testo Slate-950 (#0F172A)
  *  - Testi & Headings: Slate-900 (#0F172A) e Slate-600 (#64748B)
  */
-import { Link } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { metaAdLandingRedirect } from "../lib/funnelRouting";
 import { ArrowRight, CheckCircle2, Users, Sparkles, ShieldCheck, HelpCircle, PhoneCall, Award, Play } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
@@ -15,6 +16,18 @@ const primaryCta = "inline-flex items-center justify-center gap-2 rounded-xl bg-
 const secondaryCta = "inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-3.5 font-bold text-slate-900 hover:bg-slate-50 transition shadow-sm";
 
 export function CiakLanding() {
+  const location = useLocation();
+
+  // Chi arriva da un annuncio Meta cerca la masterclass, non la vetrina: l'ad
+  // punta qui per un link sbagliato che non si puo' correggere nel post gia'
+  // pubblicato. Redirect dichiarativo (non useEffect) per non far lampeggiare
+  // la home prima di uscirne, e `replace` per non lasciare un passo indietro
+  // che riporterebbe l'utente sulla pagina senza form.
+  const redirezioneAnnuncio = metaAdLandingRedirect(location.search);
+  if (redirezioneAnnuncio) {
+    return <Navigate to={redirezioneAnnuncio} replace />;
+  }
+
   return (
     <>
       <CiakHeader />

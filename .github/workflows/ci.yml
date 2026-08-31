@@ -155,7 +155,7 @@ jobs:
 
       - name: Calendar review tests
         working-directory: frontend
-        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx
+        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali
