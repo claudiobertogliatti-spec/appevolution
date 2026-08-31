@@ -158,7 +158,9 @@ def _esegui_senza_db(coro, storico):
 
     if getattr(coro, "__qualname__", "").startswith("_salva_stato"):
         coro.close()
-        return storico
+        # `_salva_stato` restituisce (ieri, ultimi_7_giorni): il secondo serve
+        # all'autodiagnosi, che guarda piu' giorni di fila.
+        return (storico, [storico] if storico else [])
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
@@ -217,3 +219,81 @@ def test_se_il_funnel_non_e_letto_lo_dichiara(monkeypatch, cattura):
     task.luca_daily_briefing.run()
 
     assert "Funnel pre-acquisto: fonte non letta" in cattura[-1]
+
+
+# ─── Autodiagnosi: cosa Luca nota su se stesso ───────────────────────────────
+# Mandato di Claudio del 31/8: "misura e propone". Non corregge ne' se stesso ne'
+# il sistema — quindi questi test verificano che RILEVI, non che agisca.
+
+
+def test_una_fonte_giu_da_due_giorni_viene_rilevata():
+    oggi = {"fonti_ko": ["funnel"], "ingressi_evo_mese": 0}
+    storico = [{"fonti_ko": ["funnel"], "ingressi_evo_mese": 0}]
+
+    rilievi = task._autodiagnosi(oggi, storico)
+
+    assert any("funnel" in r and "2 giorni" in r for r in rilievi)
+
+
+def test_una_fonte_giu_solo_oggi_non_allarma():
+    """Un intoppo di un giorno non e' un guasto: segnalarlo ogni volta lo rende rumore."""
+    rilievi = task._autodiagnosi({"fonti_ko": ["funnel"]}, [{"fonti_ko": []}])
+
+    assert not any("funnel" in r for r in rilievi)
+
+
+def test_un_campo_mai_letto_viene_dichiarato():
+    oggi = {"lead_oggi": None, "ingressi_evo_mese": 3, "partner_attivi": 10}
+    storico = [{"lead_oggi": None, "ingressi_evo_mese": 3, "partner_attivi": 10}]
+
+    rilievi = task._autodiagnosi(oggi, storico)
+
+    assert any("lead_oggi" in r and "nessuno" in r for r in rilievi)
+    assert not any("partner_attivi" in r for r in rilievi)
+
+
+def test_lo_stesso_tappo_per_tre_giorni_diventa_un_rilievo():
+    """Ripetere la stessa diagnosi non la risolve: dopo 3 giorni va detto."""
+    oggi = {"tappo": "Iscritto masterclass"}
+    storico = [{"tappo": "Iscritto masterclass"}, {"tappo": "Iscritto masterclass"}]
+
+    rilievi = task._autodiagnosi(oggi, storico)
+
+    assert any("Iscritto masterclass" in r and "3 giorni" in r for r in rilievi)
+
+
+def test_un_tappo_che_cambia_non_e_un_rilievo():
+    oggi = {"tappo": "Checkpoint compilato"}
+    storico = [{"tappo": "Iscritto masterclass"}, {"tappo": "Iscritto masterclass"}]
+
+    assert not any("tappo" in r for r in task._autodiagnosi(oggi, storico))
+
+
+def test_i_rilievi_finiscono_nel_messaggio_come_proposta(monkeypatch, cattura):
+    """Luca li PROPONE: il messaggio deve dire che la decisione resta a Claudio."""
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)
+    ieri = {"fonti_ko": ["funnel"], "tappo": None}
+    monkeypatch.setattr(
+        task, "run_async", lambda coro: _esegui_senza_db(coro, storico=ieri)
+    )
+    monkeypatch.setattr(task, "_autodiagnosi", lambda o, s: ["la fonte *funnel* non risponde da 2 giorni"])
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "Da sistemare nel briefing stesso" in messaggio
+    assert "non risponde da 2 giorni" in messaggio
+    assert "Li propongo, non li tocco" in messaggio
+
+
+def test_senza_rilievi_non_si_stampa_la_sezione(monkeypatch, cattura):
+    """Una sezione vuota ogni mattina insegna a saltarla."""
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+    monkeypatch.setattr(task, "_autodiagnosi", lambda o, s: [])
+
+    task.luca_daily_briefing.run()
+
+    assert "Da sistemare nel briefing stesso" not in cattura[-1]

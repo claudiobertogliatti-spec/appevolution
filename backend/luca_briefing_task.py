@@ -109,15 +109,76 @@ async def _salva_stato(dati):
             {"$set": {**dati, "data": oggi, "scritto_a": datetime.now(timezone.utc).isoformat()}},
             upsert=True,
         )
+        # Sette giorni, non uno: il delta con ieri dice come va il business, lo
+        # storico dice come va IL BRIEFING. Un difetto suo (una fonte che non
+        # risponde, una diagnosi che si ripete senza effetto) si vede solo
+        # guardando piu' giorni di fila.
         precedenti = (
             await db.luca_stato_giornaliero.find({"data": {"$lt": oggi}})
             .sort("data", -1)
-            .limit(1)
-            .to_list(1)
+            .limit(7)
+            .to_list(7)
         )
-        return precedenti[0] if precedenti else None
+        return (precedenti[0] if precedenti else None), precedenti
     finally:
         client.close()
+
+
+def _autodiagnosi(oggi, storico):
+    """
+    Cosa Luca nota SU SE STESSO, guardando i propri ultimi giorni.
+
+    Non e' un riassunto del business: e' il controllo che il briefing stia
+    ancora misurando qualcosa. Il 31/8/2026 una fonte rispondeva 404 e un intero
+    stadio del funnel era invisibile: se n'e' accorto Claude leggendo il codice,
+    non Luca guardando i propri dati. Questo lo chiude.
+
+    Restituisce una lista di rilievi da PROPORRE a Claudio. Luca non corregge ne'
+    se stesso ne' il sistema: mandato del 31/8, "misura e propone".
+    """
+    rilievi = []
+    giorni = [oggi] + list(storico or [])
+
+    # 1. Una fonte che non risponde da piu' giorni non e' un intoppo, e' un guasto.
+    ko_oggi = set(oggi.get("fonti_ko") or [])
+    for fonte in sorted(ko_oggi):
+        di_fila = 1
+        for g in storico or []:
+            if fonte in set(g.get("fonti_ko") or []):
+                di_fila += 1
+            else:
+                break
+        if di_fila >= 2:
+            rilievi.append(
+                f"la fonte *{fonte}* non risponde da {di_fila} giorni: "
+                f"finche' e' cosi' quei numeri non li sto guardando"
+            )
+
+    # 2. Un campo sempre vuoto e' un dato che nessuno sta misurando.
+    for campo in ("ingressi_evo_mese", "lead_oggi", "partner_attivi"):
+        letti = [g for g in giorni if g.get(campo) is not None]
+        if giorni and not letti:
+            rilievi.append(
+                f"*{campo}* non e' mai stato letto negli ultimi {len(giorni)} giorni: "
+                f"o la fonte e' rotta, o quel numero non lo misura nessuno"
+            )
+
+    # 3. Lo stesso tappo per giorni = quello che stiamo facendo non lo sposta.
+    tappo = oggi.get("tappo")
+    if tappo:
+        di_fila = 1
+        for g in storico or []:
+            if g.get("tappo") == tappo:
+                di_fila += 1
+            else:
+                break
+        if di_fila >= 3:
+            rilievi.append(
+                f"il tappo e' *{tappo}* da {di_fila} giorni di fila: ripeterlo non lo sposta, "
+                f"serve una decisione diversa da quella presa finora"
+            )
+
+    return rilievi
 
 
 def _delta(oggi, ieri, campo):
@@ -175,7 +236,23 @@ def luca_daily_briefing(self):
             "sito_ok": sito.get("tutte_ok"),
         }
 
-        ieri = run_async(_salva_stato(numeri))
+        # Le fonti che non hanno risposto oggi, e il tappo dichiarato: si salvano
+        # con i numeri perche' l'autodiagnosi di domani li rilegga. Senza traccia,
+        # "questa fonte e' giu' da tre giorni" non e' calcolabile.
+        fonti_buste = output.get("fonti") or {}
+        numeri["fonti_ko"] = sorted(
+            nome for nome, busta in fonti_buste.items() if not (busta or {}).get("ok")
+        )
+        funnel_stadi = (
+            ((output.get("funnel") or {}).get("pre_acquisto") or {}).get("stadi") or []
+        )
+        con_coda = [s for s in funnel_stadi if s.get("fermi_oltre_14gg")]
+        numeri["tappo"] = (
+            max(con_coda, key=lambda s: s["fermi_oltre_14gg"])["label"] if con_coda else None
+        )
+
+        ieri, storico = run_async(_salva_stato(numeri))
+        rilievi = _autodiagnosi(numeri, storico)
 
         righe = [f"*Briefing Luca — {datetime.now(timezone.utc).strftime('%d/%m/%Y')}*", ""]
         if numeri["sito_ok"] is False:
@@ -231,6 +308,14 @@ def luca_daily_briefing(self):
         fermi_nomi = delivery.get("fermi_nomi") or []
         if fermi_nomi:
             righe += ["", "*Fermi:* " + ", ".join(fermi_nomi[:8])]
+
+        # Quello che Luca nota su se stesso. Va in fondo di proposito: i numeri
+        # del business vengono prima, ma un briefing che non dichiara i propri
+        # punti ciechi e' peggio di uno che manca.
+        if rilievi:
+            righe += ["", "*Da sistemare nel briefing stesso*"]
+            righe += [f"- {r}" for r in rilievi]
+            righe.append("_Li propongo, non li tocco: la decisione e' tua._")
 
         righe += [
             "",
