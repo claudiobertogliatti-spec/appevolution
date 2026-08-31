@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 
+from internal_api import internal_api_url
 from acquisition_policy import (
     get_allowed_systeme_sources,
     get_lista_fredda_freeze_message,
@@ -507,7 +508,7 @@ async def send_telegram_notification(message: str):
         import httpx
         async with httpx.AsyncClient() as client:
             await client.post(
-                "http://localhost:8001/api/notify/telegram",
+                internal_api_url("/api/notify/telegram"),
                 json={"message": message},
                 timeout=10
             )
