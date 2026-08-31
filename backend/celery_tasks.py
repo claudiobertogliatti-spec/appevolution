@@ -1587,6 +1587,14 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
                             {"outreach_status": None},
                         ]},
                         {"valentina_task_id": {"$exists": False}},
+                        # Coordinamento con le chiamate: i lead che Claudio sta
+                        # lavorando al telefono restano fuori dall'outreach
+                        # automatico. Senza questa riga il job pescherebbe proprio
+                        # loro -- l'ordinamento e' per score decrescente, cioe' la
+                        # stessa fascia alta della lista chiamate -- e Claudio si
+                        # troverebbe a chiamare a freddo qualcuno che ha appena
+                        # ricevuto una nostra email.
+                        {"lavorazione_manuale": {"$ne": True}},
                         {"$or": [
                             {"email": {"$exists": True, "$nin": [None, ""]}},
                             {"contact_email": {"$exists": True, "$nin": [None, ""]}}

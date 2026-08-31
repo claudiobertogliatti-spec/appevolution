@@ -42,6 +42,7 @@ FILTRO_NUOVO = {
             ]
         },
         {"valentina_task_id": {"$exists": False}},
+        {"lavorazione_manuale": {"$ne": True}},
         {
             "$or": [
                 {"email": {"$exists": True, "$nin": [None, ""]}},
@@ -165,3 +166,21 @@ def test_il_filtro_del_test_e_quello_del_codice():
     assert '{"outreach_status": {"$exists": False}}' in blocco
     # il filtro secco che causava il bug non deve tornare
     assert '"outreach_status": "pending",\n                    "$or"' not in blocco
+
+
+def test_esclude_i_lead_che_claudio_sta_chiamando(collection):
+    """
+    Coordinamento tra i due fronti: la lista chiamate e la coda outreach devono
+    essere disgiunte. L'ordinamento e' per score decrescente, quindi senza questa
+    esclusione il job pescherebbe esattamente la fascia A della lista telefonica.
+    """
+    collection.insert_many(
+        [
+            _lead_reale(1, lavorazione_manuale=True),
+            _lead_reale(2, lavorazione_manuale=False),
+            _lead_reale(3),
+        ]
+    )
+
+    trovati = sorted(d["id"] for d in collection.find(FILTRO_NUOVO))
+    assert trovati == ["lead2", "lead3"]
