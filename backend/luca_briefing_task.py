@@ -66,16 +66,31 @@ def run_async(coro):
             pass
 
 
+# Il container espone la 8080 (Dockerfile: uvicorn --port 8080), non la 8001.
+# `scheduler.py` e `morning_briefing_task.py` puntano ancora a localhost:8001 e
+# infatti in produzione ogni loro job muore con [Errno 111] Connection refused —
+# verificato il 31/8/2026 nei log di `evolution-pro-worker`. Qui si usa la porta
+# giusta, sovrascrivibile dall'ambiente per non ricascarci se cambia.
+INTERNAL_API = os.environ.get("INTERNAL_API_BASE", "http://localhost:8080")
+
+
 async def _send_telegram(message: str):
     try:
         import httpx
 
         async with httpx.AsyncClient() as client:
-            await client.post(
-                "http://localhost:8001/api/notify/telegram",
+            risposta = await client.post(
+                f"{INTERNAL_API}/api/notify/telegram",
                 json={"message": message},
                 timeout=15,
             )
+            if risposta.status_code >= 400:
+                # Un briefing che non arriva deve lasciare traccia: senza questo
+                # il fallimento e' indistinguibile dall'invio riuscito.
+                logger.error(
+                    f"[LUCA_BRIEFING] Telegram ha risposto {risposta.status_code}: "
+                    f"{risposta.text[:200]}"
+                )
     except Exception as e:
         logger.error(f"[LUCA_BRIEFING] Telegram error: {e}")
 
