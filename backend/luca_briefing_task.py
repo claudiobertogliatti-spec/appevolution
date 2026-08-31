@@ -73,6 +73,13 @@ def run_async(coro):
 # giusta, sovrascrivibile dall'ambiente per non ricascarci se cambia.
 INTERNAL_API = os.environ.get("INTERNAL_API_BASE", "http://localhost:8080")
 
+# Quanti lead servono prima di consigliare il cambio di obiettivo campagna.
+# Meta esce dalla fase di apprendimento intorno ai ~50 eventi/settimana; a 10 in
+# 30 giorni non ci siamo, ma e' abbastanza per dire che la conversione ARRIVA --
+# che e' la domanda a cui questo segnale risponde. Sotto questa soglia cambiare
+# obiettivo fa cercare all'algoritmo qualcosa che non riceve.
+SOGLIA_LEAD_PER_CAMBIO_OBIETTIVO = 10
+
 
 async def _send_telegram(message: str):
     try:
@@ -124,6 +131,18 @@ async def _salva_stato(dati):
         client.close()
 
 
+def _conta_azioni(azioni, tipi):
+    """Somma le conversioni Meta dei tipi indicati. 0 quando il dato non c'e'."""
+    totale = 0
+    for a in azioni or []:
+        if a.get("action_type") in tipi:
+            try:
+                totale += int(float(a.get("value") or 0))
+            except (TypeError, ValueError):
+                continue
+    return totale
+
+
 async def _leggi_meta():
     """
     Campagne attive e spesa degli ultimi 30 giorni, lette con la Marketing API.
@@ -168,6 +187,11 @@ async def _leggi_meta():
                 "ctr": riga.get("ctr"),
                 "cpc": riga.get("cpc"),
                 "clic": riga.get("clicks"),
+                # Gli eventi Lead che Meta ha DAVVERO ricevuto. Sono il segnale
+                # che dice quando ha senso cambiare l'obiettivo della campagna:
+                # farlo prima, con zero conversioni in ingresso, fa cercare
+                # all'algoritmo qualcosa che non arriva mai e brucia il budget.
+                "lead_30gg": _conta_azioni(riga.get("actions"), ("lead", "onsite_conversion.lead_grouped")),
             },
         }
     except Exception as e:
@@ -225,11 +249,27 @@ def _autodiagnosi(oggi, storico):
                 di_fila += 1
             else:
                 break
-        rilievi.append(
-            f"la campagna Meta e' su *{obiettivo}* da almeno {di_fila} "
-            f"{'giorno' if di_fila == 1 else 'giorni'} di briefing: su questo obiettivo "
-            f"si comprano clic, non iscritti"
-        )
+
+        # Due situazioni opposte che il conteggio nudo confonde.
+        # Con ZERO lead in ingresso cambiare obiettivo e' dannoso: l'algoritmo
+        # ottimizzerebbe su una conversione che non riceve mai. Il problema, in
+        # quel caso, e' a monte -- dove atterra il traffico.
+        # Quando i lead iniziano ad arrivare, invece, il cambio diventa la cosa
+        # giusta da fare e va detto senza aspettare che qualcuno se ne accorga.
+        lead = oggi.get("meta_lead_30gg")
+        if lead and lead >= SOGLIA_LEAD_PER_CAMBIO_OBIETTIVO:
+            rilievi.append(
+                f"la campagna Meta e' ancora su *{obiettivo}* ma sta gia' portando "
+                f"{lead} lead in 30 giorni: **ora ha senso passarla a un obiettivo "
+                f"Lead**, l'algoritmo ha qualcosa su cui imparare"
+            )
+        else:
+            rilievi.append(
+                f"la campagna Meta e' su *{obiettivo}* da almeno {di_fila} "
+                f"{'giorno' if di_fila == 1 else 'giorni'} di briefing: su questo obiettivo "
+                f"si comprano clic, non iscritti. ⛔ Non cambiare obiettivo finche' i lead "
+                f"restano {lead or 0}: prima deve arrivare la conversione, poi si ottimizza"
+            )
 
     # 4. Lo stesso tappo per giorni = quello che stiamo facendo non lo sposta.
     tappo = oggi.get("tappo")
@@ -326,6 +366,7 @@ def luca_daily_briefing(self):
             numeri["fonti_ko"] = sorted(set(numeri["fonti_ko"]) | {"meta"})
         campagne = (meta.get("dati") or {}).get("campagne_attive") or []
         numeri["meta_obiettivo"] = campagne[0]["obiettivo"] if campagne else None
+        numeri["meta_lead_30gg"] = (meta.get("dati") or {}).get("lead_30gg")
 
         ieri, storico = run_async(_salva_stato(numeri))
         rilievi = _autodiagnosi(numeri, storico)
@@ -394,6 +435,7 @@ def luca_daily_briefing(self):
                 ("spesa 30gg", d.get("spesa_30gg"), "€"),
                 ("CTR", d.get("ctr"), "%"),
                 ("CPC", d.get("cpc"), "€"),
+                ("lead 30gg", d.get("lead_30gg"), ""),
             ):
                 if valore is not None:
                     pezzi.append(

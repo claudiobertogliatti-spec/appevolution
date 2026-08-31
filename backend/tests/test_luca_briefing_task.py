@@ -369,3 +369,55 @@ def test_meta_letta_finisce_nel_messaggio(monkeypatch, cattura):
     assert "Traffico Ciak.io: obiettivo *OUTCOME_TRAFFIC*" in messaggio
     # e il rilievo scatta senza che nessuno debba accorgersene a mano
     assert "si comprano clic, non iscritti" in messaggio
+
+
+# ─── Quando cambiare l'obiettivo campagna ────────────────────────────────────
+# Due situazioni opposte che il conteggio nudo confonde: obiettivo sbagliato con
+# zero conversioni (prima si sistema a monte) e obiettivo sbagliato mentre i
+# lead arrivano (ora si cambia).
+
+
+def test_conta_azioni_somma_solo_i_tipi_richiesti():
+    azioni = [
+        {"action_type": "lead", "value": "3"},
+        {"action_type": "link_click", "value": "1604"},
+        {"action_type": "onsite_conversion.lead_grouped", "value": "2"},
+    ]
+    assert task._conta_azioni(azioni, ("lead", "onsite_conversion.lead_grouped")) == 5
+    assert task._conta_azioni(None, ("lead",)) == 0
+    assert task._conta_azioni([{"action_type": "lead", "value": "non-un-numero"}], ("lead",)) == 0
+
+
+def test_con_zero_lead_dice_di_NON_cambiare_obiettivo():
+    """
+    E' il caso del 31/8: cambiare obiettivo con zero conversioni in ingresso fa
+    ottimizzare l'algoritmo su qualcosa che non riceve mai.
+    """
+    oggi = {"meta_obiettivo": "OUTCOME_TRAFFIC", "meta_lead_30gg": 0}
+
+    rilievi = task._autodiagnosi(oggi, [])
+
+    testo = " ".join(rilievi)
+    assert "Non cambiare obiettivo" in testo
+    assert "si comprano clic, non iscritti" in testo
+
+
+def test_quando_i_lead_arrivano_dice_di_cambiare(monkeypatch):
+    oggi = {"meta_obiettivo": "OUTCOME_TRAFFIC", "meta_lead_30gg": 12}
+
+    rilievi = task._autodiagnosi(oggi, [])
+
+    testo = " ".join(rilievi)
+    assert "ora ha senso passarla a un obiettivo lead" in testo.lower().replace("**", "")
+    assert "12 lead" in testo
+    assert "Non cambiare obiettivo" not in testo
+
+
+def test_sotto_soglia_non_consiglia_ancora_il_cambio():
+    """Pochi lead dicono che la conversione arriva, non che l'algoritmo puo' impararla."""
+    sotto = task.SOGLIA_LEAD_PER_CAMBIO_OBIETTIVO - 1
+    rilievi = task._autodiagnosi(
+        {"meta_obiettivo": "OUTCOME_TRAFFIC", "meta_lead_30gg": sotto}, []
+    )
+
+    assert "Non cambiare obiettivo" in " ".join(rilievi)
