@@ -1590,6 +1590,21 @@ async def pipeline_prospect(admin=Depends(require_ciak_admin)):
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
+    entries = await _build_prospect_entries()
+    columns = _columns_from_entries(entries, _PROSPECT_COLUMNS)
+    return {"columns": columns, "total": sum(c["count"] for c in columns)}
+
+
+async def _build_prospect_entries() -> dict:
+    """
+    Costruisce email → {email, nome, stage, updated_at, session_token} per il
+    funnel PRE-acquisto.
+
+    Estratta da `pipeline_prospect` il 31/8/2026 per essere riusata da
+    `/funnel-metrics`, che espone gli stessi stadi in forma aggregata senza dati
+    personali: una seconda copia di questa logica avrebbe fatto divergere i due
+    endpoint al primo cambio di stadio.
+    """
     # Email che hanno già acquistato → fuori da questa pipeline
     purchased = set()
     async for d in db.diagnostic_sessions.find(
@@ -1627,8 +1642,67 @@ async def pipeline_prospect(admin=Depends(require_ciak_admin)):
             _bump(d.get("user_email"), stage, d.get("user_name"),
                   d.get("created_at"), d.get("session_token"))
 
-    columns = _columns_from_entries(entries, _PROSPECT_COLUMNS)
-    return {"columns": columns, "total": sum(c["count"] for c in columns)}
+    return entries
+
+
+def _giorni_da(iso) -> int | None:
+    """Giorni interi trascorsi da un timestamp ISO. None se il dato manca o è illeggibile."""
+    if not iso:
+        return None
+    try:
+        quando = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - quando).days
+
+
+@router.get("/funnel-metrics")
+async def funnel_metrics(admin=Depends(require_admin_or_report_key)):
+    """
+    Funnel pre-acquisto in forma AGGREGATA — solo conteggi, nessun nome e nessuna
+    email.
+
+    Perché esiste (31/8/2026): il briefing di Luca leggeva due sole fonti, che
+    mostrano gli stadi DOPO l'iscrizione. Risultato: leggeva "zero lead" mentre in
+    pipeline c'erano sei opt-in di luglio e agosto, e ragionava sul gradino
+    sbagliato. Serviva dargli il funnel, non i prospect: per decidere dove
+    intervenire bastano i conteggi, i nomi si guardano in /admin/pipeline.
+
+    Per ogni stadio: quanti in totale, quanti sono entrati negli ultimi 30 giorni,
+    quanti sono fermi da oltre 14, e l'attesa del più vecchio. `fermi_oltre_14gg`
+    è il numero che dice DOVE si accumula la coda: un totale alto con zero fermi è
+    un funnel che scorre, un totale basso tutto fermo è un funnel tappato.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    entries = await _build_prospect_entries()
+    colonne = _columns_from_entries(entries, _PROSPECT_COLUMNS)
+
+    stadi = []
+    for c in colonne:
+        eta = [_giorni_da(i.get("updated_at")) for i in c["items"]]
+        eta = [g for g in eta if g is not None]
+        stadi.append({
+            "id": c["id"],
+            "label": c["label"],
+            "totale": c["count"],
+            "ultimi_30gg": sum(1 for g in eta if g <= 30),
+            "fermi_oltre_14gg": sum(1 for g in eta if g > 14),
+            # None, non 0: "nessuno in coda" e "non so da quanto" sono cose diverse
+            "piu_vecchio_giorni": max(eta) if eta else None,
+            "senza_data": c["count"] - len(eta),
+        })
+
+    return {
+        "generato_a": datetime.now(timezone.utc).isoformat(),
+        "pre_acquisto": {
+            "totale": sum(s["totale"] for s in stadi),
+            "stadi": stadi,
+        },
+    }
 
 
 @router.get("/pipeline-blueprint")

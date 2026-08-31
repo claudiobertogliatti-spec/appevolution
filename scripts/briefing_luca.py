@@ -51,9 +51,21 @@ def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
         if not fonti[nome]["ok"]:
             return None, f"{path} -> {fonti[nome]['errore']}"
 
+    # Funnel pre-acquisto in forma aggregata. NON e' pavimento: se cade, il
+    # briefing esce lo stesso dichiarando il punto cieco, invece di saltare.
+    #
+    # Aggiunto il 31/8/2026: fino a quel giorno Luca leggeva solo i due endpoint
+    # sopra, che mostrano gli stadi DOPO l'iscrizione. Riportava "zero lead"
+    # mentre in pipeline c'erano sei opt-in di luglio e agosto, e ragionava sul
+    # gradino sbagliato. Senza il primo stadio non si vede dove si ferma la gente.
+    fonti["funnel"] = leggi_ciak_fn(
+        base_url, key, "/api/admin/ciak/funnel-metrics", "funnel"
+    )
+
     fonti["sito"] = leggi_sito_fn()
 
     output = {nome: fonti[nome]["dati"] for nome in ENDPOINTS}
+    output["funnel"] = fonti["funnel"]["dati"]
     output["fonti"] = fonti
     return output, None
 

@@ -165,3 +165,55 @@ def _esegui_senza_db(coro, storico):
         return loop.run_until_complete(coro)
     finally:
         loop.close()
+
+
+def test_il_briefing_riporta_il_funnel_e_indica_il_tappo(monkeypatch, cattura):
+    """
+    Il pezzo che mancava: senza il funnel il briefing parlava solo degli stadi
+    dopo l'iscrizione e sembrava che non entrasse nessuno.
+    """
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    con_funnel = {
+        "report": REPORT_OK["report"],
+        "fonti": {"sito": {"dati": {"tutte_ok": True, "url": []}}},
+        "funnel": {
+            "pre_acquisto": {
+                "totale": 6,
+                "stadi": [
+                    {"id": "iscritto", "label": "Iscritto masterclass", "totale": 5,
+                     "ultimi_30gg": 3, "fermi_oltre_14gg": 4, "piu_vecchio_giorni": 58,
+                     "senza_data": 0},
+                    {"id": "checkpoint", "label": "Checkpoint compilato", "totale": 1,
+                     "ultimi_30gg": 0, "fermi_oltre_14gg": 1, "piu_vecchio_giorni": 80,
+                     "senza_data": 0},
+                    {"id": "diagnostica", "label": "8 Domande completate", "totale": 0,
+                     "ultimi_30gg": 0, "fermi_oltre_14gg": 0, "piu_vecchio_giorni": None,
+                     "senza_data": 0},
+                ],
+            }
+        },
+    }
+    _mock_raccolta(monkeypatch, output=con_funnel)
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "Iscritto masterclass: 5" in messaggio
+    assert "4 fermi da oltre 14gg" in messaggio
+    assert "il piu' vecchio da 58gg" in messaggio
+    # lo stadio vuoto non si stampa: un elenco di zeri nasconde i numeri veri
+    assert "8 Domande completate" not in messaggio
+    # e il briefing DICE dove intervenire, non lascia il conto al lettore
+    assert "il tappo e' *Iscritto masterclass*" in messaggio
+
+
+def test_se_il_funnel_non_e_letto_lo_dichiara(monkeypatch, cattura):
+    """Un punto cieco si dichiara: senza questa riga sembrerebbe un funnel vuoto."""
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)  # nessuna chiave "funnel"
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+
+    assert "Funnel pre-acquisto: fonte non letta" in cattura[-1]

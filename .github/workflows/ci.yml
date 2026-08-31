@@ -131,6 +131,7 @@ jobs:
           tests/test_daily_hot_leads_outreach_filter.py
           tests/test_luca_briefing_task.py
           tests/test_internal_api.py
+          tests/test_funnel_metrics.py
           tests/test_vetrina_contatti.py
 
   frontend:

@@ -202,6 +202,32 @@ def luca_daily_briefing(self):
                 confronto = f"{d:+d} vs ieri"
             righe.append(f"- {etichetta}: {valore if valore is not None else 'non letto'} ({confronto})")
 
+        # Funnel pre-acquisto: e' il pezzo che mancava. Senza, il briefing parla
+        # solo degli stadi dopo l'iscrizione e sembra che non entri nessuno.
+        funnel = (output.get("funnel") or {}).get("pre_acquisto") or {}
+        stadi = funnel.get("stadi") or []
+        if stadi:
+            righe += ["", f"*Funnel pre-acquisto* ({funnel.get('totale', 0)} in tutto)"]
+            for s in stadi:
+                if not s.get("totale"):
+                    continue
+                dettagli = [f"{s['ultimi_30gg']} negli ultimi 30gg"]
+                if s.get("fermi_oltre_14gg"):
+                    dettagli.append(f"{s['fermi_oltre_14gg']} fermi da oltre 14gg")
+                if s.get("piu_vecchio_giorni") is not None:
+                    dettagli.append(f"il piu' vecchio da {s['piu_vecchio_giorni']}gg")
+                righe.append(f"- {s['label']}: {s['totale']} ({', '.join(dettagli)})")
+            # Lo stadio che accumula di piu' e' quello su cui intervenire: dirlo
+            # esplicitamente, perche' una lista di numeri non e' una decisione.
+            tappo = max(stadi, key=lambda s: s.get("fermi_oltre_14gg") or 0)
+            if tappo.get("fermi_oltre_14gg"):
+                righe.append(
+                    f"  → il tappo e' *{tappo['label']}*: {tappo['fermi_oltre_14gg']} "
+                    f"fermi li' da oltre due settimane."
+                )
+        else:
+            righe += ["", "_Funnel pre-acquisto: fonte non letta._"]
+
         fermi_nomi = delivery.get("fermi_nomi") or []
         if fermi_nomi:
             righe += ["", "*Fermi:* " + ", ".join(fermi_nomi[:8])]
