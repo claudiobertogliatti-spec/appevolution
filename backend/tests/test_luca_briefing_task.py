@@ -156,6 +156,10 @@ def _esegui_senza_db(coro, storico):
     """
     import asyncio
 
+    if getattr(coro, "__qualname__", "").startswith("_leggi_meta"):
+        # Meta non configurata: e' il caso di default nei test che non la riguardano.
+        coro.close()
+        return {"fonte": "meta", "ok": False, "dati": {}, "errore": "non configurata nei test"}
     if getattr(coro, "__qualname__", "").startswith("_salva_stato"):
         coro.close()
         # `_salva_stato` restituisce (ieri, ultimi_7_giorni): il secondo serve
@@ -297,3 +301,71 @@ def test_senza_rilievi_non_si_stampa_la_sezione(monkeypatch, cattura):
     task.luca_daily_briefing.run()
 
     assert "Da sistemare nel briefing stesso" not in cattura[-1]
+
+
+# ─── Meta ────────────────────────────────────────────────────────────────────
+
+
+def test_meta_senza_token_si_dichiara_e_non_blocca(monkeypatch):
+    """Il briefing deve uscire lo stesso: Meta non e' pavimento."""
+    monkeypatch.delenv("META_ADS_TOKEN", raising=False)
+    monkeypatch.delenv("META_AD_ACCOUNT_ID", raising=False)
+
+    import asyncio
+
+    busta = asyncio.new_event_loop().run_until_complete(task._leggi_meta())
+
+    assert busta["ok"] is False
+    assert "META_ADS_TOKEN" in busta["errore"]
+    assert busta["dati"] == {}
+
+
+def test_obiettivo_non_lead_diventa_un_rilievo():
+    """
+    E' il caso reale del 31/8: campagna su OUTCOME_TRAFFIC da 41 giorni, e
+    nessuno se n'era accorto.
+    """
+    oggi = {"meta_obiettivo": "OUTCOME_TRAFFIC"}
+    storico = [{"meta_obiettivo": "OUTCOME_TRAFFIC"}, {"meta_obiettivo": "OUTCOME_TRAFFIC"}]
+
+    rilievi = task._autodiagnosi(oggi, storico)
+
+    assert any("OUTCOME_TRAFFIC" in r and "3 giorni" in r for r in rilievi)
+    assert any("si comprano clic, non iscritti" in r for r in rilievi)
+
+
+def test_obiettivo_lead_non_e_un_rilievo():
+    for obiettivo in ("OUTCOME_LEADS", "LEAD_GENERATION"):
+        rilievi = task._autodiagnosi({"meta_obiettivo": obiettivo}, [])
+        assert not any("obiettivo" in r or "campagna Meta" in r for r in rilievi), obiettivo
+
+
+def test_meta_letta_finisce_nel_messaggio(monkeypatch, cattura):
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)
+
+    dati_meta = {
+        "fonte": "meta", "ok": True, "errore": None,
+        "dati": {
+            "campagne_attive": [{"nome": "Traffico Ciak.io", "obiettivo": "OUTCOME_TRAFFIC"}],
+            "spesa_30gg": "61.43", "ctr": "5.38", "cpc": "0.03", "clic": "2209",
+        },
+    }
+
+    def _run(coro):
+        nome = getattr(coro, "__qualname__", "")
+        if nome.startswith("_leggi_meta"):
+            coro.close()
+            return dati_meta
+        return _esegui_senza_db(coro, storico=None)
+
+    monkeypatch.setattr(task, "run_async", _run)
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "spesa 30gg €61.43" in messaggio
+    assert "CTR 5.38%" in messaggio
+    assert "Traffico Ciak.io: obiettivo *OUTCOME_TRAFFIC*" in messaggio
+    # e il rilievo scatta senza che nessuno debba accorgersene a mano
+    assert "si comprano clic, non iscritti" in messaggio

@@ -124,6 +124,57 @@ async def _salva_stato(dati):
         client.close()
 
 
+async def _leggi_meta():
+    """
+    Campagne attive e spesa degli ultimi 30 giorni, lette con la Marketing API.
+
+    Perche' qui e non via MCP: i tool `mcp__meta-ads__*` vivono in una sessione
+    Claude, non in un task Celery. Luca server-side deve chiamare l'API con un
+    token proprio, altrimenti resta cieco fuori da Ciak — che e' esattamente il
+    punto dove il 31/8/2026 si e' scoperto che la campagna era rimasta su
+    `OUTCOME_TRAFFIC` per 41 giorni senza che nessuno lo notasse.
+
+    Serve un token in **sola lettura** (`ads_read`): Luca misura e propone, non
+    tocca le campagne. Restituisce la stessa busta delle altre fonti.
+    """
+    token = os.environ.get("META_ADS_TOKEN")
+    account = os.environ.get("META_AD_ACCOUNT_ID")
+    if not token or not account:
+        return {
+            "fonte": "meta",
+            "ok": False,
+            "dati": {},
+            "errore": "META_ADS_TOKEN / META_AD_ACCOUNT_ID non configurati sul worker",
+        }
+
+    try:
+        from ads_api_integration import MetaAdsClient
+
+        client = MetaAdsClient(token, account)
+        campagne = await client.get_campaigns()
+        attive = [c for c in (campagne or []) if c.get("status") == "ACTIVE"]
+        insights = await client.get_account_insights_aggregated(days_back=30)
+        riga = (insights.get("data") or [{}])[0]
+
+        return {
+            "fonte": "meta",
+            "ok": True,
+            "errore": None,
+            "dati": {
+                "campagne_attive": [
+                    {"nome": c.get("name"), "obiettivo": c.get("objective")} for c in attive
+                ],
+                "spesa_30gg": riga.get("spend"),
+                "ctr": riga.get("ctr"),
+                "cpc": riga.get("cpc"),
+                "clic": riga.get("clicks"),
+            },
+        }
+    except Exception as e:
+        # Una fonte che cade si dichiara: il briefing esce lo stesso.
+        return {"fonte": "meta", "ok": False, "dati": {}, "errore": str(e)[:200]}
+
+
 def _autodiagnosi(oggi, storico):
     """
     Cosa Luca nota SU SE STESSO, guardando i propri ultimi giorni.
@@ -163,7 +214,24 @@ def _autodiagnosi(oggi, storico):
                 f"o la fonte e' rotta, o quel numero non lo misura nessuno"
             )
 
-    # 3. Lo stesso tappo per giorni = quello che stiamo facendo non lo sposta.
+    # 3. Una campagna che spende su un obiettivo che non porta lead.
+    #    Non e' un rilievo "di sistema" come gli altri: e' l'unica azione della
+    #    whitelist di Luca (`campagna_obiettivo`), quindi qui la propone.
+    obiettivo = oggi.get("meta_obiettivo")
+    if obiettivo and "LEAD" not in str(obiettivo).upper():
+        di_fila = 1
+        for g in storico or []:
+            if g.get("meta_obiettivo") == obiettivo:
+                di_fila += 1
+            else:
+                break
+        rilievi.append(
+            f"la campagna Meta e' su *{obiettivo}* da almeno {di_fila} "
+            f"{'giorno' if di_fila == 1 else 'giorni'} di briefing: su questo obiettivo "
+            f"si comprano clic, non iscritti"
+        )
+
+    # 4. Lo stesso tappo per giorni = quello che stiamo facendo non lo sposta.
     tappo = oggi.get("tappo")
     if tappo:
         di_fila = 1
@@ -251,6 +319,14 @@ def luca_daily_briefing(self):
             max(con_coda, key=lambda s: s["fermi_oltre_14gg"])["label"] if con_coda else None
         )
 
+        # Meta: unica fonte che il briefing legge da solo, senza passare da
+        # `raccogli()`. Sta fuori da Ciak e non ha un endpoint interno.
+        meta = run_async(_leggi_meta())
+        if not meta.get("ok"):
+            numeri["fonti_ko"] = sorted(set(numeri["fonti_ko"]) | {"meta"})
+        campagne = (meta.get("dati") or {}).get("campagne_attive") or []
+        numeri["meta_obiettivo"] = campagne[0]["obiettivo"] if campagne else None
+
         ieri, storico = run_async(_salva_stato(numeri))
         rilievi = _autodiagnosi(numeri, storico)
 
@@ -308,6 +384,29 @@ def luca_daily_briefing(self):
         fermi_nomi = delivery.get("fermi_nomi") or []
         if fermi_nomi:
             righe += ["", "*Fermi:* " + ", ".join(fermi_nomi[:8])]
+
+        # Meta: spesa e resa. Il dato che conta davvero e' l'obiettivo della
+        # campagna, che finisce nei rilievi se non e' di tipo Lead.
+        if meta.get("ok"):
+            d = meta["dati"]
+            pezzi = []
+            for etichetta, valore, unita in (
+                ("spesa 30gg", d.get("spesa_30gg"), "€"),
+                ("CTR", d.get("ctr"), "%"),
+                ("CPC", d.get("cpc"), "€"),
+            ):
+                if valore is not None:
+                    pezzi.append(
+                        f"{etichetta} {unita}{valore}" if unita == "€"
+                        else f"{etichetta} {valore}{unita}"
+                    )
+            righe += ["", "*Meta* — " + (" · ".join(pezzi) if pezzi else "nessun dato nel periodo")]
+            for c in (d.get("campagne_attive") or []):
+                righe.append(f"- {c['nome']}: obiettivo *{c['obiettivo']}*")
+            if not d.get("campagne_attive"):
+                righe.append("- nessuna campagna attiva")
+        else:
+            righe += ["", f"_Meta non letta: {meta.get('errore')}_"]
 
         # Quello che Luca nota su se stesso. Va in fondo di proposito: i numeri
         # del business vengono prima, ma un briefing che non dichiara i propri
