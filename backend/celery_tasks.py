@@ -1570,12 +1570,26 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
             
             try:
                 # Trova lead HOT con outreach pending e con email
+                # I lead creati dal discovery (Google Places) NON hanno il campo
+                # `outreach_status`: nascono con `status: "discovered"`. Il filtro secco
+                # su "pending" non agganciava nessuno, quindi il job girava ogni mattina
+                # restituendo success con 0 processati — 564 lead hot mai contattati.
+                # Si accettano anche i lead senza il campo, e si escludono quelli che
+                # hanno gia' un task Valentina in coda (altrimenti si ripescano ogni giorno,
+                # visto che lo stato resta "pending" finche' l'invio non avviene davvero).
                 hot_leads = await db.discovery_leads.find({
-                    "score_total": {"$gte": 80},
-                    "outreach_status": "pending",
-                    "$or": [
-                        {"email": {"$exists": True, "$nin": [None, ""]}},
-                        {"contact_email": {"$exists": True, "$nin": [None, ""]}}
+                    "$and": [
+                        {"score_total": {"$gte": 80}},
+                        {"$or": [
+                            {"outreach_status": "pending"},
+                            {"outreach_status": {"$exists": False}},
+                            {"outreach_status": None},
+                        ]},
+                        {"valentina_task_id": {"$exists": False}},
+                        {"$or": [
+                            {"email": {"$exists": True, "$nin": [None, ""]}},
+                            {"contact_email": {"$exists": True, "$nin": [None, ""]}}
+                        ]},
                     ]
                 }).sort("score_total", -1).limit(max_leads).to_list(max_leads)
                 
@@ -1622,9 +1636,13 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
                         await db.discovery_leads.update_one(
                             {"id": lead_id},
                             {"$set": {
-                                "outreach_status": "contacted",
-                                "status": "contacted",
-                                "first_contact_at": datetime.now(timezone.utc).isoformat(),
+                                # NON si scrive "contacted": il messaggio non e' ancora
+                                # partito, si e' solo creato il task per Valentina che
+                                # attende approvazione. Marcarlo adesso fa sparire il lead
+                                # dai da-contattare e falsa il contatore di /leads/hot.
+                                # Passa a "sent" solo quando l'invio avviene davvero.
+                                "outreach_status": "pending",
+                                "outreach_queued_at": datetime.now(timezone.utc).isoformat(),
                                 "valentina_task_id": task_id,
                                 "auto_outreach": True,
                                 "updated_at": datetime.now(timezone.utc).isoformat()
@@ -1667,7 +1685,7 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
                         f"🔥 *Discovery - Outreach Automatico*\n\n"
                         f"📊 Lead processati: {len(processed)}\n"
                         f"❌ Falliti: {len(failed)}\n\n"
-                        f"*Lead contattati oggi:*\n" +
+                        f"ATTENZIONE: NON contattati, sono task Valentina da approvare in admin.\n" +
                         "\n".join([f"• {p['name']} (score: {p['score']})" for p in processed[:5]])
                     )
                 
