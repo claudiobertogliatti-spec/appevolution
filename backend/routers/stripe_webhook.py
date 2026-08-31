@@ -27,6 +27,7 @@ from services.ciak_client_accounts import (
     has_start_entitlement,
 )
 from security_config import require_stripe_webhook_secret
+from internal_api import internal_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -1123,11 +1124,21 @@ async def process_partnership_payment(db, user_id: str, reference_id: str, backg
     async def _trigger_attiva(uid: str):
         try:
             import httpx
-            backend_url = os.environ.get("BACKEND_URL", "http://localhost:8001")
+            # `BACKEND_URL` non e' configurata su Cloud Run (verificato il 31/8): si
+            # cadeva sul default localhost:8001, dove non risponde nessuno perche' il
+            # container espone la 8080. Questa attivazione falliva a ogni pagamento.
             async with httpx.AsyncClient(timeout=10) as hc:
-                await hc.post(f"{backend_url}/api/flusso-analisi/attiva-partnership/{uid}")
+                risposta = await hc.post(
+                    internal_api_url(f"/api/flusso-analisi/attiva-partnership/{uid}")
+                )
+                if risposta.status_code >= 400:
+                    logger.error(
+                        f"[STRIPE_WEBHOOK] attiva-partnership per {uid} ha risposto "
+                        f"{risposta.status_code}: {risposta.text[:200]}"
+                    )
         except Exception as e:
-            logger.warning(f"[STRIPE_WEBHOOK] attiva-partnership call failed (non critico): {e}")
+            # NON e' "non critico": e' l'attivazione di una partnership pagata.
+            logger.error(f"[STRIPE_WEBHOOK] attiva-partnership FALLITA per {uid}: {e}")
 
     background_tasks.add_task(_trigger_attiva, user_id)
 
@@ -1144,12 +1155,22 @@ async def send_partnership_welcome_email(partner_id: str):
         
         # Call internal API to send welcome email (correct endpoint)
         async with httpx.AsyncClient(timeout=30) as client:
-            await client.post(
-                f"http://localhost:8001/api/onboarding/send-welcome-email/{partner_id}"
+            # Stessa storia della porta: qui c'era localhost:8001 hardcoded, quindi
+            # la welcome email non e' mai partita da questo percorso.
+            risposta = await client.post(
+                internal_api_url(f"/api/onboarding/send-welcome-email/{partner_id}")
             )
-            logger.info(f"[STRIPE_WEBHOOK] Welcome email triggered for partner {partner_id}")
+            if risposta.status_code >= 400:
+                # Un "triggered" scritto senza guardare la risposta e' il motivo per cui
+                # il difetto e' rimasto invisibile: il log diceva che era partita.
+                logger.error(
+                    f"[STRIPE_WEBHOOK] Welcome email per {partner_id} ha risposto "
+                    f"{risposta.status_code}: {risposta.text[:200]}"
+                )
+            else:
+                logger.info(f"[STRIPE_WEBHOOK] Welcome email inviata a partner {partner_id}")
     except Exception as e:
-        logger.error(f"[STRIPE_WEBHOOK] Welcome email trigger failed: {e}")
+        logger.error(f"[STRIPE_WEBHOOK] Welcome email FALLITA per {partner_id}: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

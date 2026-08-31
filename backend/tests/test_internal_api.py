@@ -61,6 +61,8 @@ def test_niente_doppio_slash_ne_slash_finale(monkeypatch):
         "celery_tasks.py",
         "agent_task_system.py",
         "luca_briefing_task.py",
+        "routers/stripe_webhook.py",
+        "routers/flusso_analisi.py",
     ],
 )
 def test_nessun_chiamante_riscrive_la_porta_a_mano(modulo):
@@ -78,3 +80,25 @@ def test_nessun_chiamante_riscrive_la_porta_a_mano(modulo):
 
     colpevoli = [r.strip() for r in codice if "localhost:8001" in r]
     assert not colpevoli, f"{modulo} chiama ancora la 8001: {colpevoli}"
+
+
+@pytest.mark.parametrize(
+    "modulo", ["routers/stripe_webhook.py", "routers/flusso_analisi.py"]
+)
+def test_nessun_default_backend_url_sulla_8001(modulo):
+    """
+    `BACKEND_URL` NON e' configurata su Cloud Run (verificato il 31/8): un
+    `os.environ.get("BACKEND_URL", "http://localhost:8001")` cade sempre sul
+    default sbagliato. Il default va preso da internal_api, non scritto a mano.
+    """
+    percorso = Path(__file__).resolve().parents[1] / modulo
+    codice = [
+        r
+        for r in percorso.read_text(encoding="utf-8").splitlines()
+        if not r.lstrip().startswith("#")
+    ]
+
+    colpevoli = [
+        r.strip() for r in codice if "BACKEND_URL" in r and "localhost" in r
+    ]
+    assert not colpevoli, f"{modulo} ha un default BACKEND_URL locale: {colpevoli}"

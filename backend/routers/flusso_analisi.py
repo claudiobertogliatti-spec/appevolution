@@ -30,6 +30,7 @@ import uuid
 import io
 import re
 import bcrypt
+from internal_api import internal_api_url
 
 # Import Master Prompt e Strategic Research
 try:
@@ -1659,11 +1660,17 @@ async def verify_payment_partnership(user_id: str):
             # Attiva partnership automaticamente se contratto già firmato
             try:
                 import httpx
-                backend_url = os.environ.get("BACKEND_URL", "http://localhost:8001")
                 async with httpx.AsyncClient(timeout=10) as hc:
-                    await hc.post(f"{backend_url}/api/flusso-analisi/attiva-partnership/{user_id}")
+                    risposta = await hc.post(
+                        internal_api_url(f"/api/flusso-analisi/attiva-partnership/{user_id}")
+                    )
+                    if risposta.status_code >= 400:
+                        logging.error(
+                            f"[VERIFY_PAYMENT] attiva-partnership per {user_id} ha risposto "
+                            f"{risposta.status_code}: {risposta.text[:200]}"
+                        )
             except Exception as ae:
-                logging.warning(f"[VERIFY_PAYMENT] attiva-partnership call failed (non critico): {ae}")
+                logging.error(f"[VERIFY_PAYMENT] attiva-partnership FALLITA per {user_id}: {ae}")
             return {"success": True, "paid": True}
 
         return {"success": True, "paid": False}
