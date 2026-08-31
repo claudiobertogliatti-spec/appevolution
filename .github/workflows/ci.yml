@@ -63,7 +63,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          pip install pytest pytest-asyncio
+          pip install pytest pytest-asyncio mongomock
 
       # MONGO_URL fittizia: serve solo perche' routers/dependencies.py la richiede
       # all'import (il client Motor e' lazy, nessuna connessione reale).
@@ -128,6 +128,8 @@ jobs:
           tests/test_start_client_posizionamento.py
           tests/test_start_profili_social.py
           tests/test_start_vetrina.py
+          tests/test_daily_hot_leads_outreach_filter.py
+          tests/test_luca_briefing_task.py
           tests/test_vetrina_contatti.py
 
   frontend:
