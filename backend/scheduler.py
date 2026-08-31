@@ -16,8 +16,21 @@ from apscheduler.triggers.interval import IntervalTrigger
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler(timezone="Europe/Rome")
 
-# Use internal URL for scheduler calls
-BASE_URL = "http://localhost:8001/api"
+# URL interna delle chiamate dello scheduler.
+#
+# Fino al 31/8/2026 qui c'era `http://localhost:8001/api`, ma il Dockerfile
+# avvia `uvicorn server:app --port 8080`: dentro il container la 8001 non
+# risponde a nessuno. Risultato, visto nei log di `evolution-pro-worker`: OGNI
+# job di questo modulo moriva con [Errno 111] Connection refused, a ogni
+# esecuzione, da mesi -- check-in di Marco, report di Stefania, sync Systeme,
+# promemoria scadenza partnership e KPI settimanali non hanno mai prodotto
+# nulla, e nessuno se n'e' accorto perche' il fallimento era solo un log.
+#
+# Cloud Run inietta PORT: si legge da li' invece di riscrivere un numero fisso,
+# cosi' il giorno che la porta cambia questo non si rompe di nuovo.
+BASE_URL = os.environ.get("INTERNAL_API_BASE") or (
+    f"http://localhost:{os.environ.get('PORT', '8080')}/api"
+)
 
 
 def trigger_marco_run():

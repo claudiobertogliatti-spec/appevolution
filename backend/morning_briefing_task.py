@@ -31,12 +31,23 @@ def run_async(coro):
             pass
 
 
+def _internal_api() -> str:
+    """
+    Il container espone la porta iniettata da Cloud Run (8080), non la 8001 che
+    era scritta qui: ogni notifica di questo task falliva con Connection refused
+    senza che nessuno lo notasse. Vedi il commento in `scheduler.py`.
+    """
+    return os.environ.get("INTERNAL_API_BASE") or (
+        f"http://localhost:{os.environ.get('PORT', '8080')}"
+    )
+
+
 async def _send_telegram(message: str):
     try:
         import httpx
         async with httpx.AsyncClient() as client:
             await client.post(
-                "http://localhost:8001/api/notify/telegram",
+                f"{_internal_api()}/api/notify/telegram",
                 json={"message": message},
                 timeout=10
             )

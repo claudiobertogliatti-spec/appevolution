@@ -14,6 +14,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from pydantic import BaseModel
+from internal_api import internal_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ async def notify_critical_task(db, task: dict):
         
         async with httpx.AsyncClient() as client:
             await client.post(
-                "http://localhost:8001/api/notify/telegram",
+                internal_api_url("/api/notify/telegram"),
                 json={"message": message},
                 timeout=10
             )
@@ -252,7 +253,7 @@ async def stefania_daily_task_review(db) -> Dict[str, Any]:
         import httpx
         async with httpx.AsyncClient() as client:
             await client.post(
-                "http://localhost:8001/api/notify/telegram",
+                internal_api_url("/api/notify/telegram"),
                 json={"message": message},
                 timeout=10
             )
