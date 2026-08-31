@@ -45,7 +45,7 @@ celery_app = Celery(
     'evolution_pro',
     broker=broker_url,
     backend=backend_url,
-    include=['celery_tasks', 'morning_briefing_task', 'video_pipeline_task', 'celery_sollecito']
+    include=['celery_tasks', 'morning_briefing_task', 'video_pipeline_task', 'celery_sollecito', 'luca_briefing_task']
 )
 
 # Celery configuration
@@ -107,6 +107,12 @@ celery_app.conf.update(
         'morning-lead-briefing': {
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
+        },
+        # Briefing AD di Luca. Stessa ora dell'azione programmata locale che
+        # sostituisce (7:45), ma qui non dipende dal PC di Claudio acceso.
+        'luca-daily-briefing': {
+            'task': 'luca_daily_briefing',
+            'schedule': crontab(hour=7, minute=45),
         },
         'check-partner-journey-solleciti': {
             'task': 'celery_sollecito.check_partner_journey_solleciti',
