@@ -42,8 +42,13 @@ def trigger_luca_briefing():
     parte. APScheduler non usa Redis e gira -- lo stesso giorno alle 07:00 ha
     consegnato il report di Stefania.
 
-    ⛔ Quando Redis torna e Celery riparte, questo job va TOLTO: altrimenti il
-    briefing arriva due volte, una per innesco.
+    ⛔ NON e' piu' schedulata: Redis e' tornato l'1/9/2026 e il briefing e' di
+    nuovo su Celery Beat (7:45). Il job qui e' stato rimosso perche' con entrambi
+    gli inneschi attivi il briefing arriverebbe due volte.
+
+    La funzione resta per poterlo lanciare a mano -- e per riattaccarla in un
+    minuto se Redis dovesse cadere di nuovo: e' successo per un pagamento
+    fallito, non per un guasto, e puo' succedere ancora.
     """
     try:
         logger.info("[SCHEDULER] Briefing Luca — avvio")
@@ -348,13 +353,6 @@ def start_scheduler():
     """Avvia tutti i job schedulati."""
     
     # MARCO — ogni lunedì alle 9:00 (ora italiana)
-    scheduler.add_job(
-        trigger_luca_briefing,
-        CronTrigger(hour=7, minute=45),
-        id="luca_briefing",
-        replace_existing=True,
-    )
-
     scheduler.add_job(
         trigger_marco_run,
         CronTrigger(day_of_week="mon", hour=9, minute=0),
