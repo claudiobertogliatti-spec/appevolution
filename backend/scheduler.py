@@ -33,6 +33,40 @@ BASE_URL = os.environ.get("INTERNAL_API_BASE") or (
 )
 
 
+def trigger_luca_briefing():
+    """
+    Ogni giorno alle 7:45 — briefing AD di Luca.
+
+    Vive qui e non solo su Celery Beat perche' l'1/9/2026 Redis Upstash e'
+    rate-limited: `start_celery_worker()` cade sul fallback e nessun task Celery
+    parte. APScheduler non usa Redis e gira -- lo stesso giorno alle 07:00 ha
+    consegnato il report di Stefania.
+
+    ⛔ Quando Redis torna e Celery riparte, questo job va TOLTO: altrimenti il
+    briefing arriva due volte, una per innesco.
+    """
+    try:
+        logger.info("[SCHEDULER] Briefing Luca — avvio")
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Briefing Luca saltato: LUCA_REPORT_KEY non configurata")
+            return
+        response = httpx.post(
+            f"{BASE_URL}/agents/luca/briefing",
+            headers={"X-Report-Key": chiave},
+            timeout=120,
+        )
+        if response.status_code >= 400:
+            logger.error(
+                f"[SCHEDULER] Briefing Luca: HTTP {response.status_code} {response.text[:200]}"
+            )
+            return
+        esito = response.json()
+        logger.info(f"[SCHEDULER] Briefing Luca completato: success={esito.get('success')}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_luca_briefing: {e}")
+
+
 def trigger_marco_run():
     """Ogni lunedì alle 9:00 — check-in settimanale per tutti i partner F3+."""
     try:
@@ -314,6 +348,13 @@ def start_scheduler():
     """Avvia tutti i job schedulati."""
     
     # MARCO — ogni lunedì alle 9:00 (ora italiana)
+    scheduler.add_job(
+        trigger_luca_briefing,
+        CronTrigger(hour=7, minute=45),
+        id="luca_briefing",
+        replace_existing=True,
+    )
+
     scheduler.add_job(
         trigger_marco_run,
         CronTrigger(day_of_week="mon", hour=9, minute=0),

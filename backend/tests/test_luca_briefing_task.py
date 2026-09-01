@@ -53,7 +53,7 @@ def _mock_raccolta(monkeypatch, output=None, errore=None):
 def test_senza_chiave_non_parte_e_lo_dichiara(monkeypatch, cattura):
     monkeypatch.delenv("LUCA_REPORT_KEY", raising=False)
 
-    esito = task.luca_daily_briefing.run()
+    esito = task.esegui_briefing()
 
     assert esito["success"] is False
     assert "LUCA_REPORT_KEY" in esito["error"]
@@ -65,7 +65,7 @@ def test_se_ciak_cade_non_produce_un_briefing_parziale(monkeypatch, cattura):
     monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
     _mock_raccolta(monkeypatch, output=None, errore="/api/admin/luca/daily-report -> HTTP 503")
 
-    esito = task.luca_daily_briefing.run()
+    esito = task.esegui_briefing()
 
     assert esito["success"] is False
     assert "503" in esito["error"]
@@ -81,7 +81,7 @@ def test_prima_misurazione_non_inventa_un_confronto(monkeypatch, cattura):
     # nessuno storico: _salva_stato restituisce None
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
 
-    esito = task.luca_daily_briefing.run()
+    esito = task.esegui_briefing()
 
     assert esito["success"] is True
     assert esito["confronto_disponibile"] is False
@@ -96,7 +96,7 @@ def test_con_lo_storico_calcola_il_delta(monkeypatch, cattura):
     ieri = {"lead_oggi": 1, "partner_fermi": 8, "ingressi_evo_mese": 0}
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=ieri))
 
-    esito = task.luca_daily_briefing.run()
+    esito = task.esegui_briefing()
 
     messaggio = cattura[-1]
     assert esito["confronto_disponibile"] is True
@@ -123,7 +123,7 @@ def test_il_sito_giu_apre_il_messaggio(monkeypatch, cattura):
     _mock_raccolta(monkeypatch, output=rotto)
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
 
     messaggio = cattura[-1]
     prima_riga_utile = [r for r in messaggio.splitlines() if r.strip()][1]
@@ -141,7 +141,7 @@ def test_un_campo_non_letto_non_diventa_zero(monkeypatch, cattura):
     _mock_raccolta(monkeypatch, output=parziale)
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
 
     messaggio = cattura[-1]
     assert "Partner attivi: non letto" in messaggio
@@ -202,7 +202,7 @@ def test_il_briefing_riporta_il_funnel_e_indica_il_tappo(monkeypatch, cattura):
     _mock_raccolta(monkeypatch, output=con_funnel)
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
     messaggio = cattura[-1]
 
     assert "Iscritto masterclass: 5" in messaggio
@@ -220,7 +220,7 @@ def test_se_il_funnel_non_e_letto_lo_dichiara(monkeypatch, cattura):
     _mock_raccolta(monkeypatch, output=REPORT_OK)  # nessuna chiave "funnel"
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
 
     assert "Funnel pre-acquisto: fonte non letta" in cattura[-1]
 
@@ -283,7 +283,7 @@ def test_i_rilievi_finiscono_nel_messaggio_come_proposta(monkeypatch, cattura):
     )
     monkeypatch.setattr(task, "_autodiagnosi", lambda o, s: ["la fonte *funnel* non risponde da 2 giorni"])
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
     messaggio = cattura[-1]
 
     assert "Da sistemare nel briefing stesso" in messaggio
@@ -298,7 +298,7 @@ def test_senza_rilievi_non_si_stampa_la_sezione(monkeypatch, cattura):
     monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
     monkeypatch.setattr(task, "_autodiagnosi", lambda o, s: [])
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
 
     assert "Da sistemare nel briefing stesso" not in cattura[-1]
 
@@ -361,7 +361,7 @@ def test_meta_letta_finisce_nel_messaggio(monkeypatch, cattura):
 
     monkeypatch.setattr(task, "run_async", _run)
 
-    task.luca_daily_briefing.run()
+    task.esegui_briefing()
     messaggio = cattura[-1]
 
     assert "spesa 30gg €61.43" in messaggio
@@ -421,3 +421,22 @@ def test_sotto_soglia_non_consiglia_ancora_il_cambio():
     )
 
     assert "Non cambiare obiettivo" in " ".join(rilievi)
+
+
+# ─── I due inneschi ──────────────────────────────────────────────────────────
+
+
+def test_il_task_celery_delega_alla_funzione(monkeypatch):
+    """
+    Un'unica implementazione, due inneschi. Se il task tornasse a duplicare il
+    corpo, i due briefing divergerebbero al primo cambiamento.
+    """
+    chiamate = []
+    monkeypatch.setattr(
+        task, "esegui_briefing", lambda: chiamate.append(1) or {"success": True}
+    )
+
+    esito = task.luca_daily_briefing.run()
+
+    assert chiamate == [1]
+    assert esito == {"success": True}
