@@ -10,7 +10,7 @@ Componenti:
 5. Integrazione Systeme.io per lead positivi
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime, timezone, timedelta
@@ -21,6 +21,7 @@ import re
 import json
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
+from routers.ciak_admin import require_ciak_admin
 
 router = APIRouter(prefix="/api/discovery", tags=["discovery-engine"])
 
@@ -781,8 +782,11 @@ async def get_lead(lead_id: str):
     return lead
 
 
+# Protetto l'1/9/2026 insieme al PATCH: cancellare un lead e' irreversibile e
+# l'endpoint era aperto a chiunque conoscesse l'URL. Il frontend lo chiama gia'
+# con adminFetch (Authorization: Bearer), quindi l'admin non cambia.
 @router.delete("/leads/{lead_id}")
-async def delete_lead(lead_id: str):
+async def delete_lead(lead_id: str, admin=Depends(require_ciak_admin)):
     """Elimina un lead"""
     result = await db.discovery_leads.delete_one({"id": lead_id})
     if result.deleted_count == 0:
@@ -791,8 +795,15 @@ async def delete_lead(lead_id: str):
 
 
 @router.patch("/leads/{lead_id}")
-async def update_lead(lead_id: str, body: dict):
-    """Admin modifica dati di un discovery lead"""
+async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin)):
+    """
+    Admin modifica dati di un discovery lead.
+
+    Protetto dall'1/9/2026: era aperto a chiunque conoscesse l'URL, e scrive su
+    nome, email, telefono e note dei lead. Il frontend lo chiama gia' con
+    `adminFetch`, che manda `Authorization: Bearer <token>`: aggiungere il
+    controllo non cambia nulla per l'admin, chiude la porta a tutti gli altri.
+    """
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead non trovato")
@@ -803,6 +814,11 @@ async def update_lead(lead_id: str, body: dict):
         "followers_count", "phone", "notes_admin", "source",
         "email_sequence_stopped", "email_sequence_started",
         "temperatura",  # caldo, tiepido, freddo (per ELENA)
+        # Esclude il lead dall'outreach automatico: e' il coordinamento con la
+        # lista telefonica di Claudio. Il job ordina per score decrescente,
+        # quindi senza questo flag pescherebbe proprio i nomi che sta chiamando
+        # lui, e il lead riceverebbe una mail nostra poco prima della chiamata.
+        "lavorazione_manuale",
         # Campi Google Places
         "business_phone", "business_address", "profession_category",
     }
