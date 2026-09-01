@@ -433,6 +433,39 @@ def esegui_briefing():
         if fermi_nomi:
             righe += ["", "*Fermi:* " + ", ".join(fermi_nomi[:8])]
 
+        # Amministrazione: cosa scade oggi e cosa e' gia' scaduto senza esito.
+        # Va PRIMA di Meta di proposito: una rata che salta e' cassa che non
+        # entra oggi, la campagna e' una decisione che puo' aspettare domani.
+        cred = output.get("crediti") or {}
+        if cred:
+            scade_oggi = cred.get("scade_oggi") or []
+            in_ritardo = cred.get("in_ritardo") or []
+            righe += ["", "*Amministrazione*"]
+            righe.append(
+                f"- Previsto questo mese: €{cred.get('previsto_nel_mese', 0):.0f} "
+                f"({cred.get('rate_nel_mese', 0)} rate) · gia' incassato: "
+                f"€{cred.get('gia_incassato_nel_mese', 0):.0f}"
+            )
+            if scade_oggi:
+                for r in scade_oggi:
+                    righe.append(f"  → *OGGI scade: {r.get('nome')} €{float(r.get('importo', 0)):.0f}*")
+            if in_ritardo:
+                righe.append(
+                    f"- ⚠️ {len(in_ritardo)} rate scadute senza esito, "
+                    f"€{cred.get('importo_in_ritardo', 0):.0f} in tutto:"
+                )
+                for r in in_ritardo[:4]:
+                    righe.append(
+                        f"  · {r.get('nome')} €{float(r.get('importo', 0)):.0f} "
+                        f"(scaduta il {(r.get('scadenza') or '')[:10]})"
+                    )
+            righe.append(
+                f"- Residuo totale da recuperare: €{cred.get('residuo_totale', 0):.0f} "
+                f"su {cred.get('crediti_aperti', 0)} posizioni"
+            )
+        else:
+            righe += ["", "_Amministrazione: fonte non letta._"]
+
         # Meta: spesa e resa. Il dato che conta davvero e' l'obiettivo della
         # campagna, che finisce nei rilievi se non e' di tipo Lead.
         if meta.get("ok"):

@@ -4277,3 +4277,136 @@ async def segna_tappa_start(
         "tappa": body.tappa,
         "stato": body.stato,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AMMINISTRAZIONE — crediti da recuperare e incassi previsti
+#
+# Il dato non esisteva: gli accordi di rientro vivevano in lettere Word sul
+# desktop di Claudio. Il sistema sapeva solo cosa era gia' entrato, quindi il
+# "reparto amministrazione" era la memoria di una persona sola.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/crediti/riepilogo")
+async def crediti_riepilogo(
+    admin=Depends(require_admin_or_report_key),
+    anno: int = Query(None),
+    mese: int = Query(None),
+):
+    """
+    Il quadro che serve a decidere: previsto nel mese, cosa scade OGGI, cosa e'
+    in ritardo.
+
+    Accetta la chiave di sola lettura perche' lo legge il briefing di Luca: una
+    scadenza che ti viene a cercare vale piu' di una pagina che devi ricordarti
+    di aprire.
+
+    Espone i nomi solo dove servono per agire -- `scade_oggi` e `in_ritardo` --
+    e numeri per tutto il resto: chi legge deve sapere chi chiamare oggi, non
+    avere sotto gli occhi l'intera situazione debitoria dei partner.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import riepilogo as _riepilogo
+
+    oggi = datetime.now(timezone.utc)
+    anno = anno or oggi.year
+    mese = mese or oggi.month
+
+    tutti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+    return _riepilogo(tutti, anno, mese)
+
+
+@router.get("/crediti")
+async def crediti_lista(admin=Depends(require_ciak_admin)):
+    """Elenco completo con tutte le rate. Solo admin: qui c'e' tutto."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import stato_effettivo_rata
+
+    fuori = []
+    async for c in db.crediti.find({}, {"_id": 0}).sort("nome", 1):
+        c["rate"] = [
+            {**r, "stato_effettivo": stato_effettivo_rata(r)} for r in (c.get("rate") or [])
+        ]
+        fuori.append(c)
+    return {"crediti": fuori, "totale": len(fuori)}
+
+
+@router.put("/crediti/{credito_id}")
+async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_admin)):
+    """
+    Crea o aggiorna un credito. Upsert sull'id: rieseguire con lo stesso id
+    corregge invece di duplicare -- un credito duplicato falserebbe il residuo.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import Credito
+
+    body["id"] = credito_id
+    body["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
+    validato = Credito(**body).model_dump()
+
+    esistente = await db.crediti.find_one({"id": credito_id}, {"_id": 0, "creato_at": 1})
+    validato["creato_at"] = (esistente or {}).get("creato_at") or validato["aggiornato_at"]
+
+    await db.crediti.update_one({"id": credito_id}, {"$set": validato}, upsert=True)
+    return {"success": True, "credito": validato}
+
+
+@router.patch("/crediti/{credito_id}/rate/{numero}")
+async def crediti_segna_rata(
+    credito_id: str, numero: int, body: dict, admin=Depends(require_ciak_admin)
+):
+    """
+    Segna l'esito di una singola rata: `incassata` o `saltata`.
+
+    E' il gesto che tiene onesti questi numeri. Senza, dopo tre settimane il
+    riepilogo mostra dati falsi -- peggio che non averlo.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import STATI_RATA
+
+    stato = body.get("stato")
+    if stato not in STATI_RATA:
+        raise HTTPException(400, f"stato non valido: usare uno di {list(STATI_RATA)}")
+
+    credito = await db.crediti.find_one({"id": credito_id}, {"_id": 0})
+    if not credito:
+        raise HTTPException(404, "Credito non trovato")
+
+    rate = credito.get("rate") or []
+    trovata = False
+    for r in rate:
+        if int(r.get("numero", -1)) == numero:
+            r["stato"] = stato
+            r["incassata_at"] = (
+                datetime.now(timezone.utc).isoformat() if stato == "incassata" else None
+            )
+            if body.get("nota"):
+                r["nota"] = body["nota"]
+            trovata = True
+            break
+    if not trovata:
+        raise HTTPException(404, f"Rata {numero} non trovata")
+
+    # Tutte incassate -> il credito e' chiuso. Si deduce dalle rate invece di
+    # chiedere un secondo aggiornamento a mano, che verrebbe dimenticato.
+    nuovo_stato = credito.get("stato")
+    if all(r.get("stato") == "incassata" for r in rate):
+        nuovo_stato = "saldato"
+
+    await db.crediti.update_one(
+        {"id": credito_id},
+        {"$set": {
+            "rate": rate,
+            "stato": nuovo_stato,
+            "aggiornato_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return {"success": True, "stato_credito": nuovo_stato}
