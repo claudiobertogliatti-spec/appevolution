@@ -45,9 +45,24 @@ STATI_CREDITO = (CREDITO_APERTO, CREDITO_IN_PIANO, CREDITO_SALDATO, CREDITO_CONT
 
 
 class Rata(BaseModel):
+    """
+    Una rata puo' essere legata a una DATA o a una CONDIZIONE.
+
+    Il caso che ha imposto la distinzione (1/9/2026): il contratto Calafiore
+    prevede "prima rata alla firma, seconda a meta' percorso, saldo a lancio
+    avvenuto". «A meta' percorso» non e' una voce di calendario, e mettergli una
+    data inventata sarebbe peggio che non averlo: il briefing la segnalerebbe
+    come scaduta in un giorno che nessuno ha mai concordato.
+
+    Quindi `scadenza` e' opzionale e `condizione` la sostituisce. Una rata senza
+    data non entra nel previsto del mese e non finisce mai in ritardo -- ma pesa
+    nel residuo totale, perche' quei soldi sono dovuti comunque.
+    """
+
     numero: int
     importo: float
-    scadenza: str              # ISO date, "2026-09-30"
+    scadenza: Optional[str] = None   # ISO date, "2026-09-30"
+    condizione: Optional[str] = None  # "a meta' percorso", "a lancio avvenuto"
     stato: str = RATA_ATTESA
     incassata_at: Optional[str] = None
     nota: Optional[str] = None
@@ -159,6 +174,18 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
             sum(float(r.get("importo") or 0) for r in in_ritardo), 2
         ),
         "crediti_aperti": len(aperti),
+        # Dovute ma senza data: non si possono ne' prevedere nel mese ne'
+        # dichiarare in ritardo. Si elencano a parte, altrimenti sparirebbero
+        # dal briefing pur essendo soldi da incassare.
+        "a_condizione": [
+            {
+                "nome": r.get("nome"),
+                "importo": float(r.get("importo") or 0),
+                "condizione": r.get("condizione"),
+            }
+            for r in tutte
+            if not r.get("scadenza") and r["stato_effettivo"] != RATA_INCASSATA
+        ],
         # Quanto resta da incassare in tutto: la somma delle rate non incassate,
         # non `importo_totale` -- che include anche quello gia' rientrato.
         "residuo_totale": round(
