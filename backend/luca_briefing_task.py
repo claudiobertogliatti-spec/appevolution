@@ -446,6 +446,9 @@ def esegui_briefing():
                 f"({cred.get('rate_nel_mese', 0)} rate) · gia' incassato: "
                 f"€{cred.get('gia_incassato_nel_mese', 0):.0f}"
             )
+            ric = cred.get("ricorrente_nel_mese") or 0
+            if ric:
+                righe.append(f"  di cui mensilita' ricorrenti: €{ric:.0f}")
             if scade_oggi:
                 for r in scade_oggi:
                     righe.append(f"  → *OGGI scade: {r.get('nome')} €{float(r.get('importo', 0)):.0f}*")
@@ -468,6 +471,13 @@ def esegui_briefing():
                         f"  · {r.get('nome')} €{float(r.get('importo', 0)):.0f} "
                         f"— {r.get('condizione') or 'condizione non indicata'}"
                     )
+            sospese = cred.get("sospese_dal_sollecito") or []
+            if sospese:
+                tot_s = sum(float(r.get("importo") or 0) for r in sospese)
+                righe.append(
+                    f"- ⛔ €{tot_s:.0f} dovuti ma da NON sollecitare "
+                    f"({', '.join(r.get('nome') or '?' for r in sospese[:3])})"
+                )
             righe.append(
                 f"- Residuo totale da recuperare: €{cred.get('residuo_totale', 0):.0f} "
                 f"su {cred.get('crediti_aperti', 0)} posizioni"

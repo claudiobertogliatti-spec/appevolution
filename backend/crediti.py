@@ -43,6 +43,14 @@ CREDITO_CONTENZIOSO = "contenzioso"  # ⛔ non si sollecita: passa dal legale
 
 STATI_CREDITO = (CREDITO_APERTO, CREDITO_IN_PIANO, CREDITO_SALDATO, CREDITO_CONTENZIOSO)
 
+# Due cose diverse che stavano per finire nello stesso numero.
+# Un CREDITO ha un totale che si esaurisce: dice quanto devi rincorrere.
+# Un RICORRENTE e' una mensilita' attiva: dice quanto entra se tutto va normale.
+# Sommarli renderebbe il "residuo da recuperare" un numero senza significato.
+TIPO_CREDITO = "credito"
+TIPO_RICORRENTE = "ricorrente"
+TIPI = (TIPO_CREDITO, TIPO_RICORRENTE)
+
 
 class Rata(BaseModel):
     """
@@ -77,6 +85,15 @@ class Credito(BaseModel):
     causale: str
     stato: str = CREDITO_APERTO
     rate: List[Rata] = Field(default_factory=list)
+    tipo: str = TIPO_CREDITO
+    # ⛔ Vietato mettere questa posizione tra quelle da chiamare.
+    #
+    # Sta nel codice e non in una nota di proposito: Mariantonietta Tornello non
+    # si sollecita per un motivo familiare grave, non economico -- e una regola
+    # scritta in un campo di testo si legge distrattamente alle 7 del mattino.
+    # La rata resta nei conti, perche' i soldi sono dovuti; sparisce dall'elenco
+    # di chi chiamare oggi, perche' quella telefonata non va fatta.
+    non_sollecitare: bool = False
     documento: Optional[str] = None   # dove sta la lettera dell'accordo
     nota: Optional[str] = None
     creato_at: Optional[str] = None
@@ -130,6 +147,8 @@ def rate_del_mese(crediti: List[dict], anno: int, mese: int) -> List[dict]:
                     "stato_effettivo": stato_effettivo_rata(r),
                     "credito_id": c.get("id"),
                     "nome": c.get("nome"),
+                    "tipo": c.get("tipo") or TIPO_CREDITO,
+                    "non_sollecitare": bool(c.get("non_sollecitare")),
                 })
     return sorted(fuori, key=lambda r: r.get("scadenza") or "")
 
@@ -157,10 +176,21 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
     )
 
     tutte = [
-        {**r, "stato_effettivo": stato_effettivo_rata(r), "nome": c.get("nome")}
+        {
+            **r,
+            "stato_effettivo": stato_effettivo_rata(r),
+            "nome": c.get("nome"),
+            "tipo": c.get("tipo") or TIPO_CREDITO,
+            "non_sollecitare": bool(c.get("non_sollecitare")),
+        }
         for c in crediti for r in (c.get("rate") or [])
     ]
-    in_ritardo = [r for r in tutte if r["stato_effettivo"] == RATA_DA_VERIFICARE]
+    # In ritardo = chi si puo' chiamare oggi. Chi ha `non_sollecitare` resta nei
+    # conti ma non qui: e' l'unico posto che invita a un'azione.
+    in_ritardo = [
+        r for r in tutte
+        if r["stato_effettivo"] == RATA_DA_VERIFICARE and not r["non_sollecitare"]
+    ]
 
     oggi_iso = _oggi().isoformat()
     return {
@@ -188,12 +218,31 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
         ],
         # Quanto resta da incassare in tutto: la somma delle rate non incassate,
         # non `importo_totale` -- che include anche quello gia' rientrato.
+        # Solo i crediti veri: quanto c'e' da rincorrere.
         "residuo_totale": round(
             sum(
                 float(r.get("importo") or 0)
                 for r in tutte
-                if r["stato_effettivo"] != RATA_INCASSATA
+                if r["stato_effettivo"] != RATA_INCASSATA and r["tipo"] == TIPO_CREDITO
             ),
             2,
         ),
+        # Le mensilita' attese nel mese: quanto entra se tutto va normale.
+        # Risponde alla domanda rimasta aperta il 10/8 -- "quanta cassa
+        # ricorrente entra ogni mese e non e' censita?".
+        "ricorrente_nel_mese": round(
+            sum(
+                float(r.get("importo") or 0)
+                for r in rate_mese
+                if (r.get("tipo") or TIPO_CREDITO) == TIPO_RICORRENTE
+                and r["stato_effettivo"] != RATA_INCASSATA
+            ),
+            2,
+        ),
+        # Dovuto ma da non sollecitare: si dichiara, non si nasconde.
+        "sospese_dal_sollecito": [
+            {"nome": r.get("nome"), "importo": float(r.get("importo") or 0)}
+            for r in tutte
+            if r["non_sollecitare"] and r["stato_effettivo"] == RATA_DA_VERIFICARE
+        ],
     }
