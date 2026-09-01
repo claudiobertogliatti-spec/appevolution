@@ -301,11 +301,18 @@ def _delta(oggi, ieri, campo):
         return None
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=300, name="luca_daily_briefing")
-def luca_daily_briefing(self):
+def esegui_briefing():
     """
-    Briefing AD delle 7:45 CET. Legge Ciak + sito pubblico con la chiave di sola
-    lettura, salva lo stato del giorno e manda il report via Telegram.
+    Il briefing vero e proprio, senza Celery attorno.
+
+    Estratto dal task l'1/9/2026 perche' **Celery non parte**: Redis Upstash e'
+    rate-limited e `start_celery_worker()` cade sul fallback. Lo scheduler custom
+    (`backend/scheduler.py`, APScheduler) invece gira -- l'1/9 alle 07:00 ha
+    consegnato il report di Stefania -- e non dipende da Redis.
+
+    Cosi' la stessa logica ha due inneschi e una sola implementazione: il task
+    Celery quando la coda torna, l'endpoint HTTP nel frattempo. Duplicare il
+    corpo avrebbe fatto divergere i due briefing al primo cambiamento.
 
     Se cade Ciak NON produce un briefing parziale: manda una riga d'errore e
     termina. Un briefing mancato e' un problema piccolo, un briefing con numeri
@@ -473,7 +480,22 @@ def luca_daily_briefing(self):
 
     except Exception as e:
         logger.error(f"[LUCA_BRIEFING] Errore: {e}")
+        run_async(_send_telegram(f"[LUCA] Briefing fallito: {e}"))
+        return {"success": False, "error": str(e)}
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=300, name="luca_daily_briefing")
+def luca_daily_briefing(self):
+    """
+    Innesco Celery del briefing delle 7:45. Oggi NON parte -- Redis e' bloccato e
+    il worker cade sul fallback BackgroundTasks -- ma resta registrato: quando la
+    coda torna, questo ridiventa il percorso principale.
+    ⛔ Se entrambi gli inneschi girano, il briefing arriva due volte: quando Celery
+    riparte, va tolto il job da `scheduler.py`.
+    """
+    try:
+        return esegui_briefing()
+    except Exception as e:
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e)
-        run_async(_send_telegram(f"[LUCA] Briefing fallito: {e}"))
         return {"success": False, "error": str(e)}

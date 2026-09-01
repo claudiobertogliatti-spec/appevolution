@@ -3,7 +3,8 @@ Router FastAPI per gli agenti AI di Business Evolution PRO.
 Aggiunge endpoint per MARCO, GAIA, STEFANIA, ANDREA con routing via STEFANIA.
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from report_key_auth import require_admin_or_report_key
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
@@ -486,3 +487,26 @@ Suggerisci cosa registrare questa settimana e come strutturarlo."""
     except Exception as e:
         logger.error(f"[ANDREA] Errore run: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/luca/briefing")
+def luca_briefing_endpoint(admin=Depends(require_admin_or_report_key)):
+    """
+    Innesco HTTP del briefing di Luca, chiamato dallo scheduler alle 7:45.
+
+    Perche' non basta Celery (1/9/2026): Redis Upstash e' rate-limited, quindi
+    `start_celery_worker()` cade sul fallback e **nessun task Celery parte** --
+    il briefing del 1/9 infatti non e' arrivato. Lo scheduler APScheduler invece
+    gira e non usa Redis: lo stesso giorno alle 07:00 ha consegnato il report di
+    Stefania.
+
+    Definito `def` e non `async def` di proposito: FastAPI lo esegue in un
+    threadpool, e li' dentro `run_async` puo' creare il suo event loop. Dentro
+    una coroutine andrebbe in errore perche' il loop e' gia' in esecuzione.
+
+    Protetto con la chiave di sola lettura: manda un Telegram a Claudio, e un
+    endpoint che notifica senza autenticazione e' un citofono per chiunque.
+    """
+    from luca_briefing_task import esegui_briefing
+
+    return esegui_briefing()
