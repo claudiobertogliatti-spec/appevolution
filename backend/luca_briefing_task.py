@@ -459,6 +459,15 @@ def esegui_briefing():
                         f"  · {r.get('nome')} €{float(r.get('importo', 0)):.0f} "
                         f"(scaduta il {(r.get('scadenza') or '')[:10]})"
                     )
+            a_cond = cred.get("a_condizione") or []
+            if a_cond:
+                tot = sum(float(r.get("importo") or 0) for r in a_cond)
+                righe.append(f"- Legate a un evento (senza data): €{tot:.0f}")
+                for r in a_cond[:3]:
+                    righe.append(
+                        f"  · {r.get('nome')} €{float(r.get('importo', 0)):.0f} "
+                        f"— {r.get('condizione') or 'condizione non indicata'}"
+                    )
             righe.append(
                 f"- Residuo totale da recuperare: €{cred.get('residuo_totale', 0):.0f} "
                 f"su {cred.get('crediti_aperti', 0)} posizioni"

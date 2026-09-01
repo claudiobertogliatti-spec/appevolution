@@ -133,3 +133,66 @@ def test_senza_crediti_non_inventa_numeri():
     assert r["previsto_nel_mese"] == 0
     assert r["in_ritardo"] == []
     assert r["crediti_aperti"] == 0
+
+
+# ─── Rate legate a un evento, non a una data ────────────────────────────────
+# Il contratto Calafiore: "prima rata alla firma, seconda a meta' percorso,
+# saldo a lancio avvenuto". Nessuna delle ultime due ha una data.
+
+CALAFIORE = {
+    "id": "calafiore",
+    "nome": "Luigi Calafiore",
+    "importo_totale": 2790.0,
+    "stato": crediti.CREDITO_APERTO,
+    "rate": [
+        {"numero": 1, "importo": 930.0, "scadenza": "2026-05-13", "stato": "incassata"},
+        {"numero": 2, "importo": 930.0, "condizione": "a meta' percorso", "stato": "attesa"},
+        {"numero": 3, "importo": 930.0, "condizione": "a lancio avvenuto", "stato": "attesa"},
+    ],
+}
+
+
+def test_una_rata_senza_data_non_finisce_mai_in_ritardo():
+    """
+    Mettere una data inventata sarebbe peggio che non averla: il briefing la
+    segnalerebbe come scaduta in un giorno che nessuno ha mai concordato.
+    """
+    r = crediti.riepilogo([CALAFIORE], 2026, 9)
+
+    assert r["in_ritardo"] == []
+    assert r["importo_in_ritardo"] == 0
+
+
+def test_una_rata_senza_data_non_entra_nel_previsto_del_mese():
+    r = crediti.riepilogo([CALAFIORE], 2026, 9)
+
+    assert r["rate_nel_mese"] == 0
+    assert r["previsto_nel_mese"] == 0
+
+
+def test_ma_pesa_nel_residuo_perche_quei_soldi_sono_dovuti():
+    r = crediti.riepilogo([CALAFIORE], 2026, 9)
+
+    assert r["residuo_totale"] == 1860.0  # le due rate non incassate
+
+
+def test_le_rate_a_condizione_sono_elencate_a_parte():
+    """Altrimenti sparirebbero dal briefing pur essendo soldi da incassare."""
+    r = crediti.riepilogo([CALAFIORE], 2026, 9)
+
+    assert len(r["a_condizione"]) == 2
+    assert {x["condizione"] for x in r["a_condizione"]} == {
+        "a meta' percorso", "a lancio avvenuto"
+    }
+    assert all(x["importo"] == 930.0 for x in r["a_condizione"])
+
+
+def test_una_rata_a_condizione_gia_incassata_non_compare():
+    saldata = {**CALAFIORE, "rate": [
+        {"numero": 2, "importo": 930.0, "condizione": "a meta' percorso", "stato": "incassata"},
+    ]}
+
+    r = crediti.riepilogo([saldata], 2026, 9)
+
+    assert r["a_condizione"] == []
+    assert r["residuo_totale"] == 0
