@@ -440,3 +440,73 @@ def test_il_task_celery_delega_alla_funzione(monkeypatch):
 
     assert chiamate == [1]
     assert esito == {"success": True}
+
+
+# ─── Amministrazione nel briefing ────────────────────────────────────────────
+
+
+def test_una_rata_che_scade_oggi_finisce_in_evidenza(monkeypatch, cattura):
+    """
+    E' il motivo per cui questa fonte esiste: la scadenza deve venire a cercare
+    Claudio la mattina in cui cade, non essere scoperta quando non arriva.
+    """
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    con_crediti = {
+        "report": REPORT_OK["report"],
+        "fonti": {"sito": {"dati": {"tutte_ok": True, "url": []}}},
+        "crediti": {
+            "previsto_nel_mese": 520.0,
+            "gia_incassato_nel_mese": 0.0,
+            "rate_nel_mese": 1,
+            "scade_oggi": [{"nome": "Annamaria Depalma", "importo": 520.0}],
+            "in_ritardo": [],
+            "importo_in_ritardo": 0.0,
+            "crediti_aperti": 3,
+            "residuo_totale": 3564.0,
+        },
+    }
+    _mock_raccolta(monkeypatch, output=con_crediti)
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "OGGI scade: Annamaria Depalma" in messaggio
+    assert "Previsto questo mese: €520" in messaggio
+    assert "Residuo totale da recuperare: €3564" in messaggio
+
+
+def test_le_rate_scadute_senza_esito_sono_segnalate(monkeypatch, cattura):
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    con_ritardo = {
+        "report": REPORT_OK["report"],
+        "fonti": {"sito": {"dati": {"tutte_ok": True, "url": []}}},
+        "crediti": {
+            "previsto_nel_mese": 0.0, "gia_incassato_nel_mese": 0.0, "rate_nel_mese": 0,
+            "scade_oggi": [],
+            "in_ritardo": [
+                {"nome": "Luigi Calafiore", "importo": 930.0, "scadenza": "2026-08-15"}
+            ],
+            "importo_in_ritardo": 930.0, "crediti_aperti": 2, "residuo_totale": 1500.0,
+        },
+    }
+    _mock_raccolta(monkeypatch, output=con_ritardo)
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "1 rate scadute senza esito" in messaggio
+    assert "Luigi Calafiore €930" in messaggio
+    assert "2026-08-15" in messaggio
+
+
+def test_senza_la_fonte_crediti_lo_dichiara(monkeypatch, cattura):
+    """Un punto cieco si dichiara: senza, sembrerebbe che non ci sia nulla da incassare."""
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)  # nessuna chiave "crediti"
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+
+    assert "Amministrazione: fonte non letta" in cattura[-1]

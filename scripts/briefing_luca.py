@@ -62,10 +62,21 @@ def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
         base_url, key, "/api/admin/ciak/funnel-metrics", "funnel"
     )
 
+    # Crediti e incassi previsti. Fonte che DEGRADA come il funnel: se cade, il
+    # briefing esce lo stesso dichiarando il punto cieco.
+    #
+    # Aggiunta l'1/9/2026: gli accordi di rientro vivevano in lettere Word sul
+    # desktop, quindi una rata che salta si scopriva quando non arrivava. Con
+    # questa fonte la scadenza viene a cercare Claudio la mattina in cui cade.
+    fonti["crediti"] = leggi_ciak_fn(
+        base_url, key, "/api/admin/ciak/crediti/riepilogo", "crediti"
+    )
+
     fonti["sito"] = leggi_sito_fn()
 
     output = {nome: fonti[nome]["dati"] for nome in ENDPOINTS}
     output["funnel"] = fonti["funnel"]["dati"]
+    output["crediti"] = fonti["crediti"]["dati"]
     output["fonti"] = fonti
     return output, None
 
