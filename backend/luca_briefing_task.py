@@ -387,6 +387,36 @@ def esegui_briefing():
             ]
             righe += ["*SITO GIU'* — " + (", ".join(url_ko) or "URL non dettagliati"), ""]
 
+        # L'obiettivo apre il briefing: e' la domanda a cui tutti gli altri numeri
+        # rispondono. Metterlo in fondo lo avrebbe reso una nota a margine.
+        obj = output.get("obiettivo") or {}
+        if obj:
+            righe += ["", f"*{obj.get('titolo') or 'Obiettivo'}*"]
+            righe.append(
+                f"- Incassato €{obj.get('incassato', 0):.0f} · mancano "
+                f"*€{obj.get('gap', 0):.0f}* in {obj.get('giorni_rimasti', '?')} giorni"
+            )
+            if obj.get("ritmo_necessario"):
+                righe.append(f"- Servono €{obj['ritmo_necessario']:.0f} al giorno")
+            proi = obj.get("proiezione_al_ritmo_attuale")
+            if proi is not None:
+                scarto = obj.get("target", 0) - proi
+                righe.append(
+                    f"- Al ritmo attuale chiudi a *€{proi:.0f}*"
+                    + (f" — {scarto:.0f} sotto il target" if scarto > 0 else " — sopra il target")
+                )
+            if not obj.get("leve_coprono_il_gap"):
+                righe.append(
+                    f"- ⚠️ Le leve aperte valgono €{obj.get('valore_leve_vive', 0):.0f}: "
+                    f"**scoperti €{obj.get('scoperto', 0):.0f}** che oggi non hanno una voce"
+                )
+            for l in (obj.get("leve_ferme") or [])[:3]:
+                righe.append(
+                    f"  → *{l['nome']}* €{l['valore']:.0f} ferma da {l['giorni_fermi']} giorni"
+                    + (f" ({l['dipende_da']})" if l.get("dipende_da") else "")
+                )
+            righe.append("")
+
         for etichetta, campo in (
             ("Ingressi EVO nel mese", "ingressi_evo_mese"),
             ("Lead oggi", "lead_oggi"),

@@ -4410,3 +4410,90 @@ async def crediti_segna_rata(
         }},
     )
     return {"success": True, "stato_credito": nuovo_stato}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OBIETTIVO DI CASSA — target, leve, proiezione
+#
+# Claudio (1/9): "Luca non deve fermarsi finche' non raggiunge i 10k entro il
+# 30/9". Luca non puo' vendere -- puo' pero' tenere il conto ogni giorno e dire
+# quando il ritmo non basta, mentre c'e' ancora tempo per cambiare strategia.
+# Per farlo deve conoscere il piano, non solo il totale: le leve sono le voci
+# che dovrebbero coprire il gap.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/obiettivo/{obiettivo_id}")
+async def obiettivo_stato(obiettivo_id: str, admin=Depends(require_admin_or_report_key)):
+    """Quadro dell'obiettivo: gap, ritmo, proiezione, leve ferme. Lo legge Luca."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from obiettivo import stato as _stato
+
+    ob = await db.obiettivi.find_one({"id": obiettivo_id}, {"_id": 0})
+    if not ob:
+        raise HTTPException(404, "Obiettivo non trovato")
+    return _stato(ob)
+
+
+@router.put("/obiettivo/{obiettivo_id}")
+async def obiettivo_salva(obiettivo_id: str, body: dict, admin=Depends(require_ciak_admin)):
+    """Crea o aggiorna un obiettivo con le sue leve. Upsert sull'id."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from obiettivo import Obiettivo
+
+    body["id"] = obiettivo_id
+    body["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
+    validato = Obiettivo(**body).model_dump()
+
+    await db.obiettivi.update_one({"id": obiettivo_id}, {"$set": validato}, upsert=True)
+    return {"success": True, "obiettivo": validato}
+
+
+@router.patch("/obiettivo/{obiettivo_id}/leva/{nome}")
+async def obiettivo_muovi_leva(
+    obiettivo_id: str, nome: str, body: dict, admin=Depends(require_ciak_admin)
+):
+    """
+    Aggiorna lo stato di una leva e ne registra il movimento.
+
+    `ultimo_movimento` si scrive da solo alla data di oggi: e' il campo su cui
+    si basa "ferma da N giorni", e chiedere di aggiornarlo a mano avrebbe
+    significato non aggiornarlo mai -- e non vedere mai una leva raffreddarsi.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from obiettivo import STATI_LEVA
+
+    nuovo_stato = body.get("stato")
+    if nuovo_stato and nuovo_stato not in STATI_LEVA:
+        raise HTTPException(400, f"stato non valido: usare uno di {list(STATI_LEVA)}")
+
+    ob = await db.obiettivi.find_one({"id": obiettivo_id}, {"_id": 0})
+    if not ob:
+        raise HTTPException(404, "Obiettivo non trovato")
+
+    leve = ob.get("leve") or []
+    trovata = False
+    for l in leve:
+        if (l.get("nome") or "").lower() == nome.lower():
+            if nuovo_stato:
+                l["stato"] = nuovo_stato
+            if body.get("valore") is not None:
+                l["valore"] = float(body["valore"])
+            if body.get("nota"):
+                l["nota"] = body["nota"]
+            l["ultimo_movimento"] = datetime.now(timezone.utc).date().isoformat()
+            trovata = True
+            break
+    if not trovata:
+        raise HTTPException(404, f"Leva '{nome}' non trovata")
+
+    await db.obiettivi.update_one(
+        {"id": obiettivo_id},
+        {"$set": {"leve": leve, "aggiornato_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"success": True}
