@@ -77,13 +77,40 @@ def _chiama(base_url, token, metodo, path, corpo=None):
         raise SystemExit(f"⛔ {metodo} {path} -> irraggiungibile: {e.reason}")
 
 
+def _token_buono(base_url, token):
+    """
+    Il token e' valido E ha il ruolo admin?
+
+    Va chiesto al server prima di scrivere. Il JWT di Ciak dura 24 ore, quindi
+    una variabile d'ambiente impostata ieri e' quasi sempre scaduta -- e
+    `decode_token` che fallisce produce un **403** ("Accesso riservato agli
+    admin"), non un 401: dal codice di errore non si distingue un token scaduto
+    da un utente senza permessi. Ci si prova su un endpoint in sola lettura, che
+    non cambia niente se va male.
+    """
+    req = urllib.request.Request(
+        f"{base_url.rstrip('/')}/api/admin/ciak/crediti",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT):
+            return True
+    except Exception:
+        return False
+
+
 def _token(base_url):
     token = os.environ.get("CIAK_ADMIN_TOKEN")
     if token:
-        print("Uso il token da CIAK_ADMIN_TOKEN.")
-        return token
+        if _token_buono(base_url, token):
+            print("Uso il token da CIAK_ADMIN_TOKEN.")
+            return token
+        # ⛔ Non si muore qui: un token scaduto e' la normalita' dopo 24 ore, e
+        # far ripartire tutto da capo per questo sarebbe solo fastidio.
+        print("Il token in CIAK_ADMIN_TOKEN non e' valido o e' scaduto: faccio il login.")
+    else:
+        print("Nessun CIAK_ADMIN_TOKEN: faccio il login.")
 
-    print("Nessun CIAK_ADMIN_TOKEN: faccio il login.")
     email = input("Email admin: ").strip()
     # getpass e non input(): la password non deve restare nella cronologia del
     # terminale ne' comparire in uno screenshot condiviso.
