@@ -510,3 +510,84 @@ def test_senza_la_fonte_crediti_lo_dichiara(monkeypatch, cattura):
     task.luca_daily_briefing.run()
 
     assert "Amministrazione: fonte non letta" in cattura[-1]
+
+
+# ─── L'obiettivo nel briefing ────────────────────────────────────────────────
+# Claudio: "Luca non deve fermarsi finche' non raggiunge i 10k". Luca non vende:
+# tiene il conto e segnala quando il ritmo non basta.
+
+OBIETTIVO = {
+    "titolo": "€10.000 entro il 30/9",
+    "target": 10000.0, "incassato": 375.0, "gap": 9625.0,
+    "giorni_rimasti": 29, "ritmo_necessario": 331.9,
+    "proiezione_al_ritmo_attuale": 726.0,
+    "valore_leve_vive": 3744.0, "leve_coprono_il_gap": False, "scoperto": 5881.0,
+    "leve_ferme": [
+        {"nome": "Andrea Fredi", "valore": 1700.0, "giorni_fermi": 25,
+         "dipende_da": "una consegna nostra"},
+    ],
+    "leve_vive": [],
+}
+
+
+def test_il_briefing_apre_con_quanto_manca(monkeypatch, cattura):
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output={**REPORT_OK, "obiettivo": OBIETTIVO})
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "mancano *€9625* in 29 giorni" in messaggio
+    assert "Servono €332 al giorno" in messaggio
+
+
+def test_dice_dove_si_finisce_al_ritmo_attuale(monkeypatch, cattura):
+    """E' il numero che fa cambiare strategia mentre c'e' ancora tempo."""
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output={**REPORT_OK, "obiettivo": OBIETTIVO})
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+
+    assert "Al ritmo attuale chiudi a *€726*" in cattura[-1]
+    assert "9274 sotto il target" in cattura[-1]
+
+
+def test_avverte_quando_le_leve_non_bastano(monkeypatch, cattura):
+    """
+    La domanda che decide se il piano regge: spingere sulle leve che hai porta
+    al target, o serve qualcosa che oggi non e' sul tavolo?
+    """
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output={**REPORT_OK, "obiettivo": OBIETTIVO})
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+    messaggio = cattura[-1]
+
+    assert "scoperti €5881" in messaggio
+    assert "Andrea Fredi* €1700 ferma da 25 giorni" in messaggio
+    assert "una consegna nostra" in messaggio
+
+
+def test_se_le_leve_bastano_non_allarma(monkeypatch, cattura):
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    coperto = {**OBIETTIVO, "leve_coprono_il_gap": True, "scoperto": 0.0, "leve_ferme": []}
+    _mock_raccolta(monkeypatch, output={**REPORT_OK, "obiettivo": coperto})
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    task.luca_daily_briefing.run()
+
+    assert "scoperti" not in cattura[-1]
+
+
+def test_senza_obiettivo_il_briefing_esce_lo_stesso(monkeypatch, cattura):
+    monkeypatch.setenv("LUCA_REPORT_KEY", "chiave-finta")
+    _mock_raccolta(monkeypatch, output=REPORT_OK)  # nessuna chiave "obiettivo"
+    monkeypatch.setattr(task, "run_async", lambda coro: _esegui_senza_db(coro, storico=None))
+
+    esito = task.luca_daily_briefing.run()
+
+    assert esito["success"] is True
+    assert "Ingressi EVO" in cattura[-1]

@@ -134,6 +134,7 @@ jobs:
           tests/test_funnel_metrics.py
           tests/test_discovery_lead_write_auth.py
           tests/test_crediti.py
+          tests/test_obiettivo.py
           tests/test_vetrina_contatti.py
 
   frontend:

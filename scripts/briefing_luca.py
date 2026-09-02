@@ -72,11 +72,20 @@ def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
         base_url, key, "/api/admin/ciak/crediti/riepilogo", "crediti"
     )
 
+    # L'obiettivo di cassa in corso. Fonte che degrada come le altre.
+    # Serve perche' Claudio ha chiesto che Luca "non si fermi finche' non
+    # raggiunge i 10k": Luca non puo' vendere, ma puo' dire ogni mattina quanto
+    # manca, a che ritmo serve andare, e quale leva si sta raffreddando.
+    fonti["obiettivo"] = leggi_ciak_fn(
+        base_url, key, "/api/admin/ciak/obiettivo/10k-settembre", "obiettivo"
+    )
+
     fonti["sito"] = leggi_sito_fn()
 
     output = {nome: fonti[nome]["dati"] for nome in ENDPOINTS}
     output["funnel"] = fonti["funnel"]["dati"]
     output["crediti"] = fonti["crediti"]["dati"]
+    output["obiettivo"] = fonti["obiettivo"]["dati"]
     output["fonti"] = fonti
     return output, None
 
