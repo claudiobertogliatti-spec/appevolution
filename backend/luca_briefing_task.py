@@ -30,16 +30,17 @@ from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
-# `scripts/briefing_luca.py` resta la fonte di verita' della raccolta dati:
-# si importa invece di riscriverla, per non avere una terza copia della logica
-# (ce n'e' gia' una accanto al prompt dell'azione programmata).
-_SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
-
-
 def _carica_raccolta():
-    if str(_SCRIPTS) not in sys.path:
-        sys.path.insert(0, str(_SCRIPTS))
-    import briefing_luca  # noqa: E402  (path aggiunto sopra di proposito)
+    """
+    La raccolta dati vive in `backend/briefing_luca.py`.
+
+    Fino al 2/9/2026 veniva importata da `scripts/`, e il briefing delle 7:45 e'
+    morto in produzione su `No module named 'briefing_luca'`: il deploy builda
+    con `--source ./backend`, quindi quella cartella nel container non esiste.
+    Il codice era corretto e i test verdi -- ma i test giravano dove il file
+    c'era.
+    """
+    import briefing_luca  # noqa: E402
 
     return briefing_luca
 
