@@ -262,6 +262,110 @@ async def build_luca_context() -> str:
     now = datetime.now(timezone.utc)
     lines.append(f"DATA ODIERNA: {now.strftime('%d/%m/%Y %H:%M')} UTC")
 
+    # --- CASSA A BREVE: obiettivo, scadenze, crediti ---
+    #
+    # Il system prompt qui sopra dice a Luca che la cassa e' "il gate che decide
+    # se l'azienda respira" e gli chiede di partire da li'. Fino al 2/9/2026 quel
+    # dato nel contesto non c'era: aveva l'istruzione di guardare la cassa senza
+    # avere la cassa. A un modello a cui chiedi di ragionare su un numero che non
+    # gli hai dato, quel numero lo stima -- ed e' il modo piu' rapido per farsi
+    # dare una cifra inventata con tono sicuro.
+    #
+    # Legge dal database direttamente e non via HTTP come fa il briefing del
+    # mattino: qui siamo dentro lo stesso processo, e una chiamata di rete a se
+    # stessi aggiungerebbe solo un modo di fallire.
+    try:
+        from obiettivo import stato as _stato_obiettivo, OBIETTIVO_CORRENTE
+        from crediti import riepilogo as _riepilogo_crediti
+
+        lines.append("")
+        lines.append("== CASSA A BREVE (il gate) ==")
+
+        ob = await db.obiettivi.find_one({"id": OBIETTIVO_CORRENTE}, {"_id": 0})
+        if ob:
+            s = _stato_obiettivo(ob)
+            lines.append(
+                f"OBIETTIVO {s['titolo']}: target EUR {s['target']:.0f} · "
+                f"incassato EUR {s['incassato']:.0f} · manca EUR {s['gap']:.0f} "
+                f"in {s['giorni_rimasti']} giorni"
+            )
+            if s.get("ritmo_necessario"):
+                lines.append(f"Ritmo necessario: EUR {s['ritmo_necessario']:.0f} al giorno")
+            if s.get("proiezione_al_ritmo_attuale") is not None:
+                lines.append(
+                    f"Proiezione al ritmo tenuto finora: EUR "
+                    f"{s['proiezione_al_ritmo_attuale']:.0f}"
+                )
+            # La riga che decide se il piano regge. Va detta anche quando la
+            # risposta e' buona: e' il presupposto di tutto il resto.
+            if s["leve_coprono_il_gap"]:
+                lines.append(
+                    f"Le leve aperte valgono EUR {s['valore_leve_vive']:.0f}: "
+                    f"coprono quello che manca."
+                )
+            else:
+                lines.append(
+                    f"Le leve aperte valgono EUR {s['valore_leve_vive']:.0f}: "
+                    f"SCOPERTI EUR {s['scoperto']:.0f} che oggi non hanno una voce. "
+                    f"Spingere sulle leve esistenti non basta a chiudere."
+                )
+            for l in s.get("leve_vive", []):
+                lines.append(
+                    f"  · leva {l['nome']}: EUR {l['valore']:.0f} [{l['stato']}]"
+                    + (f" — dipende da: {l['dipende_da']}" if l.get("dipende_da") else "")
+                )
+            for f in s.get("leve_ferme", []):
+                lines.append(
+                    f"  ! FERMA da {f['giorni_fermi']} giorni: {f['nome']} "
+                    f"(EUR {f['valore']:.0f})"
+                )
+        else:
+            # Punto cieco dichiarato invece che dedotto: senza questa riga Luca
+            # ricostruirebbe l'obiettivo a memoria dalle conversazioni.
+            lines.append(
+                f"OBIETTIVO '{OBIETTIVO_CORRENTE}': NON CENSITO nel sistema. "
+                f"Non conosci target ne' avanzamento: dillo, non stimarli."
+            )
+
+        crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+        if crediti:
+            r = _riepilogo_crediti(crediti, now.year, now.month)
+            lines.append(
+                f"INCASSI {r['mese']}: previsto EUR {r['previsto_nel_mese']:.0f} · "
+                f"gia' entrato EUR {r['gia_incassato_nel_mese']:.0f} · "
+                f"residuo da recuperare in tutto EUR {r['residuo_totale']:.0f}"
+            )
+            for rata in r.get("scade_oggi", []):
+                lines.append(
+                    f"  >> SCADE OGGI: {rata['nome']} EUR {float(rata['importo']):.0f}"
+                )
+            for rata in r.get("in_ritardo", []):
+                lines.append(
+                    f"  ! in ritardo: {rata['nome']} EUR {float(rata['importo']):.0f} "
+                    f"(scadeva {rata.get('scadenza')})"
+                )
+            for voce in r.get("a_condizione", []):
+                lines.append(
+                    f"  · dovuto senza data: {voce['nome']} EUR {voce['importo']:.0f} "
+                    f"— {voce.get('condizione') or 'condizione non indicata'}"
+                )
+            # ⛔ Si dichiara, non si nasconde: il denaro esiste nei conti, ma la
+            # telefonata non va fatta. Senza questa riga Luca la proporrebbe come
+            # azione ovvia -- ed e' esattamente la cosa da non fare.
+            for voce in r.get("sospese_dal_sollecito", []):
+                lines.append(
+                    f"  · DOVUTO MA DA NON SOLLECITARE: {voce['nome']} "
+                    f"EUR {voce['importo']:.0f} — non proporre di contattarli."
+                )
+        else:
+            lines.append(
+                "CREDITI: nessun credito censito. Non hai le scadenze del mese: "
+                "dillo invece di ricostruirle."
+            )
+    except Exception as e:
+        logger.warning(f"[admin_luca] cassa a breve: {e}")
+        lines.append("== CASSA A BREVE == dati non disponibili (non stimarli)")
+
     # --- DELIVERY (Stefania): partner, fasi, inattivi, alert ---
     all_partners: List[Dict[str, Any]] = []
     try:
