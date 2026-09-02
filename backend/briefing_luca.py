@@ -39,6 +39,7 @@ import os
 import sys
 
 import sensori
+from obiettivo import OBIETTIVO_CORRENTE
 
 DEFAULT_BASE_URL = "https://www.ciak.io"
 ENDPOINTS = {
@@ -89,7 +90,7 @@ def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
     # raggiunge i 10k": Luca non puo' vendere, ma puo' dire ogni mattina quanto
     # manca, a che ritmo serve andare, e quale leva si sta raffreddando.
     fonti["obiettivo"] = leggi_ciak_fn(
-        base_url, key, "/api/admin/ciak/obiettivo/10k-settembre", "obiettivo"
+        base_url, key, f"/api/admin/ciak/obiettivo/{OBIETTIVO_CORRENTE}", "obiettivo"
     )
 
     fonti["sito"] = leggi_sito_fn()

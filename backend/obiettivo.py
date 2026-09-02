@@ -41,6 +41,15 @@ STATI_LEVA = (LEVA_APERTA, LEVA_IN_CORSO, LEVA_CHIUSA, LEVA_PERSA)
 # raffreddando mentre nessuno se ne accorge.
 GIORNI_LEVA_FERMA = 14
 
+# L'obiettivo che Luca guarda, in un posto solo.
+#
+# E' un id fisso e non "l'ultimo inserito" di proposito: il briefing del mattino
+# e la chat con Claudio devono parlare dello stesso obiettivo. Se ognuno lo
+# scegliesse da se', due fonti potrebbero dare numeri diversi nello stesso
+# giorno -- ed e' il tipo di incoerenza che fa smettere di fidarsi del cruscotto.
+# A ottobre si cambia questa riga, non sei file.
+OBIETTIVO_CORRENTE = "10k-settembre"
+
 
 class Leva(BaseModel):
     nome: str
