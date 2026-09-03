@@ -4357,6 +4357,27 @@ async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_
     return {"success": True, "credito": validato}
 
 
+@router.get("/collaudo")
+async def collaudo_catene(admin=Depends(require_admin_or_report_key)):
+    """
+    Le catene di Ciak producono qualcosa, o girano a vuoto?
+
+    Accetta la chiave di sola lettura perche' lo legge il briefing di Luca: un
+    guasto che ti viene a cercare la mattina dopo vale infinitamente piu' di una
+    pagina che qualcuno deve ricordarsi di aprire — e nessuno se la ricorda,
+    perche' non c'e' motivo di aprirla finche' non e' gia' troppo tardi.
+
+    ⛔ Guarda il FONDO della catena, non l'esecuzione: tutti i guasti seri di
+    Ciak dichiaravano `success` mentre non producevano niente.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from collaudo import collauda
+
+    return await collauda(db)
+
+
 @router.delete("/crediti/{credito_id}")
 async def crediti_elimina(credito_id: str, admin=Depends(require_ciak_admin)):
     """

@@ -93,12 +93,25 @@ def raccogli(base_url, key, leggi_ciak_fn=None, leggi_sito_fn=None):
         base_url, key, f"/api/admin/ciak/obiettivo/{OBIETTIVO_CORRENTE}", "obiettivo"
     )
 
+    # Il collaudo delle catene. E' la fonte che risponde alla domanda che
+    # nessuno faceva: i pezzi che girano stanno producendo qualcosa?
+    #
+    # Aggiunta il 3/9/2026. Fino a qui ogni guasto e' stato scoperto per caso e
+    # settimane dopo -- la porta 8001, il filtro dei 564 lead, il modulo fuori
+    # dal container -- perche' tutti dichiaravano successo mentre non
+    # producevano niente. Adesso il silenzio di una catena arriva la mattina
+    # dopo, non due mesi dopo.
+    fonti["collaudo"] = leggi_ciak_fn(
+        base_url, key, "/api/admin/ciak/collaudo", "collaudo"
+    )
+
     fonti["sito"] = leggi_sito_fn()
 
     output = {nome: fonti[nome]["dati"] for nome in ENDPOINTS}
     output["funnel"] = fonti["funnel"]["dati"]
     output["crediti"] = fonti["crediti"]["dati"]
     output["obiettivo"] = fonti["obiettivo"]["dati"]
+    output["collaudo"] = fonti["collaudo"]["dati"]
     output["fonti"] = fonti
     return output, None
 
