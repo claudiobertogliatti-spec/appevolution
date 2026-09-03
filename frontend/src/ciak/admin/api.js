@@ -127,6 +127,31 @@ export async function apiPost(path, body = {}) {
   return res.json();
 }
 
+/**
+ * PATCH JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet.
+ * E' il verbo dell'amministrazione: segnare l'esito di una rata, muovere una leva.
+ */
+export async function apiPatch(path, body = {}) {
+  const token = getToken();
+  const res = await fetch(`/api/admin/ciak${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
+  }
+  return res.json();
+}
+
 /** POST multipart autenticato, senza impostare Content-Type (lo aggiunge il browser col boundary). */
 export async function apiMultipart(path, formData) {
   const token = getToken();

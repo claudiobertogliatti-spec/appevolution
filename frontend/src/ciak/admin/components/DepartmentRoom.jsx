@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, CheckCircle2, LayoutDashboard, MessageCircle, Sparkles, Target } from "lucide-react";
+import { ArrowRight, LayoutDashboard, MessageCircle } from "lucide-react";
 import { LucaChat } from "../pages/LucaChat";
 import { StefaniaAdmin } from "../pages/StefaniaAdmin";
 
@@ -27,14 +27,14 @@ function MiniCheckBox({ room }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center gap-2 mb-2">
-        <MessageCircle className="w-4 h-4 text-blue-600" />
+        <MessageCircle className="w-4 h-4 text-slate-900" />
         <p className="text-sm font-semibold text-slate-900">Chiedi un check a {room.agent.name}</p>
       </div>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={3}
-        className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300"
+        className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-900"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="text-xs text-slate-500">
@@ -75,53 +75,12 @@ export function DepartmentMetricStrip({ metrics, values = {} }) {
   );
 }
 
-export function DepartmentBriefing({ room }) {
-  const items = [
-    { label: "Analisi numeri", value: room.briefing.numbers, icon: Sparkles },
-    { label: "Cosa funziona", value: room.briefing.working, icon: CheckCircle2 },
-    { label: "Cosa non funziona", value: room.briefing.notWorking, icon: AlertTriangle },
-    { label: "Soluzione prioritaria", value: room.briefing.solution, icon: Target },
-  ];
-
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Report di inizio giornata</p>
-          <h2 className="text-lg font-semibold text-slate-900">Fotografia essenziale del reparto</h2>
-        </div>
-        <span className="rounded-lg bg-yellow-50 px-3 py-1.5 text-xs font-semibold text-yellow-700 border border-yellow-200">
-          max 7 numeri
-        </span>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="rounded-lg bg-slate-50 border border-slate-100 p-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Icon className="w-4 h-4 text-blue-600" />
-                {item.label}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{item.value}</p>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-4">
-        <p className="text-sm font-semibold text-slate-900">Accorgimento</p>
-        <p className="mt-1 text-sm text-slate-600">{room.briefing.note}</p>
-      </div>
-    </section>
-  );
-}
-
 export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) {
   return (
     <div className="space-y-5 mb-8">
-      <section className="rounded-xl border border-yellow-300 bg-white p-5 shadow-[0_0_28px_rgba(250,204,21,0.14)]">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-start gap-4">
-          <div className="mt-1 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+          <div className="mt-1 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-yellow-400">
             <LayoutDashboard className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -161,7 +120,6 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) 
         </div>
       </section>
       <DepartmentMetricStrip metrics={room.metrics} values={metricValues} />
-      <DepartmentBriefing room={room} />
     </div>
   );
 }

@@ -1,38 +1,44 @@
 /**
- * Ciak Admin — CABINA DI REGIA (v4).
- * Panoramica delle 5 SEZIONI operative dell'organigramma Ciak (le stesse della
- * sidebar, esclusa la Dashboard): Acquisizione · Vendite · Delivery · Casi studio
- * · Back office. Ogni finestra mostra il suo "Agente di Riferimento" + KPI sintetici
- * e, al click, apre la pagina-reparto con le sue macro-finestre.
- * In cima resta il semaforo di autonomia (🟢 approvati · 🟡 in attesa · 🔴 urgenti).
- * Il riquadro "Cosa aspetta il tuo OK" (Approva/Rifiuta) è in "Oggi".
+ * Ciak Admin — CABINA DI REGIA (v5, 3/9/2026).
+ *
+ * Prima cio' che decide, poi cio' che informa:
+ *  1. Cassa a breve  — obiettivo del mese, cosa scade oggi, leve ferme → Amministrazione
+ *  2. Cosa aspetta il tuo OK — la coda dei task degli agenti, con Approva/Rifiuta
+ *  3. Reparti — le 5 sezioni con gli STESSI KPI delle pagine-reparto (una fonte sola)
+ *  4. Plancia €1M — consuntivo del funnel, link al Simulatore
+ * La chat con Luca non occupa piu' la prima schermata: si apre da un pulsante
+ * fisso in basso a destra, in un pannello laterale.
+ *
+ * Tolto il "Report di inizio giornata": era testo scritto a mano in
+ * departmentRooms.js, identico ogni giorno, e occupava lo spazio di un dato.
  */
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, ClipboardCheck, CreditCard, LineChart, Megaphone, Users } from "lucide-react";
-import { adminFetch } from "../api";
-import { DepartmentRoomIntro } from "../components/DepartmentRoom";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  AlertTriangle, ArrowRight, BarChart3, CheckCircle2, ClipboardCheck, Clock, CreditCard,
+  LineChart, Megaphone, MessageCircle, Users, X,
+} from "lucide-react";
+import { adminFetch, apiGet } from "../api";
+import { euro } from "../euro";
 import { FunnelWaterfall } from "../components/FunnelWaterfall";
-import { getDepartmentRoom } from "../departmentRooms";
+import { ApprovalsQueue } from "../components/ApprovalsQueue";
+import { LucaChat } from "../pages/LucaChat";
+import { useRepartoMetrics } from "../repartoMetrics";
+import { DEPARTMENT_ROOMS } from "../departmentRooms";
 
-// Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard). `to`
-// punta alla pagina-reparto (landing con macro-finestre); Casi studio è una
-// pagina singola e linka direttamente.
+// Stesso id fisso di Amministrazione.jsx e del backend (OBIETTIVO_CORRENTE).
+const OBIETTIVO_ID = "10k-settembre";
+
+// Le 5 sezioni operative = le macro della sidebar (esclusa Dashboard).
+// I KPI mostrati sono i primi 3 della strip del reparto (repartoMetrics.js):
+// stessa fonte della pagina-reparto, cosi' i numeri non si contraddicono.
 const REPARTI = [
-  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", tone: "amber", icon: Megaphone, resp: "Luca", respAvatar: "/agents/luca.jpg", to: "/admin/reparto/acquisizione" },
-  { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", tone: "emerald", icon: BarChart3, resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/reparto/vendite" },
-  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", tone: "violet", icon: Users, resp: "Simona", respAvatar: "/agents/stefania.jpg", team: "Simona · Valentina · Andrea · Gaia · Marco · Carlo", to: "/admin/reparto/delivery" },
-  { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per vendere meglio", tone: "rose", icon: ClipboardCheck, resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/reparto/casi-studio" },
-  { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", tone: "sky", icon: CreditCard, resp: "Valentina", respAvatar: "/agents/valentina.jpg", to: "/admin/reparto/back-office" },
+  { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", icon: Megaphone, to: "/admin/reparto/acquisizione" },
+  { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", icon: BarChart3, to: "/admin/reparto/vendite" },
+  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", icon: Users, to: "/admin/reparto/delivery" },
+  { id: "casi-studio", nome: "Casi studio", mandato: "Prova sociale per vendere meglio", icon: ClipboardCheck, to: "/admin/reparto/casi-studio" },
+  { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", icon: CreditCard, to: "/admin/reparto/back-office" },
 ];
-
-const TONES = {
-  amber: "bg-amber-50 border-amber-200 text-amber-700",
-  emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
-  violet: "bg-violet-50 border-violet-200 text-violet-700",
-  rose: "bg-rose-50 border-rose-200 text-rose-700",
-  sky: "bg-sky-50 border-sky-200 text-sky-700",
-};
 
 async function getJSON(path) {
   const r = await adminFetch(path);
@@ -40,38 +46,11 @@ async function getJSON(path) {
   try { return await r.json(); } catch { return null; }
 }
 
-function kpisFor(id, sum, health, lead) {
-  const lp = lead?.pipeline || {}, lpa = lead?.pending_actions || {}, lt = lead?.today || {};
-  if (id === "acquisizione") return [["Lead totali", lp.total_leads], ["Lead caldi", lp.hot_leads], ["Scoperti oggi", lt.discovered]];
-  if (id === "vendite") return [["Lead caldi", lp.hot_leads], ["Da revisionare", lpa.messages_to_review], ["Inviati oggi", lt.messages_sent]];
-  if (id === "delivery") return [["Partner", sum.total_partners], ["Attivi", sum.active_partners], ["Accountability", health.accountability || "—"]];
-  if (id === "casi-studio") return [["Partner attivi", sum.active_partners], ["Engagement", health.engagement || "—"]];
-  return [["MRR", sum.mrr != null ? "€ " + Number(sum.mrr).toLocaleString("it-IT") : "—"], ["LTV medio", sum.avg_ltv != null ? "€ " + sum.avg_ltv : "—"], ["Tech", health.tech || "—"]];
-}
 
 function fmt(v) {
   if (v == null || v === "") return "—";
   if (typeof v === "number") return v.toLocaleString("it-IT");
   return v;
-}
-
-function dashboardValues({ sum, acq, gG, gR, partners }) {
-  const activePartners = sum.active_partners ?? partners.filter((p) => (p.stato || "attivo") === "attivo").length;
-  const blockedPartners = partners.filter((p) => p.stato === "quarantena").length;
-  const partnerships = acq?.target?.partnerships_closed ?? 0;
-  const critical =
-    gR > 0 ? "Decisioni ferme" :
-    blockedPartners > 0 ? "Delivery" :
-    (acq?.target?.gap || 0) > 0 ? "Vendite" :
-    "Nessuno";
-  return {
-    "Fatturato mese": sum.mrr != null ? `EUR ${Number(sum.mrr).toLocaleString("it-IT")}` : "Da collegare",
-    "Partnership chiuse": fmt(partnerships),
-    "Partner attivi": fmt(activePartners),
-    "Partner bloccati": fmt(blockedPartners),
-    "Azioni per Claudio": fmt(gG),
-    "Reparto critico": critical,
-  };
 }
 
 function pct(a, b) {
@@ -91,50 +70,205 @@ function funnelData({ mc = {}, inv = {}, hub = {} }) {
   const oneOff = revBlue + revStart + revPart;
   const mrr = (hub.summary || {}).mrr || 0;
   const arpu = optin > 0 ? oneOff / optin : 0;
-  const eur = (n) => "€ " + Number(n || 0).toLocaleString("it-IT");
   const stages = [
     { label: "Lead (opt-in)", count: fmt(optin) },
     { label: "8 Domande completate", count: fmt(domande), conv: pct(domande, optin) },
-    { label: "Blueprint €27", count: fmt(blueprint), euro: eur(revBlue), conv: pct(blueprint, domande), hot: true },
-    { label: "Ciak Start €499", count: fmt(start), euro: eur(revStart), conv: pct(start, blueprint) },
-    { label: "Partnership €2.790", count: fmt(partnership), euro: eur(revPart), conv: pct(partnership, blueprint), hot: true },
+    { label: "Blueprint €27", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande), hot: true },
+    { label: "Ciak Start €499", count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
+    { label: "Partnership €2.790", count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
   ];
   const northStar = {
-    oneOff: eur(oneOff),
-    mrr: eur(mrr),
-    arpu: eur(Math.round(arpu)),
+    oneOff: euro(oneOff),
+    mrr: euro(mrr),
+    arpu: euro(Math.round(arpu)),
     goalPct: Math.round((oneOff / 1000000) * 100),
   };
   return { stages, northStar };
 }
 
+// ─── 1. Cassa a breve ──────────────────────────────────────────────────────
+
+function CassaBreve({ ob, cred, disponibile }) {
+  const ferme = ob?.leve_ferme || [];
+  const oggi = cred?.scade_oggi || [];
+  const ritardo = cred?.in_ritardo || [];
+  return (
+    <section data-testid="cassa-breve" className="rounded-2xl border border-slate-900 bg-white overflow-hidden mb-4">
+      <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-400">Cassa a breve</p>
+          <h2 className="font-semibold leading-tight">{ob?.titolo || "Obiettivo del mese"}</h2>
+        </div>
+        <Link
+          to="/admin/amministrazione"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-yellow-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+        >
+          Apri Amministrazione <ArrowRight className="w-4 h-4" aria-hidden />
+        </Link>
+      </div>
+      {!disponibile ? (
+        <p className="px-5 py-4 text-sm text-slate-600">Obiettivo e crediti non ancora censiti: si caricano con lo script di amministrazione.</p>
+      ) : (
+        <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Incassato</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{euro(ob?.incassato)}</p>
+            <p className="text-xs text-slate-500">
+              mancano <b className="text-slate-900">{euro(ob?.gap)}</b> in {ob?.giorni_rimasti ?? "—"} giorni
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Scade oggi</p>
+            {oggi.length === 0 ? (
+              <p className="mt-1 text-sm text-slate-700">Nessuna rata</p>
+            ) : (
+              <ul className="mt-1 space-y-0.5 text-sm text-slate-900">
+                {oggi.map((r, i) => <li key={i}><b>{r.nome}</b> · {euro(r.importo)}</li>)}
+              </ul>
+            )}
+            {ritardo.length > 0 && (
+              <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-800">
+                <AlertTriangle className="w-3.5 h-3.5" aria-hidden /> {ritardo.length} in ritardo · {euro(cred?.importo_in_ritardo)}
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Leve ferme</p>
+            {ferme.length === 0 ? (
+              <p className="mt-1 text-sm text-slate-700">Nessuna</p>
+            ) : (
+              <ul className="mt-1 space-y-0.5 text-sm text-slate-900">
+                {ferme.slice(0, 3).map((l) => (
+                  <li key={l.nome}><b>{l.nome}</b> · {euro(l.valore)} · {l.giorni_fermi} gg</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── 2. Semaforo autonomia (pill con icona e parola, mai solo colore) ──────
+
+function Semaforo({ verdi, gialli, rossi }) {
+  const items = [
+    { n: verdi, label: "Approvati oggi in autonomia", Icon: CheckCircle2, cls: "border-emerald-200 bg-emerald-50 text-emerald-800" },
+    { n: gialli, label: "Aspettano il tuo OK", Icon: Clock, cls: "border-amber-200 bg-amber-50 text-amber-800" },
+    { n: rossi, label: "Urgenti, fermi da più di 4 ore", Icon: AlertTriangle, cls: "border-red-200 bg-red-50 text-red-800" },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+      {items.map(({ n, label, Icon, cls }) => (
+        <div key={label} className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${cls}`}>
+          <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
+          <div>
+            <div className="text-2xl font-semibold tabular-nums leading-none">{n}</div>
+            <p className="text-xs mt-1">{label}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── 3. Card reparto: stessi KPI della pagina-reparto ──────────────────────
+
+function RepartoCard({ r, onOpen }) {
+  const Icon = r.icon;
+  const room = DEPARTMENT_ROOMS[r.id];
+  const values = useRepartoMetrics(r.id);
+  const labels = (room?.metrics || []).slice(0, 3);
+  return (
+    <button
+      type="button"
+      data-testid={`reparto-${r.id}`}
+      onClick={() => onOpen(r.to)}
+      className="text-left rounded-2xl border border-slate-200 bg-white overflow-hidden hover:border-slate-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+    >
+      <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-slate-100">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-slate-900 text-yellow-400 flex items-center justify-center flex-shrink-0">
+            <Icon className="w-5 h-5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-slate-900 leading-tight">{r.nome}</h3>
+            <p className="text-xs text-slate-500 truncate">{r.mandato}</p>
+          </div>
+        </div>
+        {room?.agent && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {room.agent.avatar && (
+              <img src={room.agent.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200" />
+            )}
+            <div className="text-right leading-tight">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500">Agente</div>
+              <div className="text-xs font-semibold text-slate-700">{room.agent.name}</div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="px-5 py-4 grid grid-cols-3 gap-3">
+        {labels.map((label) => (
+          <div key={label} className="flex flex-col min-w-0">
+            <span className="text-lg font-semibold tabular-nums text-slate-900 leading-tight truncate">{values[label] ?? "—"}</span>
+            <span className="text-[11px] uppercase tracking-wide text-slate-500 leading-tight">{label}</span>
+          </div>
+        ))}
+      </div>
+    </button>
+  );
+}
+
+// ─── 5. Pannello laterale con la chat di Luca ──────────────────────────────
+
+function LucaPanel({ open, onClose, onAuthExpired }) {
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-slate-900/30 transition-opacity duration-200 ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside
+        className={`fixed top-0 right-0 z-50 h-full w-full max-w-[440px] bg-gray-50 shadow-[0_0_40px_rgba(15,23,42,0.2)] transition-transform duration-200 motion-reduce:transition-none ${open ? "translate-x-0" : "translate-x-full"}`}
+        aria-label="Chat con Luca"
+        aria-hidden={!open}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+          <p className="text-sm font-semibold text-slate-900">Luca · Amministratore Delegato AI</p>
+          <button type="button" onClick={onClose} aria-label="Chiudi" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </div>
+        <div className="p-3">{open && <LucaChat onAuthExpired={onAuthExpired} />}</div>
+      </aside>
+    </>
+  );
+}
+
+// ─── Pagina ────────────────────────────────────────────────────────────────
+
 export function CabinaRegia({ onAuthExpired }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
+  const [cassa, setCassa] = useState({ ob: null, cred: null });
   const [loading, setLoading] = useState(true);
+  const [lucaOpen, setLucaOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [hub, appr, apl, lead, acq, partnersData, mc, inv] = await Promise.all([
+      const [hub, appr, mc, inv, ob, cred] = await Promise.all([
         getJSON("/api/agent-hub/summary"),
         getJSON("/api/agent-tasks/approval-stats"),
-        getJSON("/api/agent-tasks/approvals"),
-        getJSON("/api/discovery/stats/today"),
-        getJSON("/api/admin/ciak/acquisizione-command-center"),
-        getJSON("/api/admin/ciak/partners"),
         getJSON("/api/admin/ciak/masterclass-analytics"),
         getJSON("/api/admin/ciak/invoices/sources"),
+        apiGet(`/obiettivo/${OBIETTIVO_ID}`).catch(() => null),
+        apiGet("/crediti/riepilogo").catch(() => null),
       ]);
-      setD({
-        hub: hub || {},
-        appr: appr || {},
-        approvals: apl?.tasks || [],
-        lead,
-        acq: acq || {},
-        partners: partnersData?.items || [],
-        mc: mc || {},
-        inv: inv || {},
-      });
+      setD({ hub: hub || {}, appr: appr || {}, mc: mc || {}, inv: inv || {} });
+      setCassa({ ob, cred });
     } catch (e) {
       if (e?.message === "AUTH_EXPIRED") onAuthExpired?.();
     } finally { setLoading(false); }
@@ -142,85 +276,71 @@ export function CabinaRegia({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <div className="py-24 text-center text-slate-400">Carico la cabina di regia…</div>;
+  if (loading) {
+    return (
+      <div className="max-w-6xl p-6 md:p-8 space-y-4" aria-busy="true">
+        <div className="h-40 rounded-2xl border border-slate-200 bg-white animate-pulse" />
+        <div className="h-24 rounded-2xl border border-slate-200 bg-white animate-pulse" />
+        <div className="h-64 rounded-2xl border border-slate-200 bg-white animate-pulse" />
+      </div>
+    );
+  }
 
-  const sum = d.hub.summary || {}, health = d.hub.health || {};
-  const gV = d.appr.approved_today ?? 0, gG = d.appr.pending_count ?? d.approvals.length ?? 0, gR = d.appr.stale_count ?? 0;
-  const room = getDepartmentRoom("dashboard");
-  const metricValues = dashboardValues({ sum, acq: d.acq || {}, gG, gR, partners: d.partners || [] });
+  const gV = d.appr.approved_today ?? 0, gG = d.appr.pending_count ?? 0, gR = d.appr.stale_count ?? 0;
+  const health = d.hub.health || {};
+  // agent-hub/summary restituisce la salute come emoji: qui diventa una parola.
+  const SALUTE = { "🟢": "buona", "🟡": "da tenere d'occhio", "🔴": "critica" };
+  const salute = SALUTE[String(health.overall || "").trim()] || (typeof health.overall === "string" && health.overall.trim() ? health.overall : "—");
 
   return (
     <div className="max-w-6xl p-6 md:p-8">
-      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+      <CassaBreve ob={cassa.ob} cred={cassa.cred} disponibile={Boolean(cassa.ob || cassa.cred)} />
+
+      <Semaforo verdi={gV} gialli={gG} rossi={gR} />
+      <div className="mb-8">
+        <ApprovalsQueue onAuthExpired={onAuthExpired} />
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold text-slate-900">Reparti</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Le 5 aree operative coordinate da Luca. Salute complessiva: <span className="font-semibold text-slate-700">{salute}</span>
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {REPARTI.map((r) => <RepartoCard key={r.id} r={r} onOpen={navigate} />)}
+      </div>
 
       <FunnelWaterfall {...funnelData(d)} />
 
-      {/* Simulatore €1M — la proiezione, controparte della Plancia (dati reali) */}
       <button
+        type="button"
         onClick={() => navigate("/admin/simulatore")}
-        className="w-full text-left rounded-2xl border border-yellow-300 bg-white overflow-hidden mb-7 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition group"
+        className="w-full text-left rounded-2xl border border-slate-200 bg-white overflow-hidden mb-7 hover:border-slate-900 transition-colors group focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
       >
         <div className="flex items-center gap-4 px-5 py-4">
-          <div className="w-11 h-11 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center flex-shrink-0">
-            <LineChart className="w-5 h-5" />
+          <div className="w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 flex items-center justify-center flex-shrink-0">
+            <LineChart className="w-5 h-5" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">Simulatore €1M · proiezione</p>
-            <h3 className="font-bold text-slate-900 leading-tight">Pianifica la traiettoria a 3 anni</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Scenari prudente/base/ambizioso e leve tarabili sui dati veri. La Plancia sopra è il consuntivo; questo è il piano.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Simulatore €1M · proiezione</p>
+            <h3 className="font-semibold text-slate-900 leading-tight">Pianifica la traiettoria a 3 anni</h3>
+            <p className="text-xs text-slate-500 mt-0.5">La Plancia sopra è il consuntivo; questo è il piano.</p>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-700 group-hover:gap-2.5 transition-all flex-shrink-0">
-            Apri <ArrowRight className="w-4 h-4" />
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 flex-shrink-0">
+            Apri <ArrowRight className="w-4 h-4" aria-hidden />
           </span>
         </div>
       </button>
 
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Reparti Evolution PRO</h2>
-        <p className="text-sm text-slate-500 mt-1">Le 5 aree operative coordinate da Luca. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 mb-7">
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4"><div className="text-2xl font-bold text-emerald-700">{gV}</div><p className="text-xs text-emerald-800/70 mt-1">🟢 Approvati oggi · in autonomia</p></div>
-        <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4"><div className="text-2xl font-bold text-amber-700">{gG}</div><p className="text-xs text-amber-800/70 mt-1">🟡 Aspettano il tuo OK</p></div>
-        <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-4"><div className="text-2xl font-bold text-rose-700">{gR}</div><p className="text-xs text-rose-800/70 mt-1">🔴 Urgenti · fermi da &gt;4h</p></div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {REPARTI.map((r) => {
-          const Icon = r.icon;
-          return (
-          <button key={r.id} onClick={() => navigate(r.to)} className="text-left rounded-2xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 hover:shadow-sm transition">
-            <div className={`px-5 py-4 flex items-center justify-between border-b ${TONES[r.tone] || TONES.sky}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div><h3 className="font-bold text-slate-900 leading-tight">{r.nome}</h3><p className="text-xs text-slate-600">{r.mandato}</p></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <img src={r.respAvatar} alt={r.resp} title={"Agente di Riferimento: " + r.resp} className="w-8 h-8 rounded-full object-cover border-2 border-white" />
-                <div className="text-right leading-tight">
-                  <div className="text-[10px] uppercase tracking-wide text-slate-400">Agente di Riferimento</div>
-                  <div className="text-xs font-semibold text-slate-700">{r.resp}</div>
-                </div>
-              </div>
-            </div>
-            <div className="px-5 py-4 grid grid-cols-3 gap-3">
-              {kpisFor(r.id, sum, health, d.lead).map(([label, value]) => (
-                <div key={label} className="flex flex-col">
-                  <span className="text-lg font-bold text-slate-900 leading-tight">{value ?? "—"}</span>
-                  <span className="text-[11px] uppercase tracking-wide text-slate-400">{label}</span>
-                </div>
-              ))}
-            </div>
-            {r.team && (
-              <div className="px-5 pb-3 -mt-1 text-[11px] text-slate-400">Team sul percorso partner: {r.team}</div>
-            )}
-          </button>
-          );
-        })}
-      </div>
+      <button
+        type="button"
+        onClick={() => setLucaOpen(true)}
+        className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-yellow-400 shadow-[0_8px_24px_rgba(15,23,42,0.25)] hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+      >
+        <MessageCircle className="w-4 h-4" aria-hidden /> Chiedi a Luca
+      </button>
+      <LucaPanel open={lucaOpen} onClose={() => setLucaOpen(false)} onAuthExpired={onAuthExpired} />
     </div>
   );
 }
