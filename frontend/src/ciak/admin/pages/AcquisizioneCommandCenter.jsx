@@ -249,12 +249,9 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       </div>
 
       <div className="grid xl:grid-cols-2 gap-5">
-        <PriorityList
-          title="Checkpoint fatto, 8 domande mancanti"
-          description="Sono lead che hanno ricevuto consapevolezza. Devono completare la diagnosi."
-          items={priorities.checkpoint_no_diagnostic || []}
-          empty="Nessun lead fermo dopo il Checkpoint."
-        />
+        {/* La card "Checkpoint fatto, 8 domande mancanti" e' stata rimossa il 4/9/2026:
+            il Checkpoint e' ritirato dal funnel vivo, quella lista mostrava solo i
+            fantasmi di giugno. Il backend non espone piu' checkpoint_no_diagnostic. */}
         <PriorityList
           title="8 domande completate, Blueprint non acquistato"
           description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
