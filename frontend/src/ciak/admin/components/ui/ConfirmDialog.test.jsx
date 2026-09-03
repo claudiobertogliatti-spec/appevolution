@@ -35,6 +35,21 @@ test("Conferma chiama onConfirm, Annulla chiama onCancel", () => {
   expect(onCancel).toHaveBeenCalledTimes(1);
 });
 
+test("il click sul backdrop chiude il dialog ma non si propaga al modale padre", () => {
+  const onCancel = jest.fn();
+  const parentClick = jest.fn();
+  render(
+    <div onClick={parentClick}>
+      <ConfirmDialog open title="Procedere?" confirmLabel="Procedi" onConfirm={() => {}} onCancel={onCancel} />
+    </div>
+  );
+  // Il backdrop e' il presentation-layer che avvolge il dialog.
+  const backdrop = screen.getByRole("dialog").parentElement;
+  fireEvent.click(backdrop);
+  expect(onCancel).toHaveBeenCalledTimes(1);
+  expect(parentClick).not.toHaveBeenCalled();
+});
+
 test("un'azione distruttiva colora il bottone di conferma di rosso, non di navy", () => {
   render(
     <ConfirmDialog open title="Eliminare?" confirmLabel="Elimina" destructive onConfirm={() => {}} onCancel={() => {}} />

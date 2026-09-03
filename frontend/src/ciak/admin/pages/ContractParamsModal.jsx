@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Save, RotateCcw, Loader2, Euro, Percent, Clock, CreditCard } from "lucide-react";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExpired }) {
   const [params, setParams] = useState(null);
@@ -16,6 +17,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
   const [isCustomized, setIsCustomized] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [askReset, setAskReset] = useState(false);
 
   useEffect(() => {
     if (!partnerId) return;
@@ -56,8 +58,9 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
     }
   };
 
-  const handleReset = async () => {
-    if (!window.confirm("Vuoi ripristinare i parametri standard?")) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doReset = async () => {
+    setAskReset(false);
     setSaving(true);
     try {
       const res = await adminFetch(`/api/admin/partners/${partnerId}/contract-params`, {
@@ -227,7 +230,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
         <div className="p-5 border-t bg-gray-50 rounded-b-2xl flex items-center justify-between">
           <button
             data-testid="contract-params-reset"
-            onClick={handleReset}
+            onClick={() => setAskReset(true)}
             disabled={saving || !isCustomized}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 disabled:opacity-40"
           >
@@ -252,6 +255,18 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={askReset}
+        title="Ripristina i parametri standard"
+        body="I valori personalizzati del contratto tornano allo standard (€2.790, 10%, 12 mesi, 3 rate)."
+        confirmLabel="Ripristina"
+        cancelLabel="Annulla"
+        destructive
+        busy={saving}
+        onConfirm={doReset}
+        onCancel={() => setAskReset(false)}
+      />
     </div>
   );
 }
