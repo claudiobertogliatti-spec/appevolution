@@ -20,6 +20,7 @@ import {
   Target,
   Video,
 } from "lucide-react";
+import { KpiTile as MetricCard } from "../components/ui/KpiTile";
 
 const APPS = [
   {
@@ -92,16 +93,6 @@ function SectionTitle({ icon: Icon, eyebrow, title, children }) {
         <h2 className="text-xl font-semibold text-slate-900 mt-0.5">{title}</h2>
         {children && <p className="text-sm text-slate-500 mt-1 leading-relaxed">{children}</p>}
       </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value, hint }) {
-  return (
-    <div className="rounded-lg bg-slate-50 border border-slate-100 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900 mt-1">{value}</p>
-      <p className="text-xs text-slate-500 mt-1">{hint}</p>
     </div>
   );
 }
