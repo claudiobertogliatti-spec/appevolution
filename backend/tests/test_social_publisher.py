@@ -1,12 +1,13 @@
 """
-Il publisher social deve pubblicare SOLO cio' che produce davvero.
+Il publisher social deve pubblicare SOLO cio' che produce davvero, su tutti i canali.
 
-Perche' esiste (4/9/2026): la pubblicazione social si e' fermata a giugno e
-nessuno se n'e' accorto. Un motore che dichiara "pubblicato" cio' che non e'
-uscito ripeterebbe il difetto di famiglia di Ciak. Qui si verifica che:
+Perche' esiste (4/9/2026): la pubblicazione si e' fermata a giugno e nessuno se
+n'e' accorto. Un motore che dichiara "pubblicato" cio' che non e' uscito
+ripeterebbe il difetto di famiglia di Ciak. Qui si verifica che:
 - senza token NON si tocca la coda (fail-closed), i post restano pending;
 - si pubblicano solo i post scaduti;
-- un post che fallisce NON viene contato come pubblicato (controprova).
+- se TUTTI i canali escono -> published; se solo alcuni -> partial; se nessuno ->
+  failed. Un post uscito a meta' NON viene contato come pubblicato (controprova).
 """
 
 import asyncio
@@ -84,6 +85,15 @@ def _run(coro):
     return asyncio.new_event_loop().run_until_complete(coro)
 
 
+def _con_token(monkeypatch):
+    monkeypatch.setenv("IG_BUSINESS_ID", "123")
+    monkeypatch.setenv("META_PAGE_ACCESS_TOKEN", "tok")
+
+    async def _pid(client, token):
+        return "PAGE"
+    monkeypatch.setattr(sp, "_fb_page_id", _pid)
+
+
 def test_senza_token_non_tocca_la_coda(monkeypatch):
     monkeypatch.delenv("IG_BUSINESS_ID", raising=False)
     monkeypatch.delenv("INSTAGRAM_BUSINESS_ID", raising=False)
@@ -97,47 +107,59 @@ def test_senza_token_non_tocca_la_coda(monkeypatch):
     assert res["configurato"] is False
     assert res["pubblicati"] == 0
     assert res["in_coda_scaduti"] == 1
-    # ⭐ il post NON diventa failed: resta pending per quando arrivera' il token
-    assert docs[0]["status"] == "pending"
+    assert docs[0]["status"] == "pending"  # non diventa failed
 
 
-def test_pubblica_solo_gli_scaduti(monkeypatch):
-    monkeypatch.setenv("IG_BUSINESS_ID", "123")
-    monkeypatch.setenv("META_PAGE_ACCESS_TOKEN", "tok")
+def test_pubblica_solo_gli_scaduti_su_tutti_i_canali(monkeypatch):
+    _con_token(monkeypatch)
 
-    async def _finto_ok(client, ig, token, post):
-        return ("MEDIA_" + post["post_id"], "https://instagram.com/p/" + post["post_id"])
-
-    monkeypatch.setattr(sp, "_pubblica_uno", _finto_ok)
+    async def _ok(client, ig, token, page_id, post):
+        return ({"instagram": {"media_id": "M", "permalink": "ig/" + post["post_id"]},
+                 "facebook": {"post_id": "F", "permalink": "fb/" + post["post_id"]}}, [])
+    monkeypatch.setattr(sp, "_pubblica_post", _ok)
 
     docs = [
         {"_id": 1, "post_id": "scaduto", "status": "pending", "scheduled_date": OGGI,
          "image_urls": ["u1", "u2"], "caption": "c"},
         {"_id": 2, "post_id": "futuro", "status": "pending", "scheduled_date": DOMANI,
          "image_urls": ["u1", "u2"], "caption": "c"},
-        {"_id": 3, "post_id": "gia_uscito", "status": "published", "scheduled_date": OGGI,
-         "image_urls": ["u1"], "caption": "c"},
     ]
     db = _Db(docs)
 
     res = _run(sp.pubblica_coda_social(db, oggi=OGGI))
 
-    assert res["pubblicati"] == 1
-    assert res["falliti"] == 0
+    assert res["pubblicati"] == 1 and res["falliti"] == 0
     assert docs[0]["status"] == "published"
-    assert docs[0]["permalink"] == "https://instagram.com/p/scaduto"
-    assert docs[1]["status"] == "pending"   # il futuro non si tocca
+    assert docs[0]["results"]["facebook"]["permalink"] == "fb/scaduto"
+    assert docs[1]["status"] == "pending"  # il futuro non si tocca
 
 
-def test_un_fallito_non_conta_come_pubblicato(monkeypatch):
-    """Controprova: se la pubblicazione solleva, il post e' failed, non published."""
-    monkeypatch.setenv("IG_BUSINESS_ID", "123")
-    monkeypatch.setenv("META_PAGE_ACCESS_TOKEN", "tok")
+def test_un_canale_fallito_e_partial_non_published(monkeypatch):
+    """Controprova: IG esce, FB no -> partial, NON published."""
+    _con_token(monkeypatch)
 
-    async def _finto_ko(client, ig, token, post):
-        raise RuntimeError("Graph API 500")
+    async def _meta(client, ig, token, page_id, post):
+        return ({"instagram": {"media_id": "M", "permalink": "ig/x"}}, ["facebook: Graph 500"])
+    monkeypatch.setattr(sp, "_pubblica_post", _meta)
 
-    monkeypatch.setattr(sp, "_pubblica_uno", _finto_ko)
+    docs = [{"_id": 1, "post_id": "mezzo", "status": "pending", "scheduled_date": OGGI,
+             "image_urls": ["u1", "u2"], "caption": "c"}]
+    db = _Db(docs)
+
+    res = _run(sp.pubblica_coda_social(db, oggi=OGGI))
+
+    assert res["pubblicati"] == 0
+    assert res["parziali"] == 1
+    assert docs[0]["status"] == "partial"
+    assert "facebook" in docs[0]["error"]
+
+
+def test_tutti_i_canali_falliti_e_failed(monkeypatch):
+    _con_token(monkeypatch)
+
+    async def _ko(client, ig, token, page_id, post):
+        return ({}, ["instagram: giu", "facebook: giu"])
+    monkeypatch.setattr(sp, "_pubblica_post", _ko)
 
     docs = [{"_id": 1, "post_id": "rotto", "status": "pending", "scheduled_date": OGGI,
              "image_urls": ["u1", "u2"], "caption": "c"}]
@@ -145,7 +167,5 @@ def test_un_fallito_non_conta_come_pubblicato(monkeypatch):
 
     res = _run(sp.pubblica_coda_social(db, oggi=OGGI))
 
-    assert res["pubblicati"] == 0
-    assert res["falliti"] == 1
+    assert res["pubblicati"] == 0 and res["falliti"] == 1
     assert docs[0]["status"] == "failed"
-    assert "500" in docs[0]["error"]
