@@ -217,6 +217,10 @@ def main():
         help="non scrive: elenca TUTTI i crediti sul server e segnala i possibili doppioni",
     )
     ap.add_argument(
+        "--collaudo", action="store_true",
+        help="non scrive: chiede al server quali catene stanno producendo e quali no",
+    )
+    ap.add_argument(
         "--rimuovi", metavar="ID",
         help="cancella un credito (per i doppioni). Mostra il record e chiede conferma.",
     )
@@ -258,6 +262,24 @@ def main():
         return 0
 
     token = _token(args.base_url, args.token_file)
+
+    if args.collaudo:
+        # La domanda che nessuno faceva: i pezzi che girano stanno producendo?
+        c = _chiama(args.base_url, token, "GET", "/api/admin/ciak/collaudo")
+        print("\n== COLLAUDO DELLE CATENE ==")
+        print(f"{c['in_sintesi']}\n")
+        for voce in c["catene"]:
+            segno = "ok" if voce["verdetto"] == "produce" else "!!"
+            fermo = voce["giorni_dall_ultimo"]
+            quando = f"ultimo {fermo}gg fa" if fermo is not None else "mai"
+            print(
+                f" {segno} {voce['catena']:<30} "
+                f"{voce['prodotto_negli_ultimi_giorni']:>4} in {voce['finestra_giorni']}gg "
+                f"(storico {voce['totale_storico']}, {quando})"
+            )
+            if voce["cosa_significa"]:
+                print(f"      -> {voce['cosa_significa']}")
+        return 0
 
     if args.rimuovi:
         # ⛔ L'unica operazione distruttiva di questo script. Il record si vede
