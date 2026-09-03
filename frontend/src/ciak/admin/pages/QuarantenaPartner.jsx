@@ -18,7 +18,9 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { PauseCircle, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { apiGet, adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const MOTIVI = ["Pausa concordata", "Difficoltà temporanea", "Altro"];
 
@@ -224,6 +226,8 @@ export function QuarantenaPartner({ onAuthExpired }) {
   const [partners, setPartners] = useState(null);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [pendingReattiva, setPendingReattiva] = useState(null);
+  const [reattivando, setReattivando] = useState(false);
 
   const load = useCallback(() => {
     setPartners(null);
@@ -239,18 +243,27 @@ export function QuarantenaPartner({ onAuthExpired }) {
     load();
   }, [load]);
 
-  const riattiva = async (id) => {
-    if (!window.confirm("Riportare questo partner allo stato attivo?")) return;
+  // La riattivazione passa da una conferma in pagina (ConfirmDialog) che porta
+  // il nome del partner, non da un window.confirm() anonimo.
+  const confirmReattiva = async () => {
+    const p = pendingReattiva;
+    if (!p) return;
+    setReattivando(true);
     try {
-      const res = await adminFetch(`/api/admin/ciak/partner/${id}/stato`, {
+      const res = await adminFetch(`/api/admin/ciak/partner/${p.id}/stato`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stato: "attivo" }),
       });
       if (!res.ok) throw new Error("Errore");
+      setPendingReattiva(null);
+      toast.success(`Partner "${p.name}" riportato allo stato attivo.`);
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore nella riattivazione del partner.");
+    } finally {
+      setReattivando(false);
     }
   };
 
@@ -311,7 +324,7 @@ export function QuarantenaPartner({ onAuthExpired }) {
                     <td className="px-5 py-3 text-slate-500 text-xs">{fmtDate(p.quarantena_ripresa_prevista)}</td>
                     <td className="px-5 py-3 text-right">
                       <button
-                        onClick={() => riattiva(p.id)}
+                        onClick={() => setPendingReattiva(p)}
                         className="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
                       >
                         Riattiva
@@ -335,6 +348,17 @@ export function QuarantenaPartner({ onAuthExpired }) {
           onAuthExpired={onAuthExpired}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingReattiva}
+        title={pendingReattiva ? `Riattiva ${pendingReattiva.name}` : ""}
+        body="Il partner torna allo stato attivo e rientra nel percorso operativo."
+        confirmLabel="Riattiva"
+        cancelLabel="Annulla"
+        busy={reattivando}
+        onConfirm={confirmReattiva}
+        onCancel={() => setPendingReattiva(null)}
+      />
     </div>
   );
 }
