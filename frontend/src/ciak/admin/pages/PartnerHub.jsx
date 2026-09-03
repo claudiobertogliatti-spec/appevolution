@@ -11,9 +11,12 @@
  * Dati caricati una sola volta; il modale è condiviso tra le due viste.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Search, Rocket, TrendingUp, LayoutGrid, Table2 } from "lucide-react";
+import { Search, Rocket, TrendingUp, LayoutGrid, Table2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { apiGet, adminFetch, getToken, getAdminUser } from "../api";
 import { PartnerDetailModal } from "./PartnerDetailModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { StatusPill } from "../components/ui/StatusPill";
 import { attoEvo } from "../evo";
 
 const STATO_BADGE = {
@@ -28,6 +31,15 @@ const STATO_LABEL = {
   sospeso: "In sospeso",
   quarantena: "Quarantena",
   ex: "Ex",
+};
+
+// Lo stato del partner mappato sul tono semantico dello StatusPill: mai il solo
+// colore, sempre icona + parola (rosso e ambra si confondono per un deutan).
+const STATO_TONE = {
+  attivo: "good",
+  sospeso: "warning",
+  quarantena: "critical",
+  ex: "neutral",
 };
 
 const ATTI = [
@@ -75,8 +87,11 @@ function euro(v) {
 }
 
 function contrattoLabel(p) {
+  // Solo `contract_signed` (impostato alla firma vera) autorizza a dire "Firmato".
+  // Il campo `contract` per i partner migrati e' una data (es. "2026-02-12", la
+  // data della migrazione): NON e' una firma e non va mostrata in questa colonna,
+  // altrimenti spaccia una data qualsiasi per contratto siglato.
   if (p.contract_signed) return { text: "Firmato", cls: "text-emerald-600" };
-  if (p.contract) return { text: String(p.contract), cls: "text-slate-500" };
   return { text: "—", cls: "text-slate-400" };
 }
 
@@ -114,13 +129,10 @@ function PartnerCard({ p, onOpen }) {
           {p.phase && (
             <span className="text-[10px] font-mono text-slate-400">{p.phase}</span>
           )}
-          <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-              STATO_BADGE[stato] || STATO_BADGE.attivo
-            }`}
-          >
-            {stato}
-          </span>
+          <StatusPill
+            tone={STATO_TONE[stato] || "neutral"}
+            label={STATO_LABEL[stato] || stato}
+          />
         </div>
       </div>
     </button>
@@ -309,10 +321,11 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                         </button>
                         <button
                           onClick={() => onDelete(p)}
+                          aria-label={`Elimina ${p.name || "partner"}`}
                           title="Elimina partner"
                           className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-500 hover:bg-red-50 transition"
                         >
-                          🗑
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -339,6 +352,8 @@ export function PartnerHub({ onAuthExpired }) {
   const [detailPartner, setDetailPartner] = useState(null);
   const [detailTab, setDetailTab] = useState("profilo");
   const [statusUpdating, setStatusUpdating] = useState({});
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     setPartners(null);
@@ -379,20 +394,25 @@ export function PartnerHub({ onAuthExpired }) {
     setDetailPartner(p);
   };
 
-  const deletePartner = async (p) => {
-    if (
-      !window.confirm(
-        `Eliminare definitivamente "${p.name}"?\nVerranno rimossi il partner e il suo account utente. Operazione irreversibile.`
-      )
-    )
-      return;
+  // L'eliminazione non parte piu' da un confirm() nativo: apre una conferma in
+  // pagina (ConfirmDialog) che porta il nome del partner e un bottone rosso.
+  const requestDelete = (p) => setPendingDelete(p);
+
+  const confirmDelete = async () => {
+    const p = pendingDelete;
+    if (!p) return;
+    setDeleting(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${p.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Errore eliminazione");
+      setPendingDelete(null);
+      toast.success(`Partner "${p.name}" eliminato.`);
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore nell'eliminazione del partner.");
+      else toast.error("Errore nell'eliminazione del partner.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -503,7 +523,7 @@ export function PartnerHub({ onAuthExpired }) {
             setStatoFilter={setStatoFilter}
             counts={counts}
             onOpen={openPartner}
-            onDelete={deletePartner}
+            onDelete={requestDelete}
             onStatusChange={changePartnerStatus}
             statusUpdating={statusUpdating}
           />
@@ -521,6 +541,18 @@ export function PartnerHub({ onAuthExpired }) {
           load();
         }}
         onAuthExpired={onAuthExpired}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.name}` : ""}
+        body="Verranno rimossi il partner e il suo account utente. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
       />
     </>
   );
