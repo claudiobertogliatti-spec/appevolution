@@ -16,7 +16,9 @@ import {
   RefreshCw, Server, Database, Activity, Clock, Scissors,
   AlertTriangle, CheckCircle, Loader2, RotateCcw, ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
@@ -94,6 +96,7 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
   const [onlyProblems, setOnlyProblems] = useState(false);
   const [acting, setActing] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [pendingRetrigger, setPendingRetrigger] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -122,11 +125,11 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
     return () => clearInterval(t);
   }, [load]);
 
-  const retrigger = async (row) => {
-    const who = row.type === "videocorso"
-      ? `la lezione ${row.lesson_id} di ${row.partner_name}`
-      : `la masterclass di ${row.partner_name}`;
-    if (!window.confirm(`Riavviare la pipeline per ${who}?`)) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const confirmRetrigger = async () => {
+    const row = pendingRetrigger;
+    if (!row) return;
+    setPendingRetrigger(null);
     const key = row.partner_id + (row.lesson_id || "");
     setActing(key);
     try {
@@ -140,7 +143,7 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
       await load();
     } catch (e) {
       if (String(e.message).includes("AUTH_EXPIRED")) { onAuthExpired && onAuthExpired(); return; }
-      window.alert("Riavvio fallito: " + e.message);
+      toast.error("Riavvio fallito: " + e.message);
     } finally {
       setActing(null);
     }
@@ -262,7 +265,7 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {canRetrigger ? (
-                      <button onClick={() => retrigger(row)} disabled={acting === key}
+                      <button onClick={() => setPendingRetrigger(row)} disabled={acting === key}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
                         style={{ background: acting === key ? "#F3F4F6" : C.yellow, color: C.text }}>
                         {acting === key ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
@@ -276,6 +279,24 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingRetrigger}
+        title="Riavvia la pipeline video"
+        body={
+          pendingRetrigger
+            ? `Rigenera ${
+                pendingRetrigger.type === "videocorso"
+                  ? `la lezione ${pendingRetrigger.lesson_id} di ${pendingRetrigger.partner_name}`
+                  : `la masterclass di ${pendingRetrigger.partner_name}`
+              }. L'operazione puo' richiedere alcuni minuti.`
+            : ""
+        }
+        confirmLabel="Riavvia"
+        cancelLabel="Annulla"
+        onConfirm={confirmRetrigger}
+        onCancel={() => setPendingRetrigger(null)}
+      />
     </div>
   );
 }
