@@ -420,7 +420,7 @@ export function PartnerHub({ onAuthExpired }) {
     const current = p.stato || "attivo";
     if (nextStato === current) return;
     if (!p.id) {
-      window.alert("Partner senza ID: impossibile aggiornare lo stato.");
+      toast.error("Partner senza ID: impossibile aggiornare lo stato.");
       return;
     }
 
@@ -461,7 +461,7 @@ export function PartnerHub({ onAuthExpired }) {
       );
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore nel cambio stato: " + e.message);
+      else toast.error("Errore nel cambio stato: " + e.message);
     } finally {
       setStatusUpdating((prev) => {
         const next = { ...prev };
