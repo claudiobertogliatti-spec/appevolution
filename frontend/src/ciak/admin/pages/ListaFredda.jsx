@@ -15,7 +15,9 @@ import {
   Users, Mail, Phone, Download, Search, Filter, RefreshCw,
   Eye, ArrowUpRight, CheckCircle, Snowflake, Shield, TrendingUp, Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATI_COLORS = {
   nuovo:        { cls: "bg-blue-100 text-blue-600",       label: "Nuovo" },
@@ -34,6 +36,8 @@ export function ListaFredda({ onAuthExpired }) {
   const [filter, setFilter] = useState("tutti");
   const [searchTerm, setSearchTerm] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -87,24 +91,25 @@ export function ListaFredda({ onAuthExpired }) {
     downloadBlob(`/api/lista-fredda/export-custom-audience`, `custom-audience-meta-${today}.csv`);
   };
 
-  const handleDelete = async (lead) => {
-    if (!lead.email) return;
-    if (
-      !window.confirm(
-        `Eliminare definitivamente "${lead.email}" dall'archivio freddo?\nOperazione irreversibile.`
-      )
-    )
-      return;
+  // Conferma in pagina (ConfirmDialog) col contatto, non un window.confirm().
+  const confirmDelete = async () => {
+    const lead = pendingDelete;
+    if (!lead?.email) return;
+    setDeleting(true);
     try {
       const res = await adminFetch(
         `/api/lista-fredda/leads/${encodeURIComponent(lead.email)}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error("Errore eliminazione");
+      setPendingDelete(null);
+      toast.success(`"${lead.email}" rimosso dall'archivio freddo.`);
       loadData();
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired();
-      else window.alert("Errore nell'eliminazione del contatto.");
+      else toast.error("Errore nell'eliminazione del contatto.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -290,7 +295,7 @@ export function ListaFredda({ onAuthExpired }) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => handleDelete(lead)}
+                        onClick={() => setPendingDelete(lead)}
                         title="Elimina contatto"
                         className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
                       >
@@ -305,6 +310,18 @@ export function ListaFredda({ onAuthExpired }) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.email}` : ""}
+        body="Il contatto viene rimosso dall'archivio freddo. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

@@ -3,7 +3,9 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { apiGet, adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -51,6 +53,8 @@ export function AdminLeads({ onAuthExpired }) {
   const [stato, setStato] = useState("");
   const [onlyPurchased, setOnlyPurchased] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     setData(null);
@@ -72,24 +76,25 @@ export function AdminLeads({ onAuthExpired }) {
     load();
   }, [load]);
 
-  const deleteLead = async (lead, e) => {
-    e.stopPropagation();
-    if (
-      !window.confirm(
-        `Eliminare definitivamente il lead "${lead.email}"?\nVerranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile.`
-      )
-    )
-      return;
+  // Conferma in pagina (ConfirmDialog) col nome del lead, non un window.confirm().
+  const confirmDelete = async () => {
+    const lead = pendingDelete;
+    if (!lead) return;
+    setDeleting(true);
     try {
       const res = await adminFetch(
         `/api/admin/ciak/lead?email=${encodeURIComponent(lead.email)}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error("Errore eliminazione");
+      setPendingDelete(null);
+      toast.success(`Lead "${lead.email}" eliminato.`);
       load();
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore nell'eliminazione del lead.");
+      else toast.error("Errore nell'eliminazione del lead.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -186,7 +191,10 @@ export function AdminLeads({ onAuthExpired }) {
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <button
-                        onClick={(e) => deleteLead(l, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(l);
+                        }}
                         title="Elimina lead"
                         className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
                       >
@@ -224,6 +232,18 @@ export function AdminLeads({ onAuthExpired }) {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.email}` : ""}
+        body="Verranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
