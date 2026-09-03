@@ -18,9 +18,11 @@ import {
   Calendar, AlertTriangle, Eye, Shield, XCircle, Settings, Globe,
   ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles, Wand2
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch } from "../api";
 import { attoEvo } from "../evo";
 import { ContractParamsModal } from "./ContractParamsModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
 // Stesso registro domande usato dal wizard lato partner: unica fonte, così i due
 // elenchi non possono divergere.
@@ -798,6 +800,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showContractParams, setShowContractParams] = useState(false);
+  // Toggle di stato (Partnership/Contratto/Onboarding/Masterclass): la conferma
+  // passa da un ConfirmDialog in pagina, non da un window.confirm() sincrono.
+  const [pendingToggle, setPendingToggle] = useState(null); // { field, next, label }
 
   // Form state for profile tab
   const [formData, setFormData] = useState({
@@ -1244,16 +1249,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       const data = await res.json();
 
       if (data.success) {
-        alert(`Pagamento Partnership di €${parseFloat(importo).toLocaleString('it-IT')} segnato correttamente!`);
+        toast.success(`Pagamento Partnership di €${parseFloat(importo).toLocaleString('it-IT')} segnato correttamente!`);
         fetchPayments();
         setSaveSuccess(true);
       } else {
-        alert("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
+        toast.error("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
       }
     } catch (e) {
       authErr(e);
       console.error("Error:", e);
-      alert("Errore nella comunicazione con il server");
+      toast.error("Errore nella comunicazione con il server");
     } finally {
       setMarkingPartnership(false);
     }
@@ -1273,7 +1278,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     const d = pianoDraft;
     if (!d) return;
     if (Number(d.rate_pagate) > Number(d.rate_totali)) {
-      alert("Le rate pagate non possono superare il totale");
+      toast.error("Le rate pagate non possono superare il totale");
       return;
     }
     setSavingPiano(true);
@@ -1297,7 +1302,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setSaveSuccess(true);
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nel salvataggio della dilazione");
+      toast.error(e.message || "Errore nel salvataggio della dilazione");
     } finally {
       setSavingPiano(false);
     }
@@ -1316,7 +1321,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setSaveSuccess(true);
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella rimozione della dilazione");
+      toast.error(e.message || "Errore nella rimozione della dilazione");
     } finally {
       setSavingPiano(false);
     }
@@ -1344,7 +1349,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       if (onUpdate) onUpdate();
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella segnalazione morosità");
+      toast.error(e.message || "Errore nella segnalazione morosità");
     } finally {
       setSavingMorosita(false);
     }
@@ -1366,7 +1371,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       if (onUpdate) onUpdate();
     } catch (e) {
       authErr(e);
-      alert(e.message || "Errore nella riattivazione");
+      toast.error(e.message || "Errore nella riattivazione");
     } finally {
       setSavingMorosita(false);
     }
@@ -1708,11 +1713,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.partnership_pagata || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il pagamento partnership per ${partnerName}?`)) {
-                            setFormData({...formData, partnership_pagata: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "partnership_pagata", next: e.target.checked, label: "il pagamento partnership" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Partnership Pagata</span>
@@ -1722,11 +1723,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.contratto_firmato || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il contratto firmato per ${partnerName}?`)) {
-                            setFormData({...formData, contratto_firmato: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "contratto_firmato", next: e.target.checked, label: "il contratto firmato" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
@@ -1746,11 +1743,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.onboarding_completato || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} l'onboarding completato per ${partnerName}?`)) {
-                            setFormData({...formData, onboarding_completato: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "onboarding_completato", next: e.target.checked, label: "l'onboarding completato" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Onboarding Completato</span>
@@ -1760,11 +1753,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <input
                         type="checkbox"
                         checked={formData.masterclass_pronta || false}
-                        onChange={e => {
-                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} la masterclass pronta per ${partnerName}?`)) {
-                            setFormData({...formData, masterclass_pronta: e.target.checked});
-                          }
-                        }}
+                        onChange={e => setPendingToggle({ field: "masterclass_pronta", next: e.target.checked, label: "la masterclass pronta" })}
                         className="w-4 h-4 text-amber-500 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Masterclass Pronta</span>
@@ -2475,6 +2464,24 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           onAuthExpired={onAuthExpired}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingToggle}
+        title={
+          pendingToggle
+            ? `${pendingToggle.next ? "Segna" : "Rimuovi"} ${pendingToggle.label}`
+            : ""
+        }
+        body={pendingToggle ? `Per ${partnerName}. Va salvato con "Salva Modifiche".` : ""}
+        confirmLabel={pendingToggle?.next ? "Segna" : "Rimuovi"}
+        cancelLabel="Annulla"
+        destructive={pendingToggle ? !pendingToggle.next : false}
+        onConfirm={() => {
+          if (pendingToggle) setFormData({ ...formData, [pendingToggle.field]: pendingToggle.next });
+          setPendingToggle(null);
+        }}
+        onCancel={() => setPendingToggle(null)}
+      />
     </>
   );
 };
