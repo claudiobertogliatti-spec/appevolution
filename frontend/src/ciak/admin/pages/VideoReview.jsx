@@ -13,7 +13,9 @@ import {
   Play, Check, Copy, ChevronDown, ChevronUp,
   Clock, Scissors, Loader2, AlertTriangle, CheckCircle, List, Trash2, RefreshCw
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
@@ -101,6 +103,7 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
   const [expanded, setExpanded] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [askDelete, setAskDelete] = useState(false);
 
   const handleApprove = async () => {
     setApproving(true);
@@ -123,9 +126,9 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
     }
   };
 
-  const handleDelete = async () => {
-    const ok = window.confirm("Eliminare questa card dalla Video Review?");
-    if (!ok) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doDelete = async () => {
+    setAskDelete(false);
     setDeleting(true);
     try {
       const res = await adminFetch(
@@ -233,12 +236,23 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
         {video.youtube_url && (
           <CopyButton text={video.youtube_url} label="Copia URL YouTube" />
         )}
-        <button onClick={handleDelete} disabled={deleting || approving}
+        <button onClick={() => setAskDelete(true)} disabled={deleting || approving}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80 disabled:opacity-50"
           style={{ background: C.redDim, color: C.red, border: `1px solid #FECACA` }}>
           {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           {deleting ? "Elimino..." : "Elimina"}
         </button>
+        <ConfirmDialog
+          open={askDelete}
+          title="Elimina la card dalla Video Review"
+          body="La card viene rimossa dalla coda di revisione."
+          confirmLabel="Elimina"
+          cancelLabel="Annulla"
+          destructive
+          busy={deleting}
+          onConfirm={doDelete}
+          onCancel={() => setAskDelete(false)}
+        />
         {!video.approved && REVIEW_STATUSES.includes(video.status) && (
           <button onClick={handleApprove} disabled={approving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black transition-all hover:scale-105 disabled:opacity-50 ml-auto"
@@ -341,7 +355,7 @@ function PipelineHealthCard({ onAuthExpired }) {
       await load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Retry non riuscito: " + e.message);
+      else toast.error("Retry non riuscito: " + e.message);
     } finally {
       setRetrying("");
     }
@@ -418,6 +432,7 @@ export function VideoReview({ onAuthExpired }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending"); // pending | all
   const [cleaningErrors, setCleaningErrors] = useState(false);
+  const [askCleanup, setAskCleanup] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -454,9 +469,9 @@ export function VideoReview({ onAuthExpired }) {
     ));
   };
 
-  const cleanupErrors = async () => {
-    const ok = window.confirm("Eliminare dalla Video Review tutte le card in errore?");
-    if (!ok) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doCleanupErrors = async () => {
+    setAskCleanup(false);
     setCleaningErrors(true);
     try {
       const res = await adminFetch(`/api/admin/video-review/cleanup-errors`, { method: "POST" });
@@ -521,7 +536,7 @@ export function VideoReview({ onAuthExpired }) {
         </div>
         <div className="flex items-center gap-2">
         {errors.length > 0 && (
-          <button onClick={cleanupErrors} disabled={cleaningErrors}
+          <button onClick={() => setAskCleanup(true)} disabled={cleaningErrors}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all hover:opacity-80 disabled:opacity-50"
             style={{ background: C.redDim, color: C.red, border: `1px solid #FECACA` }}>
             {cleaningErrors ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -696,6 +711,18 @@ export function VideoReview({ onAuthExpired }) {
         )}
 
       </div>
+
+      <ConfirmDialog
+        open={askCleanup}
+        title="Pulisci le card in errore"
+        body="Tutte le card in stato di errore vengono rimosse dalla Video Review."
+        confirmLabel="Elimina in errore"
+        cancelLabel="Annulla"
+        destructive
+        busy={cleaningErrors}
+        onConfirm={doCleanupErrors}
+        onCancel={() => setAskCleanup(false)}
+      />
     </div>
   );
 }
