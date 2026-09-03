@@ -83,6 +83,7 @@ import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
+import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
 import {
   AcquisizioneCalendarioHub,
@@ -182,6 +183,7 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
+      { to: "/admin/amministrazione", label: "Amministrazione", desc: "Obiettivo del mese, scadenze e crediti da recuperare" },
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
       { to: "/admin/fatture", label: "Fatture", desc: "Genera e scarica le fatture di cortesia" },
       { to: "/admin/collaboratori", label: "Collaboratori", desc: "Ore approvate, accordi mensili e pagamenti operativi" },
@@ -258,7 +260,7 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6 font-[Poppins,system-ui,sans-serif]">
-      <div className="w-full max-w-sm bg-white border border-yellow-300 rounded-xl shadow-[0_0_28px_rgba(250,204,21,0.18)] p-6">
+      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_rgba(15,23,42,0.08)] p-6">
         <img src="/ciak/logo.webp" alt="Ciak.io" className="h-10 w-auto object-contain mb-5" />
         <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
           Area Admin
@@ -287,7 +289,7 @@ function LoginScreen({ onLogin }) {
           <button
             onClick={submit}
             disabled={busy}
-            className="w-full px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
+            className="w-full px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
           >
             {busy ? "..." : "Entra"}
           </button>
@@ -309,10 +311,10 @@ function MacroItem({ macro, currentPath }) {
         to={macro.to}
         end={macro.end}
         className={({ isActive }) =>
-          `flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
+          `flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
             isActive
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+              ? "bg-slate-900 text-yellow-400"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`
         }
       >
@@ -337,10 +339,10 @@ function MacroItem({ macro, currentPath }) {
   return (
     <NavLink
       to={macroTarget(macro)}
-      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
+      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
         isActive
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+          ? "bg-slate-900 text-yellow-400"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
       <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -369,7 +371,7 @@ function AdminShell({ user, onLogout, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
-        <div className="h-full bg-white border border-yellow-300 rounded-xl shadow-[0_0_28px_rgba(250,204,21,0.18)] flex flex-col overflow-hidden">
+        <div className="h-full bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
         <div className="px-5 py-5 border-b border-slate-100">
           <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
           <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
@@ -384,7 +386,7 @@ function AdminShell({ user, onLogout, children }) {
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
-          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>
             <p className="text-[12px] text-slate-600 leading-relaxed mt-1">
               Acquisizione, vendite, delivery, materiali e post-lancio in un'unica regia.
@@ -409,7 +411,7 @@ function AdminShell({ user, onLogout, children }) {
           <div className="px-8 pt-6">
             <Link
               to={back.to}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-700 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-colors"
             >
               <span aria-hidden>←</span> Torna a {back.label}
             </Link>
@@ -432,7 +434,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
     <div className="p-10 max-w-5xl mx-auto">
       <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-blue-50 text-blue-700 mb-4">
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
           <Icon className="w-5 h-5" />
         </div>
         <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
@@ -451,15 +453,15 @@ function RepartoLanding({ macro, onAuthExpired }) {
             key={p.to}
             to={p.to}
             end={p.end}
-            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition hover:border-blue-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
           >
             <div>
-              <span className="block text-xl font-semibold text-slate-900 group-hover:text-blue-700 transition">
+              <span className="block text-xl font-semibold text-slate-900">
                 {p.label}
               </span>
               {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
             </div>
-            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 transition">
+            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
               Apri <ArrowRight className="w-4 h-4" />
             </span>
           </NavLink>
@@ -480,7 +482,7 @@ function SectionStub() {
   return (
     <div className="p-8 max-w-xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
-      <div className="bg-white border border-yellow-300 rounded-xl p-5 shadow-[0_0_22px_rgba(250,204,21,0.12)]">
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
         <p className="text-sm text-slate-700">
           Questa sezione e' in preparazione. La struttura della sidebar e' pronta — il
           contenuto arriva nella prossima fase.
@@ -639,6 +641,7 @@ export default function CiakAdminApp() {
         <Route path="casi-studio" element={<CasiStudio onAuthExpired={handleLogout} />} />
 
         {/* ── Back office ── */}
+        <Route path="amministrazione" element={<Amministrazione onAuthExpired={handleLogout} />} />
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
         <Route path="fatture" element={<Fatture onAuthExpired={handleLogout} />} />
         <Route path="collaboratori" element={<Collaboratori onAuthExpired={handleLogout} />} />

@@ -54,6 +54,7 @@ import CiakPartnerApp from "./partner/CiakPartnerApp";
 // è già presente) inizializza i Meta Pixel. Vedi lib/metaPixel.js.
 import "./lib/metaPixel";
 import { usePageTracking } from "./hooks/usePageTracking";
+import { isAdminPath } from "./lib/adminPath";
 // Area cliente riattivata 2026-07-01 con sessione magic-link dedicata e
 // routing separato dall'area partner.
 
@@ -66,6 +67,16 @@ function RouteTracker() {
   return null;
 }
 
+/**
+ * Cookie banner solo sul sito pubblico: nell'admin (dietro login, nessun
+ * tracciamento) copriva il pulsante "Esci" della sidebar.
+ */
+function PublicCookieBanner() {
+  const { pathname } = useLocation();
+  if (isAdminPath(pathname)) return null;
+  return <CookieBanner />;
+}
+
 export default function CiakApp() {
   return (
     <BrowserRouter>
@@ -74,7 +85,7 @@ export default function CiakApp() {
             Si auto-monta al primo load: mostra banner se nessun consenso,
             altrimenti FAB "Gestisci cookie" + funzioni globali epOpenPolicy
             usate dal footer per Privacy/Cookie/Condizioni di Vendita. */}
-        <CookieBanner />
+        <PublicCookieBanner />
         <RouteTracker />
         <Toaster position="top-center" richColors />
         <Routes>

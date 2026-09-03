@@ -20,13 +20,6 @@ export const DEPARTMENT_ROOMS = {
       "Azioni per Claudio",
       "Reparto critico",
     ],
-    briefing: {
-      numbers: "Fotografia generale: entrate, partner attivi, blocchi e decisioni aperte.",
-      working: "Il CRM ordina i reparti per funzione: acquisizione, vendite, delivery, casi studio e back office.",
-      notWorking: "Il rischio principale e' disperdere attenzione in troppe schermate non prioritarie.",
-      solution: "Guarda prima le azioni che richiedono Claudio, poi il reparto piu' critico, poi le card operative.",
-      note: "Ogni numero deve servire a una decisione. Se non cambia una scelta, resta fuori dalla dashboard.",
-    },
     priorities: ["Sblocca le decisioni rosse", "Controlla il reparto critico", "Verifica avanzamento partner e vendite"],
   },
   acquisizione: {
@@ -50,13 +43,6 @@ export const DEPARTMENT_ROOMS = {
       "Blueprint acquistati",
       "Fonte migliore",
     ],
-    briefing: {
-      numbers: "Misura la catena contenuto -> lead -> masterclass -> 8 Domande -> Blueprint.",
-      working: "Funziona cio' che porta persone adatte alla Partnership, non cio' che fa solo volume.",
-      notWorking: "Se arrivano curiosi non qualificati, il messaggio sta promettendo la cosa sbagliata.",
-      solution: "Spingi il canale che produce Blueprint, recupera chi ha completato le 8 Domande, correggi l'hook piu' debole.",
-      note: "Niente vanity metrics: like e visualizzazioni contano solo se muovono la pipeline.",
-    },
     priorities: [
       "20 nuovi contatti mirati",
       "Recuperi Blueprint e call",
@@ -98,13 +84,6 @@ export const DEPARTMENT_ROOMS = {
       "Partnership chiuse",
       "Valore trattative",
     ],
-    briefing: {
-      numbers: "Segui il passaggio da interesse qualificato a proposta e chiusura Partnership.",
-      working: "Funziona quando call, proposta e follow-up hanno una prossima azione chiara.",
-      notWorking: "Il rischio e' perdere prospect caldi dopo la call o lasciare proposte senza inseguimento.",
-      solution: "Controlla call fatte senza esito, proposte inviate non viste e trattative con valore alto.",
-      note: "Ogni prospect caldo deve avere una prossima mossa e una data.",
-    },
     priorities: ["Follow-up call fatte", "Proposte ferme", "Recuperi ad alto valore"],
   },
   delivery: {
@@ -127,13 +106,6 @@ export const DEPARTMENT_ROOMS = {
       "Materiali mancanti",
       "Prossimi live",
     ],
-    briefing: {
-      numbers: "La Delivery deve mostrare chi avanza, chi e' fermo e cosa blocca il prossimo output.",
-      working: "Funziona quando ogni partner ha una sola prossima azione chiara.",
-      notWorking: "Il rischio e' che Claudio diventi il collo di bottiglia per file, approvazioni e solleciti.",
-      solution: "Parti da Serve Claudio, poi Serve Partner, poi In revisione. Automatizza solleciti e preparazione approvazioni.",
-      note: "Chiedi intervento umano solo per decisione, relazione o scelta strategica fuori standard.",
-    },
     priorities: ["Partner fermi", "Materiali da approvare", "Solleciti automatici"],
   },
   "casi-studio": {
@@ -156,13 +128,6 @@ export const DEPARTMENT_ROOMS = {
       "Testimonianze",
       "Prima/dopo",
     ],
-    briefing: {
-      numbers: "Conta solo cio' che puo' diventare prova sociale concreta.",
-      working: "Funzionano casi con numero, contesto, prima/dopo e prova verificabile.",
-      notWorking: "Un risultato senza asset o storia e' difficile da usare nel funnel.",
-      solution: "Raccogli screenshot, testimonianza e contesto dai partner piu' promettenti.",
-      note: "Il caso studio deve aiutare Vendite e Marketing, non essere un archivio celebrativo.",
-    },
     priorities: ["Caso piu' forte", "Asset mancanti", "Partner da intervistare"],
   },
   "back-office": {
@@ -179,19 +144,13 @@ export const DEPARTMENT_ROOMS = {
     },
     metrics: [
       "Incassi mese",
+      "Scade oggi",
+      "In ritardo",
       "Fatture da emettere",
       "Contratti firmati",
-      "Documenti mancanti",
       "Pagamenti critici",
       "Servizi extra",
     ],
-    briefing: {
-      numbers: "Tieni sotto controllo soldi, contratti, fatture, accessi e rischi amministrativi.",
-      working: "Funziona quando ogni vendita genera subito fattura, accesso e stato contratto coerenti.",
-      notWorking: "Il rischio e' scoprire tardi dati fiscali, rate, contratti o accessi mancanti.",
-      solution: "Controlla da fatturare, contratti da sistemare, pagamenti critici e accessi da attivare.",
-      note: "Back office deve prevenire casino economico, legale e operativo.",
-    },
     priorities: ["Vendite non fatturate", "Contratti/accessi incoerenti", "Rate o pagamenti critici"],
   },
 };

@@ -12,6 +12,7 @@
  */
 import { useEffect, useState } from "react";
 import { adminFetch } from "./api";
+import { euro } from "./euro";
 
 const ATTIVARE = "Da attivare";
 
@@ -34,6 +35,9 @@ const REPARTO_ENDPOINTS = {
     { key: "inv", path: "/api/admin/ciak/invoices/sources" },
     { key: "partners", path: "/api/admin/ciak/partners" },
     { key: "se", path: "/api/servizi-extra/admin/stats" },
+    // La cassa: previsto, incassato, chi scade oggi. Prima diceva "Da attivare"
+    // per due mesi dopo che il dato era pronto.
+    { key: "cred", path: "/api/admin/ciak/crediti/riepilogo" },
   ],
 };
 
@@ -51,6 +55,24 @@ async function getJSON(path) {
 function fmtNum(n) {
   if (n == null || Number.isNaN(Number(n))) return "—";
   return Number(n).toLocaleString("it-IT");
+}
+
+
+// "Scade oggi" dice CHI, non quanti: e' l'unico numero che cambia una telefonata.
+function scadeOggi(cred) {
+  const rate = cred?.scade_oggi;
+  if (!Array.isArray(rate)) return "—";
+  if (!rate.length) return "Nessuna";
+  const prima = rate[0];
+  const altre = rate.length > 1 ? ` +${rate.length - 1}` : "";
+  return `${prima.nome} · ${euro(prima.importo)}${altre}`;
+}
+
+function inRitardo(cred) {
+  const rate = cred?.in_ritardo;
+  if (!Array.isArray(rate)) return "—";
+  if (!rate.length) return "Nessuna";
+  return `${rate.length} · ${euro(cred.importo_in_ritardo)}`;
 }
 
 // Somma i valori degli ultimi 7 giorni da un dict {YYYY-MM-DD: n}.
@@ -100,7 +122,7 @@ function topPhase(partners) {
 }
 
 // ── Mappatura label → valore ────────────────────────────────────────────────
-function computeMetrics(deptId, d) {
+export function computeMetrics(deptId, d) {
   const mc = d.mc || {};
   const cc = d.cc || {};
   const f = cc.funnel || {};
@@ -110,6 +132,7 @@ function computeMetrics(deptId, d) {
   const counters = da.counters || {};
   const partners = d.partners || null;
   const se = d.se || {};
+  const cred = d.cred || null;
 
   const ciakStart = inv ? fmtNum(countByFonte(inv, "ciak_start")) : "—";
 
@@ -150,12 +173,13 @@ function computeMetrics(deptId, d) {
 
     case "back-office":
       return {
-        "Incassi mese": ATTIVARE,
+        "Incassi mese": cred ? `${euro(cred.gia_incassato_nel_mese)} su ${euro(cred.previsto_nel_mese)}` : "—",
+        "Scade oggi": scadeOggi(cred),
+        "In ritardo": inRitardo(cred),
         "Fatture da emettere": fmtNum(inv?.da_fatturare),
         "Contratti firmati": fmtNum(
           (partners?.items || []).filter((p) => p.contract_signed === true).length
         ),
-        "Documenti mancanti": ATTIVARE,
         "Pagamenti critici": fmtNum(
           (partners?.items || []).filter(
             (p) => p.stato === "quarantena" && p.quarantena_tipo === "morosita"
