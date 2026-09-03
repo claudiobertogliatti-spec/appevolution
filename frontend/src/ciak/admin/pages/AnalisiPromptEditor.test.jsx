@@ -25,13 +25,13 @@ beforeEach(() => {
 
 async function renderEditor() {
   render(<AnalisiPromptEditor onAuthExpired={() => {}} />);
-  await screen.findByRole("button", { name: "Attiva questa" });
+  await screen.findByRole("button", { name: "Riattiva" });
 }
 
 test("riattivare una versione apre una conferma in pagina, non un window.confirm", async () => {
   const spy = jest.spyOn(window, "confirm");
   await renderEditor();
-  fireEvent.click(screen.getByRole("button", { name: "Attiva questa" }));
+  fireEvent.click(screen.getByRole("button", { name: "Riattiva" }));
   expect(spy).not.toHaveBeenCalled();
   expect(screen.getByRole("dialog").textContent).toMatch(/versione/i);
   spy.mockRestore();
@@ -39,7 +39,7 @@ test("riattivare una versione apre una conferma in pagina, non un window.confirm
 
 test("confermando chiama l'activate della versione per la chiave selezionata", async () => {
   await renderEditor();
-  fireEvent.click(screen.getByRole("button", { name: "Attiva questa" }));
+  fireEvent.click(screen.getByRole("button", { name: "Riattiva" }));
   const dialog = screen.getByRole("dialog");
   fireEvent.click(within(dialog).getByRole("button", { name: "Riattiva" }));
   await waitFor(() =>
