@@ -100,6 +100,28 @@ def _ripulisci(token: str) -> str:
     return "".join(t.split())  # spazi e a-capo interni: un JWT non ne ha
 
 
+def _stesso_nome(a, b) -> bool:
+    """
+    Due nomi indicano la stessa persona?
+
+    ⛔ Terza volta in un giorno che un confronto ingenuo su questi nomi sbaglia,
+    e sempre sulla stessa persona: *"Anna Maria Depalma"* in un record e
+    *"Annamaria Depalma"* nell'altro.
+    - l'uguaglianza esatta non li vedeva doppioni;
+    - il confronto sui primi 6 caratteri dava "anna m" contro "annama", quindi
+      `--rimuovi depalma` annunciava «stai togliendo l'unica copia» e faceva
+      fermare -- giustamente, ma per un motivo falso.
+
+    Si tolgono spazi e maiuscole e si confronta tutto il nome: "annamariadepalma"
+    da entrambe le parti. Non e' un algoritmo generale di identita', e non deve
+    esserlo: qui serve solo a decidere se MOSTRARE un avviso a un umano, che poi
+    guarda i due record e sceglie.
+    """
+    pulisci = lambda s: "".join((s or "").split()).lower()  # noqa: E731
+    x, y = pulisci(a), pulisci(b)
+    return bool(x) and x == y
+
+
 def _prova_token(base_url, token):
     """
     Restituisce (ok, motivo) — il motivo serve quanto l'esito.
@@ -296,8 +318,7 @@ def main():
         gemelli = [
             c["id"] for c in tutti
             if c["id"] != args.rimuovi
-            and (c.get("nome") or "").strip().lower()[:6]
-            == (bersaglio.get("nome") or "").strip().lower()[:6]
+            and _stesso_nome(c.get("nome"), bersaglio.get("nome"))
         ]
         if gemelli:
             # ⛔ Non basta dire QUALE resta: bisogna mostrare COSA resta.
@@ -365,7 +386,11 @@ def main():
         # volte. Si segnala e basta -- cancellare al posto di Claudio no.
         per_nome = {}
         for c in tutti:
-            per_nome.setdefault((c.get("nome") or "").strip().lower(), []).append(c["id"])
+            # Normalizzato senza spazi: con l'uguaglianza esatta questo elenco
+            # aveva visto Falcone e mancato Depalma ("Anna Maria" contro
+            # "Annamaria"), e il suo "nessun doppione" era falso.
+            chiave = "".join((c.get("nome") or "").split()).lower()
+            per_nome.setdefault(chiave, []).append(c["id"])
         doppi = {n: ids for n, ids in per_nome.items() if len(ids) > 1}
         if doppi:
             print("\n!! POSSIBILI DOPPIONI (stesso nome, id diversi):")

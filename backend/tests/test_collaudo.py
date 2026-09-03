@@ -119,7 +119,7 @@ def test_la_sintesi_nomina_le_catene_rotte():
         discovery_leads=[{"created_at": _quando(1)}],
         ciak_leads=[{"created_at": _quando(1)}],
         email_logs=[{"sent_at": _quando(1), "status": "sent_smtp"}],
-        luca_stato_giornaliero=[{"created_at": _quando(0)}],
+        luca_stato_giornaliero=[{"data": "oggi", "scritto_a": _quando(0)}],
     )
     esito = asyncio.run(collaudo.collauda(db))
 
@@ -133,10 +133,11 @@ def test_tutto_sano_lo_dice_senza_giri_di_parole():
         discovery_leads=[{"created_at": _quando(1)}],
         ciak_leads=[{"created_at": _quando(1)}],
         email_logs=[{"sent_at": _quando(1), "status": "sent_smtp"}],
-        luca_stato_giornaliero=[{"created_at": _quando(0)}],
+        luca_stato_giornaliero=[{"data": "oggi", "scritto_a": _quando(0)}],
         agent_tasks=[{
             "created_at": _quando(1), "type": "auto_outreach_lead", "status": "done",
         }],
+        ciak_systeme_events=[{"at": _quando(1), "applied_tags.0": True}],
     )
     # `auto_approved_at` sui lead: la catena dell'auto-approvazione.
     db._c["discovery_leads"] = _Coll([
@@ -162,3 +163,52 @@ def test_una_email_fallita_non_conta_come_contatto_avvenuto():
     email = next(c for c in esito["catene"] if c["catena"] == "Email partite")
     assert email["prodotto_negli_ultimi_giorni"] == 0
     assert email["verdetto"] != collaudo.PRODUCE
+
+
+def test_il_campo_data_del_briefing_e_quello_vero():
+    """
+    ⛔ Il 3/9 questa riga cercava `created_at` su una collection che scrive
+    `scritto_a`: zero risultati sempre, e il collaudo dichiarava morto un
+    briefing che girava. Il nome di un campo si legge nel codice che scrive, non
+    si presume dalla convenzione delle altre collection.
+    """
+    db = _Db(luca_stato_giornaliero=[{"data": "2026-09-03", "scritto_a": _quando(0)}])
+    esito = asyncio.run(collaudo.collauda(db))
+
+    briefing = next(c for c in esito["catene"] if c["catena"] == "Briefing di Luca")
+    assert briefing["verdetto"] == collaudo.PRODUCE, (
+        "un briefing scritto oggi deve risultare vivo"
+    )
+
+
+def test_il_censimento_dice_dove_stanno_davvero_i_contatti():
+    """
+    Un job che cerca nella collection sbagliata e' il guasto piu' frequente di
+    Ciak. Il censimento risponde con i numeri invece di lasciarlo dedurre.
+    """
+    db = _Db(discovery_leads=[], ciak_leads=[{"created_at": _quando(1)}] * 12)
+    esito = asyncio.run(collaudo.collauda(db))
+
+    dove = esito["dove_stanno_i_lead"]
+    assert dove["discovery_leads"] == 0
+    assert dove["ciak_leads"] == 12
+    assert "lista_fredda" in dove, "va contata anche dove i lead potrebbero essere finiti"
+
+
+def test_il_ponte_verso_systeme_e_sorvegliato():
+    """
+    ⛔ Il guasto trovato il 3/9/2026: in Systeme l'ultimo contatto e' dell'8
+    agosto, mentre in Ciak gli opt-in continuavano ad arrivare. Chi si iscrive
+    resta nel nostro database e fuori dalla lista email — non riceve niente.
+
+    Era invisibile perche' la chiamata e' `asyncio.create_task(...)`,
+    fire-and-forget: un errore non ferma l'opt-in e non lo sa nessuno.
+    """
+    db = _Db(ciak_systeme_events=[])
+    esito = asyncio.run(collaudo.collauda(db))
+
+    ponte = next(c for c in esito["catene"] if "Systeme" in c["catena"])
+    assert ponte["verdetto"] != collaudo.PRODUCE
+    # La spiegazione deve portare dritto alla prima cosa da controllare.
+    assert "SYSTEME_API_KEY" in ponte["cosa_significa"]
+    assert "lista email" in ponte["cosa_significa"]
