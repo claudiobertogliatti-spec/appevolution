@@ -11,7 +11,9 @@ import {
   X, Save, Loader2, Globe, Phone, Snowflake, TrendingUp,
   Flame, ExternalLink, UserPlus, MapPin, Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // ─────────────────────────────────────────────────────────────
 // COSTANTI
@@ -693,6 +695,7 @@ export function LeadManager({ onAuthExpired }) {
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -724,8 +727,11 @@ export function LeadManager({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [filterStatus, filterSource, filterScore, page]);
 
-  const handleDelete = async (lead) => {
-    if (!window.confirm(`Eliminare "${lead.display_name || lead.email}"?`)) return;
+  // L'eliminazione passa da una conferma in pagina (ConfirmDialog) col nome del
+  // lead, non da un window.confirm() anonimo.
+  const confirmDelete = async () => {
+    const lead = pendingDelete;
+    if (!lead) return;
     const id = lead.id || encodeURIComponent(lead.email);
     const url = `/api/discovery/leads/${id}`;
     setDeletingId(id);
@@ -733,8 +739,11 @@ export function LeadManager({ onAuthExpired }) {
       await adminFetch(url, { method: "DELETE" });
       setLeads(prev => prev.filter(l => (l.id || l.email) !== (lead.id || lead.email)));
       setTotal(t => t - 1);
+      setPendingDelete(null);
+      toast.success(`Lead "${lead.display_name || lead.email}" eliminato.`);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else toast.error("Errore nell'eliminazione del lead.");
     } finally {
       setDeletingId(null);
     }
@@ -750,7 +759,7 @@ export function LeadManager({ onAuthExpired }) {
       setTotal(t => Math.max(0, t - 1));
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
-      else window.alert("Errore nell'approvazione del lead.");
+      else toast.error("Errore nell'approvazione del lead.");
     } finally {
       setApprovingId(null);
     }
@@ -919,7 +928,8 @@ export function LeadManager({ onAuthExpired }) {
                         className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
                         <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
                       </button>
-                      <button onClick={() => handleDelete(lead)} disabled={deletingId === lead.id}
+                      <button onClick={() => setPendingDelete(lead)} disabled={deletingId === lead.id}
+                        aria-label={`Elimina ${lead.display_name || lead.email}`}
                         className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
                         {deletingId === lead.id
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
@@ -969,6 +979,18 @@ export function LeadManager({ onAuthExpired }) {
           onImported={() => { load(); }}
           onAuthExpired={onAuthExpired} />
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.display_name || pendingDelete.email}` : ""}
+        body="Il lead viene rimosso dal Motore Acquisizione. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={!!deletingId}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
