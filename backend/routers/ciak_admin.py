@@ -784,12 +784,6 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         if em and em not in diagnostics_by_email:
             diagnostics_by_email[em] = d
 
-    checkpoints_by_email: dict[str, dict] = {}
-    async for c in db.ciak_checkpoint_events.find({}).sort("created_at", -1):
-        em = _email(c.get("email"))
-        if em and em not in checkpoints_by_email:
-            checkpoints_by_email[em] = c
-
     lead_names: dict[str, str] = {}
     async for lead in db.ciak_leads.find({}, {"email": 1, "nome": 1}):
         em = _email(lead.get("email"))
@@ -849,17 +843,10 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
                 )
             )
 
-    checkpoint_no_diagnostic = []
-    for em, c in checkpoints_by_email.items():
-        if em not in diagnostics_by_email:
-            checkpoint_no_diagnostic.append(
-                _lead_item(
-                    em,
-                    _name(em),
-                    c.get("created_at"),
-                    "Ha fatto il Checkpoint: invitalo a completare le 8 domande.",
-                )
-            )
+    # ⚠️ La priorita' "checkpoint fatto, 8 domande mancanti" e' stata rimossa il
+    # 4/9/2026: il Checkpoint e' ritirato dal funnel (vedi _PROSPECT_COLUMNS), quindi
+    # quella lista conteneva solo i fantasmi di giugno e mandava Luca a ricontattare
+    # persone su uno stadio che non esiste piu'.
 
     proposal_month = 0
     paid_contract_month = 0
@@ -1005,7 +992,6 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "contracts_paid": paid_contract_month,
         },
         "priorities": {
-            "checkpoint_no_diagnostic": _sort_limit(checkpoint_no_diagnostic),
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
             "clicked_no_purchase": _sort_limit(clicked_no_purchase),
             "purchased_no_call": _sort_limit(purchased_no_call),
@@ -1530,9 +1516,13 @@ async def ciak_transactions(
 # ─── Pipeline kanban (da memory: ciak_technical_spec.md, state machine 10 stati) ──
 
 # Pipeline Prospect — pre-acquisto €27. Colonne in ordine di funnel.
+# ⚠️ Il "Checkpoint" (5 domande) e' stato RITIRATO dal funnel vivo con il refactor
+# del 22/7/2026 (commit a79a84de): nessuna pagina ci linka piu' e l'email che lo
+# consegnava e' stata rimossa. Tenerlo come stadio faceva leggere "iscritto ->
+# checkpoint, zero da giugno" — un gradino fantasma, non un guasto. Il funnel vivo
+# e': iscritto -> 8 Domande -> report -> click. Verificato pagina per pagina il 4/9/2026.
 _PROSPECT_COLUMNS = [
     ("iscritto", "Iscritto masterclass"),
-    ("checkpoint", "Checkpoint compilato"),
     ("diagnostica", "8 Domande completate"),
     ("report", "Report Matteo"),
     ("click_67", "Click checkout €27"),
@@ -1634,8 +1624,11 @@ async def _build_prospect_entries() -> dict:
 
     async for l in db.ciak_leads.find({}):
         _bump(l.get("email"), "iscritto", l.get("nome"), l.get("created_at"))
+    # Il checkpoint e' uno stadio ritirato (vedi _PROSPECT_COLUMNS): chi lo
+    # completo' resta contato come "iscritto" — il gradino piu' basso che ha
+    # davvero raggiunto — invece di sparire o di far rivivere una colonna morta.
     async for c in db.ciak_checkpoint_events.find({}):
-        _bump(c.get("email"), "checkpoint", None, c.get("created_at"))
+        _bump(c.get("email"), "iscritto", None, c.get("created_at"))
     async for d in db.diagnostic_sessions.find({}):
         stage = _PROSPECT_STATE_TO_STAGE.get(d.get("current_state"))
         if stage:

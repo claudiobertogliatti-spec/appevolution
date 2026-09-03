@@ -31,14 +31,17 @@ def _iso(giorni_fa):
 
 @pytest.fixture
 def voci():
-    """Un funnel realistico: sei iscritti recenti, tre checkpoint vecchi."""
+    """Un funnel realistico: cinque iscritti, uno arrivato al report.
+
+    (Il Checkpoint e' uno stadio ritirato dal 22/7/2026, non compare piu' nel
+    funnel — vedi _PROSPECT_COLUMNS.)"""
     return {
         "a@x.it": {"email": "a@x.it", "nome": "Mariangela", "stage": "iscritto", "updated_at": _iso(6)},
         "b@x.it": {"email": "b@x.it", "nome": "Letizia", "stage": "iscritto", "updated_at": _iso(23)},
         "c@x.it": {"email": "c@x.it", "nome": "annaclara", "stage": "iscritto", "updated_at": _iso(25)},
         "d@x.it": {"email": "d@x.it", "nome": "enrica", "stage": "iscritto", "updated_at": _iso(49)},
         "e@x.it": {"email": "e@x.it", "nome": "Flavia", "stage": "iscritto", "updated_at": _iso(58)},
-        "f@x.it": {"email": "f@x.it", "nome": "Fulvia", "stage": "checkpoint", "updated_at": _iso(80)},
+        "f@x.it": {"email": "f@x.it", "nome": "Fulvia", "stage": "report", "updated_at": _iso(80)},
     }
 
 
@@ -75,7 +78,7 @@ def test_conta_tutti_gli_stadi_anche_quelli_vuoti(chiama):
     stadi = risultato["pre_acquisto"]["stadi"]
 
     assert [s["id"] for s in stadi] == [
-        "iscritto", "checkpoint", "diagnostica", "report", "click_67",
+        "iscritto", "diagnostica", "report", "click_67",
     ]
     assert risultato["pre_acquisto"]["totale"] == 6
 
@@ -92,7 +95,8 @@ def test_distingue_i_recenti_dalla_coda_vecchia(chiama):
 
 def test_stadio_vuoto_non_finge_di_avere_una_attesa(chiama):
     """`piu_vecchio_giorni` a None, non 0: 'nessuno in coda' != 'fermo da zero giorni'."""
-    diagnostica = chiama()["pre_acquisto"]["stadi"][2]
+    # indice 1 = "diagnostica" (dopo il ritiro del checkpoint): stadio vuoto nel fixture
+    diagnostica = chiama()["pre_acquisto"]["stadi"][1]
 
     assert diagnostica["totale"] == 0
     assert diagnostica["piu_vecchio_giorni"] is None
