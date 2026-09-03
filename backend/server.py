@@ -17340,6 +17340,11 @@ from routers.ciak_clients import router as ciak_clients_router, set_db as set_ci
 set_ciak_clients_db(db)
 app.include_router(ciak_clients_router)
 
+# Ciak Social Router (publisher server-side della coda ciak_social_queue → Instagram)
+from routers.ciak_social import router as ciak_social_router, set_db as set_ciak_social_db
+set_ciak_social_db(db)
+app.include_router(ciak_social_router)
+
 # Ciak Partner Rewards (Libretto di Progetto + attestati fase)
 from routers.partner_rewards import router as partner_rewards_router, set_db as set_partner_rewards_db
 set_partner_rewards_db(db)

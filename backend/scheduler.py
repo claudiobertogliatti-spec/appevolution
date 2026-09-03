@@ -72,6 +72,33 @@ def trigger_luca_briefing():
         logger.error(f"[SCHEDULER] Errore trigger_luca_briefing: {e}")
 
 
+def trigger_social_publisher():
+    """
+    Lun/mer/ven alle 9:00 — pubblica la coda social approvata su Instagram.
+
+    Vive qui (APScheduler) e non su Celery Beat perche' Celery e' spento in prod
+    (`CELERY_ENABLED=false`). Sostituisce i task dell'app desktop che pubblicavano
+    solo a portatile aperto e che a giugno si sono fermati quando la coda non e'
+    stata piu' ricaricata. Chiama l'endpoint interno con la chiave di report.
+    """
+    try:
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Social publisher saltato: LUCA_REPORT_KEY non configurata")
+            return
+        r = httpx.post(f"{BASE_URL}/ciak/social/publish-due",
+                       headers={"X-Report-Key": chiave}, json={}, timeout=180)
+        res = r.json()
+        if not res.get("configurato"):
+            logger.warning(f"[SCHEDULER] Social publisher: {res.get('nota', 'non configurato')} "
+                           f"({res.get('in_coda_scaduti', 0)} in coda)")
+        else:
+            logger.info(f"[SCHEDULER] Social publisher — pubblicati {res.get('pubblicati', 0)}, "
+                        f"falliti {res.get('falliti', 0)}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_social_publisher: {e}")
+
+
 def trigger_marco_run():
     """Ogni lunedì alle 9:00 — check-in settimanale per tutti i partner F3+."""
     try:
@@ -405,6 +432,15 @@ def start_scheduler():
         trigger_weekly_kpi_report,
         CronTrigger(day_of_week="mon", hour=8, minute=30),
         id="weekly_kpi_report",
+        replace_existing=True
+    )
+
+    # SOCIAL PUBLISHER — lun/mer/ven 9:15 (ora italiana): pubblica la coda approvata.
+    # 9:15 e non 9:00 per non accavallarsi con Marco/hot-leads (job ammassati = skip).
+    scheduler.add_job(
+        trigger_social_publisher,
+        CronTrigger(day_of_week="mon,wed,fri", hour=9, minute=15),
+        id="social_publisher",
         replace_existing=True
     )
 
