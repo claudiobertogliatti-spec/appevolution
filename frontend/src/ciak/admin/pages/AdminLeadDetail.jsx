@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiGet, apiPost, adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -45,6 +46,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [marking, setMarking] = useState(false);
   const [markMsg, setMarkMsg] = useState(null);
+  const [askMark, setAskMark] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [generatingProposal, setGeneratingProposal] = useState(false);
 
@@ -57,8 +59,10 @@ export function AdminLeadDetail({ onAuthExpired }) {
       });
   }, [email, onAuthExpired]);
 
-  async function markPaid() {
-    if (!window.confirm("Segnare l'analisi 27 EUR come PAGATA (manuale) per " + data.email + "?\n\nNon esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67).")) return;
+  // La conferma "segna €27 pagato" e' sensibile (registra purchased_67): passa
+  // da un ConfirmDialog in pagina col nome del lead, non da un window.confirm().
+  async function confirmMarkPaid() {
+    setAskMark(false);
     setMarking(true);
     setMarkMsg(null);
     try {
@@ -229,7 +233,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
               />
               {!purchased && (
                 <button
-                  onClick={markPaid}
+                  onClick={() => setAskMark(true)}
                   disabled={marking || diagnostics.length === 0}
                   className="mt-2 px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
                 >
@@ -246,6 +250,17 @@ export function AdminLeadDetail({ onAuthExpired }) {
           );
         })()}
       </Section>
+
+      <ConfirmDialog
+        open={askMark}
+        title={`Segna €27 pagato — ${data.email}`}
+        body="Non esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67)."
+        confirmLabel="Segna pagato"
+        cancelLabel="Annulla"
+        busy={marking}
+        onConfirm={confirmMarkPaid}
+        onCancel={() => setAskMark(false)}
+      />
     </div>
   );
 }
