@@ -163,7 +163,7 @@ jobs:
 
       - name: Calendar review tests
         working-directory: frontend
-        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx
+        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali
