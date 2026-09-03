@@ -12,7 +12,9 @@
  *   POST /api/admin/ciak/matteo-prompt/:id/activate → rollback a versione storica
  */
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function fmtDate(iso) {
   if (!iso) return "—";
@@ -32,6 +34,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
   const [parentId, setParentId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
+  const [pendingActivate, setPendingActivate] = useState(null);
 
   const load = () => {
     apiGet("/matteo-prompt")
@@ -52,11 +55,11 @@ export function MatteoKBEditor({ onAuthExpired }) {
 
   const save = async () => {
     if (!editorLabel.trim()) {
-      alert("Aggiungi una label (es. 'v1.5 — meno motivazionale')");
+      toast.error("Aggiungi una label (es. 'v1.5 — meno motivazionale')");
       return;
     }
     if (editorContent.trim().length < 100) {
-      alert("Il prompt è troppo corto (min 100 caratteri)");
+      toast.error("Il prompt è troppo corto (min 100 caratteri)");
       return;
     }
     setSaving(true);
@@ -71,20 +74,24 @@ export function MatteoKBEditor({ onAuthExpired }) {
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else alert(`Errore salvataggio: ${e.message}`);
+      else toast.error(`Errore salvataggio: ${e.message}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const activate = async (versionId) => {
-    if (!window.confirm("Riattivare questa versione storica? Verrà usata per i prossimi report.")) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const confirmActivate = async () => {
+    const versionId = pendingActivate;
+    if (!versionId) return;
+    setPendingActivate(null);
     try {
       await apiPost(`/matteo-prompt/${versionId}/activate`, {});
+      toast.success("Versione riattivata: sarà usata per i prossimi report.");
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else alert(`Errore: ${e.message}`);
+      else toast.error(`Errore: ${e.message}`);
     }
   };
 
@@ -242,7 +249,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
                     </button>
                     {!v.active && (
                       <button
-                        onClick={() => activate(v.id)}
+                        onClick={() => setPendingActivate(v.id)}
                         className="text-xs font-medium text-emerald-700 hover:text-emerald-900 underline-offset-2 hover:underline"
                       >
                         Attiva questa
@@ -255,6 +262,16 @@ export function MatteoKBEditor({ onAuthExpired }) {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingActivate}
+        title="Riattiva questa versione della knowledge base"
+        body="Verrà usata per i prossimi report al posto di quella attiva."
+        confirmLabel="Riattiva"
+        cancelLabel="Annulla"
+        onConfirm={confirmActivate}
+        onCancel={() => setPendingActivate(null)}
+      />
     </div>
   );
 }
