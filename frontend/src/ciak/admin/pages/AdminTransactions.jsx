@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../api";
+import { KpiTile as KpiCard } from "../components/ui/KpiTile";
 
 function euroCent(cent) {
   if (cent == null) return "—";
@@ -181,19 +182,6 @@ function PartnershipTable({ onAuthExpired }) {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function KpiCard({ label, value, accent }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
-        {label}
-      </p>
-      <p className={`text-3xl font-semibold ${accent ? "text-yellow-500" : "text-slate-900"}`}>
-        {value}
-      </p>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiGet } from "../api";
 import { attoEvo } from "../evo";
+import { PageHeader } from "../components/ui/PageHeader";
 
 function euro(v) {
   if (v == null || v === "" || Number(v) === 0) return "-";
@@ -40,18 +41,6 @@ function initials(name) {
     .toUpperCase();
 }
 
-function PageHeader({ eyebrow, title, subtitle, icon: Icon }) {
-  return (
-    <div className="mb-6">
-      <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-2">
-        {Icon && <Icon className="w-4 h-4" />}
-        {eyebrow}
-      </div>
-      <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-      {subtitle && <p className="text-slate-500 mt-1 max-w-3xl">{subtitle}</p>}
-    </div>
-  );
-}
 
 function ActionCard({ to, title, desc, icon: Icon }) {
   return (
