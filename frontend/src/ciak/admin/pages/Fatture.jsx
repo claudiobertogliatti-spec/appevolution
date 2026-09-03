@@ -14,7 +14,9 @@
  * Backend: /api/admin/ciak/invoices*  (api.js: apiGet/apiPost/apiPut/adminFetch)
  */
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { apiGet, apiPost, apiPut, adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function euro(n) {
   if (n == null) return "—";
@@ -393,6 +395,8 @@ export function Fatture({ onAuthExpired }) {
   const [issued, setIssued] = useState(null);
   const [modal, setModal] = useState(null); // initial payload o null
   const [error, setError] = useState(null);
+  const [pendingCancel, setPendingCancel] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadSources = () =>
     apiGet("/invoices/sources").then(setSources).catch((e) => {
@@ -454,14 +458,23 @@ export function Fatture({ onAuthExpired }) {
     }
   };
 
-  const cancelInvoice = async (inv) => {
-    if (!window.confirm(`Annullare la fattura ${inv.numero}? Resta a registro ma esce dai totali.`)) return;
+  // Annullamento fattura con conferma in pagina (ConfirmDialog) che porta il
+  // numero della fattura, non un window.confirm() anonimo.
+  const confirmCancel = async () => {
+    const inv = pendingCancel;
+    if (!inv) return;
+    setCancelling(true);
     try {
       await apiPost(`/invoices/${inv.id}/cancel`);
+      setPendingCancel(null);
+      toast.success(`Fattura ${inv.numero} annullata.`);
       loadIssued();
       loadSources();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore nell'annullamento della fattura.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -554,7 +567,7 @@ export function Fatture({ onAuthExpired }) {
                       <td className="px-5 py-3 text-right whitespace-nowrap">
                         <button onClick={() => downloadPdf(inv)} className="text-sm text-blue-600 hover:underline mr-3">PDF</button>
                         {inv.stato !== "annullata" && (
-                          <button onClick={() => cancelInvoice(inv)} className="text-sm text-red-500 hover:underline">Annulla</button>
+                          <button onClick={() => setPendingCancel(inv)} className="text-sm text-red-500 hover:underline">Annulla</button>
                         )}
                       </td>
                     </tr>
@@ -571,6 +584,18 @@ export function Fatture({ onAuthExpired }) {
       </div>
 
       {modal && <InvoiceModal initial={modal} onClose={() => setModal(null)} onSaved={onSaved} />}
+
+      <ConfirmDialog
+        open={!!pendingCancel}
+        title={pendingCancel ? `Annulla la fattura ${pendingCancel.numero}` : ""}
+        body="Resta a registro come annullata, ma esce dai totali fatturati."
+        confirmLabel="Annulla la fattura"
+        cancelLabel="Chiudi"
+        destructive
+        busy={cancelling}
+        onConfirm={confirmCancel}
+        onCancel={() => setPendingCancel(null)}
+      />
     </div>
   );
 }
