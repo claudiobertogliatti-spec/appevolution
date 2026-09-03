@@ -212,6 +212,10 @@ def main():
         "--token-file",
         help="file di testo contenente il solo token admin (niente password da digitare)",
     )
+    ap.add_argument(
+        "--elenco", action="store_true",
+        help="non scrive: elenca TUTTI i crediti sul server e segnala i possibili doppioni",
+    )
     args = ap.parse_args()
 
     percorso = Path(args.dati).expanduser()
@@ -250,6 +254,45 @@ def main():
         return 0
 
     token = _token(args.base_url, args.token_file)
+
+    if args.elenco:
+        # Il riepilogo somma TUTTO cio' che sta nella collection, non solo cio'
+        # che ha caricato questo file. Il 3/9 il server dichiarava EUR 2.634 di
+        # residuo in piu' della simulazione locale: c'era gia' roba dentro,
+        # messa da un'altra sessione. Una posizione presente due volte con id
+        # diversi si conta due volte, e il residuo diventa un numero falso --
+        # che e' peggio di non averlo.
+        tutti = _chiama(args.base_url, token, "GET", "/api/admin/ciak/crediti")["crediti"]
+        miei = {c["id"] for c in crediti}
+        print(f"\n== {len(tutti)} crediti sul server ==")
+        for c in sorted(tutti, key=lambda x: (x.get("nome") or "").lower()):
+            residuo = sum(
+                float(r.get("importo") or 0)
+                for r in (c.get("rate") or [])
+                if r.get("stato_effettivo") != "incassata"
+            )
+            marchio = "  " if c["id"] in miei else " *"
+            print(
+                f"{marchio} {c['id']:<28} {(c.get('nome') or '?'):<24} "
+                f"{c.get('stato', '?'):<12} residuo EUR {residuo:.0f}"
+            )
+        estranei = [c for c in tutti if c["id"] not in miei]
+        if estranei:
+            print(f"\n* {len(estranei)} non vengono da questo file: da controllare.")
+
+        # Stesso nome, id diversi: quasi sempre la stessa persona caricata due
+        # volte. Si segnala e basta -- cancellare al posto di Claudio no.
+        per_nome = {}
+        for c in tutti:
+            per_nome.setdefault((c.get("nome") or "").strip().lower(), []).append(c["id"])
+        doppi = {n: ids for n, ids in per_nome.items() if len(ids) > 1}
+        if doppi:
+            print("\n!! POSSIBILI DOPPIONI (stesso nome, id diversi):")
+            for nome, ids in doppi.items():
+                print(f"   {nome}: {', '.join(ids)}")
+        else:
+            print("\nNessun nome ripetuto.")
+        return 0
 
     if args.verifica:
         # Serve a rispondere a "e' andata?" senza riscrivere. Riscrivere non
