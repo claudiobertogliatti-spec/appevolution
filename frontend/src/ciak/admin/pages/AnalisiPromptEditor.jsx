@@ -11,7 +11,9 @@
  *   POST /api/admin/ciak/analisi/prompt/{key}/{id}/activate  → rollback a versione storica
  */
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const KEYS = [
   { key: "research",    label: "Research brief" },
@@ -39,6 +41,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
   const [saving, setSaving] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
   const [labelError, setLabelError] = useState(null);
+  const [pendingActivate, setPendingActivate] = useState(null);
 
   const load = (key) => {
     setData(null);
@@ -86,7 +89,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
       load(selectedKey);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else alert(`Errore salvataggio: ${e.message}`);
+      else toast.error(`Errore salvataggio: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -101,14 +104,18 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
     setConfirmSave(true);
   };
 
-  const activate = async (versionId) => {
-    if (!window.confirm("Riattivare questa versione storica? Verrà usata per le prossime analisi.")) return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const confirmActivate = async () => {
+    const versionId = pendingActivate;
+    if (!versionId) return;
+    setPendingActivate(null);
     try {
       await apiPost(`/analisi/prompt/${selectedKey}/${versionId}/activate`, {});
+      toast.success("Versione riattivata: sarà usata per le prossime analisi.");
       load(selectedKey);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else alert(`Errore: ${e.message}`);
+      else toast.error(`Errore: ${e.message}`);
     }
   };
 
@@ -295,7 +302,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
                         </button>
                         {!v.active && (
                           <button
-                            onClick={() => activate(v.id)}
+                            onClick={() => setPendingActivate(v.id)}
                             className="text-xs font-medium text-emerald-700 hover:text-emerald-900 underline-offset-2 hover:underline"
                           >
                             Riattiva
@@ -310,6 +317,16 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={!!pendingActivate}
+        title="Riattiva questa versione del prompt"
+        body="Verrà usata per le prossime analisi al posto di quella attiva."
+        confirmLabel="Riattiva"
+        cancelLabel="Annulla"
+        onConfirm={confirmActivate}
+        onCancel={() => setPendingActivate(null)}
+      />
     </div>
   );
 }
