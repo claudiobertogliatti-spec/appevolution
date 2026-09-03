@@ -16,10 +16,17 @@ rifiuta di leggere se si trova dentro la cartella del repo (§ `_fuori_dal_repo`
 Uso:
     python scripts/carica_amministrazione.py "C:\\percorso\\dati.json"
     python scripts/carica_amministrazione.py dati.json --dry-run
-    python scripts/carica_amministrazione.py dati.json --base-url http://localhost:8080
+    python scripts/carica_amministrazione.py dati.json --verifica
+    python scripts/carica_amministrazione.py dati.json --token-file token.txt
 
-Autenticazione, in ordine: la variabile d'ambiente CIAK_ADMIN_TOKEN, altrimenti
-email e password chieste a video (la password non compare mentre si digita).
+Autenticazione, in ordine: `--token-file`, poi la variabile d'ambiente
+CIAK_ADMIN_TOKEN, e in ultimo email e password chieste a video.
+
+⚠️ Il token si prende da `localStorage.ciak_admin_token` su ciak.io/admin, e la
+strada che funziona sempre e' incollarlo in un file di testo: la console di
+Chrome al primo uso pretende che si digiti "allow pasting", e `getpass` in
+PowerShell non mostra nulla mentre si scrive -- il 3/9/2026 entrambe hanno
+bloccato il caricamento, e in nessuno dei due casi era un guasto.
 
 Rieseguirlo non duplica nulla: gli endpoint fanno upsert sull'id, quindi
 correggere un importo significa modificare il JSON e rilanciare.
@@ -72,9 +79,9 @@ def _chiama(base_url, token, metodo, path, corpo=None):
             return json.loads(r.read().decode("utf-8") or "{}")
     except urllib.error.HTTPError as e:
         dettaglio = e.read().decode("utf-8", "replace")[:300]
-        raise SystemExit(f"⛔ {metodo} {path} -> HTTP {e.code}: {dettaglio}")
+        raise SystemExit(f"ERRORE: {metodo} {path} -> HTTP {e.code}: {dettaglio}")
     except urllib.error.URLError as e:
-        raise SystemExit(f"⛔ {metodo} {path} -> irraggiungibile: {e.reason}")
+        raise SystemExit(f"ERRORE: {metodo} {path} -> irraggiungibile: {e.reason}")
 
 
 def _token_buono(base_url, token):
@@ -99,7 +106,45 @@ def _token_buono(base_url, token):
         return False
 
 
-def _token(base_url):
+def _login(base_url):
+    email = input("Email admin: ").strip()
+    # getpass e non input(): la password non deve restare nella cronologia del
+    # terminale ne' comparire in uno screenshot condiviso.
+    #
+    # ⚠️ Nasconde TUTTO, nemmeno gli asterischi: sullo schermo non si muove
+    # niente mentre si digita, e sembra che il terminale sia bloccato. Il 3/9
+    # e' successo esattamente questo, quindi il prompt lo dice.
+    print("   (mentre digiti non compare nulla, nemmeno i puntini: e' normale.")
+    print("    In PowerShell si incolla col TASTO DESTRO, non con Ctrl+V.")
+    print("    In alternativa: --token-file con dentro il token, e rilancia.)")
+    password = getpass.getpass("Password: ")
+    risposta = _chiama(
+        base_url, None, "POST", "/api/auth/login", {"email": email, "password": password}
+    )
+    token = risposta.get("access_token")
+    if not token:
+        raise SystemExit(f"ERRORE: login senza access_token: {risposta}")
+    return token
+
+
+def _token(base_url, token_file=None):
+    # Un file e' la strada che funziona sempre: nel Blocco Note l'incolla non ha
+    # trappole, mentre la console di Chrome al primo uso pretende che si digiti
+    # "allow pasting", e getpass in PowerShell non mostra nulla mentre si scrive.
+    # Il 3/9 entrambe hanno bloccato il caricamento.
+    if token_file:
+        percorso = Path(token_file).expanduser()
+        if not percorso.is_file():
+            raise SystemExit(f"ERRORE: file del token non trovato: {percorso}")
+        token = percorso.read_text(encoding="utf-8").strip()
+        if not token:
+            raise SystemExit(f"ERRORE: il file del token e' vuoto: {percorso}")
+        if _token_buono(base_url, token):
+            print(f"Uso il token da {percorso.name}.")
+            return token
+        print(f"Il token in {percorso.name} non e' valido o e' scaduto: faccio il login.")
+        return _login(base_url)
+
     token = os.environ.get("CIAK_ADMIN_TOKEN")
     if token:
         if _token_buono(base_url, token):
@@ -111,17 +156,7 @@ def _token(base_url):
     else:
         print("Nessun CIAK_ADMIN_TOKEN: faccio il login.")
 
-    email = input("Email admin: ").strip()
-    # getpass e non input(): la password non deve restare nella cronologia del
-    # terminale ne' comparire in uno screenshot condiviso.
-    password = getpass.getpass("Password: ")
-    risposta = _chiama(
-        base_url, None, "POST", "/api/auth/login", {"email": email, "password": password}
-    )
-    token = risposta.get("access_token")
-    if not token:
-        raise SystemExit(f"⛔ login senza access_token: {risposta}")
-    return token
+    return _login(base_url)
 
 
 def main():
@@ -132,14 +167,22 @@ def main():
         "--dry-run", action="store_true",
         help="mostra cosa verrebbe scritto senza scrivere niente",
     )
+    ap.add_argument(
+        "--verifica", action="store_true",
+        help="non scrive: rilegge dal server e mostra cosa vede Luca adesso",
+    )
+    ap.add_argument(
+        "--token-file",
+        help="file di testo contenente il solo token admin (niente password da digitare)",
+    )
     args = ap.parse_args()
 
     percorso = Path(args.dati).expanduser()
     if not percorso.is_file():
-        raise SystemExit(f"⛔ file non trovato: {percorso}")
+        raise SystemExit(f"ERRORE: file non trovato: {percorso}")
     if not _fuori_dal_repo(percorso):
         raise SystemExit(
-            "⛔ Il file dei dati sta dentro il repository, che e' PUBBLICO.\n"
+            "ERRORE: Il file dei dati sta dentro il repository, che e' PUBBLICO.\n"
             "   Spostalo fuori (es. sul Desktop) e rilancia."
         )
 
@@ -169,18 +212,24 @@ def main():
         print("\n--dry-run: non ho scritto niente.")
         return 0
 
-    token = _token(args.base_url)
+    token = _token(args.base_url, args.token_file)
 
-    print("\nScrivo...")
-    for c in crediti:
-        _chiama(args.base_url, token, "PUT", f"/api/admin/ciak/crediti/{c['id']}", c)
-        print(f"  ok  {c['id']}")
-    if obiettivo:
-        _chiama(
-            args.base_url, token, "PUT",
-            f"/api/admin/ciak/obiettivo/{obiettivo['id']}", obiettivo,
-        )
-        print(f"  ok  obiettivo {obiettivo['id']}")
+    if args.verifica:
+        # Serve a rispondere a "e' andata?" senza riscrivere. Riscrivere non
+        # farebbe danni di per se' (sono upsert), ma riporterebbe le rate agli
+        # stati del file, cancellando quelle segnate incassate nel frattempo.
+        print("\n--verifica: non scrivo, guardo soltanto.")
+    else:
+        print("\nScrivo...")
+        for c in crediti:
+            _chiama(args.base_url, token, "PUT", f"/api/admin/ciak/crediti/{c['id']}", c)
+            print(f"  ok  {c['id']}")
+        if obiettivo:
+            _chiama(
+                args.base_url, token, "PUT",
+                f"/api/admin/ciak/obiettivo/{obiettivo['id']}", obiettivo,
+            )
+            print(f"  ok  obiettivo {obiettivo['id']}")
 
     # Rilettura: la conferma che conta non e' "ho inviato", e' "il server lo
     # dice". Sono gli stessi endpoint che legge Luca, quindi cio' che appare qui
