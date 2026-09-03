@@ -8,6 +8,7 @@ import {
   FileText, X, Edit3, Variable, Bold, Italic, Link2, Type,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // Available variables for templates
 const TEMPLATE_VARIABLES = [
@@ -120,6 +121,7 @@ export function TemplateEmail({ onAuthExpired }) {
   const [success, setSuccess] = useState(null);
 
   // Edit form state
+  const [askReset, setAskReset] = useState(false);
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
 
@@ -207,10 +209,10 @@ export function TemplateEmail({ onAuthExpired }) {
     }
   };
 
-  const handleReset = async () => {
-    if (!selectedTemplate || !window.confirm("Vuoi ripristinare il template al default?"))
-      return;
-
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doReset = async () => {
+    setAskReset(false);
+    if (!selectedTemplate) return;
     try {
       const res = await adminFetch(
         `/api/admin/email-templates/${selectedTemplate.template_id}/reset`,
@@ -391,7 +393,7 @@ export function TemplateEmail({ onAuthExpired }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   {!selectedTemplate.is_default && (
                     <button
-                      onClick={handleReset}
+                      onClick={() => selectedTemplate && setAskReset(true)}
                       className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
                     >
                       Ripristina Default
@@ -551,6 +553,17 @@ export function TemplateEmail({ onAuthExpired }) {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={askReset}
+        title="Ripristina il template al default"
+        body="Le modifiche personalizzate a questo template vengono sostituite dalla versione di default."
+        confirmLabel="Ripristina"
+        cancelLabel="Annulla"
+        destructive
+        onConfirm={doReset}
+        onCancel={() => setAskReset(false)}
+      />
     </div>
   );
 }
