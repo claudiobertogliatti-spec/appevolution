@@ -12,6 +12,7 @@ import {
   PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye, Headphones,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // Configurazione colonne del funnel
 const STEPS = [
@@ -94,12 +95,13 @@ function CallBadge({ stato }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Modale Contratto Custom
 // ─────────────────────────────────────────────────────────────────────────────
-function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
+export function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
   const [status, setStatus] = useState(null); // { custom_pdf_url, filename, uploaded_at }
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [askDelete, setAskDelete] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -150,13 +152,9 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Rimuovere il contratto custom? Il prospect tornerà al contratto standard generato."
-      )
-    )
-      return;
+  // Conferma in pagina (ConfirmDialog), non un window.confirm().
+  const doDelete = async () => {
+    setAskDelete(false);
     setDeleting(true);
     try {
       await adminFetch(`/api/contract/custom-pdf/${cliente.id}`, { method: "DELETE" });
@@ -221,7 +219,7 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
                   Visualizza PDF
                 </a>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setAskDelete(true)}
                   disabled={deleting}
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90 bg-red-50 text-red-600 border border-red-200"
                 >
@@ -307,6 +305,18 @@ function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
           </p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={askDelete}
+        title="Rimuovi il contratto custom"
+        body="Il prospect torna al contratto standard generato."
+        confirmLabel="Rimuovi"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={doDelete}
+        onCancel={() => setAskDelete(false)}
+      />
     </div>
   );
 }
