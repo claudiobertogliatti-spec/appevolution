@@ -13,6 +13,7 @@
  */
 import { useEffect, useState } from "react";
 import { apiGet, apiPost, apiPut } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const CAPITOLI = [
   ["punto_di_partenza", "Il tuo punto di partenza"],
@@ -41,6 +42,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
   const [editedCapitoli, setEditedCapitoli] = useState({});
   const [busy, setBusy] = useState(false);        // operazione in corso
   const [opResult, setOpResult] = useState(null); // messaggio risultato ultima op
+  const [pendingKind, setPendingKind] = useState(null); // "rigenera" | "invia" — conferma in pagina
 
   const loadQueue = () => {
     setLoading(true);
@@ -108,8 +110,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
     }
   };
 
-  const rigenera = async () => {
-    if (!window.confirm("Rigenerare questa analisi con Carlo? I capitoli esistenti verranno sovrascritti.")) return;
+  const doRigenera = async () => {
     setBusy(true);
     setOpResult(null);
     try {
@@ -127,8 +128,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
     }
   };
 
-  const validaEInvia = async () => {
-    if (!window.confirm(`Validare e inviare questa analisi a ${sel.email}? Il cliente riceverà subito l'email.`)) return;
+  const doValidaEInvia = async () => {
     setBusy(true);
     setOpResult(null);
     try {
@@ -150,6 +150,32 @@ export function AnalisiDaValidare({ onAuthExpired }) {
       setBusy(false);
     }
   };
+
+  // La conferma passa da un ConfirmDialog in pagina: "rigenera" sovrascrive i
+  // capitoli (distruttivo), "invia" spedisce l'email al cliente (sensibile).
+  const confirmPending = async () => {
+    const kind = pendingKind;
+    setPendingKind(null);
+    if (kind === "rigenera") await doRigenera();
+    else if (kind === "invia") await doValidaEInvia();
+  };
+
+  const confirmDialogProps =
+    pendingKind === "rigenera"
+      ? {
+          title: "Rigenera l'analisi con Carlo",
+          body: "I capitoli esistenti verranno sovrascritti.",
+          confirmLabel: "Rigenera",
+          destructive: true,
+        }
+      : pendingKind === "invia"
+      ? {
+          title: `Valida e invia a ${sel?.email}`,
+          body: "Il cliente riceverà subito l'email con l'analisi definitiva.",
+          confirmLabel: "Valida e invia",
+          destructive: false,
+        }
+      : {};
 
   // ─── Stato caricamento / errore ───────────────────────────────────────────
 
@@ -283,7 +309,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
           </button>
 
           <button
-            onClick={rigenera}
+            onClick={() => setPendingKind("rigenera")}
             disabled={busy}
             className="px-5 py-2 rounded-lg text-sm font-semibold transition"
             style={{
@@ -297,7 +323,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
           </button>
 
           <button
-            onClick={validaEInvia}
+            onClick={() => setPendingKind("invia")}
             disabled={busy}
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition"
             style={{
@@ -308,6 +334,15 @@ export function AnalisiDaValidare({ onAuthExpired }) {
             {busy ? "…" : "Valida e invia"}
           </button>
         </div>
+
+        <ConfirmDialog
+          open={!!pendingKind}
+          {...confirmDialogProps}
+          cancelLabel="Annulla"
+          busy={busy}
+          onConfirm={confirmPending}
+          onCancel={() => setPendingKind(null)}
+        />
       </div>
     );
   }
