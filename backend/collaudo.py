@@ -169,6 +169,17 @@ async def collauda(db) -> dict:
             "Non sono ne' eseguibili ne' approvabili.",
         ),
         await _catena(
+            db, "Tag Systeme applicati", "ciak_systeme_events", "at",
+            {"applied_tags.0": {"$exists": True}}, 7,
+            "il ponte fra Ciak e la lista email: senza, un iscritto non riceve nulla",
+            "nessun tag e' arrivato a Systeme. Chi si iscrive resta nel database "
+            "di Ciak e fuori dalla lista email: non entra in nessuna sequenza e "
+            "non riceve niente. Verificato il 3/9/2026 interrogando Systeme: "
+            "l'ultimo contatto e' dell'8 agosto. Prima cosa da guardare: la "
+            "SYSTEME_API_KEY sul servizio, perche' la chiamata e' "
+            "fire-and-forget e un errore non ferma nulla e non si vede.",
+        ),
+        await _catena(
             db, "Opt-in masterclass", "ciak_leads", "created_at", {}, 7,
             "chi arriva dal sito e lascia i dati: il primo gradino del funnel",
             "nessun opt-in. Da verificare dove atterra l'inserzione e se il form "
