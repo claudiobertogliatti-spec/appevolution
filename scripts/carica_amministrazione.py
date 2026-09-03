@@ -278,7 +278,22 @@ def main():
             == (bersaglio.get("nome") or "").strip().lower()[:6]
         ]
         if gemelli:
-            print(f"\nRestera' in piedi: {', '.join(gemelli)}")
+            # ⛔ Non basta dire QUALE resta: bisogna mostrare COSA resta.
+            # Il 3/9 i due record di Falcone avevano lo stesso totale ma piani
+            # diversi -- 6 rate da 179 dal 30/9 contro 3 da 358 dal 15/9 -- e
+            # solo uno corrispondeva al PDF firmato. Un doppione non e' una
+            # copia: e' spesso una versione precedente, e va scelta quella
+            # giusta guardandole entrambe.
+            print("\n== Cosa resta in piedi, per confronto ==")
+            for gid in gemelli:
+                resta = next(c for c in tutti if c["id"] == gid)
+                print(f"\n-- {gid} --")
+                print(f"   documento: {resta.get('documento') or '(nessuno)'}")
+                for r in resta.get("rate") or []:
+                    quando = r.get("scadenza") or f"[{r.get('condizione')}]"
+                    print(f"   rata {r.get('numero')}: EUR {float(r.get('importo') or 0):.0f} {quando}")
+            print("\n⚠️ Stesso totale NON vuol dire stesso piano: confronta date e importi,")
+            print("   e tieni quello che corrisponde al documento firmato.")
         else:
             # Nessun gemello = non e' un doppione. Va detto forte: e' il caso in
             # cui si sta per perdere l'unica copia di una posizione.
