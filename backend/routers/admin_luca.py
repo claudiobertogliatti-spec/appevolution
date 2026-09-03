@@ -262,6 +262,32 @@ async def build_luca_context() -> str:
     now = datetime.now(timezone.utc)
     lines.append(f"DATA ODIERNA: {now.strftime('%d/%m/%Y %H:%M')} UTC")
 
+    # --- COLLAUDO: le catene stanno producendo? ---
+    #
+    # Sta in cima, prima ancora della cassa, per una ragione precisa: se il
+    # motore di acquisizione non produce da settimane, ogni ragionamento sul
+    # gap da colmare parte da un presupposto falso. Un numero costruito su una
+    # catena rotta e' peggio di nessun numero.
+    try:
+        from collaudo import collauda, PRODUCE
+
+        c = await collauda(db)
+        lines.append("")
+        lines.append("== COLLAUDO DELLE CATENE ==")
+        lines.append(c["in_sintesi"])
+        for voce in c["catene"]:
+            if voce["verdetto"] == PRODUCE:
+                continue
+            fermo = voce["giorni_dall_ultimo"]
+            quando = f", ultimo {fermo} giorni fa" if fermo is not None else ", mai"
+            lines.append(
+                f"  ! {voce['catena']}: {voce['verdetto'].replace('_', ' ')}{quando}"
+            )
+            lines.append(f"    ({voce['cosa_significa']})")
+    except Exception as e:
+        logger.warning(f"[admin_luca] collaudo: {e}")
+        lines.append("== COLLAUDO == non disponibile (non dedurne che sia tutto a posto)")
+
     # --- CASSA A BREVE: obiettivo, scadenze, crediti ---
     #
     # Il system prompt qui sopra dice a Luca che la cassa e' "il gate che decide
