@@ -119,7 +119,7 @@ def test_la_sintesi_nomina_le_catene_rotte():
         discovery_leads=[{"created_at": _quando(1)}],
         ciak_leads=[{"created_at": _quando(1)}],
         email_logs=[{"sent_at": _quando(1), "status": "sent_smtp"}],
-        luca_stato_giornaliero=[{"created_at": _quando(0)}],
+        luca_stato_giornaliero=[{"data": "oggi", "scritto_a": _quando(0)}],
     )
     esito = asyncio.run(collaudo.collauda(db))
 
@@ -133,7 +133,7 @@ def test_tutto_sano_lo_dice_senza_giri_di_parole():
         discovery_leads=[{"created_at": _quando(1)}],
         ciak_leads=[{"created_at": _quando(1)}],
         email_logs=[{"sent_at": _quando(1), "status": "sent_smtp"}],
-        luca_stato_giornaliero=[{"created_at": _quando(0)}],
+        luca_stato_giornaliero=[{"data": "oggi", "scritto_a": _quando(0)}],
         agent_tasks=[{
             "created_at": _quando(1), "type": "auto_outreach_lead", "status": "done",
         }],
@@ -162,3 +162,33 @@ def test_una_email_fallita_non_conta_come_contatto_avvenuto():
     email = next(c for c in esito["catene"] if c["catena"] == "Email partite")
     assert email["prodotto_negli_ultimi_giorni"] == 0
     assert email["verdetto"] != collaudo.PRODUCE
+
+
+def test_il_campo_data_del_briefing_e_quello_vero():
+    """
+    ⛔ Il 3/9 questa riga cercava `created_at` su una collection che scrive
+    `scritto_a`: zero risultati sempre, e il collaudo dichiarava morto un
+    briefing che girava. Il nome di un campo si legge nel codice che scrive, non
+    si presume dalla convenzione delle altre collection.
+    """
+    db = _Db(luca_stato_giornaliero=[{"data": "2026-09-03", "scritto_a": _quando(0)}])
+    esito = asyncio.run(collaudo.collauda(db))
+
+    briefing = next(c for c in esito["catene"] if c["catena"] == "Briefing di Luca")
+    assert briefing["verdetto"] == collaudo.PRODUCE, (
+        "un briefing scritto oggi deve risultare vivo"
+    )
+
+
+def test_il_censimento_dice_dove_stanno_davvero_i_contatti():
+    """
+    Un job che cerca nella collection sbagliata e' il guasto piu' frequente di
+    Ciak. Il censimento risponde con i numeri invece di lasciarlo dedurre.
+    """
+    db = _Db(discovery_leads=[], ciak_leads=[{"created_at": _quando(1)}] * 12)
+    esito = asyncio.run(collaudo.collauda(db))
+
+    dove = esito["dove_stanno_i_lead"]
+    assert dove["discovery_leads"] == 0
+    assert dove["ciak_leads"] == 12
+    assert "lista_fredda" in dove, "va contata anche dove i lead potrebbero essere finiti"

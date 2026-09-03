@@ -107,6 +107,30 @@ async def _catena(
     }
 
 
+async def _censimento_lead(db) -> dict:
+    """
+    Quanti contatti ci sono, e in quale collection.
+
+    Il 3/9/2026 il collaudo ha dato `discovery_leads` **vuota, storico zero** --
+    mentre esistono 16 task di outreach che si creano leggendo proprio quella, e
+    Claudio ha in mano una lista di 331 nomi. Le due cose non stanno insieme:
+    o i contatti vivono altrove, o sono stati svuotati dopo.
+
+    Un job che cerca nel posto sbagliato e' il guasto piu' frequente di Ciak --
+    la porta 8001, il filtro dei 564 lead, il modulo fuori dal container. Quindi
+    la domanda "dove sono davvero i dati" merita una risposta stampata, non una
+    deduzione: qui si contano tutte le collection candidate, e chi legge vede
+    subito se il motore sta guardando quella vuota.
+    """
+    fuori = {}
+    for nome in ("discovery_leads", "ciak_leads", "lista_fredda", "leads", "clienti"):
+        try:
+            fuori[nome] = await getattr(db, nome).count_documents({})
+        except Exception:
+            fuori[nome] = None  # collection assente: si dichiara, non si finge 0
+    return fuori
+
+
 async def collauda(db) -> dict:
     """
     Passa in rassegna le catene che devono produrre cassa o lavoro.
@@ -150,8 +174,13 @@ async def collauda(db) -> dict:
             "nessun opt-in. Da verificare dove atterra l'inserzione e se il form "
             "sulla pagina risponde.",
         ),
+        # ⚠️ Il campo e' `scritto_a`, non `created_at`: questa collection fa upsert
+        # su `data` e non usa la convenzione delle altre. Al primo giro vero
+        # (3/9/2026) cercavo `created_at` e il collaudo dichiarava morto un
+        # briefing che invece girava -- lo stesso difetto che deve smascherare.
+        # Il nome di un campo si legge nel codice che scrive, non si presume.
         await _catena(
-            db, "Briefing di Luca", "luca_stato_giornaliero", "created_at", {}, 2,
+            db, "Briefing di Luca", "luca_stato_giornaliero", "scritto_a", {}, 2,
             "il rapporto delle 7:45: se manca, nessuno guarda i numeri",
             "il briefing non gira. Controllare che Celery Beat sia vivo e che "
             "Redis non sia sospeso.",
@@ -162,6 +191,7 @@ async def collauda(db) -> dict:
     return {
         "generato_at": datetime.now(timezone.utc).isoformat(),
         "catene": catene,
+        "dove_stanno_i_lead": await _censimento_lead(db),
         "quante_rotte": len(rotte),
         # La riga che deve leggere chi ha trenta secondi.
         "in_sintesi": (
