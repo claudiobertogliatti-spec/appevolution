@@ -4357,6 +4357,32 @@ async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_
     return {"success": True, "credito": validato}
 
 
+@router.delete("/crediti/{credito_id}")
+async def crediti_elimina(credito_id: str, admin=Depends(require_ciak_admin)):
+    """
+    Cancella un credito. Serve per i doppioni, non per chiudere una posizione:
+    una posizione saldata si segna `saldato`, non si fa sparire.
+
+    Perche' esiste (3/9/2026): un id e' una CHIAVE, non un'etichetta. Due
+    sessioni che caricano la stessa persona con id diversi -- `falcone` e
+    `falcone-piano-rientro` -- non si sovrascrivono: convivono, e il riepilogo
+    somma entrambe. Cosi' il residuo dichiarava EUR 2.634 in piu' del vero,
+    che e' peggio di non averlo: nessuno mette in dubbio un numero preciso.
+
+    Restituisce il documento cancellato, cosi' chi esegue ha in mano cosa ha
+    tolto se si accorge di aver sbagliato bersaglio.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    credito = await db.crediti.find_one({"id": credito_id}, {"_id": 0})
+    if not credito:
+        raise HTTPException(404, "Credito non trovato")
+
+    await db.crediti.delete_one({"id": credito_id})
+    return {"success": True, "cancellato": credito}
+
+
 @router.patch("/crediti/{credito_id}/rate/{numero}")
 async def crediti_segna_rata(
     credito_id: str, numero: int, body: dict, admin=Depends(require_ciak_admin)

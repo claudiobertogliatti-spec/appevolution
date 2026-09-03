@@ -216,6 +216,10 @@ def main():
         "--elenco", action="store_true",
         help="non scrive: elenca TUTTI i crediti sul server e segnala i possibili doppioni",
     )
+    ap.add_argument(
+        "--rimuovi", metavar="ID",
+        help="cancella un credito (per i doppioni). Mostra il record e chiede conferma.",
+    )
     args = ap.parse_args()
 
     percorso = Path(args.dati).expanduser()
@@ -254,6 +258,46 @@ def main():
         return 0
 
     token = _token(args.base_url, args.token_file)
+
+    if args.rimuovi:
+        # ⛔ L'unica operazione distruttiva di questo script. Il record si vede
+        # PRIMA, per intero: cancellare al buio un doppione e scoprire dopo di
+        # aver colpito quello con dentro le note buone non si annulla.
+        tutti = _chiama(args.base_url, token, "GET", "/api/admin/ciak/crediti")["crediti"]
+        bersaglio = next((c for c in tutti if c["id"] == args.rimuovi), None)
+        if not bersaglio:
+            raise SystemExit(f"ERRORE: nessun credito con id '{args.rimuovi}'")
+
+        print(f"\n== Sto per cancellare '{args.rimuovi}'. Ecco cosa contiene ==")
+        print(json.dumps(bersaglio, indent=2, ensure_ascii=False))
+
+        gemelli = [
+            c["id"] for c in tutti
+            if c["id"] != args.rimuovi
+            and (c.get("nome") or "").strip().lower()[:6]
+            == (bersaglio.get("nome") or "").strip().lower()[:6]
+        ]
+        if gemelli:
+            print(f"\nRestera' in piedi: {', '.join(gemelli)}")
+        else:
+            # Nessun gemello = non e' un doppione. Va detto forte: e' il caso in
+            # cui si sta per perdere l'unica copia di una posizione.
+            print("\n!! ATTENZIONE: nessun altro credito con un nome simile.")
+            print("   Non stai togliendo un doppione: stai togliendo l'unica copia.")
+
+        conferma = input(f"\nDigita l'id per confermare ({args.rimuovi}): ").strip()
+        if conferma != args.rimuovi:
+            raise SystemExit("Annullato: non ho cancellato niente.")
+
+        _chiama(args.base_url, token, "DELETE", f"/api/admin/ciak/crediti/{args.rimuovi}")
+        print(f"Cancellato {args.rimuovi}.")
+
+        r = _chiama(args.base_url, token, "GET", "/api/admin/ciak/crediti/riepilogo")
+        print(
+            f"Ora: previsto EUR {r.get('previsto_nel_mese', 0):.0f} - "
+            f"residuo totale EUR {r.get('residuo_totale', 0):.0f}"
+        )
+        return 0
 
     if args.elenco:
         # Il riepilogo somma TUTTO cio' che sta nella collection, non solo cio'
