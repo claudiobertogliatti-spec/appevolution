@@ -84,16 +84,31 @@ def _chiama(base_url, token, metodo, path, corpo=None):
         raise SystemExit(f"ERRORE: {metodo} {path} -> irraggiungibile: {e.reason}")
 
 
-def _token_buono(base_url, token):
+def _ripulisci(token: str) -> str:
     """
-    Il token e' valido E ha il ruolo admin?
+    Toglie da un token incollato a mano tutto cio' che non e' il token.
 
-    Va chiesto al server prima di scrivere. Il JWT di Ciak dura 24 ore, quindi
-    una variabile d'ambiente impostata ieri e' quasi sempre scaduta -- e
-    `decode_token` che fallisce produce un **403** ("Accesso riservato agli
-    admin"), non un 401: dal codice di errore non si distingue un token scaduto
-    da un utente senza permessi. Ci si prova su un endpoint in sola lettura, che
-    non cambia niente se va male.
+    Il 3/9/2026: **DevTools "Copy value" copia il valore con le virgolette
+    incluse**, quindi nel file finisce `"eyJ..."` e l'header parte malformato.
+    Stessa storia per un `Bearer ` copiato per abitudine, o per gli a-capo che
+    il Blocco Note aggiunge in fondo. Sono tutti errori invisibili: il file
+    "sembra giusto" a guardarlo.
+    """
+    t = token.strip().strip('"').strip("'").strip()
+    if t.lower().startswith("bearer "):
+        t = t[7:].strip()
+    return "".join(t.split())  # spazi e a-capo interni: un JWT non ne ha
+
+
+def _prova_token(base_url, token):
+    """
+    Restituisce (ok, motivo) — il motivo serve quanto l'esito.
+
+    Il JWT di Ciak dura 24 ore, quindi un token del giorno prima e' quasi sempre
+    scaduto. E i codici ingannano: `decode_token` che fallisce produce un **403**
+    ("Accesso riservato agli admin"), lo stesso di un utente senza permessi,
+    mentre un header malformato o assente da' **401**. Dire solo "non e' valido"
+    manda a cercare nel posto sbagliato.
     """
     req = urllib.request.Request(
         f"{base_url.rstrip('/')}/api/admin/ciak/crediti",
@@ -101,9 +116,26 @@ def _token_buono(base_url, token):
     )
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT):
-            return True
-    except Exception:
-        return False
+            return True, "ok"
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return False, "l'header di autorizzazione non arriva al server (401)"
+        # ⚠️ Verificato il 3/9 mandando un token inventato: risponde 403, non 401.
+        # `decode_token` restituisce None sia per un token scaduto sia per uno
+        # malformato o troncato, e require_ciak_admin le tratta uguali -- percio'
+        # qui si elencano tutte e tre le cause invece di indicarne una sola.
+        if e.code == 403:
+            return False, (
+                "scaduto, troncato, o non e' il token di un admin (403). "
+                "I JWT durano 24 ore"
+            )
+        return False, f"il server risponde HTTP {e.code}"
+    except urllib.error.URLError as e:
+        return False, f"server irraggiungibile: {e.reason}"
+
+
+def _token_buono(base_url, token):
+    return _prova_token(base_url, token)[0]
 
 
 def _login(base_url):
@@ -136,23 +168,28 @@ def _token(base_url, token_file=None):
         percorso = Path(token_file).expanduser()
         if not percorso.is_file():
             raise SystemExit(f"ERRORE: file del token non trovato: {percorso}")
-        token = percorso.read_text(encoding="utf-8").strip()
+        token = _ripulisci(percorso.read_text(encoding="utf-8"))
         if not token:
             raise SystemExit(f"ERRORE: il file del token e' vuoto: {percorso}")
-        if _token_buono(base_url, token):
+        ok, motivo = _prova_token(base_url, token)
+        if ok:
             print(f"Uso il token da {percorso.name}.")
             return token
-        print(f"Il token in {percorso.name} non e' valido o e' scaduto: faccio il login.")
+        print(f"Il token in {percorso.name} non va bene: {motivo}.")
+        print(f"   (letti {len(token)} caratteri; un token buono ne ha qualche centinaio")
+        print(f"    e comincia per 'eyJ'. Il tuo comincia per '{token[:3]}'.)")
         return _login(base_url)
 
-    token = os.environ.get("CIAK_ADMIN_TOKEN")
+    token = _ripulisci(os.environ.get("CIAK_ADMIN_TOKEN") or "")
     if token:
-        if _token_buono(base_url, token):
+        ok, motivo = _prova_token(base_url, token)
+        if ok:
             print("Uso il token da CIAK_ADMIN_TOKEN.")
             return token
         # ⛔ Non si muore qui: un token scaduto e' la normalita' dopo 24 ore, e
         # far ripartire tutto da capo per questo sarebbe solo fastidio.
-        print("Il token in CIAK_ADMIN_TOKEN non e' valido o e' scaduto: faccio il login.")
+        print(f"Il token in CIAK_ADMIN_TOKEN non va bene: {motivo}.")
+        print("Faccio il login.")
     else:
         print("Nessun CIAK_ADMIN_TOKEN: faccio il login.")
 
