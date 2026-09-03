@@ -69,3 +69,14 @@ test("confermando l'eliminazione chiama la DELETE e conferma con un toast", asyn
   );
   await waitFor(() => expect(toast.success).toHaveBeenCalled());
 });
+
+test("un errore nel cambio stato passa da un toast, non da un window.alert", async () => {
+  const spy = jest.spyOn(window, "alert");
+  adminFetch.mockResolvedValue({ ok: false, text: async () => "" });
+  await renderTable();
+  const riga = screen.getByText("Alfredo Vasi").closest("tr");
+  fireEvent.change(within(riga).getByRole("combobox"), { target: { value: "sospeso" } });
+  await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  expect(spy).not.toHaveBeenCalled();
+  spy.mockRestore();
+});
