@@ -803,6 +803,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   // Toggle di stato (Partnership/Contratto/Onboarding/Masterclass): la conferma
   // passa da un ConfirmDialog in pagina, non da un window.confirm() sincrono.
   const [pendingToggle, setPendingToggle] = useState(null); // { field, next, label }
+  // Conferma generica in pagina per le azioni dilazione/morosità (al posto di
+  // window.confirm): { title, body, confirmLabel, destructive, onConfirm }.
+  const [pendingConfirm, setPendingConfirm] = useState(null);
 
   // Form state for profile tab
   const [formData, setFormData] = useState({
@@ -1308,8 +1311,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
 
-  const handleRemovePiano = async () => {
-    if (!window.confirm("Rimuovere la dilazione di questo partner?")) return;
+  const handleRemovePiano = () =>
+    setPendingConfirm({
+      title: "Rimuovi la dilazione",
+      body: "Il partner torna alle condizioni di pagamento standard.",
+      confirmLabel: "Rimuovi",
+      destructive: true,
+      onConfirm: doRemovePiano,
+    });
+
+  const doRemovePiano = async () => {
     setSavingPiano(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/piano-pagamento`, {
@@ -1329,8 +1340,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
   // Morosità: unico punto d'ingresso per marcare quarantena_tipo "morosita".
   // (La sospensione "richiesta" si gestisce dalla pagina Quarantena Partner.)
-  const handleSetMorosita = async () => {
-    if (!window.confirm("Segnalare questo partner come moroso? Verrà spostato in Quarantena con badge Morosità.")) return;
+  const handleSetMorosita = () =>
+    setPendingConfirm({
+      title: "Segnala il partner come moroso",
+      body: "Viene spostato in Quarantena con badge Morosità.",
+      confirmLabel: "Segnala moroso",
+      destructive: true,
+      onConfirm: doSetMorosita,
+    });
+
+  const doSetMorosita = async () => {
     setSavingMorosita(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
@@ -1355,8 +1374,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
 
-  const handleClearMorosita = async () => {
-    if (!window.confirm("Rimuovere la segnalazione di morosità e riattivare il partner?")) return;
+  const handleClearMorosita = () =>
+    setPendingConfirm({
+      title: "Rimuovi la morosità",
+      body: "La segnalazione viene tolta e il partner torna attivo.",
+      confirmLabel: "Riattiva",
+      destructive: false,
+      onConfirm: doClearMorosita,
+    });
+
+  const doClearMorosita = async () => {
     setSavingMorosita(true);
     try {
       const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
@@ -2481,6 +2508,21 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           setPendingToggle(null);
         }}
         onCancel={() => setPendingToggle(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingConfirm}
+        title={pendingConfirm?.title || ""}
+        body={pendingConfirm?.body || ""}
+        confirmLabel={pendingConfirm?.confirmLabel || "Conferma"}
+        cancelLabel="Annulla"
+        destructive={pendingConfirm?.destructive || false}
+        onConfirm={() => {
+          const p = pendingConfirm;
+          setPendingConfirm(null);
+          p?.onConfirm?.();
+        }}
+        onCancel={() => setPendingConfirm(null)}
       />
     </>
   );
