@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { apiGet, adminFetch } from "../api";
+import { toast } from "sonner";
 
 const MACRO_TONE = {
   esamina: "bg-blue-50 text-blue-700 border-blue-200",
@@ -106,7 +107,7 @@ function RegiaPanel({ item, onClose, onSaved, onAuthExpired }) {
       onClose();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore salvataggio: " + e.message);
+      else toast.error("Errore salvataggio: " + e.message);
     } finally {
       setSaving(false);
     }

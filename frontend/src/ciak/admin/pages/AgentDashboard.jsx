@@ -22,6 +22,7 @@ import {
   X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube, Trash2, Filter, SlidersHorizontal
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { toast } from "sonner";
 
 // Agent emoji and color mapping - UPDATED: 6 agents only
 const AGENT_CONFIG = {
@@ -107,15 +108,15 @@ export function AgentDashboard({ onAuthExpired }) {
       const res = await adminFetch(`/api/discovery/analyze-website/${leadId}`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
-        alert(`Analisi completata!\nLLM: ${data.llm_used || 'Claude'}\nScore: ${data.website_analysis?.opportunity_score || 'N/A'}`);
+        toast.success(`Analisi completata — LLM ${data.llm_used || 'Claude'}, score ${data.website_analysis?.opportunity_score || 'N/A'}`);
         loadDiscoveryLeads(); // Refresh
       } else {
         const err = await res.json();
-        alert(`Errore: ${err.detail || 'Analisi fallita'}`);
+        toast.error(`Errore: ${err.detail || 'Analisi fallita'}`);
       }
     } catch (error) {
       if (error.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
-      alert(`Errore: ${error.message}`);
+      toast.error(`Errore: ${error.message}`);
     }
     setAnalyzingLead(null);
   };
@@ -129,11 +130,11 @@ export function AgentDashboard({ onAuthExpired }) {
         setConfirmDeleteLead(null);
       } else {
         const err = await res.json();
-        alert(`Errore eliminazione: ${err.detail || 'Eliminazione fallita'}`);
+        toast.error(`Errore eliminazione: ${err.detail || 'Eliminazione fallita'}`);
       }
     } catch (error) {
       if (error.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
-      alert(`Errore: ${error.message}`);
+      toast.error(`Errore: ${error.message}`);
     }
     setDeletingLead(null);
   };

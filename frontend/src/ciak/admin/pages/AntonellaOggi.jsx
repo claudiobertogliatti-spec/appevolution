@@ -132,6 +132,9 @@ export function AntonellaOggi({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [work, setWork] = useState(null);
   const [showApprovPanel, setShowApprovPanel] = useState(false);
+  // Form in pagina per la nota di completamento (al posto di window.prompt).
+  const [completeFor, setCompleteFor] = useState(null);
+  const [completeNote, setCompleteNote] = useState("");
   const [materiali, setMateriali] = useState(0);
 
   const load = async () => {
@@ -189,9 +192,15 @@ export function AntonellaOggi({ onAuthExpired }) {
   const refreshWork = async () => setWork(await apiGet("/collaboratori/antonella"));
   const startTask = async (task) => { await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/start`); await refreshWork(); };
   const stopTask = async (task) => { await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/stop`); await refreshWork(); };
-  const completeTask = async (task) => {
-    const note = window.prompt("Nota finale sul lavoro svolto?", "") || "";
-    await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/complete`, { note });
+  const completeTask = (task) => {
+    setCompleteNote("");
+    setCompleteFor(task);
+  };
+  const submitComplete = async () => {
+    const task = completeFor;
+    if (!task) return;
+    setCompleteFor(null);
+    await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/complete`, { note: completeNote });
     await refreshWork();
   };
 
@@ -337,6 +346,25 @@ export function AntonellaOggi({ onAuthExpired }) {
         onClose={() => setShowApprovPanel(false)}
         onChange={(n) => setMateriali(n)}
       />
+      {completeFor && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setCompleteFor(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Completa il task" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-slate-900">Completa il task</h2>
+            <p className="mt-2 text-sm text-slate-600">{completeFor.title}</p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-widest text-slate-500">Nota finale (opzionale)</label>
+            <textarea
+              autoFocus rows={3} value={completeNote}
+              onChange={(e) => setCompleteNote(e.target.value)}
+              data-testid="complete-note-input"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setCompleteFor(null)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400">Annulla</button>
+              <button type="button" onClick={submitComplete} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800">Segna completato</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
