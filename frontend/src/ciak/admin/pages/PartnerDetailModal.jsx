@@ -851,6 +851,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("2790");
 
   // Video pipeline state
   const [videoPipeline, setVideoPipeline] = useState(null);
@@ -1221,21 +1223,20 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
 
-  // Segna pagamento partnership manuale
-  const handleSegnaPagamentoPartnership = async () => {
-    const importo = window.prompt(
-      "Inserisci l'importo della partnership (es. 2790 per €2.790):",
-      "2790"
-    );
+  // Segna pagamento partnership manuale: importo e conferma raccolti da un
+  // form in pagina (non window.prompt + window.confirm).
+  const handleSegnaPagamentoPartnership = () => {
+    setPaymentAmount("2790");
+    setShowPaymentForm(true);
+  };
 
-    if (!importo || isNaN(parseFloat(importo))) return;
-
-    const conferma = window.confirm(
-      `Confermi che ${partnerName} ha effettuato il pagamento della Partnership di €${parseFloat(importo).toLocaleString('it-IT')} tramite bonifico?\n\nVerrà aggiunto ai pagamenti come "Pagato".`
-    );
-
-    if (!conferma) return;
-
+  const submitPagamentoPartnership = async () => {
+    const importo = parseFloat(paymentAmount);
+    if (!paymentAmount || isNaN(importo) || importo <= 0) {
+      toast.error("Inserisci un importo valido.");
+      return;
+    }
+    setShowPaymentForm(false);
     setMarkingPartnership(true);
 
     try {
@@ -2524,6 +2525,64 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         }}
         onCancel={() => setPendingConfirm(null)}
       />
+
+      {showPaymentForm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4"
+          role="presentation"
+          onClick={(e) => { e.stopPropagation(); setShowPaymentForm(false); }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-form-title"
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="payment-form-title" className="text-lg font-semibold text-slate-900">
+              Segna il pagamento partnership
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Per {partnerName}. Registra un bonifico incassato come "Pagato".
+            </p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Importo
+            </label>
+            <div className="mt-1 flex items-center rounded-lg border border-slate-300 px-3 focus-within:border-slate-900">
+              <span className="text-slate-500">€</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                autoFocus
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitPagamentoPartnership(); }}
+                data-testid="payment-amount-input"
+                className="w-full py-2 pl-2 outline-none tabular-nums"
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPaymentForm(false)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={submitPagamentoPartnership}
+                disabled={markingPartnership}
+                data-testid="payment-confirm-btn"
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Segna pagato
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
