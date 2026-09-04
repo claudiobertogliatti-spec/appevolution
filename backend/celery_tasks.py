@@ -1622,21 +1622,31 @@ def daily_hot_leads_outreach(self, max_leads: int = 5):
                         # Crea task per VALENTINA
                         task_id = f"valentina_auto_{lead_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
                         
+                        # title/description espliciti: la coda approvazioni li
+                        # legge per mostrare il task. Senza, la card resta vuota e
+                        # l'admin non capisce cosa stia approvando.
+                        _score = lead.get("score_total", 0)
                         task_data = {
                             "id": task_id,
                             "type": "auto_outreach_lead",
                             "agent": "VALENTINA",
+                            "title": f"Outreach a {lead_name} (score {_score})",
+                            "description": (
+                                f"Contatta il lead hot {lead_name}"
+                                + (f" <{email}>" if email else "")
+                                + f", score {_score}, fonte {lead.get('source', 'sconosciuta')}."
+                            ),
                             "lead_id": lead_id,
                             "lead_name": lead_name,
                             "lead_email": email,
                             "lead_source": lead.get("source", "unknown"),
-                            "lead_score": lead.get("score_total", 0),
+                            "lead_score": _score,
                             "status": "pending",
                             "priority": "high",
                             "auto_triggered": True,
                             "created_at": datetime.now(timezone.utc).isoformat(),
                             "due_date": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
-                            "notes": f"Outreach automatico giornaliero - Lead hot score {lead.get('score_total', 0)}"
+                            "notes": f"Outreach automatico giornaliero - Lead hot score {_score}"
                         }
                         
                         await db.agent_tasks.insert_one(task_data)

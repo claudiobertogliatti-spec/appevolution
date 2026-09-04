@@ -99,11 +99,22 @@ celery_app.conf.update(
             'task': 'celery_tasks.check_piano_continuita_expiry',
             'schedule': 86400.0,  # Every 24 hours (daily)
         },
-        'daily-hot-leads-outreach': {
-            'task': 'celery_tasks.daily_hot_leads_outreach',
-            'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
-            'kwargs': {'max_leads': 5},  # Max 5 leads/day
-        },
+        # ─────────────────────────────────────────────────────────────────
+        # `daily-hot-leads-outreach` DISATTIVATO dal 2026-09-04.
+        # Perche': il job pesca da `discovery_leads` (Google Places) lead con
+        # score>=80 e crea un task per VALENTINA in coda approvazioni. Ma quella
+        # collection e' vuota/churning (collaudo 4/9, 3 fonti concordi) e il job
+        # `discovery_cleanup` la svuota alle 3:00. Risultato misurato: task-guscio
+        # orfani (lead "Lead" score 95, id inesistente), SENZA titolo/descrizione,
+        # che intasano "Cosa aspetta il tuo OK" e non hanno alcun consumatore che
+        # invii davvero l'outreach. E' la firma classica: gira, dichiara success,
+        # non produce. Si riattiva SOLO quando discovery_leads e' una pipeline
+        # vera e vagliata (rimuovere il commento qui sotto).
+        # 'daily-hot-leads-outreach': {
+        #     'task': 'celery_tasks.daily_hot_leads_outreach',
+        #     'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
+        #     'kwargs': {'max_leads': 5},  # Max 5 leads/day
+        # },
         'morning-lead-briefing': {
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET

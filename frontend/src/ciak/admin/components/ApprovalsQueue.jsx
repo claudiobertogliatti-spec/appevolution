@@ -2,12 +2,12 @@
  * Ciak Admin — ApprovalsQueue.
  *
  * Riquadro "Cosa aspetta il tuo OK": elenco dei task degli agenti in attesa di
- * approvazione, con Approva / Rifiuta (rigenera con feedback) / Visualizza
- * (espande richiesta + output). Estratto dalla Cabina di Regia per essere
- * mostrato in "Oggi" (cruscotto operativo). Si auto-carica e si auto-ricarica
- * dopo ogni azione.
+ * approvazione, con Approva / Rifiuta (rigenera con feedback) / Scarta (toglie
+ * dalla coda senza rigenerare) / Visualizza (espande richiesta + output + note +
+ * lead). Estratto dalla Cabina di Regia per essere mostrato in "Oggi" (cruscotto
+ * operativo). Si auto-carica e si auto-ricarica dopo ogni azione.
  *
- * Backend: GET /api/agent-tasks/approvals · POST /api/agent-tasks/{id}/approve|reject
+ * Backend: GET /api/agent-tasks/approvals · POST /api/agent-tasks/{id}/approve|reject|dismiss
  */
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -97,7 +97,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
               <li key={id || i} className="px-5 py-3">
                 <div className="flex items-center gap-3">
                   <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                  <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || "Task"}</span>
+                  <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || t.lead_name || "(task senza titolo)"}</span>
                   <span className="text-xs text-slate-400 shrink-0 mr-1">{t.agent || t.created_by_agent || ""}</span>
                   <button
                     onClick={() => setOpenId(open ? null : id)}
@@ -107,6 +107,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
                   </button>
                   <button disabled={!!busy} onClick={() => act(t, "approve")} className="text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Approva</button>
                   <button disabled={!!busy} onClick={() => { setRejectReason(""); setRejectFor(t); }} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
+                  <button disabled={!!busy} onClick={() => act(t, "dismiss")} title="Togli dalla coda senza rigenerare" className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50">Scarta</button>
                 </div>
 
                 {open && (
@@ -126,6 +127,25 @@ export function ApprovalsQueue({ onAuthExpired }) {
                     {res.message && (
                       <p className="text-xs text-slate-500 italic">{res.message}</p>
                     )}
+                    {t.notes && (
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note</div>
+                        <p className="text-sm text-slate-700 mt-0.5">{t.notes}</p>
+                      </div>
+                    )}
+                    {(t.lead_name || t.lead_email) && (
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lead</div>
+                        <p className="text-sm text-slate-700 mt-0.5">
+                          {t.lead_name || "—"}{t.lead_email ? ` · ${t.lead_email}` : ""}
+                          {t.lead_score != null ? ` · score ${t.lead_score}` : ""}
+                          {t.lead_source ? ` · ${t.lead_source}` : ""}
+                        </p>
+                      </div>
+                    )}
+                    {!t.description && !output && !res.message && !t.notes && !t.lead_name && !t.lead_email && (
+                      <p className="text-sm text-slate-400 italic">Nessun contenuto associato a questo task. Se non sai cosa sia, usa «Scarta».</p>
+                    )}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-100">
                       <span>Agente: {t.agent || "—"}</span>
                       <span>Richiesto da: {t.created_by || "—"}</span>
@@ -140,7 +160,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
         </ul>
       )}
       <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
-        Approva/Rifiuta sblocca i task 🟡 in attesa. Il Rifiuta chiede un motivo che viene usato per rigenerare.
+        Approva sblocca · Rifiuta chiede un motivo e rigenera · Scarta toglie dalla coda senza rigenerare.
       </div>
       {rejectFor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setRejectFor(null)}>

@@ -6980,6 +6980,7 @@ from approval_workflow import (
     create_task_with_approval,
     approve_task,
     reject_task,
+    dismiss_task,
     get_pending_approvals,
     get_approval_stats
 )
@@ -6991,6 +6992,10 @@ class ApproveRequest(BaseModel):
 class RejectRequest(BaseModel):
     reviewer: str
     feedback: str
+
+class DismissRequest(BaseModel):
+    reviewer: str
+    reason: Optional[str] = None
 
 @api_router.get("/agent-tasks/approvals")
 async def list_pending_approvals(
@@ -7022,6 +7027,16 @@ async def api_reject_agent_task(task_id: str, request: RejectRequest):
     """Rifiuta un task in attesa con feedback (sblocco dalla Cabina di Regia)."""
     try:
         task = await reject_task(db, task_id, request.reviewer, request.feedback)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
+
+
+@api_router.post("/agent-tasks/{task_id}/dismiss")
+async def api_dismiss_agent_task(task_id: str, request: DismissRequest):
+    """Scarta un task dalla coda senza rigenerarlo (nessun motivo obbligatorio)."""
+    try:
+        task = await dismiss_task(db, task_id, request.reviewer, request.reason)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}

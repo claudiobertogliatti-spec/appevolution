@@ -293,6 +293,38 @@ async def reject_task(db, task_id: str, reviewer: str, feedback: str) -> Dict:
     return await db.agent_tasks.find_one({"id": task_id})
 
 
+async def dismiss_task(db, task_id: str, reviewer: str, reason: Optional[str] = None) -> Dict:
+    """
+    Scarta un task dalla coda approvazioni SENZA rigenerarlo.
+
+    Differenza da reject_task: "Rifiuta" pretende un motivo perche' serve a
+    rigenerare l'output; "Scarta" serve a togliere di mezzo un task che non ha
+    senso approvare (es. outreach automatico orfano). Nessun motivo obbligatorio,
+    nessun limite di revisioni. Stato terminale: "dismissed" → esce dalla coda
+    (get_pending_approvals filtra su awaiting_approval).
+    """
+    task = await db.agent_tasks.find_one({"id": task_id})
+    if not task:
+        raise ValueError(f"Task {task_id} non trovato")
+
+    if task.get("status") != "awaiting_approval":
+        raise ValueError(f"Task {task_id} non e' in attesa di approvazione (status: {task.get('status')})")
+
+    update = {
+        "status": "dismissed",
+        "approval.status": "dismissed",
+        "approval.reviewer": reviewer,
+        "approval.reviewed_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if reason:
+        update["approval.dismiss_reason"] = reason
+
+    await db.agent_tasks.update_one({"id": task_id}, {"$set": update})
+    logger.info(f"Task {task_id} scartato da {reviewer}")
+    return await db.agent_tasks.find_one({"id": task_id})
+
+
 async def get_pending_approvals(db, agent: Optional[str] = None, partner_id: Optional[str] = None) -> List[Dict]:
     """
     Ottiene la lista di task in attesa di approvazione.
