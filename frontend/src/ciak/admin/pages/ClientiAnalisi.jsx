@@ -13,6 +13,8 @@ import {
   Edit3, Save, User, ToggleLeft, Trash2,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { toast } from "sonner";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLIENTE EDIT MODAL
@@ -281,6 +283,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
   const [stats, setStats] = useState({ totale: 0, questionario_completato: 0, call_fissata: 0, convertiti: 0 });
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null); // { title, body, confirmLabel, destructive, onConfirm }
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -323,7 +326,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
       }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nell'aggiornamento dello stato");
+      toast.error("Errore nell'aggiornamento dello stato");
     } finally {
       setUpdating(false);
     }
@@ -342,7 +345,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
       }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nella generazione dell'analisi");
+      toast.error("Errore nella generazione dell'analisi");
     } finally {
       setGeneratingAnalysis(false);
     }
@@ -394,7 +397,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
       URL.revokeObjectURL(url);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nel download del PDF. Assicurati che l'analisi sia stata generata.");
+      toast.error("Errore nel download del PDF. Assicurati che l'analisi sia stata generata.");
     }
   };
 
@@ -407,11 +410,11 @@ export function ClientiAnalisi({ onAuthExpired }) {
   const avviaAnalisi = async (clienteId) => {
     try {
       await adminFetch(`/api/clienti/${clienteId}/avvia-analisi`, { method: "POST" });
-      alert("Workflow analisi avviato! Il documento sarà pronto in circa 30 secondi.");
+      toast.success("Workflow analisi avviato! Il documento sarà pronto in circa 30 secondi.");
       setTimeout(() => loadClienti(), 5000);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nell'avvio del workflow");
+      toast.error("Errore nell'avvio del workflow");
     }
   };
 
@@ -431,7 +434,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
       await loadStats();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nel fissare la call");
+      toast.error("Errore nel fissare la call");
     } finally {
       setUpdating(false);
     }
@@ -447,7 +450,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ note: notesClaudio }),
       });
-      alert("Note salvate!");
+      toast.success("Note salvate!");
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
     } finally {
@@ -455,28 +458,44 @@ export function ClientiAnalisi({ onAuthExpired }) {
     }
   };
 
-  // Converti in partner
-  const convertiInPartner = async (clienteId) => {
-    if (!confirm("Sei sicuro di voler convertire questo cliente in Partner F1?")) return;
+  // Converti in partner — conferma in pagina (ConfirmDialog).
+  const convertiInPartner = (clienteId) =>
+    setPendingAction({
+      title: "Converti in Partner F1",
+      body: "Il cliente diventa partner in fase F1 del Metodo EVO.",
+      confirmLabel: "Converti",
+      destructive: false,
+      onConfirm: () => doConvertiInPartner(clienteId),
+    });
+
+  const doConvertiInPartner = async (clienteId) => {
     setUpdating(true);
     try {
       const res = await adminFetch(`/api/clienti/${clienteId}/converti-partner`, { method: "POST" });
       const data = await res.json();
-      alert(data.message);
+      toast.success(data.message);
       await loadClienti();
       await loadStats();
       setShowQuestionarioModal(false);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") return onAuthExpired();
-      alert("Errore nella conversione");
+      toast.error("Errore nella conversione");
     } finally {
       setUpdating(false);
     }
   };
 
-  // Segna non adatto
-  const segnaNonAdatto = async (clienteId) => {
-    if (!confirm("Sei sicuro di voler segnare questo cliente come non adatto?")) return;
+  // Segna non adatto — conferma in pagina (ConfirmDialog).
+  const segnaNonAdatto = (clienteId) =>
+    setPendingAction({
+      title: "Segna come non adatto",
+      body: "Il cliente esce dal percorso di valutazione.",
+      confirmLabel: "Segna non adatto",
+      destructive: true,
+      onConfirm: () => doSegnaNonAdatto(clienteId),
+    });
+
+  const doSegnaNonAdatto = async (clienteId) => {
     setUpdating(true);
     try {
       await adminFetch(`/api/clienti/${clienteId}/segna-non-adatto`, { method: "POST" });
@@ -500,11 +519,11 @@ export function ClientiAnalisi({ onAuthExpired }) {
         setDeleteConfirm(null);
         loadStats();
       } else {
-        window.alert("Errore nell'eliminazione del cliente.");
+        toast.error("Errore nell'eliminazione del cliente.");
       }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
-      else window.alert("Errore nell'eliminazione del cliente.");
+      else toast.error("Errore nell'eliminazione del cliente.");
     } finally {
       setDeleting(false);
     }
@@ -1102,6 +1121,18 @@ export function ClientiAnalisi({ onAuthExpired }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        title={pendingAction?.title || ""}
+        body={pendingAction?.body || ""}
+        confirmLabel={pendingAction?.confirmLabel || "Conferma"}
+        cancelLabel="Annulla"
+        destructive={pendingAction?.destructive || false}
+        busy={updating}
+        onConfirm={() => { const p = pendingAction; setPendingAction(null); p?.onConfirm?.(); }}
+        onCancel={() => setPendingAction(null)}
+      />
     </div>
   );
 }

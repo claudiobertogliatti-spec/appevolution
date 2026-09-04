@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "../api";
+import { toast } from "sonner";
 import RifiutaModal from "./RifiutaModal";
 
 /**
@@ -68,7 +69,7 @@ export default function ApprovazioniQueue({ active = true, onChange }) {
       removeRow(it.file_id);
     } catch (e) {
       console.error("approve failed", e);
-      alert("Errore approvazione");
+      toast.error("Errore approvazione");
     }
   };
 
@@ -91,7 +92,7 @@ export default function ApprovazioniQueue({ active = true, onChange }) {
       setRejecting(null);
     } catch (e) {
       console.error("reject failed", e);
-      alert("Errore rifiuto");
+      toast.error("Errore rifiuto");
     }
   };
 

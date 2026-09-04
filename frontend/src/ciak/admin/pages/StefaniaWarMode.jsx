@@ -22,6 +22,7 @@ import {
   Loader2, Link2, Sparkles, BarChart3, Facebook, Video,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { toast } from "sonner";
 
 const HOOK_TYPES = [
   { id: "pain", label: "Angolo del Dolore", icon: "😤", color: "text-red-600", desc: "Colpisci il punto dolente" },
@@ -125,7 +126,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       console.error("Error generating hooks:", e);
-      alert("Errore nella generazione Hook Gallery");
+      toast.error("Errore nella generazione Hook Gallery");
     } finally {
       setGeneratingHooks(false);
     }

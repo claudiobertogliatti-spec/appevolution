@@ -10,6 +10,7 @@
  * Backend: GET /api/agent-tasks/approvals · POST /api/agent-tasks/{id}/approve|reject
  */
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { adminFetch, getAdminUser } from "../api";
 
 function fmtDateTime(s) {
@@ -26,6 +27,9 @@ export function ApprovalsQueue({ onAuthExpired }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [openId, setOpenId] = useState(null);
+  // Form in pagina per il motivo del rifiuto (al posto di window.prompt).
+  const [rejectFor, setRejectFor] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -41,15 +45,14 @@ export function ApprovalsQueue({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function act(task, kind) {
+  async function act(task, kind, feedback) {
     const id = task.id || task.task_id;
     if (!id) return;
     const reviewer = (getAdminUser() && getAdminUser().name) || "Claudio";
     const body = { reviewer };
     if (kind === "reject") {
-      const fb = window.prompt("Motivo del rifiuto (verrà usato per rigenerare):");
-      if (!fb || !fb.trim()) return;
-      body.feedback = fb.trim();
+      if (!feedback || !feedback.trim()) return;
+      body.feedback = feedback.trim();
     }
     setBusy(id + kind);
     try {
@@ -58,7 +61,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!r.ok) { const t = await r.text(); window.alert("Errore: " + t); }
+      if (!r.ok) { const t = await r.text(); toast.error("Errore: " + t); }
       else { await load(); }
     } catch (e) {
       if (e && e.message === "AUTH_EXPIRED") onAuthExpired?.();
@@ -103,7 +106,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
                     {open ? "Nascondi" : "Visualizza"}
                   </button>
                   <button disabled={!!busy} onClick={() => act(t, "approve")} className="text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Approva</button>
-                  <button disabled={!!busy} onClick={() => act(t, "reject")} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
+                  <button disabled={!!busy} onClick={() => { setRejectReason(""); setRejectFor(t); }} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
                 </div>
 
                 {open && (
@@ -139,6 +142,31 @@ export function ApprovalsQueue({ onAuthExpired }) {
       <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
         Approva/Rifiuta sblocca i task 🟡 in attesa. Il Rifiuta chiede un motivo che viene usato per rigenerare.
       </div>
+      {rejectFor && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setRejectFor(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Motivo del rifiuto" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-slate-900">Motivo del rifiuto</h2>
+            <p className="mt-2 text-sm text-slate-600">Verrà usato per rigenerare il task.</p>
+            <textarea
+              autoFocus rows={3} value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              data-testid="reject-reason-input"
+              className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setRejectFor(null)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400">Annulla</button>
+              <button
+                type="button"
+                disabled={!rejectReason.trim()}
+                onClick={() => { const t = rejectFor; setRejectFor(null); act(t, "reject", rejectReason); }}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+              >
+                Rifiuta e rigenera
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
