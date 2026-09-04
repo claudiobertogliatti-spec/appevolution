@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, FileText, Plus, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import { apiGet, apiPost } from "../api";
 import { CollaboratorSettlements } from "./CollaboratorSettlements";
 
@@ -32,6 +33,12 @@ export function Collaboratori({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("work");
+  // Form in pagina al posto dei window.prompt.
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [newTask, setNewTask] = useState({ title: "", description: "", estimated: "60" });
+  const [approveTask, setApproveTask] = useState(null); // task in approvazione
+  const [approveMinutes, setApproveMinutes] = useState("0");
+  const [approveNote, setApproveNote] = useState("");
 
   const load = async () => {
     try {
@@ -47,15 +54,24 @@ export function Collaboratori({ onAuthExpired }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const createTask = async () => {
-    const title = window.prompt("Titolo task per Antonella");
-    if (!title) return;
-    const description = window.prompt("Descrizione operativa", "") || "";
-    const estimated = Number(window.prompt("Minuti stimati", "60") || 60);
+  // Apertura form (al posto dei 3 window.prompt).
+  const createTask = () => {
+    setNewTask({ title: "", description: "", estimated: "60" });
+    setShowNewTask(true);
+  };
+
+  const submitNewTask = async () => {
+    const title = newTask.title.trim();
+    if (!title) {
+      toast.error("Aggiungi un titolo al task.");
+      return;
+    }
+    const estimated = Number(newTask.estimated) || 60;
+    setShowNewTask(false);
     try {
       await apiPost("/collaboratori/antonella/tasks", {
         title,
-        description,
+        description: newTask.description || "",
         estimated_minutes: Math.max(15, Math.min(300, estimated)),
         category: "direttiva",
         created_by_agent: "luca",
@@ -64,23 +80,35 @@ export function Collaboratori({ onAuthExpired }) {
       await load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore creazione task: " + e.message);
+      else toast.error("Errore creazione task: " + e.message);
     }
   };
 
-  const approve = async (task) => {
-    const minutes = Number(window.prompt("Minuti da approvare", String(task.actual_minutes || 0)) || 0);
-    if (minutes < 0) return;
-    const note = window.prompt("Nota approvazione", "") || "";
+  // Apertura form approvazione (al posto dei 2 window.prompt).
+  const approve = (task) => {
+    setApproveTask(task);
+    setApproveMinutes(String(task.actual_minutes || 0));
+    setApproveNote("");
+  };
+
+  const submitApprove = async () => {
+    const task = approveTask;
+    if (!task) return;
+    const minutes = Number(approveMinutes) || 0;
+    if (minutes < 0) {
+      toast.error("I minuti non possono essere negativi.");
+      return;
+    }
+    setApproveTask(null);
     try {
       await apiPost(`/collaboratori/antonella/tasks/${task.task_id}/approve`, {
         approved_minutes: minutes,
-        note,
+        note: approveNote || "",
       });
       await load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else window.alert("Errore approvazione: " + e.message);
+      else toast.error("Errore approvazione: " + e.message);
     }
   };
 
@@ -180,6 +208,46 @@ export function Collaboratori({ onAuthExpired }) {
           ))}
         </div>
       </section>
+
+      {showNewTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setShowNewTask(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Nuovo task per Antonella" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-slate-900">Nuovo task per Antonella</h2>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-widest text-slate-500">Titolo</label>
+            <input autoFocus value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900" />
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-widest text-slate-500">Descrizione operativa</label>
+            <textarea rows={3} value={newTask.description} onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900" />
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-widest text-slate-500">Minuti stimati (15–300)</label>
+            <input type="number" min="15" max="300" value={newTask.estimated} onChange={(e) => setNewTask({ ...newTask, estimated: e.target.value })}
+              className="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900 tabular-nums" />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowNewTask(false)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400">Annulla</button>
+              <button type="button" onClick={submitNewTask} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800">Crea task</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {approveTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setApproveTask(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Approva ore" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-slate-900">Approva le ore</h2>
+            <p className="mt-2 text-sm text-slate-600">{approveTask.title}</p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-widest text-slate-500">Minuti da approvare</label>
+            <input type="number" min="0" autoFocus value={approveMinutes} onChange={(e) => setApproveMinutes(e.target.value)}
+              className="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900 tabular-nums" />
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-widest text-slate-500">Nota (opzionale)</label>
+            <textarea rows={2} value={approveNote} onChange={(e) => setApproveNote(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900" />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setApproveTask(null)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400">Annulla</button>
+              <button type="button" onClick={submitApprove} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Approva ore</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
