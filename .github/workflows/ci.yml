@@ -141,6 +141,7 @@ jobs:
           tests/test_crediti_elimina.py
           tests/test_collaudo.py
           tests/test_vetrina_contatti.py
+          tests/test_agent_task_dismiss.py
 
   frontend:
     name: Frontend (build smoke)
