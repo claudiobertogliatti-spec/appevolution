@@ -6,6 +6,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
+  Copy,
   CreditCard,
   Database,
   FileSignature,
@@ -19,7 +20,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { apiGet } from "../api";
+import { toast } from "sonner";
+import { apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function fmtDate(value) {
   if (!value) return "Data non registrata";
@@ -74,7 +77,7 @@ function InfoPanel({ icon: Icon, title, children, tone = "blue" }) {
   );
 }
 
-function PriorityList({ title, description, items, empty, tone = "blue" }) {
+function PriorityList({ title, description, items, empty, tone = "blue", onCopy, onMark }) {
   const toneClass = tone === "hot" ? "border-yellow-300 bg-yellow-50" : "border-slate-200 bg-white";
   return (
     <div className={`rounded-xl border ${toneClass} overflow-hidden`}>
@@ -87,23 +90,45 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
       ) : (
         <div className="divide-y divide-slate-100">
           {items.map((item) => (
-            <Link
+            <div
               key={item.email}
-              to={`/admin/leads/${encodeURIComponent(item.email)}`}
-              className="group flex items-center justify-between gap-4 p-4 hover:bg-white transition"
+              className="group flex items-center justify-between gap-3 p-4 hover:bg-white transition"
             >
-              <div className="min-w-0">
+              <Link to={`/admin/leads/${encodeURIComponent(item.email)}`} className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-900 truncate">{item.nome || item.email}</p>
                 <p className="text-xs text-slate-500 truncate">{item.email}</p>
                 <p className="text-xs text-slate-400 mt-1">{item.reason}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{fmtDate(item.updated_at)}</p>
+              </Link>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onCopy(item.email)}
+                  title="Copia email per l'outreach"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                {onMark && (
+                  <button
+                    type="button"
+                    onClick={() => onMark(item)}
+                    title="Segna l'analisi da 27 euro come pagata (manuale)"
+                    className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-yellow-400 text-slate-900 text-xs font-semibold hover:bg-yellow-300 transition"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    27&euro;
+                  </button>
+                )}
+                <Link
+                  to={`/admin/leads/${encodeURIComponent(item.email)}`}
+                  title="Apri scheda lead"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-700 hover:bg-blue-50 transition"
+                >
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                </Link>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-[11px] text-slate-400">{fmtDate(item.updated_at)}</p>
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mt-2">
-                  Apri <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
-                </span>
-              </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -114,6 +139,8 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
 export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [pendingMark, setPendingMark] = useState(null); // lead in attesa di conferma €27
+  const [marking, setMarking] = useState(false);
 
   useEffect(() => {
     apiGet("/acquisizione-command-center")
@@ -123,6 +150,50 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [onAuthExpired]);
+
+  // Copia email negli appunti per l'outreach — azione client-side, nessun backend.
+  const copyEmail = (emailToCopy) => {
+    if (!emailToCopy) return;
+    navigator.clipboard?.writeText(emailToCopy)
+      .then(() => toast.success(`Email copiata: ${emailToCopy}`))
+      .catch(() => toast.error("Impossibile copiare l'email."));
+  };
+
+  // Segna €27 pagato (manuale): stesso endpoint della scheda lead. Sensibile →
+  // passa da ConfirmDialog. A conferma riuscita il lead esce dalle liste
+  // "non acquistato" (ottimistico); un refresh riflettera' lo spostamento.
+  const confirmMark = async () => {
+    const lead = pendingMark;
+    if (!lead?.email) return;
+    setMarking(true);
+    try {
+      const r = await apiPost("/lead/mark-purchased", { email: lead.email });
+      toast.success(
+        r.already_purchased
+          ? `${lead.email} era gia' segnato come acquistato.`
+          : `27 EUR segnati come pagati per ${lead.email}.`,
+      );
+      setData((prev) => {
+        if (!prev) return prev;
+        const p = prev.priorities || {};
+        const strip = (arr) => (arr || []).filter((x) => x.email !== lead.email);
+        return {
+          ...prev,
+          priorities: {
+            ...p,
+            diagnostic_no_purchase: strip(p.diagnostic_no_purchase),
+            clicked_no_purchase: strip(p.clicked_no_purchase),
+          },
+        };
+      });
+      setPendingMark(null);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore: " + e.message);
+    } finally {
+      setMarking(false);
+    }
+  };
 
   const priorityTotal = useMemo(() => {
     if (!data) return 0;
@@ -206,18 +277,23 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           items={priorities.clicked_no_purchase || []}
           empty="Nessun checkout caldo da recuperare."
           tone="hot"
+          onCopy={copyEmail}
+          onMark={setPendingMark}
         />
         <PriorityList
           title="8 domande completate, Blueprint non acquistato"
           description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
           items={priorities.diagnostic_no_purchase || []}
           empty="Nessun lead fermo dopo le 8 domande."
+          onCopy={copyEmail}
+          onMark={setPendingMark}
         />
         <PriorityList
           title="Blueprint acquistato, call non prenotata"
           description="Qui il rischio e' perdere slancio. La call deve arrivare subito."
           items={priorities.purchased_no_call || []}
           empty="Tutti gli acquirenti Blueprint hanno una call o sono gia' oltre."
+          onCopy={copyEmail}
         />
       </div>
 
@@ -328,6 +404,17 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           Apri Campagne Ads <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingMark}
+        title={pendingMark ? `Segna €27 pagato — ${pendingMark.email}` : ""}
+        body="Non esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67). Richiede che il lead abbia gia' completato le 8 Domande Ciak."
+        confirmLabel="Segna pagato"
+        cancelLabel="Annulla"
+        busy={marking}
+        onConfirm={confirmMark}
+        onCancel={() => setPendingMark(null)}
+      />
     </div>
   );
 }
