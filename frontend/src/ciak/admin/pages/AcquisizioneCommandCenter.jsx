@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import { apiGet, apiPost } from "../api";
+import { apiGet, apiPost, adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function fmtDate(value) {
@@ -77,7 +77,7 @@ function InfoPanel({ icon: Icon, title, children, tone = "blue" }) {
   );
 }
 
-function PriorityList({ title, description, items, empty, tone = "blue", onCopy, onMark }) {
+function PriorityList({ title, description, items, empty, tone = "blue", onCopy, onMark, onGenerate }) {
   const toneClass = tone === "hot" ? "border-yellow-300 bg-yellow-50" : "border-slate-200 bg-white";
   return (
     <div className={`rounded-xl border ${toneClass} overflow-hidden`}>
@@ -120,6 +120,17 @@ function PriorityList({ title, description, items, empty, tone = "blue", onCopy,
                     27&euro;
                   </button>
                 )}
+                {onGenerate && (
+                  <button
+                    type="button"
+                    onClick={() => onGenerate(item)}
+                    title="Genera la Proposta Partnership"
+                    className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition"
+                  >
+                    <FileSignature className="w-3.5 h-3.5" />
+                    Proposta
+                  </button>
+                )}
                 <Link
                   to={`/admin/leads/${encodeURIComponent(item.email)}`}
                   title="Apri scheda lead"
@@ -141,6 +152,8 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [pendingMark, setPendingMark] = useState(null); // lead in attesa di conferma €27
   const [marking, setMarking] = useState(false);
+  const [pendingProposal, setPendingProposal] = useState(null); // lead in attesa di conferma Proposta
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     apiGet("/acquisizione-command-center")
@@ -192,6 +205,55 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       else toast.error("Errore: " + e.message);
     } finally {
       setMarking(false);
+    }
+  };
+
+  // Genera Proposta Partnership per un lead con call fatta. Endpoint fuori dal
+  // prefix /api/admin/ciak → adminFetch (path assoluto). Il backend ri-verifica
+  // l'eleggibilita' (call_done + offerta partnership + analisi consegnata): se
+  // manca un requisito risponde 409 col motivo, che mostriamo tale e quale.
+  const confirmGenerate = async () => {
+    const lead = pendingProposal;
+    if (!lead?.email) return;
+    setGenerating(true);
+    try {
+      const res = await adminFetch("/api/proposta/admin/genera-cliente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: lead.email, diagnostic_session_id: null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      if (body.url) navigator.clipboard?.writeText(body.url).catch(() => {});
+      toast.success(
+        `Proposta ${body.status || "generata"} per ${lead.email} — link copiato.`,
+        body.url
+          ? {
+              description: body.url,
+              action: { label: "Apri", onClick: () => window.open(body.url, "_blank", "noopener") },
+              duration: 10000,
+            }
+          : undefined,
+      );
+      setData((prev) => {
+        if (!prev) return prev;
+        const p = prev.priorities || {};
+        return {
+          ...prev,
+          priorities: {
+            ...p,
+            call_done_no_proposal: (p.call_done_no_proposal || []).filter((x) => x.email !== lead.email),
+          },
+        };
+      });
+      setPendingProposal(null);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -294,6 +356,14 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           items={priorities.purchased_no_call || []}
           empty="Tutti gli acquirenti Blueprint hanno una call o sono gia' oltre."
           onCopy={copyEmail}
+        />
+        <PriorityList
+          title="Call fatta, proposta da inviare"
+          description="Hanno completato la call ed sono qualificati: genera la Proposta Partnership €2.790 e mandala."
+          items={priorities.call_done_no_proposal || []}
+          empty="Nessun lead con call fatta in attesa di proposta."
+          onCopy={copyEmail}
+          onGenerate={setPendingProposal}
         />
       </div>
 
@@ -414,6 +484,17 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         busy={marking}
         onConfirm={confirmMark}
         onCancel={() => setPendingMark(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingProposal}
+        title={pendingProposal ? `Genera Proposta Partnership — ${pendingProposal.email}` : ""}
+        body="Crea la Proposta Partnership €2.790 (e l'account cliente se manca). Il backend verifica che la call sia fatta, l'offerta sia partnership e l'analisi consegnata: in caso contrario spiega cosa manca. Nessun pagamento reale."
+        confirmLabel="Genera proposta"
+        cancelLabel="Annulla"
+        busy={generating}
+        onConfirm={confirmGenerate}
+        onCancel={() => setPendingProposal(null)}
       />
     </div>
   );
