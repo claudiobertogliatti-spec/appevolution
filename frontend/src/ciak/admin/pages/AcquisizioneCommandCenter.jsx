@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   CreditCard,
   Database,
   FileSignature,
@@ -144,6 +145,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
 
   return (
     <div className="p-8 space-y-6">
+      {/* HERO — target/gap del mese, la stella polare */}
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>
@@ -165,33 +167,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
-        <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
-        <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
-        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
-        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
-        <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
-        <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <div className="flex items-center gap-2">
-          <Route className="w-5 h-5 text-emerald-600" />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Ponte operativo</p>
-            <h2 className="text-xl font-semibold text-slate-900">Ciak Discovery -> Systeme Evolution</h2>
-          </div>
-        </div>
-        <div className="grid md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
-          <KpiCard icon={Database} label="Scoperti" value={discoveryEngine.new_leads_total || 0} hint="Lead in discovery_leads." tone="slate" />
-          <KpiCard icon={Flame} label="Hot" value={discoveryEngine.hot_leads_total || 0} hint="Score almeno 75." tone="yellow" />
-          <KpiCard icon={MapPin} label="Google Places" value={discoveryEngine.google_places_total || 0} hint="Professionisti offline trovati." tone="green" />
-          <KpiCard icon={ListChecks} label="Coda Systeme" value={discoveryEngine.queued_systeme_pending || 0} hint="Source ammesse, pronte import." tone="blue" />
-          <KpiCard icon={CheckCircle2} label="Importati" value={discoveryEngine.queued_systeme_imported || 0} hint="Gia' entrati in Systeme." tone="green" />
-          <KpiCard icon={AlertTriangle} label="Bloccati" value={discoveryEngine.lista_fredda_pending_blocked || 0} hint="Lista fredda esclusa da policy." tone="slate" />
-        </div>
-      </div>
-
+      {/* ALERT — colli di bottiglia sistemici: si vedono prima di lavorare */}
       {data.bottlenecks?.length > 0 && (
         <div className="grid md:grid-cols-3 gap-4">
           {data.bottlenecks.map((b) => (
@@ -206,35 +182,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
-          <p>
-            {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
-          </p>
-          <p className="mt-2 text-slate-900 font-semibold">
-            Oggi: {activity.new_leads || 0} nuovi lead · {activity.diagnostics_completed || 0} diagnosi (target {activity.target_new_contacts || 20} contatti)
-          </p>
-          <div className="mt-3 space-y-2">
-            {(routine.today || []).map((item) => (
-              <div key={item.id} className="rounded-lg bg-white/70 border border-white px-3 py-2">
-                <p className="font-semibold text-slate-900">{item.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{item.owner} · {item.metric}</p>
-              </div>
-            ))}
-          </div>
-        </InfoPanel>
-        <InfoPanel icon={ShieldCheck} title="Canali ammessi" tone="blue">
-          <ul className="space-y-1">
-            {(channels.allowed || []).map((item) => <li key={item}>- {item}</li>)}
-          </ul>
-        </InfoPanel>
-        <InfoPanel icon={AlertTriangle} title="Da non fare ora" tone="slate">
-          <ul className="space-y-1">
-            {(channels.blocked || []).map((item) => <li key={item}>- {item}</li>)}
-          </ul>
-        </InfoPanel>
-      </div>
-
+      {/* ── LAVORO PRIMA: le liste di lead azionabili in cima ── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Da lavorare oggi</h2>
@@ -253,17 +201,17 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
             il Checkpoint e' ritirato dal funnel vivo, quella lista mostrava solo i
             fantasmi di giugno. Il backend non espone piu' checkpoint_no_diagnostic. */}
         <PriorityList
-          title="8 domande completate, Blueprint non acquistato"
-          description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
-          items={priorities.diagnostic_no_purchase || []}
-          empty="Nessun lead fermo dopo le 8 domande."
-        />
-        <PriorityList
           title="Checkout cliccato, pagamento mancante"
           description="Sono i recuperi piu' caldi: hanno mostrato intenzione economica."
           items={priorities.clicked_no_purchase || []}
           empty="Nessun checkout caldo da recuperare."
           tone="hot"
+        />
+        <PriorityList
+          title="8 domande completate, Blueprint non acquistato"
+          description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
+          items={priorities.diagnostic_no_purchase || []}
+          empty="Nessun lead fermo dopo le 8 domande."
         />
         <PriorityList
           title="Blueprint acquistato, call non prenotata"
@@ -273,24 +221,96 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
-        <h2 className="text-xl font-semibold text-slate-900 mt-1">Motore Vendite Partner</h2>
-        <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-          {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
-        </p>
-        <div className="grid md:grid-cols-2 gap-4 mt-4">
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-            <p className="text-sm font-semibold text-slate-900">Resta stabile</p>
-            <p className="text-sm text-slate-500 mt-1">{(partnerSalesEngine.stable_parts || []).join(" · ")}</p>
-          </div>
-          <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
-            <p className="text-sm font-semibold text-slate-900">Si adatta</p>
-            <p className="text-sm text-slate-600 mt-1">{(partnerSalesEngine.adapted_parts || []).join(" · ")}</p>
-          </div>
-        </div>
+      {/* SNAPSHOT — il funnel del mese, sotto il lavoro */}
+      <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
+        <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
+        <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
+        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
+        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
+        <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
+        <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
       </div>
 
+      {/* ── CONTESTO OPERATIVO: numeri di supporto e regole, ripiegati ── */}
+      <details className="group bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <summary className="flex items-center justify-between gap-3 p-4 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2">
+            <Route className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-slate-900">Contesto operativo</span>
+            <span className="text-xs text-slate-400">Ponte discovery, routine Luca, canali, motore partner</span>
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" />
+        </summary>
+
+        <div className="border-t border-slate-100 p-5 space-y-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <Route className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Ponte operativo</p>
+                <h3 className="text-lg font-semibold text-slate-900">Ciak Discovery -> Systeme Evolution</h3>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
+              <KpiCard icon={Database} label="Scoperti" value={discoveryEngine.new_leads_total || 0} hint="Lead in discovery_leads." tone="slate" />
+              <KpiCard icon={Flame} label="Hot" value={discoveryEngine.hot_leads_total || 0} hint="Score almeno 75." tone="yellow" />
+              <KpiCard icon={MapPin} label="Google Places" value={discoveryEngine.google_places_total || 0} hint="Professionisti offline trovati." tone="green" />
+              <KpiCard icon={ListChecks} label="Coda Systeme" value={discoveryEngine.queued_systeme_pending || 0} hint="Source ammesse, pronte import." tone="blue" />
+              <KpiCard icon={CheckCircle2} label="Importati" value={discoveryEngine.queued_systeme_imported || 0} hint="Gia' entrati in Systeme." tone="green" />
+              <KpiCard icon={AlertTriangle} label="Bloccati" value={discoveryEngine.lista_fredda_pending_blocked || 0} hint="Lista fredda esclusa da policy." tone="slate" />
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-4">
+            <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
+              <p>
+                {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
+              </p>
+              <p className="mt-2 text-slate-900 font-semibold">
+                Oggi: {activity.new_leads || 0} nuovi lead · {activity.diagnostics_completed || 0} diagnosi (target {activity.target_new_contacts || 20} contatti)
+              </p>
+              <div className="mt-3 space-y-2">
+                {(routine.today || []).map((item) => (
+                  <div key={item.id} className="rounded-lg bg-white/70 border border-white px-3 py-2">
+                    <p className="font-semibold text-slate-900">{item.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{item.owner} · {item.metric}</p>
+                  </div>
+                ))}
+              </div>
+            </InfoPanel>
+            <InfoPanel icon={ShieldCheck} title="Canali ammessi" tone="blue">
+              <ul className="space-y-1">
+                {(channels.allowed || []).map((item) => <li key={item}>- {item}</li>)}
+              </ul>
+            </InfoPanel>
+            <InfoPanel icon={AlertTriangle} title="Da non fare ora" tone="slate">
+              <ul className="space-y-1">
+                {(channels.blocked || []).map((item) => <li key={item}>- {item}</li>)}
+              </ul>
+            </InfoPanel>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
+            <h3 className="text-lg font-semibold text-slate-900 mt-1">Motore Vendite Partner</h3>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+              {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div className="rounded-xl bg-white border border-slate-100 p-4">
+                <p className="text-sm font-semibold text-slate-900">Resta stabile</p>
+                <p className="text-sm text-slate-500 mt-1">{(partnerSalesEngine.stable_parts || []).join(" · ")}</p>
+              </div>
+              <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
+                <p className="text-sm font-semibold text-slate-900">Si adatta</p>
+                <p className="text-sm text-slate-600 mt-1">{(partnerSalesEngine.adapted_parts || []).join(" · ")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      {/* Regola operativa + CTA campagne, chiude la pagina */}
       <div className="bg-slate-900 rounded-xl p-5 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-3">
           <Users className="w-5 h-5 text-yellow-400 mt-0.5" />

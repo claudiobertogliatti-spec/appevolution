@@ -10,7 +10,7 @@
  * Ogni sotto-pagina mostra in cima un tasto "← Torna a [Sezione]" che riporta
  * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
- *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
+ *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
@@ -86,7 +86,6 @@ import { Fatture } from "./pages/Fatture";
 import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
 import {
-  AcquisizioneCalendarioHub,
   CasiStudio,
   DateContratti,
   DeliveryLezioniHub,
@@ -123,7 +122,6 @@ const NAV = [
       { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi" },
       { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
-      { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
   // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
@@ -566,7 +564,11 @@ export default function CiakAdminApp() {
           }
         />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
-        <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
+        {/* Voce "Calendario Editoriale" ritirata dalla sidebar Acquisizione il
+            7/9/2026: era un hub-doppione che rilinkava alle voci sorelle, gia'
+            mostrate dalla landing di reparto. Route conservata come redirect per
+            i link salvati e il task schedulato. */}
+        <Route path="acq-calendario" element={<Navigate to="/admin/reparto/acquisizione" replace />} />
 
         {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
         <Route
