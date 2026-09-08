@@ -60,7 +60,10 @@ async def _nicchia_from_diagnostic(db, client: dict[str, Any], email: str) -> st
         session = await db.diagnostic_sessions.find_one({"email": email}, {"_id": 0})
     if not session:
         return ""
-    raw = session.get("competenza_raw") or (session.get("answers") or {}).get("competenza") or ""
+    # Schema attuale: risposte APERTE in responses.qX; fallback ai campi vecchi.
+    raw = ((session.get("responses") or {}).get("q1_competenza")
+           or session.get("competenza_raw")
+           or (session.get("answers") or {}).get("competenza") or "")
     return str(raw).strip()
 
 

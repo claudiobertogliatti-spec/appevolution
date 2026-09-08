@@ -1,106 +1,103 @@
 /**
- * Ciak.io /diagnostica — 8 Domande Ciak (lead magnet PRE-acquisto Blueprint €27)
+ * Ciak.io /diagnostica — 8 Domande Ciak APERTE (ingresso "analisi gratuita").
  *
- * Flusso (deciso 2026-05-27 con Claudio):
- *   Masterclass → CTA "Scopri da dove partire" → /diagnostica
- *   → 8 domande → Matteo classifica stato 1-4 → /report/{token} → CTA €27
+ * Nuovo flusso (7/9/2026):
+ *   CTA "Fai la tua analisi gratuita" → /diagnostica → 8 domande aperte (libero sfogo)
+ *   → /complete (Carlo valuta le risposte: pronto/non-pronto INTERNO + report)
+ *   → popup complimenti + calendario Cal.com (NO report, NO punteggio al cliente).
+ *   L'analisi la commenta Claudio in videocall; il report resta interno.
  *
- * Email: riusata dal gate masterclass (localStorage ciak_lead_email/name).
+ * Email: riusata dal gate (localStorage ciak_lead_email/name).
  * Se assente (ingresso diretto), mini-form email prima della domanda 1.
+ *
+ * Tema (8/9/2026): LIGHT — sfondo bianco, titoli navy (#0F172A), testo slate,
+ * giallo (#FACC15) come unico accento (progress, focus, CTA). Brand lock interno.
  *
  * Contratto backend (routers/diagnostic.py — FONTE DI VERITÀ):
  *   POST /api/diagnostic/start    {email, name, tracking} → {session_token, lead_id}
  *   POST /api/diagnostic/answer   {session_token, question_id, value} → 204
  *   POST /api/diagnostic/complete {session_token} → {report_url, stato, session_token}
  *
- * I question_id e i value DEVONO matchare esattamente services/ciak_scoring.py.
+ * Le risposte sono APERTE: lo scoring pronto/non-pronto è di Carlo (services/ciak_scoring_ai.py).
  */
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 
-// question_id e value canonici — allineati a backend/services/ciak_scoring.py
+// question_id STABILI (il backend /answer li salva); tutte APERTE (libero sfogo).
+// Lo scoring pronto/non-pronto è calcolato da Carlo (AI) sulle risposte testuali
+// al /complete — NON più somma di crocette. Vedi backend/services/ciak_scoring_ai.py.
 const QUESTIONS = [
   {
     id: "q1_competenza",
-    text: "Qual è la tua competenza principale?",
+    text: "Qual è la competenza su cui hai costruito il tuo lavoro? Raccontamela come la racconteresti a chi ti incontra per la prima volta.",
     type: "text",
-    placeholder: "Es. shiatsu, business coaching, fotografia...",
-    minLen: 15,
+    placeholder: "Parlami di cosa sai fare davvero bene...",
+    minLen: 20,
   },
   {
     id: "q2_esperienza",
-    text: "Da quanto tempo la utilizzi?",
-    type: "radio",
-    options: [
-      { v: "0-6m", l: "Meno di 6 mesi" },
-      { v: "6-12m", l: "Tra 6 mesi e 1 anno" },
-      { v: "1-3y", l: "Tra 1 e 3 anni" },
-      { v: "3+y", l: "Più di 3 anni" },
-    ],
+    text: "Da quanto la pratichi, e come sei arrivato/a a padroneggiarla?",
+    type: "text",
+    placeholder: "Il tuo percorso, in due righe...",
+    minLen: 20,
   },
   {
     id: "q3_clienti",
-    text: "Hai già lavorato con clienti o persone su questo tema?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, mai" },
-      { v: "Sì poche", l: "Sì, con qualcuno occasionalmente" },
-      { v: "Sì regolarmente", l: "Sì, regolarmente" },
-    ],
+    text: "Con chi hai già lavorato su questo tema? Raccontami un risultato concreto che hai aiutato a ottenere.",
+    type: "text",
+    placeholder: "Un caso, un cambiamento, un risultato che ricordi...",
+    minLen: 20,
   },
   {
     id: "q4_idea",
-    text: "Hai già un'idea di cosa potresti vendere online?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, non ancora" },
-      { v: "Sì confusa", l: "Sì, ma è ancora confusa" },
-      { v: "Sì abbastanza chiara", l: "Sì, abbastanza chiara" },
-    ],
+    text: "Se immagini un tuo corso o percorso digitale, cosa ti vedi offrire? Anche se è solo un'intuizione ancora confusa, buttala giù.",
+    type: "text",
+    placeholder: "Non serve sia perfetto: scrivi ciò che hai in mente...",
+    minLen: 20,
   },
   {
     id: "q5_target",
-    text: "Sai esattamente a chi ti rivolgi?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, non ho un target preciso" },
-      { v: "Più o meno", l: "Più o meno, ma non con esattezza" },
-      { v: "Sì molto chiaro", l: "Sì, ho un'idea molto chiara" },
-    ],
+    text: "A chi vorresti parlare con questo progetto? Descrivimi la persona che hai in mente e cosa la tiene sveglia la notte.",
+    type: "text",
+    placeholder: "Chi è, cosa desidera, cosa la blocca...",
+    minLen: 20,
   },
   {
     id: "q6_problema",
-    text: "Qual è il problema principale che vuoi aiutare a risolvere?",
+    text: "Qual è il problema che risolvi meglio di chiunque altro? Com'è la vita di chi ti sceglie, prima e dopo di te?",
     type: "text",
-    placeholder: "Descrivi in 1-2 frasi...",
-    minLen: 15,
+    placeholder: "Il problema, e la trasformazione che porti...",
+    minLen: 20,
   },
   {
     id: "q7_digitale",
-    text: "Che esperienza hai online?",
-    type: "radio",
-    options: [
-      { v: "Nessuna", l: "Nessuna, parto da zero" },
-      { v: "Base", l: "Base (uso social, ho un sito semplice)" },
-      { v: "Intermedia", l: "Intermedia (ho già provato a vendere online)" },
-      { v: "Avanzata", l: "Avanzata (vendo regolarmente online)" },
-    ],
+    text: "Che rapporto hai oggi con il mondo online? Cosa hai già provato — social, sito, vendite — e cosa ti mette ancora in difficoltà?",
+    type: "text",
+    placeholder: "Dove sei arrivato/a e dove ti blocchi...",
+    minLen: 20,
   },
   {
     id: "q8_obiettivo",
-    text: "Perché vuoi creare un prodotto digitale?",
-    type: "radio",
-    options: [
-      { v: "Guadagno extra", l: "Per un guadagno extra" },
-      { v: "Scalare il lavoro", l: "Per scalare il mio lavoro" },
-      { v: "Uscire dal tempo=denaro", l: "Per uscire dal tempo=denaro" },
-      { v: "Non sono sicuro", l: "Non sono sicuro" },
-    ],
+    text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?",
+    type: "text",
+    placeholder: "Il tuo perché, quello vero...",
+    minLen: 20,
   },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Eyebrow con firma visiva: trattino giallo (#FACC15) + testo navy uppercase.
+function Eyebrow({ children }) {
+  return (
+    <p className="flex items-center gap-3 mb-4">
+      <span className="inline-block h-0.5 w-8 bg-yellow-400" aria-hidden="true" />
+      <span className="text-slate-500 text-xs font-semibold uppercase tracking-widest">
+        {children}
+      </span>
+    </p>
+  );
+}
 
 function detectDeviceType() {
   if (typeof navigator === "undefined") return "unknown";
@@ -128,9 +125,7 @@ function buildTracking() {
 }
 
 export function CiakDiagnostica() {
-  const navigate = useNavigate();
-
-  // phase: "email" | "starting" | "questions" | "submitting"
+  // phase: "email" | "starting" | "questions" | "submitting" | "done"
   const [phase, setPhase] = useState("starting");
   const [sessionToken, setSessionToken] = useState(null);
   const [step, setStep] = useState(0);
@@ -141,6 +136,9 @@ export function CiakDiagnostica() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [emailErr, setEmailErr] = useState("");
+
+  // Link Cal.com (config pubblica) per il popup finale di prenotazione
+  const [calcomUrl, setCalcomUrl] = useState("");
 
   // Avvia la sessione diagnostica sul backend
   const startSession = useCallback(async (leadEmail, leadName) => {
@@ -248,7 +246,9 @@ export function CiakDiagnostica() {
       return;
     }
 
-    // Ultima domanda → complete
+    // Ultima domanda → complete → popup complimenti + calendario.
+    // ⚠️ Nel nuovo funnel il report/analisi NON si mostra al cliente (resta interno,
+    // lo commenta Claudio in videocall): quindi qui NON si naviga più a /report.
     setPhase("submitting");
     try {
       const res = await fetch("/api/diagnostic/complete", {
@@ -258,7 +258,7 @@ export function CiakDiagnostica() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || `Errore generazione report (${res.status})`);
+        throw new Error(data.detail || `Errore invio (${res.status})`);
       }
       const data = await res.json();
       const token = data.session_token || sessionToken;
@@ -267,7 +267,12 @@ export function CiakDiagnostica() {
       } catch {
         /* ignore */
       }
-      navigate(`/report/${token}`);
+      // Carica il link Cal.com (config pubblica) e apre il popup finale.
+      fetch("/api/admin/ciak/public-config")
+        .then((r) => r.json())
+        .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
+        .catch(() => {}); // fallback testuale (email) se manca
+      setPhase("done");
     } catch (e) {
       setError(e.message);
       setPhase("questions");
@@ -281,17 +286,16 @@ export function CiakDiagnostica() {
     return (
       <>
         <CiakHeader variant="light" />
-        <div className="bg-slate-900 text-white min-h-[90vh] flex items-center justify-center p-6">
+        <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-md w-full">
-            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              8 Domande Ciak
-            </p>
-            <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug">
-              Scopri da dove partire
+            <Eyebrow>Analisi gratuita</Eyebrow>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug text-slate-900">
+              Scopri se la tua competenza ha un mercato
             </h1>
-            <p className="text-slate-300 text-sm mb-8 leading-relaxed">
-              Rispondi a 8 domande veloci (2-3 minuti). Ti diciamo a che punto sei
-              e qual è il prossimo passo concreto per te.
+            <p className="text-slate-600 text-sm mb-8 leading-relaxed">
+              8 domande aperte per raccontarci il tuo progetto. Dalle tue risposte
+              prepariamo la tua analisi di mercato personalizzata, che vediamo
+              insieme in una videocall gratuita.
             </p>
             <input
               type="text"
@@ -299,7 +303,7 @@ export function CiakDiagnostica() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Il tuo nome"
               autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-3"
+              className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-3 transition"
             />
             <input
               type="email"
@@ -308,9 +312,9 @@ export function CiakDiagnostica() {
               onKeyDown={(e) => e.key === "Enter" && submitEmail()}
               placeholder="La tua email"
               autoComplete="email"
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-2"
+              className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-2 transition"
             />
-            {emailErr && <p className="text-red-400 text-xs mb-2">{emailErr}</p>}
+            {emailErr && <p className="text-red-500 text-xs mb-2">{emailErr}</p>}
             <button
               onClick={submitEmail}
               className="w-full mt-4 px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
@@ -328,8 +332,56 @@ export function CiakDiagnostica() {
     return (
       <>
         <CiakHeader variant="light" />
-        <div className="bg-slate-900 text-white min-h-[80vh] flex items-center justify-center">
-          <p className="text-slate-400 text-sm">Preparazione in corso...</p>
+        <div className="bg-white text-slate-900 min-h-[80vh] flex items-center justify-center">
+          <p className="text-slate-500 text-sm">Preparazione in corso...</p>
+        </div>
+      </>
+    );
+  }
+
+  // ─── Render: done (popup finale — complimenti + calendario) ───────
+  // Nessun punteggio, nessun report: solo il ringraziamento e la prenotazione.
+  if (phase === "done") {
+    return (
+      <>
+        <CiakHeader variant="light" />
+        <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
+          <div className="max-w-lg w-full text-center">
+            <div className="flex justify-center">
+              <Eyebrow>Fotografia completa</Eyebrow>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-5 leading-snug text-slate-900">
+              Grazie, ci siamo.
+            </h1>
+            <p className="text-slate-600 leading-relaxed mb-8">
+              Grazie per esserti raccontato/a con questa apertura — non è affatto
+              scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello che
+              serve per preparare la tua analisi di mercato personalizzata. Ora
+              scegli quando vederla insieme.
+            </p>
+            {calcomUrl ? (
+              <a
+                href={calcomUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
+              >
+                Prenota la tua videocall strategica →
+              </a>
+            ) : (
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Ti scriviamo noi via email con il link per prenotare la videocall.
+                Se preferisci, contattaci a{" "}
+                <a
+                  href="mailto:assistenza@evolution-pro.it"
+                  className="underline hover:text-slate-900"
+                >
+                  assistenza@evolution-pro.it
+                </a>
+                .
+              </p>
+            )}
+          </div>
         </div>
       </>
     );
@@ -341,15 +393,15 @@ export function CiakDiagnostica() {
   return (
     <>
       <CiakHeader variant="light" />
-      <div className="bg-slate-900 text-white min-h-[90vh]">
+      <div className="bg-white text-slate-900 min-h-[90vh]">
         <div className="mx-auto max-w-2xl px-6 py-12">
           {/* Progress */}
           <div className="mb-8">
-            <div className="flex justify-between text-xs text-slate-400 mb-2">
+            <div className="flex justify-between text-xs text-slate-500 mb-2">
               <span>Domanda {step + 1} di {totalSteps}</span>
               <span>{Math.round(((step + 1) / totalSteps) * 100)}%</span>
             </div>
-            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-yellow-400 transition-all duration-300"
                 style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
@@ -358,55 +410,30 @@ export function CiakDiagnostica() {
           </div>
 
           {/* Question */}
-          <h1 className="text-2xl md:text-3xl font-semibold mb-8 leading-snug">{q.text}</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-8 leading-snug text-slate-900">{q.text}</h1>
 
-          {q.type === "text" && (
-            <>
-              <textarea
-                value={answers[q.id] || ""}
-                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                placeholder={q.placeholder}
-                rows={3}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-2 resize-none"
-                autoFocus
-              />
-              <p className="text-xs text-slate-500 mb-6">
-                {(answers[q.id] || "").trim().length < (q.minLen || 0)
-                  ? `Minimo ${q.minLen} caratteri`
-                  : " "}
-              </p>
-            </>
-          )}
+          <textarea
+            value={answers[q.id] || ""}
+            onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+            placeholder={q.placeholder}
+            rows={3}
+            className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-2 resize-none transition"
+            autoFocus
+          />
+          <p className="text-xs text-slate-400 mb-6">
+            {(answers[q.id] || "").trim().length < (q.minLen || 0)
+              ? `Minimo ${q.minLen} caratteri`
+              : " "}
+          </p>
 
-          {q.type === "radio" && (
-            <div className="space-y-2 mb-8">
-              {q.options.map((opt) => {
-                const selected = answers[q.id] === opt.v;
-                return (
-                  <button
-                    key={opt.v}
-                    onClick={() => setAnswers({ ...answers, [q.id]: opt.v })}
-                    className={`w-full text-left px-5 py-4 rounded-lg border-2 transition ${
-                      selected
-                        ? "bg-yellow-400 border-yellow-400 text-slate-900 font-semibold"
-                        : "bg-white/5 border-white/10 hover:border-white/30"
-                    }`}
-                  >
-                    {opt.l}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
           {/* Nav */}
           <div className="flex items-center justify-between">
             <button
               onClick={back}
               disabled={step === 0 || submitting}
-              className="text-sm font-medium text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="text-sm font-medium text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               ← Indietro
             </button>
@@ -415,7 +442,7 @@ export function CiakDiagnostica() {
               disabled={!canProceed || submitting}
               className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              {submitting ? "Generazione report..." : isLast ? "Genera report →" : "Avanti →"}
+              {submitting ? "Un momento..." : isLast ? "Completa l'analisi →" : "Avanti →"}
             </button>
           </div>
         </div>
