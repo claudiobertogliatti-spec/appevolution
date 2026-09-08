@@ -1,3 +1,13 @@
+### 2026-09-08 · Claude · Motore Evolution: T04 messo in sicurezza + T05 claim/lease
+
+**AUTORIZZATO:** Claudio ha riassegnato il MOTORE (M1, T03–T09) a Claude e ha messo **Codex in pausa** su questa traccia ("prendi tu il motore per il momento codex si ferma"). Stesso branch `codex/evolution-autonomia`: Codex era fermo, nessuna scrittura concorrente.
+
+**DICHIARATO:** (1) T04 era stato lasciato da Codex **staged ma non committato** nel worktree — l'ho committato (`58672a4f`) dopo verifica. (2) T05: nuovo `backend/services/operational_tasks/runner.py` — claim atomico via `find_one_and_update`, lease owner+token, rinnovo, completamento e retry solo con token combaciante, recupero dei lease scaduti, policy retry (backoff 60s/300s → `blocked`). Vocabolario di stato legacy `pending`/`in_progress` riusato, nessun terzo sistema di stati. `ensure_task_indexes` idempotente. Nuovo file agganciato alla CI in `ci.yml`.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend` — T04 `test_operational_task_completion.py` esercita il consumer reale `BackgroundJobExecutor` (24 passed con contracts). T05 `test_operational_task_concurrency.py`: **14 passed, 1 skipped**; suite operational completa **38 passed, 1 skipped**; flake8 E9/F821 pulito. La controprova regge (senza `status` il claim torna None e i test cadono).
+
+**APERTO / NON PROVATO:** (1) **Atomicità sotto contesa** — il test `test_two_concurrent_workers_exactly_one_wins` esiste ma è **skippato**: manca un MongoDB reale (27017 chiusa, no docker, no mongomock). Gira solo con `OPS_TEST_MONGO_URL` valorizzato. Finché non gira, l'atomicità resta *non provata su Mongo reale*. (2) **Integrazione nel worker vivo** (`process_pending_tasks`) — il runner NON è ancora cablato nel loop di produzione: farlo alla cieca senza Mongo violerebbe il metodo di collaudo. Passo successivo di T05, con prova della catena cablata. (3) Restano T06 policy/autorizzazioni lato server, T07 riconciliazione, T08 registro/recupero, T09 salute runtime. Niente push, merge o deploy: tutto locale.
+
 ### 2026-09-08 · Codex · Backend-first Evolution: fondazione catalogo
 
 **AUTORIZZATO:** Claudio ha chiesto avvio immediato dopo accordo backend-first. Branch `codex/evolution-autonomia`, base `71ce73c9`; checkout condiviso e lavoro concorrente preservati.
