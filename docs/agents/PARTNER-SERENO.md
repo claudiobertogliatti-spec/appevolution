@@ -42,3 +42,14 @@ Le dipendenze locali del worktree usano una junction al `frontend/node_modules` 
 - Browser su localhost: Home, apertura script demo, invio demo e ritorno in attesa team verificati. Stato blocked mostra richiesta supporto, nessuna azione di approvazione.
 - Viewport 390 e 320: logo caricato, navigazione accessibile; a 320 `scrollWidth=305`, `clientWidth=305`, nessun overflow orizzontale. Servizi e piano raggiungibili. Ripristinato viewport desktop e lasciata anteprima sulla Home.
 - Nessun accesso API della preview, nessuna modifica a dati reali, nessun merge/main/deploy. Restano aperti i blocchi 2–5, i test autenticati e la verifica completa delle schermate legacy nel nuovo layout.
+
+## Secondo blocco: mappa del percorso — 8 settembre 2026
+
+Implementato SerenoJourney dietro lo stesso flag disattivato: fase corrente aperta, conteggi derivati dagli stessi record visibili, ordinamento per codice F-n, record storici conservati in un gruppo separato, accesso diretto allo step corrente. Gli stati blocked, pending_review e skipped sono distinti. Il pannello materiali autenticato esistente viene riusato solo per passaggi completati che prevedono output. La presenza di un file non viene dedotta dal completamento.
+
+La preview ora importa anche SerenoJourney, con cinque record dimostrativi espliciti. Verificati nel browser apertura script demo, ritorno in attesa e mappa senza CTA operativa durante pending_review. Mobile 390px: clientWidth=scrollWidth=375 (scrollbar esclusa), nessun overflow. Logo originale invariato.
+
+Test: comando Jest del blocco 1 esteso con SerenoJourney.test.js e journeyModel.test.js: 6 suite, 17 test passati. Preview build: exit 0, asset preview.js 1.55 MiB.
+
+Le approvazioni reali NON sono completate: nel router operativo _DOC_APPROVAL_STEPS e vuoto. Non introdurre un invio generico al team che dichiari una revisione inesistente. Verificare i contratti specifici per script/video/documenti e le versioni prima di collegare nuove azioni. Restano da verificare anche salvataggi e gestione errori nelle schermate legacy dei singoli passaggi. Nessuna modifica backend, nessun merge o deploy.
+Build completa del secondo blocco: avviata con il flag attivo, fermata manualmente dopo rallentamento marcato del computer e nessun esito oltre Creating an optimized production build. Exit 1 da interruzione; NON e una build verificata. Da ripetere prima di integrazione. Test e build preview restano passati.

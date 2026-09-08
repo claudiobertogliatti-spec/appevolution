@@ -1,3 +1,11 @@
+### 2026-09-08 · Codex · Area partner serena — mappa implementata
+
+**AREA RISERVATA:** branch codex/partner-sereno, worktree .worktrees/codex-partner-sereno. Nuovo SerenoJourney nel flag esistente, default OFF. Conteggio dei record visibili, ordine canonico F-n, link allo step preciso, stati di attesa/blocco distinti. Preview aggiornata: http://127.0.0.1:4178/partner/percorso.
+
+**VERIFICATO:** 17 test/6 suite passati, preview compilata, percorso demo e cambio stato verificati in browser; mobile senza overflow. Logo originale conservato.
+
+**APERTO:** approvazioni reali e salvataggi legacy da collegare/verificare per singolo flusso: _DOC_APPROVAL_STEPS operativo e vuoto. Materiali, assistenza, servizi/piano e pilota ancora aperti. Nessun merge/deploy o dati reali modificati. Dettagli in PARTNER-SERENO.md.
+
 ### 2026-09-08 · Codex · Area partner serena — primo blocco e anteprima
 
 **AUTORIZZATO:** layout approvato da Claudio, logo originale fedele, anteprima per ogni blocco; sviluppo isolato con piattaforma attuale operativa.
