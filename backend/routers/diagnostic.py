@@ -32,7 +32,7 @@ from pydantic import BaseModel, EmailStr, Field
 import asyncio
 
 from services.ciak_matteo import MatteoServiceError, generate_report
-from services.ciak_scoring import calculate_scoring
+from services.ciak_scoring_ai import calculate_scoring_ai
 from services.ciak_state_machine import (
     STATE_CIAK_COMPLETED, STATE_CIAK_STARTED, STATE_CLICKED_67,
     STATE_LEAD_CREATED, STATE_REPORT_GENERATED,
@@ -254,7 +254,7 @@ async def answer_question(payload: AnswerRequest):
     elif qid == "q6_problema":
         value = _validate_open_text(payload.value, Q6_MAX, "Problema")
     else:
-        # Validation enum implicit in scoring.calculate_scoring at /complete
+        # Risposta APERTA (testo libero): salvata così com'è; valutata da Carlo al /complete.
         value = payload.value.strip()
 
     await db.diagnostic_sessions.update_one(
@@ -305,18 +305,9 @@ async def complete_diagnostic(payload: CompleteRequest):
     if len(responses["q6_problema"]) < OPEN_TEXT_MIN:
         raise HTTPException(400, "q6_problema troppo breve")
 
-    # 1. Scoring + override
-    try:
-        scoring = calculate_scoring(
-            q2=responses["q2_esperienza"],
-            q3=responses["q3_clienti"],
-            q4=responses["q4_idea"],
-            q5=responses["q5_target"],
-            q7=responses["q7_digitale"],
-            q8=responses["q8_obiettivo"],
-        )
-    except ValueError as e:
-        raise HTTPException(400, f"Risposta non valida: {e}")
+    # 1. Scoring AI sulle risposte APERTE (Carlo interno) → pronto/non-pronto + stato 1-4.
+    #    Non solleva: in caso di errore ritorna un fallback dichiarato, il flusso non si blocca.
+    scoring = await calculate_scoring_ai(responses)
 
     # 2. Transizione ciak_completed + tag stato_X
     transition_to(
