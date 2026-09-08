@@ -93,3 +93,15 @@ Principio: **collegare il catalogo esistente, non ricostruirlo** — mai duplica
 - Nessun deploy, nessun merge, nessuna modifica ai flussi commerciali/backend.
 
 Nota: nell'APP reale `/partner/servizi-extra` e `/partner/rinnovo` già renderizzano EvoSPage/BoosterEvoPage reali dentro la shell sereno; queste viste sereno sono la cornice proposta, per ora mostrata in preview. Il wiring nell'app (branch flag come per SerenoJourney) è passo d'integrazione, insieme a Materiali/Assistenza sereno. Resta il blocco 5 (pilota) e la build prod craco.
+
+## Quinto blocco (pilota) — 8 settembre 2026 (Claude)
+
+Decisione di Claudio: **rivestire il legacy tenendo le funzioni** (non sostituire con le viste sereno più semplici). Skin sereno selezionata dal flag; default = UI attuale invariata.
+
+- ✅ **Build di produzione craco chiusa** (flag attivo, exit 0, `build/` deployabile; warning solo `exhaustive-deps` PREESISTENTI in file non toccati — zero dai miei file). Gate che Codex aveva lasciato aperto.
+- ✅ **Mobile 375px**: zero overflow su tutte le viste, touch target ≥44.
+- **Rollback** = il flag (spento → UI attuale).
+
+**5.1 Materiali rivestito:** `SerenoMateriali` è ora la skin completa (ricerca, filtro cartella, segmento Tutti/Da Ciak/Da te, accordion cartelle, righe file con Apri/Scarica, consegna onesta via Telegram). `PartnerFilesPage` quando il flag è attivo rende `<SerenoMateriali>` passando i dati reali (`files`) e gli **handler autenticati reali** (`apriFile`/`scaricaFile`) — nessuna funzione persa, logica invariata. Preview aggiornata con dati demo (4 cartelle, 5 file). Verificato via DOM: 5 file, conteggi cartella corretti, Apri/Scarica presenti, zero overflow. Build preview exit 0.
+
+Prossimo: 5.2 Assistenza, 5.3 Servizi, 5.4 Piano (stessa tecnica: container legacy + skin sereno dietro flag). Poi test autenticati partner/admin.

@@ -10,6 +10,8 @@ import {
   FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
   Sparkles, Lock, ShieldCheck, X, Check, Folder, ChevronDown, ChevronUp
 } from "lucide-react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoMateriali from "../sereno/SerenoMateriali";
 
 // Struttura Cartelle Cloud Vault
 const DRIVE_FOLDERS = [
@@ -277,6 +279,20 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     window.open(telegramFallbackUrl, "_blank", "noopener");
     setUploadModalOpen(false);
   };
+
+  // Sereno skin: same real data and the same authenticated open/download
+  // handlers, only restyled. The current UI stays the default.
+  if (PARTNER_SERENO_ENABLED) {
+    return (
+      <SerenoMateriali
+        folders={DRIVE_FOLDERS}
+        files={files}
+        onOpen={apriFile}
+        onDownload={scaricaFile}
+        telegramUrl={telegramFallbackUrl}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">

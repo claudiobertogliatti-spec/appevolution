@@ -23,13 +23,22 @@ function Preview() {
       <Route path="/partner/revisione" element={<><Link className="sereno-back" to="/partner">← Torna a Oggi</Link>{heading('Lo script della tua masterclass.','Versione dimostrativa · Nessuna approvazione reale')}<article className="sereno-panel"><h3>1. Il benvenuto</h3><p>Benvenuto. In questa masterclass partiamo da una domanda semplice: come puoi fare il primo passo senza dover cambiare tutto in una volta?</p><h3>2. Il punto di partenza</h3><p>Ti mostrerò un esempio concreto e un piccolo esercizio da applicare alla tua situazione.</p></article><div className="sereno-actions"><button className="sereno-primary" onClick={()=>{setApproved(true);navigate('/partner');}}>Prova l’invio al team →</button></div><p className="sereno-note">Dimostrazione del cambio di stato. Le approvazioni reali richiedono il collegamento ai flussi specifici di ciascun materiale.</p></>} />
       <Route path="/partner/percorso" element={<SerenoJourney state={data} onMaterials={()=>navigate('/partner/materiali')} stepHref={()=>'/partner/revisione'} />} />
       <Route path="/partner/materiali" element={<SerenoMateriali
-        partner={{ name: 'Progetto dimostrativo' }}
-        daControllare={[{ id: 'd1', name: 'Script della masterclass', category: 'Documento', date: 'Ieri', status: 'Da approvare' }]}
-        recenti={[
-          { id: 'r1', name: 'Il tuo posizionamento', category: 'Documento', date: '2 giorni fa', status: 'Approvato' },
-          { id: 'r2', name: 'Brand kit', category: 'Identità e progetto', date: '5 giorni fa', status: 'Approvato' },
+        telegramUrl="https://t.me/ciak_partner_support"
+        folders={[
+          { id: 'brand_kit', name: '01. Brand Kit & Strategia', subtitle: 'Posizionamento, brand kit, logo e contratto firmato' },
+          { id: 'scripts', name: '02. Script & Teleprompter', subtitle: 'Copywriting della masterclass e tracce video' },
+          { id: 'video', name: '03. Video & Moduli Corso', subtitle: 'Videolezioni e video di benvenuto' },
+          { id: 'master_pdf', name: '05. Workbook & Certificati', subtitle: 'Workbook e certificati di completamento' },
         ]}
-        cartelle={['Documenti', 'Identità e progetto', 'Script', 'Video', 'Pagine di vendita']}
+        files={[
+          { id: 'r1', folderId: 'master_pdf', name: 'Piano_Operativo_Strategico_EVO.pdf', category: 'Piano Master', size: 'PDF', date: 'sempre aggiornato', owner: '⚙️ CIAK' },
+          { id: 'r2', folderId: 'master_pdf', name: 'Libretto_di_Progetto_Ciak.pdf', category: 'Libretto', size: 'PDF', date: 'sempre aggiornato', owner: '⚙️ CIAK' },
+          { id: 'r3', folderId: 'brand_kit', name: 'Posizionamento_Strategico.pdf', category: 'Posizionamento', size: '850 KB', date: '21 lug', owner: '⚙️ CIAK' },
+          { id: 'r4', folderId: 'brand_kit', name: 'Contratto_Partner_Firmato.pdf', category: 'Contratto', size: '1.8 MB', date: '15 lug', owner: '👤 Tu' },
+          { id: 'r5', folderId: 'scripts', name: 'Script_Masterclass.docx', category: 'Script', size: '420 KB', date: '19 lug', owner: '⚙️ CIAK' },
+        ]}
+        onOpen={() => {}}
+        onDownload={() => {}}
       />} />
       <Route path="/partner/team" element={<SerenoAssistenza
         partner={{ name: 'Progetto dimostrativo' }}
