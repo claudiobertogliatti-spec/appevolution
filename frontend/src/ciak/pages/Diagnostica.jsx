@@ -10,6 +10,9 @@
  * Email: riusata dal gate (localStorage ciak_lead_email/name).
  * Se assente (ingresso diretto), mini-form email prima della domanda 1.
  *
+ * Tema (8/9/2026): LIGHT — sfondo bianco, titoli navy (#0F172A), testo slate,
+ * giallo (#FACC15) come unico accento (progress, focus, CTA). Brand lock interno.
+ *
  * Contratto backend (routers/diagnostic.py — FONTE DI VERITÀ):
  *   POST /api/diagnostic/start    {email, name, tracking} → {session_token, lead_id}
  *   POST /api/diagnostic/answer   {session_token, question_id, value} → 204
@@ -22,7 +25,7 @@ import { CiakHeader } from "../components/CiakHeader";
 
 // question_id STABILI (il backend /answer li salva); tutte APERTE (libero sfogo).
 // Lo scoring pronto/non-pronto è calcolato da Carlo (AI) sulle risposte testuali
-// al /complete — NON più somma di crocette. Vedi backend/services/ciak_scoring.py.
+// al /complete — NON più somma di crocette. Vedi backend/services/ciak_scoring_ai.py.
 const QUESTIONS = [
   {
     id: "q1_competenza",
@@ -83,6 +86,18 @@ const QUESTIONS = [
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Eyebrow con firma visiva: trattino giallo (#FACC15) + testo navy uppercase.
+function Eyebrow({ children }) {
+  return (
+    <p className="flex items-center gap-3 mb-4">
+      <span className="inline-block h-0.5 w-8 bg-yellow-400" aria-hidden="true" />
+      <span className="text-slate-500 text-xs font-semibold uppercase tracking-widest">
+        {children}
+      </span>
+    </p>
+  );
+}
 
 function detectDeviceType() {
   if (typeof navigator === "undefined") return "unknown";
@@ -271,15 +286,13 @@ export function CiakDiagnostica() {
     return (
       <>
         <CiakHeader variant="light" />
-        <div className="bg-slate-900 text-white min-h-[90vh] flex items-center justify-center p-6">
+        <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-md w-full">
-            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              Analisi gratuita
-            </p>
-            <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug">
+            <Eyebrow>Analisi gratuita</Eyebrow>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug text-slate-900">
               Scopri se la tua competenza ha un mercato
             </h1>
-            <p className="text-slate-300 text-sm mb-8 leading-relaxed">
+            <p className="text-slate-600 text-sm mb-8 leading-relaxed">
               8 domande aperte per raccontarci il tuo progetto. Dalle tue risposte
               prepariamo la tua analisi di mercato personalizzata, che vediamo
               insieme in una videocall gratuita.
@@ -290,7 +303,7 @@ export function CiakDiagnostica() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Il tuo nome"
               autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-3"
+              className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-3 transition"
             />
             <input
               type="email"
@@ -299,9 +312,9 @@ export function CiakDiagnostica() {
               onKeyDown={(e) => e.key === "Enter" && submitEmail()}
               placeholder="La tua email"
               autoComplete="email"
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-2"
+              className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-2 transition"
             />
-            {emailErr && <p className="text-red-400 text-xs mb-2">{emailErr}</p>}
+            {emailErr && <p className="text-red-500 text-xs mb-2">{emailErr}</p>}
             <button
               onClick={submitEmail}
               className="w-full mt-4 px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
@@ -319,8 +332,8 @@ export function CiakDiagnostica() {
     return (
       <>
         <CiakHeader variant="light" />
-        <div className="bg-slate-900 text-white min-h-[80vh] flex items-center justify-center">
-          <p className="text-slate-400 text-sm">Preparazione in corso...</p>
+        <div className="bg-white text-slate-900 min-h-[80vh] flex items-center justify-center">
+          <p className="text-slate-500 text-sm">Preparazione in corso...</p>
         </div>
       </>
     );
@@ -332,15 +345,15 @@ export function CiakDiagnostica() {
     return (
       <>
         <CiakHeader variant="light" />
-        <div className="bg-slate-900 text-white min-h-[90vh] flex items-center justify-center p-6">
+        <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-lg w-full text-center">
-            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
-              Fotografia completa
-            </p>
-            <h1 className="text-2xl md:text-3xl font-semibold mb-5 leading-snug">
+            <div className="flex justify-center">
+              <Eyebrow>Fotografia completa</Eyebrow>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-5 leading-snug text-slate-900">
               Grazie, ci siamo.
             </h1>
-            <p className="text-slate-300 leading-relaxed mb-8">
+            <p className="text-slate-600 leading-relaxed mb-8">
               Grazie per esserti raccontato/a con questa apertura — non è affatto
               scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello che
               serve per preparare la tua analisi di mercato personalizzata. Ora
@@ -356,12 +369,12 @@ export function CiakDiagnostica() {
                 Prenota la tua videocall strategica →
               </a>
             ) : (
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-500 text-sm leading-relaxed">
                 Ti scriviamo noi via email con il link per prenotare la videocall.
                 Se preferisci, contattaci a{" "}
                 <a
                   href="mailto:assistenza@evolution-pro.it"
-                  className="underline hover:text-yellow-400"
+                  className="underline hover:text-slate-900"
                 >
                   assistenza@evolution-pro.it
                 </a>
@@ -380,15 +393,15 @@ export function CiakDiagnostica() {
   return (
     <>
       <CiakHeader variant="light" />
-      <div className="bg-slate-900 text-white min-h-[90vh]">
+      <div className="bg-white text-slate-900 min-h-[90vh]">
         <div className="mx-auto max-w-2xl px-6 py-12">
           {/* Progress */}
           <div className="mb-8">
-            <div className="flex justify-between text-xs text-slate-400 mb-2">
+            <div className="flex justify-between text-xs text-slate-500 mb-2">
               <span>Domanda {step + 1} di {totalSteps}</span>
               <span>{Math.round(((step + 1) / totalSteps) * 100)}%</span>
             </div>
-            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-yellow-400 transition-all duration-300"
                 style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
@@ -397,55 +410,30 @@ export function CiakDiagnostica() {
           </div>
 
           {/* Question */}
-          <h1 className="text-2xl md:text-3xl font-semibold mb-8 leading-snug">{q.text}</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-8 leading-snug text-slate-900">{q.text}</h1>
 
-          {q.type === "text" && (
-            <>
-              <textarea
-                value={answers[q.id] || ""}
-                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                placeholder={q.placeholder}
-                rows={3}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-yellow-400 mb-2 resize-none"
-                autoFocus
-              />
-              <p className="text-xs text-slate-500 mb-6">
-                {(answers[q.id] || "").trim().length < (q.minLen || 0)
-                  ? `Minimo ${q.minLen} caratteri`
-                  : " "}
-              </p>
-            </>
-          )}
+          <textarea
+            value={answers[q.id] || ""}
+            onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+            placeholder={q.placeholder}
+            rows={3}
+            className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30 mb-2 resize-none transition"
+            autoFocus
+          />
+          <p className="text-xs text-slate-400 mb-6">
+            {(answers[q.id] || "").trim().length < (q.minLen || 0)
+              ? `Minimo ${q.minLen} caratteri`
+              : " "}
+          </p>
 
-          {q.type === "radio" && (
-            <div className="space-y-2 mb-8">
-              {q.options.map((opt) => {
-                const selected = answers[q.id] === opt.v;
-                return (
-                  <button
-                    key={opt.v}
-                    onClick={() => setAnswers({ ...answers, [q.id]: opt.v })}
-                    className={`w-full text-left px-5 py-4 rounded-lg border-2 transition ${
-                      selected
-                        ? "bg-yellow-400 border-yellow-400 text-slate-900 font-semibold"
-                        : "bg-white/5 border-white/10 hover:border-white/30"
-                    }`}
-                  >
-                    {opt.l}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
           {/* Nav */}
           <div className="flex items-center justify-between">
             <button
               onClick={back}
               disabled={step === 0 || submitting}
-              className="text-sm font-medium text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="text-sm font-medium text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               ← Indietro
             </button>
@@ -454,7 +442,7 @@ export function CiakDiagnostica() {
               disabled={!canProceed || submitting}
               className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              {submitting ? "Generazione report..." : isLast ? "Genera report →" : "Avanti →"}
+              {submitting ? "Un momento..." : isLast ? "Completa l'analisi →" : "Avanti →"}
             </button>
           </div>
         </div>
