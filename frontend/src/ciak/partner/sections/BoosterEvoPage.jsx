@@ -101,7 +101,7 @@ const SERVICE_VISUALS = {
   },
 };
 
-const GROUPS = [
+export const GROUPS = [
   {
     title: "Voglio piu' visibilita'",
     subtitle: "Per portare piu' persone giuste verso masterclass, funnel e contenuti.",

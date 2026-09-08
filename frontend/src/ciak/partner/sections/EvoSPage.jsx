@@ -10,7 +10,7 @@ import {
  * 100% Sfondi Chiari (nessun nero/slate scuro) e testi in italiano semplice senza termini inglesi o tecnici.
  */
 
-const PLANS = [
+export const PLANS = [
   {
     id: "start",
     name: "Inside",
@@ -162,7 +162,7 @@ const PLANS = [
   },
 ];
 
-const CONTINUITY_POINTS = [
+export const CONTINUITY_POINTS = [
   { icon: ShieldCheck, title: "Nessun passo indietro", text: "Mantieni tutto attivo ed ordinato senza rischiare di disperdere il lavoro svolto nel primo anno." },
   { icon: Clock, title: "Risparmio di tempo", text: "Lascia la manutenzione e i controlli mensili al team per dedicarti solo ai tuoi clienti." },
   { icon: Sparkles, title: "Crescita costante", text: "Aggiorna messaggi e pagine in base alla risposta reale delle persone." },

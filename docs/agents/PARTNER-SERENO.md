@@ -76,3 +76,20 @@ Codex interrotto da Claudio; ripreso il branch. Blocco 2 (SerenoJourney) messo i
 - Nessun deploy, nessun merge, nessuna modifica backend. Build di produzione craco completa ancora da eseguire prima dell'integrazione.
 
 Restano: blocco 4 (Servizi/Piano su dati reali), blocco 5 (pilota: test autenticati, mobile/tastiera, build/CI, rollback). E la persistenza reale delle consegne file (backend) resta scorporata, da stimare a parte.
+
+## Quarto blocco: Servizi e Piano su dati reali — 8 settembre 2026 (Claude)
+
+Principio: **collegare il catalogo esistente, non ricostruirlo** — mai duplicare o inventare prezzi (anti-pattern noto: prezzi hardcoded che divergono tra file).
+
+- Esportati i dati reali in place (una parola, EvoSPage/BoosterEvoPage intatti): `PLANS`, `CONTINUITY_POINTS` da `EvoSPage.jsx`; `GROUPS` da `BoosterEvoPage.jsx`. Fonte unica.
+- `SerenoPiano.jsx`: "Il tuo piano" — status corrente PRIMA, onesto: senza dato verificato mostra "Da collegare" (mai una scadenza inventata). Sotto, le 4 opzioni di rinnovo EVO S dai `PLANS` reali (Inside 147 / Pro 297 / Premium 497 / Elite 797 € / mese), CTA "Valuta il rinnovo" → flusso reale `/partner/rinnovo` (checkout/eligibility invariati).
+- `SerenoServizi.jsx`: "Servizi aggiuntivi" — cornice calma sui 4 `GROUPS` reali, marcati "Facoltativi", link al catalogo reale `/partner/servizi-extra` (prezzi/checkout lì, nulla di simulato).
+- Preview: route `/partner/rinnovo` e `/partner/servizi-extra` non più segnaposto.
+
+**Evidenze verificate:**
+- `SerenoPiano.test.js`: rende i prezzi reali 147/297/497/797 (non inventati); senza piano → "Da collegare"; con piano passato → mostra il piano, niente placeholder. 3 test.
+- Suite completa: **8 suite, 22 test passati**. Preview build: exit 0, `preview.js` 1.69 MiB.
+- Prova visiva su `/partner/rinnovo` (Inside · 147 € / mese, Premium · 497 € / mese, status "Da collegare") e `/partner/servizi-extra` (4 gruppi reali, "Facoltativi").
+- Nessun deploy, nessun merge, nessuna modifica ai flussi commerciali/backend.
+
+Nota: nell'APP reale `/partner/servizi-extra` e `/partner/rinnovo` già renderizzano EvoSPage/BoosterEvoPage reali dentro la shell sereno; queste viste sereno sono la cornice proposta, per ora mostrata in preview. Il wiring nell'app (branch flag come per SerenoJourney) è passo d'integrazione, insieme a Materiali/Assistenza sereno. Resta il blocco 5 (pilota) e la build prod craco.

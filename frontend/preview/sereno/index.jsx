@@ -6,6 +6,8 @@ import SerenoHome from '../../src/ciak/partner/sereno/SerenoHome';
 import SerenoJourney from '../../src/ciak/partner/sereno/SerenoJourney';
 import SerenoAssistenza from '../../src/ciak/partner/sereno/SerenoAssistenza';
 import SerenoMateriali from '../../src/ciak/partner/sereno/SerenoMateriali';
+import SerenoServizi from '../../src/ciak/partner/sereno/SerenoServizi';
+import SerenoPiano from '../../src/ciak/partner/sereno/SerenoPiano';
 
 function Preview() {
   const [scenario, setScenario] = useState('action');
@@ -33,8 +35,8 @@ function Preview() {
         partner={{ name: 'Progetto dimostrativo' }}
         currentStepLabel="Controlla lo script della masterclass"
       />} />
-      <Route path="/partner/servizi-extra" element={<>{heading('Servizi aggiuntivi.','Un aiuto in più, quando è utile al tuo progetto.')}<section className="sereno-focus"><span className="sereno-badge">Facoltativi</span><h2>Il tuo percorso resta completo.</h2><p>Qui potrai valutare attività aggiuntive, con consegne, tempi e prezzi chiari prima di scegliere.</p><p className="sereno-note">Il catalogo esistente verrà collegato nel blocco Servizi. Nessun prezzo o acquisto simulato.</p></section></>} />
-      <Route path="/partner/rinnovo" element={<>{heading('Il tuo piano.','Cosa comprende il supporto e come continuare.')}<section className="sereno-panel"><h3>Il tuo periodo di supporto</h3><p>Durata, scadenza e condizioni verranno mostrate dai dati verificati del tuo piano.</p><div className="sereno-row"><span>Servizi inclusi</span><span className="sereno-badge">Da collegare</span></div><div className="sereno-row"><span>Scadenza e prosecuzione</span><span className="sereno-badge">Da collegare</span></div></section></>} />
+      <Route path="/partner/servizi-extra" element={<SerenoServizi />} />
+      <Route path="/partner/rinnovo" element={<SerenoPiano />} />
       <Route path="/partner/cambia-password" element={<>{heading('Il tuo account.','Le impostazioni personali, in un unico posto.')}<p className="sereno-note">Nell’app questo collegamento conserva il cambio password esistente. Nell’anteprima non si modificano credenziali.</p></>} />
       <Route path="*" element={<Link to="/partner">Apri l’anteprima →</Link>} />
     </Routes></div>
