@@ -134,6 +134,7 @@ jobs:
           tests/test_internal_api.py
           tests/test_funnel_metrics.py
           tests/test_social_publisher.py
+          tests/test_scheduler_social_trigger.py
           tests/test_discovery_lead_write_auth.py
           tests/test_crediti.py
           tests/test_obiettivo.py

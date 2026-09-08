@@ -74,19 +74,29 @@ def trigger_luca_briefing():
 
 def trigger_social_publisher():
     """
-    Lun/mer/ven alle 9:00 — pubblica la coda social approvata su Instagram.
+    Lun/mer/ven — innesca la pubblicazione della coda social approvata.
 
-    Vive qui (APScheduler) e non su Celery Beat perche' Celery e' spento in prod
-    (`CELERY_ENABLED=false`). Sostituisce i task dell'app desktop che pubblicavano
-    solo a portatile aperto e che a giugno si sono fermati quando la coda non e'
-    stata piu' ricaricata. Chiama l'endpoint interno con la chiave di report.
+    ⛔ Il publisher deve girare sul servizio che ha i token Meta (IG_BUSINESS_ID /
+    META_PAGE_ACCESS_TOKEN) = il backend. Lo scheduler invece vive sul worker, che
+    quei token NON li ha (verificato 8/9/2026 nei log: ogni giro usciva 'coda non
+    toccata'). Percio' il trigger chiama l'endpoint sul servizio indicato da
+    `SOCIAL_PUBLISH_BASE_URL` (l'origin del backend), non piu' `localhost`.
+
+    Guardia anti-doppione: se `SOCIAL_PUBLISH_BASE_URL` non e' configurata su questo
+    servizio, il trigger e' INERTE. Cosi' pubblica un solo servizio (quello dove la
+    env e' impostata) anche se lo scheduler girasse su entrambi.
     """
     try:
+        base = os.environ.get("SOCIAL_PUBLISH_BASE_URL", "").strip()
+        if not base:
+            logger.info("[SCHEDULER] Social publisher: SOCIAL_PUBLISH_BASE_URL non configurata "
+                        "su questo servizio, salto (il publisher gira dove stanno i token Meta)")
+            return
         chiave = os.environ.get("LUCA_REPORT_KEY", "")
         if not chiave:
             logger.error("[SCHEDULER] Social publisher saltato: LUCA_REPORT_KEY non configurata")
             return
-        r = httpx.post(f"{BASE_URL}/ciak/social/publish-due",
+        r = httpx.post(f"{base.rstrip('/')}/api/ciak/social/publish-due",
                        headers={"X-Report-Key": chiave}, json={}, timeout=180)
         res = r.json()
         if not res.get("configurato"):
@@ -94,7 +104,7 @@ def trigger_social_publisher():
                            f"({res.get('in_coda_scaduti', 0)} in coda)")
         else:
             logger.info(f"[SCHEDULER] Social publisher — pubblicati {res.get('pubblicati', 0)}, "
-                        f"falliti {res.get('falliti', 0)}")
+                        f"parziali {res.get('parziali', 0)}, falliti {res.get('falliti', 0)}")
     except Exception as e:
         logger.error(f"[SCHEDULER] Errore trigger_social_publisher: {e}")
 
