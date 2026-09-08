@@ -29,7 +29,7 @@ from services.ciak_client_accounts import (
 
 # Upgrade = Partnership al netto del credito Ciak Start gia' versato.
 # NON duplicare il calcolo altrove: deriva dai valori canonici.
-UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 279000 - 49900 = 229100
+UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 279000 - 49900 = 249100
 
 # Condizioni EVO-S (abbonamenti post 12 mesi Partnership).
 EVO_S_MIN_MONTHS = 6              # permanenza minima
@@ -78,7 +78,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-PARTNERSHIP": {
         "code": "CIAK-PARTNERSHIP",
         "nome": "Partnership Ciak",
-        "amount_cents": PARTNERSHIP_AMOUNT_CENTS,  # 279000 -> €2.790
+        "amount_cents": PARTNERSHIP_AMOUNT_CENTS,  # 299000 -> €2.990
         "periodicita": "una_tantum",
         "descrizione": (
             "Progettazione, produzione e lancio dell'offerta digitale secondo "
@@ -88,7 +88,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-UPGRADE": {
         "code": "CIAK-UPGRADE",
         "nome": "Upgrade Partnership Ciak",
-        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 229100 -> €2.291
+        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 249100 -> €2.491
         "periodicita": "una_tantum",
         "descrizione": (
             "Upgrade alla Partnership Ciak, al netto del credito Ciak Start "

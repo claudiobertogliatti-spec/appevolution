@@ -13,7 +13,7 @@ gli effetti.
 L'effetto peggiore e' su `account`: `_activate_partner_account_and_notify`
 genera un `partner_setup_token` nuovo e sovrascrive il precedente. Il primo
 link — quello gia' partito via Systeme verso il cliente — muore. Il partner
-paga EUR 2.790 e clicca un link non valido.
+paga EUR 2.990 e clicca un link non valido.
 """
 import asyncio
 import importlib.util
@@ -50,7 +50,7 @@ def _doc():
         "prospect_nome": "Mario Bianchi",
         "contratto_firmato_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
         "stato": "contratto_firmato",
-        "contract_params": {"corrispettivo": 2790},
+        "contract_params": {"corrispettivo": 2990},
     }
 
 

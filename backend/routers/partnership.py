@@ -212,7 +212,7 @@ async def upload_documento_partnership(
 @router.post("/create-checkout-session")
 async def create_partnership_checkout(request: CheckoutRequest):
     """
-    Crea una sessione di checkout Stripe per il pagamento della partnership (€2.790).
+    Crea una sessione di checkout Stripe per il pagamento della partnership (€2.990).
     Supporta pagamento singolo o 3 rate con Klarna.
     """
     if db is None:
@@ -236,14 +236,14 @@ async def create_partnership_checkout(request: CheckoutRequest):
         checkout = StripeCheckout(api_key=stripe_key)
         
         session_request = CheckoutSessionRequest(
-            amount=2790.00,  # €2.790,00
+            amount=2990.00,  # €2.990,00
             currency="eur",
             success_url=f"{frontend_url}/attivazione-partnership?payment=success&user_id={user['id']}",
             cancel_url=f"{frontend_url}/attivazione-partnership?payment=cancelled",
             metadata={
                 "user_id": user["id"],
                 "tipo": "attivazione_partnership",
-                "importo": "2790",
+                "importo": "2990",
                 "email": user.get("email", ""),
                 "nome": f"{user.get('nome', '')} {user.get('cognome', '')}"
             }
@@ -265,7 +265,7 @@ async def create_partnership_checkout(request: CheckoutRequest):
             "success": True,
             "checkout_url": session.url,
             "session_id": session.session_id,
-            "amount": 2790.00,
+            "amount": 2990.00,
             "currency": "eur"
         }
         
@@ -326,7 +326,7 @@ async def verify_partnership_payment(user_id: str = None, session_id: str = None
                 if telegram_token and admin_chat_id:
                     nome = user.get('nome', '')
                     cognome = user.get('cognome', '')
-                    message = f"💰 PAGAMENTO PARTNERSHIP RICEVUTO €2.790\n\n👤 {nome} {cognome}\n📧 {user.get('email')}\n\n✅ Pronto per conversione a partner!"
+                    message = f"💰 PAGAMENTO PARTNERSHIP RICEVUTO €2.990\n\n👤 {nome} {cognome}\n📧 {user.get('email')}\n\n✅ Pronto per conversione a partner!"
                     async with httpx.AsyncClient() as client:
                         await client.post(
                             f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -343,7 +343,7 @@ async def verify_partnership_payment(user_id: str = None, session_id: str = None
                         nome=user.get("nome", ""),
                         cognome=user.get("cognome", ""),
                         payment_type="partnership",
-                        amount=2790.0,
+                        amount=2990.0,
                         metadata={"user_id": user["id"]}
                     )
                     logging.info(f"Systeme.io sync result for partnership payment: {systeme_result}")

@@ -4,7 +4,7 @@ Ciak — Servizio Analisi + Roadmap.
 Genera 3 artefatti dalle 8 Domande Ciak (diagnostic_session):
   1. analisi definitiva (6 capitoli, web) — stato da_validare
   2. bozza (bullet teaser, per PDF) — derivata dalla definitiva
-  3. script di call (interno, conversione partner €2.790)
+  3. script di call (interno, conversione partner €2.990)
 
 Motore: Anthropic API + web search tool (web_search_20250305).
 Riferimento spec: docs/superpowers/specs/2026-05-28-ciak-analisi-roadmap-design.md
@@ -108,7 +108,7 @@ OUTPUT: SOLO JSON valido:
   "chiusura": "1 frase che rimanda alla call"
 }"""
 
-_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per convertire un cliente Blueprint €27 o Start €499 in partner €2.790. Basati sull'analisi definitiva e sullo stato del cliente.
+_PROMPT_SCRIPT_CALL = """Sei un sales coach. Genera lo SCRIPT DI CALL interno per Claudio (fondatore Evolution PRO), che userà durante la call per convertire un cliente Blueprint €27 o Start €499 in partner €2.990. Basati sull'analisi definitiva e sullo stato del cliente.
 
 """ + _VINCOLI_STILE + """
 
@@ -117,7 +117,7 @@ OUTPUT: SOLO JSON valido:
   "agganci": ["punti specifici del cliente da richiamare in apertura"],
   "momenti_illuminanti": ["i 3 momenti chiave da far emergere in call"],
   "obiezioni": [{"obiezione": "string", "risposta": "string"}],
-  "ponte_partnership": "come presentare la partnership €2.790 partendo dalla roadmap",
+  "ponte_partnership": "come presentare la partnership €2.990 partendo dalla roadmap",
   "domande_chiusura": ["domanda di chiusura"]
 }"""
 

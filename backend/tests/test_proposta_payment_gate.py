@@ -1,7 +1,7 @@
 """Prerequisiti di stato prima di aprire il checkout Partnership.
 
 `pagamento_stripe` non controllava ne' lo stato ne' la scadenza della proposta:
-si poteva aprire un checkout da EUR 2.790 su una proposta mai firmata o gia'
+si poteva aprire un checkout da EUR 2.990 su una proposta mai firmata o gia'
 scaduta. Il blocco arrivava solo dopo, in `finalize_partnership_payment`
 ("Contratto firmato mancante", 409) — cioe' a pagamento gia' incassato, con il
 webhook che restituiva errore e Stripe che ritentava per giorni.
@@ -52,7 +52,7 @@ def _proposta_doc(**overrides):
         "accettato_at": _iso(-1),
         "contratto_firmato_at": _iso(-1),
         "scadenza": _iso(5),
-        "contract_params": {"corrispettivo": 2790},
+        "contract_params": {"corrispettivo": 2990},
     }
     doc.update(overrides)
     return doc

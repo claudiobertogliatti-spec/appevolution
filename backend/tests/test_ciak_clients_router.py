@@ -165,7 +165,7 @@ async def test_dashboard_payload_contains_credit_and_analysis(fake_db):
     )
 
     assert payload["client"]["access_level"] == "cliente_start"
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 229100
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
     assert payload["analysis"]["status"] == "inviata"
     assert "script_call" not in payload["analysis"]
     assert payload["partner_area"]["available"] is False
@@ -188,7 +188,7 @@ async def test_dashboard_retains_start_credit_for_promoted_partner(fake_db):
 
     assert payload["start"]["credit_amount_cents"] == 49900
     assert payload["pricing"]["partnership"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 229100
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
 
 
 @pytest.mark.asyncio
@@ -283,7 +283,7 @@ async def test_dashboard_pricing_keeps_start_credit_when_user_activation_overlay
     assert payload["partner_area"]["available"] is True
     assert payload["start"]["credit_amount_cents"] == 49900
     assert payload["pricing"]["partnership"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 229100
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
 
 
 def test_magic_login_returns_token_and_client(monkeypatch, client_app, fake_db):
@@ -616,11 +616,11 @@ def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, clien
     body = response.json()
     assert body["success"] is True
     assert body["checkout_url"] == "https://checkout.example/1"
-    assert body["amount_cents"] == 229100
+    assert body["amount_cents"] == 249100
     assert body["credit_amount_cents"] == 49900
 
     request = FakeStripeCheckout.created_requests[0]["request"]
-    assert request.amount == 2291.0
+    assert request.amount == 2491.0
     assert request.currency == "eur"
     assert request.success_url == "https://frontend.example/cliente?checkout=partnership&payment=success"
     assert request.cancel_url == "https://frontend.example/cliente?checkout=partnership&payment=cancel"
@@ -628,9 +628,9 @@ def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, clien
         "tipo": "partnership",
         "client_id": "client-1",
         "email": "a@example.com",
-        "full_amount_cents": 279000,
+        "full_amount_cents": 299000,
         "credit_amount_cents": 49900,
-        "due_amount_cents": 229100,
+        "due_amount_cents": 249100,
     }
 
 
@@ -669,5 +669,5 @@ def test_partnership_checkout_allows_blueprint_when_partnership_is_decided(monke
 
     assert response.status_code == 200
     body = response.json()
-    assert body["amount_cents"] == 279000
+    assert body["amount_cents"] == 299000
     assert body["credit_amount_cents"] == 0
