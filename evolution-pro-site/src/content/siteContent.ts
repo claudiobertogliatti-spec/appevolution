@@ -54,8 +54,8 @@ export const siteContent: SiteContent = {
   brand: 'Evolution PRO',
   platform: 'Ciak',
   primaryCta: {
-    label: 'Guarda la masterclass gratuita',
-    href: 'https://www.ciak.io/masterclass',
+    label: 'Fai la tua analisi gratuita',
+    href: 'https://www.ciak.io/analisi',
   },
   agents: [
     {
