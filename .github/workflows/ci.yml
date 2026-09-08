@@ -147,6 +147,7 @@ jobs:
           tests/test_operational_task_contracts.py
           tests/test_operational_task_completion.py
           tests/test_operational_task_concurrency.py
+          tests/test_operational_task_policy.py
 
   frontend:
     name: Frontend (build smoke)

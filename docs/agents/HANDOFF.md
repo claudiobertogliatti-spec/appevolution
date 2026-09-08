@@ -1,3 +1,13 @@
+### 2026-09-08 · Claude · Motore Evolution: T06 autorizzazioni applicate dal server
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T06. Nuovo `services/operational_tasks/policy.py`: `authorize_admin` (identità dal token, non dal body), `approval_authorizes_output` (un'approvazione vale per UNA versione: legata a checksum output + scadenza + reviewer). `approval_workflow.py`: `approve_task` registra checksum+scadenza; `reject_task` al 3° rifiuto va a **`blocked`** (non più `rejected` orfano né raise). `server.py`: `require_admin_role` su approve/reject/dismiss/status/approvals/approval-stats; **reviewer = admin autenticato** (`_admin.email`), non `request.reviewer`; `PATCH /status` non accetta più `completed` (niente bypass del verificatore).
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_policy.py` (nuovo, in ci.yml) **12 passed** — incl. asserzioni AST su server.py (le 6 rotte hanno l'auth; status non accetta completed; reviewer da _admin.email). Suite operational **56 passed, 2 skipped**; compileall OK; flake8 pulito. Frontend `ApprovalsQueue` usa `adminFetch` (Bearer) → auth non rompe la UI.
+
+**APERTO:** (1) `POST /agent-tasks` (create) e `POST /jobs/task` (execute_now) ancora aperte: possibili chiamanti interni, da verificare prima di chiuderle. (2) `approval_authorizes_output` è la primitiva: si collega all'esecuzione del contratto quando quel percorso sarà attivo (oggi gli approvati legacy sono già bloccati da T04). (3) Nessuna prova su app FastAPI autenticata live (auth verificata per struttura + allineamento a 20+ rotte admin identiche). (4) Restano T07/T08/T09. Niente push/merge/deploy: tutto locale.
+
 ### 2026-09-08 · Claude · Motore Evolution: T04 messo in sicurezza + T05 claim/lease
 
 **AUTORIZZATO:** Claudio ha riassegnato il MOTORE (M1, T03–T09) a Claude e ha messo **Codex in pausa** su questa traccia ("prendi tu il motore per il momento codex si ferma"). Stesso branch `codex/evolution-autonomia`: Codex era fermo, nessuna scrittura concorrente.
