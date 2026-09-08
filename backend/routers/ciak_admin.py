@@ -2659,7 +2659,7 @@ async def _build_all_sources(db) -> list[dict]:
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Ciak Start €499 (ciak_clients che hanno acquistato lo Start) ──
+    # ── Ciak Start €390 (ciak_clients che hanno acquistato lo Start) ──
     start_offer = MAIN_OFFERS["CIAK-START"]
     async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
         key = f"start:client:{c.get('id')}"

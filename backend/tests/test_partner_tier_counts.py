@@ -1,6 +1,6 @@
 """Un cliente Ciak Start non e' un partner: non deve entrare nei conteggi.
 
-Il ponte di identita' crea un record `partners` per ogni cliente da 499 EUR.
+Il ponte di identita' crea un record `partners` per ogni cliente da 390 EUR.
 Senza filtro, il cockpit, le metriche e i check diagnostici lo contano come un
 partner da 2.790. Il rischio vero non e' il singolo sito: e' quello dimenticato.
 Per questo il file contiene anche una scansione AST di tutti i moduli che

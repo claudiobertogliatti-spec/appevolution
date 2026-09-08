@@ -12,7 +12,7 @@ fastapi/stripe.
 
 Prezzi definitivi (LOCK):
   - CIAK-BLUEPRINT   €27   una tantum   (MAI €67)
-  - CIAK-START       €499  una tantum
+  - CIAK-START       €390  una tantum
   - CIAK-PARTNERSHIP €2.790 una tantum
   - CIAK-UPGRADE     €2.291 una tantum  (Partnership - credito Start)
   - EVO-S recover/start/grow/scale = 147/297/497/797 €/mese
@@ -29,7 +29,7 @@ from services.ciak_client_accounts import (
 
 # Upgrade = Partnership al netto del credito Ciak Start gia' versato.
 # NON duplicare il calcolo altrove: deriva dai valori canonici.
-UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 279000 - 49900 = 249100
+UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 299000 - 39000 = 260000
 
 # Condizioni EVO-S (abbonamenti post 12 mesi Partnership).
 EVO_S_MIN_MONTHS = 6              # permanenza minima
@@ -68,7 +68,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-START": {
         "code": "CIAK-START",
         "nome": "Ciak Start",
-        "amount_cents": START_AMOUNT_CENTS,  # 49900 -> €499
+        "amount_cents": START_AMOUNT_CENTS,  # 39000 -> €390
         "periodicita": "una_tantum",
         "descrizione": (
             "Percorso iniziale per definizione del posizionamento, brand, "
@@ -88,7 +88,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-UPGRADE": {
         "code": "CIAK-UPGRADE",
         "nome": "Upgrade Partnership Ciak",
-        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 249100 -> €2.491
+        "amount_cents": UPGRADE_AMOUNT_CENTS,  # 260000 -> €2.600
         "periodicita": "una_tantum",
         "descrizione": (
             "Upgrade alla Partnership Ciak, al netto del credito Ciak Start "
