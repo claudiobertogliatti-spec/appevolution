@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-do
 import SerenoShell from '../../src/ciak/partner/sereno/SerenoShell';
 import SerenoHome from '../../src/ciak/partner/sereno/SerenoHome';
 import SerenoJourney from '../../src/ciak/partner/sereno/SerenoJourney';
+import SerenoAssistenza from '../../src/ciak/partner/sereno/SerenoAssistenza';
+import SerenoMateriali from '../../src/ciak/partner/sereno/SerenoMateriali';
 
 function Preview() {
   const [scenario, setScenario] = useState('action');
@@ -18,8 +20,19 @@ function Preview() {
       <Route path="/partner" element={<SerenoHome state={data} partnerName="" onOpenStep={()=>navigate('/partner/revisione')} />} />
       <Route path="/partner/revisione" element={<><Link className="sereno-back" to="/partner">← Torna a Oggi</Link>{heading('Lo script della tua masterclass.','Versione dimostrativa · Nessuna approvazione reale')}<article className="sereno-panel"><h3>1. Il benvenuto</h3><p>Benvenuto. In questa masterclass partiamo da una domanda semplice: come puoi fare il primo passo senza dover cambiare tutto in una volta?</p><h3>2. Il punto di partenza</h3><p>Ti mostrerò un esempio concreto e un piccolo esercizio da applicare alla tua situazione.</p></article><div className="sereno-actions"><button className="sereno-primary" onClick={()=>{setApproved(true);navigate('/partner');}}>Prova l’invio al team →</button></div><p className="sereno-note">Dimostrazione del cambio di stato. Le approvazioni reali richiedono il collegamento ai flussi specifici di ciascun materiale.</p></>} />
       <Route path="/partner/percorso" element={<SerenoJourney state={data} onMaterials={()=>navigate('/partner/materiali')} stepHref={()=>'/partner/revisione'} />} />
-      <Route path="/partner/materiali" element={<>{heading('I tuoi materiali.','Le versioni aggiornate, facili da ritrovare.')}<section className="sereno-panel"><h3>Ultima consegna</h3><div className="sereno-row"><span>Script della masterclass<small>Documento dimostrativo</small></span><Link className="sereno-primary" to="/partner/revisione">Leggi →</Link></div></section><p className="sereno-note">L’archivio reale e i caricamenti verranno collegati nel blocco Materiali.</p></>} />
-      <Route path="/partner/team" element={<>{heading('Ci siamo, quando ti serve.','Un unico punto da cui chiedere una mano.')}<section className="sereno-focus"><span className="sereno-badge">Il supporto del tuo progetto</span><h2>Partiamo dal tuo dubbio.</h2><p>Qui troverai il contatto del team e le richieste legate al tuo percorso.</p><p className="sereno-note">Anteprima dell’organizzazione. Nessun messaggio viene inviato da questa pagina.</p></section></>} />
+      <Route path="/partner/materiali" element={<SerenoMateriali
+        partner={{ name: 'Progetto dimostrativo' }}
+        daControllare={[{ id: 'd1', name: 'Script della masterclass', category: 'Documento', date: 'Ieri', status: 'Da approvare' }]}
+        recenti={[
+          { id: 'r1', name: 'Il tuo posizionamento', category: 'Documento', date: '2 giorni fa', status: 'Approvato' },
+          { id: 'r2', name: 'Brand kit', category: 'Identità e progetto', date: '5 giorni fa', status: 'Approvato' },
+        ]}
+        cartelle={['Documenti', 'Identità e progetto', 'Script', 'Video', 'Pagine di vendita']}
+      />} />
+      <Route path="/partner/team" element={<SerenoAssistenza
+        partner={{ name: 'Progetto dimostrativo' }}
+        currentStepLabel="Controlla lo script della masterclass"
+      />} />
       <Route path="/partner/servizi-extra" element={<>{heading('Servizi aggiuntivi.','Un aiuto in più, quando è utile al tuo progetto.')}<section className="sereno-focus"><span className="sereno-badge">Facoltativi</span><h2>Il tuo percorso resta completo.</h2><p>Qui potrai valutare attività aggiuntive, con consegne, tempi e prezzi chiari prima di scegliere.</p><p className="sereno-note">Il catalogo esistente verrà collegato nel blocco Servizi. Nessun prezzo o acquisto simulato.</p></section></>} />
       <Route path="/partner/rinnovo" element={<>{heading('Il tuo piano.','Cosa comprende il supporto e come continuare.')}<section className="sereno-panel"><h3>Il tuo periodo di supporto</h3><p>Durata, scadenza e condizioni verranno mostrate dai dati verificati del tuo piano.</p><div className="sereno-row"><span>Servizi inclusi</span><span className="sereno-badge">Da collegare</span></div><div className="sereno-row"><span>Scadenza e prosecuzione</span><span className="sereno-badge">Da collegare</span></div></section></>} />
       <Route path="/partner/cambia-password" element={<>{heading('Il tuo account.','Le impostazioni personali, in un unico posto.')}<p className="sereno-note">Nell’app questo collegamento conserva il cambio password esistente. Nell’anteprima non si modificano credenziali.</p></>} />

@@ -53,3 +53,26 @@ Test: comando Jest del blocco 1 esteso con SerenoJourney.test.js e journeyModel.
 
 Le approvazioni reali NON sono completate: nel router operativo _DOC_APPROVAL_STEPS e vuoto. Non introdurre un invio generico al team che dichiari una revisione inesistente. Verificare i contratti specifici per script/video/documenti e le versioni prima di collegare nuove azioni. Restano da verificare anche salvataggi e gestione errori nelle schermate legacy dei singoli passaggi. Nessuna modifica backend, nessun merge o deploy.
 Build completa del secondo blocco: avviata con il flag attivo, fermata manualmente dopo rallentamento marcato del computer e nessun esito oltre Creating an optimized production build. Exit 1 da interruzione; NON e una build verificata. Da ripetere prima di integrazione. Test e build preview restano passati.
+
+## Terzo blocco: Materiali e Assistenza onesti — 8 settembre 2026 (subentro Claude)
+
+Codex interrotto da Claudio; ripreso il branch. Blocco 2 (SerenoJourney) messo in salvo come checkpoint.
+
+**Livello onestà (anche sulle pagine legacy, così i partner live smettono di essere ingannati appena si mergia):**
+- `TeamSupportoPage.jsx`: il `catch` della chat non fabbrica più "Ho preso in carico la tua richiesta". Conserva il testo, mostra "Messaggio non inviato", offre Riprova + il ripiego reale Telegram (`partner.telegram_group_url`).
+- `PartnerFilesPage.jsx`: rimosso l'upload simulato (`Documento_Caricato_Dal_Partner.pdf` + `alert("File caricato con successo!")`). Il modale ora indica la consegna reale via Telegram. Rimosso l'import `Upload` orfano.
+
+**Componenti sereno (dietro flag):**
+- `SerenoAssistenza.jsx`: chat onesta (nessuna finta presa in carico; in preview senza backend lo stato di errore si mostra dal vivo), + pannello "team umano" su Telegram, distinto dall'AI.
+- `SerenoMateriali.jsx`: "Consegna un file" → Telegram (niente upload finto); "Da controllare" e "Ultime consegne" prima; presenza file MAI dedotta dal completamento.
+- Preview: le route `/partner/team` e `/partner/materiali` non sono più segnaposto, usano i due componenti reali.
+
+**Evidenze verificate (non dichiarate):**
+- SHA256 logo copia = originale `763f79…f1b5` (identico byte per byte).
+- Suite: `node node_modules/jest/bin/jest.js --config=preview/sereno/jest.config.cjs` sui 7 file → **7 suite, 19 test passati**.
+- Controprova onestà: reintrodotta la finta "preso in carico" in homeModel e in SerenoAssistenza → in entrambi i casi il test **fallisce**; ripristinato.
+- `SerenoAssistenza.test.js`: fetch che rigetta → nessun "preso in carico", alert "Messaggio non inviato", ripiego Telegram sul canale del partner. Fetch ok → risposta mostrata, nessun alert.
+- Preview webpack: `node preview/sereno/build.cjs` → exit 0, `preview.js` 1.57 MiB. Prova visiva su `/partner/team` (stato errore onesto) e `/partner/materiali` (consegna Telegram) catturata.
+- Nessun deploy, nessun merge, nessuna modifica backend. Build di produzione craco completa ancora da eseguire prima dell'integrazione.
+
+Restano: blocco 4 (Servizi/Piano su dati reali), blocco 5 (pilota: test autenticati, mobile/tastiera, build/CI, rollback). E la persistenza reale delle consegne file (backend) resta scorporata, da stimare a parte.
