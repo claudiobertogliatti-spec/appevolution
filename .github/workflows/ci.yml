@@ -145,6 +145,7 @@ jobs:
           tests/test_vetrina_contatti.py
           tests/test_agent_task_dismiss.py
           tests/test_operational_task_contracts.py
+          tests/test_operational_task_completion.py
 
   frontend:
     name: Frontend (build smoke)
