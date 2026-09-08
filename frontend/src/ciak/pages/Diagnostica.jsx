@@ -19,84 +19,65 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 
-// question_id e value canonici — allineati a backend/services/ciak_scoring.py
+// question_id STABILI (il backend /answer li salva); tutte APERTE (libero sfogo).
+// Lo scoring pronto/non-pronto è calcolato da Carlo (AI) sulle risposte testuali
+// al /complete — NON più somma di crocette. Vedi backend/services/ciak_scoring.py.
 const QUESTIONS = [
   {
     id: "q1_competenza",
-    text: "Qual è la tua competenza principale?",
+    text: "Qual è la competenza su cui hai costruito il tuo lavoro? Raccontamela come la racconteresti a chi ti incontra per la prima volta.",
     type: "text",
-    placeholder: "Es. shiatsu, business coaching, fotografia...",
-    minLen: 15,
+    placeholder: "Parlami di cosa sai fare davvero bene...",
+    minLen: 20,
   },
   {
     id: "q2_esperienza",
-    text: "Da quanto tempo la utilizzi?",
-    type: "radio",
-    options: [
-      { v: "0-6m", l: "Meno di 6 mesi" },
-      { v: "6-12m", l: "Tra 6 mesi e 1 anno" },
-      { v: "1-3y", l: "Tra 1 e 3 anni" },
-      { v: "3+y", l: "Più di 3 anni" },
-    ],
+    text: "Da quanto la pratichi, e come sei arrivato/a a padroneggiarla?",
+    type: "text",
+    placeholder: "Il tuo percorso, in due righe...",
+    minLen: 20,
   },
   {
     id: "q3_clienti",
-    text: "Hai già lavorato con clienti o persone su questo tema?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, mai" },
-      { v: "Sì poche", l: "Sì, con qualcuno occasionalmente" },
-      { v: "Sì regolarmente", l: "Sì, regolarmente" },
-    ],
+    text: "Con chi hai già lavorato su questo tema? Raccontami un risultato concreto che hai aiutato a ottenere.",
+    type: "text",
+    placeholder: "Un caso, un cambiamento, un risultato che ricordi...",
+    minLen: 20,
   },
   {
     id: "q4_idea",
-    text: "Hai già un'idea di cosa potresti vendere online?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, non ancora" },
-      { v: "Sì confusa", l: "Sì, ma è ancora confusa" },
-      { v: "Sì abbastanza chiara", l: "Sì, abbastanza chiara" },
-    ],
+    text: "Se immagini un tuo corso o percorso digitale, cosa ti vedi offrire? Anche se è solo un'intuizione ancora confusa, buttala giù.",
+    type: "text",
+    placeholder: "Non serve sia perfetto: scrivi ciò che hai in mente...",
+    minLen: 20,
   },
   {
     id: "q5_target",
-    text: "Sai esattamente a chi ti rivolgi?",
-    type: "radio",
-    options: [
-      { v: "No", l: "No, non ho un target preciso" },
-      { v: "Più o meno", l: "Più o meno, ma non con esattezza" },
-      { v: "Sì molto chiaro", l: "Sì, ho un'idea molto chiara" },
-    ],
+    text: "A chi vorresti parlare con questo progetto? Descrivimi la persona che hai in mente e cosa la tiene sveglia la notte.",
+    type: "text",
+    placeholder: "Chi è, cosa desidera, cosa la blocca...",
+    minLen: 20,
   },
   {
     id: "q6_problema",
-    text: "Qual è il problema principale che vuoi aiutare a risolvere?",
+    text: "Qual è il problema che risolvi meglio di chiunque altro? Com'è la vita di chi ti sceglie, prima e dopo di te?",
     type: "text",
-    placeholder: "Descrivi in 1-2 frasi...",
-    minLen: 15,
+    placeholder: "Il problema, e la trasformazione che porti...",
+    minLen: 20,
   },
   {
     id: "q7_digitale",
-    text: "Che esperienza hai online?",
-    type: "radio",
-    options: [
-      { v: "Nessuna", l: "Nessuna, parto da zero" },
-      { v: "Base", l: "Base (uso social, ho un sito semplice)" },
-      { v: "Intermedia", l: "Intermedia (ho già provato a vendere online)" },
-      { v: "Avanzata", l: "Avanzata (vendo regolarmente online)" },
-    ],
+    text: "Che rapporto hai oggi con il mondo online? Cosa hai già provato — social, sito, vendite — e cosa ti mette ancora in difficoltà?",
+    type: "text",
+    placeholder: "Dove sei arrivato/a e dove ti blocchi...",
+    minLen: 20,
   },
   {
     id: "q8_obiettivo",
-    text: "Perché vuoi creare un prodotto digitale?",
-    type: "radio",
-    options: [
-      { v: "Guadagno extra", l: "Per un guadagno extra" },
-      { v: "Scalare il lavoro", l: "Per scalare il mio lavoro" },
-      { v: "Uscire dal tempo=denaro", l: "Per uscire dal tempo=denaro" },
-      { v: "Non sono sicuro", l: "Non sono sicuro" },
-    ],
+    text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?",
+    type: "text",
+    placeholder: "Il tuo perché, quello vero...",
+    minLen: 20,
   },
 ];
 
@@ -284,14 +265,15 @@ export function CiakDiagnostica() {
         <div className="bg-slate-900 text-white min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-md w-full">
             <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              8 Domande Ciak
+              Analisi gratuita
             </p>
             <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug">
-              Scopri da dove partire
+              Scopri se la tua competenza ha un mercato
             </h1>
             <p className="text-slate-300 text-sm mb-8 leading-relaxed">
-              Rispondi a 8 domande veloci (2-3 minuti). Ti diciamo a che punto sei
-              e qual è il prossimo passo concreto per te.
+              8 domande aperte per raccontarci il tuo progetto. Dalle tue risposte
+              prepariamo la tua analisi di mercato personalizzata, che vediamo
+              insieme in una videocall gratuita.
             </p>
             <input
               type="text"
