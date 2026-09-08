@@ -17209,6 +17209,11 @@ app.include_router(flusso_analisi_router)
 from routers.materials import router as materials_router
 app.include_router(materials_router)
 
+# Registro operativo dei task (T08): lista/dettaglio + azioni di recupero controllate
+from routers.operational_tasks import router as operational_tasks_router, set_db as set_operational_tasks_db
+set_operational_tasks_db(db)
+app.include_router(operational_tasks_router)
+
 
 # Include operations router (Dashboard Antonella: Partner, Contenuti, Campagne ADV)
 from routers.operations import router as operations_router, set_operations_db

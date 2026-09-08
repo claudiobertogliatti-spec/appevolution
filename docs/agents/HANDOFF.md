@@ -1,3 +1,13 @@
+### 2026-09-08 · Claude · Motore Evolution: T08 (backend) registro + recupero
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T08 solo backend (la pagina `OperationalTasks.jsx` è rimandata: va fatta con design-lead, e vale la scelta backend-first). Nuovo `services/operational_tasks/events.py`: `append_event`/`timeline` (traccia append-only), `escalate` deduplicata per incidente, `record_escalation_delivery` (notifica fallita NON risolve), `can_admin_retry` (vietato ritentare effetti incerti → riconciliare). Nuovo router `routers/operational_tasks.py` (`/api/operational-tasks`): lista+dettaglio con timeline, azioni `retry`/`reconcile`/`assign`/`cancel` con admin auth + controllo concorrenza + evento in timeline. Registrato in `server.py`.
+
+**VERIFICATO:** `test_operational_task_recovery.py` (nuovo, in ci.yml) **10 passed** (incl. AST: i 6 endpoint richiedono admin). Suite operational **80 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** (1) pagina frontend del motore → design-lead. (2) router verificato per struttura (AST)+compileall, non su app FastAPI live (`.venv-ops` minimale senza fastapi; in CI c'è). (3) chi APRE l'escalation (il worker su `blocked`) e chi INVIA la notifica si collegano coi flussi reparto T10-T13. (4) Resta T09 (salute runtime, chiude G1). Niente push/merge/deploy: tutto locale.
+
 ### 2026-09-08 · Claude · Motore Evolution: T07 prove/dedup/riconciliazione effetti
 
 **AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
