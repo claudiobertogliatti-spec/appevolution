@@ -169,8 +169,10 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
     `failed` se nessuno. Fail-closed: senza token la coda non si tocca.
     """
     oggi = oggi or _oggi_iso()
-    in_coda = await db[COLLECTION].count_documents(
-        {"status": "pending", "scheduled_date": {"$lte": oggi}})
+    # `partial` conta fra gli scaduti da lavorare: un post uscito a meta' (es. FB si',
+    # IG no) va ripreso, non abbandonato — era il motivo per cui Instagram si fermava.
+    da_lavorare = {"status": {"$in": ["pending", "partial"]}, "scheduled_date": {"$lte": oggi}}
+    in_coda = await db[COLLECTION].count_documents(da_lavorare)
 
     ig, token = _cfg()
     if not (ig and token):
@@ -178,9 +180,7 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
         return {"configurato": False, "in_coda_scaduti": in_coda, "pubblicati": 0, "falliti": 0,
                 "nota": "manca il token di pubblicazione: la coda resta pending"}
 
-    cursor = db[COLLECTION].find(
-        {"status": "pending", "scheduled_date": {"$lte": oggi}}
-    ).sort("scheduled_date", 1).limit(limit)
+    cursor = db[COLLECTION].find(da_lavorare).sort("scheduled_date", 1).limit(limit)
     dovuti = await cursor.to_list(length=limit)
 
     pubblicati, parziali, falliti, esiti = 0, 0, 0, []
@@ -193,11 +193,27 @@ async def pubblica_coda_social(db, oggi: str | None = None, limit: int = 3) -> d
 
         for post in dovuti:
             pid = post.get("post_id") or str(post.get("_id"))
-            canali = post.get("channels") or CANALI_DEFAULT
+            canali_richiesti = post.get("channels") or CANALI_DEFAULT
+            # Canali gia' pubblicati in un giro precedente (post `partial`): il loro
+            # permalink si conserva e NON si ripubblica -> nessun doppione sulla Pagina.
+            gia_usciti = dict(post.get("results") or {})
+            da_fare = [c for c in canali_richiesti if c not in gia_usciti]
+            if not da_fare:
+                # Gia' completo su tutti i canali richiesti: normalizza, non ripubblicare.
+                await db[COLLECTION].update_one(
+                    {"_id": post["_id"]}, {"$set": {"status": "published"}})
+                pubblicati += 1
+                esiti.append({"post_id": pid, "stato": "published",
+                              "permalink": {k: v.get("permalink") for k, v in gia_usciti.items()},
+                              "errori": []})
+                continue
             try:
-                results, errori = await _pubblica_post(client, ig, token, page_id, post)
+                # Si passa a `_pubblica_post` solo i canali mancanti.
+                nuovi, errori = await _pubblica_post(
+                    client, ig, token, page_id, {**post, "channels": da_fare})
+                results = {**gia_usciti, **nuovi}
                 usciti = list(results.keys())
-                if len(usciti) == len(canali) and not errori:
+                if set(canali_richiesti) <= set(results) and not errori:
                     stato = "published"
                     pubblicati += 1
                 elif usciti:

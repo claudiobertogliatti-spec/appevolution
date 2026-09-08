@@ -169,3 +169,49 @@ def test_tutti_i_canali_falliti_e_failed(monkeypatch):
 
     assert res["pubblicati"] == 0 and res["falliti"] == 1
     assert docs[0]["status"] == "failed"
+
+
+def test_un_post_partial_viene_ripreso_sul_solo_canale_mancante(monkeypatch):
+    """Il difetto che lascia Instagram fermo: un post uscito su Facebook ma non su
+    Instagram resta `partial` e NON viene mai piu' ripreso, perche' il giro seleziona
+    solo `status == pending`. La coda continua, IG resta indietro per sempre.
+
+    Comportamento atteso (fix): un `partial` scaduto viene ripreso e si ripubblica
+    SOLO il canale mancante (Instagram), MAI quello gia' uscito (Facebook) — altrimenti
+    si crea un doppione sulla Pagina. A canale completato -> `published`.
+    """
+    _con_token(monkeypatch)
+
+    ig_calls, fb_calls = [], []
+
+    async def _ig(client, ig, token, urls, caption):
+        ig_calls.append(urls)
+        return {"media_id": "M", "permalink": "ig/recuperato"}
+
+    async def _fb(client, page_id, token, urls, caption):
+        fb_calls.append(urls)
+        return {"post_id": "F", "permalink": "fb/gia-uscito"}
+
+    async def _noop_prewarm(client, urls):
+        return None
+
+    monkeypatch.setattr(sp, "_pubblica_ig", _ig)
+    monkeypatch.setattr(sp, "_pubblica_fb", _fb)
+    monkeypatch.setattr(sp, "_prewarm", _noop_prewarm)
+
+    # Post gia' andato in partial in un giro precedente: FB uscito, IG mai.
+    docs = [{"_id": 1, "post_id": "meta-fatto", "status": "partial",
+             "scheduled_date": OGGI, "image_urls": ["u1", "u2"], "caption": "c",
+             "results": {"facebook": {"post_id": "F", "permalink": "fb/gia-uscito"}},
+             "error": "instagram: Graph 500", "attempts": 1}]
+    db = _Db(docs)
+
+    _run(sp.pubblica_coda_social(db, oggi=OGGI))
+
+    # Instagram recuperato una volta; Facebook NON ritoccato (niente doppione).
+    assert len(ig_calls) == 1, "Instagram doveva essere ripubblicato sul post partial"
+    assert len(fb_calls) == 0, "Facebook era gia' uscito: non va ripubblicato (doppione)"
+    # Ora il post e' completo su entrambi i canali.
+    assert docs[0]["status"] == "published"
+    assert docs[0]["results"]["instagram"]["permalink"] == "ig/recuperato"
+    assert docs[0]["results"]["facebook"]["permalink"] == "fb/gia-uscito"
