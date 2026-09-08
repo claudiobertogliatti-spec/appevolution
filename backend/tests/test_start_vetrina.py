@@ -2,7 +2,7 @@
 
 Il vincolo commerciale viene prima di quello tecnico: **la vetrina non vende**
 (decisione di Claudio del 30/7). Niente checkout, niente opt-in, niente
-automazioni: e' il confine fra i 499 di Start e i 2.790 della Partnership. Se la
+automazioni: e' il confine fra i 390 di Start e i 2.790 della Partnership. Se la
 vetrina vendesse, avremmo regalato il pezzo che distingue i due prodotti.
 
 Da qui i test: piu' che "genera l'HTML", verificano che l'HTML NON contenga il

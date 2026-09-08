@@ -438,12 +438,12 @@ async def test_stripe_webhook_checkout_completed_activates_ciak_start():
 
     client = fake_db.ciak_clients.docs[0]
     assert client["access_level"] == "cliente_start"
-    assert client["start_credit_amount"] == 49900
+    assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
     assert client["start_progress"][0]["status"] == "todo"
     assert any(event["event"] == "ciak_start_payment_completed" for event in client["events"])
     assert fake_db.payment_transactions.docs[0]["tipo"] == "ciak_start"
-    assert fake_db.payments.docs[0]["amount"] == 499.0
+    assert fake_db.payments.docs[0]["amount"] == 390.0
     assert tasks.calls == []
 
 
@@ -483,7 +483,7 @@ async def test_start_payment_delivers_audited_access_email(monkeypatch):
         {
             "id": "cs_start_email",
             "payment_status": "paid",
-            "amount_total": 49900,
+            "amount_total": 39000,
             "currency": "eur",
             "metadata": {"tipo": "ciak_start", "client_id": "client-email"},
         },
@@ -506,7 +506,7 @@ async def test_start_payment_with_unknown_client_fails_and_releases_webhook_lock
             {
                 "id": "cs_start_orphan",
                 "payment_status": "paid",
-                "amount_total": 49900,
+                "amount_total": 39000,
                 "currency": "eur",
                 "metadata": {"tipo": "ciak_start", "client_id": "missing"},
             },
@@ -556,7 +556,7 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
             "access_level": "cliente_start",
             "recommended_offer": "partnership",
             "offer_decision": "partnership",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
             "start_purchased_at": "2026-07-01T10:00:00+00:00",
             "start_progress": [{"id": "start_1", "status": "done"}],
             "events": [],
@@ -581,8 +581,8 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
                 "tipo": "partnership",
                 "client_id": "client-1",
                 "full_amount_cents": 299000,
-                "credit_amount_cents": 49900,
-                "due_amount_cents": 249100,
+                "credit_amount_cents": 39000,
+                "due_amount_cents": 260000,
             },
         },
         tasks,
@@ -592,7 +592,7 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
     assert client["access_level"] == "partner"
     assert client["partnership_attiva"] is True
     assert client["stato_cliente"] == "partner_attivo"
-    assert client["start_credit_amount"] == 49900
+    assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"] == "2026-07-01T10:00:00+00:00"
     assert any(event["event"] == "partnership_payment_completed" for event in client["events"])
 
@@ -601,8 +601,8 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
     assert user["stato_cliente"] == "partner_attivo"
     assert user["data_pagamento_partnership"]
     assert fake_db.pagamenti_partnership.docs[0]["user_id"] == "user-1"
-    assert fake_db.payment_transactions.docs[0]["amount_cents"] == 249100
-    assert fake_db.payments.docs[0]["amount"] == 2491.0
+    assert fake_db.payment_transactions.docs[0]["amount_cents"] == 260000
+    assert fake_db.payments.docs[0]["amount"] == 2600.0
     assert len(tasks.calls) == 1
     assert tasks.calls[0][0] is stripe_webhook.send_partnership_welcome_email
     assert tasks.calls[0][1] == ("user-1",)

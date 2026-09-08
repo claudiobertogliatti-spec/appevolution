@@ -56,7 +56,7 @@ class FakeDb:
                     "session_token": "token-1",
                     "blueprint_score": 42,
                     "recommended_offer": "ciak_start",
-                    "start_credit_amount": 49900,
+                    "start_credit_amount": 39000,
                     "analysis_status": "inviata",
                     "analysis_title": "Analisi",
                     "offer_decision": "ciak_start",
@@ -160,12 +160,12 @@ async def test_dashboard_payload_contains_credit_and_analysis(fake_db):
             "session_token": "token-1",
             "blueprint_score": 42,
             "recommended_offer": "ciak_start",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
         }
     )
 
     assert payload["client"]["access_level"] == "cliente_start"
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 260000
     assert payload["analysis"]["status"] == "inviata"
     assert "script_call" not in payload["analysis"]
     assert payload["partner_area"]["available"] is False
@@ -182,13 +182,13 @@ async def test_dashboard_retains_start_credit_for_promoted_partner(fake_db):
             "session_token": "token-1",
             "blueprint_score": 42,
             "recommended_offer": "partnership",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
         }
     )
 
-    assert payload["start"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
+    assert payload["start"]["credit_amount_cents"] == 39000
+    assert payload["pricing"]["partnership"]["credit_amount_cents"] == 39000
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 260000
 
 
 @pytest.mark.asyncio
@@ -208,7 +208,7 @@ async def test_dashboard_unlocks_partner_area_from_canonical_user_activation(fak
             "email": "a@example.com",
             "access_level": "cliente_start",
             "session_token": "token-1",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
         }
     )
 
@@ -228,7 +228,7 @@ async def test_dashboard_keeps_start_clients_locked_without_activation(fake_db):
             "email": "a@example.com",
             "access_level": "cliente_start",
             "session_token": "token-1",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
             "partnership_attiva": False,
             "stato_cliente": "cliente_start",
         }
@@ -247,7 +247,7 @@ async def test_dashboard_keeps_attivazione_partnership_locked(fake_db):
             "email": "a@example.com",
             "access_level": "cliente_start",
             "session_token": "token-1",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
             "stato_cliente": "attivazione_partnership",
             "partnership_attiva": False,
         }
@@ -275,15 +275,15 @@ async def test_dashboard_pricing_keeps_start_credit_when_user_activation_overlay
             "email": "a@example.com",
             "access_level": "cliente_start",
             "session_token": "token-1",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
             "recommended_offer": "ciak_start",
         }
     )
 
     assert payload["partner_area"]["available"] is True
-    assert payload["start"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["credit_amount_cents"] == 49900
-    assert payload["pricing"]["partnership"]["due_amount_cents"] == 249100
+    assert payload["start"]["credit_amount_cents"] == 39000
+    assert payload["pricing"]["partnership"]["credit_amount_cents"] == 39000
+    assert payload["pricing"]["partnership"]["due_amount_cents"] == 260000
 
 
 def test_magic_login_returns_token_and_client(monkeypatch, client_app, fake_db):
@@ -396,7 +396,7 @@ def test_me_and_dashboard_accept_issued_client_token(monkeypatch, client_app, fa
     body = dashboard_response.json()
     assert body["client"]["access_level"] == "partner"
     assert body["analysis"]["title"] == "Analisi"
-    assert body["pricing"]["partnership"]["credit_amount_cents"] == 49900
+    assert body["pricing"]["partnership"]["credit_amount_cents"] == 39000
     assert body["partner_area"]["status"] == "attiva"
 
 
@@ -479,10 +479,10 @@ def test_activate_start_accepts_internal_key(monkeypatch, client_app, fake_db):
     )
 
     assert response.status_code == 200
-    assert response.json() == {"success": True, "start_credit_amount": 49900}
+    assert response.json() == {"success": True, "start_credit_amount": 39000}
     client = fake_db.ciak_clients.docs[0]
     assert client["access_level"] == "cliente_start"
-    assert client["start_credit_amount"] == 49900
+    assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
     assert client["start_progress"][0]["status"] == "todo"
 
@@ -505,11 +505,11 @@ def test_start_checkout_creates_499_euro_session(monkeypatch, client_app, fake_d
     body = response.json()
     assert body["success"] is True
     assert body["checkout_url"] == "https://checkout.example/1"
-    assert body["amount_cents"] == 49900
-    assert body["credit_amount_cents"] == 49900
+    assert body["amount_cents"] == 39000
+    assert body["credit_amount_cents"] == 39000
 
     request = FakeStripeCheckout.created_requests[0]["request"]
-    assert request.amount == 499.0
+    assert request.amount == 390.0
     assert request.currency == "eur"
     assert request.success_url == "https://frontend.example/cliente?checkout=start&payment=success"
     assert request.cancel_url == "https://frontend.example/cliente?checkout=start&payment=cancel"
@@ -616,11 +616,11 @@ def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, clien
     body = response.json()
     assert body["success"] is True
     assert body["checkout_url"] == "https://checkout.example/1"
-    assert body["amount_cents"] == 249100
-    assert body["credit_amount_cents"] == 49900
+    assert body["amount_cents"] == 260000
+    assert body["credit_amount_cents"] == 39000
 
     request = FakeStripeCheckout.created_requests[0]["request"]
-    assert request.amount == 2491.0
+    assert request.amount == 2600.0
     assert request.currency == "eur"
     assert request.success_url == "https://frontend.example/cliente?checkout=partnership&payment=success"
     assert request.cancel_url == "https://frontend.example/cliente?checkout=partnership&payment=cancel"
@@ -629,8 +629,8 @@ def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, clien
         "client_id": "client-1",
         "email": "a@example.com",
         "full_amount_cents": 299000,
-        "credit_amount_cents": 49900,
-        "due_amount_cents": 249100,
+        "credit_amount_cents": 39000,
+        "due_amount_cents": 260000,
     }
 
 

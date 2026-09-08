@@ -46,7 +46,7 @@ def test_1_blueprint_e27_mai_67():
 
 
 def test_2_start_e499():
-    assert MAIN_OFFERS["CIAK-START"]["amount_cents"] == 49900
+    assert MAIN_OFFERS["CIAK-START"]["amount_cents"] == 39000
 
 
 def test_3_partnership_e2990():
@@ -54,7 +54,7 @@ def test_3_partnership_e2990():
 
 
 def test_4_upgrade_e2291_derivato():
-    assert MAIN_OFFERS["CIAK-UPGRADE"]["amount_cents"] == 249100
+    assert MAIN_OFFERS["CIAK-UPGRADE"]["amount_cents"] == 260000
     assert UPGRADE_AMOUNT_CENTS == PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS
     assert MAIN_OFFERS["CIAK-UPGRADE"]["amount_cents"] == PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS
 

@@ -145,7 +145,7 @@ def access_recovery_gap(entry: dict) -> Optional[dict]:
         "titolo": "Cliente Ciak Start senza email di accesso" if is_start else "Cliente Blueprint senza link di accesso",
         "email": entry.get("email"),
         "nome": None,
-        "importo_eur": 499 if is_start else 27,
+        "importo_eur": 390 if is_start else 27,
         "pagato_da_ore": _hours_since(entry.get("created_at")),
         "errore": entry.get("error"),
         "riferimento": _masked(entry.get("checkout_session_id")),
