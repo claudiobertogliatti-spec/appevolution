@@ -1,11 +1,13 @@
 /**
- * Ciak.io /diagnostica — 8 Domande Ciak (lead magnet PRE-acquisto Blueprint €27)
+ * Ciak.io /diagnostica — 8 Domande Ciak APERTE (ingresso "analisi gratuita").
  *
- * Flusso (deciso 2026-05-27 con Claudio):
- *   Masterclass → CTA "Scopri da dove partire" → /diagnostica
- *   → 8 domande → Matteo classifica stato 1-4 → /report/{token} → CTA €27
+ * Nuovo flusso (7/9/2026):
+ *   CTA "Fai la tua analisi gratuita" → /diagnostica → 8 domande aperte (libero sfogo)
+ *   → /complete (Carlo valuta le risposte: pronto/non-pronto INTERNO + report)
+ *   → popup complimenti + calendario Cal.com (NO report, NO punteggio al cliente).
+ *   L'analisi la commenta Claudio in videocall; il report resta interno.
  *
- * Email: riusata dal gate masterclass (localStorage ciak_lead_email/name).
+ * Email: riusata dal gate (localStorage ciak_lead_email/name).
  * Se assente (ingresso diretto), mini-form email prima della domanda 1.
  *
  * Contratto backend (routers/diagnostic.py — FONTE DI VERITÀ):
@@ -13,7 +15,7 @@
  *   POST /api/diagnostic/answer   {session_token, question_id, value} → 204
  *   POST /api/diagnostic/complete {session_token} → {report_url, stato, session_token}
  *
- * I question_id e i value DEVONO matchare esattamente services/ciak_scoring.py.
+ * Le risposte sono APERTE: lo scoring pronto/non-pronto è di Carlo (services/ciak_scoring_ai.py).
  */
 import { useState, useEffect, useCallback } from "react";
 import { CiakHeader } from "../components/CiakHeader";
