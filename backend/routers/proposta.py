@@ -84,7 +84,7 @@ def _trusted_client_ip(request: Request) -> str:
 
 
 def _proposal_amount_cents(proposta: dict) -> int:
-    amount = proposta.get("contract_params", {}).get("corrispettivo", 2790)
+    amount = proposta.get("contract_params", {}).get("corrispettivo", 2990)
     try:
         return int(round(float(amount) * 100))
     except (TypeError, ValueError):
@@ -513,7 +513,7 @@ async def pagamento_stripe(token: str, request: Request):
         except (ValueError, TypeError):
             pass
 
-    corrispettivo = proposta.get("contract_params", {}).get("corrispettivo", 2790.0)
+    corrispettivo = proposta.get("contract_params", {}).get("corrispettivo", 2990.0)
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(500, "Stripe non configurato")

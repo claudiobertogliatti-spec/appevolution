@@ -580,9 +580,9 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
             "metadata": {
                 "tipo": "partnership",
                 "client_id": "client-1",
-                "full_amount_cents": 279000,
+                "full_amount_cents": 299000,
                 "credit_amount_cents": 49900,
-                "due_amount_cents": 229100,
+                "due_amount_cents": 249100,
             },
         },
         tasks,
@@ -601,8 +601,8 @@ async def test_stripe_webhook_checkout_completed_activates_client_partnership_wi
     assert user["stato_cliente"] == "partner_attivo"
     assert user["data_pagamento_partnership"]
     assert fake_db.pagamenti_partnership.docs[0]["user_id"] == "user-1"
-    assert fake_db.payment_transactions.docs[0]["amount_cents"] == 229100
-    assert fake_db.payments.docs[0]["amount"] == 2291.0
+    assert fake_db.payment_transactions.docs[0]["amount_cents"] == 249100
+    assert fake_db.payments.docs[0]["amount"] == 2491.0
     assert len(tasks.calls) == 1
     assert tasks.calls[0][0] is stripe_webhook.send_partnership_welcome_email
     assert tasks.calls[0][1] == ("user-1",)

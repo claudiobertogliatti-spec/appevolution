@@ -193,11 +193,11 @@ def test_stripe_session_must_match_the_proposal_server_side():
         "token": "proposal-token",
         "partner_id": "partner-1",
         "stripe_session_id_partnership": "cs_partnership",
-        "contract_params": {"corrispettivo": 2790},
+        "contract_params": {"corrispettivo": 2990},
     }
     valid = SimpleNamespace(
         id="cs_partnership", payment_status="paid", mode="payment",
-        amount_total=279000, currency="eur",
+        amount_total=299000, currency="eur",
         metadata={"tipo": "partnership", "token": "proposal-token", "partner_id": "partner-1"},
     )
     proposta.validate_partnership_stripe_session(valid, proposal, "cs_partnership")

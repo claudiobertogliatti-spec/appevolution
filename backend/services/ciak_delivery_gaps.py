@@ -58,7 +58,7 @@ def partnership_gap(proposta: dict) -> Optional[dict]:
     """Partnership incassata ma non finalizzata del tutto.
 
     `pagamento_completato` da solo non prova che l'onboarding sia riuscito:
-    viene scritto PRIMA degli effetti. Un partner puo' avere pagato 2.790 EUR e
+    viene scritto PRIMA degli effetti. Un partner puo' avere pagato 2.990 EUR e
     non avere account, journey o email.
     """
     if not proposta.get("pagamento_completato"):
@@ -80,7 +80,7 @@ def partnership_gap(proposta: dict) -> Optional[dict]:
         "titolo": "Partnership pagata, onboarding incompleto",
         "email": proposta.get("prospect_email"),
         "nome": proposta.get("prospect_nome"),
-        "importo_eur": 2790,
+        "importo_eur": 2990,
         "pagato_da_ore": _hours_since(proposta.get("pagamento_completato_at")),
         "effetti_falliti": falliti,
         "effetti_incompleti": incompleti,

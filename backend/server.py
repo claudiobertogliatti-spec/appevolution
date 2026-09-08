@@ -5132,7 +5132,7 @@ async def segna_pagamento_partnership(partner_id: str, request: Request):
     except:
         body = {}
     
-    amount = body.get("amount", 2790)  # Default €2.790 partnership
+    amount = body.get("amount", 2990)  # Default €2.990 partnership
     metodo_pagamento = body.get("metodo_pagamento", "bonifico")
     note = body.get("note", "")
     
@@ -17389,7 +17389,7 @@ from routers.lesson_video import router as lesson_video_router, set_db as set_le
 set_lesson_video_db(db)
 app.include_router(lesson_video_router)
 
-# Ciak Partner Setup Router (magic link post-pagamento Partnership €2.790)
+# Ciak Partner Setup Router (magic link post-pagamento Partnership €2.990)
 from routers.partner_setup import router as partner_setup_router, set_db as set_partner_setup_db
 set_partner_setup_db(db)
 app.include_router(partner_setup_router)

@@ -69,8 +69,8 @@ class ContractParamsUpdate(BaseModel):
 
 
 DEFAULT_CONTRACT_PARAMS = {
-    "corrispettivo": 2790.00,
-    "corrispettivo_testo": "duemilasettecentonovanta/00",
+    "corrispettivo": 2990.00,
+    "corrispettivo_testo": "duemilanovecentonovanta/00",
     "royalty_perc": 10,
     "durata_mesi": 12,
     "num_rate": 3,
@@ -103,7 +103,7 @@ def render_contract_text(params: dict) -> str:
 
     text = CONTRACT_TEXT
     text = text.replace(
-        "€ 2.790,00 (duemilasettecentonovanta/00)",
+        "€ 2.990,00 (duemilanovecentonovanta/00)",
         f"€ {corr_str} ({corr_testo})"
     )
     text = text.replace(
@@ -230,8 +230,8 @@ Il corrispettivo remunera l'avvio del progetto, le risorse operative allocate e 
 ▸ "L'esclusiva mi impedisce di vendere il mio corso?"
 No. L'esclusiva (Art. 1.4) riguarda solo il corso sviluppato insieme in questa partnership, e solo sui canali che Evolution PRO gestisce. Puoi continuare consulenze 1:1, workshop, webinar, speech e qualsiasi altro percorso formativo diverso. Puoi anche vendere il corso altrove con una semplice autorizzazione scritta, che non può essere negata se non c'è conflitto diretto.
 
-▸ "Pago €2.790 E cedo anche il 10% — non è troppo?"
-I €2.790 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni — servizi che singolarmente costerebbero 2-3x. Il 10% di royalty (Art. 5.5) dura solo 12 mesi e serve ad allineare gli incentivi: guadagniamo entrambi quando il corso vende. Dopo 12 mesi, nessuna royalty dovuta.
+▸ "Pago €2.990 E cedo anche il 10% — non è troppo?"
+I €2.990 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni — servizi che singolarmente costerebbero 2-3x. Il 10% di royalty (Art. 5.5) dura solo 12 mesi e serve ad allineare gli incentivi: guadagniamo entrambi quando il corso vende. Dopo 12 mesi, nessuna royalty dovuta.
 
 ▸ "Posso uscire dal contratto prima dei 12 mesi?"
 Il contratto ha durata determinata (12 mesi) senza recesso ordinario (Art. 7.1). È pensato così perché il progetto richiede investimento continuativo. Se Evolution PRO dovesse risultare inadempiente — e gli esempi sono chiari nell'Art. 2.7 — puoi risolvere il contratto con rimborso proporzionale.
@@ -603,7 +603,7 @@ Restano impregiudicati tutti gli ulteriori diritti e rimedi previsti dalla norma
 ARTICOLO 5 – CORRISPETTIVI, PIANI DI PAGAMENTO E REVENUE SHARE
 
 5.1 Corrispettivo della Partnership
-Il corrispettivo previsto per l'accesso alla Partnership Evolution PRO è pari a € 2.790,00 (duemilasettecentonovanta/00), secondo le modalità di pagamento concordate tra le Parti e riportate nel presente Contratto o nei relativi allegati.
+Il corrispettivo previsto per l'accesso alla Partnership Evolution PRO è pari a € 2.990,00 (duemilanovecentonovanta/00), secondo le modalità di pagamento concordate tra le Parti e riportate nel presente Contratto o nei relativi allegati.
 Il corrispettivo remunera:
 • l'accesso al Metodo E.V.O.;
 • l'accesso alla piattaforma Ciak.io;
