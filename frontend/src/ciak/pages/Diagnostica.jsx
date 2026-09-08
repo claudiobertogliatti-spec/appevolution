@@ -16,7 +16,6 @@
  * I question_id e i value DEVONO matchare esattamente services/ciak_scoring.py.
  */
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 
 // question_id STABILI (il backend /answer li salva); tutte APERTE (libero sfogo).
@@ -109,9 +108,7 @@ function buildTracking() {
 }
 
 export function CiakDiagnostica() {
-  const navigate = useNavigate();
-
-  // phase: "email" | "starting" | "questions" | "submitting"
+  // phase: "email" | "starting" | "questions" | "submitting" | "done"
   const [phase, setPhase] = useState("starting");
   const [sessionToken, setSessionToken] = useState(null);
   const [step, setStep] = useState(0);
@@ -122,6 +119,9 @@ export function CiakDiagnostica() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [emailErr, setEmailErr] = useState("");
+
+  // Link Cal.com (config pubblica) per il popup finale di prenotazione
+  const [calcomUrl, setCalcomUrl] = useState("");
 
   // Avvia la sessione diagnostica sul backend
   const startSession = useCallback(async (leadEmail, leadName) => {
@@ -229,7 +229,9 @@ export function CiakDiagnostica() {
       return;
     }
 
-    // Ultima domanda → complete
+    // Ultima domanda → complete → popup complimenti + calendario.
+    // ⚠️ Nel nuovo funnel il report/analisi NON si mostra al cliente (resta interno,
+    // lo commenta Claudio in videocall): quindi qui NON si naviga più a /report.
     setPhase("submitting");
     try {
       const res = await fetch("/api/diagnostic/complete", {
@@ -239,7 +241,7 @@ export function CiakDiagnostica() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || `Errore generazione report (${res.status})`);
+        throw new Error(data.detail || `Errore invio (${res.status})`);
       }
       const data = await res.json();
       const token = data.session_token || sessionToken;
@@ -248,7 +250,12 @@ export function CiakDiagnostica() {
       } catch {
         /* ignore */
       }
-      navigate(`/report/${token}`);
+      // Carica il link Cal.com (config pubblica) e apre il popup finale.
+      fetch("/api/admin/ciak/public-config")
+        .then((r) => r.json())
+        .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
+        .catch(() => {}); // fallback testuale (email) se manca
+      setPhase("done");
     } catch (e) {
       setError(e.message);
       setPhase("questions");
@@ -312,6 +319,54 @@ export function CiakDiagnostica() {
         <CiakHeader variant="light" />
         <div className="bg-slate-900 text-white min-h-[80vh] flex items-center justify-center">
           <p className="text-slate-400 text-sm">Preparazione in corso...</p>
+        </div>
+      </>
+    );
+  }
+
+  // ─── Render: done (popup finale — complimenti + calendario) ───────
+  // Nessun punteggio, nessun report: solo il ringraziamento e la prenotazione.
+  if (phase === "done") {
+    return (
+      <>
+        <CiakHeader variant="light" />
+        <div className="bg-slate-900 text-white min-h-[90vh] flex items-center justify-center p-6">
+          <div className="max-w-lg w-full text-center">
+            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
+              Fotografia completa
+            </p>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-5 leading-snug">
+              Grazie, ci siamo.
+            </h1>
+            <p className="text-slate-300 leading-relaxed mb-8">
+              Grazie per esserti raccontato/a con questa apertura — non è affatto
+              scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello che
+              serve per preparare la tua analisi di mercato personalizzata. Ora
+              scegli quando vederla insieme.
+            </p>
+            {calcomUrl ? (
+              <a
+                href={calcomUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
+              >
+                Prenota la tua videocall strategica →
+              </a>
+            ) : (
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Ti scriviamo noi via email con il link per prenotare la videocall.
+                Se preferisci, contattaci a{" "}
+                <a
+                  href="mailto:assistenza@evolution-pro.it"
+                  className="underline hover:text-yellow-400"
+                >
+                  assistenza@evolution-pro.it
+                </a>
+                .
+              </p>
+            )}
+          </div>
         </div>
       </>
     );
