@@ -41,8 +41,22 @@ function Preview() {
         onDownload={() => {}}
       />} />
       <Route path="/partner/team" element={<SerenoAssistenza
-        partner={{ name: 'Progetto dimostrativo' }}
-        currentStepLabel="Controlla lo script della masterclass"
+        telegramUrl="https://t.me/ciak_partner_support"
+        agents={[
+          { id: 'STEFANIA', name: 'Simona', role: 'Coordinatrice del tuo percorso', focus: 'Orientamento, priorità e blocchi generali' },
+          { id: 'VALENTINA', name: 'Valentina', role: 'Brand & Posizionamento', focus: 'Identità, promessa, nicchia e messaggio' },
+          { id: 'ANDREA', name: 'Andrea', role: 'Coach video e contenuti', focus: 'Script, scaletta, registrazione e teleprompter' },
+          { id: 'GAIA', name: 'Gaia', role: 'Supporto tecnico funnel', focus: 'Funnel, pagine, automazioni e collegamenti' },
+          { id: 'MARCO', name: 'Marco', role: 'Strategia lancio', focus: 'Calendario, prezzo, webinar e ritmo di vendita' },
+          { id: 'MATTEO', name: 'Carlo', role: 'Analista Ciak Blueprint', focus: 'Analisi dati, KPI e sostenibilità economica' },
+        ]}
+        team={[
+          { id: 'CLAUDIO', name: 'Claudio B.', role: 'CEO & Founder', description: 'Direzione strategica e KPI dell’Accademia.' },
+          { id: 'STEFANIA_H', name: 'Stefania R.', role: 'Back Office', description: 'Pratiche operative e affiancamento su Telegram.' },
+          { id: 'ANTONELLA', name: 'Antonella R.', role: 'Media Strategist', description: 'Contenuti e strategie di comunicazione.' },
+          { id: 'MATTEO_H', name: 'Matteo P.', role: 'Video Maker', description: 'Produzione e montaggio delle lezioni.' },
+          { id: 'DEBORA', name: 'Debora B.', role: 'Amministrazione', description: 'Contratti, pagamenti e procedure.' },
+        ]}
       />} />
       <Route path="/partner/servizi-extra" element={<SerenoServizi />} />
       <Route path="/partner/rinnovo" element={<SerenoPiano />} />

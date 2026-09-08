@@ -12,6 +12,8 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, Send, X, ArrowRight, ChevronDown, ChevronUp, SendHorizontal, ExternalLink
 } from "lucide-react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoAssistenza from "../sereno/SerenoAssistenza";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -391,6 +393,21 @@ export function TeamSupportoPage({ partner }) {
     const telegramUrl = partner?.telegram_group_url || "https://t.me/ciak_partner_support";
     window.open(telegramUrl, "_blank");
   };
+
+  // Sereno skin: same roster, same 1-on-1 chat contract (target_agent) and the
+  // same honest failure handling, restyled. The current UI stays the default.
+  if (PARTNER_SERENO_ENABLED) {
+    return (
+      <SerenoAssistenza
+        agents={AGENTIC_TEAM}
+        team={HUMAN_TEAM}
+        telegramUrl={partner?.telegram_group_url || "https://t.me/ciak_partner_support"}
+        apiBase={API}
+        partnerId={partner?.id}
+        partnerName={partner?.name}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">
