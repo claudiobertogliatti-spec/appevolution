@@ -8,7 +8,7 @@ import { authHeaders } from "../api";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
   FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
-  Sparkles, Lock, ShieldCheck, X, Upload, Check, Folder, ChevronDown, ChevronUp
+  Sparkles, Lock, ShieldCheck, X, Check, Folder, ChevronDown, ChevronUp
 } from "lucide-react";
 
 // Struttura Cartelle Cloud Vault
@@ -171,6 +171,8 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   // MaterialiPage passa `partner={{ id }}`, altri call site passano `partnerId`:
   // finche' i file erano finti nessuno se n'era accorto, perche' l'id non serviva.
   const partnerId = partnerIdProp || partner?.id;
+  const telegramFallbackUrl =
+    partner?.telegram_group_url || "https://t.me/ciak_partner_support";
   // Niente file d'esempio: fino al 03/08/2026 qui c'era il vault demo di
   // "Mario Rossi" con url "#", e ogni partner vedeva i documenti di un altro
   // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
@@ -271,24 +273,9 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     });
   };
 
-  const handleUploadSimulated = (e) => {
-    e.preventDefault();
-    const newFile = {
-      id: `f-${Date.now()}`,
-      folderId: selectedFolderId === "all" ? "brand_kit" : selectedFolderId,
-      name: "Documento_Caricato_Dal_Partner.pdf",
-      category: "Documento Utente",
-      size: "1.5 MB",
-      date: "Oggi",
-      owner: "👤 Tu",
-      type: "pdf",
-      icon: FileText,
-      iconColor: "text-blue-600",
-      url: "#"
-    };
-    setFiles([newFile, ...files]);
+  const openTelegramDelivery = () => {
+    window.open(telegramFallbackUrl, "_blank", "noopener");
     setUploadModalOpen(false);
-    alert("File caricato con successo!");
   };
 
   return (
@@ -496,33 +483,28 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
             </button>
 
             <div>
-              <span className="text-xs font-mono font-bold text-amber-600 uppercase">Cloud Vault Upload</span>
-              <h3 className="text-lg font-bold text-slate-950 mt-0.5">Carica un File</h3>
+              <span className="text-xs font-mono font-bold text-amber-600 uppercase">Consegna materiali</span>
+              <h3 className="text-lg font-bold text-slate-950 mt-0.5">Inviaci un file</h3>
             </div>
 
-            <form onSubmit={handleUploadSimulated} className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center space-y-2 bg-slate-50 hover:border-amber-400 transition cursor-pointer">
-                <Upload className="h-7 w-7 text-amber-600 mx-auto" />
-                <p className="text-xs font-bold text-slate-800">Trascina qui il tuo file oppure sfoglia</p>
-                <p className="text-[11px] text-slate-400">PDF, DOCX, MP4, PNG (Max 100MB)</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-900 block">Cartella Destinazione:</label>
-                <select className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 outline-none">
-                  {DRIVE_FOLDERS.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700 space-y-1.5">
+                <p className="font-bold text-slate-900">Il caricamento diretto non è ancora attivo.</p>
+                <p>
+                  Per consegnarci un documento in modo sicuro e tracciato, invialo al team
+                  sul tuo canale Telegram dedicato: lo archiviamo noi nella cartella giusta
+                  e lo ritrovi qui tra i tuoi materiali.
+                </p>
               </div>
 
               <button
-                type="submit"
+                type="button"
+                onClick={openTelegramDelivery}
                 className="w-full py-3 bg-yellow-400 text-slate-950 font-bold rounded-xl text-xs hover:bg-yellow-300 transition shadow-sm"
               >
-                CONFERMA CARICAMENTO
+                Invia il file su Telegram
               </button>
-            </form>
+            </div>
           </div>
         </div>
       )}
