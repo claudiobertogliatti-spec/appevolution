@@ -1,3 +1,13 @@
+### 2026-09-08 · Codex · Backend-first Evolution: fondazione catalogo
+
+**AUTORIZZATO:** Claudio ha chiesto avvio immediato dopo accordo backend-first. Branch `codex/evolution-autonomia`, base `71ce73c9`; checkout condiviso e lavoro concorrente preservati.
+
+**DICHIARATO:** primo blocco T03 inerte: registry esplicito, input/versione/idempotenza, proiezione storica conservativa; nessuna route, consumer, migrazione o nuova automazione. Il motore legacy non è ancora corretto. Architettura e mandati condivisi in `docs/strategy/evolution-architettura-concordata.md` e `evolution-reparti-mandati.md`, richiamati da CLAUDE.md.
+
+**VERIFICATO:** baseline codice/runtime e comandi in `docs/agents/evidence/2026-09-08-autonomia-baseline.md`. Test isolati e review del blocco, con limiti espliciti. Nessun database o provider di produzione usato dai test.
+
+**APERTO:** T01 campioni task e heartbeat; T03 integrazione runtime; T04 falsi completamenti legacy; T05 claim/lease; T06 policy/versioni; T07 evidenze/riconciliazione. Seguono flussi reparti e collaborazioni; UI differita. Contratti non analizzati, nessuna formula economica introdotta. Nuova architettura non distribuita.
+
 # HANDOFF — staffetta fra agenti
 
 Chi apre una sessione su questo repo **legge questo file per primo** (dopo
