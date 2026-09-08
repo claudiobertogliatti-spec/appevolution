@@ -56,9 +56,39 @@ test cadevano — il filtro conta davvero, il test solleva.
    reale, violerebbe il metodo di collaudo ("pronta" solo con output verde). È il passo
    successivo di T05.
 
+## Aggiornamento — atomicità PROVATA su Mongo reale + gate cablato
+
+Claudio ha autorizzato il download di MongoDB Community portable. Avviato un `mongod`
+8.3.9 usa-e-getta in locale (porta 37017, dbpath scratch, SHA256 del pacchetto
+verificato) e chiuse le due voci che erano rimaste aperte:
+
+1. **Atomicità provata sotto contesa.** Con `OPS_TEST_MONGO_URL=mongodb://127.0.0.1:37017`:
+   - `test_two_concurrent_workers_exactly_one_wins` — 24 claim concorrenti × 5 round,
+     un solo vincitore ogni round. **PASSED.**
+   - `test_claim_specific_is_atomic_under_contention` — idem per il gate per-id. **PASSED.**
+   Non è più un mock: è `find_one_and_update` di MongoDB sul singolo documento.
+2. **Gate cablato nel worker vivo.** `runner.claim_specific` (nuovo) è un claim atomico
+   per-id; `integrated_services.BackgroundJobExecutor` ha ora un `worker_id` e nel
+   percorso diretto di `process_pending_tasks` **prende in carico atomicamente** ogni task
+   prima di eseguirlo: se un altro worker l'ha già preso, `claim_specific` ritorna `None`
+   e il task viene saltato. Due istanze del worker non eseguono più lo stesso task.
+
+Verifica finale: suite unit `40 passed, 2 skipped` (i 2 real-mongo saltano senza Mongo);
+i 2 real-mongo `PASSED` con `mongod`; `flake8 E9/F821` pulito; `compileall backend` OK.
+T04 intatto. Il `mongod` è stato spento e il pacchetto scaricato rimosso a fine lavoro.
+
+## Residui onesti
+
+- Il gate protegge il **percorso di esecuzione diretta** (dove conta la concorrenza dei
+  worker autonomi). I percorsi di approvazione (generazione/approvati/rigenerazione) restano
+  human-gated e saranno coperti dalle autorizzazioni lato server in **T06**.
+- Il write finale di `execute_task` (completed/blocked, logica T04) non passa ancora per
+  `complete_with_lease`/`apply_retry` col token: non serve alla garanzia di singolo esecutore
+  (il gate a monte la dà), ma il retry con backoff e il rinnovo lease si collegheranno agli
+  esecutori specialistici in T06/T07, quando la classificazione errore transitorio/permanente
+  sarà disponibile.
+
 ## Prossimo
 
-- Cablare `claim_task`/`renew_lease`/`complete_with_lease`/`apply_retry` nel loop legacy,
-  con prova della catena cablata (richiede un Mongo di test o la CI con servizio Mongo).
 - T06 policy/autorizzazioni lato server, T07 riconciliazione, T08 registro/recupero,
   T09 salute runtime + arresto nuovi claim.

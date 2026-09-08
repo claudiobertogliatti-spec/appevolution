@@ -99,6 +99,46 @@ async def claim_task(
     )
 
 
+async def claim_specific(
+    collection,
+    task_id: str,
+    worker_id: str,
+    *,
+    lease_seconds: int,
+    now: Optional[datetime] = None,
+    statuses: Sequence[str] = CLAIMABLE_STATUSES,
+) -> Optional[dict]:
+    """Gate atomico su UN task noto: lo prende solo se è ancora prendibile.
+
+    Serve al worker che ha già in mano un documento (dalla vecchia ``find``) e deve
+    assicurarsi di esserne l'unico esecutore prima di lavorarlo. Ritorna il documento
+    aggiornato o ``None`` se un altro worker lo possiede già o non è più prendibile.
+    """
+    if not isinstance(task_id, str) or not task_id.strip():
+        raise ValueError("task_id obbligatorio")
+    if not isinstance(worker_id, str) or not worker_id.strip():
+        raise ValueError("worker_id obbligatorio")
+    if isinstance(lease_seconds, bool) or not isinstance(lease_seconds, int) or lease_seconds <= 0:
+        raise ValueError("lease_seconds deve essere un intero positivo")
+    now = now or _utcnow()
+    query = {"$and": [{"id": task_id}, _claimable_query(now, statuses)]}
+    update = {
+        "$set": {
+            "status": "in_progress",
+            "lease": {
+                "owner": worker_id,
+                "token": _new_token(),
+                "claimed_at": now,
+                "expires_at": now + timedelta(seconds=lease_seconds),
+            },
+        },
+        "$inc": {"attempt_count": 1},
+    }
+    return await collection.find_one_and_update(
+        query, update, return_document=ReturnDocument.AFTER
+    )
+
+
 async def renew_lease(
     collection,
     task_id: str,

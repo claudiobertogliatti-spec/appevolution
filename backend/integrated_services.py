@@ -5,6 +5,7 @@ Evolution PRO - Integrated Services
 """
 
 import os
+import uuid
 import httpx
 import asyncio
 import logging
@@ -293,14 +294,22 @@ from approval_workflow import requires_approval, get_task_scope
 from services.operational_tasks import TaskKind, project_legacy_task
 from services.operational_tasks.registry import DEFAULT_TASK_REGISTRY
 from services.operational_tasks.completion import execute_and_verify_registered
+from services.operational_tasks.runner import claim_specific
 
 class BackgroundJobExecutor:
     """Execute agent tasks in background with approval workflow support"""
     
+    # Durata del lease per un task diretto. Capacità più lunghe (video) avranno
+    # timeout propri quando i loro esecutori verranno collegati.
+    CLAIM_LEASE_SECONDS = 300
+
     def __init__(self, task_registry=None):
         self.systeme_client = SystemeIOClient()
         self.task_registry = task_registry or DEFAULT_TASK_REGISTRY
         self.running = False
+        # Identità di questo worker: entra nel lease così due istanze non
+        # lavorano lo stesso task (presa in carico atomica, T05).
+        self.worker_id = f"bg-{uuid.uuid4().hex[:12]}"
 
     @staticmethod
     def _eligible_task(task: Dict) -> bool:
@@ -389,9 +398,17 @@ class BackgroundJobExecutor:
                 )
                 # Re-add to processing as approval task
                 continue
-            
-            # Execute directly
-            await self.execute_task(task)
+
+            # Presa in carico ATOMICA prima di eseguire: se un altro worker ha
+            # già preso questo task, claim_specific ritorna None e lo saltiamo.
+            claimed = await claim_specific(
+                db.agent_tasks, task["id"], self.worker_id,
+                lease_seconds=self.CLAIM_LEASE_SECONDS,
+            )
+            if not claimed:
+                continue
+            # Execute directly (sul documento appena preso in carico)
+            await self.execute_task(claimed)
         
         # ─── STEP 2: Task CON APPROVAZIONE (fase 1: generazione) ───
         # Questi vanno: pending → in_progress → awaiting_approval

@@ -23,6 +23,7 @@ import pytest
 from services.operational_tasks import runner
 from services.operational_tasks.runner import (
     apply_retry,
+    claim_specific,
     claim_task,
     complete_with_lease,
     plan_retry,
@@ -180,6 +181,32 @@ async def test_claim_validates_arguments():
         await claim_task(coll, "w1", lease_seconds=True, now=T0)
 
 
+# ─────────────────────────── claim per-id (gate del worker) ───────────────────────────
+
+@pytest.mark.unit
+async def test_claim_specific_gates_by_id():
+    coll = FakeCollection([_task("t1"), _task("t2", status="completed")])
+    got = await claim_specific(coll, "t1", "w1", lease_seconds=60, now=T0)
+    assert got["status"] == "in_progress"
+    assert got["lease"]["owner"] == "w1"
+    assert got["attempt_count"] == 1
+    # stesso id, lease ancora attivo → nessun secondo esecutore
+    assert await claim_specific(coll, "t1", "w2", lease_seconds=60, now=T0) is None
+    # task non prendibile (completed) → None
+    assert await claim_specific(coll, "t2", "w1", lease_seconds=60, now=T0) is None
+    # id inesistente → None
+    assert await claim_specific(coll, "tX", "w1", lease_seconds=60, now=T0) is None
+
+
+@pytest.mark.unit
+async def test_claim_specific_validates_args():
+    coll = FakeCollection([_task()])
+    with pytest.raises(ValueError):
+        await claim_specific(coll, "", "w1", lease_seconds=60)
+    with pytest.raises(ValueError):
+        await claim_specific(coll, "t1", "", lease_seconds=60)
+
+
 # ─────────────────────────────── lease & token ───────────────────────────────
 
 @pytest.mark.unit
@@ -298,20 +325,41 @@ async def _connect_real_mongo():
 
 
 async def test_two_concurrent_workers_exactly_one_wins():
-    """Prova d'atomicità: due claim concorrenti, un solo vincitore. Richiede Mongo reale."""
+    """Prova d'atomicità sotto contesa: N claim concorrenti su UN task, un solo
+    vincitore. Richiede Mongo reale — un mock a thread singolo non lo dimostra."""
     client, db = await _connect_real_mongo()
     try:
+        for round_no in range(5):
+            await db.agent_tasks.delete_many({})
+            await db.agent_tasks.insert_one(_task())
+            now = datetime.now(timezone.utc)
+            results = await asyncio.gather(
+                *(claim_task(db.agent_tasks, f"w{i}", lease_seconds=60, now=now) for i in range(24))
+            )
+            winners = [r for r in results if r is not None]
+            assert len(winners) == 1, f"round {round_no}: un solo worker deve vincere, non {len(winners)}"
+            assert winners[0]["attempt_count"] == 1
+            assert winners[0]["lease"]["owner"].startswith("w")
+    finally:
         await db.agent_tasks.delete_many({})
-        await db.agent_tasks.insert_one(_task())
-        now = datetime.now(timezone.utc)
-        results = await asyncio.gather(
-            claim_task(db.agent_tasks, "w1", lease_seconds=60, now=now),
-            claim_task(db.agent_tasks, "w2", lease_seconds=60, now=now),
-        )
-        winners = [r for r in results if r is not None]
-        assert len(winners) == 1, "esattamente un worker deve vincere il documento"
-        assert winners[0]["attempt_count"] == 1
-        assert winners[0]["lease"]["owner"] in {"w1", "w2"}
+        client.close()
+
+
+async def test_claim_specific_is_atomic_under_contention():
+    """Il gate per-id usato dal worker vivo è atomico: N worker sul medesimo id,
+    un solo esecutore. Richiede Mongo reale."""
+    client, db = await _connect_real_mongo()
+    try:
+        for round_no in range(5):
+            await db.agent_tasks.delete_many({})
+            await db.agent_tasks.insert_one(_task("solo"))
+            now = datetime.now(timezone.utc)
+            results = await asyncio.gather(
+                *(claim_specific(db.agent_tasks, "solo", f"w{i}", lease_seconds=60, now=now) for i in range(24))
+            )
+            winners = [r for r in results if r is not None]
+            assert len(winners) == 1, f"round {round_no}: un solo worker deve eseguire, non {len(winners)}"
+            assert winners[0]["attempt_count"] == 1
     finally:
         await db.agent_tasks.delete_many({})
         client.close()
