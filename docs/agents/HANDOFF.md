@@ -1,3 +1,13 @@
+### 2026-09-08 · Claude · Motore Evolution: T07 prove/dedup/riconciliazione effetti
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T07. Nuovo `services/operational_tasks/evidence.py`: `classify_effect_outcome` distingue `PRODUCED` (prova riletta) / `FAILED` (mai partito, reinviabile) / `UNKNOWN` (timeout dopo invio → riconciliare, mai reinviare); `channels_to_retry` ripete SOLO i FAILED; `all_effects_verified` completa solo con prova su ogni canale; `EffectLedger` registra l'intento con chiave di idempotenza e deduplica callback/tentativi ripetuti. Letto `social_publisher.py`: già dedup per-canale via permalink; il buco che T07 copre è il **timeout dopo l'invio** oggi trattato come errore → ripubblicazione/doppione.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_reconciliation.py` (nuovo, in ci.yml) **14 passed**. Suite operational **70 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring in `social_publisher.py` (registrare l'intento prima di pubblicare + cercare l'operazione remota sul timeout prima di ripubblicare) è l'integrazione successiva — tocca un adapter di produzione con test propri e serve logica Graph live. La query di riconciliazione è per-provider (Systeme/Graph/SMTP): la macchina a stati è in `evidence.py`, gli adapter la useranno nei flussi reparto T10-T13. Restano T08/T09. Niente push/merge/deploy: tutto locale.
+
 ### 2026-09-08 · Claude · Motore Evolution: T06 autorizzazioni applicate dal server
 
 **AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
