@@ -28,6 +28,7 @@ Prerequisito (fail-closed): `IG_BUSINESS_ID` + `META_PAGE_ACCESS_TOKEN` sul serv
 tocca la coda: i post restano `pending`, non `failed`.
 """
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timezone
@@ -80,12 +81,35 @@ async def _graph_get(client: httpx.AsyncClient, path: str, params: dict) -> dict
 
 
 # ─── Instagram ────────────────────────────────────────────────────────────────
+async def _attendi_container_pronto(client, ig, creation_id: str, token: str,
+                                    tentativi: int = 10, pausa: float = 2.0) -> None:
+    """Instagram elabora il container in modo ASINCRONO: `media_publish` va chiamato
+    solo quando `status_code == FINISHED`. Chiamarlo prima da' Graph 400 code 9007
+    ('Media ID is not available' / 'il contenuto non e' pronto, attendi un momento') —
+    l'errore che teneva Instagram fermo (verificato dai log del 7/9/2026). Si fa polling
+    finche' pronto; si solleva se il container va in ERROR o resta non pronto."""
+    stato = None
+    for _ in range(tentativi):
+        j = await _graph_get(client, creation_id, {
+            "fields": "status_code", "access_token": token})
+        stato = j.get("status_code")
+        if stato == "FINISHED":
+            return
+        if stato == "ERROR":
+            raise RuntimeError(f"container IG {creation_id} in ERROR: {j.get('status') or j}")
+        await asyncio.sleep(pausa)
+    raise RuntimeError(
+        f"container IG {creation_id} non pronto dopo {tentativi} tentativi (status={stato})")
+
+
 async def _pubblica_ig(client, ig, token, image_urls: list[str], caption: str) -> dict:
-    """Ritorna {media_id, permalink}. Carosello se >1 immagine, altrimenti singola."""
+    """Ritorna {media_id, permalink}. Carosello se >1 immagine, altrimenti singola.
+    Ogni container si attende FINISHED prima di pubblicarlo (_attendi_container_pronto)."""
     if len(image_urls) == 1:
         cont = await _graph_post(client, f"{ig}/media", {
             "image_url": image_urls[0], "caption": caption, "access_token": token})
         creation = cont["id"]
+        await _attendi_container_pronto(client, ig, creation, token)
     else:
         if not (2 <= len(image_urls) <= 10):
             raise ValueError(f"un carosello IG vuole 2-10 immagini, ricevute {len(image_urls)}")
@@ -93,11 +117,13 @@ async def _pubblica_ig(client, ig, token, image_urls: list[str], caption: str) -
         for url in image_urls:
             j = await _graph_post(client, f"{ig}/media", {
                 "image_url": url, "is_carousel_item": "true", "access_token": token})
+            await _attendi_container_pronto(client, ig, j["id"], token)
             child_ids.append(j["id"])
         album = await _graph_post(client, f"{ig}/media", {
             "media_type": "CAROUSEL", "children": ",".join(child_ids),
             "caption": caption, "access_token": token})
         creation = album["id"]
+        await _attendi_container_pronto(client, ig, creation, token)
     pub = await _graph_post(client, f"{ig}/media_publish", {
         "creation_id": creation, "access_token": token})
     media_id = pub["id"]

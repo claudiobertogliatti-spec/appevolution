@@ -171,6 +171,72 @@ def test_tutti_i_canali_falliti_e_failed(monkeypatch):
     assert docs[0]["status"] == "failed"
 
 
+def test_ig_attende_finished_prima_di_media_publish(monkeypatch):
+    """Il bug reale del 7/9 (Graph 400 code 9007 'Media ID is not available'): si
+    pubblicava PRIMA che il container fosse FINISHED. Ora _pubblica_ig fa polling e
+    chiama media_publish solo dopo che il container e' pronto."""
+    async def _no_sleep(_):
+        return None
+    monkeypatch.setattr(sp.asyncio, "sleep", _no_sleep)
+
+    ordine = []
+
+    async def _post(client, path, data):
+        if path.endswith("/media_publish"):
+            ordine.append("publish")
+            return {"id": "MEDIA1"}
+        if path.endswith("/media"):
+            ordine.append("create")
+            return {"id": "CONT1"}
+        raise AssertionError(path)
+
+    stati = iter(["IN_PROGRESS", "FINISHED"])
+
+    async def _get(client, path, params):
+        if params.get("fields") == "status_code":
+            ordine.append("check")
+            return {"status_code": next(stati)}
+        return {"permalink": "https://ig/p/abc"}
+
+    monkeypatch.setattr(sp, "_graph_post", _post)
+    monkeypatch.setattr(sp, "_graph_get", _get)
+
+    res = _run(sp._pubblica_ig(object(), "IG", "tok", ["u1"], "c"))
+
+    assert res["permalink"] == "https://ig/p/abc"
+    assert ordine.count("check") == 2  # IN_PROGRESS poi FINISHED
+    assert ordine.index("publish") > ordine.index("create")
+    assert ordine.index("publish") > ordine.index("check")  # mai prima del FINISHED
+
+
+def test_ig_solleva_se_il_container_non_diventa_pronto(monkeypatch):
+    """Se il container resta non-pronto, si solleva e NON si pubblica (niente 9007
+    ripetuto a vuoto): il post andra' `partial` e sara' ripreso al giro dopo."""
+    async def _no_sleep(_):
+        return None
+    monkeypatch.setattr(sp.asyncio, "sleep", _no_sleep)
+
+    published = []
+
+    async def _post(client, path, data):
+        if path.endswith("/media_publish"):
+            published.append(1)
+        return {"id": "CONT1"}
+
+    async def _get(client, path, params):
+        return {"status_code": "IN_PROGRESS"}  # non pronto mai
+
+    monkeypatch.setattr(sp, "_graph_post", _post)
+    monkeypatch.setattr(sp, "_graph_get", _get)
+
+    try:
+        _run(sp._pubblica_ig(object(), "IG", "tok", ["u1"], "c"))
+        raise AssertionError("doveva sollevare: container mai pronto")
+    except RuntimeError:
+        pass
+    assert not published, "non deve pubblicare se il container non e' FINISHED"
+
+
 def test_un_post_partial_viene_ripreso_sul_solo_canale_mancante(monkeypatch):
     """Il difetto che lascia Instagram fermo: un post uscito su Facebook ma non su
     Instagram resta `partial` e NON viene mai piu' ripreso, perche' il giro seleziona
