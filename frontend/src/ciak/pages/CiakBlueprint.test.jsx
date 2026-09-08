@@ -1,62 +1,52 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { CiakBlueprint } from "./CiakBlueprint";
-import { trackBlueprintBridgeView, trackInitiateCheckout } from "../lib/metaPixel";
+import { trackBlueprintBridgeView } from "../lib/metaPixel";
 
 jest.mock("../components/CiakHeader", () => ({ CiakHeader: () => <header>Ciak</header> }));
 jest.mock("../components/CiakFooter", () => ({ CiakFooter: () => <footer>Footer</footer> }));
 jest.mock("../lib/metaPixel", () => ({
-  trackInitiateCheckout: jest.fn(),
   trackBlueprintBridgeView: jest.fn(),
 }));
 
-describe("CiakBlueprint bridge", () => {
+const renderAt = (path) =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <CiakBlueprint />
+    </MemoryRouter>
+  );
+
+describe("CiakBlueprint (analisi gratuita)", () => {
   beforeEach(() => {
     trackBlueprintBridgeView.mockReset();
-    trackInitiateCheckout.mockReset();
-    window.history.pushState({}, "", "/blueprint?source=masterclass_optin");
   });
 
-  test("mostra il bridge accessibile e traccia una sola visita", () => {
-    render(<CiakBlueprint />);
+  test("le CTA portano alle 8 domande (/diagnostica), niente checkout", () => {
+    renderAt("/blueprint");
+    const cta = screen.getAllByRole("link", { name: /fai la tua analisi gratuita|inizia ora/i });
+    expect(cta.length).toBeGreaterThan(0);
+    cta.forEach((el) => expect(el.getAttribute("href")).toMatch(/^\/diagnostica/));
+    // Blueprint gratis: nessun riferimento al pagamento, prezzo barrato -> GRATIS
+    expect(screen.queryByText(/pagamento sicuro/i)).not.toBeInTheDocument();
+    expect(screen.getByText("GRATIS")).toBeInTheDocument();
+  });
+
+  test("mostra il bridge masterclass e traccia una sola visita", () => {
+    renderAt("/blueprint?source=masterclass_optin");
     expect(screen.getByText("Iscrizione completata. La masterclass è pronta.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Analizziamo il mio progetto — 27 €" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /non ora, guarda la masterclass/i })).toHaveAttribute("href", "/masterclass/guarda");
     expect(trackBlueprintBridgeView).toHaveBeenCalledTimes(1);
   });
 
-  test("non mostra né traccia il bridge senza sorgente masterclass", () => {
-    window.history.pushState({}, "", "/blueprint");
-    render(<CiakBlueprint />);
+  test("senza sorgente masterclass non mostra né traccia il bridge", () => {
+    renderAt("/blueprint");
     expect(screen.queryByText("Iscrizione completata. La masterclass è pronta.")).not.toBeInTheDocument();
     expect(trackBlueprintBridgeView).not.toHaveBeenCalled();
   });
 
   test("una sorgente arbitraria non attiva il bridge", () => {
-    window.history.pushState({}, "", "/blueprint?source=qualcosa_altro");
-    render(<CiakBlueprint />);
+    renderAt("/blueprint?source=qualcosa_altro");
     expect(screen.queryByText("Iscrizione completata. La masterclass è pronta.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /non ora, guarda la masterclass/i })).not.toBeInTheDocument();
     expect(trackBlueprintBridgeView).not.toHaveBeenCalled();
-  });
-
-  test("passa la sorgente whitelisted al checkout", async () => {
-    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ checkout_url: "https://checkout.example" }) });
-    render(<CiakBlueprint />);
-    fireEvent.click(screen.getAllByRole("button", { name: /27/i })[0]);
-    await Promise.resolve();
-    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body.source).toBe("masterclass_optin");
-    expect(body.attribution_source).toBe("masterclass_optin");
-    expect(trackInitiateCheckout).toHaveBeenCalledWith(27, "EUR");
-  });
-
-  test("impedisce sessioni Stripe duplicate tra CTA diverse", () => {
-    global.fetch = jest.fn(() => new Promise(() => {}));
-    render(<CiakBlueprint />);
-    const checkoutButtons = screen.getAllByRole("button", { name: /27|blueprint|pagamento/i });
-    fireEvent.click(checkoutButtons[0]);
-    fireEvent.click(checkoutButtons[1]);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(trackInitiateCheckout).toHaveBeenCalledTimes(1);
   });
 });
