@@ -44,7 +44,7 @@ async def _resolve_ciak_start_client(
 ):
     """Risolve un token cliente Ciak Start sul SUO partner_id, o None.
 
-    Il cliente Ciak Start (499 EUR) entra con magic link e riceve un JWT
+    Il cliente Ciak Start (390 EUR) entra con magic link e riceve un JWT
     `role="ciak_client"` (`ciak_clients._create_client_jwt`), non un token
     partner. Emettergli un token `role="partner"` sarebbe piu' semplice ma
     aprirebbe TUTTE le guardie dell'area partner a chi ha comprato un percorso

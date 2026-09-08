@@ -38,7 +38,7 @@ def _send_email(email: str, name: str | None, access_url: str, paid_at: str) -> 
     d1, d2, d3 = _delivery_dates(paid_at)
     plain = f"""Ciao {safe_name},
 
-il pagamento di 499 euro e' arrivato e Ciak Start e' attivo.
+il pagamento di 390 euro e' arrivato e Ciak Start e' attivo.
 
 Accedi alla tua area da qui:
 {access_url}
@@ -48,7 +48,7 @@ Le tre tappe previste sono:
 2. Profili social e sito vetrina entro il {d2}.
 3. Strategia contenuti e calendario 90 giorni entro il {d3}.
 
-I 499 euro saranno scalati interamente se passerai alla Partnership.
+I 390 euro saranno scalati interamente se passerai alla Partnership.
 
 Se il link non funziona, rispondi a questa email.
 
