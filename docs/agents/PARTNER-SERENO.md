@@ -113,3 +113,15 @@ Prossimo: 5.2 Assistenza, 5.3 Servizi, 5.4 Piano (stessa tecnica: container lega
 **5.4 Piano rivestito (ultimo):** `SerenoPiano` adattato: i 4 tier reali (Inside 147 / Pro 297 / Premium 497 / Elite 797 € / mese, da PLANS) ora aprono il dettaglio via `onOpen` invece di un link; status corrente onesto ("Da collegare"); nota eligibility se `locked`. `EvoSPage` col flag rende la lista sereno; il **`PlanDetail` con eligibility + checkout EVO S (`/api/evo-booster/evo-s-checkout`) resta INTATTO**, raggiunto via `onOpen`. Verificato: prezzi reali, "Da collegare", nessun overflow (clientW=scrollW=1265). Test SerenoPiano 3/3. Il file EvoSPage era stato toccato da un rename tier a monte (Inside/Pro/Premium/Elite, commit 75266ff1) — nessun conflitto.
 
 ## Stato blocco 5: rivestimento COMPLETO (5.1-5.4). Resta: test autenticati partner/admin; poi decisione integrazione (merge dietro flag → pilota). Persistenza consegne file (backend) sempre scorporata.
+
+## Test autenticati (parte nel repo) — 8 settembre 2026
+
+Confine credenziali: la verifica live che richiede il login di Claudio NON è di Claude (no token di produzione). Ma il cablaggio dati-autenticati→skin È nel repo, quindi testato in automatico (fetch mockato, zero credenziali). Container jest-testabili: PartnerFilesPage, EvoSPage, BoosterEvoPage (no `import.meta`). TeamSupportoPage NON è jest-testabile (`import.meta` riga 16) → coperto dal test della skin SerenoAssistenza.
+
+- `PartnerFilesPage.test.js`: flag on + fetch autenticato mockato → i documenti reali compaiono nella skin; **il download porta `Authorization: Bearer <token>`** (non un link nudo). + senza partnerId nessun fetch.
+- `EvoSPage.test.js`: flag on → 4 tier reali (147…) → clic "Vedi cosa include" apre il **PlanDetail reale** (attivazione/checkout EVO S).
+- `BoosterEvoPage.test.js`: flag on → vetrina coi nomi/prezzi reali di BOOSTER_CATALOG (Video Premium 590€…), ogni servizio con "Scopri" verso dettaglio+checkout.
+
+Suite completa: **11 suite / 27 test verdi**. ⚠️ Non ancora aggiunti a `ci.yml` (la CI esegue solo i file nominati) — follow-up.
+
+**Verifica LIVE ancora aperta (dietro credenziali Claudio, non Claude):** richiede un build/run con `REACT_APP_PARTNER_SERENO=true` + login partner reale, per provare download PDF reale, risposta chat reale, redirect Stripe reale. Naturale insieme al pilota. Ricetta run locale: da `frontend`, `REACT_APP_PARTNER_SERENO=true npm start`, poi login partner.
