@@ -1,3 +1,21 @@
+def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
+    """Pura: valida consenso (checkbox o firma) e costruisce contract_data. Solleva ValueError se invalido."""
+    if body.get("clausole_vessatorie_approved") is not True:
+        raise ValueError("clausole vessatorie non approvate")
+    sig = body.get("signature_base64")
+    consenso = body.get("consenso_checkbox") is True
+    if not sig and not consenso:
+        raise ValueError("serve l'accettazione (checkbox) o la firma")
+    return {
+        "version": "v1.0",
+        "signed_at": now_iso,
+        "signature_base64": sig or "",
+        "metodo": "signature" if sig else "checkbox",
+        "ip_address": ip,
+        "clausole_vessatorie_approved": True,
+    }
+
+
 def enrich_proposta_for_insider(proposta: dict, sess: dict | None) -> dict:
     """Pura: aggiunge analisi + scoring_stato del lead alla proposta (sess già letta)."""
     proposta = dict(proposta)

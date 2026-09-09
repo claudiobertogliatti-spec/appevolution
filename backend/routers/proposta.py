@@ -434,16 +434,14 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
         raise HTTPException(410, "Proposta scaduta")
     if proposta.get("contratto_firmato_at"):
         return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
-    validate_signature_payload(body.get("signature_base64"))
+    from routers.insider_helpers import build_contract_acceptance
     now = datetime.now(timezone.utc)
-
-    contract_data = {
-        "version": "v1.0",
-        "signed_at": now.isoformat(),
-        "signature_base64": body.get("signature_base64", ""),
-        "ip_address": _trusted_client_ip(request),
-        "clausole_vessatorie_approved": True
-    }
+    if body.get("signature_base64"):
+        validate_signature_payload(body.get("signature_base64"))
+    try:
+        contract_data = build_contract_acceptance(body, _trusted_client_ip(request), now.isoformat())
+    except ValueError as e:
+        raise HTTPException(422, str(e))
 
     # Aggiorna proposta (pdf_url persistito più sotto, dopo la generazione)
     await db.proposte.update_one({"token": token}, {"$set": {
