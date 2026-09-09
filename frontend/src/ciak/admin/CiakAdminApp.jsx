@@ -39,6 +39,7 @@ import {
   Users,
 } from "lucide-react";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
+import { DeliveryQueue } from "./components/DepartmentQueue";
 import { getDepartmentRoom } from "./departmentRooms";
 import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
@@ -430,9 +431,21 @@ function RepartoLanding({ macro, onAuthExpired }) {
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   const room = getDepartmentRoom(macro.id);
   const metricValues = useRepartoMetrics(macro.id);
+  const navigate = useNavigate();
   return (
     <div className="p-10 max-w-5xl mx-auto">
       <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+
+      {/* Coda del reparto (T18): chi, prossima azione, responsabile, scadenza, blocco.
+          Oggi cablata per Delivery (fonte /delivery-audit); gli altri reparti hanno
+          fonti diverse (lead pipeline, amministrazione) → wiring successivo. */}
+      {macro.id === "delivery" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Chi aspetta un passo, chi ci lavora e cosa lo blocca.</p>
+          <DeliveryQueue onOpenPartner={(id) => navigate(`/admin/partner?partner=${id}&tab=panoramica`)} />
+        </div>
+      )}
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
           <Icon className="w-5 h-5" />
