@@ -246,7 +246,14 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
     resta scelta operativa interna ma il prodotto venduto è uno solo. Il campo
     payload.stato resta nei metadata per analytics/segmentazione.
     """
-    if db is None:
+    # Ciak Blueprint è GRATUITO (decisione 9/9): il checkout €27 è ritirato.
+    # Il funnel porta alle 8 domande gratuite — nessuna carta, nessun pagamento.
+    # L'endpoint resta per compat (non 404) ma non apre più sessioni Stripe a €27.
+    raise HTTPException(
+        status.HTTP_410_GONE,
+        "Ciak Blueprint è gratuito: nessun checkout a pagamento.",
+    )
+    if db is None:  # pragma: no cover — codice legacy irraggiungibile dopo il 410
         raise HTTPException(503, "Database non configurato")
     _ensure_stripe_configured()
 
