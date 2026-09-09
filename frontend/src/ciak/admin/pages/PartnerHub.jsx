@@ -276,8 +276,12 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                 return (
                   <tr
                     key={p.id || p.email}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
                     onClick={() => onOpen(p, "panoramica")}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(p, "panoramica"); } }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Apri ${p.name || "partner"}`}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">

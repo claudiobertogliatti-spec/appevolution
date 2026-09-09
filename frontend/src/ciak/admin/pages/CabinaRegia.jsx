@@ -40,9 +40,9 @@ const REPARTI = [
   { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", icon: BarChart3, to: "/admin/reparto/vendite",
     persone: ["Mariangela"], agenti: ["Gaia", "Carlo"] },
   { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", icon: Users, to: "/admin/reparto/delivery",
-    persone: ["Antonella", "Matteo Paredi"], agenti: ["Simona", "Valentina", "Andrea", "Marco"] },
+    persone: ["Antonella", "Matteo"], agenti: ["Simona", "Valentina", "Andrea", "Marco"] },
   { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", icon: CreditCard, to: "/admin/reparto/back-office",
-    persone: ["Stefania Russo", "Debora"], agenti: ["Valentina"] },
+    persone: ["Stefania", "Debora"], agenti: ["Valentina"] },
 ];
 
 async function getJSON(path) {
