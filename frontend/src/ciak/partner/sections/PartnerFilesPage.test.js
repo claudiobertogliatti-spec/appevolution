@@ -51,6 +51,31 @@ test('flag-on renders the real fetched materials in the sereno skin, and downloa
   });
 });
 
+test('partner with a signed contract shows a "Contratto firmato" entry whose download hits pdf-download', async () => {
+  global.fetch = jest.fn((url) => {
+    if (String(url).includes('/posizionamento/')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+    }
+    if (String(url).includes('/api/contract/status/')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ signed: true, signed_at: '2026-09-01T10:00:00Z' }) });
+    }
+    return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
+  });
+
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+
+  const title = await screen.findByText('Contratto firmato');
+
+  const row = title.closest('.sereno-mat-file');
+  fireEvent.click(within(row).getByRole('button', { name: /Scarica/i }));
+
+  await waitFor(() => {
+    const call = global.fetch.mock.calls.find(([u]) => String(u).includes('/api/contract/pdf-download/p1'));
+    expect(call).toBeTruthy();
+    expect(call[1].headers.Authorization).toBe('Bearer test-jwt');
+  });
+});
+
 test('without a partner id the effect does not fetch (no crash, empty state)', async () => {
   global.fetch = jest.fn();
   render(<MemoryRouter><PartnerFilesPage /></MemoryRouter>);

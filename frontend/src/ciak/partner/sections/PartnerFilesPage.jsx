@@ -243,6 +243,27 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           }
         }
       } catch { /* la cartella Drive semplicemente non compare */ }
+      try {
+        // Segnale ufficiale di contratto firmato: /api/contract/status legge
+        // partner.contract.signed_at, scritto sia dalla firma nel funnel
+        // insider (proposta.py firma-contratto) sia da quella nell'area
+        // partner (contract.py) — non un flag duplicato che uno dei due
+        // flussi potrebbe dimenticare di aggiornare.
+        const rc = await fetch(`/api/contract/status/${partnerId}`, { headers: authHeaders() });
+        if (rc.ok) {
+          const dc = await rc.json();
+          if (dc?.signed) {
+            reali.push({
+              id: "r-contratto", folderId: "brand_kit",
+              name: "Contratto firmato", category: "Contratto",
+              size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
+              owner: "👤 Tu", type: "pdf",
+              icon: FileCheck, iconColor: "text-emerald-600",
+              url: `/api/contract/pdf-download/${partnerId}`,
+            });
+          }
+        }
+      } catch { /* nessun contratto in lista se il check fallisce */ }
       if (!annullato) setFiles(reali);
     })();
     return () => { annullato = true; };
