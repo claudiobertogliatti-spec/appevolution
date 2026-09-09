@@ -16,10 +16,10 @@
  */
 
 export const PRICE = {
-  blueprint: 27,
-  start: 499,
-  upgrade: 2291,
-  direct: 2790,
+  blueprint: 0,      // Blueprint gratis (era 27): entra come costo netto CAC, non ricavo
+  start: 390,        // Ciak Start (era 499)
+  upgrade: 2600,     // Upgrade Start→Partnership = 2990 − 390 (era 2291)
+  direct: 2990,      // Partnership diretta a freddo (era 2790)
   commRate: 0.10, // 10% sul venduto, solo nei 12 mesi di Partnership
 };
 
