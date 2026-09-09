@@ -143,7 +143,7 @@ export function computeMetrics(deptId, d) {
         "Lead qualificati": fmtNum(stato34(mc.diagnostic_per_stato)),
         "Masterclass avviate": fmtNum(mc.funnel?.video_started),
         "8 Domande completate": fmtNum(mc.funnel?.diagnostic_completed),
-        "Ciak Start €499": ciakStart,
+        "Ciak Start €390": ciakStart,
         "Blueprint acquistati": fmtNum(f.blueprint_purchased),
         "Fonte migliore": bestSource(mc.sources) || "—",
       };
@@ -154,7 +154,7 @@ export function computeMetrics(deptId, d) {
         "Call prenotate": fmtNum(f.call_booked),
         "Call fatte": fmtNum(f.call_done),
         "Proposte inviate": fmtNum(f.proposals_open),
-        "Ciak Start €499": ciakStart,
+        "Ciak Start €390": ciakStart,
         "Partnership chiuse": fmtNum(t.partnerships_closed),
         "Valore trattative": ATTIVARE,
       };

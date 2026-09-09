@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, LockKeyhole, Loader2 } from "lucide-react";
 import { clientGet, clientPost, journeyGet } from "../api";
+import { PRICING } from "../../pricing";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
@@ -61,8 +62,8 @@ export function StartPage({ dashboard }) {
   const active = access === "cliente_start" || access === "partner";
   const decided = dashboard.diagnostic?.offer_decision === "ciak_start";
   const showStartOffer = active || decided;
-  const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? 49900;
-  const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? 49900;
+  const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
+  const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? PRICING.start.cents;
   const startLocked = !showStartOffer;
   const clientId = dashboard.client?.id;
 

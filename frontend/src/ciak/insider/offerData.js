@@ -1,15 +1,14 @@
 /**
  * offerData — single source of truth for the Insider closing page offers.
  *
- * Prices are real and verified against the running product (2026-09-09):
+ * Prices come from `frontend/src/ciak/pricing.js` (SSOT prezzi Start/
+ * Partnership), verificato contro il listino autorevole al 2026-09-09:
  *  - Start: 390 € (Insider closing price — pre-partnership stepping stone).
  *  - Partnership: 2.990 € (Insider closing price).
- * These are the exact figures given for this task; note for review: the
- * StartPage.jsx default (`amount_cents ?? 49900` = 499 €) and Proposta.jsx
- * default corrispettivo (2.990 €) differ from these — those are the
- * *general* Ciak Start / Partnership defaults elsewhere in the app, not
- * necessarily this Insider-page price. Flagged for Claudio to confirm the
- * Insider price is intentionally different before shipping to real traffic.
+ * L'incongruenza segnalata in precedenza (StartPage.jsx aveva un fallback
+ * `amount_cents ?? 49900` = 499 €, stale) è stata risolta: StartPage.jsx ora
+ * importa lo stesso PRICING.start.cents usato qui, quindi non c'è più
+ * disallineamento tra questa pagina e i default generali di Ciak Start.
  *
  * Servizi (bullet lists): sourced from real commercial content already in
  * the repo — NOT invented.
@@ -24,10 +23,12 @@
  *    Partner" → "replicabile", "comprensivo di" → "con") — not exact quotes.
  */
 
+import { PRICING } from '../pricing';
+
 export const offerData = {
   start: {
     name: 'Ciak Start',
-    price: '390 €',
+    price: PRICING.start.label,
     tagline: 'Il primo passo: fondazioni pronte prima della Partnership.',
     creditCopy:
       'I €390 di Ciak Start non si perdono: si riscalano come credito pieno se poi passi alla Partnership.',
@@ -43,7 +44,7 @@ export const offerData = {
   },
   partnership: {
     name: 'Partnership Evolution PRO',
-    price: '2.990 €',
+    price: PRICING.partnership.label,
     tagline: 'Il sistema completo: dal posizionamento al Corso online, con il team.',
     servizi: [
       'Analisi strategica iniziale e definizione del posizionamento del progetto',
