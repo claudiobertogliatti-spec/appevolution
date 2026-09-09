@@ -8,20 +8,20 @@ import {
 describe("computeModel — acquisizione anno per anno", () => {
   test("base anno 1: Blueprint netto CAC, Start e Setup coi numeri del prototipo", () => {
     const { years } = computeModel(scenarioState("base"));
-    // f = 0.5 → bp 750; blueprint netto = 750*(27-20) = 5250
-    expect(years[0].blueprint).toBeCloseTo(5250, 2);
-    // start = 750*0.15 * 499 = 56137.5
-    expect(years[0].start).toBeCloseTo(56137.5, 2);
-    // upg = 22.5 → 22.5*2291 ; dir = 10 → 10*2790 ; setup = 79447.5
-    expect(years[0].setup).toBeCloseTo(79447.5, 2);
+    // f = 0.5 → bp 750; blueprint gratis, netto CAC = 750*(0-20) = -15000
+    expect(years[0].blueprint).toBeCloseTo(-15000, 2);
+    // start = 750*0.15 * 390 = 43875
+    expect(years[0].start).toBeCloseTo(43875, 2);
+    // upg = 22.5 → 22.5*2600 ; dir = 10 → 10*2990 ; setup = 88400
+    expect(years[0].setup).toBeCloseTo(88400, 2);
   });
 
   test("il Blueprint è al netto del CAC (CAC > prezzo → contributo negativo)", () => {
     const st = { ...scenarioState("base"), cac: 40 };
     const { years } = computeModel(st);
-    // 750*(27-40) = -9750
+    // 750*(0-40) = -30000
     expect(years[0].blueprint).toBeLessThan(0);
-    expect(years[0].blueprint).toBeCloseTo(-9750, 2);
+    expect(years[0].blueprint).toBeCloseTo(-30000, 2);
   });
 });
 
@@ -71,11 +71,11 @@ describe("computeModel — capacità e traiettoria", () => {
     const { years } = computeModel(scenarioState("base"));
     expect(years[0].total).toBeLessThan(years[1].total);
     expect(years[1].total).toBeLessThan(years[2].total);
-    // ~248k → ~508k → ~754k (onesto: il milione non arriva col ramp base)
-    expect(years[0].total).toBeGreaterThan(230000);
-    expect(years[0].total).toBeLessThan(270000);
-    expect(years[2].total).toBeGreaterThan(700000);
-    expect(years[2].total).toBeLessThan(800000);
+    // ~225k → ~470k → ~707k (Blueprint gratis = costo netto CAC; il milione non arriva col ramp base)
+    expect(years[0].total).toBeGreaterThan(210000);
+    expect(years[0].total).toBeLessThan(240000);
+    expect(years[2].total).toBeGreaterThan(680000);
+    expect(years[2].total).toBeLessThan(740000);
   });
 
   test("il totale è la somma delle sei voci", () => {
