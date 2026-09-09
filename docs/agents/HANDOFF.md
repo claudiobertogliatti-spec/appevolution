@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T11 flusso Vendite
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T11. Nuovo `services/operational_tasks/sales.py`: `sales.prepare_next_action` (consuma la handoff di T10). Riusa il gate REALE di `proposta.py::require_partnership_proposal_eligibility` (blueprint pagato → analisi consegnata → call_done → offer_decision=partnership). Propone UN passo = primo gate non soddisfatto (con SLA); decisione negativa → closed_lost; gate completi → chiusura con handoff idempotenti a Delivery (`delivery.generate_positioning`) + Back office (`back_office.check_due_item`, con obligations). Non firma, non incassa. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_sales.py` (nuovo, in ci.yml) **8 passed** (via motore: ordine gate, SLA, closed_lost, chiusura→2 handoff, idempotenza, no firma/incasso). Suite operational **111 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring che legge i flag dalle sorgenti reali (sessione Blueprint, `ciak_analisi.bozza_inviata_at`, `ciak_clients.offer_decision`) e crea i task Delivery/Back office = attivazione con DB/infra viva. Firma/pagamento restano nelle rotte `proposta.py` (umano). UI PipelineList/ClientiCiak → design-lead. Prossimo T12 Delivery. Niente push/merge/deploy: locale, branch avanti di 9 su origin.
+
 ### 2026-09-09 · Claude · Motore Evolution: T10 flusso Acquisizione (M2 iniziato)
 
 **AUTORIZZATO:** Claudio ha scelto "B — M2 — T10". Claude owner, Codex fermo. Branch `codex/evolution-autonomia`.
