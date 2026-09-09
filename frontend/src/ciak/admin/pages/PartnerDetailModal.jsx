@@ -884,7 +884,7 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
             onClick={onOpenJourney}
             className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
           >
-            Apri Dati Journey
+            Apri i materiali
           </button>
         </div>
       </div>
@@ -892,7 +892,7 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
   );
 }
 
-export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo", audit = null }) => {
+export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "panoramica", audit = null }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1000,7 +1000,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       // Tab di apertura: "profilo" (click sul nome) o "journey" (bottone Journey)
       setActiveTab(initialTab);
       setJourneyData(null);
-      if (initialTab === "journey") loadJourneyData();
+      if (initialTab === "materiali") loadJourneyData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partner, initialTab]);
@@ -1515,10 +1515,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const partnerName = headerPartner.name || headerPartner.nome || `${headerPartner.nome || ""} ${headerPartner.cognome || ""}`.trim() || "Partner";
 
   const tabs = [
-    { id: "profilo", label: "Profilo", icon: User },
-    { id: "journey", label: "Dati Journey", icon: Edit3 },
+    { id: "panoramica", label: "Panoramica", icon: Eye },
+    { id: "percorso", label: "Percorso EVO", icon: Target },
+    { id: "materiali", label: "Materiali", icon: Edit3 },
     { id: "documenti", label: "Documenti", icon: FileText },
-    { id: "pagamenti", label: "Pagamenti", icon: CreditCard }
+    { id: "pagamenti", label: "Pagamenti", icon: CreditCard },
+    { id: "impostazioni", label: "Impostazioni", icon: Settings }
   ];
 
   return (
@@ -1571,7 +1573,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             audit={audit}
             piano={piano}
             phase={formData.phase}
-            onOpenJourney={() => { setActiveTab("journey"); loadJourneyData(); }}
+            onOpenJourney={() => { setActiveTab("materiali"); loadJourneyData(); }}
           />
 
           {/* Tabs */}
@@ -1579,7 +1581,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); if (tab.id === "journey") loadJourneyData(); }}
+                onClick={() => { setActiveTab(tab.id); if (tab.id === "materiali") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id
                     ? "border-[#FFD24D] text-gray-900 bg-white"
@@ -1613,8 +1615,50 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB JOURNEY */}
-            {activeTab === "journey" && (
-              <div className="space-y-5" data-testid="tab-content-journey">
+            {/* TAB PANORAMICA — apre qui: cosa serve adesso + stato consegna (solo dati reali) */}
+            {activeTab === "panoramica" && (
+              <div className="space-y-5" data-testid="tab-content-panoramica">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+                  <div className="text-sm font-semibold text-slate-900 mt-0.5">
+                    {audit?.next_action || <span className="text-slate-400 font-normal">Nessuna azione in coda.</span>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Stato consegna</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { ok: formData.partnership_pagata, label: "Partnership pagata" },
+                      { ok: formData.contratto_firmato, label: "Contratto firmato" },
+                      { ok: formData.onboarding_completato, label: "Onboarding" },
+                      { ok: formData.masterclass_pronta, label: "Masterclass" },
+                    ].map(({ ok, label }) => (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}`}
+                      >
+                        {ok ? <CheckCircle className="w-3.5 h-3.5" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden />}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
+                </p>
+              </div>
+            )}
+
+            {/* TAB PERCORSO EVO — macro-fasi + step, promosso a tab dedicato */}
+            {activeTab === "percorso" && (
+              <div className="space-y-5" data-testid="tab-content-percorso">
+                <PercorsoEvoPanel partner={partner} />
+              </div>
+            )}
+
+            {/* TAB MATERIALI (ex Dati Journey) */}
+            {activeTab === "materiali" && (
+              <div className="space-y-5" data-testid="tab-content-materiali">
                 {journeyLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
@@ -1639,8 +1683,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB PROFILO */}
-            {activeTab === "profilo" && (
-              <div className="space-y-6" data-testid="tab-content-profilo">
+            {activeTab === "impostazioni" && (
+              <div className="space-y-6" data-testid="tab-content-impostazioni">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Nicchia */}
                   <div>
@@ -1926,10 +1970,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </button>
                 </div>
 
-                {/* Percorso EVO — macro-fasi + 20 step (sostituisce il selettore fase legacy) */}
-                <div className="pt-6 border-t">
-                  <PercorsoEvoPanel partner={partner} />
-                </div>
               </div>
             )}
 

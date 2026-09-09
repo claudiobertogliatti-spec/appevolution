@@ -277,7 +277,7 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                   <tr
                     key={p.id || p.email}
                     className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onOpen(p, "profilo")}
+                    onClick={() => onOpen(p, "panoramica")}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -344,11 +344,11 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => onOpen(p, "journey")}
-                          title="Apri la scheda partner sui Dati Journey"
+                          onClick={() => onOpen(p, "materiali")}
+                          title="Apri la scheda partner sui materiali e revisioni"
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-semibold hover:bg-yellow-200 transition"
                         >
-                          Journey
+                          Materiali
                         </button>
                         <button
                           onClick={() => openVista(p)}
@@ -441,7 +441,7 @@ export function PartnerHub({ onAuthExpired }) {
     if (!wantId) return;
     const p = partners.find((x) => String(x.id) === String(wantId));
     if (p) {
-      setDetailTab(params.get("tab") || "journey");
+      setDetailTab(params.get("tab") || "panoramica");
       setDetailPartner(p);
     }
   }, [partners]);
@@ -473,8 +473,8 @@ export function PartnerHub({ onAuthExpired }) {
     }
   };
 
-  // Apertura modale: dalle card "Per atto" sul Journey, dalla tabella sul tab passato.
-  const openPartner = (p, tab = "journey") => {
+  // Apertura modale: default sulla Panoramica; la tabella e le card passano il tab.
+  const openPartner = (p, tab = "panoramica") => {
     setDetailTab(tab);
     setDetailPartner(p);
     syncUrl(p?.id, tab);
@@ -606,7 +606,7 @@ export function PartnerHub({ onAuthExpired }) {
         <div className="mb-6" />
 
         {view === "atto" ? (
-          <AttoView partners={partners} onOpen={(p) => openPartner(p, "journey")} />
+          <AttoView partners={partners} onOpen={(p) => openPartner(p, "percorso")} />
         ) : (
           <TableView
             partners={partners}

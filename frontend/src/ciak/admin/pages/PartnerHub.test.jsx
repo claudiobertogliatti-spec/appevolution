@@ -129,13 +129,13 @@ test("aprire una scheda scrive il deep-link ?partner=<id> nell'URL", async () =>
   const riga = screen.getByText("Alfredo Vasi").closest("tr");
   fireEvent.click(riga);
   expect(window.location.search).toMatch(/partner=1/);
-  expect(window.location.search).toMatch(/tab=profilo/);
+  expect(window.location.search).toMatch(/tab=panoramica/);
 });
 
 test("un URL ?partner=<id>&tab=<tab> riapre la stessa scheda al caricamento", async () => {
-  window.history.replaceState({}, "", "/?partner=2&tab=journey");
+  window.history.replaceState({}, "", "/?partner=2&tab=materiali");
   render(<PartnerHub />);
   const pdm = await screen.findByTestId("pdm");
   expect(pdm.textContent).toMatch(/Arianna Aceto/);
-  expect(pdm.textContent).toMatch(/journey/);
+  expect(pdm.textContent).toMatch(/materiali/);
 });
