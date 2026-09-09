@@ -3,9 +3,15 @@ Evolution PRO OS - Approval Workflow System
 Sistema di approvazione per task degli agenti AI
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 import logging
+
+from services.operational_tasks.policy import (
+    APPROVAL_TTL_SECONDS,
+    MAX_REVISIONS,
+    canonical_checksum,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -209,14 +215,20 @@ async def approve_task(db, task_id: str, reviewer: str, notes: Optional[str] = N
     if task.get("status") != "awaiting_approval":
         raise ValueError(f"Task {task_id} non è in attesa di approvazione (status: {task.get('status')})")
     
+    now = datetime.now(timezone.utc)
+    # Lega l'approvazione ESATTAMENTE alla versione dell'output visionato: se
+    # l'output cambia dopo, l'approvazione non autorizza più l'esecuzione (T06).
+    current_output = (task.get("result") or {}).get("output")
     update = {
         "status": "approved",
         "approval.status": "approved",
         "approval.reviewer": reviewer,
-        "approval.reviewed_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "approval.reviewed_at": now.isoformat(),
+        "approval.approved_checksum": canonical_checksum(current_output),
+        "approval.expires_at": (now + timedelta(seconds=APPROVAL_TTL_SECONDS)).isoformat(),
+        "updated_at": now.isoformat()
     }
-    
+
     if notes:
         update["approval.notes"] = notes
     
@@ -255,41 +267,48 @@ async def reject_task(db, task_id: str, reviewer: str, feedback: str) -> Dict:
         raise ValueError(f"Task {task_id} non è in attesa di approvazione (status: {task.get('status')})")
     
     revision_count = task.get("approval", {}).get("revision_count", 0)
-    
-    if revision_count >= 3:
-        raise ValueError(f"Task {task_id} ha già raggiunto il limite di 3 revisioni. Richiede intervento manuale.")
-    
+    new_count = revision_count + 1
+    now = datetime.now(timezone.utc)
+
     # Salva la versione corrente nello storico revisioni
     current_output = task.get("result", {}).get("output")
     if current_output:
         revision = {
-            "version": revision_count + 1,
+            "version": new_count,
             "output": current_output,
             "feedback": feedback,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": now.isoformat()
         }
         await db.agent_tasks.update_one(
             {"id": task_id},
             {"$push": {"revisions": revision}}
         )
-    
+
     update = {
-        "status": "rejected",
         "approval.status": "rejected",
         "approval.reviewer": reviewer,
         "approval.feedback": feedback,
-        "approval.reviewed_at": datetime.now(timezone.utc).isoformat(),
-        "approval.revision_count": revision_count + 1,
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "approval.reviewed_at": now.isoformat(),
+        "approval.revision_count": new_count,
+        "updated_at": now.isoformat()
     }
-    
-    await db.agent_tasks.update_one(
-        {"id": task_id},
-        {"$set": update}
-    )
-    
-    logger.info(f"Task {task_id} rifiutato da {reviewer}. Feedback: {feedback[:50]}...")
-    
+
+    if new_count >= MAX_REVISIONS:
+        # Raggiunto il limite: il task NON torna in coda di rigenerazione (dove
+        # resterebbe orfano), ma va a blocked con owner e motivo. Intervento umano.
+        update["status"] = "blocked"
+        update["error_code"] = "max_revisions_exceeded"
+        update["next_action"] = {
+            "owner_id": reviewer or "operations",
+            "reason": f"{MAX_REVISIONS} revisioni respinte: serve intervento umano",
+        }
+        await db.agent_tasks.update_one({"id": task_id}, {"$set": update})
+        logger.info(f"Task {task_id} BLOCCATO dopo {new_count} revisioni (limite {MAX_REVISIONS})")
+    else:
+        update["status"] = "rejected"
+        await db.agent_tasks.update_one({"id": task_id}, {"$set": update})
+        logger.info(f"Task {task_id} rifiutato da {reviewer}. Feedback: {feedback[:50]}...")
+
     return await db.agent_tasks.find_one({"id": task_id})
 
 

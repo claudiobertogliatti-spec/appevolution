@@ -144,6 +144,18 @@ jobs:
           tests/test_collaudo.py
           tests/test_vetrina_contatti.py
           tests/test_agent_task_dismiss.py
+          tests/test_operational_task_contracts.py
+          tests/test_operational_task_completion.py
+          tests/test_operational_task_concurrency.py
+          tests/test_operational_task_policy.py
+          tests/test_operational_task_reconciliation.py
+          tests/test_operational_task_recovery.py
+          tests/test_operational_runtime_health.py
+          tests/test_operational_acquisition.py
+          tests/test_operational_sales.py
+          tests/test_operational_delivery.py
+          tests/test_operational_back_office.py
+          tests/test_operational_coordinator.py
 
   frontend:
     name: Frontend (build smoke)

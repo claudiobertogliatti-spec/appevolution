@@ -6985,58 +6985,67 @@ from approval_workflow import (
     get_approval_stats
 )
 
+# NB: `reviewer` è deprecato e IGNORATO dal server: l'identità del revisore viene
+# dal token autenticato (require_admin_role), non dal corpo della richiesta (T06).
 class ApproveRequest(BaseModel):
-    reviewer: str
+    reviewer: Optional[str] = None
     notes: Optional[str] = None
 
 class RejectRequest(BaseModel):
-    reviewer: str
+    reviewer: Optional[str] = None
     feedback: str
 
 class DismissRequest(BaseModel):
-    reviewer: str
+    reviewer: Optional[str] = None
     reason: Optional[str] = None
 
 @api_router.get("/agent-tasks/approvals")
 async def list_pending_approvals(
     agent: Optional[str] = None,
-    partner_id: Optional[str] = None
+    partner_id: Optional[str] = None,
+    _admin=Depends(require_admin_role),
 ):
-    """Lista task in attesa di approvazione"""
+    """Lista task in attesa di approvazione (solo admin autenticato)."""
     tasks = await get_pending_approvals(db, agent, partner_id)
     return {"tasks": tasks, "count": len(tasks)}
 
 @api_router.get("/agent-tasks/approval-stats")
-async def get_approval_statistics():
-    """Statistiche approvazioni"""
+async def get_approval_statistics(_admin=Depends(require_admin_role)):
+    """Statistiche approvazioni (solo admin autenticato)."""
     stats = await get_approval_stats(db)
     return stats
 
 @api_router.post("/agent-tasks/{task_id}/approve")
-async def api_approve_agent_task(task_id: str, request: ApproveRequest):
-    """Approva un task in attesa di approvazione (sblocco dalla Cabina di Regia)."""
+async def api_approve_agent_task(task_id: str, request: ApproveRequest, _admin=Depends(require_admin_role)):
+    """Approva un task in attesa di approvazione (sblocco dalla Cabina di Regia).
+
+    Il revisore è l'admin autenticato, non il campo `reviewer` del corpo (T06).
+    """
+    reviewer = _admin.email or _admin.user_id
     try:
-        task = await approve_task(db, task_id, request.reviewer, request.notes)
+        task = await approve_task(db, task_id, reviewer, request.notes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
 
 
 @api_router.post("/agent-tasks/{task_id}/reject")
-async def api_reject_agent_task(task_id: str, request: RejectRequest):
+async def api_reject_agent_task(task_id: str, request: RejectRequest, _admin=Depends(require_admin_role)):
     """Rifiuta un task in attesa con feedback (sblocco dalla Cabina di Regia)."""
+    reviewer = _admin.email or _admin.user_id
     try:
-        task = await reject_task(db, task_id, request.reviewer, request.feedback)
+        task = await reject_task(db, task_id, reviewer, request.feedback)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
 
 
 @api_router.post("/agent-tasks/{task_id}/dismiss")
-async def api_dismiss_agent_task(task_id: str, request: DismissRequest):
+async def api_dismiss_agent_task(task_id: str, request: DismissRequest, _admin=Depends(require_admin_role)):
     """Scarta un task dalla coda senza rigenerarlo (nessun motivo obbligatorio)."""
+    reviewer = _admin.email or _admin.user_id
     try:
-        task = await dismiss_task(db, task_id, request.reviewer, request.reason)
+        task = await dismiss_task(db, task_id, reviewer, request.reason)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
@@ -7073,23 +7082,26 @@ async def get_task_preview(task_id: str):
     }
 
 @api_router.patch("/agent-tasks/{task_id}/status")
-async def update_task_status(task_id: str, status: str, result: str = None):
-    """Update task status"""
-    valid_statuses = ["pending", "in_progress", "completed", "failed"]
+async def update_task_status(task_id: str, status: str, result: str = None, _admin=Depends(require_admin_role)):
+    """Update task status (solo admin autenticato).
+
+    `completed` NON è impostabile da questa rotta: un task si completa solo passando
+    dal verificatore nel motore di esecuzione, non con una stringa via API (T06).
+    """
+    # Stati che un admin può forzare a mano; `completed`/`failed` sono esiti del
+    # motore, non dichiarazioni manuali.
+    valid_statuses = ["pending", "in_progress", "cancelled"]
     if status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Status non valido. Usa: {valid_statuses}")
-    
+
     update_data = {
         "status": status,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
-    
-    if status == "completed":
-        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
-    
+
     if result:
         update_data["result"] = result
-    
+
     result_update = await db.agent_tasks.update_one(
         {"id": task_id},
         {"$set": update_data}
@@ -17196,6 +17208,11 @@ app.include_router(flusso_analisi_router)
 
 from routers.materials import router as materials_router
 app.include_router(materials_router)
+
+# Registro operativo dei task (T08): lista/dettaglio + azioni di recupero controllate
+from routers.operational_tasks import router as operational_tasks_router, set_db as set_operational_tasks_db
+set_operational_tasks_db(db)
+app.include_router(operational_tasks_router)
 
 
 # Include operations router (Dashboard Antonella: Partner, Contenuti, Campagne ADV)
