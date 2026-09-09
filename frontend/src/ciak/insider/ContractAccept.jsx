@@ -13,8 +13,8 @@ import React, { useEffect, useState } from 'react';
  * Nessuna firma disegnata richiesta qui: il consenso via checkbox è già
  * accettato dal backend (`POST /{token}/firma-contratto` con
  * `consenso_checkbox: true`, Task 3). Il bottone di pagamento resta
- * disabilitato finché il checkbox non è spuntato — è l'unico gate, e non è
- * aggirabile: nessun default `checked`, nessuna scorciatoia.
+ * disabilitato finché il contratto non è caricato ed entrambi i checkbox
+ * non sono spuntati. Il backend applica separatamente i gate al checkout.
  *
  * Opzione A' (decisione prodotto/legale post-review): la vendita resta B2B
  * (niente diritto di recesso da consumatore) tramite una dichiarazione di
@@ -23,21 +23,31 @@ import React, { useEffect, useState } from 'react';
  * imprenditoriale — entrambi obbligatori per sbloccare il pagamento. La
  * P.IVA resta un campo facoltativo: non fa parte del gate.
  */
-export default function ContractAccept({ partnerId, onConfirm }) {
+export default function ContractAccept({ partnerId, onConfirm, disabled = false }) {
   const [checked, setChecked] = useState(false);
   const [declared, setDeclared] = useState(false);
   const [piva, setPiva] = useState('');
   const [contractText, setContractText] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadedPartnerId, setLoadedPartnerId] = useState(null);
 
   useEffect(() => {
+    setChecked(false);
+    setDeclared(false);
+    setPiva('');
+    setContractText('');
+    setLoadedPartnerId(null);
+    setLoadFailed(!partnerId);
     if (!partnerId) return undefined;
     let cancelled = false;
     fetch(`/api/contract/text/${partnerId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Errore ${r.status}`))))
       .then((d) => {
         if (cancelled) return;
-        if (d?.contract_text) setContractText(d.contract_text);
+        if (typeof d?.contract_text === 'string' && d.contract_text.trim()) {
+          setContractText(d.contract_text);
+          setLoadedPartnerId(partnerId);
+        }
         else setLoadFailed(true);
       })
       .catch(() => {
@@ -47,6 +57,9 @@ export default function ContractAccept({ partnerId, onConfirm }) {
       cancelled = true;
     };
   }, [partnerId]);
+
+  const canConfirm = !disabled && !!partnerId && loadedPartnerId === partnerId
+    && !!contractText.trim() && !loadFailed && checked && declared;
 
   return (
     <div className="insider-contract-accept">
@@ -104,8 +117,10 @@ export default function ContractAccept({ partnerId, onConfirm }) {
       <button
         type="button"
         className="insider-contract-accept__cta"
-        disabled={!checked || !declared}
-        onClick={() => onConfirm({ dichiarazione_imprenditoriale: true, piva })}
+        disabled={!canConfirm}
+        onClick={() => {
+          if (canConfirm) onConfirm({ dichiarazione_imprenditoriale: true, piva });
+        }}
       >
         Paga e conferma la Partnership
       </button>

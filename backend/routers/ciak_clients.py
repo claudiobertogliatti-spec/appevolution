@@ -10,6 +10,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 from auth import decode_token
+from services.paid_offer_gate import require_paid_offer_checkout
 from services.ciak_client_accounts import (
     ACCESS_BLUEPRINT,
     ACCESS_PARTNER,
@@ -110,6 +111,7 @@ async def _create_checkout_session(
     metadata: dict[str, Any],
 ):
     api_key = _ensure_stripe_configured()
+    require_paid_offer_checkout(api_key, metadata.get("tipo"))
     from emergentintegrations.payments.stripe.checkout import CheckoutSessionRequest, StripeCheckout
 
     checkout = StripeCheckout(api_key=api_key)
@@ -122,6 +124,8 @@ async def _create_checkout_session(
     )
     try:
         return await checkout.create_checkout_session(session_request)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {exc}") from exc
 
@@ -556,24 +560,9 @@ async def partnership_checkout(client: dict[str, Any] = Depends(require_client))
     effective_client = _effective_client_snapshot(client, canonical_user)
     effective_client["access_level"] = _effective_access_level(client, canonical_user)
     _ensure_partnership_checkout_allowed(effective_client)
-    frontend = _frontend_url()
-    pricing = partnership_price_for_client(effective_client)
-    session = await _create_checkout_session(
-        amount_cents=pricing["due_amount_cents"],
-        success_url=f"{frontend}/cliente?checkout=partnership&payment=success",
-        cancel_url=f"{frontend}/cliente?checkout=partnership&payment=cancel",
-        metadata={
-            "tipo": "partnership",
-            "client_id": client["id"],
-            "email": client["email"],
-            "full_amount_cents": pricing["full_amount_cents"],
-            "credit_amount_cents": pricing["credit_amount_cents"],
-            "due_amount_cents": pricing["due_amount_cents"],
-        },
-    )
-    return {
-        "success": True,
-        "checkout_url": session.url,
-        "amount_cents": pricing["due_amount_cents"],
-        "credit_amount_cents": pricing["credit_amount_cents"],
-    }
+    # A client entitlement is not consent to a particular contract. The only
+    # Partnership checkout must go through its proposal and saved declaration.
+    raise HTTPException(409, detail={
+        "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
+        "message": "Per la Partnership apri il link alla proposta ricevuto dal team e completa l'accettazione del contratto.",
+    })

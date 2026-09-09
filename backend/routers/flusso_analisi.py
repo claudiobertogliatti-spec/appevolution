@@ -1566,61 +1566,11 @@ async def upload_documento(
 
 @router.post("/create-payment-session/{user_id}")
 async def create_payment_session(user_id: str):
-    """Crea sessione Stripe per pagamento partnership €2.990"""
-    if db is None:
-        raise HTTPException(status_code=500, detail="Database non inizializzato")
-
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Cliente non trovato")
-
-    stripe_key = os.environ.get("STRIPE_API_KEY")
-    if not stripe_key:
-        raise HTTPException(status_code=500, detail="Stripe non configurato")
-
-    frontend_url = os.environ.get("FRONTEND_URL", "https://www.ciak.io")
-
-    try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-        checkout = StripeCheckout(api_key=stripe_key)
-        session_request = CheckoutSessionRequest(
-            amount=2990.00,
-            currency="eur",
-            success_url=f"{frontend_url}/decisione-partnership?payment=success",
-            cancel_url=f"{frontend_url}/decisione-partnership?payment=cancelled",
-            metadata={
-                "user_id": user_id,
-                "tipo": "partnership",
-                "importo": "2990",
-                "email": user.get("email", "")
-            }
-        )
-        session = await checkout.create_checkout_session(session_request)
-
-        # Salva riferimento sessione
-        await db.pagamenti_partnership.update_one(
-            {"user_id": user_id},
-            {"$set": {
-                "user_id": user_id,
-                "stripe_session_id": session.session_id,
-                "importo": 2990,
-                "valuta": "EUR",
-                "metodo": "stripe",
-                "completato": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }},
-            upsert=True
-        )
-
-        return {
-            "success": True,
-            "checkout_url": session.url,
-            "session_id": session.session_id
-        }
-
-    except Exception as e:
-        logging.error(f"Stripe session creation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore creazione pagamento: {str(e)}")
+    """Retired: use the proposal with its signed contract and declaration."""
+    raise HTTPException(410, detail={
+        "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
+        "message": "Apri il link alla proposta ricevuto dal team per accettare il contratto e procedere al pagamento.",
+    })
 
 
 @router.post("/verify-payment-partnership/{user_id}")

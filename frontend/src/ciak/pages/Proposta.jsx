@@ -150,9 +150,17 @@ export function CiakProposta() {
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
-      if (data.checkout_url) window.location.href = data.checkout_url;
+      if (!res.ok) {
+        if (data?.detail?.code === "BUSINESS_DECLARATION_REQUIRED") {
+          window.location.href = `/insider/${encodeURIComponent(token)}`;
+          return;
+        }
+        throw new Error(data?.detail?.message || (typeof data?.detail === "string" ? data.detail : "Pagamento non disponibile"));
+      }
+      if (!data.checkout_url) throw new Error("Pagamento non disponibile");
+      window.location.href = data.checkout_url;
     } catch (e) {
-      toast.error("Errore avvio pagamento");
+      toast.error(e.message || "Errore avvio pagamento");
     }
   };
 

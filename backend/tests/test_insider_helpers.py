@@ -72,3 +72,19 @@ def test_dichiarazione_imprenditoriale_e_piva_opzionali_non_sollevano():
     )
     assert cd["dichiarazione_imprenditoriale"] is False
     assert cd["piva"] == ""
+
+
+@pytest.mark.parametrize("value", ["false", "true", 1, 0, [], {}, None])
+def test_declaration_requires_a_real_boolean_when_supplied(value):
+    with pytest.raises(ValueError):
+        build_contract_acceptance(
+            {"clausole_vessatorie_approved": True, "consenso_checkbox": True,
+             "dichiarazione_imprenditoriale": value}, "audit", "now")
+
+
+@pytest.mark.parametrize("value", [123, {}, []])
+def test_piva_rejects_non_text_values(value):
+    with pytest.raises(ValueError):
+        build_contract_acceptance(
+            {"clausole_vessatorie_approved": True, "consenso_checkbox": True,
+             "piva": value}, "audit", "now")

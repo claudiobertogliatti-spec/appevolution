@@ -1,3 +1,25 @@
+### 2026-09-09 · Codex · Insider: blocco checkout reali e consenso
+
+**AUTORIZZATO:** Claudio: applicare le correzioni dell'audit tecnico legale/fiscale.
+Worktree codex-insider-payment-gates, branch codex/insider-payment-gates,
+base 483461c9. Preservato il checkout principale e le altre sessioni.
+
+**DICHIARATO:** nuovi checkout Stripe Start/Partnership live chiusi per default;
+dichiarazione rigorosa legata alla proposta; recupero esplicito dei consensi
+legacy; testo caricato prima del pagamento; chiusura ingressi checkout legacy.
+Nessuna modifica al testo legale PLACEHOLDER, nessuna abilitazione dei gate,
+nessuna mutazione di pagamenti gia avvenuti. Dettagli in
+[INSIDER-PAYMENT-GATES.md](./INSIDER-PAYMENT-GATES.md).
+
+**VERIFICATO:** regressioni riprodotte prima dei fix; suite finale
+101 backend e 23 frontend PASS, compile e lint E9/F821 PASS. Review indipendente ha individuato due ingressi
+legacy aggiuntivi, corretti e aggiunti alla CI; review finale PASS. Inventario Stripe in sola lettura:
+zero sessioni aperte. Esiti definitivi e stato release da verificare dopo il push.
+
+**APERTO:** approvazioni di Claudio/legale/commercialista e chiusura placeholder
+prima di qualsiasi riapertura. Il blocco riguarda nuovi checkout Stripe;
+bonifici e pagamenti gia effettuati restano fuori perimetro.
+
 ### 2026-09-09 · Claude · Motore Evolution: T20 collaudo integrato + runbook T21 + piano pilota T22
 
 **AUTORIZZATO:** Claudio "completiamo e concludiamo tutto". Branch `codex/evolution-collaudo` (da main con #78+#84).

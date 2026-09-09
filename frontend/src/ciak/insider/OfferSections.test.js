@@ -1,6 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import OfferSections from './OfferSections';
+import RealOfferSections from './OfferSections';
+
+const enabled = { start: { enabled: true }, partnership: { enabled: true } };
+const OfferSections = (props) => <RealOfferSections checkoutReadiness={enabled} partnerId="p1" {...props} />;
+
+test.each([undefined, {}, { start: { enabled: false }, partnership: { enabled: false } }])('nessuna accettazione o checkout se i gate sono chiusi o mancanti: %j', (checkoutReadiness) => {
+  global.fetch = jest.fn();
+  render(<RealOfferSections token="t" checkoutReadiness={checkoutReadiness} />);
+  screen.getAllByRole('button').forEach((button) => {
+    expect(button.disabled).toBe(true);
+    fireEvent.click(button);
+  });
+  expect(global.fetch).not.toHaveBeenCalled();
+  delete global.fetch;
+});
 
 test('prezzi reali + copy credito; niente prezzo inventato', () => {
   render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
@@ -67,6 +81,9 @@ describe('wiring checkout (Task 7)', () => {
 
   test('Partnership CTA: accetta -> checkbox contratto -> firma-contratto -> pagamento-stripe -> redirect', async () => {
     global.fetch = jest.fn((url) => {
+      if (url === '/api/contract/text/p1') {
+        return Promise.resolve({ ok: true, json: async () => ({ contract_text: 'Contratto pronto' }) });
+      }
       if (url === '/api/proposta/t/accetta') {
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) });
       }
@@ -89,6 +106,7 @@ describe('wiring checkout (Task 7)', () => {
 
     // La pagina del contratto compare solo dopo l'accettazione — gate reale, non finto.
     const [conditionsCheckbox, declarationCheckbox] = await screen.findAllByRole('checkbox');
+    await screen.findByText('Contratto pronto');
     fireEvent.click(conditionsCheckbox);
     fireEvent.click(declarationCheckbox);
     const payBtn = screen.getByRole('button', { name: /paga|procedi/i });
@@ -112,6 +130,9 @@ describe('wiring checkout (Task 7)', () => {
 
   test('errore onesto se firma-contratto fallisce: niente pagamento-stripe, niente finto successo', async () => {
     global.fetch = jest.fn((url) => {
+      if (url === '/api/contract/text/p1') {
+        return Promise.resolve({ ok: true, json: async () => ({ contract_text: 'Contratto pronto' }) });
+      }
       if (url === '/api/proposta/t/accetta') {
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) });
       }
@@ -125,6 +146,7 @@ describe('wiring checkout (Task 7)', () => {
     fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
 
     const [conditionsCheckbox, declarationCheckbox] = await screen.findAllByRole('checkbox');
+    await screen.findByText('Contratto pronto');
     fireEvent.click(conditionsCheckbox);
     fireEvent.click(declarationCheckbox);
     fireEvent.click(screen.getByRole('button', { name: /paga|procedi/i }));
