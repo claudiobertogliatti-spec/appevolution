@@ -33,3 +33,80 @@
 .insider > p[role="alert"] {
   color: #0F172A;
 }
+
+/* InsiderWelcome (Task 5) */
+.insider-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 560px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.insider-welcome__badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0F172A;
+  background: #FACC15;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.insider-welcome__title {
+  margin: 0;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-welcome__telegram {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 20px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.insider-welcome__telegram:hover {
+  border-color: #FACC15;
+  transform: translateY(-1px);
+}
+
+.insider-welcome__video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0F172A;
+}
+
+.insider-welcome__video iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.insider-welcome__video--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px dashed #E5E7EB;
+}
+
+.insider-welcome__video--placeholder p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748B;
+}
