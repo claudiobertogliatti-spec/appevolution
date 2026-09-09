@@ -454,13 +454,6 @@ function RepartoLanding({ macro, onAuthExpired }) {
           Reparto admin
         </p>
         <h1 className="text-4xl font-semibold text-slate-900 leading-tight mt-1">{macro.label}</h1>
-        {(macro.persone?.length || macro.agenti?.length) ? (
-          <p className="text-base text-slate-500 mt-2">
-            {macro.persone?.length ? <span className="font-semibold text-slate-700">{macro.persone.join(", ")}</span> : null}
-            {macro.persone?.length && macro.agenti?.length ? " · " : null}
-            {macro.agenti?.length ? <>Agenti: <span className="font-semibold text-slate-700">{macro.agenti.join(", ")}</span></> : null}
-          </p>
-        ) : null}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {pages.map((p) => (

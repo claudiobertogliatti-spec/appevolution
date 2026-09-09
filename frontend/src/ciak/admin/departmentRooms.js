@@ -1,7 +1,9 @@
 export const DEPARTMENT_ROOMS = {
   dashboard: {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Direzione",
+    persone: ["Claudio"],
+    agenti: ["Luca"],
     agent: {
       id: "luca",
       name: "Luca",
@@ -25,6 +27,8 @@ export const DEPARTMENT_ROOMS = {
   acquisizione: {
     id: "acquisizione",
     label: "Acquisizione",
+    persone: ["Mariangela"],
+    agenti: ["Carlo", "Andrea"],
     agent: {
       id: "luca",
       name: "Luca",
@@ -66,6 +70,8 @@ export const DEPARTMENT_ROOMS = {
   vendite: {
     id: "vendite",
     label: "Vendite",
+    persone: ["Mariangela"],
+    agenti: ["Gaia", "Carlo"],
     agent: {
       id: "gaia",
       name: "Gaia",
@@ -89,6 +95,8 @@ export const DEPARTMENT_ROOMS = {
   delivery: {
     id: "delivery",
     label: "Delivery",
+    persone: ["Antonella", "Matteo"],
+    agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     agent: {
       id: "stefania",
       name: "Simona",
@@ -133,6 +141,8 @@ export const DEPARTMENT_ROOMS = {
   "back-office": {
     id: "back-office",
     label: "Back office",
+    persone: ["Stefania", "Debora"],
+    agenti: ["Valentina"],
     agent: {
       id: "valentina",
       name: "Valentina",
