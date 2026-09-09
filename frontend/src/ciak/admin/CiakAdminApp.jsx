@@ -105,8 +105,9 @@ const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
     id: "dashboard",
-    label: "Dashboard",
-    agente: "Luca",
+    label: "Direzione",
+    persone: ["Claudio"],
+    agenti: ["Luca"],
     to: "/admin",
     end: true,
     pages: [],
@@ -115,7 +116,8 @@ const NAV = [
   {
     id: "acquisizione",
     label: "Acquisizione",
-    agente: "Luca",
+    persone: ["Mariangela"],
+    agenti: ["Carlo", "Andrea"],
     landing: true,
     hideFor: ["antonella"],
     pages: [
@@ -130,7 +132,8 @@ const NAV = [
   {
     id: "vendite",
     label: "Vendite",
-    agente: "Gaia",
+    persone: ["Mariangela"],
+    agenti: ["Gaia", "Carlo"],
     landing: true,
     hideFor: ["antonella"],
     pages: [
@@ -147,7 +150,8 @@ const NAV = [
   {
     id: "delivery",
     label: "Delivery",
-    agente: "Simona",
+    persone: ["Antonella", "Matteo Paredi"],
+    agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
     pages: [
       { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
@@ -162,24 +166,15 @@ const NAV = [
       { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
       { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
       { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
-    ],
-  },
-  // ── CASI STUDIO · Andrea ── prova sociale che alimenta il funnel ───────
-  {
-    id: "casi-studio",
-    label: "Casi studio",
-    agente: "Andrea",
-    landing: true,
-    hideFor: ["antonella"],
-    pages: [
-      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: risultati dei partner per il funnel" },
+      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
     ],
   },
   // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
   {
     id: "back-office",
     label: "Back office",
-    agente: "Valentina",
+    persone: ["Stefania Russo", "Debora"],
+    agenti: ["Valentina"],
     landing: true,
     hideFor: ["antonella"],
     pages: [
@@ -302,6 +297,19 @@ function LoginScreen({ onLogin }) {
 
 // ─── Sidebar a macro-voci (click → pagina-reparto, niente flyout) ────────
 
+// Persone (solo nome) + riga "Agenti: X, Y" per reparto (deciso 9/9). Pelle invariata.
+function MacroRoster({ macro, cls }) {
+  const persone = macro.persone || [];
+  const agenti = macro.agenti || [];
+  if (!persone.length && !agenti.length) return null;
+  return (
+    <>
+      {persone.length > 0 && <span className={cls}>{persone.join(", ")}</span>}
+      {agenti.length > 0 && <span className={cls}>Agenti: {agenti.join(", ")}</span>}
+    </>
+  );
+}
+
 function MacroItem({ macro, currentPath }) {
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   // Macro "diretta" (link semplice).
@@ -321,11 +329,7 @@ function MacroItem({ macro, currentPath }) {
         <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
         <span className="min-w-0">
           <span className="block leading-tight truncate">{macro.label}</span>
-          {macro.agente && (
-            <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
-              Agente: {macro.agente}
-            </span>
-          )}
+          <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
         </span>
       </NavLink>
     );
@@ -348,11 +352,7 @@ function MacroItem({ macro, currentPath }) {
       <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
       <span className="min-w-0">
         <span className="block leading-tight truncate">{macro.label}</span>
-        {macro.agente && (
-          <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">
-            Agente: {macro.agente}
-          </span>
-        )}
+        <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
       </span>
     </NavLink>
   );
@@ -441,11 +441,13 @@ function RepartoLanding({ macro, onAuthExpired }) {
           Reparto admin
         </p>
         <h1 className="text-4xl font-semibold text-slate-900 leading-tight mt-1">{macro.label}</h1>
-        {macro.agente && (
+        {(macro.persone?.length || macro.agenti?.length) ? (
           <p className="text-base text-slate-500 mt-2">
-            Agente di riferimento: <span className="font-semibold text-slate-700">{macro.agente}</span>
+            {macro.persone?.length ? <span className="font-semibold text-slate-700">{macro.persone.join(", ")}</span> : null}
+            {macro.persone?.length && macro.agenti?.length ? " · " : null}
+            {macro.agenti?.length ? <>Agenti: <span className="font-semibold text-slate-700">{macro.agenti.join(", ")}</span></> : null}
           </p>
-        )}
+        ) : null}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {pages.map((p) => (
