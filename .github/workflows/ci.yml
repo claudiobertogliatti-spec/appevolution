@@ -145,6 +145,22 @@ jobs:
           tests/test_collaudo.py
           tests/test_vetrina_contatti.py
           tests/test_agent_task_dismiss.py
+          tests/test_operational_task_contracts.py
+          tests/test_operational_task_completion.py
+          tests/test_operational_task_concurrency.py
+          tests/test_operational_task_policy.py
+          tests/test_operational_task_reconciliation.py
+          tests/test_operational_task_recovery.py
+          tests/test_operational_runtime_health.py
+          tests/test_operational_acquisition.py
+          tests/test_operational_sales.py
+          tests/test_operational_delivery.py
+          tests/test_operational_back_office.py
+          tests/test_operational_coordinator.py
+          tests/test_operational_collaborations.py
+          tests/test_collaborator_department_access.py
+          tests/test_collaboration_compensation.py
+          tests/test_operational_tasks_end_to_end.py
 
   frontend:
     name: Frontend (build smoke)
@@ -167,7 +183,7 @@ jobs:
 
       - name: Calendar review tests
         working-directory: frontend
-        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx KpiTile.test.jsx PageHeader.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx ContractParamsModal.test.jsx AnalisiPromptEditor.test.jsx LucaChat.test.jsx VideoPipelineMonitor.test.jsx VideoReview.test.jsx ContrattoCustomModal.test.jsx offerEmphasis.test.js InsiderSalesPage.test.js InsiderWelcome.test.js OfferSections.test.js ContractAccept.test.js
+        run: CI=true npm test -- --runInBand CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx KpiTile.test.jsx PageHeader.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx ContractParamsModal.test.jsx AnalisiPromptEditor.test.jsx LucaChat.test.jsx VideoPipelineMonitor.test.jsx VideoReview.test.jsx ContrattoCustomModal.test.jsx PartnerDetailModal.test.jsx DepartmentQueue.test.jsx offerEmphasis.test.js InsiderSalesPage.test.js InsiderWelcome.test.js OfferSections.test.js ContractAccept.test.js
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali

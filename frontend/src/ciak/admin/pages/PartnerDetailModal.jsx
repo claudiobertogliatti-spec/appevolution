@@ -792,7 +792,107 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 // COMPONENTE PRINCIPALE - CENTRALE OPERATIVA PARTNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo" }) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// HEADER OPERATIVO (T17a) — apre la scheda su "cosa manca e chi ci lavora"
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Scadenza operativa: SOLO da campi reali (prossima rata del piano o fine
+// contratto). Una deadline per-step non esiste → se manca, "—", mai inventata.
+function opScadenza(partner, piano) {
+  const raw = piano?.prossima_scadenza || partner?.piano_pagamento?.prossima_scadenza || partner?.contract_end;
+  if (!raw) return null;
+  const s = String(raw).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+// Blocco: dai flag GIA' calcolati dal backend in /delivery-audit (stessa fonte di
+// Audit Delivery). Mai ricalcolato a mano qui.
+function opBlocco(audit) {
+  if (!audit) return null;
+  if (audit.blocked) return { text: "Fermo", cls: "bg-red-100 text-red-700" };
+  if (audit.incoerenza) return { text: "Incoerenza", cls: "bg-red-100 text-red-700" };
+  if (audit.stale) return { text: "In ritardo", cls: "bg-amber-100 text-amber-700" };
+  return null;
+}
+
+// Obiettivo dell'atto EVO corrente (descrizione dell'atto, non una promessa
+// per-partner inventata): il "prossimo risultato" a cui punta la fase attuale.
+const ATTO_OBIETTIVO = {
+  Esamina: "Posizionamento e offerta chiari",
+  Valida: "Funnel online e testato",
+  Ottimizza: "Crescita e riferimento di categoria",
+};
+
+// Striscia operativa in cima alla scheda. I dati operativi (situazione/prossima
+// azione/responsabile/blocco) arrivano dall'item `audit` passato dal chiamante,
+// che e' la STESSA fonte di Audit Delivery (GET /delivery-audit). Nulla e'
+// ricalcolato o inventato: dove il dato manca, "—".
+export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney }) {
+  const atto = attoEvo(phase) || "—";
+  const situazione = (audit && audit.current_step) || atto;
+  const risultato = ATTO_OBIETTIVO[atto] || "—";
+  const responsabile = (audit && audit.owner) || "—";
+  const scadenza = opScadenza(partner, piano);
+  const blocco = opBlocco(audit);
+  const prossima = (audit && audit.next_action) || null;
+  return (
+    <div data-testid="partner-op-header" className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Target className="w-3.5 h-3.5" aria-hidden />Situazione
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{situazione}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden />Prossimo risultato
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{risultato}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <User className="w-3.5 h-3.5" aria-hidden />Responsabile
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{responsabile}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Calendar className="w-3.5 h-3.5" aria-hidden />Scadenza
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{scadenza || "—"}</div>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+          <div className="text-sm font-semibold text-slate-900 truncate">
+            {prossima || <span className="text-slate-400 font-normal">Nessuna azione in coda</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {blocco ? (
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${blocco.cls}`}>
+              <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blocco.text}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">Nessun blocco</span>
+          )}
+          <button
+            type="button"
+            onClick={onOpenJourney}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            Apri i materiali
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "panoramica", audit = null }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -900,7 +1000,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       // Tab di apertura: "profilo" (click sul nome) o "journey" (bottone Journey)
       setActiveTab(initialTab);
       setJourneyData(null);
-      if (initialTab === "journey") loadJourneyData();
+      if (initialTab === "materiali") loadJourneyData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partner, initialTab]);
@@ -1415,10 +1515,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const partnerName = headerPartner.name || headerPartner.nome || `${headerPartner.nome || ""} ${headerPartner.cognome || ""}`.trim() || "Partner";
 
   const tabs = [
-    { id: "profilo", label: "Profilo", icon: User },
-    { id: "journey", label: "Dati Journey", icon: Edit3 },
+    { id: "panoramica", label: "Panoramica", icon: Eye },
+    { id: "percorso", label: "Percorso EVO", icon: Target },
+    { id: "materiali", label: "Materiali", icon: Edit3 },
     { id: "documenti", label: "Documenti", icon: FileText },
-    { id: "pagamenti", label: "Pagamenti", icon: CreditCard }
+    { id: "pagamenti", label: "Pagamenti", icon: CreditCard },
+    { id: "impostazioni", label: "Impostazioni", icon: Settings }
   ];
 
   return (
@@ -1464,12 +1566,22 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             </button>
           </div>
 
+          {/* Header operativo (T17a): situazione, prossimo risultato, responsabile,
+              scadenza, prossima azione e blocco — apre su cosa manca e chi ci lavora. */}
+          <PartnerOpHeader
+            partner={headerPartner}
+            audit={audit}
+            piano={piano}
+            phase={formData.phase}
+            onOpenJourney={() => { setActiveTab("materiali"); loadJourneyData(); }}
+          />
+
           {/* Tabs */}
           <div className="flex border-b" style={{ backgroundColor: "#FAFAF7" }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); if (tab.id === "journey") loadJourneyData(); }}
+                onClick={() => { setActiveTab(tab.id); if (tab.id === "materiali") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id
                     ? "border-[#FFD24D] text-gray-900 bg-white"
@@ -1503,8 +1615,50 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB JOURNEY */}
-            {activeTab === "journey" && (
-              <div className="space-y-5" data-testid="tab-content-journey">
+            {/* TAB PANORAMICA — apre qui: cosa serve adesso + stato consegna (solo dati reali) */}
+            {activeTab === "panoramica" && (
+              <div className="space-y-5" data-testid="tab-content-panoramica">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+                  <div className="text-sm font-semibold text-slate-900 mt-0.5">
+                    {audit?.next_action || <span className="text-slate-400 font-normal">Nessuna azione in coda.</span>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Stato consegna</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { ok: formData.partnership_pagata, label: "Partnership pagata" },
+                      { ok: formData.contratto_firmato, label: "Contratto firmato" },
+                      { ok: formData.onboarding_completato, label: "Onboarding" },
+                      { ok: formData.masterclass_pronta, label: "Masterclass" },
+                    ].map(({ ok, label }) => (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}`}
+                      >
+                        {ok ? <CheckCircle className="w-3.5 h-3.5" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden />}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
+                </p>
+              </div>
+            )}
+
+            {/* TAB PERCORSO EVO — macro-fasi + step, promosso a tab dedicato */}
+            {activeTab === "percorso" && (
+              <div className="space-y-5" data-testid="tab-content-percorso">
+                <PercorsoEvoPanel partner={partner} />
+              </div>
+            )}
+
+            {/* TAB MATERIALI (ex Dati Journey) */}
+            {activeTab === "materiali" && (
+              <div className="space-y-5" data-testid="tab-content-materiali">
                 {journeyLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
@@ -1529,8 +1683,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             )}
 
             {/* TAB PROFILO */}
-            {activeTab === "profilo" && (
-              <div className="space-y-6" data-testid="tab-content-profilo">
+            {activeTab === "impostazioni" && (
+              <div className="space-y-6" data-testid="tab-content-impostazioni">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Nicchia */}
                   <div>
@@ -1816,10 +1970,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </button>
                 </div>
 
-                {/* Percorso EVO — macro-fasi + 20 step (sostituisce il selettore fase legacy) */}
-                <div className="pt-6 border-t">
-                  <PercorsoEvoPanel partner={partner} />
-                </div>
               </div>
             )}
 

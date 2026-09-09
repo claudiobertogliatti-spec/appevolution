@@ -1,5 +1,9 @@
 # Evolution PRO — Istruzioni permanenti per Claude Code
 
+## Architettura Evolution concordata — 8 settembre 2026
+
+Leggere [docs/strategy/evolution-architettura-concordata.md](docs/strategy/evolution-architettura-concordata.md) prima di lavorare su admin, reparti, agenti e collaborazioni. Piano in `docs/superpowers/plans/2026-09-08-evolution-organigramma-autonomia.md`. Claudio ha autorizzato l'avvio **backend-first**, mantenendo l'admin operativo: implementazione isolata, nessuna nuova autonomia attivata senza verifiche. Mandati tecnici in `docs/strategy/evolution-reparti-mandati.md`.
+
 ## ⛔ LEGGERE PRIMA DI TUTTO — protocollo multi-agente (2026-07-27)
 
 Su questo repo lavorano più agenti (Claude Code, Codex, Antigravity).

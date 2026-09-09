@@ -1,3 +1,147 @@
+### 2026-09-09 · Claude · Motore Evolution: T20 collaudo integrato + runbook T21 + piano pilota T22
+
+**AUTORIZZATO:** Claudio "completiamo e concludiamo tutto". Branch `codex/evolution-collaudo` (da main con #78+#84).
+
+**DICHIARATO:** T20 `test_operational_tasks_end_to_end.py` — catena completa Acquisizione→Vendite→Delivery/Back office attraverso il motore, ogni handoff punta a un task_type registrato, coordinatore report, idempotente. T21 runbook `docs/agents/runbooks/evolution-operational-tasks.md` (rilascio una capacità alla volta, shadow, arresto controllato, rollback). T22 piano pilota `docs/agents/evidence/evolution-autonomia-pilot.md` (7 giorni, controlli giornalieri, gate G4).
+
+**VERIFICATO:** T20 **3 passed**; flake8 pulito; in ci.yml.
+
+**CONFINE ONESTO (ciò che NON si chiude in codice):** T15-T19 UI = design-lead (non fatte); T21 attivazione + T22 pilota = infra viva (Redis+2 Cloud Run) + decisioni Claudio + 7 giorni (qui solo i piani); integrazioni runtime (heartbeat/wiring generatori/creazione task in coda/lettura sorgenti reali); rimisura funzionale in prod di #78/#84. Branch collaudo in locale (push/PR da decidere).
+
+### 2026-09-09 · Claude · Motore Evolution: DEPLOY OK + T24/T25 collaborazioni
+
+**DEPLOY VERIFICATO:** PR #78 mergiata in main → **CI main `success`** + **Deploy Backend (Cloud Run) `success`** (job `gcloud run deploy` ok). La produzione si è avviata sana col nuovo codice (rischio boot server.py scongiurato). Rimisura funzionale profonda (worker/rotte) da fare con accesso live.
+
+**DICHIARATO (branch `codex/evolution-collaborazioni`):** T24 `collaboration_timesheet.py` — identità unica multi-reparto (personal_totals deduplica; department_view filtra), pianificato/consuntivo/approvato distinti, detect_duplicates/overlaps, weekly_load (over_limit segnalato non riscritto), access_for/redact_for (ognuna vede solo i propri economici; direzione tutto; la collaboratrice non modifica le proprie economiche). T25 `collaboration_compensation.py` — calcolo deterministico dalle regole validate T23: stimato/maturato/approvato/pagato, attribuzione vendita per EVENTO verificato (mai per nome), dedup evento, storno su rimborso, bonus discrezionale non auto-approvato, regola assente→non_calcolabile (mai zero), nessun pagamento eseguito, chiusura periodo immutabile + rettifica esplicita. `collaborations.py` arricchito con basis/maturation nell'artefatto validato (T23 re-testato).
+
+**VERIFICATO:** T24 11 passed, T25 13 passed; suite motore **179 passed, 2 skipped**; compileall OK; flake8 pulito. Nuovi test in ci.yml.
+
+**APERTO:** estrazione regole dai contratti (dati personali, storage privato); UI collaboratori/prospetti → design-lead; wiring ore/eventi reali + persistenza prospetti su `collaborator_settlements` con infra viva; approvazione economica di Claudio. Branch T24/T25 in locale (push/PR da decidere). Restano T15-T22 (UI + collaudo/rilascio/pilotaggio).
+
+### 2026-09-09 · Claude · Motore Evolution: PR #78 MERGIATA + DEPLOY, T23 avviato
+
+**AUTORIZZATO:** Claudio "Merge in main / deploy e procedi t23". Claude owner.
+
+**MERGE + DEPLOY:** PR #78 (G1+G2, backend inerte) **squash-mergiata** in `main` (`924b0908`). Push su main → CI + **Deploy Backend (Cloud Run)** partiti (deploy ~18 min, in watch). Il codice è inerte (capacità non nel DEFAULT) ma T04/T05/T06/T08 cambiano il comportamento del motore/rotte in produzione.
+
+**T23 (nuovo branch `codex/evolution-collaborazioni` da main):** nuovo `services/operational_tasks/collaborations.py` — capacità `collaboration.validate_rules`: schema regole (fixed/hourly/commission/bonus) con clausola+validità+base obbligatorie; campo ambiguo→`non_calcolabile` (mai zero), blocca solo il proprio calcolo; `document_ref` tracciabile (hash/versione/fonte), **contenuto contratto rifiutato nel payload**; nessuna eredità fra collaboratori; `needs_human_validation`. Doc schema `docs/strategy/evolution-collaborazioni-regole.md` (zero dati personali). Riusa `collaborator_settlements.py` esistente (orario), che T25 estenderà.
+
+**VERIFICATO:** `test_operational_collaborations.py` (nuovo, in ci.yml) **11 passed**; compileall OK; flake8 pulito.
+
+**APERTO:** estrazione regole dal contratto (dati personali → storage privato, fuori repo), presentazione a Claudio per validazione, T24 aree personali/ore, T25 calcolo prospetti. Branch T23 in locale (push/PR da decidere). Deploy in verifica.
+
+### 2026-09-09 · Claude · Motore Evolution: T14 coordinatore Luca — GATE G2 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T14. Nuovo `services/operational_tasks/coordinator.py`: `build_direction_briefing` (dalle 4 code, verificati SOLO con prova, blocchi con owner/motivo; `kind:report`, `is_executive_agent:False`); `coordinator_tool_call` con strumenti limitati (`read_state`/`propose_plan`/`create_task`) — tool sconosciuto rifiutato, create solo per task_type CATALOGATO (registry) e valido, budget per ciclo (max_tasks/max_model_calls), doppia richiesta deduplicata; `authorize_proposed_task` (niente delega a nome senza esecutore); `can_start` (dipendenza non risolta → blocked). Vincolo reale rispettato: la chat Luca è senza tool (nota ⛔ in admin_luca.py) → NON cablato qui. **Con T14 il gate G2 (M2) è coperto lato backend.**
+
+**VERIFICATO:** `test_operational_coordinator.py` (nuovo, in ci.yml) **10 passed** (tool sconosciuto, testo malevolo non catalogato, doppia richiesta, dipendenza non risolta, budget esaurito, risultato senza evidenza). **Intera suite motore M1+M2 149 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** cablaggio tool nella chat Luca (richiede riscrivere LUCA_AD_SYSTEM + ciclo LLM), integrazioni runtime (T09 heartbeat, wiring generatori/adapter reali T10-T13, creazione task in coda), attivazione capacità nel DEFAULT (T21). Restano T15-T19 (UI, design-lead), T20-T22 (collaudo/rilascio/pilotaggio), T23-T25 (collaborazioni). Niente push/merge/deploy: locale, branch avanti di 12 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T13 flusso Back office
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T13. Nuovo `services/operational_tasks/back_office.py`: `back_office.check_due_item` legge il piano reale (`PianoPagamento`: rate_totali/rate_pagate/importo_rata/prossima_scadenza) e classifica atteso / incassato_verificato / esito_da_confermare / sospeso / completed + anomalie (rate_incoerenti "rata 9 di 2", importo_mancante ≠ 0, scadenza_mancante). Mai incasso dedotto dalla data, mai pagamento/rimborso/incremento rate. Anomalia o scaduto → UNA attività; sollecito solo bozza, niente se sospeso. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_back_office.py` (nuovo, in ci.yml) **13 passed** (tutti gli scenari del piano + run via motore + idempotenza). Suite operational **139 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring coi piani reali (`db.crediti`/eventi Stripe), aggiornamento amministrativo autorizzato (mai automatico), `reminders_suspended` alimentato da WhatsApp = infra viva. UI Amministrazione → design-lead. Prossimo **T14 Luca** (chiude G2/M2). Niente push/merge/deploy: locale, branch avanti di 11 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T12 flusso Delivery
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T12. Nuovo `services/operational_tasks/delivery.py`, due capacità: `delivery.generate_positioning` (prereq mancanti→richiesta precisa; artefatto versionato per CONTENUTO; disponibile al partner solo se stessa versione approvata+file presente; revisione rifiutata→changes_requested; nuovo input→no riapprovazione automatica; video = attività figlia monitorata `video.render`, non fallback Andrea, idempotente) e `delivery.case_study_evidence_check` (blocked senza consenso o senza `prova` misurata; candidate/verifiable; `published` sempre False, mai pubblicazione automatica). Fonti reali lette: `posizionamento_approval.py`, `case_study_engine.py` (chiave `prova`), `video_pipeline_task.py`. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_delivery.py` (nuovo, in ci.yml) **15 passed** (via motore + tutti gli scenari del piano). Suite operational **126 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring col generatore reale (VALENTINA/case_study_engine), stato journey/coda approvazione, monitoraggio pipeline video = attivazione con DB/infra viva. Casi studio `verifiable` usabili da Acq/Vendite solo se approvati (collegamento successivo). UI → design-lead. Prossimo T13 Back office. Niente push/merge/deploy: locale, branch avanti di 10 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T11 flusso Vendite
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T11. Nuovo `services/operational_tasks/sales.py`: `sales.prepare_next_action` (consuma la handoff di T10). Riusa il gate REALE di `proposta.py::require_partnership_proposal_eligibility` (blueprint pagato → analisi consegnata → call_done → offer_decision=partnership). Propone UN passo = primo gate non soddisfatto (con SLA); decisione negativa → closed_lost; gate completi → chiusura con handoff idempotenti a Delivery (`delivery.generate_positioning`) + Back office (`back_office.check_due_item`, con obligations). Non firma, non incassa. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_sales.py` (nuovo, in ci.yml) **8 passed** (via motore: ordine gate, SLA, closed_lost, chiusura→2 handoff, idempotenza, no firma/incasso). Suite operational **111 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring che legge i flag dalle sorgenti reali (sessione Blueprint, `ciak_analisi.bozza_inviata_at`, `ciak_clients.offer_decision`) e crea i task Delivery/Back office = attivazione con DB/infra viva. Firma/pagamento restano nelle rotte `proposta.py` (umano). UI PipelineList/ClientiCiak → design-lead. Prossimo T12 Delivery. Niente push/merge/deploy: locale, branch avanti di 9 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T10 flusso Acquisizione (M2 iniziato)
+
+**AUTORIZZATO:** Claudio ha scelto "B — M2 — T10". Claude owner, Codex fermo. Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T10, **prima capacità registrata** nel motore. Nuovo `services/operational_tasks/acquisition.py`: `acquisition.qualify_contact` legge un contatto ESISTENTE (campi reali `ciak_leads`: email/nome/telefono/source/tags), produce una qualificazione deterministica e motivata (nessun invio, nessun cold outreach) e la BOZZA del prossimo passo — handoff a Vendite (`sales.prepare_next_action`) se ci sono gli obbligatori (email+source+canale), altrimenti attività `data_integration`. Capacità kind AI, no approvazione, no effetti esterni; `register()` esplicito, NON nel DEFAULT_TASK_REGISTRY (attivazione = scelta T21).
+
+**VERIFICATO:** `test_operational_acquisition.py` (nuovo, in ci.yml) **8 passed** — gira ATTRAVERSO il motore (`execute_and_verify_registered`), dedup per identità, aggiornamento→versione nuova, dato mancante→data_integration, caldo/freddo, nessun invio. Suite operational **103 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring reale (creare il task Vendite dalla handoff, leggere `ciak_leads`, `is_claim_suspended` a monte) = attivazione flusso con DB/infra viva. UI `LeadManager.jsx` → design-lead. Prossimo T11 (Vendite, consuma la handoff). Niente push/merge/deploy: locale, branch avanti di 8 su origin.
+
+### 2026-09-09 · Claude · Motore Evolution: T09 salute runtime — GATE G1 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T09 backend. Nuovo `services/operational_tasks/runtime.py`: `classify_runtime_health` distingue istanza API e servizio worker (API senza heartbeat → `UNKNOWN_SEPARATE`, mai `DOWN` — la lezione del monitor che mentiva); `is_claim_suspended` ferma i NUOVI claim per reparto/capacità senza toccare i lease in corso; `claim_periodic_window` = un solo proprietario per finestra (upsert `_id` unico). Con T09 il **gate G1 (T03-T09, affidabilità del motore) è coperto lato backend**.
+
+**VERIFICATO:** `test_operational_runtime_health.py` (nuovo, in ci.yml) **15 passed** (i 4 scenari del piano + anti-bugia API + sospensioni + single-owner). Suite operational completa (G1) **95 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO (integrazioni runtime, servono infra viva):** far scrivere al worker un heartbeat condiviso che l'API rilegge + esporre l'health in `celery_manager`/endpoint + far consultare `is_claim_suspended` al loop; richiede Redis + i 2 servizi Cloud Run. UI `VideoPipelineMonitor.jsx` → design-lead. Poi flussi reparto M2 (T10-T14). Niente push/merge/deploy: tutto locale (branch avanti di 7 su origin).
+
+### 2026-09-08 · Claude · Motore Evolution: T08 (backend) registro + recupero
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T08 solo backend (la pagina `OperationalTasks.jsx` è rimandata: va fatta con design-lead, e vale la scelta backend-first). Nuovo `services/operational_tasks/events.py`: `append_event`/`timeline` (traccia append-only), `escalate` deduplicata per incidente, `record_escalation_delivery` (notifica fallita NON risolve), `can_admin_retry` (vietato ritentare effetti incerti → riconciliare). Nuovo router `routers/operational_tasks.py` (`/api/operational-tasks`): lista+dettaglio con timeline, azioni `retry`/`reconcile`/`assign`/`cancel` con admin auth + controllo concorrenza + evento in timeline. Registrato in `server.py`.
+
+**VERIFICATO:** `test_operational_task_recovery.py` (nuovo, in ci.yml) **10 passed** (incl. AST: i 6 endpoint richiedono admin). Suite operational **80 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** (1) pagina frontend del motore → design-lead. (2) router verificato per struttura (AST)+compileall, non su app FastAPI live (`.venv-ops` minimale senza fastapi; in CI c'è). (3) chi APRE l'escalation (il worker su `blocked`) e chi INVIA la notifica si collegano coi flussi reparto T10-T13. (4) Resta T09 (salute runtime, chiude G1). Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T07 prove/dedup/riconciliazione effetti
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T07. Nuovo `services/operational_tasks/evidence.py`: `classify_effect_outcome` distingue `PRODUCED` (prova riletta) / `FAILED` (mai partito, reinviabile) / `UNKNOWN` (timeout dopo invio → riconciliare, mai reinviare); `channels_to_retry` ripete SOLO i FAILED; `all_effects_verified` completa solo con prova su ogni canale; `EffectLedger` registra l'intento con chiave di idempotenza e deduplica callback/tentativi ripetuti. Letto `social_publisher.py`: già dedup per-canale via permalink; il buco che T07 copre è il **timeout dopo l'invio** oggi trattato come errore → ripubblicazione/doppione.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_reconciliation.py` (nuovo, in ci.yml) **14 passed**. Suite operational **70 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring in `social_publisher.py` (registrare l'intento prima di pubblicare + cercare l'operazione remota sul timeout prima di ripubblicare) è l'integrazione successiva — tocca un adapter di produzione con test propri e serve logica Graph live. La query di riconciliazione è per-provider (Systeme/Graph/SMTP): la macchina a stati è in `evidence.py`, gli adapter la useranno nei flussi reparto T10-T13. Restano T08/T09. Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T06 autorizzazioni applicate dal server
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T06. Nuovo `services/operational_tasks/policy.py`: `authorize_admin` (identità dal token, non dal body), `approval_authorizes_output` (un'approvazione vale per UNA versione: legata a checksum output + scadenza + reviewer). `approval_workflow.py`: `approve_task` registra checksum+scadenza; `reject_task` al 3° rifiuto va a **`blocked`** (non più `rejected` orfano né raise). `server.py`: `require_admin_role` su approve/reject/dismiss/status/approvals/approval-stats; **reviewer = admin autenticato** (`_admin.email`), non `request.reviewer`; `PATCH /status` non accetta più `completed` (niente bypass del verificatore).
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend`. `test_operational_task_policy.py` (nuovo, in ci.yml) **12 passed** — incl. asserzioni AST su server.py (le 6 rotte hanno l'auth; status non accetta completed; reviewer da _admin.email). Suite operational **56 passed, 2 skipped**; compileall OK; flake8 pulito. Frontend `ApprovalsQueue` usa `adminFetch` (Bearer) → auth non rompe la UI.
+
+**APERTO:** (1) `POST /agent-tasks` (create) e `POST /jobs/task` (execute_now) ancora aperte: possibili chiamanti interni, da verificare prima di chiuderle. (2) `approval_authorizes_output` è la primitiva: si collega all'esecuzione del contratto quando quel percorso sarà attivo (oggi gli approvati legacy sono già bloccati da T04). (3) Nessuna prova su app FastAPI autenticata live (auth verificata per struttura + allineamento a 20+ rotte admin identiche). (4) Restano T07/T08/T09. Niente push/merge/deploy: tutto locale.
+
+### 2026-09-08 · Claude · Motore Evolution: T04 messo in sicurezza + T05 claim/lease
+
+**AUTORIZZATO:** Claudio ha riassegnato il MOTORE (M1, T03–T09) a Claude e ha messo **Codex in pausa** su questa traccia ("prendi tu il motore per il momento codex si ferma"). Stesso branch `codex/evolution-autonomia`: Codex era fermo, nessuna scrittura concorrente.
+
+**DICHIARATO:** (1) T04 era stato lasciato da Codex **staged ma non committato** nel worktree — l'ho committato (`58672a4f`) dopo verifica. (2) T05: nuovo `backend/services/operational_tasks/runner.py` — claim atomico via `find_one_and_update`, lease owner+token, rinnovo, completamento e retry solo con token combaciante, recupero dei lease scaduti, policy retry (backoff 60s/300s → `blocked`). Vocabolario di stato legacy `pending`/`in_progress` riusato, nessun terzo sistema di stati. `ensure_task_indexes` idempotente. Nuovo file agganciato alla CI in `ci.yml`.
+
+**VERIFICATO:** `.venv-ops`, `PYTHONPATH=backend` — T04 `test_operational_task_completion.py` esercita il consumer reale `BackgroundJobExecutor` (24 passed con contracts). T05 `test_operational_task_concurrency.py`: **14 passed, 1 skipped**; suite operational completa **38 passed, 1 skipped**; flake8 E9/F821 pulito. La controprova regge (senza `status` il claim torna None e i test cadono).
+
+**CHIUSO in giornata (Claudio ha autorizzato il download di Mongo):** (1) **Atomicità PROVATA su Mongo reale** — avviato `mongod` 8.3.9 usa-e-getta in locale; `test_two_concurrent_workers_exactly_one_wins` e `test_claim_specific_is_atomic_under_contention` (24 worker × 5 round, un solo vincitore) **PASSED**. Non più mock. (2) **Gate cablato nel worker vivo** — nuovo `runner.claim_specific`; `BackgroundJobExecutor` ha un `worker_id` e prende in carico atomicamente ogni task diretto in `process_pending_tasks` prima di eseguirlo. Due worker non eseguono più lo stesso task. Verifica: unit `40 passed, 2 skipped`; real-mongo `2 passed`; flake8 pulito; compileall OK; T04 intatto. `mongod` spento e pacchetto rimosso.
+
+**APERTO:** (1) percorsi di approvazione (generazione/approvati/rigenerazione) restano human-gated → **T06** autorizzazioni lato server. (2) write finale di `execute_task` non passa ancora per `complete_with_lease`/`apply_retry` col token (non serve alla garanzia di singolo esecutore, che il gate dà a monte; retry+rinnovo lease si collegano agli esecutori in T06/T07). (3) Restano T07 riconciliazione, T08 registro/recupero, T09 salute runtime. Niente push, merge o deploy: tutto locale.
+
+### 2026-09-08 · Codex · Backend-first Evolution: fondazione catalogo
+
+**AUTORIZZATO:** Claudio ha chiesto avvio immediato dopo accordo backend-first. Branch `codex/evolution-autonomia`, base `71ce73c9`; checkout condiviso e lavoro concorrente preservati.
+
+**DICHIARATO:** primo blocco T03 inerte: registry esplicito, input/versione/idempotenza, proiezione storica conservativa; nessuna route, consumer, migrazione o nuova automazione. Il motore legacy non è ancora corretto. Architettura e mandati condivisi in `docs/strategy/evolution-architettura-concordata.md` e `evolution-reparti-mandati.md`, richiamati da CLAUDE.md.
+
+**VERIFICATO:** baseline codice/runtime e comandi in `docs/agents/evidence/2026-09-08-autonomia-baseline.md`. Test isolati e review del blocco, con limiti espliciti. Nessun database o provider di produzione usato dai test.
+
+**APERTO:** T01 campioni task e heartbeat; T03 integrazione runtime; T04 falsi completamenti legacy; T05 claim/lease; T06 policy/versioni; T07 evidenze/riconciliazione. Seguono flussi reparti e collaborazioni; UI differita. Contratti non analizzati, nessuna formula economica introdotta. Nuova architettura non distribuita.
+
 ### 2026-09-08 · Codex · Area partner serena — mappa implementata
 
 **AREA RISERVATA:** branch codex/partner-sereno, worktree .worktrees/codex-partner-sereno. Nuovo SerenoJourney nel flag esistente, default OFF. Conteggio dei record visibili, ordine canonico F-n, link allo step preciso, stati di attesa/blocco distinti. Preview aggiornata: http://127.0.0.1:4178/partner/percorso.
