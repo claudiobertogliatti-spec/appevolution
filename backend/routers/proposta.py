@@ -1027,12 +1027,27 @@ async def finalize_partnership_payment(proposta: dict, method: str, reference: s
     # (il PDF ora si genera SOLO in questo punto, mai prima).
     pdf_state = {"url": proposta.get("contratto_pdf_url")}
 
+    async def _journey_effect():
+        # Sotto doppia finalizzazione concorrente, questa chiamata può vincere
+        # il claim di `journey` mentre l'altra sta ancora generando il PDF in
+        # `contract_pdf` (claim perso qui): pdf_state["url"] è allora None pur
+        # essendo il PDF già scritto su `proposta.contratto_pdf_url` dall'altra
+        # chiamata. Rilettura fresca dal DB prima di seedare, per non perdere
+        # il link comodo in dashboard (il PDF stesso non è mai a rischio).
+        pdf_url = pdf_state["url"]
+        if not pdf_url:
+            doc = await db.proposte.find_one(
+                {"token": token}, {"_id": 0, "contratto_pdf_url": 1}
+            ) or {}
+            pdf_url = doc.get("contratto_pdf_url")
+        await _seed_operativo_journey_from_funnel(
+            partner_id, contract_signed_at=proposta.get("contratto_firmato_at"),
+            contract_pdf_url=pdf_url, payment_metodo=method, payment_at=now)
+
     effects = [
         ("account", lambda: _activate_partner_account_and_notify(partner_id, email, nome)),
         ("contract_pdf", lambda: _finalize_signed_contract_effect(token, partner_id, email, nome, pdf_state)),
-        ("journey", lambda: _seed_operativo_journey_from_funnel(
-            partner_id, contract_signed_at=proposta.get("contratto_firmato_at"),
-            contract_pdf_url=pdf_state["url"], payment_metodo=method, payment_at=now)),
+        ("journey", _journey_effect),
         ("tags", lambda: _finalization_tags(email)),
         ("notification", lambda: _notify_telegram(f"Pagamento Partnership verificato — {nome} — {method}")),
     ]
