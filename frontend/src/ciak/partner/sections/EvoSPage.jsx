@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoPiano from "../sereno/SerenoPiano";
 import {
   Anchor, TrendingUp, Rocket, ArrowLeft, ArrowRight, Check, X,
   Calendar, Users, Clock, ShieldCheck, Lock, RotateCcw, Sparkles
@@ -451,6 +453,12 @@ export function EvoSPage({ partnerId }) {
         onBack={() => setSelectedId(null)}
       />
     );
+  }
+
+  // Sereno skin: restyled renewal list over the real PLANS; the detail page and
+  // its eligibility + EVO S checkout stay the existing flow (reached via onOpen).
+  if (PARTNER_SERENO_ENABLED) {
+    return <SerenoPiano onOpen={setSelectedId} locked={locked} />;
   }
 
   return (

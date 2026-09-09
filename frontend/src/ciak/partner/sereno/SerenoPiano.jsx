@@ -1,12 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { CreditCard, ArrowRight } from 'lucide-react';
 import { PLANS } from '../sections/EvoSPage';
 
 // "Il tuo piano": current status first — never invents a plan or an expiry.
 // The renewal options reuse the real EVO S data (prices from a single source,
-// not retyped), and the checkout stays in the existing /partner/rinnovo flow.
-export default function SerenoPiano({ plan }) {
+// not retyped); opening one goes to the existing detail + checkout via onOpen.
+export default function SerenoPiano({ plan, onOpen = () => {}, locked = false }) {
   return (
     <>
       <header className="sereno-intro">
@@ -35,20 +34,23 @@ export default function SerenoPiano({ plan }) {
         <p>Quattro livelli di affiancamento. Scegli quello adatto a te — impegno minimo 6 mesi.</p>
       </header>
 
+      {locked && (
+        <p className="sereno-note" role="note">Il rinnovo si attiva al termine dei tuoi primi 12 mesi. Puoi già consultare i livelli qui sotto.</p>
+      )}
+
       <div className="sereno-columns">
         {PLANS.map((p) => (
           <section key={p.id} className="sereno-panel">
             <span className={`sereno-badge${p.popular ? ' sereno-badge-action' : ''}`}>{p.badge}</span>
             <h3 style={{ marginTop: 12, fontSize: 18 }}>{p.name} · {p.priceLabel}</h3>
             <p>{p.beneficio}</p>
-            <Link to="/partner/rinnovo">Vedi cosa include →</Link>
+            <button className="sereno-secondary" onClick={() => onOpen(p.id)}>
+              Vedi cosa include <ArrowRight aria-hidden="true" />
+            </button>
           </section>
         ))}
       </div>
 
-      <div className="sereno-actions">
-        <Link className="sereno-primary" to="/partner/rinnovo">Valuta il rinnovo <ArrowRight aria-hidden="true" /></Link>
-      </div>
       <p className="sereno-note">Prezzi e condizioni provengono dal listino EVO S reale. Nulla è simulato.</p>
     </>
   );
