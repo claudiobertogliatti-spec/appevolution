@@ -36,6 +36,13 @@ def _iso(days: int) -> str:
 class GateDb:
     def __init__(self, proposta_doc):
         self.proposte = FakeCollection([proposta_doc])
+        self.partners = FakeCollection([{"id": "user-1", "contract": {
+            "signed_at": "original-date", "signature_base64": "original-signature",
+        }}])
+        self.users = FakeCollection()
+
+    def __getitem__(self, name):
+        return getattr(self, name)
 
 
 def _request():
@@ -53,6 +60,7 @@ def _proposta_doc(**overrides):
         "contratto_firmato_at": _iso(-1),
         "scadenza": _iso(5),
         "contract_params": {"corrispettivo": 2990},
+        "contract_acceptance": {"dichiarazione_imprenditoriale": True},
     }
     doc.update(overrides)
     return doc
@@ -108,3 +116,62 @@ async def test_signed_and_valid_proposal_reaches_stripe(monkeypatch):
 
     assert err.value.status_code == 500
     assert "Stripe" in str(err.value.detail)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("acceptance", [None, {}, {"dichiarazione_imprenditoriale": False}, {"dichiarazione_imprenditoriale": "true"}])
+async def test_signed_proposal_without_explicit_declaration_cannot_pay(monkeypatch, acceptance):
+    monkeypatch.setattr(proposta, "db", GateDb(_proposta_doc(contract_acceptance=acceptance)))
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_fixture")
+    with pytest.raises(HTTPException) as err:
+        await proposta.pagamento_stripe("tok-gate", _request())
+    assert err.value.status_code == 409
+    assert err.value.detail["code"] == "BUSINESS_DECLARATION_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_live_proposal_with_consent_is_still_blocked_before_any_stripe_call(monkeypatch):
+    monkeypatch.setattr(proposta, "db", GateDb(_proposta_doc()))
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_live_fixture")
+    monkeypatch.delenv("CIAK_PAID_OFFERS_LEGAL_APPROVED", raising=False)
+    monkeypatch.delenv("CIAK_PAID_OFFERS_FISCAL_APPROVED", raising=False)
+    with pytest.raises(HTTPException) as err:
+        await proposta.pagamento_stripe("tok-gate", _request())
+    assert err.value.status_code == 503
+    assert err.value.detail["code"] == "PAID_OFFER_CHECKOUT_CLOSED"
+
+
+@pytest.mark.asyncio
+async def test_legacy_signature_can_collect_explicit_declaration_without_rewriting_signature(monkeypatch):
+    from unittest.mock import AsyncMock
+    db = GateDb(_proposta_doc(contract_acceptance=None))
+    monkeypatch.setattr(proposta, "db", db)
+    monkeypatch.setattr(proposta, "_trusted_client_ip", lambda request: "192.0.2.1")
+    request = SimpleNamespace(json=AsyncMock(return_value={
+        "consenso_checkbox": True, "clausole_vessatorie_approved": True,
+        "dichiarazione_imprenditoriale": True, "piva": "",
+    }))
+    result = await proposta.firma_contratto_proposta("tok-gate", request, None)
+    assert result["already_signed"] is True
+    assert db.proposte.docs[0]["contract_acceptance"]["dichiarazione_imprenditoriale"] is True
+    contract = db.partners.docs[0]["contract"]
+    assert contract["signed_at"] == "original-date"
+    assert contract["signature_base64"] == "original-signature"
+    assert contract["dichiarazione_imprenditoriale"] is True
+    assert contract["business_declaration_ip"] == "192.0.2.1"
+
+
+@pytest.mark.asyncio
+async def test_readiness_endpoint_is_public_non_cached_and_does_not_read_db(monkeypatch):
+    import json
+    monkeypatch.setattr(proposta, "db", None)
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_live_fixture")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_fixture")
+    monkeypatch.delenv("CIAK_PAID_OFFERS_LEGAL_APPROVED", raising=False)
+    monkeypatch.delenv("CIAK_PAID_OFFERS_FISCAL_APPROVED", raising=False)
+    response = await proposta.checkout_readiness()
+    assert response.headers["cache-control"] == "no-store"
+    data = json.loads(response.body)
+    assert data["start"]["enabled"] is False
+    assert data["partnership"]["enabled"] is False
+    assert "sk_live" not in response.body.decode()

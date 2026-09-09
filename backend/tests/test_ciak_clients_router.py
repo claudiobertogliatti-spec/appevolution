@@ -520,6 +520,19 @@ def test_start_checkout_creates_499_euro_session(monkeypatch, client_app, fake_d
     }
 
 
+def test_start_live_checkout_closed_before_stripe_even_for_eligible_client(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_live_fixture")
+    monkeypatch.delenv("CIAK_PAID_OFFERS_LEGAL_APPROVED", raising=False)
+    monkeypatch.delenv("CIAK_PAID_OFFERS_FISCAL_APPROVED", raising=False)
+    fake_db.ciak_clients.docs[0].update(access_level="cliente_blueprint", start_credit_amount=0,
+                                      start_purchased_at=None, start_progress=[])
+    token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+    response = client_app.post("/api/ciak/client/start/checkout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "PAID_OFFER_CHECKOUT_CLOSED"
+    assert FakeStripeCheckout.created_requests == []
+
+
 def test_start_checkout_rejects_existing_start_accounts(monkeypatch, client_app, fake_db):
     monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
     token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
@@ -602,7 +615,7 @@ def test_start_checkout_requires_completed_blueprint_path(
     assert FakeStripeCheckout.created_requests == []
 
 
-def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, client_app, fake_db):
+def test_partnership_checkout_requires_proposal_even_with_start_credit(monkeypatch, client_app, fake_db):
     monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
     monkeypatch.setenv("FRONTEND_URL", "https://frontend.example")
 
@@ -612,26 +625,9 @@ def test_partnership_checkout_applies_guaranteed_start_credit(monkeypatch, clien
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["success"] is True
-    assert body["checkout_url"] == "https://checkout.example/1"
-    assert body["amount_cents"] == 260000
-    assert body["credit_amount_cents"] == 39000
-
-    request = FakeStripeCheckout.created_requests[0]["request"]
-    assert request.amount == 2600.0
-    assert request.currency == "eur"
-    assert request.success_url == "https://frontend.example/cliente?checkout=partnership&payment=success"
-    assert request.cancel_url == "https://frontend.example/cliente?checkout=partnership&payment=cancel"
-    assert request.metadata == {
-        "tipo": "partnership",
-        "client_id": "client-1",
-        "email": "a@example.com",
-        "full_amount_cents": 299000,
-        "credit_amount_cents": 39000,
-        "due_amount_cents": 260000,
-    }
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "PARTNERSHIP_PROPOSAL_REQUIRED"
+    assert FakeStripeCheckout.created_requests == []
 
 
 def test_partnership_checkout_rejects_fresh_blueprint_without_decision(monkeypatch, client_app, fake_db):
@@ -653,7 +649,7 @@ def test_partnership_checkout_rejects_fresh_blueprint_without_decision(monkeypat
     assert FakeStripeCheckout.created_requests == []
 
 
-def test_partnership_checkout_allows_blueprint_when_partnership_is_decided(monkeypatch, client_app, fake_db):
+def test_partnership_checkout_requires_proposal_even_when_partnership_is_decided(monkeypatch, client_app, fake_db):
     monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
     fake_db.ciak_clients.docs[0]["access_level"] = "cliente_blueprint"
     fake_db.ciak_clients.docs[0]["start_credit_amount"] = 0
@@ -667,7 +663,6 @@ def test_partnership_checkout_allows_blueprint_when_partnership_is_decided(monke
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["amount_cents"] == 299000
-    assert body["credit_amount_cents"] == 0
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "PARTNERSHIP_PROPOSAL_REQUIRED"
+    assert FakeStripeCheckout.created_requests == []

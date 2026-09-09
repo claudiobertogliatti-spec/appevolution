@@ -8,6 +8,9 @@ import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File
 from routers.ciak_admin import require_ciak_admin
 from routers.insider_helpers import enrich_proposta_for_insider
+from services.paid_offer_gate import (
+    paid_offer_readiness, require_paid_offer_checkout,
+)
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -329,6 +332,13 @@ async def genera_proposta_cliente(
 # ─────────────────────────────────────────────────
 # PUBBLICA: Leggi proposta via token
 # ─────────────────────────────────────────────────
+@router.get("/checkout-readiness")
+async def checkout_readiness():
+    """Public, no DB or secrets: lets clients show the server's current gate."""
+    from fastapi.responses import JSONResponse
+    return JSONResponse(paid_offer_readiness(), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/{token}")
 async def get_proposta(token: str):
     """Ritorna dati proposta — pubblica, no auth."""
@@ -390,6 +400,7 @@ async def get_proposta(token: str):
                 "scoring": {"stato": scoring.get("stato_finale")},
             }
     proposta = enrich_proposta_for_insider(proposta, sess)
+    proposta["checkout_readiness"] = paid_offer_readiness()
 
     return proposta
 
@@ -435,6 +446,8 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
         raise HTTPException(404, "Proposta non trovata")
 
     body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(422, "Accettazione non valida")
     if body.get("clausole_vessatorie_approved") is not True:
         raise HTTPException(422, "Le clausole vessatorie devono essere approvate")
     if proposta.get("stato") not in ("accettata", "contratto_firmato") and not proposta.get("accettato_at"):
@@ -442,8 +455,6 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
     scadenza = proposta.get("scadenza")
     if scadenza and datetime.now(timezone.utc) > datetime.fromisoformat(scadenza):
         raise HTTPException(410, "Proposta scaduta")
-    if proposta.get("contratto_firmato_at"):
-        return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
     from routers.insider_helpers import build_contract_acceptance
     now = datetime.now(timezone.utc)
     if body.get("signature_base64"):
@@ -453,9 +464,36 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
     except ValueError as e:
         raise HTTPException(422, str(e))
 
+    # The checkbox flow must explicitly declare business purpose. Drawn legacy
+    # signatures remain readable/recordable, but cannot bypass the checkout gate.
+    if contract_data["metodo"] == "checkbox" and not contract_data["dichiarazione_imprenditoriale"]:
+        raise HTTPException(422, "Conferma la dichiarazione di finalità imprenditoriale")
+    if proposta.get("contratto_firmato_at"):
+        # Re-collect missing consent for this proposal, preserving the original
+        # signature/date and any already issued documents. Never infer consent.
+        previous = proposta.get("contract_acceptance")
+        previous = previous if isinstance(previous, dict) else {}
+        if (not proposta.get("pagamento_completato")
+                and previous.get("dichiarazione_imprenditoriale") is not True
+                and contract_data["dichiarazione_imprenditoriale"] is True):
+            await db.proposte.update_one({"token": token}, {"$set": {
+                "contract_acceptance": contract_data,
+            }})
+            partner_id = proposta.get("partner_id")
+            if partner_id:
+                for coll in ["partners", "users"]:
+                    await db[coll].update_one({"id": partner_id}, {"$set": {
+                        "contract.dichiarazione_imprenditoriale": True,
+                        "contract.piva": contract_data["piva"],
+                        "contract.business_declaration_signed_at": contract_data["signed_at"],
+                        "contract.business_declaration_ip": contract_data["ip_address"],
+                    }})
+        return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
+
     await db.proposte.update_one({"token": token}, {"$set": {
         "contratto_firmato_at": now.isoformat(),
-        "stato": "contratto_firmato"
+        "stato": "contratto_firmato",
+        "contract_acceptance": contract_data,
     }})
 
     # Aggiorna partner: il contract_data qui salvato è la fonte che
@@ -504,9 +542,16 @@ async def pagamento_stripe(token: str, request: Request):
             pass
 
     corrispettivo = proposta.get("contract_params", {}).get("corrispettivo", 2990.0)
+    acceptance = proposta.get("contract_acceptance") or {}
+    if not isinstance(acceptance, dict) or acceptance.get("dichiarazione_imprenditoriale") is not True:
+        raise HTTPException(409, detail={
+            "code": "BUSINESS_DECLARATION_REQUIRED",
+            "message": "Apri la pagina Insider e conferma la dichiarazione di finalità imprenditoriale prima del pagamento.",
+        })
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(500, "Stripe non configurato")
+    require_paid_offer_checkout(stripe_key, "partnership")
 
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
@@ -556,6 +601,8 @@ async def pagamento_stripe(token: str, request: Request):
 
         return {"success": True, "checkout_url": session.url, "session_id": session.session_id}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[PROPOSTA] Errore Stripe: {e}")
         raise HTTPException(500, f"Errore creazione checkout: {str(e)}")

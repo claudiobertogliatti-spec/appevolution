@@ -59,7 +59,7 @@ export default function InsiderSalesPage() {
     <div className="insider">
       <InsiderWelcome name={p.prospect_nome} telegramUrl={p.telegram_group_url} />
       <AnalysisRecap analisi={p.analisi} />
-      <OfferSections token={token} partnerId={p.partner_id} emphasis={emphasis} />
+      <OfferSections token={token} partnerId={p.partner_id} emphasis={emphasis} checkoutReadiness={p.checkout_readiness} />
     </div>
   );
 }

@@ -46,6 +46,8 @@ class StripeCheckout:
         self.webhook_url = webhook_url
 
     async def create_checkout_session(self, request: CheckoutSessionRequest) -> CheckoutSessionResponse:
+        from services.paid_offer_gate import require_paid_offer_checkout
+        require_paid_offer_checkout(self.api_key, (request.metadata or {}).get("tipo"))
         import stripe
         stripe.api_key = self.api_key
 

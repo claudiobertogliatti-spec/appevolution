@@ -211,67 +211,11 @@ async def upload_documento_partnership(
 
 @router.post("/create-checkout-session")
 async def create_partnership_checkout(request: CheckoutRequest):
-    """
-    Crea una sessione di checkout Stripe per il pagamento della partnership (€2.990).
-    Supporta pagamento singolo o 3 rate con Klarna.
-    """
-    if db is None:
-        raise HTTPException(status_code=500, detail="Database non inizializzato")
-    
-    stripe_key = os.environ.get('STRIPE_API_KEY')
-    if not stripe_key:
-        raise HTTPException(status_code=500, detail="Stripe non configurato")
-    
-    # Verifica utente
-    user = await db.users.find_one({"id": request.user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
-    
-    # URL di frontend
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://evoluzione-pro.preview.emergentagent.com')
-    
-    try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-        
-        checkout = StripeCheckout(api_key=stripe_key)
-        
-        session_request = CheckoutSessionRequest(
-            amount=2990.00,  # €2.990,00
-            currency="eur",
-            success_url=f"{frontend_url}/attivazione-partnership?payment=success&user_id={user['id']}",
-            cancel_url=f"{frontend_url}/attivazione-partnership?payment=cancelled",
-            metadata={
-                "user_id": user["id"],
-                "tipo": "attivazione_partnership",
-                "importo": "2990",
-                "email": user.get("email", ""),
-                "nome": f"{user.get('nome', '')} {user.get('cognome', '')}"
-            }
-        )
-        
-        session = await checkout.create_checkout_session(session_request)
-        
-        # Salva riferimento sessione
-        await db.users.update_one(
-            {"id": user["id"]},
-            {"$set": {
-                "partnership_stripe_session_id": session.session_id,
-                "partnership_checkout_url": session.url,
-                "partnership_checkout_created_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        
-        return {
-            "success": True,
-            "checkout_url": session.url,
-            "session_id": session.session_id,
-            "amount": 2990.00,
-            "currency": "eur"
-        }
-        
-    except Exception as e:
-        logging.error(f"Stripe partnership checkout error: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+    """Retired: use the proposal with its signed contract and declaration."""
+    raise HTTPException(410, detail={
+        "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
+        "message": "Apri il link alla proposta ricevuto dal team per accettare il contratto e procedere al pagamento.",
+    })
 
 
 @router.post("/verify-payment")

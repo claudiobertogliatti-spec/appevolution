@@ -1,5 +1,13 @@
 def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
     """Pura: valida consenso (checkbox o firma) e costruisce contract_data. Solleva ValueError se invalido."""
+    if not isinstance(body, dict):
+        raise ValueError("accettazione non valida")
+    declaration = body.get("dichiarazione_imprenditoriale", False)
+    if type(declaration) is not bool:
+        raise ValueError("la dichiarazione imprenditoriale deve essere un booleano")
+    piva = body.get("piva", "")
+    if not isinstance(piva, str) or len(piva) > 32:
+        raise ValueError("partita IVA non valida")
     if body.get("clausole_vessatorie_approved") is not True:
         raise ValueError("clausole vessatorie non approvate")
     sig = body.get("signature_base64")
@@ -16,8 +24,8 @@ def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
         # Opzione A' (B2B senza P.IVA obbligatoria): dichiarazione di finalita'
         # imprenditoriale + P.IVA facoltativa. Campi OPZIONALI in input: la
         # Proposta.jsx legacy non li manda e non deve rompersi.
-        "dichiarazione_imprenditoriale": bool(body.get("dichiarazione_imprenditoriale")),
-        "piva": body.get("piva") or "",
+        "dichiarazione_imprenditoriale": declaration,
+        "piva": piva.strip(),
     }
 
 

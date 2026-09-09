@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import './insider.css';
 import { offerData } from './offerData';
 import ContractAccept from './ContractAccept';
@@ -39,10 +39,17 @@ import { clientPost } from '../client/api';
 export default function OfferSections({
   token,
   partnerId,
+  checkoutReadiness,
   emphasis = { hero: 'partnership', startPreamble: false },
 }) {
   const [startLoading, setStartLoading] = useState(false);
   const [startError, setStartError] = useState('');
+  const startBusy = useRef(false);
+  const contractBusy = useRef(false);
+  const startEnabled = checkoutReadiness?.start?.enabled === true;
+  const partnershipEnabled = checkoutReadiness?.partnership?.enabled === true;
+  const closedMessage = checkoutReadiness?.message
+    || 'Il pagamento non è ancora disponibile. Il team ti avviserà quando potrai procedere.';
 
   // 'idle' -> 'accepting' -> 'contract' -> 'processing'. Falls back to
   // 'contract' (not 'idle') on a post-acceptance failure so the prospect
@@ -51,6 +58,8 @@ export default function OfferSections({
   const [partnershipError, setPartnershipError] = useState('');
 
   async function handleSelectStart() {
+    if (!startEnabled || startBusy.current) return;
+    startBusy.current = true;
     setStartError('');
     setStartLoading(true);
     try {
@@ -64,10 +73,12 @@ export default function OfferSections({
           : e.message || 'Errore avvio checkout',
       );
       setStartLoading(false);
+      startBusy.current = false;
     }
   }
 
   async function handleSelectPartnership() {
+    if (!partnershipEnabled || partnershipStep !== 'idle') return;
     setPartnershipError('');
     setPartnershipStep('accepting');
     try {
@@ -81,6 +92,8 @@ export default function OfferSections({
   }
 
   async function handleConfirmContract({ piva } = {}) {
+    if (!partnershipEnabled || contractBusy.current) return;
+    contractBusy.current = true;
     setPartnershipError('');
     setPartnershipStep('processing');
     try {
@@ -94,10 +107,10 @@ export default function OfferSections({
           piva: piva || '',
         }),
       });
-      if (!signRes.ok) throw new Error(`Errore ${signRes.status}`);
+      if (!signRes.ok) throw new Error(await responseError(signRes));
 
       const payRes = await fetch(`/api/proposta/${token}/pagamento-stripe`, { method: 'POST' });
-      if (!payRes.ok) throw new Error(`Errore ${payRes.status}`);
+      if (!payRes.ok) throw new Error(await responseError(payRes));
       const payData = await payRes.json();
       if (!payData.checkout_url) throw new Error('Checkout non disponibile');
       window.location.href = payData.checkout_url;
@@ -106,6 +119,7 @@ export default function OfferSections({
       // accettata, il prospect non deve ripartire da capo per ritentare.
       setPartnershipError(e.message || 'Errore');
       setPartnershipStep('contract');
+      contractBusy.current = false;
     }
   }
 
@@ -125,8 +139,8 @@ export default function OfferSections({
       creditCopy={offerData.start.creditCopy}
       onSelect={handleSelectStart}
       ctaLabel={startLoading ? 'Apro il checkout…' : 'Attiva Ciak Start'}
-      ctaDisabled={startLoading}
-      errorMessage={startError}
+      ctaDisabled={!startEnabled || startLoading}
+      errorMessage={startError || (!startEnabled ? closedMessage : '')}
     />
   );
 
@@ -138,14 +152,15 @@ export default function OfferSections({
       isHero
       onSelect={handleSelectPartnership}
       ctaLabel={partnershipStep === 'accepting' ? 'Un attimo…' : 'Entra in Partnership'}
-      ctaDisabled={partnershipStep !== 'idle'}
-      errorMessage={partnershipStep === 'idle' ? partnershipError : ''}
+      ctaDisabled={!partnershipEnabled || partnershipStep !== 'idle'}
+      errorMessage={!partnershipEnabled ? closedMessage : partnershipStep === 'idle' ? partnershipError : ''}
     >
       {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
         <div className="insider-offer__contract-gate">
           <ContractAccept
             partnerId={partnerId}
             onConfirm={handleConfirmContract}
+            disabled={!partnershipEnabled || partnershipStep === 'processing'}
           />
           {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
         </div>
@@ -158,6 +173,11 @@ export default function OfferSections({
     : [partnershipSection, startSection];
 
   return <div className="insider-offer-sections">{sections}</div>;
+}
+
+async function responseError(response) {
+  const data = await response.json().catch(() => ({}));
+  return data?.detail?.message || (typeof data?.detail === 'string' ? data.detail : `Errore ${response.status}`);
 }
 
 function OfferCard({

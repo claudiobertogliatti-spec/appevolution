@@ -84,6 +84,9 @@ export async function clientPost(path, body) {
     clearClientSession();
     throw new Error("AUTH_EXPIRED");
   }
-  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.detail?.message || (typeof data?.detail === 'string' ? data.detail : `Errore ${res.status}`));
+  }
   return res.json();
 }
