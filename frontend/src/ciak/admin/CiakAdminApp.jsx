@@ -33,6 +33,7 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CreditCard,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -87,6 +88,9 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
 import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
+import { ChiusuraInsider } from "./pages/ChiusuraInsider";
+import { ListinoPrezzi } from "./pages/ListinoPrezzi";
+import { CollaudoCheckout } from "./pages/CollaudoCheckout";
 import {
   AcquisizioneCalendarioHub,
   CasiStudio,
@@ -128,6 +132,20 @@ const NAV = [
       { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
+    ],
+  },
+  // ── ACQUISIZIONE E VENDITA · cockpit di chiusura post-call ────────────
+  {
+    id: "acquisizione-vendita",
+    label: "Acquisizione e vendita",
+    persone: ["Mariangela"],
+    agenti: ["Gaia", "Carlo"],
+    landing: true,
+    hideFor: ["antonella"],
+    pages: [
+      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
+      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
+      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Runbook della prova end-to-end del pagamento in test" },
     ],
   },
   // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
@@ -193,6 +211,7 @@ const NAV = [
 const MACRO_ICONS = {
   dashboard: LayoutDashboard,
   acquisizione: Megaphone,
+  "acquisizione-vendita": Handshake,
   vendite: BarChart3,
   delivery: Users,
   "casi-studio": ClipboardCheck,
@@ -579,6 +598,11 @@ export default function CiakAdminApp() {
         />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
+
+        {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
+        <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
+        <Route path="listino-prezzi" element={<ListinoPrezzi />} />
+        <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 
         {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
         <Route
