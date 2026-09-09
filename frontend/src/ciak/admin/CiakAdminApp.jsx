@@ -39,7 +39,7 @@ import {
   Users,
 } from "lucide-react";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
-import { DeliveryQueue } from "./components/DepartmentQueue";
+import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
 import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
 import { getDepartmentRoom } from "./departmentRooms";
 import { useRepartoMetrics } from "./repartoMetrics";
@@ -450,6 +450,24 @@ function RepartoLanding({ macro, onAuthExpired }) {
 
       {/* Acquisizione: coda outbound + inserimento manuale nuovo lead (Mariangela/Claudio). */}
       {macro.id === "acquisizione" && <AcquisizioneQueue onAuthExpired={onAuthExpired} />}
+
+      {/* Vendite: coda pipeline post-€27 (Blueprint → firma). */}
+      {macro.id === "vendite" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Prospect dal Blueprint alla firma: a che punto sono e la prossima mossa.</p>
+          <VenditeQueue />
+        </div>
+      )}
+
+      {/* Back office: coda crediti/incassi (scadenze, rate da verificare). */}
+      {macro.id === "back-office" && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
+          <p className="text-sm text-slate-500 mb-3">Incassi e scadenze: cosa scade, cosa è in ritardo, cosa serve fare.</p>
+          <BackOfficeQueue />
+        </div>
+      )}
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
           <Icon className="w-5 h-5" />
