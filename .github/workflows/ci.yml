@@ -151,6 +151,7 @@ jobs:
           tests/test_operational_task_reconciliation.py
           tests/test_operational_task_recovery.py
           tests/test_operational_runtime_health.py
+          tests/test_operational_acquisition.py
 
   frontend:
     name: Frontend (build smoke)

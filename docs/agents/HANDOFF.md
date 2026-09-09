@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T10 flusso Acquisizione (M2 iniziato)
+
+**AUTORIZZATO:** Claudio ha scelto "B — M2 — T10". Claude owner, Codex fermo. Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T10, **prima capacità registrata** nel motore. Nuovo `services/operational_tasks/acquisition.py`: `acquisition.qualify_contact` legge un contatto ESISTENTE (campi reali `ciak_leads`: email/nome/telefono/source/tags), produce una qualificazione deterministica e motivata (nessun invio, nessun cold outreach) e la BOZZA del prossimo passo — handoff a Vendite (`sales.prepare_next_action`) se ci sono gli obbligatori (email+source+canale), altrimenti attività `data_integration`. Capacità kind AI, no approvazione, no effetti esterni; `register()` esplicito, NON nel DEFAULT_TASK_REGISTRY (attivazione = scelta T21).
+
+**VERIFICATO:** `test_operational_acquisition.py` (nuovo, in ci.yml) **8 passed** — gira ATTRAVERSO il motore (`execute_and_verify_registered`), dedup per identità, aggiornamento→versione nuova, dato mancante→data_integration, caldo/freddo, nessun invio. Suite operational **103 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring reale (creare il task Vendite dalla handoff, leggere `ciak_leads`, `is_claim_suspended` a monte) = attivazione flusso con DB/infra viva. UI `LeadManager.jsx` → design-lead. Prossimo T11 (Vendite, consuma la handoff). Niente push/merge/deploy: locale, branch avanti di 8 su origin.
+
 ### 2026-09-09 · Claude · Motore Evolution: T09 salute runtime — GATE G1 coperto (backend)
 
 **AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
