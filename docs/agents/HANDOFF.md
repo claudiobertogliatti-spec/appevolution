@@ -1,3 +1,25 @@
+### 2026-09-09 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 2: code Vendite/Back office → record
+
+**CONTINUAZIONE del blocco 1 di Codex** (`codex/admin-semplificazione` `e55a6dd6`). Nuovo branch `cc/admin-semplificazione`,
+worktree `.worktrees/cc-admin-semplificazione`, base `e55a6dd6`. Non riscritto il blocco 1. Nessun push/deploy.
+
+**DICHIARATO**
+- Scritta la **matrice di parità** `docs/agents/ADMIN-PARITA-MATRICE.md` (route + azioni annidate + gap distinti), foundation obbligatoria prima delle modifiche.
+- Blocco 2: le righe delle code **Vendite** e **Back office** ora aprono il record esatto (audit #3, prompt §4). `DepartmentQueue` passa la riga intera al callback; Vendite→`/admin/leads/:email` (solo con email reale), Back office→`/admin/amministrazione?credito=<id>` con evidenziazione (deep-link additivo). Delivery invariata.
+- Nessuna capacità rimossa; nessun colore/font/logo toccato; brand lock rispettato (design-lead invocato).
+
+**VERIFICATO (comando+output)**
+- Jest `4 suite / 20 test PASS`: i **7 test originali** di `DepartmentQueue.test.jsx` conservati (1 rinominato per il nuovo contratto, stesso intento) + 4 nuovi; nessuna regressione su LeadManager/navigationMatch/DepartmentRoom.
+- `npm run build`: exit 0, postbuild rigenera le 5 landing `.ciak.html`.
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS (NAV/Routes/handler identici alla base).
+- `git diff --check`: exit 0; scansione pattern credenziali sulle aggiunte: nessun match. Solo 4 file app + 1 doc toccati.
+
+**APERTO**
+- ⛔ **Collaudo browser autenticato non eseguito** (desktop/mobile): serve sessione admin + backend con dati reali. Le stringhe di navigazione sono verificate solo per revisione di codice + test di contratto.
+- ⏭️ **Blocco 3** (riorganizzazione voci per reparto + accorpamenti audit #1/#6/#7) e **blocco 4** (discovery affidabile, materiali delivery reali) descritti in `ADMIN-PARITA-MATRICE.md` §4-§5, non ancora eseguiti.
+- 📋 Gap distinti registrati (§5): sicurezza endpoint file/documenti/discovery senza auth, KPI Cabina (conteggi×listino vs transazioni). **Decide Claudio**, fuori dal perimetro riorganizzazione.
+- ⚠️ La voce HANDOFF del blocco 1 di Codex esiste solo nel checkout principale non committato; da riconciliare al merge.
+
 ### 2026-09-09 · Codex · Insider: blocco checkout reali e consenso
 
 **AUTORIZZATO:** Claudio: applicare le correzioni dell'audit tecnico legale/fiscale.

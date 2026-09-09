@@ -127,13 +127,16 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
               {rows.map((r) => {
                 const blk = bloccoLabel(r);
                 const ai = isAgenteAI(r.owner);
+                // Riga apribile solo se c'e' un callback E la riga ha una destinazione
+                // (openable !== false): evita link verso un record inesistente.
+                const rowClickable = clickable && r.openable !== false;
                 return (
                   <tr
                     key={r.id}
-                    className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${clickable ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400" : ""}`}
-                    {...(clickable ? {
-                      onClick: () => onOpenPartner(r.id),
-                      onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenPartner(r.id); } },
+                    className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${rowClickable ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400" : ""}`}
+                    {...(rowClickable ? {
+                      onClick: () => onOpenPartner(r),
+                      onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenPartner(r); } },
                       tabIndex: 0,
                       role: "button",
                       "aria-label": `Apri ${r.name}`,
@@ -286,6 +289,10 @@ export function VenditeQueue({ onOpenPartner }) {
         setItems(rows.map((r) => ({
           id: r.email || r.session_token || r.nome,
           name: r.nome || r.email || "—",
+          // Apertura riga → scheda contatto /admin/leads/:email. Solo se c'e' una
+          // email reale: senza, la riga resta non cliccabile (nessun 404).
+          email: r.email || null,
+          openable: Boolean(r.email),
           passaggio: VENDITE_STAGE_LABEL[r.stage_id] || r.stage_label || "—",
           next_action: VENDITE_ACTION[r.stage_id] || null,
           owner: r.owner || null,
@@ -315,7 +322,7 @@ const CREDITO_STATO_LABEL = {
 // Loader Back office: /crediti (db.crediti). Nome/stato/scadenza/blocco quasi nativi.
 // Prossima azione derivata da stato_effettivo delle rate; Responsabile non esiste
 // nel modello Credito → "—" (mai inventato). Le rate "da_verificare" = in ritardo.
-export function BackOfficeQueue() {
+export function BackOfficeQueue({ onOpenPartner }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
 
@@ -356,5 +363,5 @@ export function BackOfficeQueue() {
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
-  return <DepartmentQueue items={items} firstColLabel="Cliente" />;
+  return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} firstColLabel="Cliente" />;
 }

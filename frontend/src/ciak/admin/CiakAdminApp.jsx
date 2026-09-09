@@ -470,7 +470,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Chi aspetta un passo, chi ci lavora e cosa lo blocca.</p>
-          <DeliveryQueue onOpenPartner={(id) => navigate(`/admin/partner?partner=${id}&tab=panoramica`)} />
+          <DeliveryQueue onOpenPartner={(row) => navigate(`/admin/partner?partner=${row.id}&tab=panoramica`)} />
         </div>
       )}
 
@@ -482,7 +482,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Prospect dal Blueprint alla firma: a che punto sono e la prossima mossa.</p>
-          <VenditeQueue />
+          <VenditeQueue onOpenPartner={(row) => row.email && navigate(`/admin/leads/${encodeURIComponent(row.email)}`)} />
         </div>
       )}
 
@@ -491,7 +491,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Incassi e scadenze: cosa scade, cosa è in ritardo, cosa serve fare.</p>
-          <BackOfficeQueue />
+          <BackOfficeQueue onOpenPartner={(row) => navigate(`/admin/amministrazione?credito=${encodeURIComponent(row.id)}`)} />
         </div>
       )}
       <details className="mb-8">
