@@ -1,3 +1,15 @@
+### 2026-09-09 · Claude · Motore Evolution: PR #78 MERGIATA + DEPLOY, T23 avviato
+
+**AUTORIZZATO:** Claudio "Merge in main / deploy e procedi t23". Claude owner.
+
+**MERGE + DEPLOY:** PR #78 (G1+G2, backend inerte) **squash-mergiata** in `main` (`924b0908`). Push su main → CI + **Deploy Backend (Cloud Run)** partiti (deploy ~18 min, in watch). Il codice è inerte (capacità non nel DEFAULT) ma T04/T05/T06/T08 cambiano il comportamento del motore/rotte in produzione.
+
+**T23 (nuovo branch `codex/evolution-collaborazioni` da main):** nuovo `services/operational_tasks/collaborations.py` — capacità `collaboration.validate_rules`: schema regole (fixed/hourly/commission/bonus) con clausola+validità+base obbligatorie; campo ambiguo→`non_calcolabile` (mai zero), blocca solo il proprio calcolo; `document_ref` tracciabile (hash/versione/fonte), **contenuto contratto rifiutato nel payload**; nessuna eredità fra collaboratori; `needs_human_validation`. Doc schema `docs/strategy/evolution-collaborazioni-regole.md` (zero dati personali). Riusa `collaborator_settlements.py` esistente (orario), che T25 estenderà.
+
+**VERIFICATO:** `test_operational_collaborations.py` (nuovo, in ci.yml) **11 passed**; compileall OK; flake8 pulito.
+
+**APERTO:** estrazione regole dal contratto (dati personali → storage privato, fuori repo), presentazione a Claudio per validazione, T24 aree personali/ore, T25 calcolo prospetti. Branch T23 in locale (push/PR da decidere). Deploy in verifica.
+
 ### 2026-09-09 · Claude · Motore Evolution: T14 coordinatore Luca — GATE G2 coperto (backend)
 
 **AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
