@@ -400,3 +400,50 @@
   opacity: 0.5;
   transform: none;
 }
+
+/* Copy vendita post-call (APPROVATO Claudio 9/9) — ponte, sublabel prezzo,
+   corpo testo offerta, divider "turbo". Brand lockato, nessuna decorazione. */
+.insider-offer-bridge {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 0 24px;
+  text-align: left;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #0F172A;
+}
+
+.insider-offer__price small {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.insider-offer__body {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #0F172A;
+}
+
+.insider-turbo {
+  width: 100%;
+  margin: 2px 0;
+  text-align: center;
+}
+
+.insider-turbo span {
+  display: inline-block;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0F172A;
+  background: #FACC15;
+  border-radius: 999px;
+  padding: 8px 18px;
+}

@@ -16,30 +16,41 @@ test.each([undefined, {}, { start: { enabled: false }, partnership: { enabled: f
   delete global.fetch;
 });
 
-test('prezzi reali + copy credito; niente prezzo inventato', () => {
-  render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
-  expect(screen.getByText(/390\s*€/)).toBeTruthy();
+test('prezzi reali + credito + upgrade; niente prezzo inventato', () => {
+  render(<OfferSections token="t" name="Marco" />);
+  // 390 compare due volte (prezzo Start + riga credito) → getAllByText
+  expect(screen.getAllByText(/390\s*€/).length).toBeGreaterThanOrEqual(1);
   expect(screen.getByText(/2\.990\s*€/)).toBeTruthy();
-  expect(screen.getByText(/si riscalano|credito/i)).toBeTruthy();
+  // riga upgrade reale (credito Start scalato): 2.600 €
+  expect(screen.getByText(/2\.600\s*€/)).toBeTruthy();
+  expect(screen.getByText(/tornano interi come credito/i)).toBeTruthy();
 });
-test('enfasi Start-preambolo per i tiepidi', () => {
-  const { container } = render(<OfferSections token="t" emphasis={{ hero: 'start', startPreamble: true }} />);
-  // la sezione Start precede la Partnership nel DOM
+
+test('ponte personalizzato col nome + rilettura del collo di bottiglia', () => {
+  render(<OfferSections token="t" name="Marco Rossi" />);
+  expect(screen.getByText(/Bene Marco/)).toBeTruthy();
+  expect(screen.getByText(/si nasconde il collo di bottiglia/i)).toBeTruthy();
+});
+
+test('modello foot-in-the-door: Start prima, divider turbo, Partnership dopo', () => {
+  const { container } = render(<OfferSections token="t" name="Marco" />);
   const html = container.innerHTML;
+  // ordine fisso nel DOM: Start (390) prima della Partnership (2.990)
   expect(html.indexOf('390')).toBeLessThan(html.indexOf('2.990'));
+  // il divider "turbo" fa da transizione all'upgrade
+  expect(screen.getByText(/mettere il turbo/i)).toBeTruthy();
 });
-test('anti-anchoring: Partnership resta hero visivo anche con Start-preambolo in testa', () => {
-  const { container } = render(<OfferSections token="t" emphasis={{ hero: 'start', startPreamble: true }} />);
+
+test('anti-anchoring: la Partnership resta SEMPRE l\'hero visivo, mai lo Start', () => {
+  const { container } = render(<OfferSections token="t" name="Marco" />);
   const startNode = container.querySelector('[data-offer="start"]');
   const partnershipNode = container.querySelector('[data-offer="partnership"]');
-  // ordine: Start prima di Partnership nel DOM (emphasis.hero governa solo l'ordine)
   expect(startNode.compareDocumentPosition(partnershipNode) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  // stile: la Partnership porta SEMPRE il trattamento hero (badge/accent), mai Start
   expect(partnershipNode.classList.contains('insider-offer--hero')).toBe(true);
   expect(startNode.classList.contains('insider-offer--hero')).toBe(false);
 });
 
-describe('wiring checkout (Task 7)', () => {
+describe('wiring checkout', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
@@ -59,8 +70,8 @@ describe('wiring checkout (Task 7)', () => {
       json: () => Promise.resolve({ success: true, checkout_url: 'https://stripe.test/start' }),
     }));
 
-    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
-    fireEvent.click(screen.getByRole('button', { name: /attiva ciak start/i }));
+    render(<OfferSections token="t" name="Marco" />);
+    fireEvent.click(screen.getByRole('button', { name: /inizia da ciak start/i }));
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
     const [url, options] = global.fetch.mock.calls[0];
@@ -72,8 +83,8 @@ describe('wiring checkout (Task 7)', () => {
   test('errore onesto sul CTA Start: mai un finto successo', async () => {
     global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) }));
 
-    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
-    fireEvent.click(screen.getByRole('button', { name: /attiva ciak start/i }));
+    render(<OfferSections token="t" name="Marco" />);
+    fireEvent.click(screen.getByRole('button', { name: /inizia da ciak start/i }));
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(window.location.href).toBe('');
@@ -99,7 +110,7 @@ describe('wiring checkout (Task 7)', () => {
       return Promise.reject(new Error(`unexpected fetch ${url}`));
     });
 
-    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    render(<OfferSections token="t" name="Marco" />);
     fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/proposta/t/accetta', expect.objectContaining({ method: 'POST' })));
@@ -142,7 +153,7 @@ describe('wiring checkout (Task 7)', () => {
       return Promise.reject(new Error(`unexpected fetch ${url}`));
     });
 
-    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    render(<OfferSections token="t" name="Marco" />);
     fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
 
     const [conditionsCheckbox, declarationCheckbox] = await screen.findAllByRole('checkbox');

@@ -5,43 +5,27 @@ import ContractAccept from './ContractAccept';
 import { clientPost } from '../client/api';
 
 /**
- * OfferSections — Start "preambolo" + Partnership, insider closing page.
+ * OfferSections — copy di vendita post-call APPROVATO da Claudio (9/9).
  *
- * Prices are real (offerData.js is the single source): Start 390 €,
- * Partnership 2.990 €. Start is a credit toward Partnership, never a
- * separate spend — the copy says so explicitly.
+ * Modello foot-in-the-door: Ciak Start è il primo passo dato per scontato
+ * (390 €, credito verso la Partnership), poi la Partnership è l'upgrade
+ * ("turbo") e mantiene SEMPRE il trattamento visivo hero. L'ordine in pagina
+ * è FISSO: ponte → Ciak Start → divider "turbo" → Partnership. I prezzi sono
+ * reali (offerData / pricing.js): Start 390 €, Partnership 2.990 € / 2.600 €.
  *
- * `emphasis` (from offerEmphasis, Task 4) only ever changes presentation:
- *  - `emphasis.hero` decides which section renders first in the DOM.
- *  - Partnership keeps its "hero" visual treatment (badge, accent border)
- *    even when Start is the preamble (`emphasis.startPreamble`), so a
- *    warm-but-not-ready prospect sees Start first without the page
- *    anchoring on the smaller offer.
- *
- * Checkout wiring (Task 7):
- *  - Start CTA reuses the SAME call the client portal already uses
- *    (`clientPost('/start/checkout')` -> `POST /api/ciak/client/start/checkout`,
- *    verified in frontend/src/ciak/client/pages/StartPage.jsx). It relies on
- *    the client Bearer token already in localStorage from the prospect's
- *    earlier Blueprint magic-login — if that's missing/expired, `clientPost`
- *    throws "AUTH_EXPIRED" and we show an honest error, never a fake success.
- *  - Partnership CTA calls `POST /{token}/accetta`, then renders
- *    `ContractAccept` (checkbox-gated). Only on confirm does it call
- *    `POST /{token}/firma-contratto` (checkbox consent, Task 3) and, only if
- *    that succeeds, `POST /{token}/pagamento-stripe`, then redirects to the
- *    returned Stripe URL. Every step can fail honestly without faking the
- *    next one.
- *  - Opzione A' (post-review, B2B senza P.IVA obbligatoria): `firma-contratto`
- *    porta anche `dichiarazione_imprenditoriale: true` (gate: `ContractAccept`
- *    non chiama `onConfirm` finché entrambi i checkbox non sono spuntati) e
- *    `piva` (facoltativa, stringa vuota se non compilata).
+ * Checkout wiring (invariato):
+ *  - Start CTA riusa `clientPost('/start/checkout')` -> POST
+ *    /api/ciak/client/start/checkout (stesso token cliente del portale). Se il
+ *    token manca/è scaduto, `clientPost` lancia "AUTH_EXPIRED" → errore onesto,
+ *    mai un finto successo.
+ *  - Partnership CTA: POST /{token}/accetta → `ContractAccept` (2 checkbox
+ *    obbligatori) → solo su conferma POST /{token}/firma-contratto (consenso +
+ *    dichiarazione imprenditoriale + P.IVA facoltativa) e, solo se ok, POST
+ *    /{token}/pagamento-stripe → redirect a Stripe. Ogni step fallisce onesto.
+ *  - I gate legale/fiscale sui pagamenti restano lato backend (paid_offer_gate):
+ *    se chiusi, `checkoutReadiness` disabilita le CTA e mostra il messaggio.
  */
-export default function OfferSections({
-  token,
-  partnerId,
-  checkoutReadiness,
-  emphasis = { hero: 'partnership', startPreamble: false },
-}) {
+export default function OfferSections({ token, partnerId, name, checkoutReadiness }) {
   const [startLoading, setStartLoading] = useState(false);
   const [startError, setStartError] = useState('');
   const startBusy = useRef(false);
@@ -56,6 +40,8 @@ export default function OfferSections({
   // doesn't have to re-accept the proposal to retry.
   const [partnershipStep, setPartnershipStep] = useState('idle');
   const [partnershipError, setPartnershipError] = useState('');
+
+  const firstName = (name || '').trim().split(/\s+/)[0] || '';
 
   async function handleSelectStart() {
     if (!startEnabled || startBusy.current) return;
@@ -123,56 +109,47 @@ export default function OfferSections({
     }
   }
 
-  // Partnership is ALWAYS the visual hero (badge/accent/primary CTA) — the
-  // anti-anchoring rule. `emphasis.hero` only ever controls display ORDER.
-  const startSection = (
-    <OfferCard
-      key="start"
-      kind="start"
-      offer={offerData.start}
-      isHero={false}
-      preambleNote={
-        emphasis.startPreamble
-          ? 'Il passo giusto adesso: costruisci le fondazioni, poi decidi con calma sulla Partnership.'
-          : null
-      }
-      creditCopy={offerData.start.creditCopy}
-      onSelect={handleSelectStart}
-      ctaLabel={startLoading ? 'Apro il checkout…' : 'Attiva Ciak Start'}
-      ctaDisabled={!startEnabled || startLoading}
-      errorMessage={startError || (!startEnabled ? closedMessage : '')}
-    />
+  return (
+    <div className="insider-offer-sections">
+      <p className="insider-offer-bridge">
+        <strong>{firstName ? `Bene ${firstName}` : 'Bene'}</strong>, ora finalmente il tuo Progetto ha
+        una direzione chiara! Hai visto cosa funziona e dove, invece, si nasconde il collo di bottiglia.
+      </p>
+
+      <OfferCard
+        kind="start"
+        offer={offerData.start}
+        isHero={false}
+        onSelect={handleSelectStart}
+        ctaLabel={startLoading ? 'Apro il checkout…' : offerData.start.cta}
+        ctaDisabled={!startEnabled || startLoading}
+        errorMessage={startError || (!startEnabled ? closedMessage : '')}
+      />
+
+      <div className="insider-turbo"><span>Se vuoi mettere il turbo al tuo Progetto</span></div>
+
+      <OfferCard
+        kind="partnership"
+        offer={offerData.partnership}
+        isHero
+        onSelect={handleSelectPartnership}
+        ctaLabel={partnershipStep === 'accepting' ? 'Un attimo…' : offerData.partnership.cta}
+        ctaDisabled={!partnershipEnabled || partnershipStep !== 'idle'}
+        errorMessage={!partnershipEnabled ? closedMessage : partnershipStep === 'idle' ? partnershipError : ''}
+      >
+        {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
+          <div className="insider-offer__contract-gate">
+            <ContractAccept
+              partnerId={partnerId}
+              onConfirm={handleConfirmContract}
+              disabled={!partnershipEnabled || partnershipStep === 'processing'}
+            />
+            {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
+          </div>
+        ) : null}
+      </OfferCard>
+    </div>
   );
-
-  const partnershipSection = (
-    <OfferCard
-      key="partnership"
-      kind="partnership"
-      offer={offerData.partnership}
-      isHero
-      onSelect={handleSelectPartnership}
-      ctaLabel={partnershipStep === 'accepting' ? 'Un attimo…' : 'Entra in Partnership'}
-      ctaDisabled={!partnershipEnabled || partnershipStep !== 'idle'}
-      errorMessage={!partnershipEnabled ? closedMessage : partnershipStep === 'idle' ? partnershipError : ''}
-    >
-      {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
-        <div className="insider-offer__contract-gate">
-          <ContractAccept
-            partnerId={partnerId}
-            onConfirm={handleConfirmContract}
-            disabled={!partnershipEnabled || partnershipStep === 'processing'}
-          />
-          {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
-        </div>
-      ) : null}
-    </OfferCard>
-  );
-
-  const sections = emphasis.hero === 'start'
-    ? [startSection, partnershipSection]
-    : [partnershipSection, startSection];
-
-  return <div className="insider-offer-sections">{sections}</div>;
 }
 
 async function responseError(response) {
@@ -180,20 +157,22 @@ async function responseError(response) {
   return data?.detail?.message || (typeof data?.detail === 'string' ? data.detail : `Errore ${response.status}`);
 }
 
-function OfferCard({
-  kind, offer, isHero, preambleNote, creditCopy, onSelect, ctaLabel, ctaDisabled, errorMessage, children,
-}) {
+function OfferCard({ kind, offer, isHero, onSelect, ctaLabel, ctaDisabled, errorMessage, children }) {
+  const bodyParagraphs = Array.isArray(offer.body) ? offer.body : (offer.body ? [offer.body] : []);
   return (
     <section
       className={`insider-offer${isHero ? ' insider-offer--hero' : ''}`}
       data-offer={kind}
     >
-      {isHero ? <p className="insider-offer__badge">Consigliata per te</p> : null}
       <h2 className="insider-offer__name">{offer.name}</h2>
-      <p className="insider-offer__price">{offer.price}</p>
-      {offer.tagline ? <p className="insider-offer__tagline">{offer.tagline}</p> : null}
-      {preambleNote ? <p className="insider-offer__preamble-note">{preambleNote}</p> : null}
-      {creditCopy ? <p className="insider-offer__credit">{creditCopy}</p> : null}
+      <p className="insider-offer__price">
+        {offer.price}
+        {offer.priceNote ? <small>{offer.priceNote}</small> : null}
+      </p>
+      {bodyParagraphs.map((paragraph, index) => (
+        <p key={index} className="insider-offer__body">{paragraph}</p>
+      ))}
+      {offer.creditCopy ? <p className="insider-offer__credit">{offer.creditCopy}</p> : null}
       <ul className="insider-offer__services">
         {offer.servizi.map((voce) => (
           <li key={voce}>{voce}</li>

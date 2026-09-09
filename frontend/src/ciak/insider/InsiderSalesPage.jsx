@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './insider.css';
-import { offerEmphasis } from './offerEmphasis';
 import InsiderWelcome from './InsiderWelcome';
 import AnalysisRecap from './AnalysisRecap';
 import OfferSections from './OfferSections';
@@ -54,12 +53,11 @@ export default function InsiderSalesPage() {
   }
 
   const p = state.p;
-  const emphasis = offerEmphasis(p.scoring_stato);
   return (
     <div className="insider">
       <InsiderWelcome name={p.prospect_nome} telegramUrl={p.telegram_group_url} />
       <AnalysisRecap analisi={p.analisi} />
-      <OfferSections token={token} partnerId={p.partner_id} emphasis={emphasis} checkoutReadiness={p.checkout_readiness} />
+      <OfferSections token={token} partnerId={p.partner_id} name={p.prospect_nome} checkoutReadiness={p.checkout_readiness} />
     </div>
   );
 }
