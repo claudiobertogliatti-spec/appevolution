@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "create-react-app",
-  "buildCommand": "DISABLE_ESLINT_PLUGIN=true CI=false npm run build",
+  "buildCommand": "REACT_APP_PARTNER_SERENO=true DISABLE_ESLINT_PLUGIN=true CI=false npm run build",
   "outputDirectory": "build",
   "installCommand": "npm install --legacy-peer-deps",
   "redirects": [
