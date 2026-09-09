@@ -81,6 +81,37 @@ if (config.enableVisualEdits && babelMetadataPlugin) {
   };
 }
 
+// Jest (CI harness `craco test`): CRA/Jest 27 cannot resolve React Router 7's
+// conditional `exports` — the package's `main` points at a non-existent
+// `dist/main.js`, so any test importing `react-router-dom` fails to load.
+// Map the router packages to their real CJS entry (`exports.node.default`),
+// mirroring preview/sereno/jest.config.cjs. Jest-only: the webpack build is
+// unaffected (it honors `exports`).
+function routerCommonJS(pkg, entry = ".") {
+  const manifestPath = require.resolve(`${pkg}/package.json`);
+  const manifest = require(manifestPath);
+  return path.resolve(
+    path.dirname(manifestPath),
+    (manifest.exports &&
+      manifest.exports[entry] &&
+      manifest.exports[entry].node &&
+      manifest.exports[entry].node.default) ||
+      manifest.main
+  );
+}
+
+webpackConfig.jest = {
+  configure: (jestConfig) => {
+    jestConfig.moduleNameMapper = {
+      ...jestConfig.moduleNameMapper,
+      "^react-router-dom$": routerCommonJS("react-router-dom"),
+      "^react-router$": routerCommonJS("react-router"),
+      "^react-router/dom$": routerCommonJS("react-router", "./dom"),
+    };
+    return jestConfig;
+  },
+};
+
 webpackConfig.devServer = (devServerConfig) => {
   devServerConfig.historyApiFallback = {
     disableDotRule: true,
