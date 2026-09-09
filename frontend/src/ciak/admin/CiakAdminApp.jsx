@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue } from "./components/DepartmentQueue";
+import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
 import { getDepartmentRoom } from "./departmentRooms";
 import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
@@ -446,6 +447,9 @@ function RepartoLanding({ macro, onAuthExpired }) {
           <DeliveryQueue onOpenPartner={(id) => navigate(`/admin/partner?partner=${id}&tab=panoramica`)} />
         </div>
       )}
+
+      {/* Acquisizione: coda outbound + inserimento manuale nuovo lead (Mariangela/Claudio). */}
+      {macro.id === "acquisizione" && <AcquisizioneQueue onAuthExpired={onAuthExpired} />}
       <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
           <Icon className="w-5 h-5" />

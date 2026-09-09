@@ -240,6 +240,13 @@ class DiscoveryLead(BaseModel):
     systeme_contact_id: Optional[str] = None
     systeme_injected_at: Optional[str] = None
 
+    # Assegnazione operativa (outbound umano — es. trattative ProVideo di Mariangela).
+    # owner = persona responsabile del lead; next_followup = data ISO del prossimo
+    # contatto/scadenza. Impostati all'inserimento manuale, modificabili.
+    owner: Optional[str] = None
+    next_followup: Optional[str] = None
+    notes_admin: Optional[str] = None
+
 
 class SearchQuery(BaseModel):
     """Query di ricerca per discovery"""
@@ -821,6 +828,8 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
         "lavorazione_manuale",
         # Campi Google Places
         "business_phone", "business_address", "profession_category",
+        # Assegnazione operativa outbound (ProVideo/Mariangela)
+        "owner", "next_followup",
     }
     update = {k: v for k, v in body.items() if k in allowed}
     if not update:
