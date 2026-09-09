@@ -1,12 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { GROUPS } from '../sections/BoosterEvoPage';
 
-// "Servizi aggiuntivi": calm framing over the real catalog. Optional by design,
-// and it never invents a price — the real catalog (prices, timing, checkout)
-// stays in the existing /partner/servizi-extra flow.
-export default function SerenoServizi() {
+// Sereno vetrina for the extra services. Optional by design. Prices and names
+// come from the real catalog passed in by the caller — nothing is invented, and
+// the detail page (packages + Stripe checkout) stays the existing flow via onOpen.
+export default function SerenoServizi({ sections = [], onOpen = () => {} }) {
   return (
     <>
       <header className="sereno-intro">
@@ -20,20 +18,30 @@ export default function SerenoServizi() {
         <p>Questi servizi sono opzionali: non servono per completare ciò che hai già acquistato. Li attivi solo se ti servono, con prezzi e tempi chiari prima di scegliere.</p>
       </section>
 
-      <div className="sereno-columns">
-        {GROUPS.map((g) => (
-          <section key={g.title} className="sereno-panel">
-            <h3>{g.title}</h3>
-            <p>{g.subtitle}</p>
-            <Link to="/partner/servizi-extra">Vedi i servizi →</Link>
-          </section>
-        ))}
-      </div>
+      {sections.map((section) => (
+        <div key={section.title} className="sereno-serv-section">
+          <header className="sereno-serv-head">
+            <h2>{section.title}</h2>
+            {section.subtitle && <p>{section.subtitle}</p>}
+          </header>
+          <div className="sereno-columns">
+            {section.items.map((it) => (
+              <article key={it.id} className="sereno-panel sereno-serv-card">
+                <h3>{it.name}</h3>
+                {it.price && <p className="sereno-serv-price">{it.price}</p>}
+                {it.idealePer && (
+                  <p className="sereno-serv-ideal"><span>Ideale se</span>{it.idealePer}</p>
+                )}
+                <button className="sereno-secondary" onClick={() => onOpen(it.id)}>
+                  Scopri <ArrowRight aria-hidden="true" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ))}
 
-      <div className="sereno-actions">
-        <Link className="sereno-primary" to="/partner/servizi-extra">Sfoglia tutti i servizi <ArrowRight aria-hidden="true" /></Link>
-      </div>
-      <p className="sereno-note">Prezzi, tempi e modalità di ogni servizio sono nel catalogo, senza nulla di simulato.</p>
+      <p className="sereno-note">Prezzi, tempi e modalità di ogni servizio sono nel dettaglio, con pagamento sicuro via Stripe. Nulla è simulato.</p>
     </>
   );
 }

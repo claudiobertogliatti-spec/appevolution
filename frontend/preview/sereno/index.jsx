@@ -7,6 +7,17 @@ import SerenoJourney from '../../src/ciak/partner/sereno/SerenoJourney';
 import SerenoAssistenza from '../../src/ciak/partner/sereno/SerenoAssistenza';
 import SerenoMateriali from '../../src/ciak/partner/sereno/SerenoMateriali';
 import SerenoServizi from '../../src/ciak/partner/sereno/SerenoServizi';
+import { BOOSTER_CATALOG } from '../../src/ciak/partner/booster/boosterCatalog';
+import { GROUPS as SERVIZI_GROUPS } from '../../src/ciak/partner/sections/BoosterEvoPage';
+
+const SERVIZI_SECTIONS = SERVIZI_GROUPS.map((g) => ({
+  title: g.title,
+  subtitle: g.subtitle,
+  items: g.ids.map((id) => {
+    const it = BOOSTER_CATALOG[id];
+    return { id, name: it.name, price: it.prezzo, idealePer: it.idealePer };
+  }),
+}));
 import SerenoPiano from '../../src/ciak/partner/sereno/SerenoPiano';
 
 function Preview() {
@@ -58,7 +69,7 @@ function Preview() {
           { id: 'DEBORA', name: 'Debora B.', role: 'Amministrazione', description: 'Contratti, pagamenti e procedure.' },
         ]}
       />} />
-      <Route path="/partner/servizi-extra" element={<SerenoServizi />} />
+      <Route path="/partner/servizi-extra" element={<SerenoServizi sections={SERVIZI_SECTIONS} onOpen={() => {}} />} />
       <Route path="/partner/rinnovo" element={<SerenoPiano />} />
       <Route path="/partner/cambia-password" element={<>{heading('Il tuo account.','Le impostazioni personali, in un unico posto.')}<p className="sereno-note">Nell’app questo collegamento conserva il cambio password esistente. Nell’anteprima non si modificano credenziali.</p></>} />
       <Route path="*" element={<Link to="/partner">Apri l’anteprima →</Link>} />

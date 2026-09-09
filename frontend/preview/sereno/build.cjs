@@ -7,6 +7,7 @@ webpack({ mode:'development', devtool:false, context:frontend, entry:path.join(_
   output:{path:dir,filename:'preview.js'},
   resolve:{extensions:['.js','.jsx'],modules:[path.join(frontend,'node_modules'),'node_modules']},
   module:{rules:[{test:/\.jsx?$/,exclude:/node_modules/,use:{loader:require.resolve('babel-loader'),options:{babelrc:false,configFile:false,presets:[require.resolve('@babel/preset-react')]}}},{test:/\.css$/,use:[require.resolve('style-loader'),require.resolve('css-loader')]}]},
+  plugins:[new webpack.DefinePlugin({'process.env.REACT_APP_PARTNER_SERENO':JSON.stringify('false'),'process.env.REACT_APP_BACKEND_URL':JSON.stringify('')})],
 },(err,stats)=>{
   if(err || stats.hasErrors()){console.error(err || stats.toString({all:false,errors:true}));process.exitCode=1;return;}
   fs.mkdirSync(path.join(dir,'ciak'),{recursive:true});

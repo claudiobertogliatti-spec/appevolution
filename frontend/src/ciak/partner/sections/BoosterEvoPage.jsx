@@ -16,6 +16,8 @@ import {
   Zap,
 } from "lucide-react";
 import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoServizi from "../sereno/SerenoServizi";
 
 /**
  * Booster EVO — vetrina (stile e-commerce) dei servizi extra attivabili durante
@@ -561,6 +563,20 @@ export function BoosterEvoPage({ partnerId, basePath = "/partner/booster-evo" })
         onSupport={goSupport}
       />
     );
+  }
+
+  // Sereno skin: restyled catalogue over the real data; the detail page and its
+  // Stripe checkout stay the existing flow (reached via onOpen). Default unchanged.
+  if (PARTNER_SERENO_ENABLED) {
+    const sections = GROUPS.map((g) => ({
+      title: g.title,
+      subtitle: g.subtitle,
+      items: g.ids.map((id) => {
+        const it = BOOSTER_CATALOG[id];
+        return { id, name: it.name, price: it.prezzo, idealePer: it.idealePer };
+      }),
+    }));
+    return <SerenoServizi sections={sections} onOpen={(id) => navigate(`${basePath}/${id}`)} />;
   }
 
   return <Vetrina onOpen={(id) => navigate(`${basePath}/${id}`)} />;
