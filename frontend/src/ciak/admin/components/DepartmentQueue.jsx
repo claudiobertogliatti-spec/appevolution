@@ -53,7 +53,8 @@ const FILTERS = [
   { id: "ritardo", label: "In ritardo", match: (r) => r.stale },
 ];
 
-export function DepartmentQueue({ items, onOpenPartner }) {
+export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner" }) {
+  const clickable = typeof onOpenPartner === "function";
   const [filter, setFilter] = useState(() => {
     try {
       return new URLSearchParams(window.location.search).get("coda") || "";
@@ -114,7 +115,7 @@ export function DepartmentQueue({ items, onOpenPartner }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-slate-200">
-                <th className="px-4 py-3 font-semibold">Partner</th>
+                <th className="px-4 py-3 font-semibold">{firstColLabel}</th>
                 <th className="px-4 py-3 font-semibold">Passaggio</th>
                 <th className="px-4 py-3 font-semibold">Prossima azione</th>
                 <th className="px-4 py-3 font-semibold">Responsabile</th>
@@ -129,12 +130,14 @@ export function DepartmentQueue({ items, onOpenPartner }) {
                 return (
                   <tr
                     key={r.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-                    onClick={() => onOpenPartner?.(r.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenPartner?.(r.id); } }}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Apri ${r.name}`}
+                    className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${clickable ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400" : ""}`}
+                    {...(clickable ? {
+                      onClick: () => onOpenPartner(r.id),
+                      onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenPartner(r.id); } },
+                      tabIndex: 0,
+                      role: "button",
+                      "aria-label": `Apri ${r.name}`,
+                    } : {})}
                     data-testid={`coda-row-${r.id}`}
                   >
                     <td className="px-4 py-3 font-medium text-slate-900">{r.name}</td>
