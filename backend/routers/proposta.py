@@ -369,9 +369,18 @@ async def get_proposta(token: str):
             diag = await db.diagnostic_sessions.find_one(
                 {"session_token": session_token}, {"_id": 0}
             )
-            analisi = await db.ciak_analisi.find_one(
-                {"session_token": session_token}, {"_id": 0}
+            # Proiezione ristretta: questo endpoint e' PUBBLICO e senza auth
+            # (il token della proposta e' l'unica "capability"). Il documento
+            # ciak_analisi contiene anche campi interni (session_token,
+            # research_data, bozza, script_call, stato_cliente, errori) che
+            # NON devono uscire da qui — vedi services/ciak_analisi.py:342-353.
+            # Si estrae SOLO `analisi_definitiva`, l'unico campo client-facing
+            # (stesso campo gia' esposto pubblicamente, a valle di un gate
+            # sullo stato "inviata", da routers/ciak_analisi_public.py:31-32).
+            analisi_doc = await db.ciak_analisi.find_one(
+                {"session_token": session_token}, {"analisi_definitiva": 1, "_id": 0}
             )
+            analisi = (analisi_doc or {}).get("analisi_definitiva")
             scoring = (diag or {}).get("scoring") or {}
             sess = {
                 "analisi": analisi,
