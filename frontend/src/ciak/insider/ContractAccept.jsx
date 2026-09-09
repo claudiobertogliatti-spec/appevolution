@@ -15,9 +15,18 @@ import React, { useEffect, useState } from 'react';
  * `consenso_checkbox: true`, Task 3). Il bottone di pagamento resta
  * disabilitato finché il checkbox non è spuntato — è l'unico gate, e non è
  * aggirabile: nessun default `checked`, nessuna scorciatoia.
+ *
+ * Opzione A' (decisione prodotto/legale post-review): la vendita resta B2B
+ * (niente diritto di recesso da consumatore) tramite una dichiarazione di
+ * finalità imprenditoriale, senza richiedere la P.IVA. Due checkbox
+ * SEPARATI e indipendenti — condizioni contrattuali + dichiarazione
+ * imprenditoriale — entrambi obbligatori per sbloccare il pagamento. La
+ * P.IVA resta un campo facoltativo: non fa parte del gate.
  */
 export default function ContractAccept({ partnerId, onConfirm }) {
   const [checked, setChecked] = useState(false);
+  const [declared, setDeclared] = useState(false);
+  const [piva, setPiva] = useState('');
   const [contractText, setContractText] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -59,6 +68,35 @@ export default function ContractAccept({ partnerId, onConfirm }) {
         />
         <span>Dichiaro di aver letto e accettato le condizioni del contratto qui sopra.</span>
       </label>
+      <div className="insider-contract-accept__piva-field">
+        <label htmlFor="insider-contract-accept-piva">Partita IVA (se ce l&apos;hai)</label>
+        <input
+          id="insider-contract-accept-piva"
+          type="text"
+          value={piva}
+          onChange={(e) => setPiva(e.target.value)}
+          placeholder="Facoltativa"
+        />
+      </div>
+      {/*
+       * PLACEHOLDER — testo da far validare a un legale prima del rilascio.
+       * Dichiarazione di finalità imprenditoriale (Opzione A'): tiene la
+       * vendita B2B senza richiedere P.IVA, escludendo il recesso da
+       * consumatore ex Codice del Consumo.
+       */}
+      <label className="insider-contract-accept__consent insider-contract-accept__declaration">
+        <input
+          type="checkbox"
+          checked={declared}
+          onChange={(e) => setDeclared(e.target.checked)}
+        />
+        <span>
+          Dichiaro di aderire per avviare o gestire la mia attività economica in
+          partnership e percepire i proventi delle vendite del mio corso; agisco a
+          fini imprenditoriali e non come consumatore ai sensi del Codice del
+          Consumo.
+        </span>
+      </label>
       <p className="insider-contract-accept__small-print">
         Niente firma disegnata: il consenso qui sopra vale come accettazione
         del contratto, con data, ora e indirizzo IP registrati a riprova.
@@ -66,8 +104,8 @@ export default function ContractAccept({ partnerId, onConfirm }) {
       <button
         type="button"
         className="insider-contract-accept__cta"
-        disabled={!checked}
-        onClick={onConfirm}
+        disabled={!checked || !declared}
+        onClick={() => onConfirm({ dichiarazione_imprenditoriale: true, piva })}
       >
         Paga e conferma la Partnership
       </button>

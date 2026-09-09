@@ -31,6 +31,10 @@ import { clientPost } from '../client/api';
  *    that succeeds, `POST /{token}/pagamento-stripe`, then redirects to the
  *    returned Stripe URL. Every step can fail honestly without faking the
  *    next one.
+ *  - Opzione A' (post-review, B2B senza P.IVA obbligatoria): `firma-contratto`
+ *    porta anche `dichiarazione_imprenditoriale: true` (gate: `ContractAccept`
+ *    non chiama `onConfirm` finché entrambi i checkbox non sono spuntati) e
+ *    `piva` (facoltativa, stringa vuota se non compilata).
  */
 export default function OfferSections({
   token,
@@ -76,14 +80,19 @@ export default function OfferSections({
     }
   }
 
-  async function handleConfirmContract() {
+  async function handleConfirmContract({ piva } = {}) {
     setPartnershipError('');
     setPartnershipStep('processing');
     try {
       const signRes = await fetch(`/api/proposta/${token}/firma-contratto`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clausole_vessatorie_approved: true, consenso_checkbox: true }),
+        body: JSON.stringify({
+          clausole_vessatorie_approved: true,
+          consenso_checkbox: true,
+          dichiarazione_imprenditoriale: true,
+          piva: piva || '',
+        }),
       });
       if (!signRes.ok) throw new Error(`Errore ${signRes.status}`);
 

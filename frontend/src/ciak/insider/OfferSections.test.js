@@ -88,8 +88,9 @@ describe('wiring checkout (Task 7)', () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/proposta/t/accetta', expect.objectContaining({ method: 'POST' })));
 
     // La pagina del contratto compare solo dopo l'accettazione — gate reale, non finto.
-    const checkbox = await screen.findByRole('checkbox');
-    fireEvent.click(checkbox);
+    const [conditionsCheckbox, declarationCheckbox] = await screen.findAllByRole('checkbox');
+    fireEvent.click(conditionsCheckbox);
+    fireEvent.click(declarationCheckbox);
     const payBtn = screen.getByRole('button', { name: /paga|procedi/i });
     fireEvent.click(payBtn);
 
@@ -97,7 +98,12 @@ describe('wiring checkout (Task 7)', () => {
       '/api/proposta/t/firma-contratto',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ clausole_vessatorie_approved: true, consenso_checkbox: true }),
+        body: JSON.stringify({
+          clausole_vessatorie_approved: true,
+          consenso_checkbox: true,
+          dichiarazione_imprenditoriale: true,
+          piva: '',
+        }),
       }),
     ));
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/proposta/t/pagamento-stripe', expect.objectContaining({ method: 'POST' })));
@@ -118,8 +124,9 @@ describe('wiring checkout (Task 7)', () => {
     render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
     fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
 
-    const checkbox = await screen.findByRole('checkbox');
-    fireEvent.click(checkbox);
+    const [conditionsCheckbox, declarationCheckbox] = await screen.findAllByRole('checkbox');
+    fireEvent.click(conditionsCheckbox);
+    fireEvent.click(declarationCheckbox);
     fireEvent.click(screen.getByRole('button', { name: /paga|procedi/i }));
 
     expect(await screen.findByRole('alert')).toBeTruthy();

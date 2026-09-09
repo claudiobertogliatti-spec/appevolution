@@ -6,15 +6,68 @@ afterEach(() => {
   delete global.fetch;
 });
 
-test('il CTA pagamento è disabilitato finché il checkbox non è spuntato', () => {
+test('il CTA pagamento resta disabilitato finché non sono spuntati ENTRAMBI i checkbox', () => {
   const onConfirm = jest.fn();
   render(<ContractAccept onConfirm={onConfirm} />);
   const btn = screen.getByRole('button', { name: /paga|procedi/i });
+  const [conditionsCheckbox, declarationCheckbox] = screen.getAllByRole('checkbox');
   expect(btn.disabled).toBe(true);
-  fireEvent.click(screen.getByRole('checkbox'));
+
+  // Solo il primo checkbox (condizioni) non basta.
+  fireEvent.click(conditionsCheckbox);
+  expect(btn.disabled).toBe(true);
+
+  // Spuntando anche la dichiarazione imprenditoriale il bottone si abilita.
+  fireEvent.click(declarationCheckbox);
   expect(btn.disabled).toBe(false);
+
   fireEvent.click(btn);
   expect(onConfirm).toHaveBeenCalled();
+});
+
+test('spuntare solo la dichiarazione imprenditoriale (senza le condizioni) lascia il CTA disabilitato', () => {
+  render(<ContractAccept onConfirm={() => {}} />);
+  const btn = screen.getByRole('button', { name: /paga|procedi/i });
+  const [, declarationCheckbox] = screen.getAllByRole('checkbox');
+
+  fireEvent.click(declarationCheckbox);
+  expect(btn.disabled).toBe(true);
+});
+
+test('il testo della dichiarazione di finalità imprenditoriale è mostrato', () => {
+  render(<ContractAccept onConfirm={() => {}} />);
+  expect(screen.getByText(/fini imprenditoriali e non come consumatore/i)).toBeTruthy();
+});
+
+test('la Partita IVA è opzionale: si può confermare con entrambi i checkbox e campo vuoto', () => {
+  const onConfirm = jest.fn();
+  render(<ContractAccept onConfirm={onConfirm} />);
+  const [conditionsCheckbox, declarationCheckbox] = screen.getAllByRole('checkbox');
+
+  fireEvent.click(conditionsCheckbox);
+  fireEvent.click(declarationCheckbox);
+  const btn = screen.getByRole('button', { name: /paga|procedi/i });
+  expect(btn.disabled).toBe(false);
+
+  fireEvent.click(btn);
+  expect(onConfirm).toHaveBeenCalledWith(
+    expect.objectContaining({ dichiarazione_imprenditoriale: true, piva: '' }),
+  );
+});
+
+test('la Partita IVA compilata viene passata a onConfirm', () => {
+  const onConfirm = jest.fn();
+  render(<ContractAccept onConfirm={onConfirm} />);
+  const [conditionsCheckbox, declarationCheckbox] = screen.getAllByRole('checkbox');
+  fireEvent.click(conditionsCheckbox);
+  fireEvent.click(declarationCheckbox);
+
+  fireEvent.change(screen.getByLabelText(/partita iva/i), { target: { value: 'IT12345678901' } });
+  fireEvent.click(screen.getByRole('button', { name: /paga|procedi/i }));
+
+  expect(onConfirm).toHaveBeenCalledWith(
+    expect.objectContaining({ dichiarazione_imprenditoriale: true, piva: 'IT12345678901' }),
+  );
 });
 
 test('il testo del contratto viene fetchato e mostrato per intero: niente link al JSON grezzo', async () => {

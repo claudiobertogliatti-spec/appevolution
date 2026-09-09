@@ -331,6 +331,43 @@
   flex-shrink: 0;
 }
 
+/* P.IVA — campo facoltativo, non fa parte del gate (Opzione A'). */
+.insider-contract-accept__piva-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.insider-contract-accept__piva-field label {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.insider-contract-accept__piva-field input {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 14px;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease;
+}
+
+.insider-contract-accept__piva-field input:focus {
+  outline: none;
+  border-color: #0F172A;
+}
+
+/* Dichiarazione di finalità imprenditoriale (Opzione A') — secondo checkbox,
+   separato e indipendente da quello delle condizioni contrattuali. */
+.insider-contract-accept__declaration {
+  margin-top: 14px;
+}
+
 .insider-contract-accept__small-print {
   margin: 10px 0 0;
   font-size: 12px;

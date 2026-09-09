@@ -13,6 +13,11 @@ def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
         "metodo": "signature" if sig else "checkbox",
         "ip_address": ip,
         "clausole_vessatorie_approved": True,
+        # Opzione A' (B2B senza P.IVA obbligatoria): dichiarazione di finalita'
+        # imprenditoriale + P.IVA facoltativa. Campi OPZIONALI in input: la
+        # Proposta.jsx legacy non li manda e non deve rompersi.
+        "dichiarazione_imprenditoriale": bool(body.get("dichiarazione_imprenditoriale")),
+        "piva": body.get("piva") or "",
     }
 
 
