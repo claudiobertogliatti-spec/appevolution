@@ -332,8 +332,8 @@ function FreddaEditModal({ lead, onClose, onSaved, onAuthExpired }) {
 // IMPORT MODAL — Discovery (CSV + manuale)
 // ─────────────────────────────────────────────────────────────
 
-function ImportModal({ type, onClose, onImported, onAuthExpired }) {
-  const [tab, setTab] = useState("csv");
+function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpired }) {
+  const [tab, setTab] = useState(initialTab);
   const [csvFile, setCsvFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -407,12 +407,12 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 bg-slate-900">
           <div>
-            <div className="font-semibold text-white">Importa Lead</div>
+            <div className="font-semibold text-white">{tab === "manual" ? "Nuovo lead" : "Importa lista"}</div>
             <div className="text-xs text-white/50">
               {type === "discovery" ? "Discovery Leads" : "Lista Fredda"}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+          <button onClick={onClose} aria-label="Chiudi inserimento lead" className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
         </div>
 
         <div className="flex border-b border-gray-200 bg-gray-50">
@@ -466,7 +466,7 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
                   {[["Nome completo", "display_name"], ["Email", "email"], ["Username", "platform_username"], ["Telefono", "phone"], ["Sito web", "website_url"], ["Nicchia", "niche_detected"]].map(([label, k]) => (
                     <div key={k}>
                       <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
-                      <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
+                      <input aria-label={label} type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                         className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
                     </div>
                   ))}
@@ -692,6 +692,7 @@ export function LeadManager({ onAuthExpired }) {
   const [page, setPage] = useState(0);
   const [editLead, setEditLead] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
@@ -824,13 +825,18 @@ export function LeadManager({ onAuthExpired }) {
         <button onClick={() => setShowPlacesSearch(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white">
           <MapPin className="w-4 h-4" />
-          Google Attività
+          Ricerca automatica
         </button>
 
-        <button onClick={() => setShowImport(true)}
+        <button onClick={() => { setImportTab("manual"); setShowImport(true); }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-yellow-400">
           <Plus className="w-4 h-4" />
-          Importa
+          Nuovo lead
+        </button>
+        <button onClick={() => { setImportTab("csv"); setShowImport(true); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-yellow-400">
+          <Upload className="w-4 h-4" />
+          Importa lista
         </button>
       </div>
 
@@ -968,7 +974,7 @@ export function LeadManager({ onAuthExpired }) {
         <DiscoveryEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
       )}
       {showImport && (
-        <ImportModal type="discovery"
+        <ImportModal type="discovery" initialTab={importTab}
           onClose={() => setShowImport(false)}
           onImported={() => { load(); }}
           onAuthExpired={onAuthExpired} />
