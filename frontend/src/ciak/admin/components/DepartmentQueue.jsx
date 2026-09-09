@@ -342,7 +342,7 @@ export function BackOfficeQueue() {
               : rate.length
               ? "Segui il piano rate"
               : "Pianifica le rate",
-            owner: null,
+            owner: c.owner || null,
             scadenza: fmtDate(scadRaw),
             blocked: false,
             stale: inRitardo,

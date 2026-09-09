@@ -94,6 +94,7 @@ class Credito(BaseModel):
     # La rata resta nei conti, perche' i soldi sono dovuti; sparisce dall'elenco
     # di chi chiamare oggi, perche' quella telefonata non va fatta.
     non_sollecitare: bool = False
+    owner: Optional[str] = None       # responsabile back office (es. Valentina/Stefania/Debora)
     documento: Optional[str] = None   # dove sta la lettera dell'accordo
     nota: Optional[str] = None
     creato_at: Optional[str] = None
