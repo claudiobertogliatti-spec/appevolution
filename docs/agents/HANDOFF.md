@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T20 collaudo integrato + runbook T21 + piano pilota T22
+
+**AUTORIZZATO:** Claudio "completiamo e concludiamo tutto". Branch `codex/evolution-collaudo` (da main con #78+#84).
+
+**DICHIARATO:** T20 `test_operational_tasks_end_to_end.py` — catena completa Acquisizione→Vendite→Delivery/Back office attraverso il motore, ogni handoff punta a un task_type registrato, coordinatore report, idempotente. T21 runbook `docs/agents/runbooks/evolution-operational-tasks.md` (rilascio una capacità alla volta, shadow, arresto controllato, rollback). T22 piano pilota `docs/agents/evidence/evolution-autonomia-pilot.md` (7 giorni, controlli giornalieri, gate G4).
+
+**VERIFICATO:** T20 **3 passed**; flake8 pulito; in ci.yml.
+
+**CONFINE ONESTO (ciò che NON si chiude in codice):** T15-T19 UI = design-lead (non fatte); T21 attivazione + T22 pilota = infra viva (Redis+2 Cloud Run) + decisioni Claudio + 7 giorni (qui solo i piani); integrazioni runtime (heartbeat/wiring generatori/creazione task in coda/lettura sorgenti reali); rimisura funzionale in prod di #78/#84. Branch collaudo in locale (push/PR da decidere).
+
 ### 2026-09-09 · Claude · Motore Evolution: DEPLOY OK + T24/T25 collaborazioni
 
 **DEPLOY VERIFICATO:** PR #78 mergiata in main → **CI main `success`** + **Deploy Backend (Cloud Run) `success`** (job `gcloud run deploy` ok). La produzione si è avviata sana col nuovo codice (rischio boot server.py scongiurato). Rimisura funzionale profonda (worker/rotte) da fare con accesso live.
