@@ -233,3 +233,128 @@ export function DeliveryQueue({ onOpenPartner }) {
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
   return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} />;
 }
+
+function daysSince(iso) {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return 0;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+// Formatta una data grezza ISO in gg/mm/aaaa (— se assente).
+function fmtDate(raw) {
+  if (!raw) return null;
+  const s = String(raw).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+// ─── VENDITE ────────────────────────────────────────────────────────────────
+// Stadi post-€27 dal backend (_BLUEPRINT_COLUMNS): dal Blueprint pagato alla firma.
+const VENDITE_STAGE_LABEL = {
+  acquistato: "Blueprint acquistato",
+  call_prenotata: "Call prenotata",
+  call_fatta: "Call fatta",
+  in_trattativa: "In trattativa",
+  contratto_pagato: "Contratto firmato + pagato",
+};
+// Prossima azione DERIVATA dallo stadio (nessun campo persistito).
+const VENDITE_ACTION = {
+  acquistato: "Prenota la call",
+  call_prenotata: "Fai la call",
+  call_fatta: "Invia la proposta",
+  in_trattativa: "Sollecita la firma",
+  contratto_pagato: "Chiuso — passa a Delivery",
+};
+
+// Loader Vendite: /pipeline-blueprint (stessa fonte delle pagine vendite-*).
+// Nome + Passaggio reali; prossima azione derivata; blocco = fermo da 10+ gg.
+// Scadenza e Responsabile NON sono esposti da questo endpoint → "—" (mai inventati).
+export function VenditeQueue({ onOpenPartner }) {
+  const [items, setItems] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    apiGet("/pipeline-blueprint")
+      .then((data) => {
+        if (!alive) return;
+        const rows = [];
+        (data?.columns || []).forEach((col) => {
+          (col.items || []).forEach((it) => rows.push({ ...it, stage_id: col.id, stage_label: col.label }));
+        });
+        setItems(rows.map((r) => ({
+          id: r.email || r.session_token || r.nome,
+          name: r.nome || r.email || "—",
+          passaggio: VENDITE_STAGE_LABEL[r.stage_id] || r.stage_label || "—",
+          next_action: VENDITE_ACTION[r.stage_id] || null,
+          owner: null,
+          scadenza: null,
+          blocked: false,
+          stale: r.stage_id !== "contratto_pagato" && daysSince(r.updated_at) > 10,
+          incoerenza: false,
+        })));
+      })
+      .catch((e) => { if (alive) setError(e.message); });
+    return () => { alive = false; };
+  }, []);
+
+  if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
+  if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
+  return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} firstColLabel="Prospect" />;
+}
+
+// ─── BACK OFFICE ──────────────────────────────────────────────────────────────
+const CREDITO_STATO_LABEL = {
+  aperto: "Aperto",
+  in_piano: "In piano rate",
+  saldato: "Saldato",
+  contenzioso: "Contenzioso",
+};
+
+// Loader Back office: /crediti (db.crediti). Nome/stato/scadenza/blocco quasi nativi.
+// Prossima azione derivata da stato_effettivo delle rate; Responsabile non esiste
+// nel modello Credito → "—" (mai inventato). Le rate "da_verificare" = in ritardo.
+export function BackOfficeQueue() {
+  const [items, setItems] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    apiGet("/crediti")
+      .then((data) => {
+        if (!alive) return;
+        const crediti = (data?.crediti || []).filter((c) => c.stato !== "saldato");
+        setItems(crediti.map((c) => {
+          const rate = c.rate || [];
+          const daVerificare = rate.find((r) => r.stato_effettivo === "da_verificare");
+          const prossima = rate
+            .filter((r) => r.stato_effettivo === "attesa" && r.scadenza)
+            .sort((a, b) => String(a.scadenza).localeCompare(String(b.scadenza)))[0];
+          const scadRaw = (daVerificare && daVerificare.scadenza) || (prossima && prossima.scadenza) || null;
+          const inRitardo = Boolean(daVerificare) && !c.non_sollecitare;
+          return {
+            id: c.id,
+            name: c.nome || c.email || "—",
+            passaggio: CREDITO_STATO_LABEL[c.stato] || c.stato || "—",
+            next_action: daVerificare
+              ? "Incassa / verifica rata"
+              : rate.length
+              ? "Segui il piano rate"
+              : "Pianifica le rate",
+            owner: null,
+            scadenza: fmtDate(scadRaw),
+            blocked: false,
+            stale: inRitardo,
+            incoerenza: false,
+          };
+        }));
+      })
+      .catch((e) => { if (alive) setError(e.message); });
+    return () => { alive = false; };
+  }, []);
+
+  if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
+  if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
+  return <DepartmentQueue items={items} firstColLabel="Cliente" />;
+}
