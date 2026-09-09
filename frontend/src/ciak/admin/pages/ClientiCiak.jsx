@@ -135,7 +135,7 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Attiva Ciak Start</h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
-            Per chi ha pagato i 499€ da Payment Link e non passa dal checkout interno. Crea l'account se
+            Per chi ha pagato i 390€ da Payment Link e non passa dal checkout interno. Crea l'account se
             manca, registra l'incasso e manda subito il link di accesso.
           </p>
         </div>
