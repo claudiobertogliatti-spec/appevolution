@@ -84,7 +84,7 @@ test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati 
     if (path === "/crediti") {
       return Promise.resolve({
         crediti: [
-          { id: "c1", nome: "Cliente Rosso", stato: "in_piano", rate: [{ numero: 1, importo: 100, scadenza: "2026-09-01", stato_effettivo: "da_verificare" }] },
+          { id: "c1", nome: "Cliente Rosso", stato: "in_piano", owner: "Valentina", rate: [{ numero: 1, importo: 100, scadenza: "2026-09-01", stato_effettivo: "da_verificare" }] },
           { id: "c2", nome: "Cliente Saldato", stato: "saldato", rate: [] },
         ],
       });
@@ -97,5 +97,6 @@ test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati 
   expect(r1.textContent).toMatch(/Incassa \/ verifica rata/);
   expect(r1.textContent).toMatch(/01\/09\/2026/);
   expect(r1.textContent).toMatch(/In ritardo/);
+  expect(r1.textContent).toMatch(/Valentina/); // owner (Responsabile) reale dal credito
   expect(screen.queryByTestId("coda-row-c2")).toBeNull(); // saldato escluso dalla coda
 });
