@@ -231,6 +231,7 @@ async def test_partial_finalization_is_retried_even_when_payment_was_already_mar
     async def journey(*args, **kwargs): calls.append("journey")
     async def noop(*args, **kwargs): return None
     monkeypatch.setattr(proposta, "_activate_partner_account_and_notify", account)
+    monkeypatch.setattr(proposta, "_finalize_signed_contract_effect", noop)
     monkeypatch.setattr(proposta, "_seed_operativo_journey_from_funnel", journey)
     monkeypatch.setattr(proposta, "_add_systeme_tag", noop)
     monkeypatch.setattr(proposta, "_notify_telegram", noop)
@@ -296,7 +297,11 @@ async def test_concurrent_finalizations_run_each_effect_exactly_once(monkeypatch
             await asyncio.sleep(0)  # cede: senza, non c'e' concorrenza da testare
         return _effetto
 
+    async def _noop(*_args, **_kwargs):
+        return None
+
     monkeypatch.setattr(proposta, "_activate_partner_account_and_notify", _conta("account"))
+    monkeypatch.setattr(proposta, "_finalize_signed_contract_effect", _noop)
     monkeypatch.setattr(proposta, "_seed_operativo_journey_from_funnel", _conta("journey"))
     monkeypatch.setattr(proposta, "_finalization_tags", _conta("tags"))
     monkeypatch.setattr(proposta, "_notify_telegram", _conta("notification"))

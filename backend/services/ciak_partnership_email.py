@@ -4,7 +4,9 @@ Ciak — Email transactional Partnership.
 Invia direttamente via SMTP (smtp.register.it, sender info@evolution-pro.it)
 le 3 email del percorso post-call → firma → pagamento → documenti:
 
-  1. send_contratto_firmato_email   (al POST /api/proposta/:token/firma-contratto)
+  1. send_contratto_firmato_email   (al POST /api/proposta/:token/conferma-stripe
+                                     o /conferma-bonifico — dopo il pagamento,
+                                     non più alla firma: vedi task-3move)
      Conferma firma + PDF contratto allegato.
 
   2. send_partnership_benvenuto_email (al POST /api/proposta/:token/conferma-stripe
