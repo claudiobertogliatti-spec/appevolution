@@ -139,9 +139,21 @@ export function AdminLeadDetail({ onAuthExpired }) {
           {proposal?.url && (
             <div className="mt-4 rounded-xl border border-slate-700 p-4">
               <p className="text-sm text-slate-200 mb-2">Proposta {proposal.status}: {proposal.url}</p>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button type="button" onClick={() => navigator.clipboard.writeText(proposal.url)} className="text-sm text-yellow-400">Copia URL</button>
                 <a href={proposal.url} target="_blank" rel="noopener noreferrer" className="text-sm text-yellow-400">Apri proposta</a>
+                {/* Stessa closing page che il cliente vede dopo la call: /insider/:token usa lo stesso token della proposta. */}
+                {proposal.url.includes("/proposta/") && (
+                  <a
+                    href={proposal.url.replace("/proposta/", "/insider/")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-semibold text-yellow-400 underline"
+                    data-testid="vedi-pagina-cliente"
+                  >
+                    Vedi pagina cliente (post-call)
+                  </a>
+                )}
               </div>
             </div>
           )}
