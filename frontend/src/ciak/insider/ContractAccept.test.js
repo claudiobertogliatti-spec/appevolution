@@ -1,10 +1,14 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ContractAccept from './ContractAccept';
+
+afterEach(() => {
+  delete global.fetch;
+});
 
 test('il CTA pagamento è disabilitato finché il checkbox non è spuntato', () => {
   const onConfirm = jest.fn();
-  render(<ContractAccept contractUrl="/c.pdf" onConfirm={onConfirm} />);
+  render(<ContractAccept onConfirm={onConfirm} />);
   const btn = screen.getByRole('button', { name: /paga|procedi/i });
   expect(btn.disabled).toBe(true);
   fireEvent.click(screen.getByRole('checkbox'));
@@ -13,7 +17,20 @@ test('il CTA pagamento è disabilitato finché il checkbox non è spuntato', () 
   expect(onConfirm).toHaveBeenCalled();
 });
 
-test('il link al contratto è presente', () => {
-  render(<ContractAccept contractUrl="/c.pdf" onConfirm={() => {}} />);
-  expect(screen.getByRole('link', { name: /contratto|condizioni/i }).getAttribute('href')).toBe('/c.pdf');
+test('il testo del contratto viene fetchato e mostrato per intero: niente link al JSON grezzo', async () => {
+  global.fetch = jest.fn((url) => {
+    expect(url).toBe('/api/contract/text/p1');
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ contract_text: 'CLAUSOLA X: il partner si impegna a...' }),
+    });
+  });
+
+  render(<ContractAccept partnerId="p1" onConfirm={() => {}} />);
+
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/contract/text/p1'));
+  expect(await screen.findByText(/CLAUSOLA X/)).toBeTruthy();
+  // il prospect legge il testo vero, non un link che apre il JSON grezzo dell'endpoint
+  expect(screen.queryByRole('link')).toBeNull();
 });

@@ -135,7 +135,7 @@ export default function OfferSections({
       {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
         <div className="insider-offer__contract-gate">
           <ContractAccept
-            contractUrl={partnerId ? `/api/contract/text/${partnerId}` : '/api/contract/text'}
+            partnerId={partnerId}
             onConfirm={handleConfirmContract}
           />
           {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
