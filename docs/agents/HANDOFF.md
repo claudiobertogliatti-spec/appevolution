@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T13 flusso Back office
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T13. Nuovo `services/operational_tasks/back_office.py`: `back_office.check_due_item` legge il piano reale (`PianoPagamento`: rate_totali/rate_pagate/importo_rata/prossima_scadenza) e classifica atteso / incassato_verificato / esito_da_confermare / sospeso / completed + anomalie (rate_incoerenti "rata 9 di 2", importo_mancante ≠ 0, scadenza_mancante). Mai incasso dedotto dalla data, mai pagamento/rimborso/incremento rate. Anomalia o scaduto → UNA attività; sollecito solo bozza, niente se sospeso. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_back_office.py` (nuovo, in ci.yml) **13 passed** (tutti gli scenari del piano + run via motore + idempotenza). Suite operational **139 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring coi piani reali (`db.crediti`/eventi Stripe), aggiornamento amministrativo autorizzato (mai automatico), `reminders_suspended` alimentato da WhatsApp = infra viva. UI Amministrazione → design-lead. Prossimo **T14 Luca** (chiude G2/M2). Niente push/merge/deploy: locale, branch avanti di 11 su origin.
+
 ### 2026-09-09 · Claude · Motore Evolution: T12 flusso Delivery
 
 **AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
