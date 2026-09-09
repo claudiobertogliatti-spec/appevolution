@@ -71,16 +71,17 @@ function funnelData({ mc = {}, inv = {}, hub = {} }) {
   const blueprint = F.purchased_67 || 0;
   const start = items.filter((s) => s.fonte === "ciak_start").length;
   const partnership = items.filter((s) => ["partnership", "upgrade"].includes(s.fonte)).length;
-  const revBlue = blueprint * 27, revStart = start * 499, revPart = partnership * 2790;
+  // Prezzi correnti: Blueprint gratis (0), Ciak Start 390, Partnership 2990.
+  const revBlue = 0, revStart = start * 390, revPart = partnership * 2990;
   const oneOff = revBlue + revStart + revPart;
   const mrr = (hub.summary || {}).mrr || 0;
   const arpu = optin > 0 ? oneOff / optin : 0;
   const stages = [
     { label: "Lead (opt-in)", count: fmt(optin) },
     { label: "8 Domande completate", count: fmt(domande), conv: pct(domande, optin) },
-    { label: "Blueprint €27", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande), hot: true },
-    { label: "Ciak Start €499", count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
-    { label: "Partnership €2.790", count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
+    { label: "Blueprint (gratis)", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande) },
+    { label: "Ciak Start €390", count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
+    { label: "Partnership €2.990", count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
   ];
   const northStar = {
     oneOff: euro(oneOff),
