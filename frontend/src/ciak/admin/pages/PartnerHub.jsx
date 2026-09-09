@@ -95,6 +95,27 @@ function contrattoLabel(p) {
   return { text: "—", cls: "text-slate-400" };
 }
 
+// Scadenza operativa del partner: SOLO da campi reali. La prossima rata del piano
+// (se esiste un piano) o la fine contratto. Non esiste una deadline per-step nel
+// journey → se manca, "—" (mai una data inventata).
+function scadenzaLabel(p) {
+  const raw = p?.piano_pagamento?.prossima_scadenza || p?.contract_end;
+  if (!raw) return null;
+  const s = String(raw).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+// Blocco: derivato dai flag GIA' calcolati dal backend in /delivery-audit
+// (stessa fonte della pagina Audit Delivery), mai ricalcolato a mano qui.
+function bloccoLabel(a) {
+  if (!a) return null;
+  if (a.blocked) return { text: "Fermo", tone: "critical" };
+  if (a.incoerenza) return { text: "Incoerenza", tone: "critical" };
+  if (a.stale) return { text: "In ritardo", tone: "warning" };
+  return null;
+}
+
 /** Apre l'area del partner in vista-admin (impersonazione). */
 function openVista(p) {
   const token = getToken();
@@ -200,7 +221,7 @@ function AttoView({ partners, onOpen }) {
 
 // ─── Vista "Tabella" ──────────────────────────────────────────────────────
 
-function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDelete, onStatusChange, statusUpdating }) {
+function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, onOpen, onDelete, onStatusChange, statusUpdating }) {
   const filtered = statoFilter
     ? partners.filter((p) => (p.stato || "attivo") === statoFilter)
     : partners;
@@ -234,10 +255,11 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
-                <th className="px-5 py-3 font-semibold">Fase</th>
-                <th className="px-5 py-3 font-semibold">Revenue</th>
-                <th className="px-5 py-3 font-semibold">Piano</th>
-                <th className="px-5 py-3 font-semibold">Contratto</th>
+                <th className="px-5 py-3 font-semibold">Passaggio</th>
+                <th className="px-5 py-3 font-semibold">Prossima azione</th>
+                <th className="px-5 py-3 font-semibold">Responsabile</th>
+                <th className="px-5 py-3 font-semibold">Scadenza</th>
+                <th className="px-5 py-3 font-semibold">Blocco</th>
                 <th className="px-5 py-3 font-semibold">Stato</th>
                 <th className="px-5 py-3 font-semibold text-right">Azioni</th>
               </tr>
@@ -246,6 +268,11 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
               {filtered.map((p) => {
                 const stato = p.stato || "attivo";
                 const contr = contrattoLabel(p);
+                const a = auditById?.[p.id] || null;
+                const sca = scadenzaLabel(p);
+                const blk = bloccoLabel(a);
+                const passaggio = (a && a.macro_label) || attoEvo(p.phase) || "—";
+                const passaggioSub = (a && a.current_step) || p.phase || null;
                 return (
                   <tr
                     key={p.id || p.email}
@@ -261,28 +288,39 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
                           <div className="font-medium text-slate-900 truncate">
                             {p.name || "—"}
                           </div>
+                          {/* revenue/piano/contratto demoti a sottoriga: contano, ma non sono la prima lettura operativa */}
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {euro(p.revenue)}
+                            {p.piano_pagamento ? ` · ${p.piano_pagamento.rate_pagate}/${p.piano_pagamento.rate_totali} rate` : ""}
+                            {contr.text !== "—" ? ` · ${contr.text}` : ""}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-3">
                       <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-slate-600">
-                        {attoEvo(p.phase) || "—"}
+                        {passaggio}
                       </span>
-                      {p.phase && (
-                        <div className="text-[10px] text-slate-400 mt-0.5">{p.phase}</div>
+                      {passaggioSub && (
+                        <div className="text-[10px] text-slate-400 mt-0.5">{passaggioSub}</div>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-slate-700">{euro(p.revenue)}</td>
-                    <td className="px-5 py-3 text-xs">
-                      {p.piano_pagamento ? (
-                        <span className="text-yellow-600 font-medium">
-                          {p.piano_pagamento.rate_pagate}/{p.piano_pagamento.rate_totali} rate
-                        </span>
+                    <td className="px-5 py-3 text-xs text-slate-700 max-w-[220px]">
+                      {a && a.next_action ? a.next_action : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-5 py-3 text-xs text-slate-700">
+                      {a && a.owner ? a.owner : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-5 py-3 text-xs text-slate-700">
+                      {sca || <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-5 py-3">
+                      {blk ? (
+                        <StatusPill tone={blk.tone} label={blk.text} />
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
-                    <td className={`px-5 py-3 text-xs ${contr.cls}`}>{contr.text}</td>
                     <td className="px-5 py-3">
                       <select
                         value={stato}
@@ -344,6 +382,7 @@ function TableView({ partners, statoFilter, setStatoFilter, counts, onOpen, onDe
 
 export function PartnerHub({ onAuthExpired }) {
   const [partners, setPartners] = useState(null);
+  const [audit, setAudit] = useState({});
   const [error, setError] = useState(null);
   const [view, setView] = useState(
     () => localStorage.getItem("ciak_admin_partner_view") || "atto"
@@ -357,8 +396,32 @@ export function PartnerHub({ onAuthExpired }) {
 
   const load = useCallback(() => {
     setPartners(null);
-    apiGet("/partners", { include_profile: true })
-      .then((d) => setPartners(d.items || []))
+    Promise.all([
+      apiGet("/partners", { include_profile: true }),
+      apiGet("/delivery-audit").catch(() => null),
+      apiGet("/partner-alignment/overrides").catch(() => null),
+    ])
+      .then(([d, auditData, ovData]) => {
+        setPartners(d.items || []);
+        // Colonne operative dalla STESSA fonte di Audit Delivery: next_action/owner/
+        // blocco sono gia' calcolati dal backend; qui applico solo l'override "Regia"
+        // (come DeliveryAudit) per non contraddire quella pagina. Zero ricalcolo lato client.
+        const overrides = (ovData && ovData.overrides) || {};
+        const map = {};
+        for (const i of (auditData && auditData.items) || []) {
+          const ov = overrides[i.id] || {};
+          map[i.id] = {
+            next_action: ov.alignment_next_step || i.next_action || null,
+            owner: ov.alignment_owner || i.owner || null,
+            blocked: !!i.blocked,
+            stale: !!i.stale,
+            incoerenza: !!i.incoerenza,
+            current_step: i.current_step || null,
+            macro_label: i.macro_label || null,
+          };
+        }
+        setAudit(map);
+      })
       .catch((e) => {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
         else setError(e.message);
@@ -369,12 +432,12 @@ export function PartnerHub({ onAuthExpired }) {
     load();
   }, [load]);
 
-  // Deep-link: /admin/partner?id=<id>&tab=<tab> apre direttamente la scheda
-  // del partner (usato dalla vista Partner Alignment).
+  // Deep-link: /admin/partner?partner=<id>&tab=<tab> apre direttamente la scheda
+  // del partner. Accetta anche il vecchio `?id=` (usato dalla vista Partner Alignment).
   useEffect(() => {
     if (!partners) return;
     const params = new URLSearchParams(window.location.search);
-    const wantId = params.get("id");
+    const wantId = params.get("partner") || params.get("id");
     if (!wantId) return;
     const p = partners.find((x) => String(x.id) === String(wantId));
     if (p) {
@@ -388,10 +451,38 @@ export function PartnerHub({ onAuthExpired }) {
     localStorage.setItem("ciak_admin_partner_view", v);
   };
 
+  // Deep-link scrivibile: aprire una scheda aggiorna l'URL (?partner=<id>&tab=<tab>),
+  // cosi' refresh e link storico riaprono la stessa scheda+tab; chiudere pulisce l'URL.
+  // La vista atto/tabella resta in localStorage come prima.
+  const syncUrl = (partnerId, tab) => {
+    try {
+      const u = new URL(window.location.href);
+      if (partnerId) {
+        u.searchParams.set("partner", String(partnerId));
+        if (tab) u.searchParams.set("tab", tab);
+        else u.searchParams.delete("tab");
+        u.searchParams.delete("id");
+      } else {
+        u.searchParams.delete("partner");
+        u.searchParams.delete("id");
+        u.searchParams.delete("tab");
+      }
+      window.history.replaceState({}, "", u);
+    } catch {
+      /* history non disponibile: la scheda si apre comunque */
+    }
+  };
+
   // Apertura modale: dalle card "Per atto" sul Journey, dalla tabella sul tab passato.
   const openPartner = (p, tab = "journey") => {
     setDetailTab(tab);
     setDetailPartner(p);
+    syncUrl(p?.id, tab);
+  };
+
+  const closePartner = () => {
+    setDetailPartner(null);
+    syncUrl(null);
   };
 
   // L'eliminazione non parte piu' da un confirm() nativo: apre una conferma in
@@ -519,6 +610,7 @@ export function PartnerHub({ onAuthExpired }) {
         ) : (
           <TableView
             partners={partners}
+            auditById={audit}
             statoFilter={statoFilter}
             setStatoFilter={setStatoFilter}
             counts={counts}
@@ -534,10 +626,10 @@ export function PartnerHub({ onAuthExpired }) {
         partner={detailPartner}
         isOpen={!!detailPartner}
         initialTab={detailTab}
-        onClose={() => setDetailPartner(null)}
+        onClose={closePartner}
         onUpdate={load}
         onDelete={() => {
-          setDetailPartner(null);
+          closePartner();
           load();
         }}
         onAuthExpired={onAuthExpired}

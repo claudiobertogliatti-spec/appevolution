@@ -18,7 +18,10 @@ jest.mock("../api", () => ({
   getAdminUser: () => ({ name: "Claudio" }),
 }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
-jest.mock("./PartnerDetailModal", () => ({ PartnerDetailModal: () => null }));
+jest.mock("./PartnerDetailModal", () => ({
+  PartnerDetailModal: ({ partner, isOpen, initialTab }) =>
+    isOpen ? <div data-testid="pdm">{(partner && partner.name) || ""}|{initialTab}</div> : null,
+}));
 
 const PARTNERS = [
   { id: "1", name: "Alfredo Vasi", stato: "quarantena", phase: "F2", contract: "2026-02-12" },
@@ -29,6 +32,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   apiGet.mockResolvedValue({ items: PARTNERS });
   localStorage.setItem("ciak_admin_partner_view", "tabella");
+  window.history.replaceState({}, "", "/");
 });
 
 async function renderTable() {
@@ -79,4 +83,59 @@ test("un errore nel cambio stato passa da un toast, non da un window.alert", asy
   await waitFor(() => expect(toast.error).toHaveBeenCalled());
   expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
+});
+
+// ─── T17: colonne operative + deep-link ────────────────────────────────────
+
+// Le colonne "Prossima azione / Responsabile / Blocco" non sono inventate: vengono
+// da /delivery-audit, la stessa fonte della pagina Audit Delivery.
+function mockOperational(auditItems, overrides = {}) {
+  apiGet.mockImplementation((path) => {
+    if (path === "/partners") return Promise.resolve({ items: PARTNERS });
+    if (path === "/delivery-audit") return Promise.resolve({ items: auditItems });
+    if (path === "/partner-alignment/overrides") return Promise.resolve({ overrides });
+    return Promise.resolve({});
+  });
+}
+
+test("la tabella mostra prossima azione/responsabile/blocco da delivery-audit", async () => {
+  mockOperational([
+    { id: "1", next_action: "Sollecita revisione video", owner: "Antonella", blocked: true, macro_label: "Valida", current_step: "Funnel" },
+  ]);
+  await renderTable();
+  const riga = screen.getByText("Alfredo Vasi").closest("tr");
+  expect(riga.textContent).toMatch(/Sollecita revisione video/);
+  expect(riga.textContent).toMatch(/Antonella/);
+  expect(riga.textContent).toMatch(/Fermo/); // pill blocco
+  // Un partner assente dall'audit non inventa una prossima azione.
+  const riga2 = screen.getByText("Arianna Aceto").closest("tr");
+  expect(riga2.textContent).not.toMatch(/Sollecita revisione video/);
+});
+
+test("l'override Regia vince sul next_action automatico (una fonte sola)", async () => {
+  mockOperational(
+    [{ id: "1", next_action: "Auto: manda promemoria", owner: "Andrea", blocked: false }],
+    { "1": { alignment_next_step: "Regia: chiama tu il partner", alignment_owner: "Claudio" } }
+  );
+  await renderTable();
+  const riga = screen.getByText("Alfredo Vasi").closest("tr");
+  expect(riga.textContent).toMatch(/Regia: chiama tu il partner/);
+  expect(riga.textContent).toMatch(/Claudio/);
+  expect(riga.textContent).not.toMatch(/Auto: manda promemoria/);
+});
+
+test("aprire una scheda scrive il deep-link ?partner=<id> nell'URL", async () => {
+  await renderTable();
+  const riga = screen.getByText("Alfredo Vasi").closest("tr");
+  fireEvent.click(riga);
+  expect(window.location.search).toMatch(/partner=1/);
+  expect(window.location.search).toMatch(/tab=profilo/);
+});
+
+test("un URL ?partner=<id>&tab=<tab> riapre la stessa scheda al caricamento", async () => {
+  window.history.replaceState({}, "", "/?partner=2&tab=journey");
+  render(<PartnerHub />);
+  const pdm = await screen.findByTestId("pdm");
+  expect(pdm.textContent).toMatch(/Arianna Aceto/);
+  expect(pdm.textContent).toMatch(/journey/);
 });
