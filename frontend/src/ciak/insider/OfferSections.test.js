@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import OfferSections from './OfferSections';
 
 test('prezzi reali + copy credito; niente prezzo inventato', () => {
@@ -23,4 +23,107 @@ test('anti-anchoring: Partnership resta hero visivo anche con Start-preambolo in
   // stile: la Partnership porta SEMPRE il trattamento hero (badge/accent), mai Start
   expect(partnershipNode.classList.contains('insider-offer--hero')).toBe(true);
   expect(startNode.classList.contains('insider-offer--hero')).toBe(false);
+});
+
+describe('wiring checkout (Task 7)', () => {
+  const originalLocation = window.location;
+
+  beforeEach(() => {
+    delete window.location;
+    window.location = { href: '' };
+  });
+
+  afterEach(() => {
+    delete global.fetch;
+    window.location = originalLocation;
+  });
+
+  test('Start CTA chiama il vero endpoint start_checkout e redirige a Stripe', async () => {
+    global.fetch = jest.fn(() => Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ success: true, checkout_url: 'https://stripe.test/start' }),
+    }));
+
+    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    fireEvent.click(screen.getByRole('button', { name: /attiva ciak start/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toBe('/api/ciak/client/start/checkout');
+    expect(options.method).toBe('POST');
+    await waitFor(() => expect(window.location.href).toBe('https://stripe.test/start'));
+  });
+
+  test('errore onesto sul CTA Start: mai un finto successo', async () => {
+    global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) }));
+
+    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    fireEvent.click(screen.getByRole('button', { name: /attiva ciak start/i }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(window.location.href).toBe('');
+  });
+
+  test('Partnership CTA: accetta -> checkbox contratto -> firma-contratto -> pagamento-stripe -> redirect', async () => {
+    global.fetch = jest.fn((url) => {
+      if (url === '/api/proposta/t/accetta') {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) });
+      }
+      if (url === '/api/proposta/t/firma-contratto') {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, signed_at: 'now' }) });
+      }
+      if (url === '/api/proposta/t/pagamento-stripe') {
+        return Promise.resolve({
+          ok: true, status: 200,
+          json: () => Promise.resolve({ success: true, checkout_url: 'https://stripe.test/partnership' }),
+        });
+      }
+      return Promise.reject(new Error(`unexpected fetch ${url}`));
+    });
+
+    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/proposta/t/accetta', expect.objectContaining({ method: 'POST' })));
+
+    // La pagina del contratto compare solo dopo l'accettazione — gate reale, non finto.
+    const checkbox = await screen.findByRole('checkbox');
+    fireEvent.click(checkbox);
+    const payBtn = screen.getByRole('button', { name: /paga|procedi/i });
+    fireEvent.click(payBtn);
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/proposta/t/firma-contratto',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ clausole_vessatorie_approved: true, consenso_checkbox: true }),
+      }),
+    ));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/proposta/t/pagamento-stripe', expect.objectContaining({ method: 'POST' })));
+    await waitFor(() => expect(window.location.href).toBe('https://stripe.test/partnership'));
+  });
+
+  test('errore onesto se firma-contratto fallisce: niente pagamento-stripe, niente finto successo', async () => {
+    global.fetch = jest.fn((url) => {
+      if (url === '/api/proposta/t/accetta') {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) });
+      }
+      if (url === '/api/proposta/t/firma-contratto') {
+        return Promise.resolve({ ok: false, status: 422, json: () => Promise.resolve({}) });
+      }
+      return Promise.reject(new Error(`unexpected fetch ${url}`));
+    });
+
+    render(<OfferSections token="t" emphasis={{ hero: 'partnership', startPreamble: false }} />);
+    fireEvent.click(screen.getByRole('button', { name: /entra in partnership/i }));
+
+    const checkbox = await screen.findByRole('checkbox');
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('button', { name: /paga|procedi/i }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(global.fetch).not.toHaveBeenCalledWith('/api/proposta/t/pagamento-stripe', expect.anything());
+    expect(window.location.href).toBe('');
+  });
 });
