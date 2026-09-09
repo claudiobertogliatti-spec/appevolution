@@ -23,6 +23,7 @@ export function ChiusuraInsider({ onAuthExpired }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [owner, setOwner] = useState("Gaia");
 
   async function genera(e) {
     e.preventDefault();
@@ -39,7 +40,7 @@ export function ChiusuraInsider({ onAuthExpired }) {
       const response = await adminFetch("/api/proposta/admin/genera-cliente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: clean, diagnostic_session_id: null }),
+        body: JSON.stringify({ email: clean, diagnostic_session_id: null, owner }),
       });
       if (!response.ok) throw new Error(`Errore ${response.status}`);
       const json = await response.json();
@@ -82,6 +83,17 @@ export function ChiusuraInsider({ onAuthExpired }) {
       </p>
 
       <form onSubmit={genera} className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <label htmlFor="lead-owner" className="block text-sm font-medium text-slate-700 mb-2">
+          Responsabile
+        </label>
+        <select
+          id="lead-owner"
+          value={owner}
+          onChange={(e) => setOwner(e.target.value)}
+          className="w-full sm:w-auto mb-4 rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-slate-900 focus:border-slate-900 focus:outline-none"
+        >
+          {["Gaia", "Carlo", "Mariangela"].map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
         <label htmlFor="lead-email" className="block text-sm font-medium text-slate-700 mb-2">
           Email del lead
         </label>
