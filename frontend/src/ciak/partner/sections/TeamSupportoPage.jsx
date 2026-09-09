@@ -12,6 +12,8 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, Send, X, ArrowRight, ChevronDown, ChevronUp, SendHorizontal, ExternalLink
 } from "lucide-react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoAssistenza from "../sereno/SerenoAssistenza";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -160,17 +162,22 @@ function AgentChatDrawer({ agent, partner, onClose }) {
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [failedText, setFailedText] = useState(null);
   const bottomRef = useRef(null);
+
+  const telegramFallbackUrl =
+    partner?.telegram_group_url || "https://t.me/ciak_partner_support";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const userMsg = { role: "user", content: input.trim() };
-    setMessages((m) => [...m, userMsg]);
+  const send = async (retryText) => {
+    const content = (retryText ?? input).trim();
+    if (!content || sending) return;
+    setMessages((m) => [...m, { role: "user", content }]);
     setInput("");
+    setFailedText(null);
     setSending(true);
 
     try {
@@ -180,7 +187,7 @@ function AgentChatDrawer({ agent, partner, onClose }) {
         body: JSON.stringify({
           partner_id: partner?.id || "demo_partner",
           user_name: partner?.name || "Partner CIAK",
-          message: userMsg.content,
+          message: content,
           target_agent: agent.id,
         }),
       });
@@ -189,13 +196,9 @@ function AgentChatDrawer({ agent, partner, onClose }) {
       const reply = data.reply || "Messaggio ricevuto! Come posso supportarti sul prossimo step?";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch {
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: `Ho preso in carico la tua richiesta per ${agent.focus}. Ti do subito le indicazioni!`,
-        },
-      ]);
+      // Honest failure: never fabricate a "preso in carico". Keep the message so the
+      // partner can resend, and offer the real human fallback (Telegram).
+      setFailedText(content);
     } finally {
       setSending(false);
     }
@@ -248,6 +251,31 @@ function AgentChatDrawer({ agent, partner, onClose }) {
           )}
           <div ref={bottomRef} />
         </div>
+
+        {failedText && (
+          <div className="border-t border-amber-200 bg-amber-50 px-4 py-3" role="alert">
+            <p className="text-xs font-bold text-slate-900">Messaggio non inviato.</p>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Il tuo testo è al sicuro. Riprova, oppure scrivi al team sul canale Telegram dedicato.
+            </p>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => send(failedText)}
+                disabled={sending}
+                className="bg-slate-950 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-800 transition disabled:opacity-50"
+              >
+                Riprova
+              </button>
+              <button
+                onClick={() => window.open(telegramFallbackUrl, "_blank", "noopener")}
+                className="bg-white text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs border border-slate-300 hover:bg-slate-50 transition inline-flex items-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Apri Telegram
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-slate-200 p-4 bg-white flex gap-2">
           <input
@@ -365,6 +393,21 @@ export function TeamSupportoPage({ partner }) {
     const telegramUrl = partner?.telegram_group_url || "https://t.me/ciak_partner_support";
     window.open(telegramUrl, "_blank");
   };
+
+  // Sereno skin: same roster, same 1-on-1 chat contract (target_agent) and the
+  // same honest failure handling, restyled. The current UI stays the default.
+  if (PARTNER_SERENO_ENABLED) {
+    return (
+      <SerenoAssistenza
+        agents={AGENTIC_TEAM}
+        team={HUMAN_TEAM}
+        telegramUrl={partner?.telegram_group_url || "https://t.me/ciak_partner_support"}
+        apiBase={API}
+        partnerId={partner?.id}
+        partnerName={partner?.name}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900 pb-16">

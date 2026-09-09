@@ -27,6 +27,8 @@ import { TeamSupportoPage } from "./sections/TeamSupportoPage";
 import { EvoSPage } from "./sections/EvoSPage";
 import { CambiaPasswordPage } from "./sections/CambiaPasswordPage";
 import PartnerOperativo from "./operativo/PartnerOperativo";
+import SerenoShell from "./sereno/SerenoShell";
+import { PARTNER_SERENO_ENABLED } from "./sereno/feature";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
 
@@ -345,6 +347,7 @@ function MobileBottomNav() {
 // ─── Shell ────────────────────────────────────────────────
 
 function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
+  if (PARTNER_SERENO_ENABLED) return <SerenoShell {...{ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout }}>{children}</SerenoShell>;
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <div className="hidden lg:block">

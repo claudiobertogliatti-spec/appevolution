@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { useJourneyState } from "./hooks/useJourneyState";
 import ProgressBar from "./ProgressBar";
 import PhaseAgentHeader from "./PhaseAgentHeader";
@@ -6,6 +6,9 @@ import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
 import Benvenuto from "./Benvenuto";
 import GuidedHome from "./GuidedHome";
+import { useSearchParams } from "react-router-dom";
+import SerenoHome from "../sereno/SerenoHome";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
@@ -47,6 +50,7 @@ const WORKSPACE_COMPONENTS = {
  * Drawer chat si apre al click "Chiedi →".
  */
 export default function PartnerOperativo({ partnerId, partnerName }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // La home guidata e' la prima schermata reale del partner.
@@ -57,12 +61,30 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   });
   // se !== null: si apre direttamente quello step (modifica step già done, o
   // deep-link "Vai allo step" dalla scheda admin via localStorage).
-  const [viewingStepId, setViewingStepId] = useState(() => {
+  const [legacyViewingStepId, setLegacyViewingStepId] = useState(() => {
     if (typeof window === "undefined") return null;
     const deepLink = localStorage.getItem("ciak_partner_initial_step");
     if (deepLink) localStorage.removeItem("ciak_partner_initial_step");
     return deepLink || null;
   });
+  const viewingStepId = PARTNER_SERENO_ENABLED ? searchParams.get('step') : legacyViewingStepId;
+  const setViewingStepId = (id) => {
+    if (!PARTNER_SERENO_ENABLED) { setLegacyViewingStepId(id); return; }
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (id) next.set('step', id); else next.delete('step');
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!PARTNER_SERENO_ENABLED || !legacyViewingStepId) return;
+    if (!searchParams.has('step')) {
+      const next = new URLSearchParams(searchParams);
+      next.set('step', legacyViewingStepId);
+      setSearchParams(next, { replace: true });
+    }
+    setLegacyViewingStepId(null);
+  }, [legacyViewingStepId, searchParams, setSearchParams]);
 
   if (loading) {
     return (
@@ -72,6 +94,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     );
   }
   if (error) {
+    if (PARTNER_SERENO_ENABLED) return <section className="sereno-focus" role="alert"><h2>Non riusciamo ad aprire il percorso.</h2><p>{String(error).includes('AUTH_EXPIRED') ? 'Accedi di nuovo per continuare da questa pagina.' : 'Il caricamento non è riuscito. Riprova tra poco.'}</p><div className="sereno-actions"><button className="sereno-primary" onClick={() => String(error).includes('AUTH_EXPIRED') ? window.location.reload() : refresh()}>{String(error).includes('AUTH_EXPIRED') ? 'Accedi di nuovo' : 'Riprova'}</button></div></section>;
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center font-[Poppins,system-ui,sans-serif]">
         <div className="bg-white border border-gray-200 rounded-md p-6 text-center max-w-md">
@@ -82,6 +105,8 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     );
   }
   if (!state) return null;
+  if (PARTNER_SERENO_ENABLED && viewingStepId && !WORKSPACE_COMPONENTS[viewingStepId] && !state.steps?.some(s => s.step_id === viewingStepId)) return <section className="sereno-focus"><h2>Questo passaggio non è disponibile.</h2><p>Torna alla Home per ritrovare l’attività corrente.</p><button className="sereno-primary" onClick={() => setViewingStepId(null)}>Torna a Oggi</button></section>;
+  if (PARTNER_SERENO_ENABLED && !viewingStepId) return <SerenoHome state={state} partnerName={partnerName} onOpenStep={setViewingStepId} />;
 
   // Deep-link ai Workspace della Fase Valida (pilota nuova architettura a 5 Workspace).
   const WorkspaceComp = viewingStepId ? WORKSPACE_COMPONENTS[viewingStepId] : null;
@@ -151,7 +176,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   return (
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {!allDone && !isBenvenuto && (
+        {!PARTNER_SERENO_ENABLED && !allDone && !isBenvenuto && (
           <GoLive21Banner
             stepStatus={stepToShow?.status}
             startDate={
