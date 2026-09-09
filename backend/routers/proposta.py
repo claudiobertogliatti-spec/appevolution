@@ -126,6 +126,7 @@ class GeneraPropostaRequest(BaseModel):
 class GeneraPropostaClienteRequest(BaseModel):
     email: str
     diagnostic_session_id: Optional[str] = None
+    owner: Optional[str] = None  # responsabile vendite della trattativa (Gaia/Carlo/Mariangela)
 
 
 async def require_partnership_proposal_eligibility(email: str) -> dict:
@@ -277,6 +278,7 @@ async def _genera_proposta(partner_id: str, body: GeneraPropostaRequest, admin):
         "documenti_identita_url": [],
         "distinta_bonifico_url": None,
         "stato": "inviata",
+        "owner": None,  # responsabile vendite (impostato da genera-cliente se fornito)
         "generata_da": _admin_identity(admin),
         "generata_at": now.isoformat(),
         "scadenza": (now + timedelta(days=SCADENZA_GIORNI)).isoformat()
@@ -320,12 +322,16 @@ async def genera_proposta_cliente(
     await require_partnership_proposal_eligibility(payload.email)
     identity = await resolve_canonical_client_identity(payload.email)
     result = await _genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), admin)
-    await db.proposte.update_one({"token": result["token"]}, {"$set": {
+    set_fields = {
         "ciak_client_id": identity.get("client_id"),
         "user_id": identity.get("user_id"),
         "diagnostic_session_id": payload.diagnostic_session_id,
         "identity_email": identity["email"],
-    }})
+    }
+    # owner solo se fornito: non azzerarlo rigenerando su una proposta esistente.
+    if payload.owner:
+        set_fields["owner"] = payload.owner
+    await db.proposte.update_one({"token": result["token"]}, {"$set": set_fields})
     return {**result, "status": "esistente" if result.get("message") == "Proposta esistente" else "generata"}
 
 

@@ -288,7 +288,7 @@ export function VenditeQueue({ onOpenPartner }) {
           name: r.nome || r.email || "—",
           passaggio: VENDITE_STAGE_LABEL[r.stage_id] || r.stage_label || "—",
           next_action: VENDITE_ACTION[r.stage_id] || null,
-          owner: null,
+          owner: r.owner || null,
           scadenza: null,
           blocked: false,
           stale: r.stage_id !== "contratto_pagato" && daysSince(r.updated_at) > 10,

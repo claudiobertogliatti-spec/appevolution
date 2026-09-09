@@ -1719,13 +1719,14 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
 
     entries: dict = {}
 
-    def _bump(email, stage, nome=None, updated_at=None, token=None):
+    def _bump(email, stage, nome=None, updated_at=None, token=None, owner=None):
         if not email:
             return
         e = entries.get(email)
         if e is None:
             entries[email] = {"email": email, "nome": nome, "stage": stage,
-                              "updated_at": updated_at, "session_token": token}
+                              "updated_at": updated_at, "session_token": token,
+                              "owner": owner}
             return
         if _BLUEPRINT_RANK.get(stage, -1) > _BLUEPRINT_RANK.get(e["stage"], -1):
             e["stage"] = stage
@@ -1734,6 +1735,8 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
                 e["session_token"] = token
         if nome and not e.get("nome"):
             e["nome"] = nome
+        if owner and not e.get("owner"):
+            e["owner"] = owner
 
     async for d in db.diagnostic_sessions.find(
         {"current_state": {"$in": list(_PURCHASED_STATES)}}
@@ -1745,9 +1748,9 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
         prop = proposte_by_email.get(em) if em else None
         if prop:
             if prop.get("pagamento_completato"):
-                _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"))
+                _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"), owner=prop.get("owner"))
             elif prop.get("stato") in ("inviata", "vista", "accettata", "contratto_firmato"):
-                _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"))
+                _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"), owner=prop.get("owner"))
 
     # Acquisti orfani — colonna "acquistato"
     async for o in db.ciak_orphan_purchases.find({}):

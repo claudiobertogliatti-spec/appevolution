@@ -66,7 +66,7 @@ test("VenditeQueue: prospect da /pipeline-blueprint, passaggio + prossima azione
     if (path === "/pipeline-blueprint") {
       return Promise.resolve({
         columns: [
-          { id: "call_fatta", label: "Call fatta", items: [{ email: "p@x.it", nome: "Prospetto Uno", updated_at: new Date().toISOString() }] },
+          { id: "call_fatta", label: "Call fatta", items: [{ email: "p@x.it", nome: "Prospetto Uno", updated_at: new Date().toISOString(), owner: "Gaia" }] },
         ],
       });
     }
@@ -77,6 +77,7 @@ test("VenditeQueue: prospect da /pipeline-blueprint, passaggio + prossima azione
   expect(row.textContent).toMatch(/Prospetto Uno/);
   expect(row.textContent).toMatch(/Call fatta/);
   expect(row.textContent).toMatch(/Invia la proposta/); // derivata dallo stadio
+  expect(row.textContent).toMatch(/Gaia/); // owner (Responsabile) dalla proposta
 });
 
 test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati esclusi", async () => {
