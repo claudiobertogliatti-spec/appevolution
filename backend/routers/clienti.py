@@ -500,7 +500,13 @@ async def get_clienti_stats():
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(data: CheckoutRequest, request: Request):
-    """Create Stripe checkout session for €27 analysis"""
+    """Create Stripe checkout session for €27 analysis — RITIRATO.
+
+    L'analisi (Blueprint) è gratuita: il funnel porta alle 8 domande, nessun
+    pagamento. Endpoint neutralizzato (410) per eliminare il rischio di un
+    addebito €27 da vecchi link; la route /analisi-strategica redirige a /blueprint.
+    """
+    raise HTTPException(status_code=410, detail="Analisi gratuita: nessun checkout a pagamento.")
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     

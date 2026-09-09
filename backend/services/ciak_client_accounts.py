@@ -7,7 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 
-BLUEPRINT_AMOUNT_CENTS = 2700
+BLUEPRINT_AMOUNT_CENTS = 2700  # €27: importo STORICO per fatturare chi ha già pagato (il funnel nuovo è gratuito, checkout €27 ritirato)
 START_AMOUNT_CENTS = 39000
 PARTNERSHIP_AMOUNT_CENTS = 299000
 ACCESS_BLUEPRINT = "cliente_blueprint"

@@ -11,10 +11,10 @@ services/ciak_client_accounts.py): importabile anche in test ermetici, senza
 fastapi/stripe.
 
 Prezzi definitivi (LOCK):
-  - CIAK-BLUEPRINT   €27   una tantum   (MAI €67)
+  - CIAK-BLUEPRINT   €27   una tantum   (STORICO per fatturazione; il funnel nuovo è gratuito, checkout ritirato)
   - CIAK-START       €390  una tantum
   - CIAK-PARTNERSHIP €2.990 una tantum
-  - CIAK-UPGRADE     €2.291 una tantum  (Partnership - credito Start)
+  - CIAK-UPGRADE     €2.600 una tantum  (Partnership - credito Start)
   - EVO-S recover/start/grow/scale = 147/297/497/797 €/mese
 """
 from __future__ import annotations
@@ -58,7 +58,7 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
     "CIAK-BLUEPRINT": {
         "code": "CIAK-BLUEPRINT",
         "nome": "Ciak Blueprint",
-        "amount_cents": BLUEPRINT_AMOUNT_CENTS,  # 2700 -> €27 (MAI €67)
+        "amount_cents": BLUEPRINT_AMOUNT_CENTS,  # 2700 storico per fatturazione (funnel nuovo gratuito, checkout ritirato)
         "periodicita": "una_tantum",
         "descrizione": (
             "Analisi strategica digitale e roadmap personalizzata per "

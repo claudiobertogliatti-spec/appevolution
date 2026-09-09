@@ -32,7 +32,7 @@ db = None
 
 CLIENT_JWT_ALG = "HS256"
 CLIENT_JWT_DAYS = 30
-BLUEPRINT_PRICE_CENTS = 2700
+BLUEPRINT_PRICE_CENTS = 2700  # €27 storico (funnel gratuito, checkout €27 ritirato)
 PARTNERSHIP_PRICE_CENTS = 299000
 PARTNER_AREA_ACTIVE_STATES = {"partner_attivo", "convertito_partner"}
 START_EXPLICIT_OFFER_FLAGS = (
