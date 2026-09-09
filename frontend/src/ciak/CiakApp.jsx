@@ -44,6 +44,7 @@ import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
 import { CiakAnalisi } from "./pages/Analisi";
 import { CiakProposta } from "./pages/Proposta";
+import InsiderSalesPage from "./insider/InsiderSalesPage";
 import { PartnerSetupPassword } from "./pages/PartnerSetupPassword";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
@@ -129,6 +130,9 @@ export default function CiakApp() {
 
           {/* FASE 1 migrazione — Proposta Partnership post-call (porting da Evolution) */}
           <Route path="/proposta/:token" element={<CiakProposta />} />
+
+          {/* Insider closing page — post-call, pre-partnership (SDD 2026-09-09) */}
+          <Route path="/insider/:token" element={<InsiderSalesPage />} />
 
           {/* Alias usabili per campagne ads */}
           <Route path="/masterclass-gratis" element={<Navigate to="/masterclass" replace />} />

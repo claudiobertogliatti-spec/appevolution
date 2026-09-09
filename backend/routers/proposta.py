@@ -7,6 +7,7 @@ firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File
 from routers.ciak_admin import require_ciak_admin
+from routers.insider_helpers import enrich_proposta_for_insider
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -354,6 +355,42 @@ async def get_proposta(token: str):
         proposta["stato"] = "vista"
         await _notify_telegram(f"Proposta aperta da {proposta.get('prospect_nome', '?')}")
 
+    # Arricchisce con analisi + scoring del lead (Insider closing page).
+    # Stessa catena di lookup di `require_partnership_proposal_eligibility`
+    # (ciak_clients → session_token → diagnostic_sessions/ciak_analisi),
+    # verificata sopra in questo stesso file: ogni proposta arriva qui solo
+    # dopo che quella funzione ha già confermato che la catena risolve.
+    sess = None
+    email = (proposta.get("prospect_email") or "").strip().lower()
+    if email:
+        client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
+        session_token = (client or {}).get("session_token") or (client or {}).get("diagnostic_session_token")
+        if session_token:
+            diag = await db.diagnostic_sessions.find_one(
+                {"session_token": session_token}, {"_id": 0}
+            )
+            # Proiezione ristretta: questo endpoint e' PUBBLICO e senza auth
+            # (il token della proposta e' l'unica "capability"). Il documento
+            # ciak_analisi contiene anche campi interni (session_token,
+            # research_data, bozza, script_call, stato_cliente, errori) che
+            # NON devono uscire da qui — vedi services/ciak_analisi.py:342-353.
+            # Si estrae SOLO `analisi_definitiva`, l'unico campo client-facing
+            # (stesso campo gia' esposto pubblicamente, a valle di un gate
+            # sullo stato "inviata", da routers/ciak_analisi_public.py:31-32).
+            analisi_doc = await db.ciak_analisi.find_one(
+                {"session_token": session_token}, {"analisi_definitiva": 1, "_id": 0}
+            )
+            analisi = (analisi_doc or {}).get("analisi_definitiva")
+            scoring = (diag or {}).get("scoring") or {}
+            sess = {
+                "analisi": analisi,
+                # Il campo reale e' `stato_finale` (services/ciak_scoring.py:83),
+                # non `stato`: normalizzato qui per rispettare l'interfaccia
+                # pura di enrich_proposta_for_insider.
+                "scoring": {"stato": scoring.get("stato_finale")},
+            }
+    proposta = enrich_proposta_for_insider(proposta, sess)
+
     return proposta
 
 
@@ -382,7 +419,17 @@ async def accetta_proposta(token: str):
 # ─────────────────────────────────────────────────
 @router.post("/{token}/firma-contratto")
 async def firma_contratto_proposta(token: str, request: Request, background_tasks: BackgroundTasks):
-    """Salva firma contratto dalla pagina proposta."""
+    """Salva firma contratto dalla pagina proposta.
+
+    Registra SOLO il consenso (contract_data, contratto_firmato_at, stato +
+    contract/contract_signed sul partner). PDF e email "contratto firmato" NON
+    si generano qui: girano DOPO il pagamento, dentro finalize_partnership_payment
+    (vedi _finalize_signed_contract_effect più sotto). Prima di questa modifica
+    il PDF veniva prodotto e spedito a firma avvenuta ma PRIMA del pagamento:
+    un cliente poteva firmare, non pagare mai, e avere comunque in mano un
+    "contratto firmato" — artefatto legale per una transazione mai incassata.
+    `background_tasks` resta nella firma per compatibilità (non più usato qui).
+    """
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
     if not proposta:
         raise HTTPException(404, "Proposta non trovata")
@@ -397,24 +444,22 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
         raise HTTPException(410, "Proposta scaduta")
     if proposta.get("contratto_firmato_at"):
         return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
-    validate_signature_payload(body.get("signature_base64"))
+    from routers.insider_helpers import build_contract_acceptance
     now = datetime.now(timezone.utc)
+    if body.get("signature_base64"):
+        validate_signature_payload(body.get("signature_base64"))
+    try:
+        contract_data = build_contract_acceptance(body, _trusted_client_ip(request), now.isoformat())
+    except ValueError as e:
+        raise HTTPException(422, str(e))
 
-    contract_data = {
-        "version": "v1.0",
-        "signed_at": now.isoformat(),
-        "signature_base64": body.get("signature_base64", ""),
-        "ip_address": _trusted_client_ip(request),
-        "clausole_vessatorie_approved": True
-    }
-
-    # Aggiorna proposta (pdf_url persistito più sotto, dopo la generazione)
     await db.proposte.update_one({"token": token}, {"$set": {
         "contratto_firmato_at": now.isoformat(),
         "stato": "contratto_firmato"
     }})
 
-    # Aggiorna partner
+    # Aggiorna partner: il contract_data qui salvato è la fonte che
+    # finalize_partnership_payment userà per generare il PDF dopo il pagamento.
     partner_id = proposta.get("partner_id")
     if partner_id:
         for coll in ["partners", "users"]:
@@ -428,64 +473,9 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
                 }}
             )
 
-    # Genera PDF + invia email transactional Ciak al cliente
-    pdf_url = None
-    pdf_bytes_for_email = None
-    try:
-        from routers.contract import generate_contract_pdf, send_contract_email
-        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
-        if not partner:
-            partner = await db.users.find_one({"id": partner_id}, {"_id": 0})
-        if partner:
-            pdf_url = await generate_contract_pdf(partner, contract_data)
-            # send_contract_email: Telegram admin + tag Systeme contratto_firmato
-            await send_contract_email(partner, pdf_url)
-            # Best-effort: scarica i bytes del PDF per allegarli all'email cliente
-            if pdf_url:
-                try:
-                    if pdf_url.startswith("http"):
-                        async with httpx.AsyncClient(timeout=15) as h:
-                            r = await h.get(pdf_url)
-                            if r.status_code == 200:
-                                pdf_bytes_for_email = r.content
-                    elif pdf_url.startswith("/"):
-                        # path locale tipo /app/storage/contracts/... oppure /api/static/...
-                        import os as _os
-                        candidate = pdf_url
-                        if pdf_url.startswith("/api/static/"):
-                            candidate = _os.path.join("/app", pdf_url.lstrip("/"))
-                        if _os.path.exists(candidate):
-                            with open(candidate, "rb") as fh:
-                                pdf_bytes_for_email = fh.read()
-                except Exception as e:
-                    logger.warning(f"[PROPOSTA] PDF bytes fetch failed: {e}")
-    except Exception as e:
-        logger.error(f"[PROPOSTA] Errore PDF/email post-firma: {e}")
-
-    # Email Ciak al cliente con PDF allegato (fire-and-forget)
-    cliente_email = proposta.get("prospect_email")
-    cliente_nome = (proposta.get("prospect_nome") or "").split()[0] if proposta.get("prospect_nome") else ""
-    if cliente_email:
-        # BackgroundTasks invece di asyncio.create_task: Cloud Run aspetta che
-        # la BG task completi prima di riciclare la worker. Senza, CancelledError
-        # (BaseException) cancella il send + insert audit (vedi memory 17/5).
-        background_tasks.add_task(
-            send_contratto_firmato_async,
-            email=cliente_email,
-            nome=cliente_nome,
-            pdf_bytes=pdf_bytes_for_email,
-        )
-
-    # Persisti il pdf_url sulla proposta così il flusso Operativo può linkare
-    # il contratto firmato nello Step 1 senza richiedere un nuovo upload.
-    if pdf_url:
-        await db.proposte.update_one(
-            {"token": token}, {"$set": {"contratto_pdf_url": pdf_url}}
-        )
-
     await _notify_telegram(f"Contratto FIRMATO da {proposta.get('prospect_nome', '?')} (via proposta)")
 
-    return {"success": True, "signed_at": now.isoformat(), "pdf_url": pdf_url}
+    return {"success": True, "signed_at": now.isoformat()}
 
 
 # ─────────────────────────────────────────────────
@@ -905,6 +895,97 @@ async def bonifici_in_attesa(_admin=Depends(require_ciak_admin)):
     return {"items": items, "count": len(items)}
 
 
+def _resolve_local_pdf_candidate(pdf_url: str) -> str:
+    """Da un pdf_url locale (path che inizia con '/', non http) deriva il path
+    assoluto sul filesystem del container.
+
+    Pura (nessun I/O): isolata da _finalize_signed_contract_effect per essere
+    unit-testabile senza mock di filesystem/rete. `/api/static/...` è servito
+    da FastAPI da dentro `/app`, quindi va rimappato; ogni altro path locale
+    (es. `/app/storage/contracts/...`) è già assoluto così com'è.
+    """
+    if pdf_url.startswith("/api/static/"):
+        return os.path.join("/app", pdf_url.lstrip("/"))
+    return pdf_url
+
+
+async def _fetch_pdf_bytes_for_email(pdf_url: Optional[str]) -> Optional[bytes]:
+    """Scarica/legge i bytes del PDF per allegarli all'email cliente. Best-effort:
+    un fallimento qui non deve far fallire l'intero effetto di finalizzazione
+    (l'email parte comunque senza allegato, il link resta nel dashboard)."""
+    if not pdf_url:
+        return None
+    try:
+        if pdf_url.startswith("http"):
+            async with httpx.AsyncClient(timeout=15) as h:
+                r = await h.get(pdf_url)
+                if r.status_code == 200:
+                    return r.content
+        elif pdf_url.startswith("/"):
+            candidate = _resolve_local_pdf_candidate(pdf_url)
+            if os.path.exists(candidate):
+                with open(candidate, "rb") as fh:
+                    return fh.read()
+    except Exception as e:
+        logger.warning(f"[PROPOSTA] PDF bytes fetch failed: {e}")
+    return None
+
+
+async def _finalize_signed_contract_effect(
+    token: str, partner_id: str, email: str, nome: str, pdf_state: dict
+) -> None:
+    """Effetto post-pagamento (claim atomico, vedi finalize_partnership_payment):
+    genera il PDF del contratto firmato, lo persiste sulla proposta, avvisa
+    l'admin (send_contract_email) e manda al cliente l'email "contratto
+    firmato" col PDF allegato.
+
+    Gira SOLO dopo il pagamento — prima di questa modifica firma_contratto_proposta
+    produceva questi stessi artefatti PRIMA del pagamento (vedi quella funzione
+    per il perché). `contract_data` è quello salvato lì, letto ora dal partner
+    (`partner["contract"]`) perché firma e pagamento sono due richieste HTTP
+    separate nel tempo.
+
+    Scrive l'url generato in `pdf_state["url"]` così l'effetto `journey`, che
+    gira subito dopo nello stesso `effects`, lo legge fresco invece di quello
+    (sempre None a questo punto) letto dalla `proposta` con cui è entrata
+    `finalize_partnership_payment`.
+    """
+    from routers.contract import generate_contract_pdf, send_contract_email
+
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        partner = await db.users.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        # Pagamento già incassato: non uscire in silenzio, vedi motivazione
+        # analoga in _activate_partner_account_and_notify.
+        raise HTTPException(
+            409, "Partner mancante: impossibile generare il contratto firmato"
+        )
+
+    contract_data = partner.get("contract")
+    if not contract_data:
+        raise HTTPException(
+            409, "Dati contratto mancanti: impossibile generare il PDF firmato"
+        )
+
+    pdf_url = await generate_contract_pdf(partner, contract_data)
+    if pdf_url:
+        await db.proposte.update_one(
+            {"token": token}, {"$set": {"contratto_pdf_url": pdf_url}}
+        )
+        pdf_state["url"] = pdf_url
+
+    # send_contract_email: Telegram admin + tag Systeme contratto_firmato
+    await send_contract_email(partner, pdf_url)
+
+    pdf_bytes_for_email = await _fetch_pdf_bytes_for_email(pdf_url)
+    cliente_nome = (nome or "").split()[0] if nome else ""
+    if email:
+        await send_contratto_firmato_async(
+            email=email, nome=cliente_nome, pdf_bytes=pdf_bytes_for_email
+        )
+
+
 # ─────────────────────────────────────────────────
 # ADMIN: Conferma bonifico → attiva partner
 # ─────────────────────────────────────────────────
@@ -939,11 +1020,34 @@ async def finalize_partnership_payment(proposta: dict, method: str, reference: s
         "partnership_metodo": method, "documents_status": "pending",
     }}, upsert=True)
 
+    # Contenitore mutabile: `contract_pdf` lo scrive DOPO aver generato il PDF,
+    # `journey` (che gira subito dopo, vedi ordine dell'elenco sotto) lo legge
+    # a chiamata — non a definizione — cosi' prende l'url fresco e non quello
+    # letto da `proposta` all'ingresso della funzione, che qui e' sempre None
+    # (il PDF ora si genera SOLO in questo punto, mai prima).
+    pdf_state = {"url": proposta.get("contratto_pdf_url")}
+
+    async def _journey_effect():
+        # Sotto doppia finalizzazione concorrente, questa chiamata può vincere
+        # il claim di `journey` mentre l'altra sta ancora generando il PDF in
+        # `contract_pdf` (claim perso qui): pdf_state["url"] è allora None pur
+        # essendo il PDF già scritto su `proposta.contratto_pdf_url` dall'altra
+        # chiamata. Rilettura fresca dal DB prima di seedare, per non perdere
+        # il link comodo in dashboard (il PDF stesso non è mai a rischio).
+        pdf_url = pdf_state["url"]
+        if not pdf_url:
+            doc = await db.proposte.find_one(
+                {"token": token}, {"_id": 0, "contratto_pdf_url": 1}
+            ) or {}
+            pdf_url = doc.get("contratto_pdf_url")
+        await _seed_operativo_journey_from_funnel(
+            partner_id, contract_signed_at=proposta.get("contratto_firmato_at"),
+            contract_pdf_url=pdf_url, payment_metodo=method, payment_at=now)
+
     effects = [
         ("account", lambda: _activate_partner_account_and_notify(partner_id, email, nome)),
-        ("journey", lambda: _seed_operativo_journey_from_funnel(
-            partner_id, contract_signed_at=proposta.get("contratto_firmato_at"),
-            contract_pdf_url=proposta.get("contratto_pdf_url"), payment_metodo=method, payment_at=now)),
+        ("contract_pdf", lambda: _finalize_signed_contract_effect(token, partner_id, email, nome, pdf_state)),
+        ("journey", _journey_effect),
         ("tags", lambda: _finalization_tags(email)),
         ("notification", lambda: _notify_telegram(f"Pagamento Partnership verificato — {nome} — {method}")),
     ]

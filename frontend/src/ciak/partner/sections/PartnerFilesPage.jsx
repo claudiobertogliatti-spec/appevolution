@@ -243,6 +243,37 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           }
         }
       } catch { /* la cartella Drive semplicemente non compare */ }
+      try {
+        // signed_at (letto da /api/contract/status) viene scritto PRIMA che il
+        // PDF sia generato: la generazione e' best-effort, in try/except sia in
+        // proposta.py che in contract.py. Un partner puo' quindi avere
+        // signed_at valorizzato senza che esista alcuna riga in contract_pdfs
+        // — mostrare la voce solo su signed_at produrrebe un "Contratto
+        // firmato" che scarica un vero 404. Usiamo signed_at solo per la data
+        // e mostriamo la voce SOLO se /api/contract/pdf conferma che il PDF
+        // esiste davvero (rigenera se la riga manca, fallisce se non firmato
+        // o se la generazione non riesce).
+        const rc = await fetch(`/api/contract/status/${partnerId}`, { headers: authHeaders() });
+        if (rc.ok) {
+          const dc = await rc.json();
+          if (dc?.signed) {
+            const rp = await fetch(`/api/contract/pdf/${partnerId}`, { headers: authHeaders() });
+            if (rp.ok) {
+              const dp = await rp.json();
+              if (dp?.success && dp?.pdf_url) {
+                reali.push({
+                  id: "r-contratto", folderId: "brand_kit",
+                  name: "Contratto firmato", category: "Contratto",
+                  size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
+                  owner: "👤 Tu", type: "pdf",
+                  icon: FileCheck, iconColor: "text-emerald-600",
+                  url: dp.pdf_url,
+                });
+              }
+            }
+          }
+        }
+      } catch { /* nessun contratto in lista se il check fallisce */ }
       if (!annullato) setFiles(reali);
     })();
     return () => { annullato = true; };

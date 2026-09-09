@@ -1,0 +1,402 @@
+/* Insider closing page — /insider/:token
+ * Token brand Ciak (LOCK): navy #0F172A, giallo #FACC15, grigio #E5E7EB, Poppins.
+ * Task 4: solo lo shell (stati onesti loading/scaduto/non-valido/errore/già-fatto).
+ * Le sezioni InsiderWelcome/AnalysisRecap/OfferSections portano il proprio CSS
+ * quando vengono implementate (Task 5-7).
+ */
+.insider {
+  font-family: Poppins, system-ui, sans-serif;
+  color: #0F172A;
+  background: #F7F8FA;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.insider > p {
+  max-width: 480px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748B;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-left: 4px solid #FACC15;
+  border-radius: 12px;
+  padding: 22px 26px;
+}
+
+.insider > p[role="alert"] {
+  color: #0F172A;
+}
+
+/* InsiderWelcome (Task 5) */
+.insider-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 560px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.insider-welcome__badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0F172A;
+  background: #FACC15;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.insider-welcome__title {
+  margin: 0;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-welcome__telegram {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 20px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.insider-welcome__telegram:hover {
+  border-color: #FACC15;
+  transform: translateY(-1px);
+}
+
+.insider-welcome__video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0F172A;
+}
+
+.insider-welcome__video iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.insider-welcome__video--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px dashed #E5E7EB;
+}
+
+.insider-welcome__video--placeholder p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+/* AnalysisRecap — rilettura dell'analisi ("ecco cosa abbiamo visto di te"). */
+.insider-analysis-recap {
+  text-align: left;
+  max-width: 640px;
+  width: 100%;
+  margin-bottom: 32px;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 28px 30px;
+}
+
+.insider-analysis-recap__title {
+  margin: 0 0 14px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-analysis-recap__body p {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #0F172A;
+}
+
+.insider-analysis-recap__body p:last-child {
+  margin-bottom: 0;
+}
+
+.insider-analysis-recap__placeholder {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #64748B;
+}
+
+/* OfferSections (Task 6) — Start "preambolo" + Partnership, prezzi reali. */
+.insider-offer-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 640px;
+  width: 100%;
+}
+
+.insider-offer {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 28px 30px;
+}
+
+.insider-offer--hero {
+  border-color: #FACC15;
+  box-shadow: 0 18px 45px rgba(250, 204, 21, 0.16);
+}
+
+.insider-offer__badge {
+  display: inline-block;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0F172A;
+  background: #FACC15;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.insider-offer__name {
+  margin: 0;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-offer__price {
+  margin: 6px 0 0;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-offer__tagline {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.insider-offer__preamble-note,
+.insider-offer__credit {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: #F7F8FA;
+  border-left: 3px solid #FACC15;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.insider-offer__services {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.insider-offer__services li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #0F172A;
+}
+
+.insider-offer__services li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FACC15;
+}
+
+.insider-offer__cta {
+  display: inline-block;
+  margin-top: 24px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #FACC15;
+  background: #0F172A;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.insider-offer__cta:hover {
+  background: #1E293B;
+  transform: translateY(-1px);
+}
+
+.insider-offer--hero .insider-offer__cta {
+  background: #FACC15;
+  color: #0F172A;
+}
+
+.insider-offer--hero .insider-offer__cta:hover {
+  background: #F5C400;
+}
+
+.insider-offer__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.insider-offer__error {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #0F172A;
+  background: #FEF2F2;
+  border-left: 3px solid #DC2626;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+/* ContractAccept (Task 7) — checkbox-gated consent, stile bancario. */
+.insider-offer__contract-gate {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.insider-contract-accept__text {
+  margin-bottom: 16px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: #F8FAFC;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  white-space: pre-wrap;
+}
+
+.insider-contract-accept__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0F172A;
+  cursor: pointer;
+}
+
+.insider-contract-accept__consent input[type='checkbox'] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: #0F172A;
+  flex-shrink: 0;
+}
+
+/* P.IVA — campo facoltativo, non fa parte del gate (Opzione A'). */
+.insider-contract-accept__piva-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.insider-contract-accept__piva-field label {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.insider-contract-accept__piva-field input {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 14px;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease;
+}
+
+.insider-contract-accept__piva-field input:focus {
+  outline: none;
+  border-color: #0F172A;
+}
+
+/* Dichiarazione di finalità imprenditoriale (Opzione A') — secondo checkbox,
+   separato e indipendente da quello delle condizioni contrattuali. */
+.insider-contract-accept__declaration {
+  margin-top: 14px;
+}
+
+.insider-contract-accept__small-print {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #64748B;
+}
+
+.insider-contract-accept__cta {
+  display: inline-block;
+  margin-top: 16px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FACC15;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.insider-contract-accept__cta:hover:not(:disabled) {
+  background: #F5C400;
+  transform: translateY(-1px);
+}
+
+.insider-contract-accept__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
