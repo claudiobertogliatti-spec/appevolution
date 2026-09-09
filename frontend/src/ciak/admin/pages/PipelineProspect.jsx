@@ -23,7 +23,7 @@ const STEPS = [
   { key: "step_call_completata", label: "Call", short: "Call", icon: Phone },
   { key: "step_proposta_inviata", label: "Proposta", short: "Proposta", icon: Send },
   { key: "step_contratto_firmato", label: "Contratto", short: "Contr.", icon: PenTool },
-  { key: "step_pagamento_2790", label: "€2.790", short: "€2.790", icon: DollarSign },
+  { key: "step_pagamento_2790", label: "€2.990", short: "€2.990", icon: DollarSign },
   { key: "step_documenti", label: "Documenti", short: "Docs", icon: Upload },
 ];
 
@@ -544,7 +544,7 @@ export function PipelineProspect({ onAuthExpired }) {
     { id: "call", label: "Call completata" },
     { id: "proposta", label: "Proposta inviata" },
     { id: "contratto", label: "Contratto firmato" },
-    { id: "pagato_2790", label: "Pagato €2.790" },
+    { id: "pagato_2790", label: "Pagato €2.990" },
   ];
 
   const filtered = clienti.filter((c) => {

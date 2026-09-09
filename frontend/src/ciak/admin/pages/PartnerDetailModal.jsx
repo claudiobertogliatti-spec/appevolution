@@ -952,7 +952,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState("2790");
+  const [paymentAmount, setPaymentAmount] = useState("2990");
 
   // Video pipeline state
   const [videoPipeline, setVideoPipeline] = useState(null);
@@ -1326,7 +1326,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   // Segna pagamento partnership manuale: importo e conferma raccolti da un
   // form in pagina (non window.prompt + window.confirm).
   const handleSegnaPagamentoPartnership = () => {
-    setPaymentAmount("2790");
+    setPaymentAmount("2990");
     setShowPaymentForm(true);
   };
 

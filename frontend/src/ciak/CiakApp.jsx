@@ -8,7 +8,7 @@
  *  LIV 1  Cold/Social (esterno)
  *  LIV 2  Masterclass 30' gratis             → /masterclass (lead magnet + Checkpoint)
  *  LIV 3  Ciak Blueprint €27                 → /blueprint (checkout Stripe)
- *  LIV 4  Partnership Evolution PRO €2.790   → www.evolution-pro.it (esterno)
+ *  LIV 4  Partnership Evolution PRO €2.990   → www.evolution-pro.it (esterno)
  *
  * Post-acquisto Ciak Blueprint:
  *  8 Domande Ciak → /diagnostica → /report/[token] (output Matteo) → CTA €27

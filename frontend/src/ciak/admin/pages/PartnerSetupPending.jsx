@@ -178,7 +178,7 @@ export function PartnerSetupPending({ onAuthExpired }) {
       <div className="mt-6 bg-slate-50 border border-gray-200 rounded-2xl p-5">
         <h3 className="text-sm font-semibold text-slate-700 mb-2">Come funziona</h3>
         <p className="text-sm text-slate-600 leading-relaxed">
-          Quando un cliente paga la Partnership €2.790, il backend genera un magic
+          Quando un cliente paga la Partnership €2.990, il backend genera un magic
           link (token unico, scadenza 7 giorni) e lo propaga a Systeme.io tramite
           tag <code className="bg-white px-1 rounded">partner_setup_pending</code> +
           custom field <code className="bg-white px-1 rounded">partner_setup_url</code>.

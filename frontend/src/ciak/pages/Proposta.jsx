@@ -211,7 +211,7 @@ export function CiakProposta() {
   if (error) return <ErrorScreen type="generic" />;
   if (!proposta) return null;
 
-  const corrispettivo = proposta.contract_params?.corrispettivo || 2790;
+  const corrispettivo = proposta.contract_params?.corrispettivo || 2990;
   const corrisFormat = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(corrispettivo);
 
   return (
@@ -591,7 +591,7 @@ export function CiakProposta() {
 /**
  * Floating chatbot di assistenza contrattuale per il flusso pre-pagamento.
  * Backend: POST /api/contract/chat (Claude Haiku 4.5, FAQ pre-cablate su
- * LLC americana, Revolut, reverse charge, rimborso, esclusiva, €2.790+10%).
+ * LLC americana, Revolut, reverse charge, rimborso, esclusiva, €2.990+10%).
  * Endpoint pubblico, non richiede auth — usa partner_id dalla proposta.
  */
 function ContractChat({ partnerId }) {
@@ -652,7 +652,7 @@ function ContractChat({ partnerId }) {
     "Cosa significa reverse charge?",
     "Posso avere un rimborso?",
     "In cosa consiste l'esclusiva?",
-    "Pago €2.790 E il 10%?",
+    "Pago €2.990 E il 10%?",
   ];
 
   if (!open) {

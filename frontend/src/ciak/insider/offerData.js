@@ -6,7 +6,7 @@
  *  - Partnership: 2.990 € (Insider closing price).
  * These are the exact figures given for this task; note for review: the
  * StartPage.jsx default (`amount_cents ?? 49900` = 499 €) and Proposta.jsx
- * default corrispettivo (2.790 €) differ from these — those are the
+ * default corrispettivo (2.990 €) differ from these — those are the
  * *general* Ciak Start / Partnership defaults elsewhere in the app, not
  * necessarily this Insider-page price. Flagged for Claudio to confirm the
  * Insider price is intentionally different before shipping to real traffic.
