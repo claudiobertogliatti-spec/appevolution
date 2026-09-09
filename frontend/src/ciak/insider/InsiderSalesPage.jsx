@@ -26,7 +26,10 @@ export default function InsiderSalesPage() {
         if (r.status === 404) return { status: 'notfound' };
         if (!r.ok) return { status: 'error' };
         const p = await r.json();
-        if (['pagamento_completato', 'contratto_firmato'].includes(p.stato)) return { status: 'done', p };
+        // Solo il pagamento effettivo chiude la pagina: 'contratto_firmato' è
+        // impostato PRIMA del pagamento (Stripe), quindi un prospect che ha
+        // firmato ma ha abbandonato il checkout deve poter ancora pagare.
+        if (p.stato === 'pagamento_completato') return { status: 'done', p };
         return { status: 'ready', p };
       })
       .then((s) => { if (alive) setState(s); })
