@@ -1,26 +1,17 @@
 /**
  * offerData — single source of truth for the Insider closing page offers.
  *
- * Prices come from `frontend/src/ciak/pricing.js` (SSOT prezzi Start/
- * Partnership), verificato contro il listino autorevole al 2026-09-09:
- *  - Start: 390 € (Insider closing price — pre-partnership stepping stone).
- *  - Partnership: 2.990 € (Insider closing price).
- * L'incongruenza segnalata in precedenza (StartPage.jsx aveva un fallback
- * `amount_cents ?? 49900` = 499 €, stale) è stata risolta: StartPage.jsx ora
- * importa lo stesso PRICING.start.cents usato qui, quindi non c'è più
- * disallineamento tra questa pagina e i default generali di Ciak Start.
+ * Copy di vendita APPROVATO da Claudio (9/9/2026): usare verbatim. Modello
+ * foot-in-the-door — Ciak Start è il primo passo dato per scontato, poi la
+ * Partnership è l'upgrade ("turbo") e resta il trattamento visivo hero.
  *
- * Servizi (bullet lists): sourced from real commercial content already in
- * the repo — NOT invented.
- *  - start.servizi: verbatim from `SERVIZI_PROPOSTI` in
- *    frontend/src/ciak/client/pages/StartPage.jsx ("Etichette dei 7 servizi
- *    promessi in vendita").
- *  - partnership.servizi: adattato da / sourced from Art. 8.1 "Obblighi di
- *    Evolution PRO" of backend/contratto_template_unpacked/word/document.xml
- *    (the real Partnership contract template). Most bullets are exact
- *    (trailing "; " trimmed, sentence case); 2 of 6 are near-verbatim
- *    paraphrases — minor wording dropped/simplified ("replicabile dal
- *    Partner" → "replicabile", "comprensivo di" → "con") — not exact quotes.
+ * Prezzi da `frontend/src/ciak/pricing.js` (SSOT), listino 2026-09-09:
+ *  - Start 390 € · Partnership 2.990 € · upgrade da Start 2.600 €.
+ *
+ * Servizi (bullet lists): contenuto commerciale reale già nel repo — NON inventati.
+ *  - start.servizi: verbatim da `SERVIZI_PROPOSTI` in StartPage.jsx.
+ *  - partnership.servizi: da Art. 8.1 "Obblighi di Evolution PRO" del contratto
+ *    reale (backend/contratto_template_unpacked/word/document.xml).
  */
 
 import { PRICING } from '../pricing';
@@ -29,9 +20,15 @@ export const offerData = {
   start: {
     name: 'Ciak Start',
     price: PRICING.start.label,
-    tagline: 'Il primo passo: fondazioni pronte prima della Partnership.',
+    priceNote: 'si riscalano interi sulla Partnership',
+    body:
+      'Prima di costruire il sistema di vendita, dobbiamo mettere in ordine le fondamenta: '
+      + 'posizionamento, basi del brand, presenza, contenuti. È il minimo necessario perché '
+      + 'tutto il resto poggi su una direzione chiara, non sul rumore e sulla confusione.',
     creditCopy:
-      'I €390 di Ciak Start non si perdono: si riscalano come credito pieno se poi passi alla Partnership.',
+      'Non è una spesa a parte: i 390 € tornano interi come credito quando passi alla '
+      + 'Partnership. È il primo passo e non lo fai da solo.',
+    cta: 'Inizia da Ciak Start',
     servizi: [
       'Direzione di posizionamento',
       'Basi del brand',
@@ -45,7 +42,15 @@ export const offerData = {
   partnership: {
     name: 'Partnership Evolution PRO',
     price: PRICING.partnership.label,
-    tagline: 'Il sistema completo: dal posizionamento al Corso online, con il team.',
+    priceNote: `oppure ${PRICING.upgradeFromStart.label} dopo il primo passo con Ciak Start`,
+    body: [
+      "Qui non prepari le fondamenta: costruisci e metti in strada l'intero sistema che "
+      + 'trasforma la tua competenza in un Corso che vende. Posizionamento, offerta, piattaforma, '
+      + "funnel, lancio, piano editoriale — dalla direzione all'implementazione, con il team al tuo fianco.",
+      'È il punto dove il tuo progetto smette di essere una presenza e diventa un modello. '
+      + 'Non lo fai da solo: ti accompagna il team.',
+    ],
+    cta: 'Entra in Partnership',
     servizi: [
       'Analisi strategica iniziale e definizione del posizionamento del progetto',
       "Supporto alla strutturazione dei contenuti formativi e dell'offerta commerciale",
