@@ -292,22 +292,22 @@ e
 
 Il Partner sottoscrittore del presente contratto digitale.
 
-Evolution PRO e il Partner sono di seguito congiuntamente denominate le "Parti" e singolarmente la "Parte". Il Partner dichiara di operare nell'esercizio della propria attività professionale, imprenditoriale o autonoma e di essere titolare di Partita IVA valida alla data di sottoscrizione del presente Contratto.
+Evolution PRO e il Partner sono di seguito congiuntamente denominate le "Parti" e singolarmente la "Parte". Il Partner dichiara di aderire alla presente Partnership a fini imprenditoriali, professionali o per l'avvio della propria attività economica, e non in qualità di consumatore ai sensi del Codice del Consumo. Il Partner può essere già titolare di Partita IVA ovvero, qualora ne sia sprovvisto alla data di sottoscrizione, si impegna ad attivarla nei termini e nei modi di legge non appena l'attività lo richieda, secondo quanto previsto all'Articolo 9.
 
 ARTICOLO 1 – OGGETTO DEL CONTRATTO
 1.1 Finalità della collaborazione
 Il presente Contratto disciplina la collaborazione in partnership tra Evolution PRO e il Partner per la progettazione, creazione, pubblicazione, promozione, vendita e ottimizzazione di un'Accademia Digitale, di videocorsi, masterclass, contenuti formativi e relativi asset digitali basati sulle competenze, sui contenuti e sul posizionamento professionale del Partner.
-La proposta di Partnership viene formulata da Evolution PRO esclusivamente a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica a pagamento finalizzata alla valutazione preliminare della sostenibilità, della coerenza e della fattibilità commerciale del progetto.
+La proposta di Partnership viene formulata da Evolution PRO esclusivamente a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica gratuita (Ciak Blueprint) finalizzata alla valutazione preliminare della sostenibilità, della coerenza e della fattibilità commerciale del progetto.
 Le Parti riconoscono che, alla data di sottoscrizione del presente Contratto, il progetto è già stato oggetto di valutazione preliminare positiva da parte di Evolution PRO nella suddetta fase precontrattuale.
 Tale valutazione positiva non costituisce garanzia di risultati economici futuri, né promessa di fatturato, vendite, clienti o profitti, ma rappresenta esclusivamente il presupposto necessario per l'accesso al Programma Operativo e all'avvio della Partnership.
 La Partnership viene erogata attraverso il Metodo E.V.O. (Esamina – Valida – Ottimizza), framework proprietario sviluppato da Evolution PRO per la creazione, il lancio e la crescita di Accademie Digitali e prodotti formativi online.
 Le attività previste dal Metodo E.V.O. vengono coordinate e rese disponibili attraverso la piattaforma proprietaria Ciak.io e attraverso gli ulteriori strumenti tecnologici utilizzati da Evolution PRO per l'erogazione dei servizi previsti dal presente Contratto.
 Il Programma Operativo, il Metodo E.V.O., la piattaforma Ciak.io e gli eventuali allegati richiamati nel presente Contratto costituiscono parte integrante e sostanziale della Partnership.
 1.1-bis Fase precontrattuale di Analisi Strategica
-Prima della sottoscrizione del presente Contratto, il Partner ha richiesto a Evolution PRO una prestazione autonoma di Analisi Strategica, avente natura precontrattuale e corrispettivo separato, finalizzata alla valutazione del progetto, del posizionamento professionale del Partner e della sua idoneità a essere sviluppato attraverso il Metodo E.V.O. e la piattaforma Ciak.io.
+Prima della sottoscrizione del presente Contratto, il Partner ha ricevuto da Evolution PRO una prestazione autonoma di Analisi Strategica (Ciak Blueprint), avente natura precontrattuale e gratuita, finalizzata alla valutazione del progetto, del posizionamento professionale del Partner e della sua idoneità a essere sviluppato attraverso il Metodo E.V.O. e la piattaforma Ciak.io.
 L’Analisi Strategica costituisce attività autonoma, distinta e già integralmente eseguita rispetto alle prestazioni oggetto del presente Contratto.
 Le Parti riconoscono che l’Analisi Strategica rappresenta esclusivamente una fase preliminare di valutazione e non costituisce promessa, garanzia o impegno all’avvio della Partnership.
-Il relativo corrispettivo resta autonomo, definitivamente maturato e non imputabile, compensabile o detraibile rispetto al prezzo della Partnership, salvo diverso accordo scritto sottoscritto dalle Parti.
+Essendo gratuita, nulla è dovuto dal Partner a titolo di Analisi Strategica, né alcunché è imputabile, compensabile o detraibile rispetto al prezzo della Partnership.
 Le risultanze dell’Analisi Strategica costituiscono parte della documentazione preparatoria del progetto e potranno essere utilizzate da Evolution PRO come base operativa per l’avvio delle attività previste dal presente Contratto.
 1.1-ter Avvio operativo del progetto
 L’avvio operativo del progetto è subordinato:
@@ -951,14 +951,17 @@ Evolution PRO LLC emette la propria documentazione fiscale secondo la normativa 
 Qualora previsto dalla normativa vigente, anche in funzione del Paese di stabilimento del Partner, troverà applicazione il meccanismo dell’inversione contabile, reverse charge, o ogni altro regime fiscale applicabile al momento dell’operazione.
 Il Partner prende atto che il trattamento fiscale dell’operazione potrà dipendere dalla propria qualifica soggettiva, dal Paese di stabilimento, dalla normativa applicabile e dalle informazioni fiscali fornite a Evolution PRO.
 9.3 Obblighi fiscali del Partner
-Il presente Contratto è riservato esclusivamente a soggetti che operano nell'esercizio della propria attività professionale, imprenditoriale o autonoma e titolari di Partita IVA valida.
+Il presente Contratto è riservato a soggetti che aderiscono a fini imprenditoriali, professionali o per l’avvio della propria attività economica, e non a consumatori.
 Il Partner dichiara e garantisce la correttezza, completezza e veridicità dei dati fiscali, anagrafici e amministrativi forniti a Evolution PRO.
-Il Partner, in qualità di soggetto passivo d’imposta, si impegna a:
+(a) Partner titolare di Partita IVA (soggetto passivo d’imposta). Il Partner si impegna a:
 • comunicare dati fiscali corretti, aggiornati e completi;
-• integrare la documentazione fiscale ricevuta con l’aliquota IVA prevista, se e in quanto dovuta;
-• registrare la documentazione fiscale ricevuta nei registri contabili e fiscali applicabili;
+• assolvere gli adempimenti connessi all’operazione secondo il proprio regime fiscale, ivi inclusa — ove applicabile — l’integrazione o autofatturazione in regime di inversione contabile (reverse charge) per i servizi ricevuti da soggetto non residente, e registrare la documentazione nei registri contabili e fiscali applicabili;
 • rispettare la normativa fiscale, contabile e previdenziale vigente nel proprio Paese di stabilimento;
 • fornire, se richiesto per esigenze di compliance documentale, le sole informazioni strettamente necessarie a comprovare il corretto inquadramento fiscale dell’operazione.
+(b) Partner non ancora titolare di Partita IVA. Qualora il Partner non sia titolare di Partita IVA alla data di sottoscrizione, prende atto e accetta che:
+• il meccanismo dell’inversione contabile (reverse charge) non trova applicazione nei suoi confronti, non essendo egli soggetto passivo d’imposta, e nessun adempimento IVA è a suo carico in relazione al pagamento del corrispettivo;
+• è l’unico responsabile della dichiarazione e del corretto assoggettamento a imposta degli eventuali compensi percepiti nell’ambito della Partnership, secondo la normativa applicabile, ivi inclusi — ove ne ricorrano i presupposti — gli obblighi contributivi;
+• si impegna ad attivare la Partita IVA nei termini e nei modi di legge non appena l’attività assuma carattere abituale ovvero al superamento delle soglie previste dalla normativa vigente, dandone tempestiva comunicazione a Evolution PRO.
 Eventuali errori, omissioni, inesattezze o variazioni dei dati fiscali forniti dal Partner dovranno essere comunicati tempestivamente a Evolution PRO.
 9.4 Autonomia fiscale delle Parti
 Il Partner è l’unico responsabile della corretta gestione fiscale, contabile e previdenziale dei compensi percepiti, nonché del versamento di imposte, contributi e adempimenti connessi alla propria attività professionale, imprenditoriale o autonoma.
