@@ -157,6 +157,8 @@ jobs:
           tests/test_operational_back_office.py
           tests/test_operational_coordinator.py
           tests/test_operational_collaborations.py
+          tests/test_collaborator_department_access.py
+          tests/test_collaboration_compensation.py
 
   frontend:
     name: Frontend (build smoke)

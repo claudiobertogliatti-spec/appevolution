@@ -120,6 +120,12 @@ def _validate_single_rule(rule: Mapping[str, Any]) -> dict:
         "clause_ref": _norm(rule.get("clause_ref")),
         "valid_from": _norm(rule.get("valid_from")),
         "valid_to": _norm(rule.get("valid_to")),
+        # Base e condizioni servono al calcolo (T25); si portano solo per una regola validata.
+        "basis": dict(basis) if (status == "validated" and isinstance(basis, Mapping)) else None,
+        "maturation": _norm(rule.get("maturation")),
+        "condition": _norm(rule.get("condition")),
+        "exclusions": list(rule.get("exclusions") or []),
+        "reversals": _norm(rule.get("reversals")),
         "status": status,
         "reasons": reasons,
     }

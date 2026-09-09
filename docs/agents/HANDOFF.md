@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: DEPLOY OK + T24/T25 collaborazioni
+
+**DEPLOY VERIFICATO:** PR #78 mergiata in main → **CI main `success`** + **Deploy Backend (Cloud Run) `success`** (job `gcloud run deploy` ok). La produzione si è avviata sana col nuovo codice (rischio boot server.py scongiurato). Rimisura funzionale profonda (worker/rotte) da fare con accesso live.
+
+**DICHIARATO (branch `codex/evolution-collaborazioni`):** T24 `collaboration_timesheet.py` — identità unica multi-reparto (personal_totals deduplica; department_view filtra), pianificato/consuntivo/approvato distinti, detect_duplicates/overlaps, weekly_load (over_limit segnalato non riscritto), access_for/redact_for (ognuna vede solo i propri economici; direzione tutto; la collaboratrice non modifica le proprie economiche). T25 `collaboration_compensation.py` — calcolo deterministico dalle regole validate T23: stimato/maturato/approvato/pagato, attribuzione vendita per EVENTO verificato (mai per nome), dedup evento, storno su rimborso, bonus discrezionale non auto-approvato, regola assente→non_calcolabile (mai zero), nessun pagamento eseguito, chiusura periodo immutabile + rettifica esplicita. `collaborations.py` arricchito con basis/maturation nell'artefatto validato (T23 re-testato).
+
+**VERIFICATO:** T24 11 passed, T25 13 passed; suite motore **179 passed, 2 skipped**; compileall OK; flake8 pulito. Nuovi test in ci.yml.
+
+**APERTO:** estrazione regole dai contratti (dati personali, storage privato); UI collaboratori/prospetti → design-lead; wiring ore/eventi reali + persistenza prospetti su `collaborator_settlements` con infra viva; approvazione economica di Claudio. Branch T24/T25 in locale (push/PR da decidere). Restano T15-T22 (UI + collaudo/rilascio/pilotaggio).
+
 ### 2026-09-09 · Claude · Motore Evolution: PR #78 MERGIATA + DEPLOY, T23 avviato
 
 **AUTORIZZATO:** Claudio "Merge in main / deploy e procedi t23". Claude owner.
