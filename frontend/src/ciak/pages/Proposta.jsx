@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { PRICING } from "../pricing";
 
 const FASI = [
   { num: 1, titolo: "Esamina", desc: "Settimana 1. Mettiamo ordine in identità, posizionamento, offerta e priorità. La roadmap diventa un piano operativo chiaro." },
@@ -219,7 +220,7 @@ export function CiakProposta() {
   if (error) return <ErrorScreen type="generic" />;
   if (!proposta) return null;
 
-  const corrispettivo = proposta.contract_params?.corrispettivo || 2990;
+  const corrispettivo = proposta.contract_params?.corrispettivo || PRICING.partnership.cents / 100;
   const corrisFormat = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(corrispettivo);
 
   return (

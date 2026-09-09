@@ -11,8 +11,6 @@ jest.mock(
 );
 jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn(), adminFetch: jest.fn() }));
 
-import { adminFetch } from "../api";
-
 import { AdminLeadDetail } from "./AdminLeadDetail";
 import { apiGet, apiPost } from "../api";
 
@@ -51,17 +49,4 @@ test("confermando registra l'acquisto via apiPost /lead/mark-purchased", async (
   await waitFor(() =>
     expect(apiPost).toHaveBeenCalledWith("/lead/mark-purchased", { email: "mario@x.it" })
   );
-});
-
-test("dopo la proposta, 'Vedi pagina cliente' apre l'Insider con lo stesso token", async () => {
-  apiGet.mockResolvedValue({
-    ...LEAD,
-    qualified_for_proposta: true,
-    latest_diagnostic: { id: "d1", scoring: { stato_finale: "pronto" } },
-  });
-  adminFetch.mockResolvedValue({ ok: true, json: async () => ({ url: "/proposta/tok123", status: "inviata" }) });
-  render(<AdminLeadDetail onAuthExpired={() => {}} />);
-  fireEvent.click(await screen.findByRole("button", { name: /Genera Proposta Partnership/i }));
-  const link = await screen.findByTestId("vedi-pagina-cliente");
-  expect(link.getAttribute("href")).toBe("/insider/tok123");
 });

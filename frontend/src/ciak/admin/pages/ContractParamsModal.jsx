@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { FileText, Save, RotateCcw, Loader2, Euro, Percent, Clock, CreditCard } from "lucide-react";
 import { adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { PRICING } from "../../pricing";
 
 export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExpired }) {
   const [params, setParams] = useState(null);
@@ -67,7 +68,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          corrispettivo: 2990.00,
+          corrispettivo: PRICING.partnership.cents / 100,
           corrispettivo_testo: "duemilanovecentonovanta/00",
           royalty_perc: 10,
           durata_mesi: 12,
@@ -259,7 +260,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
       <ConfirmDialog
         open={askReset}
         title="Ripristina i parametri standard"
-        body="I valori personalizzati del contratto tornano allo standard (€2.990, 10%, 12 mesi, 3 rate)."
+        body={`I valori personalizzati del contratto tornano allo standard (€${(PRICING.partnership.cents / 100).toLocaleString("it-IT")}, 10%, 12 mesi, 3 rate).`}
         confirmLabel="Ripristina"
         cancelLabel="Annulla"
         destructive
