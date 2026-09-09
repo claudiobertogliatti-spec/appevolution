@@ -10,8 +10,8 @@ import { adminFetch } from "../api";
 jest.mock("../api", () => ({ adminFetch: jest.fn() }));
 
 const PARAMS = {
-  corrispettivo: 2790,
-  corrispettivo_testo: "duemilasettecentonovanta/00",
+  corrispettivo: 2990,
+  corrispettivo_testo: "duemilanovecentonovanta/00",
   royalty_perc: 10,
   durata_mesi: 12,
   num_rate: 3,

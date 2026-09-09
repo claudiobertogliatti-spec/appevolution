@@ -3,7 +3,7 @@
  *
  * Genera fatture di cortesia PDF (Evolution PRO LLC, SENZA IVA) dalle vendite:
  *  - Ciak Blueprint €27   (diagnostic_sessions / orfani)
- *  - Partnership €2.790    (proposte pagate)
+ *  - Partnership €2.990    (proposte pagate)
  *  - Servizi extra         (partner_servizi)
  *
  * 2 tab:

@@ -13,7 +13,7 @@ fastapi/stripe.
 Prezzi definitivi (LOCK):
   - CIAK-BLUEPRINT   €27   una tantum   (MAI €67)
   - CIAK-START       €390  una tantum
-  - CIAK-PARTNERSHIP €2.790 una tantum
+  - CIAK-PARTNERSHIP €2.990 una tantum
   - CIAK-UPGRADE     €2.291 una tantum  (Partnership - credito Start)
   - EVO-S recover/start/grow/scale = 147/297/497/797 €/mese
 """

@@ -4,7 +4,7 @@
  * Design lockato con Claudio (14/5): panoramica "come sta andando" + alert
  * priorità in cima. Gerarchia netta, niente densità criptica.
  *  ① Banda alert priorità — solo gli alert attivi, cliccabili
- *  ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.790 → partner,
+ *  ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.990 → partner,
  *     riquadri cliccabili (→ pagina di riferimento). "Freddo" = archivio congelato
  *     (bacino di partenza, non converte). Cuce numeri Systeme + Ciak.
  *  ③ Fatturato — 2 card
@@ -114,7 +114,7 @@ export function AdminDashboard({ onAuthExpired }) {
       apiGet("/partners"),
       apiGet("/pipeline-blueprint"),
       // Estremità della banda end-to-end: archivio freddo (namespace separato)
-      // e firmati €2.790. Opzionali — se cadono, la dashboard regge comunque.
+      // e firmati €2.990. Opzionali — se cadono, la dashboard regge comunque.
       apiGet("/transactions-partnership").catch(() => null),
       adminFetch("/api/lista-fredda/stats").then((r) => r.json()).catch(() => null),
     ])
@@ -166,7 +166,7 @@ export function AdminDashboard({ onAuthExpired }) {
       cta: "Pipeline Blueprint", to: "/admin/pipeline-blueprint", urgent: false,
     });
 
-  // ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.790 → partner.
+  // ② Funnel end-to-end — banda freddo → masterclass → €27 → €2.990 → partner.
   // "Freddo" è l'archivio congelato (non converte: pct null, fuori dal calcolo),
   // serve solo a mostrare il bacino di partenza. Gli step centrali sono Ciak.
   const freddoTot = freddo?.totale || 0;
@@ -184,7 +184,7 @@ export function AdminDashboard({ onAuthExpired }) {
     { label: "8 Domande completate", value: ottoDomande, pct: conv(ottoDomande, checkpoint), to: "/admin/pipeline-prospect" },
     { label: "Acquisti €27", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
     { label: "Call fatte", value: callFatte, pct: conv(callFatte, acquisti), to: "/admin/pipeline-blueprint" },
-    { label: "€2.790 firmati", value: firmati, pct: conv(firmati, callFatte), to: "/admin/pipeline-blueprint" },
+    { label: "€2.990 firmati", value: firmati, pct: conv(firmati, callFatte), to: "/admin/pipeline-blueprint" },
     { label: "Partner attivi", value: partnerAttivi, pct: conv(partnerAttivi, firmati), to: "/admin/partner" },
   ];
 

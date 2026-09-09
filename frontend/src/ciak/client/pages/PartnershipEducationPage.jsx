@@ -22,9 +22,9 @@ export function PartnershipEducationPage({ dashboard }) {
   const recommended = dashboard.diagnostic?.recommended_offer;
   const canUpgrade = isPartner || access === "cliente_start" || recommended === "partnership";
   const pricing = dashboard.pricing?.partnership || {};
-  const fullAmount = pricing.full_amount_cents ?? 279000;
-  const creditAmount = pricing.credit_amount_cents ?? 49900;
-  const dueAmount = pricing.due_amount_cents ?? 229100;
+  const fullAmount = pricing.full_amount_cents ?? 299000;
+  const creditAmount = pricing.credit_amount_cents ?? 39000;
+  const dueAmount = pricing.due_amount_cents ?? 260000;
 
   async function handleCheckout() {
     try {

@@ -1,7 +1,7 @@
 """
 Ciak — Partner setup-password router.
 
-Magic link flow per primo accesso partner Ciak post-pagamento €2.790.
+Magic link flow per primo accesso partner Ciak post-pagamento €2.990.
 
 Pattern (LOCK 17/5/2026):
   1. Backend crea magic_token con scadenza 7gg (vedi routers/proposta.py

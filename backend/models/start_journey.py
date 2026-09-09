@@ -179,7 +179,7 @@ def only_real_partners(query: dict[str, Any] | None = None) -> dict[str, Any]:
 
     Il ponte di identita' crea un record `partners` per ogni cliente Start: e'
     cio' che permette ai motori esistenti di servirlo. Senza questo filtro un
-    cliente da 499 EUR verrebbe contato come partner da 2.790 nel cockpit, nelle
+    cliente da 499 EUR verrebbe contato come partner da 2.990 nel cockpit, nelle
     metriche e nei check diagnostici — cioe' un numero sbagliato in una call di
     vendita.
 

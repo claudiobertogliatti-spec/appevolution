@@ -127,7 +127,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
           <p className="text-slate-300 text-sm mb-4 leading-relaxed">
             Ha completato la call ed è in Stato{" "}
             {latest_diagnostic?.scoring?.stato_finale}. È il momento di generare la
-            Proposta Partnership €2.790.
+            Proposta Partnership €2.990.
           </p>
           <button
             onClick={generateProposal}

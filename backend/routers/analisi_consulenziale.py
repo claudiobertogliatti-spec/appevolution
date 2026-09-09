@@ -307,11 +307,11 @@ async def genera_script_call(request: GeneraScriptCallRequest):
     raccomandazione = cliente.get("raccomandazione", "Non disponibile")
     
     prompt = f"""Sei un MASTER COPYWRITER e SALES STRATEGIST specializzato in vendita consulenziale high-ticket.
-Genera uno SCRIPT CALL AD ALTA CONVERSIONE per chiudere una partnership da €2.790.
+Genera uno SCRIPT CALL AD ALTA CONVERSIONE per chiudere una partnership da €2.990.
 
 ══════════════════════════════════════════════════════════════════════════
 CONTESTO: Claudio (founder Evolution PRO) ha una call di consegna dell'Analisi Strategica.
-OBIETTIVO: Convertire il lead in partner pagante (€2.790) entro fine call.
+OBIETTIVO: Convertire il lead in partner pagante (€2.990) entro fine call.
 ══════════════════════════════════════════════════════════════════════════
 
 DATI DEL CLIENTE:
@@ -347,7 +347,7 @@ Genera uno script in 8 BLOCCHI in formato JSON:
 {{
     "titolo_script": "Script Call Alta Conversione - {nome} {cognome}",
     "durata_stimata": "45-60 minuti",
-    "obiettivo_conversione": "Partnership Evolution PRO €2.790",
+    "obiettivo_conversione": "Partnership Evolution PRO €2.990",
     "probabilita_chiusura": "Stima basata sui dati (alta/media/bassa)",
     "blocchi": [
         {{
@@ -477,7 +477,7 @@ def genera_script_fallback(nome, cognome, expertise, cliente_target):
     return {
         "titolo_script": f"Script Call Alta Conversione - {nome} {cognome}",
         "durata_stimata": "45-60 minuti",
-        "obiettivo_conversione": "Partnership Evolution PRO €2.790",
+        "obiettivo_conversione": "Partnership Evolution PRO €2.990",
         "probabilita_chiusura": "media",
         "blocchi": [
             {
@@ -538,7 +538,7 @@ def genera_script_fallback(nome, cognome, expertise, cliente_target):
                 "obiettivo": "Neutralizzare obiezioni PRIMA che emergano",
                 "obiezioni_probabili": ["È troppo costoso", "Non ho tempo", "Non sono sicuro/a funzionerà"],
                 "risposte_pronte": {
-                    "costo": "€2.790 diviso 12 mesi sono €230/mese. Meno di quanto spendi in caffè e pranzi fuori. E questo è un INVESTIMENTO che si ripaga.",
+                    "costo": "€2.990 diviso 12 mesi sono €230/mese. Meno di quanto spendi in caffè e pranzi fuori. E questo è un INVESTIMENTO che si ripaga.",
                     "tempo": "Ti serviranno circa 3-4 ore a settimana. Noi facciamo l'80% del lavoro tecnico.",
                     "dubbi": "Ecco perché l'Analisi era così importante. Abbiamo già validato il tuo progetto. Il punteggio dice che hai tutte le carte in regola."
                 },

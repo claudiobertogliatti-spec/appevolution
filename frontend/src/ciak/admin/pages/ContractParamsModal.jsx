@@ -67,8 +67,8 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          corrispettivo: 2790.00,
-          corrispettivo_testo: "duemilasettecentonovanta/00",
+          corrispettivo: 2990.00,
+          corrispettivo_testo: "duemilanovecentonovanta/00",
           royalty_perc: 10,
           durata_mesi: 12,
           num_rate: 3,
@@ -150,7 +150,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
                 value={params.corrispettivo_testo}
                 onChange={e => setParams({ ...params, corrispettivo_testo: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                placeholder="es. duemilasettecentonovanta/00"
+                placeholder="es. duemilanovecentonovanta/00"
               />
             </div>
           </div>
@@ -259,7 +259,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
       <ConfirmDialog
         open={askReset}
         title="Ripristina i parametri standard"
-        body="I valori personalizzati del contratto tornano allo standard (€2.790, 10%, 12 mesi, 3 rate)."
+        body="I valori personalizzati del contratto tornano allo standard (€2.990, 10%, 12 mesi, 3 rate)."
         confirmLabel="Ripristina"
         cancelLabel="Annulla"
         destructive
