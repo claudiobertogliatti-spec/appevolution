@@ -16,10 +16,12 @@
  *  - start.servizi: verbatim from `SERVIZI_PROPOSTI` in
  *    frontend/src/ciak/client/pages/StartPage.jsx ("Etichette dei 7 servizi
  *    promessi in vendita").
- *  - partnership.servizi: verbatim (Italian wording preserved, trailing
- *    "; " trimmed) from Art. 8.1 "Obblighi di Evolution PRO" of
- *    backend/contratto_template_unpacked/word/document.xml — the real
- *    Partnership contract template.
+ *  - partnership.servizi: adattato da / sourced from Art. 8.1 "Obblighi di
+ *    Evolution PRO" of backend/contratto_template_unpacked/word/document.xml
+ *    (the real Partnership contract template). Most bullets are exact
+ *    (trailing "; " trimmed, sentence case); 2 of 6 are near-verbatim
+ *    paraphrases — minor wording dropped/simplified ("replicabile dal
+ *    Partner" → "replicabile", "comprensivo di" → "con") — not exact quotes.
  */
 
 export const offerData = {

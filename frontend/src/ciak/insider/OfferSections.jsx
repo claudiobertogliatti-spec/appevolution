@@ -26,14 +26,14 @@ export default function OfferSections({
   onSelectStart,
   onSelectPartnership,
 }) {
-  const isPartnershipHero = emphasis.hero !== 'start';
-
+  // Partnership is ALWAYS the visual hero (badge/accent/primary CTA) — the
+  // anti-anchoring rule. `emphasis.hero` only ever controls display ORDER.
   const startSection = (
     <OfferCard
       key="start"
       kind="start"
       offer={offerData.start}
-      isHero={!isPartnershipHero}
+      isHero={false}
       preambleNote={
         emphasis.startPreamble
           ? 'Il passo giusto adesso: costruisci le fondazioni, poi decidi con calma sulla Partnership.'
@@ -50,7 +50,7 @@ export default function OfferSections({
       key="partnership"
       kind="partnership"
       offer={offerData.partnership}
-      isHero={isPartnershipHero}
+      isHero
       onSelect={() => (onSelectPartnership ? onSelectPartnership(token) : undefined)}
       ctaLabel="Entra in Partnership"
     />
