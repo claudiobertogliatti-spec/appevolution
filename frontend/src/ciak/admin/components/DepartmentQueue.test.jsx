@@ -50,3 +50,10 @@ test("cliccare una riga apre il partner", () => {
   fireEvent.click(screen.getByTestId("coda-row-2"));
   expect(onOpen).toHaveBeenCalledWith("2");
 });
+
+test("una riga si apre anche da tastiera (Enter) — accessibile", () => {
+  const onOpen = jest.fn();
+  render(<DepartmentQueue items={ITEMS} onOpenPartner={onOpen} />);
+  fireEvent.keyDown(screen.getByTestId("coda-row-2"), { key: "Enter" });
+  expect(onOpen).toHaveBeenCalledWith("2");
+});

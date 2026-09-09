@@ -129,8 +129,12 @@ export function DepartmentQueue({ items, onOpenPartner }) {
                 return (
                   <tr
                     key={r.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer"
+                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
                     onClick={() => onOpenPartner?.(r.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenPartner?.(r.id); } }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Apri ${r.name}`}
                     data-testid={`coda-row-${r.id}`}
                   >
                     <td className="px-4 py-3 font-medium text-slate-900">{r.name}</td>

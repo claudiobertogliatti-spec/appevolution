@@ -132,6 +132,13 @@ test("aprire una scheda scrive il deep-link ?partner=<id> nell'URL", async () =>
   expect(window.location.search).toMatch(/tab=panoramica/);
 });
 
+test("una riga si apre da tastiera (Enter) — accessibile", async () => {
+  await renderTable();
+  const riga = screen.getByText("Alfredo Vasi").closest("tr");
+  fireEvent.keyDown(riga, { key: "Enter" });
+  expect(window.location.search).toMatch(/partner=1/);
+});
+
 test("un URL ?partner=<id>&tab=<tab> riapre la stessa scheda al caricamento", async () => {
   window.history.replaceState({}, "", "/?partner=2&tab=materiali");
   render(<PartnerHub />);

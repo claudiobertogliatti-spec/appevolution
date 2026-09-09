@@ -151,7 +151,7 @@ const NAV = [
   {
     id: "delivery",
     label: "Delivery",
-    persone: ["Antonella", "Matteo Paredi"],
+    persone: ["Antonella", "Matteo"],
     agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
     pages: [
@@ -174,7 +174,7 @@ const NAV = [
   {
     id: "back-office",
     label: "Back office",
-    persone: ["Stefania Russo", "Debora"],
+    persone: ["Stefania", "Debora"],
     agenti: ["Valentina"],
     landing: true,
     hideFor: ["antonella"],
