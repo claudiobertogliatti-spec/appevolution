@@ -2519,8 +2519,14 @@ async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
     - Email 2 (D+2): Caso studio / risultato concreto
     - Email 3 (D+4): Presentazione analisi €67 con CTA checkout
     - Email 4 (D+7): Reminder con urgenza
+
+    ⛔ RITIRATA (9/9): l'analisi è GRATUITA e il checkout €27 è ritirato (410).
+    L'endpoint non avvia più l'outbound €67; le email restano bozze legacy.
+    Riattivare solo con copy nuova approvata (analisi gratuita → callback).
     """
-    lead = await db.discovery_leads.find_one({"id": lead_id})
+    return {"success": False, "reason": "sequenza_email_67_ritirata",
+            "message": "Sequenza email €67 ritirata: l'analisi è gratuita."}
+    lead = await db.discovery_leads.find_one({"id": lead_id})  # pragma: no cover — legacy
     if not lead:
         raise HTTPException(status_code=404, detail="Lead non trovato")
     

@@ -1126,8 +1126,15 @@ def process_auto_approve_leads():
     - Ha email valida
     - Non ancora in sequenza
     - Outreach già approvato o in stato pending
+
+    ⛔ RITIRATA (9/9): la sequenza email €67 vende un'analisi ora GRATUITA con un
+    checkout €27 ritirato (410). No-op: non avvia più l'outbound €67. Le 4 email
+    (lead_sequence_email_*) restano come bozze legacy; riattivare solo con copy
+    nuova approvata (analisi gratuita → callback), non da qui.
     """
-    try:
+    logger.info("[CELERY] process_auto_approve_leads: sequenza email €67 ritirata — no-op")
+    return {"processed": 0, "reason": "sequenza_email_67_ritirata"}
+    try:  # pragma: no cover — codice legacy irraggiungibile dopo il return
         logger.info("[CELERY] Running auto-approve leads check")
         
         async def _process():
