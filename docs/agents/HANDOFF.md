@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T12 flusso Delivery
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T12. Nuovo `services/operational_tasks/delivery.py`, due capacità: `delivery.generate_positioning` (prereq mancanti→richiesta precisa; artefatto versionato per CONTENUTO; disponibile al partner solo se stessa versione approvata+file presente; revisione rifiutata→changes_requested; nuovo input→no riapprovazione automatica; video = attività figlia monitorata `video.render`, non fallback Andrea, idempotente) e `delivery.case_study_evidence_check` (blocked senza consenso o senza `prova` misurata; candidate/verifiable; `published` sempre False, mai pubblicazione automatica). Fonti reali lette: `posizionamento_approval.py`, `case_study_engine.py` (chiave `prova`), `video_pipeline_task.py`. Capacità no-approvazione/no-effetti; `register()` esplicito, non nel DEFAULT.
+
+**VERIFICATO:** `test_operational_delivery.py` (nuovo, in ci.yml) **15 passed** (via motore + tutti gli scenari del piano). Suite operational **126 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** wiring col generatore reale (VALENTINA/case_study_engine), stato journey/coda approvazione, monitoraggio pipeline video = attivazione con DB/infra viva. Casi studio `verifiable` usabili da Acq/Vendite solo se approvati (collegamento successivo). UI → design-lead. Prossimo T13 Back office. Niente push/merge/deploy: locale, branch avanti di 10 su origin.
+
 ### 2026-09-09 · Claude · Motore Evolution: T11 flusso Vendite
 
 **AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
