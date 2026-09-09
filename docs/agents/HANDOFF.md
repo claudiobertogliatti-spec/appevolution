@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T14 coordinatore Luca — GATE G2 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T14. Nuovo `services/operational_tasks/coordinator.py`: `build_direction_briefing` (dalle 4 code, verificati SOLO con prova, blocchi con owner/motivo; `kind:report`, `is_executive_agent:False`); `coordinator_tool_call` con strumenti limitati (`read_state`/`propose_plan`/`create_task`) — tool sconosciuto rifiutato, create solo per task_type CATALOGATO (registry) e valido, budget per ciclo (max_tasks/max_model_calls), doppia richiesta deduplicata; `authorize_proposed_task` (niente delega a nome senza esecutore); `can_start` (dipendenza non risolta → blocked). Vincolo reale rispettato: la chat Luca è senza tool (nota ⛔ in admin_luca.py) → NON cablato qui. **Con T14 il gate G2 (M2) è coperto lato backend.**
+
+**VERIFICATO:** `test_operational_coordinator.py` (nuovo, in ci.yml) **10 passed** (tool sconosciuto, testo malevolo non catalogato, doppia richiesta, dipendenza non risolta, budget esaurito, risultato senza evidenza). **Intera suite motore M1+M2 149 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO:** cablaggio tool nella chat Luca (richiede riscrivere LUCA_AD_SYSTEM + ciclo LLM), integrazioni runtime (T09 heartbeat, wiring generatori/adapter reali T10-T13, creazione task in coda), attivazione capacità nel DEFAULT (T21). Restano T15-T19 (UI, design-lead), T20-T22 (collaudo/rilascio/pilotaggio), T23-T25 (collaborazioni). Niente push/merge/deploy: locale, branch avanti di 12 su origin.
+
 ### 2026-09-09 · Claude · Motore Evolution: T13 flusso Back office
 
 **AUTORIZZATO:** prosecuzione M2 (Claude owner, Codex fermo). Branch `codex/evolution-autonomia`.
