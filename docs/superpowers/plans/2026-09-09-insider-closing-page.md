@@ -101,130 +101,178 @@ git commit -m "feat(insider): pure offerEmphasis(stato) for the closing page"
 
 ---
 
-### Task 2: `GET /api/proposta/{token}` arricchito con analisi + scoring
+### Task 2: Helper puro di arricchimento + wiring in GET proposta
+
+> **Adattamento runtime (controller):** il harness `backend/tests/conftest.py` salta i test che toccano il DB se `REACT_APP_BACKEND_URL` non è settata (solo i test marcati `unit` girano in CI). Perciò la **logica** va in un **helper puro unit-testabile**; il wiring nell'endpoint (che tocca il db) resta verificato in integrazione (backend live), non in unit.
 
 **Files:**
-- Modify: `backend/routers/proposta.py` (funzione `get_proposta`, ~riga 332)
-- Test: `backend/tests/test_insider_closing.py`
+- Create: `backend/routers/insider_helpers.py`
+- Test: `backend/tests/test_insider_helpers.py`
+- Modify: `backend/routers/proposta.py` (funzione `get_proposta`, ~riga 332 — wiring)
 
 **Interfaces:**
-- Consumes: doc `proposte` (ha `prospect_email`, `partner_id`, `prospect_nome`).
-- Produces: la risposta di `GET /{token}` include `analisi` (dict dell'analisi del lead, o `None`) e `scoring_stato` (int 1-4 o `None`), presi dalla sessione diagnostica per `prospect_email`.
+- Produces: `enrich_proposta_for_insider(proposta: dict, sess: dict | None) -> dict` — ritorna `proposta` con `analisi` (da `sess`, chiave `analisi`|`analysis`, o `None`) e `scoring_stato` (da `sess["scoring"]["stato"]`, o `None`). Funzione **pura** (nessun db): riceve `sess` già letta.
 
-**⚠️ Prima di implementare:** confermare la collection reale dell'analisi (grep: `grep -rn "diagnostic\|posizionamento\|analisi" backend/routers/*.py | grep -i "find_one\|collection"`), e la chiave (email/id). Sotto si assume `db.diagnostic_sessions.find_one({"email": prospect_email})` con `.get("scoring", {}).get("stato")` — **adeguare ai nomi reali trovati**.
+**⚠️ Per il wiring (non-unit):** confermare la collection reale dell'analisi — `grep -rniE "diagnostic|posizionamento" backend/routers/*.py | grep -i "find_one"` — e la chiave (email/id). Il wiring in `get_proposta` fa la `find_one` e passa il risultato all'helper.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing unit test**
 
 ```python
-# backend/tests/test_insider_closing.py
+# backend/tests/test_insider_helpers.py
 import pytest
-from httpx import AsyncClient, ASGITransport
-from server import app  # adeguare all'import reale dell'app FastAPI
+from routers.insider_helpers import enrich_proposta_for_insider
 
-@pytest.mark.asyncio
-async def test_get_proposta_include_analisi_e_scoring(seed_proposta_con_analisi):
-    token = seed_proposta_con_analisi["token"]
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://t") as c:
-        r = await c.get(f"/api/proposta/{token}")
-    assert r.status_code == 200
-    body = r.json()
-    assert "analisi" in body
-    assert body["scoring_stato"] in (1, 2, 3, 4)
+pytestmark = pytest.mark.unit
+
+def test_enrich_aggiunge_analisi_e_scoring():
+    p = {"token": "t"}
+    sess = {"analisi": {"testo": "x"}, "scoring": {"stato": 3}}
+    out = enrich_proposta_for_insider(p, sess)
+    assert out["analisi"] == {"testo": "x"}
+    assert out["scoring_stato"] == 3
+
+def test_enrich_sess_none_mette_none():
+    out = enrich_proposta_for_insider({"token": "t"}, None)
+    assert out["analisi"] is None
+    assert out["scoring_stato"] is None
+
+def test_enrich_accetta_chiave_analysis_inglese():
+    out = enrich_proposta_for_insider({}, {"analysis": {"a": 1}})
+    assert out["analisi"] == {"a": 1}
 ```
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `cd backend && python -m pytest tests/test_insider_closing.py::test_get_proposta_include_analisi_e_scoring -q`
-Expected: FAIL (KeyError/AssertionError: `analisi`/`scoring_stato` assenti).
+Run: `cd backend && python -m pytest tests/test_insider_helpers.py -q`
+Expected: FAIL (ModuleNotFoundError: `routers.insider_helpers`).
 
-- [ ] **Step 3: Implement** — in `get_proposta`, prima del `return proposta`, arricchire (adeguare nomi collection/chiavi ai reali):
+- [ ] **Step 3: Implement** `backend/routers/insider_helpers.py`:
 
 ```python
-    # Arricchimento per la pagina Insider: analisi + scoring del lead.
-    proposta["analisi"] = None
-    proposta["scoring_stato"] = None
-    email = proposta.get("prospect_email")
-    if email:
-        sess = await db.diagnostic_sessions.find_one({"email": email}, {"_id": 0})
-        if sess:
-            proposta["analisi"] = sess.get("analisi") or sess.get("analysis")
-            proposta["scoring_stato"] = (sess.get("scoring") or {}).get("stato")
+def enrich_proposta_for_insider(proposta: dict, sess: dict | None) -> dict:
+    """Pura: aggiunge analisi + scoring_stato del lead alla proposta (sess già letta)."""
+    proposta = dict(proposta)
+    analisi = None
+    stato = None
+    if sess:
+        analisi = sess.get("analisi") or sess.get("analysis")
+        stato = (sess.get("scoring") or {}).get("stato")
+    proposta["analisi"] = analisi
+    proposta["scoring_stato"] = stato
     return proposta
 ```
 
 - [ ] **Step 4: Run test, verify PASS.**
 
-- [ ] **Step 5: Add test to CI** — aggiungere `tests/test_insider_closing.py` al blocco pytest in `.github/workflows/ci.yml`.
+- [ ] **Step 5: Wire into `get_proposta`** — prima del `return proposta` (adeguare nome collection/chiave ai reali trovati):
 
-- [ ] **Step 6: Commit**
+```python
+    from routers.insider_helpers import enrich_proposta_for_insider
+    sess = None
+    email = proposta.get("prospect_email")
+    if email:
+        sess = await db.diagnostic_sessions.find_one({"email": email}, {"_id": 0})
+    proposta = enrich_proposta_for_insider(proposta, sess)
+    return proposta
+```
+
+- [ ] **Step 6: Add unit test to CI** — aggiungere `tests/test_insider_helpers.py` al blocco pytest in `.github/workflows/ci.yml`.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add backend/routers/proposta.py backend/tests/test_insider_closing.py .github/workflows/ci.yml
-git commit -m "feat(proposta): enrich GET /{token} with lead analisi + scoring_stato"
+git add backend/routers/insider_helpers.py backend/tests/test_insider_helpers.py backend/routers/proposta.py .github/workflows/ci.yml
+git commit -m "feat(proposta): enrich GET /{token} with lead analisi + scoring_stato via pure helper"
 ```
 
 ---
 
-### Task 3: Adattare `firma-contratto` all'accettazione-checkbox
+### Task 3: Helper puro di consenso + wiring in `firma-contratto`
+
+> **Adattamento runtime (controller):** come Task 2 — la logica di consenso va in un **helper puro unit-testabile**; il wiring nell'endpoint resta integrazione.
 
 **Files:**
-- Modify: `backend/routers/proposta.py` (`firma_contratto_proposta`, ~riga 383)
-- Test: `backend/tests/test_insider_closing.py`
+- Modify: `backend/routers/insider_helpers.py` (aggiungere `build_contract_acceptance`)
+- Test: `backend/tests/test_insider_helpers.py` (aggiungere casi)
+- Modify: `backend/routers/proposta.py` (`firma_contratto_proposta`, ~riga 383 — wiring)
 
 **Interfaces:**
-- Consumes: `POST /{token}/firma-contratto` con body `{ clausole_vessatorie_approved: true, consenso_checkbox: true, signature_base64?: str }`.
-- Produces: se `signature_base64` assente ma `consenso_checkbox === true`, l'accettazione è valida; `contract_data` registra `metodo: "checkbox"` + `ip_address` + `signed_at` + `version`. Genera comunque il PDF (invariato).
+- Produces: `build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict` — ritorna `contract_data` (`version`, `signed_at=now_iso`, `signature_base64`, `metodo`, `ip_address=ip`, `clausole_vessatorie_approved=True`). Regole: se `body["signature_base64"]` presente → `metodo="signature"`; elif `body["consenso_checkbox"] is True` → `metodo="checkbox"`, `signature_base64=""`; else → **solleva `ValueError`**. Se `body["clausole_vessatorie_approved"] is not True` → solleva `ValueError`. Funzione **pura**.
 
-**⚠️ Nota legale:** il gate recesso/testo è fuori da questo piano; qui si adatta solo il meccanismo di consenso.
+**⚠️ Nota legale:** il gate recesso/testo è fuori da questo piano; qui si adatta solo il meccanismo di consenso. Il wiring nell'endpoint traduce `ValueError` → `HTTPException(422)` e mantiene la firma della validazione formale esistente.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing unit test** (aggiungere a `test_insider_helpers.py`)
 
 ```python
-@pytest.mark.asyncio
-async def test_firma_contratto_accetta_checkbox_senza_firma_disegnata(seed_proposta_accettata):
-    token = seed_proposta_accettata["token"]
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://t") as c:
-        r = await c.post(f"/api/proposta/{token}/firma-contratto",
-                         json={"clausole_vessatorie_approved": True, "consenso_checkbox": True})
-    assert r.status_code == 200
-    assert r.json()["success"] is True
+from routers.insider_helpers import build_contract_acceptance
+
+def test_consenso_checkbox_senza_firma():
+    cd = build_contract_acceptance(
+        {"clausole_vessatorie_approved": True, "consenso_checkbox": True}, "1.2.3.4", "2026-09-09T00:00:00+00:00")
+    assert cd["metodo"] == "checkbox"
+    assert cd["signature_base64"] == ""
+    assert cd["ip_address"] == "1.2.3.4"
+    assert cd["clausole_vessatorie_approved"] is True
+
+def test_firma_disegnata_e_metodo_signature():
+    cd = build_contract_acceptance(
+        {"clausole_vessatorie_approved": True, "signature_base64": "data:img"}, "1.1.1.1", "2026-09-09T00:00:00+00:00")
+    assert cd["metodo"] == "signature"
+
+def test_ne_firma_ne_consenso_solleva():
+    with pytest.raises(ValueError):
+        build_contract_acceptance({"clausole_vessatorie_approved": True}, "1.1.1.1", "2026-09-09T00:00:00+00:00")
+
+def test_clausole_non_approvate_solleva():
+    with pytest.raises(ValueError):
+        build_contract_acceptance({"consenso_checkbox": True}, "1.1.1.1", "2026-09-09T00:00:00+00:00")
 ```
 
-- [ ] **Step 2: Run test, verify it fails** (oggi manca `signature_base64` → `validate_signature_payload` solleva).
+- [ ] **Step 2: Run, verify fail.** (`cd backend && python -m pytest tests/test_insider_helpers.py -q`)
 
-Run: `cd backend && python -m pytest tests/test_insider_closing.py::test_firma_contratto_accetta_checkbox_senza_firma_disegnata -q`
-
-- [ ] **Step 3: Implement** — in `firma_contratto_proposta`, sostituire la validazione firma con:
+- [ ] **Step 3: Implement** (aggiungere a `insider_helpers.py`):
 
 ```python
-    consenso = body.get("consenso_checkbox") is True
+def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
+    """Pura: valida consenso (checkbox o firma) e costruisce contract_data. Solleva ValueError se invalido."""
+    if body.get("clausole_vessatorie_approved") is not True:
+        raise ValueError("clausole vessatorie non approvate")
     sig = body.get("signature_base64")
-    if sig:
-        validate_signature_payload(sig)
-    elif not consenso:
-        raise HTTPException(422, "Serve l'accettazione (checkbox) o la firma")
-    now = datetime.now(timezone.utc)
-    contract_data = {
+    consenso = body.get("consenso_checkbox") is True
+    if not sig and not consenso:
+        raise ValueError("serve l'accettazione (checkbox) o la firma")
+    return {
         "version": "v1.0",
-        "signed_at": now.isoformat(),
+        "signed_at": now_iso,
         "signature_base64": sig or "",
-        "metodo": "checkbox" if not sig else "signature",
-        "ip_address": _trusted_client_ip(request),
+        "metodo": "signature" if sig else "checkbox",
+        "ip_address": ip,
         "clausole_vessatorie_approved": True,
     }
 ```
 
-(il resto della funzione — update proposta/partner, `generate_contract_pdf`, email — resta invariato.)
+- [ ] **Step 4: Run, verify PASS.**
 
-- [ ] **Step 4: Run test, verify PASS.**
+- [ ] **Step 5: Wire into `firma_contratto_proposta`** — sostituire la costruzione di `contract_data` (e la validazione firma) con:
 
-- [ ] **Step 5: Commit**
+```python
+    from routers.insider_helpers import build_contract_acceptance
+    now = datetime.now(timezone.utc)
+    if body.get("signature_base64"):
+        validate_signature_payload(body.get("signature_base64"))
+    try:
+        contract_data = build_contract_acceptance(body, _trusted_client_ip(request), now.isoformat())
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+```
+
+(il resto — update proposta/partner, `generate_contract_pdf`, email — resta invariato.)
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/routers/proposta.py backend/tests/test_insider_closing.py
-git commit -m "feat(proposta): accept checkbox consent (bank-style) in firma-contratto"
+git add backend/routers/insider_helpers.py backend/tests/test_insider_helpers.py backend/routers/proposta.py
+git commit -m "feat(proposta): accept checkbox consent (bank-style) via pure helper in firma-contratto"
 ```
 
 ---
