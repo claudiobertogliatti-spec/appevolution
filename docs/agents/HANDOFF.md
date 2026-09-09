@@ -1,3 +1,13 @@
+### 2026-09-09 · Claude · Motore Evolution: T09 salute runtime — GATE G1 coperto (backend)
+
+**AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
+
+**DICHIARATO:** T09 backend. Nuovo `services/operational_tasks/runtime.py`: `classify_runtime_health` distingue istanza API e servizio worker (API senza heartbeat → `UNKNOWN_SEPARATE`, mai `DOWN` — la lezione del monitor che mentiva); `is_claim_suspended` ferma i NUOVI claim per reparto/capacità senza toccare i lease in corso; `claim_periodic_window` = un solo proprietario per finestra (upsert `_id` unico). Con T09 il **gate G1 (T03-T09, affidabilità del motore) è coperto lato backend**.
+
+**VERIFICATO:** `test_operational_runtime_health.py` (nuovo, in ci.yml) **15 passed** (i 4 scenari del piano + anti-bugia API + sospensioni + single-owner). Suite operational completa (G1) **95 passed, 2 skipped**; compileall OK; flake8 pulito.
+
+**APERTO (integrazioni runtime, servono infra viva):** far scrivere al worker un heartbeat condiviso che l'API rilegge + esporre l'health in `celery_manager`/endpoint + far consultare `is_claim_suspended` al loop; richiede Redis + i 2 servizi Cloud Run. UI `VideoPipelineMonitor.jsx` → design-lead. Poi flussi reparto M2 (T10-T14). Niente push/merge/deploy: tutto locale (branch avanti di 7 su origin).
+
 ### 2026-09-08 · Claude · Motore Evolution: T08 (backend) registro + recupero
 
 **AUTORIZZATO:** prosecuzione motore (Claude owner, Codex fermo). Stesso branch `codex/evolution-autonomia`.
