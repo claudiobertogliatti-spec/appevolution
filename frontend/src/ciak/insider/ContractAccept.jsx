@@ -92,10 +92,11 @@ export default function ContractAccept({ partnerId, onConfirm, disabled = false 
         />
       </div>
       {/*
-       * PLACEHOLDER — testo da far validare a un legale prima del rilascio.
        * Dichiarazione di finalità imprenditoriale (Opzione A'): tiene la
        * vendita B2B senza richiedere P.IVA, escludendo il recesso da
-       * consumatore ex Codice del Consumo.
+       * consumatore ex Codice del Consumo. Testo validato dal legale/
+       * commercialista di Claudio (9/9/2026) e allineato all'Art. 9 del
+       * contratto (render_contract_text), scenari con/senza P.IVA.
        */}
       <label className="insider-contract-accept__consent insider-contract-accept__declaration">
         <input
