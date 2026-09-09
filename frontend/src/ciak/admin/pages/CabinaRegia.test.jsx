@@ -4,6 +4,8 @@
  * Prima del 3/9 il numero che chiedeva una decisione ("21 aspettano il tuo OK")
  * stava alla terza schermata e non era cliccabile, mentre il primo blocco era
  * un report scritto a mano, identico ogni giorno. L'ordine e' il contenuto.
+ * Dal riordino T16 la coda delle decisioni apre la pagina, sopra la cassa a breve;
+ * i reparti scendono a 4 (i casi studio vivono dentro Delivery, non come reparto).
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CabinaRegia } from "./CabinaRegia";
@@ -61,13 +63,27 @@ function renderHome() {
 
 const precede = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-test("l'ordine e': cassa a breve, poi cosa aspetta il tuo OK, poi i reparti", async () => {
+test("l'ordine e': prima le decisioni (coda OK), poi la cassa, poi i reparti", async () => {
   renderHome();
   const cassa = await screen.findByTestId("cassa-breve");
   const coda = screen.getByTestId("approvals-queue");
   const reparti = screen.getByRole("heading", { name: /^reparti/i });
-  expect(precede(cassa, coda)).toBe(true);
-  expect(precede(coda, reparti)).toBe(true);
+  const decisioni = screen.getByRole("heading", { name: /decisioni che aspettano te/i });
+  expect(precede(decisioni, coda)).toBe(true); // il titolo "decisioni" apre la pagina
+  expect(precede(coda, cassa)).toBe(true);     // la coda sta PRIMA della cassa
+  expect(precede(cassa, reparti)).toBe(true);
+});
+
+test("i reparti sono 4 (casi-studio non e' un reparto) e mostrano persone + agenti", async () => {
+  renderHome();
+  await screen.findByTestId("cassa-breve");
+  expect(screen.queryByTestId("reparto-casi-studio")).toBeNull();
+  ["acquisizione", "vendite", "delivery", "back-office"].forEach((id) =>
+    expect(screen.getByTestId(`reparto-${id}`)).toBeTruthy()
+  );
+  const acq = screen.getByTestId("reparto-acquisizione");
+  expect(acq.textContent).toMatch(/Mariangela/);
+  expect(acq.textContent).toMatch(/Agenti: Carlo, Andrea/);
 });
 
 test("la cassa a breve porta all'Amministrazione con i numeri veri", async () => {
