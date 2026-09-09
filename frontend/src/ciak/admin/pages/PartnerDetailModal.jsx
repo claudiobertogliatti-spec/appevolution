@@ -792,7 +792,107 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 // COMPONENTE PRINCIPALE - CENTRALE OPERATIVA PARTNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo" }) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// HEADER OPERATIVO (T17a) — apre la scheda su "cosa manca e chi ci lavora"
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Scadenza operativa: SOLO da campi reali (prossima rata del piano o fine
+// contratto). Una deadline per-step non esiste → se manca, "—", mai inventata.
+function opScadenza(partner, piano) {
+  const raw = piano?.prossima_scadenza || partner?.piano_pagamento?.prossima_scadenza || partner?.contract_end;
+  if (!raw) return null;
+  const s = String(raw).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+}
+
+// Blocco: dai flag GIA' calcolati dal backend in /delivery-audit (stessa fonte di
+// Audit Delivery). Mai ricalcolato a mano qui.
+function opBlocco(audit) {
+  if (!audit) return null;
+  if (audit.blocked) return { text: "Fermo", cls: "bg-red-100 text-red-700" };
+  if (audit.incoerenza) return { text: "Incoerenza", cls: "bg-red-100 text-red-700" };
+  if (audit.stale) return { text: "In ritardo", cls: "bg-amber-100 text-amber-700" };
+  return null;
+}
+
+// Obiettivo dell'atto EVO corrente (descrizione dell'atto, non una promessa
+// per-partner inventata): il "prossimo risultato" a cui punta la fase attuale.
+const ATTO_OBIETTIVO = {
+  Esamina: "Posizionamento e offerta chiari",
+  Valida: "Funnel online e testato",
+  Ottimizza: "Crescita e riferimento di categoria",
+};
+
+// Striscia operativa in cima alla scheda. I dati operativi (situazione/prossima
+// azione/responsabile/blocco) arrivano dall'item `audit` passato dal chiamante,
+// che e' la STESSA fonte di Audit Delivery (GET /delivery-audit). Nulla e'
+// ricalcolato o inventato: dove il dato manca, "—".
+export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney }) {
+  const atto = attoEvo(phase) || "—";
+  const situazione = (audit && audit.current_step) || atto;
+  const risultato = ATTO_OBIETTIVO[atto] || "—";
+  const responsabile = (audit && audit.owner) || "—";
+  const scadenza = opScadenza(partner, piano);
+  const blocco = opBlocco(audit);
+  const prossima = (audit && audit.next_action) || null;
+  return (
+    <div data-testid="partner-op-header" className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Target className="w-3.5 h-3.5" aria-hidden />Situazione
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{situazione}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden />Prossimo risultato
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{risultato}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <User className="w-3.5 h-3.5" aria-hidden />Responsabile
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{responsabile}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Calendar className="w-3.5 h-3.5" aria-hidden />Scadenza
+          </div>
+          <div className="text-sm font-medium text-slate-800 truncate">{scadenza || "—"}</div>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+          <div className="text-sm font-semibold text-slate-900 truncate">
+            {prossima || <span className="text-slate-400 font-normal">Nessuna azione in coda</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {blocco ? (
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${blocco.cls}`}>
+              <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blocco.text}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">Nessun blocco</span>
+          )}
+          <button
+            type="button"
+            onClick={onOpenJourney}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            Apri Dati Journey
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo", audit = null }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1463,6 +1563,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <X className="w-6 h-6 text-white" />
             </button>
           </div>
+
+          {/* Header operativo (T17a): situazione, prossimo risultato, responsabile,
+              scadenza, prossima azione e blocco — apre su cosa manca e chi ci lavora. */}
+          <PartnerOpHeader
+            partner={headerPartner}
+            audit={audit}
+            piano={piano}
+            phase={formData.phase}
+            onOpenJourney={() => { setActiveTab("journey"); loadJourneyData(); }}
+          />
 
           {/* Tabs */}
           <div className="flex border-b" style={{ backgroundColor: "#FAFAF7" }}>

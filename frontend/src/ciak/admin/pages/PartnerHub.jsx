@@ -624,6 +624,7 @@ export function PartnerHub({ onAuthExpired }) {
 
       <PartnerDetailModal
         partner={detailPartner}
+        audit={detailPartner ? audit[detailPartner.id] : null}
         isOpen={!!detailPartner}
         initialTab={detailTab}
         onClose={closePartner}
