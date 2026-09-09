@@ -1446,7 +1446,7 @@ async def get_decisione_data(user_id: str):
         "documenti": documenti,
         "pagamento": pagamento,
         "pagamento_completato": pagamento.get("completato", False) if pagamento else False,
-        "prezzo_partnership": 2790,
+        "prezzo_partnership": 2990,
         "can_activate": (
             contratto and contratto.get("firmato", False) and
             pagamento and pagamento.get("completato", False)
@@ -1566,7 +1566,7 @@ async def upload_documento(
 
 @router.post("/create-payment-session/{user_id}")
 async def create_payment_session(user_id: str):
-    """Crea sessione Stripe per pagamento partnership €2.790"""
+    """Crea sessione Stripe per pagamento partnership €2.990"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
 
@@ -1584,14 +1584,14 @@ async def create_payment_session(user_id: str):
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
         checkout = StripeCheckout(api_key=stripe_key)
         session_request = CheckoutSessionRequest(
-            amount=2790.00,
+            amount=2990.00,
             currency="eur",
             success_url=f"{frontend_url}/decisione-partnership?payment=success",
             cancel_url=f"{frontend_url}/decisione-partnership?payment=cancelled",
             metadata={
                 "user_id": user_id,
                 "tipo": "partnership",
-                "importo": "2790",
+                "importo": "2990",
                 "email": user.get("email", "")
             }
         )
@@ -1603,7 +1603,7 @@ async def create_payment_session(user_id: str):
             {"$set": {
                 "user_id": user_id,
                 "stripe_session_id": session.session_id,
-                "importo": 2790,
+                "importo": 2990,
                 "valuta": "EUR",
                 "metodo": "stripe",
                 "completato": False,
@@ -1697,7 +1697,7 @@ async def conferma_bonifico(user_id: str):
         {"user_id": user_id},
         {"$set": {
             "user_id": user_id,
-            "importo": 2790,
+            "importo": 2990,
             "valuta": "EUR",
             "metodo": "bonifico",
             "stato": "completato",
@@ -1835,7 +1835,7 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
 
 👤 {nome} {cognome}
 📧 {email}
-💰 €2.790 Partnership
+💰 €2.990 Partnership
 
 *Systeme.io:* {systeme_status}
 
@@ -2049,7 +2049,7 @@ async def download_contratto_pdf(user_id: str):
         elements.append(Spacer(1, 15))
         
         elements.append(Paragraph("3. CORRISPETTIVO", section_title))
-        elements.append(Paragraph("Il Partner si impegna a corrispondere a Evolution PRO l'importo di €2.790 (duemilasettecentonovanta euro) come quota di partecipazione al programma.", body))
+        elements.append(Paragraph("Il Partner si impegna a corrispondere a Evolution PRO l'importo di €2.990 (duemilanovecentonovanta euro) come quota di partecipazione al programma.", body))
         elements.append(Spacer(1, 15))
         
         elements.append(Paragraph("4. OBBLIGHI DI EVOLUTION PRO", section_title))

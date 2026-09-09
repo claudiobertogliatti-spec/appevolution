@@ -21,7 +21,7 @@ Invarianti:
     (`auth.py:211`): scriverne uno solo lascia l'utente fuori senza errori.
     Il cliente Start entra con magic link, quindi non ne serve nessuno;
   - `users.role` resta `cliente`. Il ruolo `partner` aprirebbe TUTTE le guardie
-    dell'area partner a un cliente da 499 EUR.
+    dell'area partner a un cliente da 390 EUR.
 """
 from __future__ import annotations
 

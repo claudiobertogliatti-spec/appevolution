@@ -32,7 +32,7 @@ def _client(days_ago: float = 10, **extra) -> dict:
         "name": "Cinzia Lissi",
         "access_level": "cliente_start",
         "start_purchased_at": _iso(days_ago),
-        "start_credit_amount": 49900,
+        "start_credit_amount": 39000,
         "start_progress": [
             {"id": f"start_{i}", "label": f"Step {i}", "status": "locked" if i > 1 else "todo"}
             for i in range(1, 8)

@@ -96,7 +96,7 @@ class FakeDb:
                     "blueprint_score": 75,
                     "recommended_offer": "partnership",
                     "offer_decision": "partnership",
-                    "start_credit_amount": 279000,
+                    "start_credit_amount": 299000,
                     "start_purchased_at": "2026-06-20T12:00:00+00:00",
                     "start_progress": [{"step": "done"}],
                     "analysis_status": "inviata",

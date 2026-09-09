@@ -285,7 +285,7 @@ export function CiakDiagnostica() {
   if (phase === "email") {
     return (
       <>
-        <CiakHeader variant="light" />
+        <CiakHeader />
         <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-md w-full">
             <Eyebrow>Analisi gratuita</Eyebrow>
@@ -331,7 +331,7 @@ export function CiakDiagnostica() {
   if (phase === "starting") {
     return (
       <>
-        <CiakHeader variant="light" />
+        <CiakHeader />
         <div className="bg-white text-slate-900 min-h-[80vh] flex items-center justify-center">
           <p className="text-slate-500 text-sm">Preparazione in corso...</p>
         </div>
@@ -344,7 +344,7 @@ export function CiakDiagnostica() {
   if (phase === "done") {
     return (
       <>
-        <CiakHeader variant="light" />
+        <CiakHeader />
         <div className="bg-white text-slate-900 min-h-[90vh] flex items-center justify-center p-6">
           <div className="max-w-lg w-full text-center">
             <div className="flex justify-center">
@@ -392,7 +392,7 @@ export function CiakDiagnostica() {
 
   return (
     <>
-      <CiakHeader variant="light" />
+      <CiakHeader />
       <div className="bg-white text-slate-900 min-h-[90vh]">
         <div className="mx-auto max-w-2xl px-6 py-12">
           {/* Progress */}

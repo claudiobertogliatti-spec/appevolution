@@ -110,6 +110,24 @@
 
 **APERTO:** T01 campioni task e heartbeat; T03 integrazione runtime; T04 falsi completamenti legacy; T05 claim/lease; T06 policy/versioni; T07 evidenze/riconciliazione. Seguono flussi reparti e collaborazioni; UI differita. Contratti non analizzati, nessuna formula economica introdotta. Nuova architettura non distribuita.
 
+### 2026-09-08 · Codex · Area partner serena — mappa implementata
+
+**AREA RISERVATA:** branch codex/partner-sereno, worktree .worktrees/codex-partner-sereno. Nuovo SerenoJourney nel flag esistente, default OFF. Conteggio dei record visibili, ordine canonico F-n, link allo step preciso, stati di attesa/blocco distinti. Preview aggiornata: http://127.0.0.1:4178/partner/percorso.
+
+**VERIFICATO:** 17 test/6 suite passati, preview compilata, percorso demo e cambio stato verificati in browser; mobile senza overflow. Logo originale conservato.
+
+**APERTO:** approvazioni reali e salvataggi legacy da collegare/verificare per singolo flusso: _DOC_APPROVAL_STEPS operativo e vuoto. Materiali, assistenza, servizi/piano e pilota ancora aperti. Nessun merge/deploy o dati reali modificati. Dettagli in PARTNER-SERENO.md.
+
+### 2026-09-08 · Codex · Area partner serena — primo blocco e anteprima
+
+**AUTORIZZATO:** layout approvato da Claudio, logo originale fedele, anteprima per ogni blocco; sviluppo isolato con piattaforma attuale operativa.
+
+**AREA RISERVATA:** `codex/partner-sereno`, `.worktrees/codex-partner-sereno`, base `71ce73c9`. Shell/Home partner e preview locale; non tocca il lavoro backend di `codex/evolution-autonomia`.
+
+**VERIFICATO:** prima integrazione dietro `REACT_APP_PARTNER_SERENO=true` (default disattivato); 13 test passati, build frontend exit 0 con warning in file non modificati; preview http://127.0.0.1:4178/partner testata desktop/390/320px; logo SHA256 identico all'originale. Dettagli e comandi in `docs/agents/PARTNER-SERENO.md` nel branch.
+
+**APERTO:** preview con fixture dichiarate; dettaglio revisione, materiali, assistenza, catalogo e piano da completare/collegare. Nessun merge, deploy o modifica a dati reali. Prossimo blocco: mappa canonica e approvazioni. Non attivare il flag in produzione prima dei gate del documento.
+
 # HANDOFF — staffetta fra agenti
 
 Chi apre una sessione su questo repo **legge questo file per primo** (dopo

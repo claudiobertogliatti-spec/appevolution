@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
+import SerenoPiano from "../sereno/SerenoPiano";
 import {
   Anchor, TrendingUp, Rocket, ArrowLeft, ArrowRight, Check, X,
   Calendar, Users, Clock, ShieldCheck, Lock, RotateCcw, Sparkles
@@ -10,7 +12,7 @@ import {
  * 100% Sfondi Chiari (nessun nero/slate scuro) e testi in italiano semplice senza termini inglesi o tecnici.
  */
 
-const PLANS = [
+export const PLANS = [
   {
     id: "start",
     name: "Inside",
@@ -162,7 +164,7 @@ const PLANS = [
   },
 ];
 
-const CONTINUITY_POINTS = [
+export const CONTINUITY_POINTS = [
   { icon: ShieldCheck, title: "Nessun passo indietro", text: "Mantieni tutto attivo ed ordinato senza rischiare di disperdere il lavoro svolto nel primo anno." },
   { icon: Clock, title: "Risparmio di tempo", text: "Lascia la manutenzione e i controlli mensili al team per dedicarti solo ai tuoi clienti." },
   { icon: Sparkles, title: "Crescita costante", text: "Aggiorna messaggi e pagine in base alla risposta reale delle persone." },
@@ -451,6 +453,12 @@ export function EvoSPage({ partnerId }) {
         onBack={() => setSelectedId(null)}
       />
     );
+  }
+
+  // Sereno skin: restyled renewal list over the real PLANS; the detail page and
+  // its eligibility + EVO S checkout stay the existing flow (reached via onOpen).
+  if (PARTNER_SERENO_ENABLED) {
+    return <SerenoPiano onOpen={setSelectedId} locked={locked} />;
   }
 
   return (

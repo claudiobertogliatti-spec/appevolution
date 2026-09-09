@@ -58,7 +58,7 @@ def partnership_gap(proposta: dict) -> Optional[dict]:
     """Partnership incassata ma non finalizzata del tutto.
 
     `pagamento_completato` da solo non prova che l'onboarding sia riuscito:
-    viene scritto PRIMA degli effetti. Un partner puo' avere pagato 2.790 EUR e
+    viene scritto PRIMA degli effetti. Un partner puo' avere pagato 2.990 EUR e
     non avere account, journey o email.
     """
     if not proposta.get("pagamento_completato"):
@@ -80,7 +80,7 @@ def partnership_gap(proposta: dict) -> Optional[dict]:
         "titolo": "Partnership pagata, onboarding incompleto",
         "email": proposta.get("prospect_email"),
         "nome": proposta.get("prospect_nome"),
-        "importo_eur": 2790,
+        "importo_eur": 2990,
         "pagato_da_ore": _hours_since(proposta.get("pagamento_completato_at")),
         "effetti_falliti": falliti,
         "effetti_incompleti": incompleti,
@@ -145,7 +145,7 @@ def access_recovery_gap(entry: dict) -> Optional[dict]:
         "titolo": "Cliente Ciak Start senza email di accesso" if is_start else "Cliente Blueprint senza link di accesso",
         "email": entry.get("email"),
         "nome": None,
-        "importo_eur": 499 if is_start else 27,
+        "importo_eur": 390 if is_start else 27,
         "pagato_da_ore": _hours_since(entry.get("created_at")),
         "errore": entry.get("error"),
         "riferimento": _masked(entry.get("checkout_session_id")),

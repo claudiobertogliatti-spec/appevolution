@@ -142,7 +142,7 @@ def test_senza_crediti_non_inventa_numeri():
 CALAFIORE = {
     "id": "calafiore",
     "nome": "Luigi Calafiore",
-    "importo_totale": 2790.0,
+    "importo_totale": 2990.0,
     "stato": crediti.CREDITO_APERTO,
     "rate": [
         {"numero": 1, "importo": 930.0, "scadenza": "2026-05-13", "stato": "incassata"},

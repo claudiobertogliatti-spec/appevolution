@@ -72,7 +72,7 @@ DOCUMENTI_DIR.mkdir(parents=True, exist_ok=True)
 IBAN = "LT94 3250 0974 4929 5781"
 BIC = "REVOLT21"
 BANK = "Revolut Bank UAB"
-AMOUNT = "€2.790,00"
+AMOUNT = "€2.990,00"
 PAYMENT_LINK = os.environ.get("PAYMENT_LINK_PARTNERSHIP", "https://pay.evolution-pro.it/partnership")
 
 # ============================================================================

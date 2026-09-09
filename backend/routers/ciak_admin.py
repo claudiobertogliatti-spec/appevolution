@@ -1775,7 +1775,7 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     return {"columns": columns, "total": sum(c["count"] for c in columns)}
 
 
-# ─── Transactions Partnership €2.790 ──────────────────────────────────────
+# ─── Transactions Partnership €2.990 ──────────────────────────────────────
 
 @router.get("/transactions-partnership")
 async def ciak_transactions_partnership(
@@ -1784,9 +1784,9 @@ async def ciak_transactions_partnership(
     offset: int = Query(0, ge=0),
 ):
     """
-    Acquisti Partnership Evolution €2.790. Sorgente: proposte con
+    Acquisti Partnership Evolution €2.990. Sorgente: proposte con
     pagamento_completato=True. Amount = contract_params.corrispettivo
-    (default 2790.0 se non override).
+    (default 2990.0 se non override).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -1796,7 +1796,7 @@ async def ciak_transactions_partnership(
         {"pagamento_completato": True}
     ).sort("pagamento_completato_at", -1):
         contract_params = p.get("contract_params", {}) or {}
-        amount = float(contract_params.get("corrispettivo", 2790.0))
+        amount = float(contract_params.get("corrispettivo", 2990.0))
         items.append({
             "email": p.get("prospect_email"),
             "nome": p.get("prospect_nome"),
@@ -2463,7 +2463,7 @@ async def get_public_config():
 #
 # Sorgenti vendite fatturabili:
 #   - Ciak Blueprint €27  → diagnostic_sessions (stripe_payment_completed) + ciak_orphan_purchases
-#   - Partnership €2.790  → proposte (pagamento_completato)
+#   - Partnership €2.990  → proposte (pagamento_completato)
 #   - Servizi extra       → partner_servizi (catalogo SERVIZI_CATALOGO)
 #
 # Collezioni:
@@ -2659,7 +2659,7 @@ async def _build_all_sources(db) -> list[dict]:
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Ciak Start €499 (ciak_clients che hanno acquistato lo Start) ──
+    # ── Ciak Start €390 (ciak_clients che hanno acquistato lo Start) ──
     start_offer = MAIN_OFFERS["CIAK-START"]
     async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
         key = f"start:client:{c.get('id')}"
@@ -2675,7 +2675,7 @@ async def _build_all_sources(db) -> list[dict]:
             "gia_fatturata": key in invoiced,
         })
 
-    # ── Partnership €2.790 / Upgrade €2.291 (ciak_clients partner attivi) ──
+    # ── Partnership €2.990 / Upgrade €2.291 (ciak_clients partner attivi) ──
     partnership_offer = MAIN_OFFERS["CIAK-PARTNERSHIP"]
     upgrade_offer = MAIN_OFFERS["CIAK-UPGRADE"]
     async for c in db.ciak_clients.find({"partnership_attiva": True}):
@@ -3761,7 +3761,7 @@ async def set_partner_alignment(
 # Il sistema persisteva gia' ogni indizio di fallimento, ma nessuna schermata
 # li leggeva: finalizzazione_partnership.<effetto>="failed", bozza_errore,
 # ciak_client_access_recovery, ciak_orphan_purchases. Un cliente poteva pagare
-# 2.790 EUR e restare senza account, senza che nessuno se ne accorgesse.
+# 2.990 EUR e restare senza account, senza che nessuno se ne accorgesse.
 
 class RetryFinalizzazioneRequest(BaseModel):
     email: str

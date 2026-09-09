@@ -84,7 +84,7 @@ async def test_attiva_crea_il_cliente_che_non_ha_mai_comprato_il_blueprint(monke
     client = database.ciak_clients.docs[0]
     assert client["email"] == "nuova@example.it"
     assert client["access_level"] == "cliente_start"
-    assert client["start_credit_amount"] == 49900
+    assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
     assert len(client["start_progress"]) == 7
     assert client["start_progress"][0]["status"] == "todo"
@@ -132,7 +132,7 @@ async def test_attiva_su_cliente_gia_attivo_rimanda_l_accesso_senza_riscrivere_l
             "email": "gia@example.it",
             "access_level": "cliente_start",
             "start_purchased_at": "2026-08-01T09:00:00+00:00",
-            "start_credit_amount": 49900,
+            "start_credit_amount": 39000,
             "start_progress": [{"id": "start_1", "label": "Direzione", "status": "done"}],
             "events": [],
         }
@@ -156,7 +156,7 @@ async def test_attiva_su_cliente_gia_attivo_rimanda_l_accesso_senza_riscrivere_l
 
 @pytest.mark.asyncio
 async def test_attiva_registra_l_incasso_del_payment_link(monkeypatch):
-    """Ciak Start si paga intero: l'incasso registrato e' sempre 499."""
+    """Ciak Start si paga intero: l'incasso registrato e' sempre 390."""
     database = DB()
     monkeypatch.setattr(ciak_admin, "db", database)
     _patch_delivery(monkeypatch)
@@ -169,10 +169,10 @@ async def test_attiva_registra_l_incasso_del_payment_link(monkeypatch):
     transaction = database.payment_transactions.docs[0]
     assert transaction["session_id"] == "pi_3ABC"
     assert transaction["tipo"] == "ciak_start"
-    assert transaction["amount_cents"] == 49900
-    assert database.payments.docs[0]["amount"] == 499.0
+    assert transaction["amount_cents"] == 39000
+    assert database.payments.docs[0]["amount"] == 390.0
     client = database.ciak_clients.docs[0]
-    assert client["start_credit_amount"] == 49900
+    assert client["start_credit_amount"] == 39000
 
 
 @pytest.mark.asyncio
@@ -223,8 +223,8 @@ async def test_riattivare_un_cliente_gia_pagante_rimanda_solo_l_accesso(monkeypa
             "email": "saldato@example.it",
             "access_level": "cliente_start",
             "start_purchased_at": "2026-08-01T09:00:00+00:00",
-            "start_credit_amount": 49900,
-            "start_payments": [{"amount_cents": 49900, "reference_id": "cs_1"}],
+            "start_credit_amount": 39000,
+            "start_payments": [{"amount_cents": 39000, "reference_id": "cs_1"}],
             "start_progress": [{"id": "start_1", "status": "done"}],
             "events": [],
         }
@@ -240,7 +240,7 @@ async def test_riattivare_un_cliente_gia_pagante_rimanda_solo_l_accesso(monkeypa
     assert result["already_active"] is True
     assert result["access_sent"] is True
     client = database.ciak_clients.docs[0]
-    assert client["start_payments"] == [{"amount_cents": 49900, "reference_id": "cs_1"}]
+    assert client["start_payments"] == [{"amount_cents": 39000, "reference_id": "cs_1"}]
     assert database.payment_transactions.docs == []
 
 

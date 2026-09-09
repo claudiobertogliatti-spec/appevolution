@@ -1,7 +1,7 @@
 """Sito vetrina di Ciak Start — pagina singola, sul dominio del cliente.
 
 ⛔ **La vetrina non vende.** Decisione di Claudio del 30/7: niente checkout,
-niente opt-in, niente automazioni. E' il confine fra i 499 di Ciak Start e i
+niente opt-in, niente automazioni. E' il confine fra i 390 di Ciak Start e i
 2.790 della Partnership. Qui si dice chi sei, per chi lavori, e come ti si
 contatta: un form di contatto non e' un carrello.
 

@@ -158,7 +158,7 @@ def test_start_access_recovery_is_499_eur_and_retriable_without_token():
     )
 
     assert gap["tipo"] == "accesso_start"
-    assert gap["importo_eur"] == 499
+    assert gap["importo_eur"] == 390
     assert gap["retriable"] is True
     assert gap["recovery_id"] == "recovery-start-1"
     assert "cs_start_secret" not in repr(gap)

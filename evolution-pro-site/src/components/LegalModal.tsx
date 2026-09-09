@@ -65,7 +65,7 @@ const policyContent: Record<LegalPolicy, { title: string; body: React.ReactNode 
       <h3>Servizi offerti</h3>
       <ul>
         <li><strong>Analisi Consulenziale</strong> · €67 IVA inclusa (prestazione precontrattuale).</li>
-        <li><strong>Partnership Evolution PRO</strong> · €2.790 IVA inclusa (una tantum).</li>
+        <li><strong>Partnership Evolution PRO</strong> · €2.990 IVA inclusa (una tantum).</li>
         <li><strong>Servizi Extra</strong> · su richiesta separata.</li>
       </ul>
       <h3>Diritto di recesso</h3>
