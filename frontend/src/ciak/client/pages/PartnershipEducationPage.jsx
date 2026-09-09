@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, LockKeyhole, PlayCircle } from "lucide-react";
 import { clientPost } from "../api";
+import { PRICING } from "../../pricing";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
@@ -22,9 +23,9 @@ export function PartnershipEducationPage({ dashboard }) {
   const recommended = dashboard.diagnostic?.recommended_offer;
   const canUpgrade = isPartner || access === "cliente_start" || recommended === "partnership";
   const pricing = dashboard.pricing?.partnership || {};
-  const fullAmount = pricing.full_amount_cents ?? 299000;
-  const creditAmount = pricing.credit_amount_cents ?? 39000;
-  const dueAmount = pricing.due_amount_cents ?? 260000;
+  const fullAmount = pricing.full_amount_cents ?? PRICING.partnership.cents;
+  const creditAmount = pricing.credit_amount_cents ?? PRICING.start.cents;
+  const dueAmount = pricing.due_amount_cents ?? PRICING.upgradeFromStart.cents;
 
   async function handleCheckout() {
     try {

@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { adminFetch } from "../api";
 import { attoEvo } from "../evo";
+import { PRICING } from "../../pricing";
 import { ContractParamsModal } from "./ContractParamsModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
@@ -952,7 +953,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState("2990");
+  const [paymentAmount, setPaymentAmount] = useState(String(PRICING.partnership.cents / 100));
 
   // Video pipeline state
   const [videoPipeline, setVideoPipeline] = useState(null);
@@ -1326,7 +1327,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   // Segna pagamento partnership manuale: importo e conferma raccolti da un
   // form in pagina (non window.prompt + window.confirm).
   const handleSegnaPagamentoPartnership = () => {
-    setPaymentAmount("2990");
+    setPaymentAmount(String(PRICING.partnership.cents / 100));
     setShowPaymentForm(true);
   };
 
