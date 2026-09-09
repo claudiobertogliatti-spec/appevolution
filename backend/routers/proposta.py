@@ -7,6 +7,7 @@ firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File
 from routers.ciak_admin import require_ciak_admin
+from routers.insider_helpers import enrich_proposta_for_insider
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -353,6 +354,33 @@ async def get_proposta(token: str):
         proposta["visto_at"] = now
         proposta["stato"] = "vista"
         await _notify_telegram(f"Proposta aperta da {proposta.get('prospect_nome', '?')}")
+
+    # Arricchisce con analisi + scoring del lead (Insider closing page).
+    # Stessa catena di lookup di `require_partnership_proposal_eligibility`
+    # (ciak_clients → session_token → diagnostic_sessions/ciak_analisi),
+    # verificata sopra in questo stesso file: ogni proposta arriva qui solo
+    # dopo che quella funzione ha già confermato che la catena risolve.
+    sess = None
+    email = (proposta.get("prospect_email") or "").strip().lower()
+    if email:
+        client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
+        session_token = (client or {}).get("session_token") or (client or {}).get("diagnostic_session_token")
+        if session_token:
+            diag = await db.diagnostic_sessions.find_one(
+                {"session_token": session_token}, {"_id": 0}
+            )
+            analisi = await db.ciak_analisi.find_one(
+                {"session_token": session_token}, {"_id": 0}
+            )
+            scoring = (diag or {}).get("scoring") or {}
+            sess = {
+                "analisi": analisi,
+                # Il campo reale e' `stato_finale` (services/ciak_scoring.py:83),
+                # non `stato`: normalizzato qui per rispettare l'interfaccia
+                # pura di enrich_proposta_for_insider.
+                "scoring": {"stato": scoring.get("stato_finale")},
+            }
+    proposta = enrich_proposta_for_insider(proposta, sess)
 
     return proposta
 

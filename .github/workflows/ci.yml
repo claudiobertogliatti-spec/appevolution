@@ -111,6 +111,7 @@ jobs:
           tests/test_proposta_client_identity.py
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py
+          tests/test_insider_helpers.py
           tests/test_ciak_delivery_gaps.py
           tests/test_blueprint_delivery_durability.py
           tests/test_launch_calendar.py
