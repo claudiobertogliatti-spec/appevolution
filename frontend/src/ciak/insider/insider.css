@@ -1,0 +1,35 @@
+/* Insider closing page — /insider/:token
+ * Token brand Ciak (LOCK): navy #0F172A, giallo #FACC15, grigio #E5E7EB, Poppins.
+ * Task 4: solo lo shell (stati onesti loading/scaduto/non-valido/errore/già-fatto).
+ * Le sezioni InsiderWelcome/AnalysisRecap/OfferSections portano il proprio CSS
+ * quando vengono implementate (Task 5-7).
+ */
+.insider {
+  font-family: Poppins, system-ui, sans-serif;
+  color: #0F172A;
+  background: #F7F8FA;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.insider > p {
+  max-width: 480px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748B;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-left: 4px solid #FACC15;
+  border-radius: 12px;
+  padding: 22px 26px;
+}
+
+.insider > p[role="alert"] {
+  color: #0F172A;
+}
