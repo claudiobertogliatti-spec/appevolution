@@ -160,6 +160,7 @@ Ogni accorpamento conserva route e capacità; i vecchi URL restano con redirect/
 | 3a | accorpamento commerciale: "Acquisizione e vendita" → Vendite + verificatore reachability | ✅ fatto (test 20 PASS, build 0, parità reachability PASS); ⛔ resta collaudo browser |
 | 3b | unificare Produzione video (audit #6) + tab pipeline "Trattative" (audit #7) | ✅ fatto (test 24 PASS, build 0, parità PASS); ⛔ resta collaudo browser |
 | 3c | togliere dal menu 2 hub di soli link (audit #5) | ↩️ preparato ma **annullato** su richiesta di Claudio ("non eliminare"); voci ripristinate |
-| 4 | Home "Regia" (lancia-reparti su /admin) + Direzione su /admin/direzione + Delivery raggruppato (12→4 gruppi) | ✅ fatto (test 21 PASS, build 0, parità PASS); ⛔ resta collaudo browser; numeri/attenzione reali = passo successivo |
+| 4 | Home "Regia" (lancia-reparti su /admin) + Direzione su /admin/direzione + Delivery raggruppato (12→4 gruppi) | ✅ fatto (test 21 PASS, build 0, parità PASS); ⛔ resta collaudo browser |
+| 4b | Home Regia: numeri reali per reparto + striscia "richiede attenzione" (riuso `useRepartoMetrics`, stati caricamento/assente/zero distinti, nessuna cifra finta) | ✅ fatto (test 24 PASS, build 0); ⛔ resta collaudo browser |
 | 4 | discovery affidabile + materiali delivery reali (§5.1, §5.3) | ⏭️ backend, dopo riorg |
 | — | gap sicurezza/KPI (§5.4, §5.5) | 📋 registrati, decide Claudio |

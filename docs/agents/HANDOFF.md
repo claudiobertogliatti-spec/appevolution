@@ -1,3 +1,18 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4b: numeri reali + attenzione sulla Home Regia
+
+**DICHIARATO**
+- La Home "Regia" ora mostra, per ogni tessera-reparto, **un numero reale** dalle fonti esistenti (`useRepartoMetrics` → endpoint admin già in uso): Direzione = cassa del mese, Acquisizione = nuovi lead 7gg, Vendite = proposte inviate, Delivery = partner attivi, Back office = scade oggi.
+- Aggiunta la striscia **"Richiede attenzione"** (stile movimenti in evidenza): Output da approvare, Partner fermi, Rate in ritardo — mostrati **solo se realmente > 0**, con link al reparto.
+- Onestà: **caricamento (…)**, **dato non disponibile (—/Da attivare)**, **zero (0/Nessuna)** e **valore reale** sono stati distinti. Nessuna cifra inventata.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovi test AdminHome: numeri, attenzione >0, stato caricamento, zero-urgenze).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (i numeri dipendono dagli endpoint reali).
+- ⏭️ Eventuale rifinitura delle altre home reparto; poi gap backend (§5) e sicurezza.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4: Home "Regia" + Direzione + Delivery raggruppato
 
 **CONTESTO:** Claudio ha definito la visione finale — un CRM unico, semplice, **stile Poste Italiane/online banking** (voci chiare, categorie ben divise) — e ha approvato un mockup navigabile. Vincolo ribadito: **non eliminare funzioni, solo organizzare**.
