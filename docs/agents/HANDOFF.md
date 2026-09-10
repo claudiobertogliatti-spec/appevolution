@@ -1,3 +1,19 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3a: consolidamento commerciale
+
+**DICHIARATO**
+- Assorbita la macro "Acquisizione e vendita" dentro **Vendite** (audit #1 P1 + strategia "Direzione + 4 reparti"): Chiusura Insider e Listino & prezzi ora sono voci di Vendite; Collaudo checkout resta route tecnica via URL (fuori dal quotidiano). Redirect `/admin/reparto/acquisizione-vendita` → `/admin/reparto/vendite`. Rimosso l'import `Handshake` inutilizzato.
+- **Tutte le route conservate.** Aggiornato `verify-admin-parity.cjs` da "NAV byte-identico" a **raggiungibilità** (nessuna route rimossa + ogni voce NAV punta a una route registrata): necessario perché la riorganizzazione cambia il NAV per definizione.
+- Documentata in `ADMIN-PARITA-MATRICE.md` §4 la regola di fedeltà: le "voci proposte" senza pagina reale (Liste importate, Risultati acquisizione/vendite; Direzione Decisioni/Andamento/Obiettivi/Cassa = sezioni di CabinaRegia) NON si inventano né si trasformano in landing di soli link.
+
+**VERIFICATO (comando+output)**
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 34`, reachability PASS.
+- Jest `4 suite / 20 test PASS` (nessuna regressione).
+- `npm run build`: exit 0 ("Compiled with warnings" preesistenti), postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (sidebar senza "Acquisizione e vendita"; vecchio URL redirige; Vendite mostra Chiusura Insider + Listino).
+- ⏭️ **Blocco 3b**: unificare "Produzione video" (audit #6) e tab pipeline "Trattative" (audit #7) — lavoro a livello di componente, non semplice relabel.
+
 ### 2026-09-09 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 2: code Vendite/Back office → record
 
 **CONTINUAZIONE del blocco 1 di Codex** (`codex/admin-semplificazione` `e55a6dd6`). Nuovo branch `cc/admin-semplificazione`,

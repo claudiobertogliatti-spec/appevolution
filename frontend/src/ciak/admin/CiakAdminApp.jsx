@@ -34,7 +34,6 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CreditCard,
-  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -135,21 +134,9 @@ const NAV = [
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
-  // ── ACQUISIZIONE E VENDITA · cockpit di chiusura post-call ────────────
-  {
-    id: "acquisizione-vendita",
-    label: "Acquisizione e vendita",
-    persone: ["Mariangela"],
-    agenti: ["Gaia", "Carlo"],
-    landing: true,
-    hideFor: ["antonella"],
-    pages: [
-      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
-      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
-      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Runbook della prova end-to-end del pagamento in test" },
-    ],
-  },
-  // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
+  // ── VENDITE · Gaia ── dal €27 alla firma (assorbe "Acquisizione e vendita":
+  //    Chiusura Insider e Listino entrano qui; Collaudo checkout resta route
+  //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia). ──
   {
     id: "vendite",
     label: "Vendite",
@@ -159,12 +146,14 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
-      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
       { to: "/admin/vendite-trattativa", label: "In trattativa", desc: "Proposte inviate, viste o accettate" },
+      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
       { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
+      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
+      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
@@ -212,7 +201,6 @@ const NAV = [
 const MACRO_ICONS = {
   dashboard: LayoutDashboard,
   acquisizione: Megaphone,
-  "acquisizione-vendita": Handshake,
   vendite: BarChart3,
   delivery: Users,
   "casi-studio": ClipboardCheck,
@@ -718,6 +706,8 @@ export default function CiakAdminApp() {
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="clienti-analisi" element={<ClientiAnalisi onAuthExpired={handleLogout} />} />
         <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
+        {/* "Acquisizione e vendita" assorbita in Vendite: vecchio URL → nuova landing. */}
+        <Route path="reparto/acquisizione-vendita" element={<Navigate to="/admin/reparto/vendite" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />

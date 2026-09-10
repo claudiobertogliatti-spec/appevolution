@@ -125,8 +125,15 @@ ogni reparto sceglie la destinazione: Delivery `row.id`→partner, Vendite `row.
 
 Ogni accorpamento conserva route e capacità; i vecchi URL restano con redirect/filtro. Da eseguire dopo blocco 2.
 
-- **Direzione:** aggiungere voci esplicite (Decisioni e blocchi, Andamento reparti, Obiettivi, Cassa) come ingressi a `CabinaRegia`/`Amministrazione`/`SimulatoreFatturato` già esistenti — nessun nuovo motore.
-- **Acquisizione e vendita → Vendite (audit #1, strategia "Direzione + 4 reparti"):** spostare chiusura-insider, listino-prezzi, collaudo-checkout dentro Vendite; rimuovere la 6ª macro; redirect da `/admin/reparto/acquisizione-vendita`. Tutte e 3 le route restano.
+> ⚠️ **Nota di fedeltà (verificata):** alcune "voci proposte" del prompt **non hanno una pagina reale dietro**
+> e trasformarle in voci-link ricreerebbe l'anti-pattern "landing di soli link" (audit #5). In particolare:
+> Direzione *Decisioni/Andamento/Obiettivi/Cassa* sono **sezioni della stessa dashboard `CabinaRegia`**;
+> *Liste importate*, *Risultati acquisizione*, *Risultati vendite* **non esistono come pagina**. Regola applicata:
+> rinomino/riorganizzo solo dove una pagina reale fa da destinazione; il resto è **gap** (nuova pagina = decisione di
+> Claudio), non si inventa. Rinominare concetti consolidati (es. *Lista Fredda*) è escluso: cambierebbe il significato.
+
+- **Direzione:** le voci proposte (Decisioni, Andamento, Obiettivi, Cassa) sono già dentro `CabinaRegia` (index). Voce reale separata: solo `SimulatoreFatturato` (Obiettivo €1M). Non creare 4 link alla stessa dashboard.
+- **✅ FATTO (blocco 3a) — Acquisizione e vendita → Vendite (audit #1, strategia "Direzione + 4 reparti"):** Chiusura Insider e Listino & prezzi spostati nelle voci di Vendite; Collaudo checkout resta route tecnica via URL (fuori dal quotidiano, come le altre voci di sistema); macro rimossa; redirect `/admin/reparto/acquisizione-vendita` → `/admin/reparto/vendite`. Tutte e 3 le route conservate. Verificatore aggiornato a **raggiungibilità** (0 route rimosse, 34 voci NAV raggiungibili).
 - **Vendite:** pipeline-blueprint/call/trattativa/ok sono già lo stesso `PipelineList` con filtri di stadio → presentarli come tab di un'unica "Trattative" conservando i vecchi URL (audit #7).
 - **Delivery:** unificare Masterclass+Video Lezioni in "Produzione video" con filtro (audit #6); i due hub attuali sono solo elenchi di link.
 - **Hub solo-link da svuotare/togliere dal percorso quotidiano:** `AcquisizioneCalendarioHub`, `TrattativeKoHub`, `DeliveryMasterclassHub`, `DeliveryLezioniHub` (audit #5/#6). Strumenti restano nelle sedi principali.
@@ -150,6 +157,7 @@ Ogni accorpamento conserva route e capacità; i vecchi URL restano con redirect/
 |---|---|---|
 | 1 (Codex) | ricerca strumenti reparto, code prima del supporto, titolo unico, matching sidebar, pulsanti lead | ✅ fatto (`e55a6dd6`) |
 | 2 (Claude) | code Vendite/Back office → record; deep-link `?credito=` | ✅ fatto (test 20 PASS, build 0, parità PASS); ⛔ resta collaudo browser |
-| 3 | riorganizzazione voci per reparto + accorpamenti (§4) | ⏭️ prossimo |
+| 3a | accorpamento commerciale: "Acquisizione e vendita" → Vendite + verificatore reachability | ✅ fatto (test 20 PASS, build 0, parità reachability PASS); ⛔ resta collaudo browser |
+| 3b | unificare Produzione video (audit #6) + tab pipeline "Trattative" (audit #7) | ⏭️ prossimo (lavoro a livello di componente, non solo relabel) |
 | 4 | discovery affidabile + materiali delivery reali (§5.1, §5.3) | ⏭️ backend, dopo riorg |
 | — | gap sicurezza/KPI (§5.4, §5.5) | 📋 registrati, decide Claudio |
