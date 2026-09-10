@@ -1,6 +1,6 @@
 ### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: fine del falso "success"
 
-**CONTESTO:** gap backend separato dalla riorganizzazione admin (PR #107). Branch `cc/discovery-affidabile`, worktree `.worktrees/cc-discovery-affidabile`, base `origin/main` 20f43d4d.
+**CONTESTO:** gap backend separato dalla riorganizzazione admin (PR #107). Branch `cc/discovery-affidabile`, worktree `.worktrees/cc-discovery-affidabile`, base `origin/main` 20f43d4d. **PR #108**: https://github.com/claudiobertogliatti-spec/appevolution/pull/108 (aperta, ⛔ NON mergiata — decide Claudio, review Codex come da protocollo).
 
 **DICHIARATO**
 - `POST /api/discovery/search-places` restituiva **sempre `success: true`** anche con TUTTE le query in errore: la UI mostrava un falso successo. Ora l'esito è onesto: **ok / partial / failed** (`success=false` solo se tutte le query falliscono), con `queries_total`/`queries_failed` e un `message` coerente.
