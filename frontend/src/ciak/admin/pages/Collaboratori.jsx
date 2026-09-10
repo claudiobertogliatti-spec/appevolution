@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, FileText, Plus, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "../api";
 import { CollaboratorSettlements } from "./CollaboratorSettlements";
@@ -29,10 +30,29 @@ function Stat({ label, value, icon: Icon }) {
   );
 }
 
+function CollaboratorSelector({ selected, onSelect, antonella }) {
+  const people = [
+    { id: "mariangela", name: "Mariangela Caccia", detail: "Acquisizione e Vendite · Agenti: Carlo, Andrea, Gaia" },
+    { id: "antonella", name: antonella?.name || "Antonella", detail: `${antonella?.role || "Delivery"} · Agente: ${antonella?.agent || "Simona"}` },
+  ];
+  return (
+    <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2" aria-label="Elenco collaboratrici">
+      {people.map((person) => (
+        <button key={person.id} type="button" onClick={() => onSelect(person.id)} aria-pressed={selected === person.id}
+          className={`flex items-center gap-3 rounded-xl border bg-white p-4 text-left transition-colors ${selected === person.id ? "border-yellow-400 ring-1 ring-yellow-400" : "border-slate-200 hover:border-slate-400"}`}>
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-yellow-400"><UserRound className="h-5 w-5" /></span>
+          <span><span className="block font-semibold text-slate-900">{person.name}</span><span className="block text-sm text-slate-500">{person.detail}</span></span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Collaboratori({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("work");
+  const [selectedCollaborator, setSelectedCollaborator] = useState("mariangela");
   // Form in pagina al posto dei window.prompt.
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "", estimated: "60" });
@@ -119,6 +139,29 @@ export function Collaboratori({ onAuthExpired }) {
   const pending = tasks.filter((t) => t.status === "completed" && !t.approved_at);
   const approved = tasks.filter((t) => t.approved_at && String(t.created_at || "").startsWith(month));
 
+  if (selectedCollaborator === "mariangela") return (
+    <div className="p-8 max-w-6xl">
+      <div className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
+        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Collaboratori</h1>
+        <p className="mt-2 text-sm text-slate-500">Persone, attività e compensi gestiti separatamente.</p>
+      </div>
+      <CollaboratorSelector selected={selectedCollaborator} onSelect={setSelectedCollaborator} antonella={collaborator} />
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-yellow-400"><UserRound className="h-6 w-6" /></div>
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Mariangela Caccia</h2>
+            <p className="mt-1 text-sm text-slate-600">Collaboratrice nei reparti Acquisizione e Vendite.</p>
+            <p className="mt-3 text-sm font-medium text-amber-700">Compenso non calcolabile: regola economica non configurata.</p>
+            <p className="mt-1 text-sm text-slate-500">Contratto, tariffa e modalità di pagamento devono provenire da una fonte verificata prima di calcolare importi.</p>
+            <Link to="/admin/persona/mariangela" className="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Apri attività di Mariangela</Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
   if (tab === "billing") return <div>
     <div className="px-8 pt-6"><button onClick={() => setTab("work")} className="mr-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Attivita' e compensi</button><button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Fatture e pagamenti</button></div>
     <CollaboratorSettlements collaborator={collaborator} onAuthExpired={onAuthExpired} />
@@ -132,13 +175,15 @@ export function Collaboratori({ onAuthExpired }) {
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Collaboratori</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Antonella viene pagata a ore effettive approvate. Simona assegna task coerenti con il budget settimanale.
+            Persone, attività e compensi gestiti separatamente. Per Antonella sono disponibili ore approvate e pagamenti.
           </p>
         </div>
         <button onClick={createTask} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">
           <Plus className="h-4 w-4" /> Task manuale
         </button>
       </div>
+
+      <CollaboratorSelector selected={selectedCollaborator} onSelect={setSelectedCollaborator} antonella={collaborator} />
 
       <div className="mb-6 rounded-xl border border-yellow-300 bg-white p-5">
         <div className="flex items-center gap-3">

@@ -1,3 +1,11 @@
+### 2026-09-10 · Codex · Mariangela aggiunta a Collaboratori
+
+**DIFETTO LIVE:** `/admin/collaboratori` caricava e mostrava esclusivamente Antonella (`/collaboratori/antonella`), mentre Mariangela Caccia compariva solo nell'organigramma Acquisizione/Vendite.
+
+**CORREZIONE:** la pagina elenca separatamente Mariangela Caccia e Antonella. Mariangela è collegata alla sua vista operativa Acquisizione+Vendite. Nessuna tariffa o condizione copiata da Antonella: finché manca una regola economica verificata, la UI dichiara “Compenso non calcolabile: regola economica non configurata”. Gestione ore/fatture Antonella invariata.
+
+**PROVA PRE-PUSH:** parse Babel `Collaboratori.jsx` PASS; `git diff --check` PASS. Verificare CI e browser live dopo il deploy.
+
 ### 2026-09-10 · Codex · correzione usabilità admin dopo verifica live
 
 **RISCONTRO DI CLAUDIO:** la versione pubblicata non piace e non funziona ancora bene. Verifica sul tab Chrome realmente usato: Claudio era su `/admin/direzione`, pagina densa preesistente; la nuova Home `/admin` non era raggiungibile dalla sidebar. Mancava inoltre la ricerca globale dell'anteprima. In Acquisizione lo stato vuoto parlava erroneamente di “partner” e la descrizione mescolava lead e trattative.
