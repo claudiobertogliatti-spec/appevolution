@@ -75,10 +75,10 @@ export function DepartmentMetricStrip({ metrics, values = {} }) {
   );
 }
 
-export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) {
+export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {}, showHeading = true }) {
   return (
     <div className="space-y-5 mb-8">
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      {showHeading && <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-start gap-4">
           <div className="mt-1 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-yellow-400">
             <LayoutDashboard className="h-5 w-5" />
@@ -99,7 +99,7 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {} }) 
             )}
           </div>
         </div>
-      </section>
+      </section>}
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.82fr)_minmax(360px,1.18fr)] gap-5">

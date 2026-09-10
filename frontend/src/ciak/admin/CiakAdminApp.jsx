@@ -26,6 +26,7 @@
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
 import { useState } from "react";
+import { matchesAdminPath, filterDepartmentPages } from "./navigationMatch";
 import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowRight,
@@ -33,7 +34,6 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CreditCard,
-  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -58,6 +58,7 @@ import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
+import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
@@ -70,6 +71,8 @@ import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
+import { AdminHome } from "./pages/AdminHome";
+import { PersonaHome } from "./pages/PersonaHome";
 import { SimulatoreFatturato } from "./pages/SimulatoreFatturato";
 import { MasterclassReview } from "./pages/MasterclassReview";
 import { SystemHealth } from "./pages/SystemHealth";
@@ -114,7 +117,7 @@ const NAV = [
     label: "Direzione",
     persone: ["Claudio"],
     agenti: ["Luca"],
-    to: "/admin",
+    to: "/admin/direzione",
     end: true,
     pages: [],
   },
@@ -134,21 +137,9 @@ const NAV = [
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
-  // ── ACQUISIZIONE E VENDITA · cockpit di chiusura post-call ────────────
-  {
-    id: "acquisizione-vendita",
-    label: "Acquisizione e vendita",
-    persone: ["Mariangela"],
-    agenti: ["Gaia", "Carlo"],
-    landing: true,
-    hideFor: ["antonella"],
-    pages: [
-      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
-      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
-      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Runbook della prova end-to-end del pagamento in test" },
-    ],
-  },
-  // ── VENDITE · Gaia ── dal €27 alla firma (stadi separati) ──────────────
+  // ── VENDITE · Gaia ── dal €27 alla firma (assorbe "Acquisizione e vendita":
+  //    Chiusura Insider e Listino entrano qui; Collaudo checkout resta route
+  //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia). ──
   {
     id: "vendite",
     label: "Vendite",
@@ -157,13 +148,12 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
-      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
+      { to: "/admin/trattative", label: "Trattative", desc: "Pipeline post-€27 in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
-      { to: "/admin/vendite-trattativa", label: "In trattativa", desc: "Proposte inviate, viste o accettate" },
-      { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
+      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
+      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
+      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
@@ -173,20 +163,28 @@ const NAV = [
     persone: ["Antonella", "Matteo"],
     agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
-    pages: [
-      { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
-      { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
-      { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
-      { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
-      { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
-      { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
-      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
-      { to: "/admin/delivery-masterclass", label: "Masterclass", desc: "Produzione masterclass dei partner" },
-      { to: "/admin/delivery-lezioni", label: "Video Lezioni", desc: "Produzione lezioni del videocorso" },
-      { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
-      { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
-      { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
-      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
+    // 12 funzioni raccolte in 4 gruppi chiari (stile Poste). Nessuna rimossa.
+    groups: [
+      { title: "Partner", pages: [
+        { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+        { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
+        { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
+        { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
+      ] },
+      { title: "Materiali e video", pages: [
+        { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
+        { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
+      ] },
+      { title: "Contenuti e percorso", pages: [
+        { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
+        { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
+        { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
+        { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
+      ] },
+      { title: "Risultati", pages: [
+        { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
+        { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
+      ] },
     ],
   },
   // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
@@ -211,7 +209,6 @@ const NAV = [
 const MACRO_ICONS = {
   dashboard: LayoutDashboard,
   acquisizione: Megaphone,
-  "acquisizione-vendita": Handshake,
   vendite: BarChart3,
   delivery: Users,
   "casi-studio": ClipboardCheck,
@@ -359,8 +356,8 @@ function MacroItem({ macro, currentPath }) {
   const allPages = macroPages(macro);
   const landingPath = macro.landing ? `/admin/reparto/${macro.id}` : null;
   const isActive =
-    (landingPath && currentPath.startsWith(landingPath)) ||
-    allPages.some((p) => (p.end ? currentPath === p.to : currentPath.startsWith(p.to)));
+    (landingPath && matchesAdminPath(currentPath, landingPath)) ||
+    allPages.some((p) => matchesAdminPath(currentPath, p.to, p.end));
   return (
     <NavLink
       to={macroTarget(macro)}
@@ -448,13 +445,19 @@ function AdminShell({ user, onLogout, children }) {
 
 function RepartoLanding({ macro, onAuthExpired }) {
   const pages = macroPages(macro);
-  const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   const room = getDepartmentRoom(macro.id);
+  const [toolSearchByDepartment, setToolSearchByDepartment] = useState({});
+  const toolSearch = toolSearchByDepartment[macro.id] || "";
+  const setToolSearch = (value) => setToolSearchByDepartment(previous => ({ ...previous, [macro.id]: value }));
+  const visiblePages = filterDepartmentPages(pages, toolSearch);
   const metricValues = useRepartoMetrics(macro.id);
   const navigate = useNavigate();
   return (
     <div className="p-10 max-w-5xl mx-auto">
-      <DepartmentRoomIntro room={room} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+      <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
+        <h1 className="text-3xl font-semibold text-slate-900">{macro.label}</h1>
+        <MacroRoster macro={macro} cls="block text-sm text-slate-500 mt-2" />
+      </div>
 
       {/* Coda del reparto (T18): chi, prossima azione, responsabile, scadenza, blocco.
           Oggi cablata per Delivery (fonte /delivery-audit); gli altri reparti hanno
@@ -463,19 +466,35 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Chi aspetta un passo, chi ci lavora e cosa lo blocca.</p>
-          <DeliveryQueue onOpenPartner={(id) => navigate(`/admin/partner?partner=${id}&tab=panoramica`)} />
+          <DeliveryQueue onOpenPartner={(row) => navigate(`/admin/partner?partner=${row.id}&tab=panoramica`)} />
         </div>
       )}
 
-      {/* Acquisizione: coda outbound + inserimento manuale nuovo lead (Mariangela/Claudio). */}
-      {macro.id === "acquisizione" && <AcquisizioneQueue onAuthExpired={onAuthExpired} />}
+      {/* Acquisizione: scorciatoie subito visibili (Importa lista / Ricerca automatica,
+          che riusano i modali di LeadManager via ?apri=) + coda outbound con
+          "Nuovo lead" inline (Mariangela/Claudio). */}
+      {macro.id === "acquisizione" && (
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2.5 mb-4">
+            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=importa")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Importa lista
+            </button>
+            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=ricerca")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Ricerca automatica
+            </button>
+          </div>
+          <AcquisizioneQueue onAuthExpired={onAuthExpired} />
+        </div>
+      )}
 
       {/* Vendite: coda pipeline post-€27 (Blueprint → firma). */}
       {macro.id === "vendite" && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Prospect dal Blueprint alla firma: a che punto sono e la prossima mossa.</p>
-          <VenditeQueue />
+          <VenditeQueue onOpenPartner={(row) => row.email && navigate(`/admin/leads/${encodeURIComponent(row.email)}`)} />
         </div>
       )}
 
@@ -484,38 +503,54 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
           <p className="text-sm text-slate-500 mb-3">Incassi e scadenze: cosa scade, cosa è in ritardo, cosa serve fare.</p>
-          <BackOfficeQueue />
+          <BackOfficeQueue onOpenPartner={(row) => navigate(`/admin/amministrazione?credito=${encodeURIComponent(row.id)}`)} />
         </div>
       )}
-      <div className="mb-8 bg-white border border-slate-200 rounded-xl p-6">
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-slate-900 text-yellow-400 mb-4">
-          <Icon className="w-5 h-5" />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-          Reparto admin
-        </p>
-        <h1 className="text-4xl font-semibold text-slate-900 leading-tight mt-1">{macro.label}</h1>
+      <details className="mb-8">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-900 mb-4">Supporto, priorità e indicatori del reparto</summary>
+        <DepartmentRoomIntro room={room} showHeading={false} onAuthExpired={onAuthExpired} metricValues={metricValues} />
+      </details>
+      <div className="mb-5">
+        <label htmlFor={`tools-${macro.id}`} className="block text-sm font-semibold text-slate-900 mb-2">Cerca negli strumenti di {macro.label}</label>
+        <input id={`tools-${macro.id}`} type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)}
+          className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 text-slate-900 focus:ring-2 focus:ring-yellow-400"
+          placeholder="Nome della funzione o parola chiave" />
+        <p role="status" className="mt-2 text-sm text-slate-500">{visiblePages.length} strumenti su {pages.length}</p>
+        {!visiblePages.length && <button className="text-sm font-semibold text-slate-900 mt-2" onClick={() => setToolSearch("")}>Mostra tutti gli strumenti</button>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {pages.map((p) => (
-          <NavLink
-            key={p.to}
-            to={p.to}
-            end={p.end}
-            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-          >
-            <div>
-              <span className="block text-xl font-semibold text-slate-900">
-                {p.label}
-              </span>
-              {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+      {/* Strumenti: raggruppati con intestazione se il reparto definisce `groups`
+          (es. Delivery), altrimenti una griglia unica. La ricerca filtra tutto. */}
+      {(macro.groups || [{ title: "Strumenti", pages }]).map((group, gi) => {
+        const groupVisible = filterDepartmentPages(group.pages, toolSearch);
+        if (!groupVisible.length) return null;
+        return (
+          <div key={group.title || `g${gi}`} className="mb-8 last:mb-0">
+            {group.title && (
+              <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">{group.title}</h3>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {groupVisible.map((p) => (
+                <NavLink
+                  key={p.to}
+                  to={p.to}
+                  end={p.end}
+                  className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+                >
+                  <div>
+                    <span className="block text-xl font-semibold text-slate-900">
+                      {p.label}
+                    </span>
+                    {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+                  </div>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
+                    Apri <ArrowRight className="w-4 h-4" />
+                  </span>
+                </NavLink>
+              ))}
             </div>
-            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
-              Apri <ArrowRight className="w-4 h-4" />
-            </span>
-          </NavLink>
-        ))}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -567,11 +602,17 @@ export default function CiakAdminApp() {
       {/* NOTA: CiakAdminApp e' montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
-        {/* Home /admin = Panoramica Reparti (Cabina di Regia) per Claudio;
-            Antonella mantiene la sua dashboard dedicata. */}
+        {/* Home /admin = "Regia": lancia-reparti (stile app bancaria). La Cabina
+            di Regia (cockpit Direzione) è su /admin/direzione. Antonella mantiene
+            la sua dashboard dedicata sia come home sia come Direzione. */}
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
+          : <AdminHome user={user} />} />
+        <Route path="direzione" element={isAntonella
+          ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : <CabinaRegia onAuthExpired={handleLogout} />} />
+        {/* Sezioni dedicate alle collaboratrici (coda personale filtrata per owner). */}
+        <Route path="persona/:slug" element={<PersonaHome onAuthExpired={handleLogout} />} />
 
         {/* ── Landing-reparto: grandi finestre cliccabili ── */}
         {NAV.filter((m) => m.landing).map((m) => (
@@ -622,7 +663,9 @@ export default function CiakAdminApp() {
         <Route path="listino-prezzi" element={<ListinoPrezzi />} />
         <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 
-        {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
+        {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I path per stadio
+            qui sotto restano registrati per i vecchi link/deep-link. ── */}
+        <Route path="trattative" element={<TrattativePipeline onAuthExpired={handleLogout} />} />
         <Route
           path="pipeline-blueprint"
           element={
@@ -708,6 +751,8 @@ export default function CiakAdminApp() {
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="clienti-analisi" element={<ClientiAnalisi onAuthExpired={handleLogout} />} />
         <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
+        {/* "Acquisizione e vendita" assorbita in Vendite: vecchio URL → nuova landing. */}
+        <Route path="reparto/acquisizione-vendita" element={<Navigate to="/admin/reparto/vendite" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
@@ -716,7 +761,7 @@ export default function CiakAdminApp() {
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
-        <Route path="cabina-regia" element={<Navigate to="/admin" replace />} />
+        <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="revisione-video/:partnerId/:lessonId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />

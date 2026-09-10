@@ -1,3 +1,129 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — PR aperta
+
+**CONSEGNA:** su autorizzazione di Claudio, branch pushato e **PR #107** aperta verso `main`: https://github.com/claudiobertogliatti-spec/appevolution/pull/107 (8 commit: blocco 1 di Codex `e55a6dd6` + blocchi 2-5). ⛔ **NON mergiata**: il merge su `main` fa deploy in produzione — decide Claudio, e il protocollo chiede la review Codex prima. Collaudo browser autenticato ancora da fare.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 5: sezioni dedicate collaboratrici
+
+**DICHIARATO**
+- Nuova `pages/PersonaHome.jsx` (route `/admin/persona/:slug`): home dedicata per collaboratrice con la SUA coda personale, filtrata sul campo reale `owner` delle code esistenti. **Mariangela** = identità unica con viste **Acquisizione + Vendite**; **Antonella** = **Delivery** (coerente con `evolution-architettura-concordata.md`).
+- Aggiunto filtro `ownerFilter` (additivo) a `AcquisizioneQueue`, `VenditeQueue`, `DeliveryQueue`.
+- Sezione **"Le tue collaboratrici"** nella Home Regia con 2 tessere → le loro home.
+- Vincoli rispettati: solo **nome** (niente qualifica), **nessun dato economico** (compensi/provvigioni restano al Back office con le sue regole), **nessun permesso/contratto/login inventato** — è una vista dentro l'admin che filtra dati reali, non assegna nulla.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`).
+- Jest `7 suite / 32 test PASS` (nuovo `PersonaHome.test.jsx`: identità unica Mariangela, Delivery per Antonella, slug ignoto).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser non eseguito. La coda personale dipende dal campo `owner` reale: se i dati usano nomi agente invece del nome collaboratrice, la coda risulterà vuota (onesto) → da verificare con dati veri.
+- ⏭️ Se Claudio vuole che Mariangela **acceda** con un proprio login (oggi non esiste un admin_type "mariangela"), è una decisione di permessi separata, non fatta qui.
+- ⏭️ Restano i gap backend (§5 matrice: discovery/materiali) e sicurezza/KPI — decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4c: rifinitura home reparto
+
+**DICHIARATO**
+- **Acquisizione**: sulla home ora sono subito visibili **Importa lista** e **Ricerca automatica** (oltre a "Nuovo lead" inline nella coda). Aprono gli stessi modali reali di `LeadManager` via deep-link `?apri=importa|ricerca` (nuovo lettore di parametro in LeadManager). Nessuna logica/endpoint duplicati.
+- Intestazione **"Strumenti"** uniforme sopra le tessere dei reparti non raggruppati (Acquisizione/Vendite/Back office); Delivery resta a 4 gruppi. Struttura coerente col mockup.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`, `navPagesChecked: 30`).
+- Jest `6 suite / 29 test PASS` (incluso LeadManager, invariato col nuovo parametro).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (le scorciatoie aprono i modali via `?apri=`; da provare dal vivo).
+- ⏭️ Rifinitura ulteriore facoltativa; poi gap backend (§5: discovery/materiali) e sicurezza — decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4b: numeri reali + attenzione sulla Home Regia
+
+**DICHIARATO**
+- La Home "Regia" ora mostra, per ogni tessera-reparto, **un numero reale** dalle fonti esistenti (`useRepartoMetrics` → endpoint admin già in uso): Direzione = cassa del mese, Acquisizione = nuovi lead 7gg, Vendite = proposte inviate, Delivery = partner attivi, Back office = scade oggi.
+- Aggiunta la striscia **"Richiede attenzione"** (stile movimenti in evidenza): Output da approvare, Partner fermi, Rate in ritardo — mostrati **solo se realmente > 0**, con link al reparto.
+- Onestà: **caricamento (…)**, **dato non disponibile (—/Da attivare)**, **zero (0/Nessuna)** e **valore reale** sono stati distinti. Nessuna cifra inventata.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovi test AdminHome: numeri, attenzione >0, stato caricamento, zero-urgenze).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (i numeri dipendono dagli endpoint reali).
+- ⏭️ Eventuale rifinitura delle altre home reparto; poi gap backend (§5) e sicurezza.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4: Home "Regia" + Direzione + Delivery raggruppato
+
+**CONTESTO:** Claudio ha definito la visione finale — un CRM unico, semplice, **stile Poste Italiane/online banking** (voci chiare, categorie ben divise) — e ha approvato un mockup navigabile. Vincolo ribadito: **non eliminare funzioni, solo organizzare**.
+
+**DICHIARATO**
+- Nuova **Home "Regia"** (`pages/AdminHome.jsx`): pagina d'ingresso `/admin` che lancia i 5 reparti (tessere chiare, nessun numero inventato). Antonella mantiene la sua dashboard come home.
+- **Direzione** ora ha una home dedicata su `/admin/direzione` (la Cabina di Regia, prima all'index). Voce sidebar Direzione → `/admin/direzione`; redirect `cabina-regia` → `/admin/direzione`.
+- **Delivery raggruppato**: le 12 voci in 4 gruppi con intestazione (Partner · Materiali e video · Contenuti e percorso · Risultati). `RepartoLanding` ora rende i `groups` con heading quando presenti, flat altrimenti; la ricerca strumenti filtra tutto. Nessuna voce persa.
+- Micro-blocco "togli 2 hub link" **annullato** (non committato) su richiesta di Claudio: le voci restano.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- Jest `5 suite / 21 test PASS` (nuovo `AdminHome.test.jsx` + regressione).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (home Regia; Direzione su /admin/direzione; Delivery a gruppi). Serve sessione admin + backend.
+- ⏭️ **Numeri reali + striscia "richiede attenzione"** sulla Home Regia: da collegare alle fonti esistenti (CabinaRegia/approvals/crediti) distinguendo caricamento/errore/zero — non mostrare cifre finte.
+- ⏭️ Le altre home reparto (Acquisizione/Vendite/Back office) sono le landing esistenti; eventuale rifinitura stile-mockup da valutare. Poi gap backend (§5) e sicurezza, decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3b: Trattative a tab + Produzione video
+
+**DICHIARATO**
+- **Vendite "Trattative" (audit #7):** nuovo wrapper `pages/TrattativePipeline.jsx` (route `/admin/trattative`) con tab Tutte/Blueprint/Call/In trattativa/OK persistiti in `?stadio=`, che riusa `PipelineList` sullo stesso endpoint `/pipeline-blueprint`. Le 4 voci Vendite separate → 1 voce "Trattative"; vecchi URL (pipeline-blueprint, vendite-call, vendite-trattativa, vendite-ok) restano registrati.
+- **Delivery "Produzione video" (audit #6):** 1 voce → `VideoReview` (`/admin/video-review`), che È GIÀ la coda unica masterclass+lezioni (filtro, approva, monitor). Rimosse le 2 voci-hub di soli link (route `delivery-masterclass`/`delivery-lezioni` restano via URL). Nessuna coda inventata.
+- Nessuna route rimossa; nessun colore/font/logo toccato.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovo `TrattativePipeline.test.jsx` con pattern react-router-dom mockato + regressione).
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- `npm run build`: exit 0, postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (tab Trattative con ?stadio=; Produzione video apre la coda reale).
+- ⏭️ Restano hub di soli link ancora nel menu: "Calendario Editoriale" (Acquisizione) e "Trattative KO" (Vendite) — micro-blocco audit #5. Poi **blocco 4** (discovery/materiali) e i gap sicurezza/KPI (§5), decisione di Claudio.
+
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3a: consolidamento commerciale
+
+**DICHIARATO**
+- Assorbita la macro "Acquisizione e vendita" dentro **Vendite** (audit #1 P1 + strategia "Direzione + 4 reparti"): Chiusura Insider e Listino & prezzi ora sono voci di Vendite; Collaudo checkout resta route tecnica via URL (fuori dal quotidiano). Redirect `/admin/reparto/acquisizione-vendita` → `/admin/reparto/vendite`. Rimosso l'import `Handshake` inutilizzato.
+- **Tutte le route conservate.** Aggiornato `verify-admin-parity.cjs` da "NAV byte-identico" a **raggiungibilità** (nessuna route rimossa + ogni voce NAV punta a una route registrata): necessario perché la riorganizzazione cambia il NAV per definizione.
+- Documentata in `ADMIN-PARITA-MATRICE.md` §4 la regola di fedeltà: le "voci proposte" senza pagina reale (Liste importate, Risultati acquisizione/vendite; Direzione Decisioni/Andamento/Obiettivi/Cassa = sezioni di CabinaRegia) NON si inventano né si trasformano in landing di soli link.
+
+**VERIFICATO (comando+output)**
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 34`, reachability PASS.
+- Jest `4 suite / 20 test PASS` (nessuna regressione).
+- `npm run build`: exit 0 ("Compiled with warnings" preesistenti), postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (sidebar senza "Acquisizione e vendita"; vecchio URL redirige; Vendite mostra Chiusura Insider + Listino).
+- ⏭️ **Blocco 3b**: unificare "Produzione video" (audit #6) e tab pipeline "Trattative" (audit #7) — lavoro a livello di componente, non semplice relabel.
+
+### 2026-09-09 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 2: code Vendite/Back office → record
+
+**CONTINUAZIONE del blocco 1 di Codex** (`codex/admin-semplificazione` `e55a6dd6`). Nuovo branch `cc/admin-semplificazione`,
+worktree `.worktrees/cc-admin-semplificazione`, base `e55a6dd6`. Non riscritto il blocco 1. Nessun push/deploy.
+
+**DICHIARATO**
+- Scritta la **matrice di parità** `docs/agents/ADMIN-PARITA-MATRICE.md` (route + azioni annidate + gap distinti), foundation obbligatoria prima delle modifiche.
+- Blocco 2: le righe delle code **Vendite** e **Back office** ora aprono il record esatto (audit #3, prompt §4). `DepartmentQueue` passa la riga intera al callback; Vendite→`/admin/leads/:email` (solo con email reale), Back office→`/admin/amministrazione?credito=<id>` con evidenziazione (deep-link additivo). Delivery invariata.
+- Nessuna capacità rimossa; nessun colore/font/logo toccato; brand lock rispettato (design-lead invocato).
+
+**VERIFICATO (comando+output)**
+- Jest `4 suite / 20 test PASS`: i **7 test originali** di `DepartmentQueue.test.jsx` conservati (1 rinominato per il nuovo contratto, stesso intento) + 4 nuovi; nessuna regressione su LeadManager/navigationMatch/DepartmentRoom.
+- `npm run build`: exit 0, postbuild rigenera le 5 landing `.ciak.html`.
+- `node docs/agents/evidence/verify-admin-parity.cjs`: PASS (NAV/Routes/handler identici alla base).
+- `git diff --check`: exit 0; scansione pattern credenziali sulle aggiunte: nessun match. Solo 4 file app + 1 doc toccati.
+
+**APERTO**
+- ⛔ **Collaudo browser autenticato non eseguito** (desktop/mobile): serve sessione admin + backend con dati reali. Le stringhe di navigazione sono verificate solo per revisione di codice + test di contratto.
+- ⏭️ **Blocco 3** (riorganizzazione voci per reparto + accorpamenti audit #1/#6/#7) e **blocco 4** (discovery affidabile, materiali delivery reali) descritti in `ADMIN-PARITA-MATRICE.md` §4-§5, non ancora eseguiti.
+- 📋 Gap distinti registrati (§5): sicurezza endpoint file/documenti/discovery senza auth, KPI Cabina (conteggi×listino vs transazioni). **Decide Claudio**, fuori dal perimetro riorganizzazione.
+- ⚠️ La voce HANDOFF del blocco 1 di Codex esiste solo nel checkout principale non committato; da riconciliare al merge.
+
 ### 2026-09-09 · Codex · Insider: blocco checkout reali e consenso
 
 **AUTORIZZATO:** Claudio: applicare le correzioni dell'audit tecnico legale/fiscale.

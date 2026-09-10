@@ -45,18 +45,39 @@ test("il filtro 'Bloccati' mostra solo i bloccati e persiste in URL", () => {
   expect(window.location.search).toMatch(/coda=bloccati/);
 });
 
-test("cliccare una riga apre il partner", () => {
+// ─── Blocco 2: apertura del record esatto ────────────────────────────────────
+// Il callback riceve la RIGA intera (non piu' solo l'id), cosi' ogni reparto
+// sceglie la destinazione giusta: contatto per Vendite, credito per Back office,
+// partner per Delivery.
+
+test("cliccare una riga apre il record passando la riga intera", () => {
   const onOpen = jest.fn();
   render(<DepartmentQueue items={ITEMS} onOpenPartner={onOpen} />);
   fireEvent.click(screen.getByTestId("coda-row-2"));
-  expect(onOpen).toHaveBeenCalledWith("2");
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "2", name: "Alfa Due" }));
 });
 
 test("una riga si apre anche da tastiera (Enter) — accessibile", () => {
   const onOpen = jest.fn();
   render(<DepartmentQueue items={ITEMS} onOpenPartner={onOpen} />);
   fireEvent.keyDown(screen.getByTestId("coda-row-2"), { key: "Enter" });
-  expect(onOpen).toHaveBeenCalledWith("2");
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "2" }));
+});
+
+test("una riga senza destinazione (openable:false) non e cliccabile", () => {
+  const onOpen = jest.fn();
+  const items = [{ id: "x", name: "Senza destinazione", openable: false }];
+  render(<DepartmentQueue items={items} onOpenPartner={onOpen} />);
+  const row = screen.getByTestId("coda-row-x");
+  expect(row.getAttribute("role")).toBeNull();
+  fireEvent.click(row);
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+test("senza callback nessuna riga e cliccabile", () => {
+  render(<DepartmentQueue items={ITEMS} />);
+  expect(screen.getByTestId("coda-row-2").getAttribute("role")).toBeNull();
 });
 
 // ─── Loader Vendite / Back office (dati reali dagli endpoint) ────────────────
@@ -80,6 +101,29 @@ test("VenditeQueue: prospect da /pipeline-blueprint, passaggio + prossima azione
   expect(row.textContent).toMatch(/Gaia/); // owner (Responsabile) dalla proposta
 });
 
+test("VenditeQueue: la riga con email apre il contatto; senza email resta non cliccabile", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/pipeline-blueprint") {
+      return Promise.resolve({
+        columns: [
+          { id: "call_fatta", label: "Call fatta", items: [
+            { email: "con@mail.it", nome: "Con Email", updated_at: new Date().toISOString() },
+            { session_token: "tok-123", nome: "Senza Email", updated_at: new Date().toISOString() },
+          ] },
+        ],
+      });
+    }
+    return Promise.resolve({});
+  });
+  const onOpen = jest.fn();
+  render(<VenditeQueue onOpenPartner={onOpen} />);
+  const conEmail = await screen.findByTestId("coda-row-con@mail.it");
+  fireEvent.click(conEmail);
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ email: "con@mail.it" }));
+  const senzaEmail = screen.getByTestId("coda-row-tok-123");
+  expect(senzaEmail.getAttribute("role")).toBeNull(); // niente email → nessun link /admin/leads
+});
+
 test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati esclusi", async () => {
   apiGet.mockImplementation((path) => {
     if (path === "/crediti") {
@@ -100,4 +144,19 @@ test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati 
   expect(r1.textContent).toMatch(/In ritardo/);
   expect(r1.textContent).toMatch(/Valentina/); // owner (Responsabile) reale dal credito
   expect(screen.queryByTestId("coda-row-c2")).toBeNull(); // saldato escluso dalla coda
+});
+
+test("BackOfficeQueue: la riga apre il credito esatto (per id)", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/crediti") {
+      return Promise.resolve({
+        crediti: [{ id: "c1", nome: "Cliente Rosso", stato: "in_piano", rate: [{ numero: 1, importo: 100, scadenza: "2026-09-01", stato_effettivo: "da_verificare" }] }],
+      });
+    }
+    return Promise.resolve({});
+  });
+  const onOpen = jest.fn();
+  render(<BackOfficeQueue onOpenPartner={onOpen} />);
+  fireEvent.click(await screen.findByTestId("coda-row-c1"));
+  expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "c1" }));
 });
