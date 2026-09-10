@@ -1,3 +1,7 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — PR aperta
+
+**CONSEGNA:** su autorizzazione di Claudio, branch pushato e **PR #107** aperta verso `main`: https://github.com/claudiobertogliatti-spec/appevolution/pull/107 (8 commit: blocco 1 di Codex `e55a6dd6` + blocchi 2-5). ⛔ **NON mergiata**: il merge su `main` fa deploy in produzione — decide Claudio, e il protocollo chiede la review Codex prima. Collaudo browser autenticato ancora da fare.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 5: sezioni dedicate collaboratrici
 
 **DICHIARATO**
