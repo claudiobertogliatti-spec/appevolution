@@ -118,6 +118,29 @@ export function AdminHome({ user }) {
           </Link>
         ))}
       </div>
+
+      <div className="mt-10">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Le tue collaboratrici</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {[
+            { slug: "mariangela", nome: "Mariangela", area: "Acquisizione e Vendite" },
+            { slug: "antonella", nome: "Antonella", area: "Delivery" },
+          ].map((c) => (
+            <Link
+              key={c.slug}
+              to={`/admin/persona/${c.slug}`}
+              className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+            >
+              <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-slate-900 text-yellow-400 font-semibold flex-shrink-0" aria-hidden>{c.nome[0]}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-slate-900">{c.nome}</span>
+                <span className="block text-sm text-slate-500">{c.area}</span>
+              </span>
+              <ArrowRight className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden />
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,21 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 5: sezioni dedicate collaboratrici
+
+**DICHIARATO**
+- Nuova `pages/PersonaHome.jsx` (route `/admin/persona/:slug`): home dedicata per collaboratrice con la SUA coda personale, filtrata sul campo reale `owner` delle code esistenti. **Mariangela** = identità unica con viste **Acquisizione + Vendite**; **Antonella** = **Delivery** (coerente con `evolution-architettura-concordata.md`).
+- Aggiunto filtro `ownerFilter` (additivo) a `AcquisizioneQueue`, `VenditeQueue`, `DeliveryQueue`.
+- Sezione **"Le tue collaboratrici"** nella Home Regia con 2 tessere → le loro home.
+- Vincoli rispettati: solo **nome** (niente qualifica), **nessun dato economico** (compensi/provvigioni restano al Back office con le sue regole), **nessun permesso/contratto/login inventato** — è una vista dentro l'admin che filtra dati reali, non assegna nulla.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`).
+- Jest `7 suite / 32 test PASS` (nuovo `PersonaHome.test.jsx`: identità unica Mariangela, Delivery per Antonella, slug ignoto).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser non eseguito. La coda personale dipende dal campo `owner` reale: se i dati usano nomi agente invece del nome collaboratrice, la coda risulterà vuota (onesto) → da verificare con dati veri.
+- ⏭️ Se Claudio vuole che Mariangela **acceda** con un proprio login (oggi non esiste un admin_type "mariangela"), è una decisione di permessi separata, non fatta qui.
+- ⏭️ Restano i gap backend (§5 matrice: discovery/materiali) e sicurezza/KPI — decisione di Claudio.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4c: rifinitura home reparto
 
 **DICHIARATO**

@@ -72,6 +72,7 @@ import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
 import { AdminHome } from "./pages/AdminHome";
+import { PersonaHome } from "./pages/PersonaHome";
 import { SimulatoreFatturato } from "./pages/SimulatoreFatturato";
 import { MasterclassReview } from "./pages/MasterclassReview";
 import { SystemHealth } from "./pages/SystemHealth";
@@ -610,6 +611,8 @@ export default function CiakAdminApp() {
         <Route path="direzione" element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : <CabinaRegia onAuthExpired={handleLogout} />} />
+        {/* Sezioni dedicate alle collaboratrici (coda personale filtrata per owner). */}
+        <Route path="persona/:slug" element={<PersonaHome onAuthExpired={handleLogout} />} />
 
         {/* ── Landing-reparto: grandi finestre cliccabili ── */}
         {NAV.filter((m) => m.landing).map((m) => (

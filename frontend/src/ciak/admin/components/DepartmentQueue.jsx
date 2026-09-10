@@ -193,7 +193,7 @@ function opScadenza(p) {
 
 // Loader del reparto Delivery: /delivery-audit (fonte gia' calcolata dal backend)
 // joinata a /partners per il nome, con override "Regia" come DeliveryAudit.
-export function DeliveryQueue({ onOpenPartner }) {
+export function DeliveryQueue({ onOpenPartner, ownerFilter }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
 
@@ -234,7 +234,8 @@ export function DeliveryQueue({ onOpenPartner }) {
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
-  return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} />;
+  const shown = ownerFilter ? items.filter((r) => r.owner === ownerFilter) : items;
+  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} />;
 }
 
 function daysSince(iso) {
@@ -273,7 +274,7 @@ const VENDITE_ACTION = {
 // Loader Vendite: /pipeline-blueprint (stessa fonte delle pagine vendite-*).
 // Nome + Passaggio reali; prossima azione derivata; blocco = fermo da 10+ gg.
 // Scadenza e Responsabile NON sono esposti da questo endpoint → "—" (mai inventati).
-export function VenditeQueue({ onOpenPartner }) {
+export function VenditeQueue({ onOpenPartner, ownerFilter }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
 
@@ -308,7 +309,8 @@ export function VenditeQueue({ onOpenPartner }) {
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
-  return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} firstColLabel="Prospect" />;
+  const shown = ownerFilter ? items.filter((r) => r.owner === ownerFilter) : items;
+  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} firstColLabel="Prospect" />;
 }
 
 // ─── BACK OFFICE ──────────────────────────────────────────────────────────────
