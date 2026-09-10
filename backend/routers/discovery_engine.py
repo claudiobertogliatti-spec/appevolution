@@ -22,6 +22,8 @@ import json
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from routers.ciak_admin import require_ciak_admin
+from services.discovery_summary import summarize_run, aggregate_places_results
+import asyncio
 
 router = APIRouter(prefix="/api/discovery", tags=["discovery-engine"])
 
@@ -456,8 +458,10 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
     
     logger.info(f"[DISCOVERY] CSV import: {imported} imported, {duplicates} duplicates, {errors} errors")
     
+    total_rows = imported + duplicates + errors
+    summary = summarize_run(total_rows, errors, imported)
     return {
-        "success": True,
+        **summary,
         "imported": imported,
         "duplicates": duplicates,
         "errors": errors,
@@ -597,12 +601,14 @@ async def import_leads(request: ImportLeadsRequest, background_tasks: Background
     
     logger.info(f"[DISCOVERY IMPORT] Completato: {results['imported']} importati, {results['skipped']} saltati")
     
+    total = len(request.leads)
+    summary = summarize_run(total, len(results["errors"]), results["imported"])
     return {
-        "success": True,
+        **summary,
         "imported": results["imported"],
         "skipped": results["skipped"],
         "errors": results["errors"],
-        "total_processed": len(request.leads)
+        "total_processed": total
     }
 
 
@@ -1340,38 +1346,50 @@ async def search_places(request: PlacesSearchRequest, background_tasks: Backgrou
     else:
         queries_to_run = [(request.profession, request.profession)]
 
-    total_imported = 0
-    total_skipped = 0
-    total_hot = 0
-    errors = []
-
     cities_to_run = ITALIAN_CITIES if request.all_italy else [request.city]
+    queries_total = len(cities_to_run) * len(queries_to_run)
+
+    # Esecuzione in PARALLELO con concorrenza limitata: il vecchio doppio for
+    # sincrono su tutte le città × query (con all_italy) accumulava decine di
+    # chiamate in una sola richiesta → timeout. Il semaphore tiene il carico
+    # sotto controllo (rate limit/costo) accorciando molto il tempo totale.
+    sem = asyncio.Semaphore(6)
     async with httpx.AsyncClient(timeout=30) as client:
-        for city in cities_to_run:
-            for query_text, category_label in queries_to_run:
+        async def run_one(city, query_text, category_label):
+            async with sem:
                 try:
-                    result = await _run_places_query(
+                    r = await _run_places_query(
                         client, api_key, query_text, category_label,
                         city, request.max_results,
                         request.min_rating, request.only_without_website,
                         request.only_with_website
                     )
-                    total_imported += result["imported"]
-                    total_skipped += result["skipped"]
-                    total_hot += result["hot"]
+                    return {"ok": True, "imported": r["imported"], "skipped": r["skipped"], "hot": r["hot"]}
                 except Exception as e:
-                    errors.append(f"{query_text} ({city}): {str(e)}")
                     logger.error(f"[PLACES] Errore query '{query_text}' in {city}: {e}")
+                    return {"ok": False, "error": f"{query_text} ({city}): {str(e)}"}
 
+        tasks = [run_one(city, q, cat) for city in cities_to_run for (q, cat) in queries_to_run]
+        results = await asyncio.gather(*tasks)
+
+    total_imported, total_skipped, total_hot, errors = aggregate_places_results(results)
+    summary = summarize_run(queries_total, len(errors), total_imported)
+    ambito = "in tutta Italia" if request.all_italy else f"({request.city})"
+    if summary["status"] == "failed":
+        message = f"Ricerca non riuscita: tutte le {queries_total} ricerche sono andate in errore."
+    elif summary["status"] == "partial":
+        message = f"{total_imported} nuovi lead {ambito}; {len(errors)} ricerche su {queries_total} non riuscite."
+    else:
+        message = f"{total_imported} nuovi lead da Google Places {ambito}."
     return {
-        "success": True,
+        **summary,
         "city": request.city,
         "profession": request.profession,
         "new_leads": total_imported,
         "duplicates_skipped": total_skipped,
         "hot_leads": total_hot,
         "errors": errors,
-        "message": f"{total_imported} nuovi lead da Google Places ({request.city})"
+        "message": message,
     }
 
 

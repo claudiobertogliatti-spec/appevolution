@@ -444,13 +444,31 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
                 <input ref={fileRef} type="file" accept=".csv" className="hidden"
                   onChange={e => setCsvFile(e.target.files[0])} />
               </div>
-              {result && (
-                <div className={`p-3 rounded-xl text-sm ${result.error ? "bg-red-50" : "bg-emerald-50"}`}>
-                  {result.error
-                    ? <span className="text-red-600">Errore: {result.error}</span>
-                    : <span className="text-emerald-700">✓ Importati: {result.imported || result.success} · Saltati: {result.skipped || 0}</span>}
-                </div>
-              )}
+              {result && (() => {
+                // Esito onesto: rosso (errore/fallito) / ambra (parziale) / verde (ok).
+                // Retrocompatibile: senza `status` e senza `error` = ok (verde).
+                const status = result.error ? "failed" : (result.status || "ok");
+                const box = status === "failed"
+                  ? "bg-red-50 border border-red-200"
+                  : status === "partial"
+                    ? "bg-amber-50 border border-amber-200"
+                    : "bg-emerald-50 border border-emerald-200";
+                const txt = status === "failed" ? "text-red-700" : status === "partial" ? "text-amber-800" : "text-emerald-700";
+                const saltati = result.skipped ?? result.duplicates ?? 0;
+                return (
+                  <div className={`p-3 rounded-xl text-sm ${box}`}>
+                    {result.error ? (
+                      <span className="text-red-600">Errore: {result.error}</span>
+                    ) : (
+                      <span className={txt}>
+                        {status === "failed"
+                          ? "Import non riuscito"
+                          : `Importati: ${result.imported || 0} · Saltati: ${saltati}${status === "partial" ? " · alcuni errori" : ""}`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
               <button onClick={handleCsvUpload} disabled={!csvFile || uploading}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${csvFile && !uploading ? "bg-slate-900 text-yellow-400" : "bg-gray-100 text-slate-400"}`}>
                 {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
@@ -519,7 +537,11 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
     use_group: true,
     city: "Milano",
     max_results: 20,
-    all_italy: true,
+    // Default: ricerca MIRATA sulla città (veloce). "Tutta Italia" resta un
+    // opt-in esplicito col toggle: da sola faceva 24 città × N query in una
+    // richiesta → timeout (e costo API alto). Backend ora parallelizza, ma il
+    // default targeted resta la scelta giusta per l'uso quotidiano.
+    all_italy: false,
     only_with_website: true,
   });
   const [loading, setLoading] = useState(false);
@@ -640,19 +662,40 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
             Richiede <code>GOOGLE_PLACES_API_KEY</code> nelle variabili d'ambiente.
           </div>
 
-          {result && (
-            <div className="p-3 rounded-xl text-sm bg-emerald-50 border border-emerald-200">
-              <div className="font-semibold text-emerald-700">
-                ✓ {result.new_leads} nuovi lead · {result.hot_leads} HOT (score ≥75)
+          {result && (() => {
+            // Esito onesto: ok (verde) / parziale (ambra) / fallito (rosso).
+            // Retrocompatibile: senza `status` si comporta come prima (ok).
+            const status = result.status || "ok";
+            const box = status === "failed"
+              ? "bg-red-50 border-red-200"
+              : status === "partial"
+                ? "bg-amber-50 border-amber-200"
+                : "bg-emerald-50 border-emerald-200";
+            const head = status === "failed"
+              ? "text-red-700"
+              : status === "partial"
+                ? "text-amber-800"
+                : "text-emerald-700";
+            const errs = result.errors || [];
+            return (
+              <div className={`p-3 rounded-xl text-sm border ${box}`}>
+                <div className={`font-semibold ${head}`}>
+                  {status === "failed"
+                    ? "Ricerca non riuscita"
+                    : `${result.new_leads} nuovi lead · ${result.hot_leads} HOT (score ≥75)${status === "partial" ? " · parziale" : ""}`}
+                </div>
+                {result.message && <div className="text-xs mt-1 text-slate-600">{result.message}</div>}
+                {result.duplicates_skipped > 0 && (
+                  <div className="text-xs mt-1 text-slate-400">{result.duplicates_skipped} già presenti, saltati</div>
+                )}
+                {errs.length > 0 && (
+                  <div className="text-xs mt-1 text-red-500">
+                    Errori: {errs.slice(0, 5).join(", ")}{errs.length > 5 ? ` +${errs.length - 5}` : ""}
+                  </div>
+                )}
               </div>
-              {result.duplicates_skipped > 0 && (
-                <div className="text-xs mt-1 text-slate-400">{result.duplicates_skipped} già presenti, saltati</div>
-              )}
-              {result.errors?.length > 0 && (
-                <div className="text-xs mt-1 text-red-500">Errori: {result.errors.join(", ")}</div>
-              )}
-            </div>
-          )}
+            );
+          })()}
           {error && (
             <div className="p-3 rounded-xl text-sm bg-red-50">
               <span className="text-red-600">Errore: {error}</span>
