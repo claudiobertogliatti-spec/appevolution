@@ -16,6 +16,9 @@ jest.mock("../api", () => ({
   apiGet: jest.fn(),
   apiPatch: jest.fn(),
 }));
+jest.mock("react-router-dom", () => ({
+  useLocation: () => ({ search: globalThis.location.search }),
+}), { virtual: true });
 
 const OBIETTIVO = {
   titolo: "€10.000 entro il 30/9",
@@ -115,13 +118,18 @@ function mockApi() {
   apiPatch.mockResolvedValue({ success: true });
 }
 
+function renderAdmin(path = "/admin/amministrazione") {
+  window.history.replaceState({}, "", path);
+  return render(<Amministrazione />);
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockApi();
 });
 
 test("in cima dice quanto e' entrato, quanto manca e in quanti giorni", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const hero = await screen.findByTestId("obiettivo-hero");
   expect(within(hero).getByText("€ 375")).toBeTruthy();
   expect(within(hero).getByText(/mancano/i).textContent).toMatch(/€ 9\.625/);
@@ -135,13 +143,13 @@ test("senza abbastanza storia la proiezione non e' un numero inventato", async (
     if (path === "/crediti/riepilogo") return RIEPILOGO;
     return LISTA;
   });
-  render(<Amministrazione />);
+  renderAdmin();
   const hero = await screen.findByTestId("obiettivo-hero");
   expect(within(hero).getByText(/ancora presto per dirlo/i)).toBeTruthy();
 });
 
 test("le leve ferme stanno in alto con i giorni di fermo", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const leve = await screen.findByTestId("leve");
   const righe = within(leve).getAllByTestId("leva");
   expect(righe[0].textContent).toMatch(/Andrea Fredi/);
@@ -150,7 +158,7 @@ test("le leve ferme stanno in alto con i giorni di fermo", async () => {
 });
 
 test("le rate del mese sono in ordine di data e le rate a condizione stanno a parte", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const cal = await screen.findByTestId("cassa-mese");
   const righe = within(cal).getAllByTestId("rata-row");
   expect(righe).toHaveLength(2);
@@ -162,7 +170,7 @@ test("le rate del mese sono in ordine di data e le rate a condizione stanno a pa
 });
 
 test("segnare una rata incassata chiede conferma con nome e importo, poi scrive e ricarica", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const cal = await screen.findByTestId("cassa-mese");
   const depalma = within(cal).getAllByTestId("rata-row")[1];
   fireEvent.click(within(depalma).getByRole("button", { name: /incassata/i }));
@@ -181,7 +189,7 @@ test("segnare una rata incassata chiede conferma con nome e importo, poi scrive 
 });
 
 test("una posizione sospesa dal sollecito si vede ma non invita a chiamare", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const pos = await screen.findByTestId("posizioni");
   const riga = within(pos).getAllByRole("row").find((r) => /Tornello/.test(r.textContent));
   expect(riga.textContent).toMatch(/sospesa dal sollecito/i);
@@ -190,11 +198,17 @@ test("una posizione sospesa dal sollecito si vede ma non invita a chiamare", asy
 });
 
 test("un movimento su una leva scrive la data da solo, senza chiedere altro", async () => {
-  render(<Amministrazione />);
+  renderAdmin();
   const leve = await screen.findByTestId("leve");
   const rosanna = within(leve).getAllByTestId("leva").find((r) => /Rosanna/.test(r.textContent));
   fireEvent.click(within(rosanna).getByRole("button", { name: /movimento/i }));
   await waitFor(() =>
     expect(apiPatch).toHaveBeenCalledWith("/obiettivo/10k-settembre/leva/Rosanna", {})
   );
+});
+
+test("il deep-link evidenzia la posizione credito richiesta", async () => {
+  renderAdmin("/admin/amministrazione?credito=depalma");
+  const evidenziata = await screen.findByTestId("credito-evidenziato");
+  expect(evidenziata.textContent).toMatch(/Annamaria Depalma/);
 });

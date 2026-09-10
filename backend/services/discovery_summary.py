@@ -19,14 +19,16 @@ def summarize_run(total: int, failed: int, new_items: int) -> dict:
     """
     total = int(total or 0)
     failed = int(failed or 0)
-    if total and failed >= total:
+    if total <= 0:
+        status = "empty"
+    elif failed >= total:
         status = "failed"
     elif failed > 0:
         status = "partial"
     else:
         status = "ok"
     return {
-        "success": status != "failed",
+        "success": status not in ("failed", "empty"),
         "status": status,
         "queries_total": total,
         "queries_failed": failed,

@@ -53,7 +53,7 @@ const FILTERS = [
   { id: "ritardo", label: "In ritardo", match: (r) => r.stale },
 ];
 
-export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner" }) {
+export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner", emptyLabel = "Nessun partner in coda con questo filtro." }) {
   const clickable = typeof onOpenPartner === "function";
   const [filter, setFilter] = useState(() => {
     try {
@@ -108,7 +108,7 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
-          Nessun partner in coda con questo filtro.
+          {emptyLabel}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
@@ -234,8 +234,9 @@ export function DeliveryQueue({ onOpenPartner, ownerFilter }) {
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
-  const shown = ownerFilter ? items.filter((r) => r.owner === ownerFilter) : items;
-  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} />;
+  const ownerKey = (value) => String(value || "").trim().toLocaleLowerCase("it-IT").split(/\s+/)[0];
+  const shown = ownerFilter ? items.filter((r) => ownerKey(r.owner) === ownerKey(ownerFilter)) : items;
+  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />;
 }
 
 function daysSince(iso) {
@@ -309,8 +310,9 @@ export function VenditeQueue({ onOpenPartner, ownerFilter }) {
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
   if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
-  const shown = ownerFilter ? items.filter((r) => r.owner === ownerFilter) : items;
-  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} firstColLabel="Prospect" />;
+  const ownerKey = (value) => String(value || "").trim().toLocaleLowerCase("it-IT").split(/\s+/)[0];
+  const shown = ownerFilter ? items.filter((r) => ownerKey(r.owner) === ownerKey(ownerFilter)) : items;
+  return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} firstColLabel="Prospect" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />;
 }
 
 // ─── BACK OFFICE ──────────────────────────────────────────────────────────────

@@ -1,3 +1,13 @@
+### 2026-09-10 · Codex · correzioni review admin/discovery e rilascio
+
+**AUTORIZZATO:** Claudio ha chiesto di applicare i rilievi della review sul diff `20f43d4d..683ce0d4`, registrarli per Claude e distribuire backend e frontend. Branch isolato `codex/admin-review-fixes`, base `origin/main` `683ce0d4`; checkout principale sporco lasciato intatto.
+
+**DICHIARATO:** ripristinata nel menu Vendite la voce reale “Collaudo checkout”; l'inserimento manuale Discovery non azzera più il form né dichiara un lead importato quando il backend restituisce `success:false`; CSV vuoti e liste vuote non sono successi; conteggio HOT CSV usa gli score reali. `import`, `import-csv` e `search-places` richiedono admin. I lead Places usano `_id` deterministico e trattano la collisione concorrente come duplicato. Home Regia distingue errore delle fonti, caricamento e zero; filtri persona normalizzati anche per nome completo e stato vuoto esplicito; deep-link credito segue la query corrente. Verificatore parità aggiornato sul nuovo contratto onesto, senza indebolire route/NAV.
+
+**VERIFICATO PRIMA DEL PUSH:** `verify-admin-parity.cjs` PASS (`removedRoutes:0`, `navPagesChecked:31`); 4 suite frontend mirate PASS, **33 test**; parse Babel dei 7 sorgenti JS/JSX modificati PASS; `py_compile` dei 5 file backend/test PASS; `git diff --check` PASS. Nuovo test backend riproduce due query concorrenti sullo stesso `place_id`; la CI lo esegue tramite allowlist. Test pytest locale non eseguibile perché i runtime disponibili non contengono pytest; build locale avviata con dipendenze collegate da altro worktree ma senza esito affidabile, quindi build e backend suite restano da certificare nella CI dello SHA pubblicato.
+
+**APERTO FINO ALLA PROVA DI RILASCIO:** push su `main`, CI sullo SHA, revisioni/traffico Cloud Run backend e frontend, health e bundle servito. Nessuna ricerca Google Places reale e nessuna mutazione di lead reali nel collaudo.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: timeout + import/import-csv (chiude i follow-up)
 
 **DICHIARATO** (aggiunto alla PR #108)

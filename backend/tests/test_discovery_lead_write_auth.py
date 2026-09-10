@@ -36,13 +36,19 @@ def _dipendenze(rotta):
     return [d.call.__name__ for d in rotta.dependant.dependencies]
 
 
-@pytest.mark.parametrize("metodo", ["PATCH", "DELETE"])
-def test_le_scritture_sui_lead_richiedono_admin(metodo):
-    rotta = _rotta(metodo, "/leads/{lead_id}")
+@pytest.mark.parametrize("metodo,path", [
+    ("PATCH", "/leads/{lead_id}"),
+    ("DELETE", "/leads/{lead_id}"),
+    ("POST", "/import"),
+    ("POST", "/import-csv"),
+    ("POST", "/search-places"),
+])
+def test_le_scritture_sui_lead_richiedono_admin(metodo, path):
+    rotta = _rotta(metodo, path)
 
     assert rotta is not None, f"{metodo} /leads/{{lead_id}} non registrata"
     assert "require_ciak_admin" in _dipendenze(rotta), (
-        f"{metodo} /leads/{{lead_id}} e' SENZA autenticazione: "
+        f"{metodo} {path} e' SENZA autenticazione: "
         f"chiunque conosca l'URL puo' scrivere sui lead"
     )
 

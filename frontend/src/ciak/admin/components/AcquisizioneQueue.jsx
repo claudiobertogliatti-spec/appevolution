@@ -195,7 +195,8 @@ export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const items = (leads || []).map(toItem).filter((it) => !ownerFilter || it.owner === ownerFilter);
+  const ownerKey = (value) => String(value || "").trim().toLocaleLowerCase("it-IT").split(/\s+/)[0];
+  const items = (leads || []).map(toItem).filter((it) => !ownerFilter || ownerKey(it.owner) === ownerKey(ownerFilter));
 
   return (
     <div className="mb-8">
@@ -225,7 +226,7 @@ export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
       ) : leads === null ? (
         <p className="text-sm text-slate-400">Caricamento coda…</p>
       ) : (
-        <DepartmentQueue items={items} firstColLabel="Lead" />
+        <DepartmentQueue items={items} firstColLabel="Lead" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />
       )}
     </div>
   );

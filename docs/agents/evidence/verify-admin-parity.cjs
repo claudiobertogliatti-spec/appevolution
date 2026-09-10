@@ -1,7 +1,8 @@
 // Parità admin per RAGGIUNGIBILITÀ (non più NAV byte-identico: la riorganizzazione
 // delle voci per reparto cambia il NAV, ma nessuna route/capacità può sparire).
 // Verifica: 1) nessuna route rimossa rispetto alla base; 2) ogni voce NAV punta a
-// una route registrata; 3) handler import manuale/CSV di LeadManager invariati.
+// una route registrata; 3) import manuale/CSV conservati e fallimenti discovery
+// gestiti senza azzerare il form o inventare un successo.
 const fs = require('node:fs');
 const cp = require('node:child_process');
 const assert = require('node:assert/strict');
@@ -36,14 +37,18 @@ const unreachable = navTos.filter((to) => {
 });
 assert.equal(unreachable.length, 0, `Voci NAV senza route registrata: ${unreachable.join(', ')}`);
 
-// Handler manuale/CSV di LeadManager invariati (contratto di import).
+// Contratto import: entrambi i flussi e gli endpoint restano presenti; il
+// manuale deve fermarsi sul fallimento esplicito prima di azzerare il form.
 const lead = 'frontend/src/ciak/admin/pages/LeadManager.jsx';
-const oldLead = cp.execFileSync('git', ['show', `${base}:${lead}`], { encoding: 'utf8' }).replace(/\r/g, '');
 const newLead = fs.readFileSync(lead, 'utf8').replace(/\r/g, '');
-for (const name of ['handleCsvUpload', 'handleManualSave']) {
-  const body = (s) => s.slice(s.indexOf(`const ${name} =`), s.indexOf('\n  };', s.indexOf(`const ${name} =`)) + 5);
-  assert.equal(body(newLead), body(oldLead), `${name} changed`);
-}
+const handlerBody = (name) => newLead.slice(newLead.indexOf(`const ${name} =`), newLead.indexOf('\n  };', newLead.indexOf(`const ${name} =`)) + 5);
+const csvHandler = handlerBody('handleCsvUpload');
+const manualHandler = handlerBody('handleManualSave');
+assert.match(csvHandler, /\/api\/discovery\/import-csv/, 'Import CSV discovery rimosso');
+assert.match(manualHandler, /\/api\/discovery\/import/, 'Import manuale discovery rimosso');
+const failureGuard = manualHandler.indexOf('data.success === false');
+const resetForm = manualHandler.indexOf('setForm(emptyForm)');
+assert.ok(failureGuard >= 0 && failureGuard < resetForm, 'Il fallimento discovery non blocca il reset del form');
 
 const result = {
   base,
@@ -51,7 +56,7 @@ const result = {
   removedRoutes: removed.length,
   navReachable: 'PASS',
   navPagesChecked: navTos.length,
-  csvAndManualHandlers: 'identical',
+  csvAndManualHandlers: 'preserved; explicit discovery failure handled before reset',
   status: 'PASS',
   method: 'reachability (route-set superset + NAV targets registered)',
   limit: 'Static reachability for this patch; not full runtime/permissions certification',

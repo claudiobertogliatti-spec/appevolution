@@ -6,7 +6,7 @@
  * arrivano gia' pronti (props) dalla stessa fonte di Audit Delivery.
  */
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { DepartmentQueue, VenditeQueue, BackOfficeQueue } from "./DepartmentQueue";
+import { DepartmentQueue, DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./DepartmentQueue";
 import { apiGet } from "../api";
 
 jest.mock("../api", () => ({ apiGet: jest.fn(() => Promise.resolve({ items: [] })) }));
@@ -159,4 +159,20 @@ test("BackOfficeQueue: la riga apre il credito esatto (per id)", async () => {
   render(<BackOfficeQueue onOpenPartner={onOpen} />);
   fireEvent.click(await screen.findByTestId("coda-row-c1"));
   expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "c1" }));
+});
+
+test("DeliveryQueue: il filtro persona accetta il nome completo e dichiara le assegnazioni vuote", async () => {
+  apiGet.mockImplementation((path) => {
+    if (path === "/partners") return Promise.resolve({ items: [{ id: "p1", name: "Partner Uno" }] });
+    if (path === "/delivery-audit") return Promise.resolve({ items: [{ id: "p1", owner: "Antonella Rossi" }] });
+    return Promise.resolve({ overrides: {} });
+  });
+  render(<DeliveryQueue ownerFilter="Antonella" />);
+  expect(await screen.findByTestId("coda-row-p1")).toBeTruthy();
+});
+
+test("DeliveryQueue: quando non ci sono assegnazioni lo dichiara senza confonderlo col reparto vuoto", async () => {
+  apiGet.mockResolvedValue({ items: [], overrides: {} });
+  render(<DeliveryQueue ownerFilter="Antonella" />);
+  expect(await screen.findByText("Nessuna attività assegnata: Antonella.")).toBeTruthy();
 });

@@ -105,13 +105,14 @@ function countByFonte(inv, fonte) {
 }
 
 function activePartners(partners) {
+  if (!partners || !Array.isArray(partners.items)) return null;
   const items = partners?.items || [];
   return items.filter((p) => (p.stato || "attivo") === "attivo");
 }
 
 // Fase più popolata tra i partner attivi → "F5 (3)".
 function topPhase(partners) {
-  const active = activePartners(partners).filter((p) => p.phase);
+  const active = (activePartners(partners) || []).filter((p) => p.phase);
   if (!active.length) return "—";
   const counts = {};
   active.forEach((p) => {
@@ -161,7 +162,7 @@ export function computeMetrics(deptId, d) {
 
     case "delivery":
       return {
-        "Partner attivi": fmtNum(activePartners(partners).length),
+        "Partner attivi": partners ? fmtNum(activePartners(partners)?.length) : "—",
         "Partner per fase": topPhase(partners),
         "Fermi oltre soglia": fmtNum(counters.fermi),
         "Output da approvare": fmtNum(counters.serve_claudio),
@@ -177,14 +178,14 @@ export function computeMetrics(deptId, d) {
         "Scade oggi": scadeOggi(cred),
         "In ritardo": inRitardo(cred),
         "Fatture da emettere": fmtNum(inv?.da_fatturare),
-        "Contratti firmati": fmtNum(
-          (partners?.items || []).filter((p) => p.contract_signed === true).length
-        ),
-        "Pagamenti critici": fmtNum(
-          (partners?.items || []).filter(
+        "Contratti firmati": partners ? fmtNum(
+          partners.items.filter((p) => p.contract_signed === true).length
+        ) : "—",
+        "Pagamenti critici": partners ? fmtNum(
+          partners.items.filter(
             (p) => p.stato === "quarantena" && p.quarantena_tipo === "morosita"
           ).length
-        ),
+        ) : "—",
         "Servizi extra": fmtNum(se.servizi_attivi?.totale),
       };
 
@@ -207,14 +208,14 @@ export function computeMetrics(deptId, d) {
  * Hook: restituisce { [label]: valore } per il reparto dato.
  */
 export function useRepartoMetrics(deptId) {
-  const [values, setValues] = useState({});
+  const [values, setValues] = useState({ __status: "loading" });
 
   useEffect(() => {
     let alive = true;
     const endpoints = REPARTO_ENDPOINTS[deptId];
     // Reparti senza endpoint (es. casi-studio) → calcolo statico "Da attivare".
     if (!endpoints) {
-      setValues(computeMetrics(deptId, {}));
+      setValues({ ...computeMetrics(deptId, {}), __status: "ready" });
       return undefined;
     }
     (async () => {
@@ -223,7 +224,10 @@ export function useRepartoMetrics(deptId) {
       endpoints.forEach((e, i) => {
         data[e.key] = results[i];
       });
-      if (alive) setValues(computeMetrics(deptId, data));
+      const failures = results.filter((item) => item == null).length;
+      const failedKeys = endpoints.filter((_, index) => results[index] == null).map((endpoint) => endpoint.key);
+      const status = failures === endpoints.length ? "error" : failures > 0 ? "partial" : "ready";
+      if (alive) setValues({ ...computeMetrics(deptId, data), __status: status, __failedKeys: failedKeys });
     })();
     return () => {
       alive = false;

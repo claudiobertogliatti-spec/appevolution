@@ -37,10 +37,10 @@ def test_ok_anche_con_zero_nuovi_non_e_fallita():
     assert r["success"] is True
 
 
-def test_nessuna_operazione_non_e_fallita():
+def test_nessuna_operazione_e_vuota_non_successo():
     r = summarize_run(0, 0, 0)
-    assert r["status"] == "ok"
-    assert r["success"] is True
+    assert r["status"] == "empty"
+    assert r["success"] is False
 
 
 # ── aggregate_places_results(results) ────────────────────────────────────────

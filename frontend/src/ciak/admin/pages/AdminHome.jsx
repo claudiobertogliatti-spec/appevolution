@@ -22,9 +22,14 @@ function numFrom(v) {
   const m = String(v).match(/^\s*(\d[\d.]*)/);
   return m ? parseInt(m[1].replace(/\./g, ""), 10) : null;
 }
-const isLoaded = (obj) => obj && Object.keys(obj).length > 0;
+const stateOf = (obj) => obj?.__status || (obj && Object.keys(obj).length > 0 ? "ready" : "loading");
+const isLoaded = (obj) => stateOf(obj) !== "loading";
+const isAvailable = (obj) => ["ready", "partial"].includes(stateOf(obj));
+const hasSource = (obj, key) => isAvailable(obj) && !(obj.__failedKeys || []).includes(key);
 // valore metrica: null = ancora in caricamento; altrimenti la stringa reale (anche "—").
-const metric = (obj, label) => (isLoaded(obj) ? (obj[label] ?? "—") : null);
+const metric = (obj, label) => stateOf(obj) === "loading"
+  ? null
+  : stateOf(obj) === "error" ? "Dato non disponibile" : (obj[label] ?? "—");
 
 export function AdminHome({ user }) {
   const nome = (user?.name || "").trim().split(/\s+/)[0] || "Claudio";
@@ -48,6 +53,7 @@ export function AdminHome({ user }) {
 
   // Striscia "richiede attenzione": solo voci realmente > 0, dalle stesse fonti.
   const attnReady = isLoaded(del) && isLoaded(bo);
+  const attnAvailable = hasSource(del, "da") && hasSource(bo, "cred");
   const attn = [];
   const approv = numFrom(metric(del, "Output da approvare"));
   if (approv) attn.push({ tone: "danger", to: "/admin/reparto/delivery", label: "Output da approvare", n: approv });
@@ -73,6 +79,8 @@ export function AdminHome({ user }) {
       <div className="mb-8" aria-label="Richiede la tua attenzione">
         {!attnReady ? (
           <p className="text-sm text-slate-400">Controllo cosa richiede attenzione…</p>
+        ) : !attnAvailable ? (
+          <p className="text-sm text-slate-500">Dati sulle urgenze non disponibili.</p>
         ) : attn.length === 0 ? (
           <p className="text-sm text-slate-500">Nessuna urgenza in evidenza.</p>
         ) : (

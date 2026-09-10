@@ -57,6 +57,23 @@ test('Nuovo lead apre direttamente il form manuale e conserva il salvataggio esi
   expect(JSON.parse(call[1].body)).toMatchObject({ auto_score: false, leads: [{ email: 'test@example.com', source: 'manual' }] });
 });
 
+test('Nuovo lead conserva il form e mostra errore quando il backend dichiara fallimento', async () => {
+  adminFetch.mockImplementation((url, opts) => {
+    if (url === '/api/discovery/import' && opts?.method === 'POST') {
+      return Promise.resolve({ ok: true, json: async () => ({ success: false, status: 'failed', imported: 0, errors: [{ error: 'database non disponibile' }] }) });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ leads: LEADS, total: 1 }) });
+  });
+  render(<LeadManager onAuthExpired={() => {}} />);
+  await screen.findByText('Studio Rossi');
+  fireEvent.click(screen.getByRole('button', { name: 'Nuovo lead' }));
+  const email = screen.getByRole('textbox', { name: 'Email', exact: true });
+  fireEvent.change(email, { target: { value: 'test@example.com' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Aggiungi lead' }));
+  expect(await screen.findByText('database non disponibile')).toBeTruthy();
+  expect(email.value).toBe('test@example.com');
+});
+
 test('Importa lista apre CSV anche dopo aver chiuso il form manuale; cambio tab resta disponibile', async () => {
   render(<LeadManager onAuthExpired={() => {}} />);
   await screen.findByText('Studio Rossi');

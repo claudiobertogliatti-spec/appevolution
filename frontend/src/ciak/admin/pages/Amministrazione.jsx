@@ -20,6 +20,7 @@
  * dal campo scritto: una rata scaduta senza conferma e' "da confermare".
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { AlertTriangle, Check, Clock, Lock, X } from "lucide-react";
 import { apiGet, apiPatch } from "../api";
 import { euro } from "../euro";
@@ -351,7 +352,7 @@ function Posizioni({ lista, riepilogo, highlightId }) {
   // la posizione esatta. Nessun colore nuovo: token esistente bg-slate-100.
   const highlightRef = useRef(null);
   useEffect(() => {
-    if (highlightId && highlightRef.current) {
+    if (highlightId && typeof highlightRef.current?.scrollIntoView === "function") {
       highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [highlightId, crediti.length]);
@@ -414,6 +415,7 @@ function Posizioni({ lista, riepilogo, highlightId }) {
 // ─── Pagina ────────────────────────────────────────────────────────────────
 
 export function Amministrazione({ onAuthExpired }) {
+  const { search } = useLocation();
   const [ob, setOb] = useState(null);
   const [riepilogo, setRiepilogo] = useState(null);
   const [lista, setLista] = useState(null);
@@ -424,9 +426,9 @@ export function Amministrazione({ onAuthExpired }) {
   const [busyLeva, setBusyLeva] = useState(null);
   // Deep-link dalla coda Back office: /admin/amministrazione?credito=<id>
   const highlightId = useMemo(() => {
-    try { return new URLSearchParams(window.location.search).get("credito"); }
+    try { return new URLSearchParams(search).get("credito"); }
     catch { return null; }
-  }, []);
+  }, [search]);
 
   const load = useCallback(async () => {
     const auth = (e) => {

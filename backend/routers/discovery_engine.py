@@ -327,7 +327,7 @@ async def check_duplicate(source: str, username: str, email: Optional[str] = Non
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/import-csv")
-async def import_discovery_leads_csv(file: UploadFile = File(...)):
+async def import_discovery_leads_csv(file: UploadFile = File(...), admin=Depends(require_ciak_admin)):
     """
     Importa lead da file CSV nella collection discovery_leads.
     Deduplicazione automatica su email/platform_username.
@@ -361,6 +361,7 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
     imported = 0
     duplicates = 0
     errors = 0
+    hot_leads = 0
     error_details = []
     
     for row_num, row in enumerate(reader, start=2):
@@ -431,6 +432,7 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
             
             # Create alert for hot leads
             if score >= 80:
+                hot_leads += 1
                 await db.system_alerts.insert_one({
                     "type": "hot_lead_discovered",
                     "lead_id": lead_id,
@@ -459,13 +461,15 @@ async def import_discovery_leads_csv(file: UploadFile = File(...)):
     logger.info(f"[DISCOVERY] CSV import: {imported} imported, {duplicates} duplicates, {errors} errors")
     
     total_rows = imported + duplicates + errors
+    if total_rows == 0:
+        raise HTTPException(status_code=400, detail="Il CSV non contiene righe da importare")
     summary = summarize_run(total_rows, errors, imported)
     return {
         **summary,
         "imported": imported,
         "duplicates": duplicates,
         "errors": errors,
-        "hot_leads": len([1 for _ in range(imported) if _ >= 80]),  # Approximate
+        "hot_leads": hot_leads,
         "error_details": error_details[:10] if errors > 0 else []
     }
 
@@ -514,12 +518,12 @@ class ImportLeadItem(BaseModel):
 
 class ImportLeadsRequest(BaseModel):
     """Request per importazione massiva"""
-    leads: List[ImportLeadItem]
+    leads: List[ImportLeadItem] = Field(..., min_length=1)
     auto_score: bool = False  # Se true, calcola automaticamente lo score
 
 
 @router.post("/import")
-async def import_leads(request: ImportLeadsRequest, background_tasks: BackgroundTasks):
+async def import_leads(request: ImportLeadsRequest, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Importa una lista di lead da fonti esterne.
     
@@ -1319,7 +1323,7 @@ async def get_profession_groups():
 
 
 @router.post("/search-places")
-async def search_places(request: PlacesSearchRequest, background_tasks: BackgroundTasks):
+async def search_places(request: PlacesSearchRequest, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Cerca liberi professionisti su Google Places.
     Ottimizzato per target offline: premia assenza sito, presenza telefono,
@@ -1484,6 +1488,7 @@ async def _run_places_query(
 
             lead_id = generate_lead_id("google_places", place_id)
             doc = {
+                "_id": lead_id,
                 "id": lead_id,
                 "source": "google_places",
                 "display_name": name,
@@ -1559,6 +1564,9 @@ async def _run_places_query(
             logger.info(f"[PLACES] Importato: {name} | score={score} | phone={bool(phone)} | website={has_website}")
 
         except Exception as e:
+            if getattr(e, "code", None) == 11000:
+                skipped += 1
+                continue
             logger.error(f"[PLACES] Errore su place {place.get('name', '?')}: {e}")
             continue
 

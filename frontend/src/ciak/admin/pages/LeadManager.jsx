@@ -387,9 +387,16 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Errore");
+      if (type === "discovery" && data.success === false) {
+        const detail = Array.isArray(data.errors)
+          ? data.errors.map((item) => item?.error || item).filter(Boolean).join(", ")
+          : "";
+        setResult(data);
+        throw new Error(detail || data.message || "Il lead non è stato salvato");
+      }
       setForm(emptyForm);
       onImported();
-      setResult({ imported: 1, skipped: 0 });
+      setResult(type === "discovery" ? data : { imported: 1, skipped: 0 });
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
       else setManualError(e.message);

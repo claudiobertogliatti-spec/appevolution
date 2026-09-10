@@ -56,3 +56,13 @@ test("zero urgenze = messaggio calmo, non una lista vuota ambigua", () => {
   render(<AdminHome user={{ name: "Claudio" }} />);
   expect(screen.getByText("Nessuna urgenza in evidenza.")).toBeTruthy();
 });
+
+test("un errore delle fonti non viene presentato come zero o dato valido", () => {
+  useRepartoMetrics.mockImplementation((id) => id === "delivery"
+    ? { __status: "error", "Partner attivi": "—" }
+    : id === "back-office" ? { __status: "ready", "In ritardo": "Nessuna" } : { __status: "ready" });
+  render(<AdminHome user={{ name: "Claudio" }} />);
+  expect(screen.getByText("Dati sulle urgenze non disponibili.")).toBeTruthy();
+  expect(screen.getByText("Dato non disponibile")).toBeTruthy();
+  expect(screen.queryByText("Nessuna urgenza in evidenza.")).toBeNull();
+});
