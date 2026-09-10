@@ -19,7 +19,7 @@
  * Lo stato di una rata si legge da `stato_effettivo` (calcolato sulla data), mai
  * dal campo scritto: una rata scaduta senza conferma e' "da confermare".
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Clock, Lock, X } from "lucide-react";
 import { apiGet, apiPatch } from "../api";
 import { euro } from "../euro";
@@ -344,9 +344,17 @@ function prossimaRata(c) {
   return "—";
 }
 
-function Posizioni({ lista, riepilogo }) {
+function Posizioni({ lista, riepilogo, highlightId }) {
   const crediti = lista?.crediti || [];
   const soloCrediti = crediti.filter((c) => (c.tipo || "credito") === "credito");
+  // Deep-link ?credito=<id> (dalla coda Back office): porta in vista e evidenzia
+  // la posizione esatta. Nessun colore nuovo: token esistente bg-slate-100.
+  const highlightRef = useRef(null);
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, crediti.length]);
   return (
     <section data-testid="posizioni" className="rounded-xl border border-slate-200 bg-white p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -368,8 +376,15 @@ function Posizioni({ lista, riepilogo }) {
             {crediti.length === 0 && (
               <tr><td colSpan={6} className="py-6 text-center text-slate-500">Nessuna posizione caricata.</td></tr>
             )}
-            {crediti.map((c) => (
-              <tr key={c.id} className="border-b border-slate-100 last:border-0">
+            {crediti.map((c) => {
+              const isHi = highlightId && String(c.id) === String(highlightId);
+              return (
+              <tr
+                key={c.id}
+                ref={isHi ? highlightRef : null}
+                data-testid={isHi ? "credito-evidenziato" : undefined}
+                className={`border-b border-slate-100 last:border-0 ${isHi ? "bg-slate-100" : ""}`}
+              >
                 <td className="py-2.5 pr-3 font-medium text-slate-900">{c.nome}</td>
                 <td className="py-2.5 pr-3 text-slate-600">{c.tipo || "credito"}</td>
                 <td className="py-2.5 pr-3">
@@ -387,7 +402,8 @@ function Posizioni({ lista, riepilogo }) {
                 <td className="py-2.5 pr-3 text-slate-600">{prossimaRata(c)}</td>
                 <td className="py-2.5 text-slate-600">{c.documento || "—"}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -406,6 +422,11 @@ export function Amministrazione({ onAuthExpired }) {
   const [conferma, setConferma] = useState(null);
   const [busy, setBusy] = useState(false);
   const [busyLeva, setBusyLeva] = useState(null);
+  // Deep-link dalla coda Back office: /admin/amministrazione?credito=<id>
+  const highlightId = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get("credito"); }
+    catch { return null; }
+  }, []);
 
   const load = useCallback(async () => {
     const auth = (e) => {
@@ -476,7 +497,7 @@ export function Amministrazione({ onAuthExpired }) {
         <div className="space-y-4">
           <Obiettivo ob={ob} onMovimento={movimento} busyLeva={busyLeva} />
           <CassaMese riepilogo={riepilogo} lista={lista} onEsito={(credito, rata, stato) => setConferma({ credito, rata, stato })} />
-          <Posizioni lista={lista} riepilogo={riepilogo} />
+          <Posizioni lista={lista} riepilogo={riepilogo} highlightId={highlightId} />
         </div>
       )}
 

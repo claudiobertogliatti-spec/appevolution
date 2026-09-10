@@ -178,7 +178,7 @@ function NuovoLead({ onCreated, onCancel, onAuthExpired }) {
   );
 }
 
-export function AcquisizioneQueue({ onAuthExpired }) {
+export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
   const [leads, setLeads] = useState(null);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -195,7 +195,7 @@ export function AcquisizioneQueue({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const items = (leads || []).map(toItem);
+  const items = (leads || []).map(toItem).filter((it) => !ownerFilter || it.owner === ownerFilter);
 
   return (
     <div className="mb-8">
