@@ -444,13 +444,31 @@ function ImportModal({ type, onClose, onImported, onAuthExpired }) {
                 <input ref={fileRef} type="file" accept=".csv" className="hidden"
                   onChange={e => setCsvFile(e.target.files[0])} />
               </div>
-              {result && (
-                <div className={`p-3 rounded-xl text-sm ${result.error ? "bg-red-50" : "bg-emerald-50"}`}>
-                  {result.error
-                    ? <span className="text-red-600">Errore: {result.error}</span>
-                    : <span className="text-emerald-700">✓ Importati: {result.imported || result.success} · Saltati: {result.skipped || 0}</span>}
-                </div>
-              )}
+              {result && (() => {
+                // Esito onesto: rosso (errore/fallito) / ambra (parziale) / verde (ok).
+                // Retrocompatibile: senza `status` e senza `error` = ok (verde).
+                const status = result.error ? "failed" : (result.status || "ok");
+                const box = status === "failed"
+                  ? "bg-red-50 border border-red-200"
+                  : status === "partial"
+                    ? "bg-amber-50 border border-amber-200"
+                    : "bg-emerald-50 border border-emerald-200";
+                const txt = status === "failed" ? "text-red-700" : status === "partial" ? "text-amber-800" : "text-emerald-700";
+                const saltati = result.skipped ?? result.duplicates ?? 0;
+                return (
+                  <div className={`p-3 rounded-xl text-sm ${box}`}>
+                    {result.error ? (
+                      <span className="text-red-600">Errore: {result.error}</span>
+                    ) : (
+                      <span className={txt}>
+                        {status === "failed"
+                          ? "Import non riuscito"
+                          : `Importati: ${result.imported || 0} · Saltati: ${saltati}${status === "partial" ? " · alcuni errori" : ""}`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
               <button onClick={handleCsvUpload} disabled={!csvFile || uploading}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${csvFile && !uploading ? "bg-slate-900 text-yellow-400" : "bg-gray-100 text-slate-400"}`}>
                 {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
@@ -519,7 +537,11 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
     use_group: true,
     city: "Milano",
     max_results: 20,
-    all_italy: true,
+    // Default: ricerca MIRATA sulla città (veloce). "Tutta Italia" resta un
+    // opt-in esplicito col toggle: da sola faceva 24 città × N query in una
+    // richiesta → timeout (e costo API alto). Backend ora parallelizza, ma il
+    // default targeted resta la scelta giusta per l'uso quotidiano.
+    all_italy: false,
     only_with_website: true,
   });
   const [loading, setLoading] = useState(false);

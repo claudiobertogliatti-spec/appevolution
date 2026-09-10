@@ -1,3 +1,18 @@
+### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: timeout + import/import-csv (chiude i follow-up)
+
+**DICHIARATO** (aggiunto alla PR #108)
+- **Timeout**: `search-places` ora esegue le query città×categoria **in parallelo con concorrenza limitata** (`asyncio.Semaphore(6)`) invece del doppio for sincrono → tempo totale molto più breve. Aggregazione estratta in `aggregate_places_results` (pura, testata). Frontend: default `all_italy=false` (ricerca mirata veloce; tutta-Italia resta opt-in col toggle).
+- **Import onesto esteso**: `/import` e `/import-csv` ora usano `summarize_run` (rinominata da `summarize_places_run`, generica) → stesso esito ok/parziale/fallito, niente più `success:true` fisso. Frontend `ImportModal`: box verde/ambra/rosso via `status`.
+
+**VERIFICATO (comando+output)**
+- `python -m pytest tests/test_discovery_summary.py -q` → **7 passed** (5 summarize + 2 aggregate; marcati `unit`).
+- `python -m py_compile routers/discovery_engine.py services/discovery_summary.py` → OK.
+- Frontend `npm run build` → exit 0. `git diff --check` → 0; secret scan → nessun match.
+
+**APERTO**
+- ⛔ Nessun collaudo con Google Places reale (niente scraping di prova). La concorrenza riduce il tempo ma non elimina il costo API di all_italy (24 città × N query): il default targeted lo mitiga.
+- 🐛 minore, non toccato: in `/import-csv` `hot_leads` è calcolato con una comprehension errata (pre-esistente) — segnalato, fuori perimetro.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: fine del falso "success"
 
 **CONTESTO:** gap backend separato dalla riorganizzazione admin (PR #107). Branch `cc/discovery-affidabile`, worktree `.worktrees/cc-discovery-affidabile`, base `origin/main` 20f43d4d. **PR #108**: https://github.com/claudiobertogliatti-spec/appevolution/pull/108 (aperta, ⛔ NON mergiata — decide Claudio, review Codex come da protocollo).
