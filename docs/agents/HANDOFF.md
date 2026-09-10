@@ -6,7 +6,7 @@
 
 **VERIFICATO PRIMA DEL PUSH:** `verify-admin-parity.cjs` PASS (`removedRoutes:0`, `navPagesChecked:31`); 4 suite frontend mirate PASS, **33 test**; parse Babel dei 7 sorgenti JS/JSX modificati PASS; `py_compile` dei 5 file backend/test PASS; `git diff --check` PASS. Nuovo test backend riproduce due query concorrenti sullo stesso `place_id`; la CI lo esegue tramite allowlist. Test pytest locale non eseguibile perché i runtime disponibili non contengono pytest; build locale avviata con dipendenze collegate da altro worktree ma senza esito affidabile, quindi build e backend suite restano da certificare nella CI dello SHA pubblicato.
 
-**APERTO FINO ALLA PROVA DI RILASCIO:** push su `main`, CI sullo SHA, revisioni/traffico Cloud Run backend e frontend, health e bundle servito. Nessuna ricerca Google Places reale e nessuna mutazione di lead reali nel collaudo.
+**EFFETTIVO IN PRODUZIONE:** commit `32cfa585` su `main`; CI `34488661453` verde; frontend Vercel pubblicato e verificato su `https://www.ciak.io/admin/reparto/vendite` con ricerca e 7 strumenti, incluso “Collaudo checkout”; deploy Cloud Run `34488661483` verde. Backend `evolution-pro-backend-00596-9lr` e worker `evolution-pro-worker-00228-qz4` servono il 100% del traffico. Smoke `/api/health` HTTP 200 con `status: healthy`; YouTube configurato. Nessun feature flag limita queste correzioni. Nessuna ricerca Google Places reale e nessuna mutazione di lead reali nel collaudo.
 
 ### 2026-09-10 · Claude Code (Luca) · cc/discovery-affidabile — Discovery: timeout + import/import-csv (chiude i follow-up)
 
