@@ -71,6 +71,7 @@ import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { CabinaRegia } from "./pages/CabinaRegia";
+import { AdminHome } from "./pages/AdminHome";
 import { SimulatoreFatturato } from "./pages/SimulatoreFatturato";
 import { MasterclassReview } from "./pages/MasterclassReview";
 import { SystemHealth } from "./pages/SystemHealth";
@@ -115,7 +116,7 @@ const NAV = [
     label: "Direzione",
     persone: ["Claudio"],
     agenti: ["Luca"],
-    to: "/admin",
+    to: "/admin/direzione",
     end: true,
     pages: [],
   },
@@ -161,19 +162,28 @@ const NAV = [
     persone: ["Antonella", "Matteo"],
     agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
-    pages: [
-      { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
-      { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
-      { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
-      { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
-      { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
-      { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
-      { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
-      { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
-      { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
-      { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
-      { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
-      { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
+    // 12 funzioni raccolte in 4 gruppi chiari (stile Poste). Nessuna rimossa.
+    groups: [
+      { title: "Partner", pages: [
+        { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+        { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
+        { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
+        { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
+      ] },
+      { title: "Materiali e video", pages: [
+        { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
+        { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
+      ] },
+      { title: "Contenuti e percorso", pages: [
+        { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
+        { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
+        { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
+        { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
+      ] },
+      { title: "Risultati", pages: [
+        { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
+        { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
+      ] },
     ],
   },
   // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
@@ -491,26 +501,39 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <p role="status" className="mt-2 text-sm text-slate-500">{visiblePages.length} strumenti su {pages.length}</p>
         {!visiblePages.length && <button className="text-sm font-semibold text-slate-900 mt-2" onClick={() => setToolSearch("")}>Mostra tutti gli strumenti</button>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {visiblePages.map((p) => (
-          <NavLink
-            key={p.to}
-            to={p.to}
-            end={p.end}
-            className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-          >
-            <div>
-              <span className="block text-xl font-semibold text-slate-900">
-                {p.label}
-              </span>
-              {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+      {/* Strumenti: raggruppati con intestazione se il reparto definisce `groups`
+          (es. Delivery), altrimenti una griglia unica. La ricerca filtra tutto. */}
+      {(macro.groups || [{ title: null, pages }]).map((group, gi) => {
+        const groupVisible = filterDepartmentPages(group.pages, toolSearch);
+        if (!groupVisible.length) return null;
+        return (
+          <div key={group.title || `g${gi}`} className="mb-8 last:mb-0">
+            {group.title && (
+              <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">{group.title}</h3>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {groupVisible.map((p) => (
+                <NavLink
+                  key={p.to}
+                  to={p.to}
+                  end={p.end}
+                  className="group flex flex-col justify-between min-h-[150px] rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+                >
+                  <div>
+                    <span className="block text-xl font-semibold text-slate-900">
+                      {p.label}
+                    </span>
+                    {p.desc && <span className="block text-base text-slate-500 mt-2 leading-snug">{p.desc}</span>}
+                  </div>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
+                    Apri <ArrowRight className="w-4 h-4" />
+                  </span>
+                </NavLink>
+              ))}
             </div>
-            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 group-hover:gap-2.5 transition-all">
-              Apri <ArrowRight className="w-4 h-4" />
-            </span>
-          </NavLink>
-        ))}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -562,9 +585,13 @@ export default function CiakAdminApp() {
       {/* NOTA: CiakAdminApp e' montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
-        {/* Home /admin = Panoramica Reparti (Cabina di Regia) per Claudio;
-            Antonella mantiene la sua dashboard dedicata. */}
+        {/* Home /admin = "Regia": lancia-reparti (stile app bancaria). La Cabina
+            di Regia (cockpit Direzione) è su /admin/direzione. Antonella mantiene
+            la sua dashboard dedicata sia come home sia come Direzione. */}
         <Route index element={isAntonella
+          ? <AntonellaDashboard onAuthExpired={handleLogout} />
+          : <AdminHome user={user} />} />
+        <Route path="direzione" element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : <CabinaRegia onAuthExpired={handleLogout} />} />
 
@@ -715,7 +742,7 @@ export default function CiakAdminApp() {
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
-        <Route path="cabina-regia" element={<Navigate to="/admin" replace />} />
+        <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="revisione-video/:partnerId/:lessonId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />

@@ -1,3 +1,23 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4: Home "Regia" + Direzione + Delivery raggruppato
+
+**CONTESTO:** Claudio ha definito la visione finale — un CRM unico, semplice, **stile Poste Italiane/online banking** (voci chiare, categorie ben divise) — e ha approvato un mockup navigabile. Vincolo ribadito: **non eliminare funzioni, solo organizzare**.
+
+**DICHIARATO**
+- Nuova **Home "Regia"** (`pages/AdminHome.jsx`): pagina d'ingresso `/admin` che lancia i 5 reparti (tessere chiare, nessun numero inventato). Antonella mantiene la sua dashboard come home.
+- **Direzione** ora ha una home dedicata su `/admin/direzione` (la Cabina di Regia, prima all'index). Voce sidebar Direzione → `/admin/direzione`; redirect `cabina-regia` → `/admin/direzione`.
+- **Delivery raggruppato**: le 12 voci in 4 gruppi con intestazione (Partner · Materiali e video · Contenuti e percorso · Risultati). `RepartoLanding` ora rende i `groups` con heading quando presenti, flat altrimenti; la ricerca strumenti filtra tutto. Nessuna voce persa.
+- Micro-blocco "togli 2 hub link" **annullato** (non committato) su richiesta di Claudio: le voci restano.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- Jest `5 suite / 21 test PASS` (nuovo `AdminHome.test.jsx` + regressione).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (home Regia; Direzione su /admin/direzione; Delivery a gruppi). Serve sessione admin + backend.
+- ⏭️ **Numeri reali + striscia "richiede attenzione"** sulla Home Regia: da collegare alle fonti esistenti (CabinaRegia/approvals/crediti) distinguendo caricamento/errore/zero — non mostrare cifre finte.
+- ⏭️ Le altre home reparto (Acquisizione/Vendite/Back office) sono le landing esistenti; eventuale rifinitura stile-mockup da valutare. Poi gap backend (§5) e sicurezza, decisione di Claudio.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3b: Trattative a tab + Produzione video
 
 **DICHIARATO**
