@@ -1,3 +1,18 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4c: rifinitura home reparto
+
+**DICHIARATO**
+- **Acquisizione**: sulla home ora sono subito visibili **Importa lista** e **Ricerca automatica** (oltre a "Nuovo lead" inline nella coda). Aprono gli stessi modali reali di `LeadManager` via deep-link `?apri=importa|ricerca` (nuovo lettore di parametro in LeadManager). Nessuna logica/endpoint duplicati.
+- Intestazione **"Strumenti"** uniforme sopra le tessere dei reparti non raggruppati (Acquisizione/Vendite/Back office); Delivery resta a 4 gruppi. Struttura coerente col mockup.
+
+**VERIFICATO (comando+output)**
+- `verify-admin-parity.cjs`: PASS (`removedRoutes: 0`, `navPagesChecked: 30`).
+- Jest `6 suite / 29 test PASS` (incluso LeadManager, invariato col nuovo parametro).
+- `npm run build`: exit 0.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (le scorciatoie aprono i modali via `?apri=`; da provare dal vivo).
+- ⏭️ Rifinitura ulteriore facoltativa; poi gap backend (§5: discovery/materiali) e sicurezza — decisione di Claudio.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 4b: numeri reali + attenzione sulla Home Regia
 
 **DICHIARATO**

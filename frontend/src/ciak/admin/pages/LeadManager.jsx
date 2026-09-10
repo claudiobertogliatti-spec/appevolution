@@ -728,6 +728,16 @@ export function LeadManager({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [filterStatus, filterSource, filterScore, page]);
 
+  // Deep-link dalle scorciatoie della home Acquisizione: apre subito il modale
+  // giusto (?apri=importa|nuovo|ricerca) riusando gli stessi flussi/endpoint.
+  useEffect(() => {
+    let apri = null;
+    try { apri = new URLSearchParams(window.location.search).get("apri"); } catch { /* no-op */ }
+    if (apri === "importa") { setImportTab("csv"); setShowImport(true); }
+    else if (apri === "nuovo") { setImportTab("manual"); setShowImport(true); }
+    else if (apri === "ricerca") { setShowPlacesSearch(true); }
+  }, []);
+
   // L'eliminazione passa da una conferma in pagina (ConfirmDialog) col nome del
   // lead, non da un window.confirm() anonimo.
   const confirmDelete = async () => {

@@ -469,8 +469,24 @@ function RepartoLanding({ macro, onAuthExpired }) {
         </div>
       )}
 
-      {/* Acquisizione: coda outbound + inserimento manuale nuovo lead (Mariangela/Claudio). */}
-      {macro.id === "acquisizione" && <AcquisizioneQueue onAuthExpired={onAuthExpired} />}
+      {/* Acquisizione: scorciatoie subito visibili (Importa lista / Ricerca automatica,
+          che riusano i modali di LeadManager via ?apri=) + coda outbound con
+          "Nuovo lead" inline (Mariangela/Claudio). */}
+      {macro.id === "acquisizione" && (
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2.5 mb-4">
+            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=importa")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Importa lista
+            </button>
+            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=ricerca")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+              Ricerca automatica
+            </button>
+          </div>
+          <AcquisizioneQueue onAuthExpired={onAuthExpired} />
+        </div>
+      )}
 
       {/* Vendite: coda pipeline post-€27 (Blueprint → firma). */}
       {macro.id === "vendite" && (
@@ -503,7 +519,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
       </div>
       {/* Strumenti: raggruppati con intestazione se il reparto definisce `groups`
           (es. Delivery), altrimenti una griglia unica. La ricerca filtra tutto. */}
-      {(macro.groups || [{ title: null, pages }]).map((group, gi) => {
+      {(macro.groups || [{ title: "Strumenti", pages }]).map((group, gi) => {
         const groupVisible = filterDepartmentPages(group.pages, toolSearch);
         if (!groupVisible.length) return null;
         return (
