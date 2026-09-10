@@ -211,7 +211,7 @@ export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
           <Plus className="w-4 h-4" aria-hidden /> Nuovo lead
         </button>
       </div>
-      <p className="text-sm text-slate-500 mb-3">Lead outbound e trattative: a che punto sono, chi ci lavora, cosa manca.</p>
+      <p className="text-sm text-slate-500 mb-3">Lead da contattare: a che punto sono, chi li segue e qual è il prossimo passo.</p>
 
       {showForm && (
         <NuovoLead
@@ -226,7 +226,7 @@ export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
       ) : leads === null ? (
         <p className="text-sm text-slate-400">Caricamento coda…</p>
       ) : (
-        <DepartmentQueue items={items} firstColLabel="Lead" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />
+        <DepartmentQueue items={items} firstColLabel="Lead" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : "Nessun lead in coda con questo filtro."} />
       )}
     </div>
   );

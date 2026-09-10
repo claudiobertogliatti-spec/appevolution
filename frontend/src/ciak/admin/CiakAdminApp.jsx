@@ -37,6 +37,7 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  Search,
   Users,
 } from "lucide-react";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
@@ -379,11 +380,17 @@ function MacroItem({ macro, currentPath }) {
 
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
+  const [globalSearch, setGlobalSearch] = useState("");
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
   // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
+  const searchResults = globalSearch.trim()
+    ? nav.flatMap((macro) => macroPages(macro).map((page) => ({ ...page, department: macro.label })))
+        .filter((page) => `${page.label} ${page.desc || ""} ${page.department}`.toLocaleLowerCase("it-IT").includes(globalSearch.trim().toLocaleLowerCase("it-IT")))
+        .slice(0, 8)
+    : [];
   // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
   // sotto-pagina di una sezione con landing).
   const back = sectionLandingFor(pathname);
@@ -392,13 +399,43 @@ function AdminShell({ user, onLogout, children }) {
       <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
         <div className="h-full bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
         <div className="px-5 py-5 border-b border-slate-100">
-          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
+          <Link to="/admin" aria-label="Vai alla Home admin">
+            <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
+          </Link>
           <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
           <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
             Cabina operativa per funnel, partner e Metodo EVO.
           </p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <NavLink
+            to="/admin"
+            end
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+          >
+            <LayoutDashboard className="w-4 h-4" aria-hidden /> Home
+          </NavLink>
+          <div className="relative py-2">
+            <Search className="absolute left-3 top-5 w-4 h-4 text-slate-400" aria-hidden />
+            <input
+              type="search"
+              value={globalSearch}
+              onChange={(event) => setGlobalSearch(event.target.value)}
+              placeholder="Cerca una funzione"
+              aria-label="Cerca in tutto l'admin"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-yellow-400"
+            />
+            {globalSearch.trim() && (
+              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-1" role="list" aria-label="Risultati ricerca admin">
+                {searchResults.length ? searchResults.map((page) => (
+                  <Link key={page.to} to={page.to} onClick={() => setGlobalSearch("")} className="block rounded-md px-3 py-2 hover:bg-slate-50">
+                    <span className="block text-sm font-semibold text-slate-900">{page.label}</span>
+                    <span className="block text-[11px] text-slate-500">{page.department}</span>
+                  </Link>
+                )) : <p className="px-3 py-2 text-xs text-slate-500">Nessuna funzione trovata.</p>}
+              </div>
+            )}
+          </div>
           <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             Reparti
           </p>
@@ -516,7 +553,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
         <input id={`tools-${macro.id}`} type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)}
           className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 text-slate-900 focus:ring-2 focus:ring-yellow-400"
           placeholder="Nome della funzione o parola chiave" />
-        <p role="status" className="mt-2 text-sm text-slate-500">{visiblePages.length} strumenti su {pages.length}</p>
+        <p role="status" className="mt-2 text-sm text-slate-500">{visiblePages.length} {visiblePages.length === 1 ? "strumento" : "strumenti"} su {pages.length}</p>
         {!visiblePages.length && <button className="text-sm font-semibold text-slate-900 mt-2" onClick={() => setToolSearch("")}>Mostra tutti gli strumenti</button>}
       </div>
       {/* Strumenti: raggruppati con intestazione se il reparto definisce `groups`

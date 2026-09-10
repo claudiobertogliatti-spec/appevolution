@@ -1,3 +1,11 @@
+### 2026-09-10 · Codex · correzione usabilità admin dopo verifica live
+
+**RISCONTRO DI CLAUDIO:** la versione pubblicata non piace e non funziona ancora bene. Verifica sul tab Chrome realmente usato: Claudio era su `/admin/direzione`, pagina densa preesistente; la nuova Home `/admin` non era raggiungibile dalla sidebar. Mancava inoltre la ricerca globale dell'anteprima. In Acquisizione lo stato vuoto parlava erroneamente di “partner” e la descrizione mescolava lead e trattative.
+
+**CORREZIONE:** Home esplicita e logo cliccabile nella sidebar; ricerca globale delle funzioni disponibile da ogni pagina, con reparto e collegamento diretto; grammatica singolare/plurale nei risultati di ricerca reparto; testi e stato vuoto Acquisizione coerenti con i lead. Nessuna route o funzione rimossa, nessun cambio di palette/font/logo.
+
+**PROVA PRE-PUSH:** parse Babel dei due JSX modificati PASS; `git diff --check` PASS. Test Jest locale non raccolto nel worktree Windows per il junction `node_modules` che conserva il root dell'altro worktree; affidare test e build alla CI dello SHA pubblicato. Dopo il deploy verificare dal browser Home, ricerca globale (`KPI`, `checkout`, `partner`) e Acquisizione vuota.
+
 ### 2026-09-10 · Codex · correzioni review admin/discovery e rilascio
 
 **AUTORIZZATO:** Claudio ha chiesto di applicare i rilievi della review sul diff `20f43d4d..683ce0d4`, registrarli per Claude e distribuire backend e frontend. Branch isolato `codex/admin-review-fixes`, base `origin/main` `683ce0d4`; checkout principale sporco lasciato intatto.
