@@ -1,3 +1,19 @@
+### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3b: Trattative a tab + Produzione video
+
+**DICHIARATO**
+- **Vendite "Trattative" (audit #7):** nuovo wrapper `pages/TrattativePipeline.jsx` (route `/admin/trattative`) con tab Tutte/Blueprint/Call/In trattativa/OK persistiti in `?stadio=`, che riusa `PipelineList` sullo stesso endpoint `/pipeline-blueprint`. Le 4 voci Vendite separate → 1 voce "Trattative"; vecchi URL (pipeline-blueprint, vendite-call, vendite-trattativa, vendite-ok) restano registrati.
+- **Delivery "Produzione video" (audit #6):** 1 voce → `VideoReview` (`/admin/video-review`), che È GIÀ la coda unica masterclass+lezioni (filtro, approva, monitor). Rimosse le 2 voci-hub di soli link (route `delivery-masterclass`/`delivery-lezioni` restano via URL). Nessuna coda inventata.
+- Nessuna route rimossa; nessun colore/font/logo toccato.
+
+**VERIFICATO (comando+output)**
+- Jest `5 suite / 24 test PASS` (nuovo `TrattativePipeline.test.jsx` con pattern react-router-dom mockato + regressione).
+- `verify-admin-parity.cjs`: PASS — `removedRoutes: 0`, `navPagesChecked: 30`.
+- `npm run build`: exit 0, postbuild 5 landing.
+
+**APERTO**
+- ⛔ Collaudo browser autenticato non eseguito (tab Trattative con ?stadio=; Produzione video apre la coda reale).
+- ⏭️ Restano hub di soli link ancora nel menu: "Calendario Editoriale" (Acquisizione) e "Trattative KO" (Vendite) — micro-blocco audit #5. Poi **blocco 4** (discovery/materiali) e i gap sicurezza/KPI (§5), decisione di Claudio.
+
 ### 2026-09-10 · Claude Code (Luca) · cc/admin-semplificazione — Blocco 3a: consolidamento commerciale
 
 **DICHIARATO**

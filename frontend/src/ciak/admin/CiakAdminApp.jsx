@@ -58,6 +58,7 @@ import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
+import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
@@ -145,12 +146,9 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint", desc: "Chi ha pagato i €27 — analisi acquistata" },
+      { to: "/admin/trattative", label: "Trattative", desc: "Pipeline post-€27 in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/vendite-call", label: "Call di vendita", desc: "Call prenotate e call fatte" },
-      { to: "/admin/vendite-trattativa", label: "In trattativa", desc: "Proposte inviate, viste o accettate" },
       { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
-      { to: "/admin/vendite-ok", label: "Trattative OK", desc: "Contratti firmati e pagati — nuovi partner" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
@@ -171,8 +169,7 @@ const NAV = [
       { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
       { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
       { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
-      { to: "/admin/delivery-masterclass", label: "Masterclass", desc: "Produzione masterclass dei partner" },
-      { to: "/admin/delivery-lezioni", label: "Video Lezioni", desc: "Produzione lezioni del videocorso" },
+      { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
       { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
       { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
       { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
@@ -620,7 +617,9 @@ export default function CiakAdminApp() {
         <Route path="listino-prezzi" element={<ListinoPrezzi />} />
         <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 
-        {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
+        {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I path per stadio
+            qui sotto restano registrati per i vecchi link/deep-link. ── */}
+        <Route path="trattative" element={<TrattativePipeline onAuthExpired={handleLogout} />} />
         <Route
           path="pipeline-blueprint"
           element={

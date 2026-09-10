@@ -134,9 +134,9 @@ Ogni accorpamento conserva route e capacità; i vecchi URL restano con redirect/
 
 - **Direzione:** le voci proposte (Decisioni, Andamento, Obiettivi, Cassa) sono già dentro `CabinaRegia` (index). Voce reale separata: solo `SimulatoreFatturato` (Obiettivo €1M). Non creare 4 link alla stessa dashboard.
 - **✅ FATTO (blocco 3a) — Acquisizione e vendita → Vendite (audit #1, strategia "Direzione + 4 reparti"):** Chiusura Insider e Listino & prezzi spostati nelle voci di Vendite; Collaudo checkout resta route tecnica via URL (fuori dal quotidiano, come le altre voci di sistema); macro rimossa; redirect `/admin/reparto/acquisizione-vendita` → `/admin/reparto/vendite`. Tutte e 3 le route conservate. Verificatore aggiornato a **raggiungibilità** (0 route rimosse, 34 voci NAV raggiungibili).
-- **Vendite:** pipeline-blueprint/call/trattativa/ok sono già lo stesso `PipelineList` con filtri di stadio → presentarli come tab di un'unica "Trattative" conservando i vecchi URL (audit #7).
-- **Delivery:** unificare Masterclass+Video Lezioni in "Produzione video" con filtro (audit #6); i due hub attuali sono solo elenchi di link.
-- **Hub solo-link da svuotare/togliere dal percorso quotidiano:** `AcquisizioneCalendarioHub`, `TrattativeKoHub`, `DeliveryMasterclassHub`, `DeliveryLezioniHub` (audit #5/#6). Strumenti restano nelle sedi principali.
+- **✅ FATTO (blocco 3b) — Vendite "Trattative" a tab (audit #7):** nuovo wrapper `TrattativePipeline` (`pages/TrattativePipeline.jsx`, route `/admin/trattative`) con tab Tutte/Blueprint/Call/In trattativa/OK persistiti in `?stadio=`, che riusa `PipelineList` sullo stesso endpoint `/pipeline-blueprint`. Le 4 voci separate diventano 1 voce "Trattative"; i vecchi URL (pipeline-blueprint, vendite-call, vendite-trattativa, vendite-ok) restano registrati e validi. Unico `<h1>`.
+- **✅ FATTO (blocco 3b) — Delivery "Produzione video" (audit #6):** una sola voce → `VideoReview` (route `/admin/video-review`), che È GIÀ la coda unica masterclass+lezioni (filtro pending/all, approva diretto, monitor tecnico). Rimosse le 2 voci-hub `Masterclass`/`Video Lezioni` (i loro route `delivery-masterclass`/`delivery-lezioni` restano via URL). Nessuna coda inventata: riuso del componente reale.
+- **Hub solo-link ancora da togliere dal percorso quotidiano:** `AcquisizioneCalendarioHub` (voce Acquisizione "Calendario Editoriale"), `TrattativeKoHub` (voce Vendite "Trattative KO"). Restano voci per ora; svuotarli/spostarli è un micro-blocco successivo (audit #5).
 
 ---
 
@@ -158,6 +158,6 @@ Ogni accorpamento conserva route e capacità; i vecchi URL restano con redirect/
 | 1 (Codex) | ricerca strumenti reparto, code prima del supporto, titolo unico, matching sidebar, pulsanti lead | ✅ fatto (`e55a6dd6`) |
 | 2 (Claude) | code Vendite/Back office → record; deep-link `?credito=` | ✅ fatto (test 20 PASS, build 0, parità PASS); ⛔ resta collaudo browser |
 | 3a | accorpamento commerciale: "Acquisizione e vendita" → Vendite + verificatore reachability | ✅ fatto (test 20 PASS, build 0, parità reachability PASS); ⛔ resta collaudo browser |
-| 3b | unificare Produzione video (audit #6) + tab pipeline "Trattative" (audit #7) | ⏭️ prossimo (lavoro a livello di componente, non solo relabel) |
+| 3b | unificare Produzione video (audit #6) + tab pipeline "Trattative" (audit #7) | ✅ fatto (test 24 PASS, build 0, parità PASS); ⛔ resta collaudo browser |
 | 4 | discovery affidabile + materiali delivery reali (§5.1, §5.3) | ⏭️ backend, dopo riorg |
 | — | gap sicurezza/KPI (§5.4, §5.5) | 📋 registrati, decide Claudio |
