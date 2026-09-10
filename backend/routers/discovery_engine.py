@@ -22,6 +22,7 @@ import json
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from routers.ciak_admin import require_ciak_admin
+from services.discovery_summary import summarize_places_run
 
 router = APIRouter(prefix="/api/discovery", tags=["discovery-engine"])
 
@@ -1346,6 +1347,7 @@ async def search_places(request: PlacesSearchRequest, background_tasks: Backgrou
     errors = []
 
     cities_to_run = ITALIAN_CITIES if request.all_italy else [request.city]
+    queries_total = len(cities_to_run) * len(queries_to_run)
     async with httpx.AsyncClient(timeout=30) as client:
         for city in cities_to_run:
             for query_text, category_label in queries_to_run:
@@ -1363,15 +1365,23 @@ async def search_places(request: PlacesSearchRequest, background_tasks: Backgrou
                     errors.append(f"{query_text} ({city}): {str(e)}")
                     logger.error(f"[PLACES] Errore query '{query_text}' in {city}: {e}")
 
+    summary = summarize_places_run(queries_total, len(errors), total_imported)
+    ambito = "in tutta Italia" if request.all_italy else f"({request.city})"
+    if summary["status"] == "failed":
+        message = f"Ricerca non riuscita: tutte le {queries_total} ricerche sono andate in errore."
+    elif summary["status"] == "partial":
+        message = f"{total_imported} nuovi lead {ambito}; {len(errors)} ricerche su {queries_total} non riuscite."
+    else:
+        message = f"{total_imported} nuovi lead da Google Places {ambito}."
     return {
-        "success": True,
+        **summary,
         "city": request.city,
         "profession": request.profession,
         "new_leads": total_imported,
         "duplicates_skipped": total_skipped,
         "hot_leads": total_hot,
         "errors": errors,
-        "message": f"{total_imported} nuovi lead da Google Places ({request.city})"
+        "message": message,
     }
 
 
