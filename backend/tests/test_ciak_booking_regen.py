@@ -97,22 +97,46 @@ class _RegenDB:
         return self
 
     def find(self, query, projection=None):
+        self.last_query = query
         return _AsyncCursor(self._degraded)
 
     async def find_one(self, query, projection=None):
         return {"report": self._report_after}
 
+    async def update_one(self, query, update):
+        self.unset_calls = getattr(self, "unset_calls", 0) + 1
+        return None
+
 
 @pytest.mark.asyncio
 async def test_regenerate_counts_success(monkeypatch):
     degraded = [{"session_token": "a"}, {"session_token": "b"}]
-    monkeypatch.setattr(adm, "db", _RegenDB(degraded, report_after={"report_markdown": "ok"}))
+    fake = _RegenDB(degraded, report_after={"report_markdown": "ok"})
+    monkeypatch.setattr(adm, "db", fake)
     # complete_diagnostic è importato lazy dentro la funzione → patch sul modulo sorgente
     with patch("routers.diagnostic.complete_diagnostic", AsyncMock(return_value=None)):
-        out = await adm.regenerate_missing_reports(admin=object(), limit=10)
+        out = await adm.regenerate_missing_reports(admin=object(), limit=10, dry_run=False)
     assert out["found"] == 2
     assert out["regenerated"] == 2
     assert out["still_failing"] == 0
+    assert out["regenerated_tokens"] == ["a", "b"]
+    # il flag storico report_error viene ripulito dopo ogni rigenerazione riuscita
+    assert getattr(fake, "unset_calls", 0) == 2
+    # il filtro NON deve ripescare per report_error (evita loop)
+    assert "report_error" not in str(fake.last_query)
+
+
+@pytest.mark.asyncio
+async def test_regenerate_dry_run_counts_only(monkeypatch):
+    degraded = [{"session_token": "a"}, {"session_token": "b"}]
+    monkeypatch.setattr(adm, "db", _RegenDB(degraded, report_after={"report_markdown": "ok"}))
+    called = AsyncMock(return_value=None)
+    with patch("routers.diagnostic.complete_diagnostic", called):
+        out = await adm.regenerate_missing_reports(admin=object(), limit=10, dry_run=True)
+    assert out["found"] == 2
+    assert out["regenerated"] == 0
+    assert out["tokens"] == ["a", "b"]
+    called.assert_not_awaited()  # dry_run: nessuna chiamata AI
 
 
 @pytest.mark.asyncio
@@ -121,7 +145,7 @@ async def test_regenerate_reports_still_failing_when_no_report(monkeypatch):
     # dopo il complete il report resta assente → still_failing
     monkeypatch.setattr(adm, "db", _RegenDB(degraded, report_after=None))
     with patch("routers.diagnostic.complete_diagnostic", AsyncMock(return_value=None)):
-        out = await adm.regenerate_missing_reports(admin=object(), limit=10)
+        out = await adm.regenerate_missing_reports(admin=object(), limit=10, dry_run=False)
     assert out["found"] == 1
     assert out["regenerated"] == 0
     assert out["still_failing"] == 1
@@ -132,7 +156,7 @@ async def test_regenerate_handles_exception(monkeypatch):
     degraded = [{"session_token": "boom"}]
     monkeypatch.setattr(adm, "db", _RegenDB(degraded, report_after=None))
     with patch("routers.diagnostic.complete_diagnostic", AsyncMock(side_effect=RuntimeError("x"))):
-        out = await adm.regenerate_missing_reports(admin=object(), limit=10)
+        out = await adm.regenerate_missing_reports(admin=object(), limit=10, dry_run=False)
     assert out["found"] == 1
     assert out["still_failing"] == 1
     assert out["errors"] and out["errors"][0]["session_token"] == "boom"
