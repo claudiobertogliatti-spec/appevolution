@@ -4546,13 +4546,17 @@ async def obiettivo_muovi_leva(
 async def regenerate_missing_reports(
     admin=Depends(require_ciak_admin),
     limit: int = Query(200, ge=1, le=1000),
+    dry_run: bool = Query(False),
 ):
-    """Rigenera l'analisi (report Matteo) per le sessioni COMPLETATE senza report valido.
+    """Rigenera l'analisi (report Matteo) per le sessioni COMPLETATE senza report.
 
-    Sono le sessioni degradate quando Matteo falliva (credito API / JSON malformato):
-    hanno risposte e scoring, ma `report` vuoto e/o `report_error`. Riusa la logica di
-    POST /api/diagnostic/complete (scoring + Matteo via tool use), quindi è idempotente:
-    chi ha già il report non viene toccato dal filtro. Utile una-tantum dopo un guasto.
+    Sessioni degradate quando Matteo falliva (credito API / JSON): hanno risposte e
+    scoring ma `report` vuoto. Riusa POST /api/diagnostic/complete (scoring + Matteo
+    via tool use). `dry_run=true` conta soltanto, senza alcuna chiamata AI.
+
+    Il filtro guarda SOLO il report mancante: una sessione che ha già il report NON
+    viene ripescata — nemmeno se le resta un `report_error` storico, che qui viene
+    ripulito dopo una rigenerazione riuscita (evita il loop di ri-generazione).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -4564,7 +4568,6 @@ async def regenerate_missing_reports(
         "$or": [
             {"report": None},
             {"report": {"$exists": False}},
-            {"report_error": {"$exists": True}},
         ],
     }
     tokens: list[str] = []
@@ -4573,7 +4576,18 @@ async def regenerate_missing_reports(
         if tok:
             tokens.append(tok)
 
-    result: dict = {"found": len(tokens), "regenerated": 0, "still_failing": 0, "errors": []}
+    result: dict = {
+        "found": len(tokens),
+        "regenerated": 0,
+        "still_failing": 0,
+        "regenerated_tokens": [],
+        "errors": [],
+    }
+    if dry_run:
+        result["dry_run"] = True
+        result["tokens"] = tokens
+        return result
+
     for tok in tokens:
         try:
             await complete_diagnostic(CompleteRequest(session_token=tok))
@@ -4581,7 +4595,13 @@ async def regenerate_missing_reports(
                 {"session_token": tok}, {"report": 1}
             )
             if fresh and fresh.get("report"):
+                # rigenerato: ripulisci l'eventuale flag storico di errore
+                await db.diagnostic_sessions.update_one(
+                    {"session_token": tok},
+                    {"$unset": {"report_error": ""}},
+                )
                 result["regenerated"] += 1
+                result["regenerated_tokens"].append(tok)
             else:
                 result["still_failing"] += 1
         except Exception as e:  # batch: il fallimento di una non ferma le altre
@@ -4589,7 +4609,7 @@ async def regenerate_missing_reports(
             result["errors"].append({"session_token": tok, "error": str(e)[:200]})
 
     logger.info(
-        "[CIAK-ADMIN] regenerate-reports: found=%s regenerated=%s still_failing=%s",
-        result["found"], result["regenerated"], result["still_failing"],
+        "[CIAK-ADMIN] regenerate-reports: found=%s regenerated=%s still_failing=%s dry_run=%s",
+        result["found"], result["regenerated"], result["still_failing"], dry_run,
     )
     return result
