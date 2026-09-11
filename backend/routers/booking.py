@@ -32,7 +32,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, status
 
 from services.ciak_state_machine import (
-    STATE_CALL_BOOKED, STATE_CALL_DONE, STATE_PURCHASED_67,
+    STATE_CALL_BOOKED, STATE_CALL_DONE, STATE_CIAK_COMPLETED,
+    STATE_PURCHASED_67, STATE_REPORT_GENERATED,
     add_event, transition_to,
 )
 
@@ -64,14 +65,22 @@ def _verify_signature(payload: bytes, signature: Optional[str], secret: str) -> 
 
 async def _find_diagnostic_by_email(email: str) -> Optional[dict]:
     """
-    Trova la diagnostic session più recente con questa email
-    in stato purchased_67 o successivo.
+    Trova la diagnostic session più recente con questa email tra gli stati in cui
+    ha senso prenotare una call.
+
+    Include ciak_completed / report_generated: nel funnel "analisi gratuita" il lead
+    prenota la videocall SENZA pagare (non passa da purchased_67), quindi al momento
+    del booking la sessione è in report_generated (o ciak_completed se Matteo è
+    degradato). Senza questi stati il webhook rispondeva no_matching_lead e la call
+    non veniva registrata sulla scheda del lead.
     """
     cursor = db.diagnostic_sessions.find(
         {
             "user_email": email,
             "current_state": {
                 "$in": [
+                    STATE_CIAK_COMPLETED,
+                    STATE_REPORT_GENERATED,
                     STATE_PURCHASED_67,
                     STATE_CALL_BOOKED,
                     STATE_CALL_DONE,

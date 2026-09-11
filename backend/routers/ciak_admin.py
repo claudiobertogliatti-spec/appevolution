@@ -4540,3 +4540,56 @@ async def obiettivo_muovi_leva(
         {"$set": {"leve": leve, "aggiornato_at": datetime.now(timezone.utc).isoformat()}},
     )
     return {"success": True}
+
+
+@router.post("/diagnostic/regenerate-reports")
+async def regenerate_missing_reports(
+    admin=Depends(require_ciak_admin),
+    limit: int = Query(200, ge=1, le=1000),
+):
+    """Rigenera l'analisi (report Matteo) per le sessioni COMPLETATE senza report valido.
+
+    Sono le sessioni degradate quando Matteo falliva (credito API / JSON malformato):
+    hanno risposte e scoring, ma `report` vuoto e/o `report_error`. Riusa la logica di
+    POST /api/diagnostic/complete (scoring + Matteo via tool use), quindi è idempotente:
+    chi ha già il report non viene toccato dal filtro. Utile una-tantum dopo un guasto.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from routers.diagnostic import CompleteRequest, complete_diagnostic
+
+    query = {
+        "completed_at": {"$ne": None},
+        "$or": [
+            {"report": None},
+            {"report": {"$exists": False}},
+            {"report_error": {"$exists": True}},
+        ],
+    }
+    tokens: list[str] = []
+    async for d in db.diagnostic_sessions.find(query, {"session_token": 1}).limit(limit):
+        tok = d.get("session_token")
+        if tok:
+            tokens.append(tok)
+
+    result: dict = {"found": len(tokens), "regenerated": 0, "still_failing": 0, "errors": []}
+    for tok in tokens:
+        try:
+            await complete_diagnostic(CompleteRequest(session_token=tok))
+            fresh = await db.diagnostic_sessions.find_one(
+                {"session_token": tok}, {"report": 1}
+            )
+            if fresh and fresh.get("report"):
+                result["regenerated"] += 1
+            else:
+                result["still_failing"] += 1
+        except Exception as e:  # batch: il fallimento di una non ferma le altre
+            result["still_failing"] += 1
+            result["errors"].append({"session_token": tok, "error": str(e)[:200]})
+
+    logger.info(
+        "[CIAK-ADMIN] regenerate-reports: found=%s regenerated=%s still_failing=%s",
+        result["found"], result["regenerated"], result["still_failing"],
+    )
+    return result
