@@ -276,10 +276,16 @@ async def complete_diagnostic(payload: CompleteRequest):
       1. Carica sessione + verifica completezza risposte
       2. Calcola scoring (score 0-13 + override)
       3. Transizione a ciak_completed
-      4. Invoca Matteo (può fallire → 503 con sessione salvata)
-      5. Aggiunge tag segment + digital_level + obiettivo
-      6. Transizione a report_generated
-      7. Persist + ritorna URL del report
+      4. Invoca Matteo (analisi INTERNA) — se fallisce NON blocca: degrado grazioso.
+      5. Se il report c'è: aggiunge tag segment + digital_level + obiettivo + report_generated
+      6. Persist + emette ciak_completed su Systeme + ritorna 200
+
+    ⚠️ Matteo genera l'analisi INTERNA (la commenta Claudio in call): un suo guasto
+    (credito API, JSON malformato, timeout) NON deve impedire al cliente di arrivare
+    alla prenotazione della videocall. Perciò il fallimento di Matteo è degradato con
+    grazia: la sessione è salvata, il tag ciak_completed è emesso (mail di recupero),
+    la risposta è 200 e il frontend mostra il popup Cal.com. L'analisi si rigenera dopo
+    (admin/retry) leggendo le sessioni con `report_error`.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -324,51 +330,64 @@ async def complete_diagnostic(payload: CompleteRequest):
         session,
     )
 
-    # 3. Invoca Matteo
+    # 3. Invoca Matteo (analisi INTERNA). Il suo fallimento NON blocca l'acquisizione:
+    #    degrado grazioso → il cliente arriva comunque alla prenotazione della call.
     user_payload = _build_user_payload_for_matteo(session, scoring)
+    report = None
     try:
         report = await generate_report(
             user_payload=user_payload,
             user_name=session.get("user_name"),
         )
     except MatteoServiceError as e:
-        logger.exception("[CIAK] Matteo failed for token=%s", payload.session_token)
-        raise HTTPException(503, f"Matteo service unavailable: {e}")
+        # Non rilanciare: logga, marca la sessione per la rigenerazione admin, prosegui.
+        logger.exception(
+            "[CIAK] Matteo failed for token=%s — degrado grazioso (report differito)",
+            payload.session_token,
+        )
+        session["report_error"] = {
+            "message": str(e),
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
 
-    # 4. Tag aggiuntivi da Matteo
-    matteo_tags = [
-        report["tags"]["tag_segment"],
-        report["tags"]["tag_digital_level"],
-        report["tags"]["tag_obiettivo"],
-    ]
-    transition_to(session, STATE_REPORT_GENERATED, extra_tags=matteo_tags)
-    session["report"] = report
+    # 4. Tag aggiuntivi da Matteo + transizione report_generated — solo se il report c'è.
+    if report is not None:
+        matteo_tags = [
+            report["tags"]["tag_segment"],
+            report["tags"]["tag_digital_level"],
+            report["tags"]["tag_obiettivo"],
+        ]
+        transition_to(session, STATE_REPORT_GENERATED, extra_tags=matteo_tags)
+        session["report"] = report
 
-    # 5. Persist finale
+    # 5. Persist finale (con o senza report)
     await db.diagnostic_sessions.replace_one(
         {"session_token": payload.session_token},
         session,
     )
 
     # Fire-and-forget Systeme.io tag emission per ciak_completed.
-    # Emette: ciak_completed + stato_<n> + segment_<x> + digital_level_<x> + obiettivo_<x>.
-    # Triggera automaticamente l'email automation configurata su Systeme per quei tag.
+    # Emette sempre: ciak_completed + stato_<n> (→ mail di recupero + segmentazione base).
+    # I tag Matteo (segment/digital/obiettivo) si aggiungono solo se il report è stato generato.
     user_email = session.get("user_email")
     if user_email:
-        asyncio.create_task(ciak_emit_event(
-            email=user_email,
-            event_name="ciak_completed",
-            extra_tags=[
-                f"stato_{scoring.stato_finale}",
+        completed_tags = [f"stato_{scoring.stato_finale}"]
+        if report is not None:
+            completed_tags += [
                 report["tags"]["tag_segment"],
                 report["tags"]["tag_digital_level"],
                 report["tags"]["tag_obiettivo"],
-            ],
+            ]
+        asyncio.create_task(ciak_emit_event(
+            email=user_email,
+            event_name="ciak_completed",
+            extra_tags=completed_tags,
             first_name=session.get("user_name"),
             metadata={
                 "score_numerico": scoring.score_numerico,
                 "stato_finale": scoring.stato_finale,
                 "session_token": payload.session_token,
+                "report_generated": report is not None,
             },
         ))
 
