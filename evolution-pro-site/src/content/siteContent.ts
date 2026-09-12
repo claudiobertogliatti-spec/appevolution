@@ -54,8 +54,8 @@ export const siteContent: SiteContent = {
   brand: 'Evolution PRO',
   platform: 'Ciak',
   primaryCta: {
-    label: 'Guarda la masterclass gratuita',
-    href: 'https://www.ciak.io/masterclass',
+    label: 'Fai la tua analisi gratuita',
+    href: 'https://www.ciak.io/analisi',
   },
   agents: [
     {
@@ -118,15 +118,12 @@ export const siteContent: SiteContent = {
     { name: 'Valter Romani', role: 'Formazione vendita', logo: '/collaborations/valter-romani.png' },
     { name: 'Marco Lamanna', role: 'Formazione vendita', logo: '/collaborations/marco-lamanna.png' },
     { name: 'Cosimo Filieri', role: 'Educazione musicale', logo: '/collaborations/cosimo-filieri.png' },
-    { name: 'Alice Conventi', role: 'Life Coach' },
     { name: 'Arianna Aceto', role: 'Naturopatia', logo: '/collaborations/arianna-aceto.svg' },
     { name: 'Marco Orlandi', role: 'Arte', logo: '/collaborations/marco-orlandi.png' },
     { name: 'Silvia Sedda', role: 'Insegnante di inglese', logo: '/collaborations/silvia-sedda.png' },
     { name: 'Federica Arimatea', role: 'Vocal coaching', logo: '/collaborations/federica-arimatea.jpg' },
     { name: 'Daniele Andolfi', role: 'Benessere olistico', logo: '/collaborations/daniele-andolfi.png' },
     { name: 'Daphne Oliveti', role: 'Psicologia sportiva', logo: '/collaborations/daphne-oliveti.png' },
-    { name: 'Annamaria Depalma', role: 'Counselor olistico' },
-    { name: 'Maria Giulia Falcone', role: 'Coaching' },
     { name: 'Luigi Calafiore', role: 'Design automobilistico' },
     { name: 'Sara Stella Duè', role: 'Spiritual coaching' },
     { name: 'Alfredo Vasi', role: 'Green IT & formazione' },
