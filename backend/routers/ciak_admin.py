@@ -801,6 +801,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     clicked_no_purchase = []
     completed_no_purchase = []
     purchased_no_call = []
+    call_done_no_proposal = []
 
     for em, d in diagnostics_by_email.items():
         state = d.get("current_state")
@@ -842,6 +843,15 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
                     "Ha acquistato il Blueprint ma non ha ancora prenotato la call.",
                 )
             )
+        elif state == "call_done":
+            call_done_no_proposal.append(
+                _lead_item(
+                    em,
+                    _name(em, d),
+                    call_done_ts or d.get("created_at"),
+                    "Call completata: e' il momento di generare la Proposta Partnership.",
+                )
+            )
 
     # ⚠️ La priorita' "checkpoint fatto, 8 domande mancanti" e' stata rimossa il
     # 4/9/2026: il Checkpoint e' ritirato dal funnel (vedi _PROSPECT_COLUMNS), quindi
@@ -850,6 +860,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
 
     proposal_month = 0
     paid_contract_month = 0
+    proposta_emails: set[str] = set()
     async for p in db.proposte.find({}):
         status = p.get("stato")
         proposal_ts = p.get("created_at") or p.get("inviata_at") or p.get("visto_at")
@@ -858,6 +869,16 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             proposal_month += 1
         if p.get("pagamento_completato") and (not paid_ts or paid_ts >= month_start):
             paid_contract_month += 1
+        for em_field in (p.get("identity_email"), p.get("prospect_email")):
+            em_p = _email(em_field)
+            if em_p:
+                proposta_emails.add(em_p)
+
+    # Chi ha gia' una proposta esce dalla lista "call fatta, proposta da inviare":
+    # il prossimo passo per loro non e' generare, e' seguirla.
+    call_done_no_proposal = [
+        item for item in call_done_no_proposal if item["email"] not in proposta_emails
+    ]
 
     partner_closed_emails = set()
     async for p in db.partners.find(
@@ -995,6 +1016,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
             "clicked_no_purchase": _sort_limit(clicked_no_purchase),
             "purchased_no_call": _sort_limit(purchased_no_call),
+            "call_done_no_proposal": _sort_limit(call_done_no_proposal),
         },
         "bottlenecks": bottlenecks,
         "routine": {

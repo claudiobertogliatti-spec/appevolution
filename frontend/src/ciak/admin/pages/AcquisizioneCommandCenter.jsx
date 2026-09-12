@@ -5,6 +5,8 @@ import {
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
+  Copy,
   CreditCard,
   Database,
   FileSignature,
@@ -18,7 +20,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { apiGet } from "../api";
+import { toast } from "sonner";
+import { apiGet, apiPost, adminFetch } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function fmtDate(value) {
   if (!value) return "Data non registrata";
@@ -73,7 +77,7 @@ function InfoPanel({ icon: Icon, title, children, tone = "blue" }) {
   );
 }
 
-function PriorityList({ title, description, items, empty, tone = "blue" }) {
+function PriorityList({ title, description, items, empty, tone = "blue", onCopy, onMark, onGenerate }) {
   const toneClass = tone === "hot" ? "border-yellow-300 bg-yellow-50" : "border-slate-200 bg-white";
   return (
     <div className={`rounded-xl border ${toneClass} overflow-hidden`}>
@@ -86,23 +90,56 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
       ) : (
         <div className="divide-y divide-slate-100">
           {items.map((item) => (
-            <Link
+            <div
               key={item.email}
-              to={`/admin/leads/${encodeURIComponent(item.email)}`}
-              className="group flex items-center justify-between gap-4 p-4 hover:bg-white transition"
+              className="group flex items-center justify-between gap-3 p-4 hover:bg-white transition"
             >
-              <div className="min-w-0">
+              <Link to={`/admin/leads/${encodeURIComponent(item.email)}`} className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-900 truncate">{item.nome || item.email}</p>
                 <p className="text-xs text-slate-500 truncate">{item.email}</p>
                 <p className="text-xs text-slate-400 mt-1">{item.reason}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{fmtDate(item.updated_at)}</p>
+              </Link>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onCopy(item.email)}
+                  title="Copia email per l'outreach"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                {onMark && (
+                  <button
+                    type="button"
+                    onClick={() => onMark(item)}
+                    title="Segna l'analisi da 27 euro come pagata (manuale)"
+                    className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-yellow-400 text-slate-900 text-xs font-semibold hover:bg-yellow-300 transition"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    27&euro;
+                  </button>
+                )}
+                {onGenerate && (
+                  <button
+                    type="button"
+                    onClick={() => onGenerate(item)}
+                    title="Genera la Proposta Partnership"
+                    className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition"
+                  >
+                    <FileSignature className="w-3.5 h-3.5" />
+                    Proposta
+                  </button>
+                )}
+                <Link
+                  to={`/admin/leads/${encodeURIComponent(item.email)}`}
+                  title="Apri scheda lead"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-700 hover:bg-blue-50 transition"
+                >
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                </Link>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-[11px] text-slate-400">{fmtDate(item.updated_at)}</p>
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mt-2">
-                  Apri <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
-                </span>
-              </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -113,6 +150,10 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
 export function AcquisizioneCommandCenter({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [pendingMark, setPendingMark] = useState(null); // lead in attesa di conferma €27
+  const [marking, setMarking] = useState(false);
+  const [pendingProposal, setPendingProposal] = useState(null); // lead in attesa di conferma Proposta
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     apiGet("/acquisizione-command-center")
@@ -122,6 +163,99 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [onAuthExpired]);
+
+  // Copia email negli appunti per l'outreach — azione client-side, nessun backend.
+  const copyEmail = (emailToCopy) => {
+    if (!emailToCopy) return;
+    navigator.clipboard?.writeText(emailToCopy)
+      .then(() => toast.success(`Email copiata: ${emailToCopy}`))
+      .catch(() => toast.error("Impossibile copiare l'email."));
+  };
+
+  // Segna €27 pagato (manuale): stesso endpoint della scheda lead. Sensibile →
+  // passa da ConfirmDialog. A conferma riuscita il lead esce dalle liste
+  // "non acquistato" (ottimistico); un refresh riflettera' lo spostamento.
+  const confirmMark = async () => {
+    const lead = pendingMark;
+    if (!lead?.email) return;
+    setMarking(true);
+    try {
+      const r = await apiPost("/lead/mark-purchased", { email: lead.email });
+      toast.success(
+        r.already_purchased
+          ? `${lead.email} era gia' segnato come acquistato.`
+          : `27 EUR segnati come pagati per ${lead.email}.`,
+      );
+      setData((prev) => {
+        if (!prev) return prev;
+        const p = prev.priorities || {};
+        const strip = (arr) => (arr || []).filter((x) => x.email !== lead.email);
+        return {
+          ...prev,
+          priorities: {
+            ...p,
+            diagnostic_no_purchase: strip(p.diagnostic_no_purchase),
+            clicked_no_purchase: strip(p.clicked_no_purchase),
+          },
+        };
+      });
+      setPendingMark(null);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore: " + e.message);
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  // Genera Proposta Partnership per un lead con call fatta. Endpoint fuori dal
+  // prefix /api/admin/ciak → adminFetch (path assoluto). Il backend ri-verifica
+  // l'eleggibilita' (call_done + offerta partnership + analisi consegnata): se
+  // manca un requisito risponde 409 col motivo, che mostriamo tale e quale.
+  const confirmGenerate = async () => {
+    const lead = pendingProposal;
+    if (!lead?.email) return;
+    setGenerating(true);
+    try {
+      const res = await adminFetch("/api/proposta/admin/genera-cliente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: lead.email, diagnostic_session_id: null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      if (body.url) navigator.clipboard?.writeText(body.url).catch(() => {});
+      toast.success(
+        `Proposta ${body.status || "generata"} per ${lead.email} — link copiato.`,
+        body.url
+          ? {
+              description: body.url,
+              action: { label: "Apri", onClick: () => window.open(body.url, "_blank", "noopener") },
+              duration: 10000,
+            }
+          : undefined,
+      );
+      setData((prev) => {
+        if (!prev) return prev;
+        const p = prev.priorities || {};
+        return {
+          ...prev,
+          priorities: {
+            ...p,
+            call_done_no_proposal: (p.call_done_no_proposal || []).filter((x) => x.email !== lead.email),
+          },
+        };
+      });
+      setPendingProposal(null);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const priorityTotal = useMemo(() => {
     if (!data) return 0;
@@ -144,6 +278,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
 
   return (
     <div className="p-8 space-y-6">
+      {/* HERO — target/gap del mese, la stella polare */}
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>
@@ -165,33 +300,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
-        <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
-        <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
-        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
-        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
-        <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
-        <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <div className="flex items-center gap-2">
-          <Route className="w-5 h-5 text-emerald-600" />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Ponte operativo</p>
-            <h2 className="text-xl font-semibold text-slate-900">Ciak Discovery -> Systeme Evolution</h2>
-          </div>
-        </div>
-        <div className="grid md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
-          <KpiCard icon={Database} label="Scoperti" value={discoveryEngine.new_leads_total || 0} hint="Lead in discovery_leads." tone="slate" />
-          <KpiCard icon={Flame} label="Hot" value={discoveryEngine.hot_leads_total || 0} hint="Score almeno 75." tone="yellow" />
-          <KpiCard icon={MapPin} label="Google Places" value={discoveryEngine.google_places_total || 0} hint="Professionisti offline trovati." tone="green" />
-          <KpiCard icon={ListChecks} label="Coda Systeme" value={discoveryEngine.queued_systeme_pending || 0} hint="Source ammesse, pronte import." tone="blue" />
-          <KpiCard icon={CheckCircle2} label="Importati" value={discoveryEngine.queued_systeme_imported || 0} hint="Gia' entrati in Systeme." tone="green" />
-          <KpiCard icon={AlertTriangle} label="Bloccati" value={discoveryEngine.lista_fredda_pending_blocked || 0} hint="Lista fredda esclusa da policy." tone="slate" />
-        </div>
-      </div>
-
+      {/* ALERT — colli di bottiglia sistemici: si vedono prima di lavorare */}
       {data.bottlenecks?.length > 0 && (
         <div className="grid md:grid-cols-3 gap-4">
           {data.bottlenecks.map((b) => (
@@ -206,35 +315,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
-          <p>
-            {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
-          </p>
-          <p className="mt-2 text-slate-900 font-semibold">
-            Oggi: {activity.new_leads || 0} nuovi lead · {activity.diagnostics_completed || 0} diagnosi (target {activity.target_new_contacts || 20} contatti)
-          </p>
-          <div className="mt-3 space-y-2">
-            {(routine.today || []).map((item) => (
-              <div key={item.id} className="rounded-lg bg-white/70 border border-white px-3 py-2">
-                <p className="font-semibold text-slate-900">{item.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{item.owner} · {item.metric}</p>
-              </div>
-            ))}
-          </div>
-        </InfoPanel>
-        <InfoPanel icon={ShieldCheck} title="Canali ammessi" tone="blue">
-          <ul className="space-y-1">
-            {(channels.allowed || []).map((item) => <li key={item}>- {item}</li>)}
-          </ul>
-        </InfoPanel>
-        <InfoPanel icon={AlertTriangle} title="Da non fare ora" tone="slate">
-          <ul className="space-y-1">
-            {(channels.blocked || []).map((item) => <li key={item}>- {item}</li>)}
-          </ul>
-        </InfoPanel>
-      </div>
-
+      {/* ── LAVORO PRIMA: le liste di lead azionabili in cima ── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Da lavorare oggi</h2>
@@ -253,44 +334,129 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
             il Checkpoint e' ritirato dal funnel vivo, quella lista mostrava solo i
             fantasmi di giugno. Il backend non espone piu' checkpoint_no_diagnostic. */}
         <PriorityList
-          title="8 domande completate, Blueprint non acquistato"
-          description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
-          items={priorities.diagnostic_no_purchase || []}
-          empty="Nessun lead fermo dopo le 8 domande."
-        />
-        <PriorityList
           title="Checkout cliccato, pagamento mancante"
           description="Sono i recuperi piu' caldi: hanno mostrato intenzione economica."
           items={priorities.clicked_no_purchase || []}
           empty="Nessun checkout caldo da recuperare."
           tone="hot"
+          onCopy={copyEmail}
+          onMark={setPendingMark}
+        />
+        <PriorityList
+          title="8 domande completate, Blueprint non acquistato"
+          description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
+          items={priorities.diagnostic_no_purchase || []}
+          empty="Nessun lead fermo dopo le 8 domande."
+          onCopy={copyEmail}
+          onMark={setPendingMark}
         />
         <PriorityList
           title="Blueprint acquistato, call non prenotata"
           description="Qui il rischio e' perdere slancio. La call deve arrivare subito."
           items={priorities.purchased_no_call || []}
           empty="Tutti gli acquirenti Blueprint hanno una call o sono gia' oltre."
+          onCopy={copyEmail}
+        />
+        <PriorityList
+          title="Call fatta, proposta da inviare"
+          description="Hanno completato la call ed sono qualificati: genera la Proposta Partnership €2.790 e mandala."
+          items={priorities.call_done_no_proposal || []}
+          empty="Nessun lead con call fatta in attesa di proposta."
+          onCopy={copyEmail}
+          onGenerate={setPendingProposal}
         />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
-        <h2 className="text-xl font-semibold text-slate-900 mt-1">Motore Vendite Partner</h2>
-        <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-          {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
-        </p>
-        <div className="grid md:grid-cols-2 gap-4 mt-4">
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-            <p className="text-sm font-semibold text-slate-900">Resta stabile</p>
-            <p className="text-sm text-slate-500 mt-1">{(partnerSalesEngine.stable_parts || []).join(" · ")}</p>
-          </div>
-          <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
-            <p className="text-sm font-semibold text-slate-900">Si adatta</p>
-            <p className="text-sm text-slate-600 mt-1">{(partnerSalesEngine.adapted_parts || []).join(" · ")}</p>
-          </div>
-        </div>
+      {/* SNAPSHOT — il funnel del mese, sotto il lavoro */}
+      <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
+        <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
+        <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
+        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
+        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
+        <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
+        <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
       </div>
 
+      {/* ── CONTESTO OPERATIVO: numeri di supporto e regole, ripiegati ── */}
+      <details className="group bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <summary className="flex items-center justify-between gap-3 p-4 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2">
+            <Route className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-slate-900">Contesto operativo</span>
+            <span className="text-xs text-slate-400">Ponte discovery, routine Luca, canali, motore partner</span>
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" />
+        </summary>
+
+        <div className="border-t border-slate-100 p-5 space-y-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <Route className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Ponte operativo</p>
+                <h3 className="text-lg font-semibold text-slate-900">Ciak Discovery -> Systeme Evolution</h3>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
+              <KpiCard icon={Database} label="Scoperti" value={discoveryEngine.new_leads_total || 0} hint="Lead in discovery_leads." tone="slate" />
+              <KpiCard icon={Flame} label="Hot" value={discoveryEngine.hot_leads_total || 0} hint="Score almeno 75." tone="yellow" />
+              <KpiCard icon={MapPin} label="Google Places" value={discoveryEngine.google_places_total || 0} hint="Professionisti offline trovati." tone="green" />
+              <KpiCard icon={ListChecks} label="Coda Systeme" value={discoveryEngine.queued_systeme_pending || 0} hint="Source ammesse, pronte import." tone="blue" />
+              <KpiCard icon={CheckCircle2} label="Importati" value={discoveryEngine.queued_systeme_imported || 0} hint="Gia' entrati in Systeme." tone="green" />
+              <KpiCard icon={AlertTriangle} label="Bloccati" value={discoveryEngine.lista_fredda_pending_blocked || 0} hint="Lista fredda esclusa da policy." tone="slate" />
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-4">
+            <InfoPanel icon={ListChecks} title="Routine Luca" tone="yellow">
+              <p>
+                {routine.daily_new_contacts || 20} nuovi contatti al giorno, {routine.weekly_new_contacts || 100} a settimana, {routine.monthly_new_contacts || 400} al mese.
+              </p>
+              <p className="mt-2 text-slate-900 font-semibold">
+                Oggi: {activity.new_leads || 0} nuovi lead · {activity.diagnostics_completed || 0} diagnosi (target {activity.target_new_contacts || 20} contatti)
+              </p>
+              <div className="mt-3 space-y-2">
+                {(routine.today || []).map((item) => (
+                  <div key={item.id} className="rounded-lg bg-white/70 border border-white px-3 py-2">
+                    <p className="font-semibold text-slate-900">{item.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{item.owner} · {item.metric}</p>
+                  </div>
+                ))}
+              </div>
+            </InfoPanel>
+            <InfoPanel icon={ShieldCheck} title="Canali ammessi" tone="blue">
+              <ul className="space-y-1">
+                {(channels.allowed || []).map((item) => <li key={item}>- {item}</li>)}
+              </ul>
+            </InfoPanel>
+            <InfoPanel icon={AlertTriangle} title="Da non fare ora" tone="slate">
+              <ul className="space-y-1">
+                {(channels.blocked || []).map((item) => <li key={item}>- {item}</li>)}
+              </ul>
+            </InfoPanel>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
+            <h3 className="text-lg font-semibold text-slate-900 mt-1">Motore Vendite Partner</h3>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+              {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div className="rounded-xl bg-white border border-slate-100 p-4">
+                <p className="text-sm font-semibold text-slate-900">Resta stabile</p>
+                <p className="text-sm text-slate-500 mt-1">{(partnerSalesEngine.stable_parts || []).join(" · ")}</p>
+              </div>
+              <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
+                <p className="text-sm font-semibold text-slate-900">Si adatta</p>
+                <p className="text-sm text-slate-600 mt-1">{(partnerSalesEngine.adapted_parts || []).join(" · ")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      {/* Regola operativa + CTA campagne, chiude la pagina */}
       <div className="bg-slate-900 rounded-xl p-5 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-3">
           <Users className="w-5 h-5 text-yellow-400 mt-0.5" />
@@ -308,6 +474,28 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
           Apri Campagne Ads <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingMark}
+        title={pendingMark ? `Segna €27 pagato — ${pendingMark.email}` : ""}
+        body="Non esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67). Richiede che il lead abbia gia' completato le 8 Domande Ciak."
+        confirmLabel="Segna pagato"
+        cancelLabel="Annulla"
+        busy={marking}
+        onConfirm={confirmMark}
+        onCancel={() => setPendingMark(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingProposal}
+        title={pendingProposal ? `Genera Proposta Partnership — ${pendingProposal.email}` : ""}
+        body="Crea la Proposta Partnership €2.790 (e l'account cliente se manca). Il backend verifica che la call sia fatta, l'offerta sia partnership e l'analisi consegnata: in caso contrario spiega cosa manca. Nessun pagamento reale."
+        confirmLabel="Genera proposta"
+        cancelLabel="Annulla"
+        busy={generating}
+        onConfirm={confirmGenerate}
+        onCancel={() => setPendingProposal(null)}
+      />
     </div>
   );
 }
