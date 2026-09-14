@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 from auth import decode_token
+from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
 from services.ciak_client_accounts import (
     ACCESS_BLUEPRINT,
@@ -24,6 +26,8 @@ from services.ciak_client_accounts import (
     verify_magic_login_token,
 )
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ciak/client", tags=["ciak-client"])
 security = HTTPBearer(auto_error=False)
@@ -64,6 +68,14 @@ class OfferDecisionRequest(BaseModel):
 
 class ClientIdRequest(BaseModel):
     client_id: str
+
+
+class ConsegnaBlueprintRequest(BaseModel):
+    """Identifica il lead da consegnare. Almeno uno tra i campi va valorizzato;
+    `session_token` ha la precedenza, poi `email`, poi `client_id`."""
+    session_token: str | None = None
+    email: str | None = None
+    client_id: str | None = None
 
 
 def _now_iso() -> str:
@@ -222,16 +234,15 @@ async def _blueprint_context(client: dict[str, Any]) -> dict[str, Any]:
 
 
 def _ensure_completed_blueprint_path(context: dict[str, Any]) -> None:
+    """Blueprint GRATUITO: l'unico requisito e' che la call sia avvenuta.
+
+    Il Blueprint non si paga piu' (niente `stripe_payment_completed`) e le offerte
+    non dipendono dalla consegna dell'analisi Carlo (niente `bozza_inviata_at`): la
+    generazione puo' degradare o tardare senza bloccare l'acquisto. Il via lo da'
+    l'admin confermando di aver fatto la call di consegna (stato `call_done`), non
+    un pagamento.
+    """
     session = context.get("session") or {}
-    analysis = context.get("analysis") or {}
-    paid = any(event.get("event") == "stripe_payment_completed" for event in session.get("events", []))
-    if not paid:
-        raise HTTPException(status_code=403, detail="Il pagamento Blueprint da 27 EUR non risulta completato.")
-    if not analysis.get("bozza_inviata_at"):
-        raise HTTPException(
-            status_code=409,
-            detail="L'analisi Blueprint deve essere consegnata prima di proporre Ciak Start.",
-        )
     if session.get("current_state") != "call_done":
         raise HTTPException(
             status_code=409,
@@ -246,11 +257,8 @@ def _ensure_start_checkout_allowed(client: dict[str, Any], context: dict[str, An
         raise HTTPException(status_code=409, detail="Ciak Start risulta gia' attivo su questo account.")
     if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
         raise HTTPException(status_code=403, detail="Ciak Start non e' disponibile per questo account.")
-    if client.get("offer_decision") != OFFER_START:
-        raise HTTPException(
-            status_code=403,
-            detail="Ciak Start richiede la decisione esplicita del team dopo la call.",
-        )
+    # Modello gratuito: nessuna `offer_decision` manuale per-lead. Dopo la call
+    # (call_done) il cliente vede l'offerta e puo' acquistare da solo Ciak Start.
     _ensure_completed_blueprint_path(context)
 
 
@@ -461,6 +469,109 @@ async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
         {"_id": 0, "generated_by": 0, "approved_by": 0},
     ).sort("approved_at", 1).to_list(20)
     return {"items": docs}
+
+
+async def _deliver_blueprint(
+    diagnostic: dict[str, Any], background_tasks: BackgroundTasks
+) -> dict[str, Any]:
+    """Consegna del Blueprint GRATUITO, innescata dall'admin a fine call.
+
+    Crea/aggiorna l'account cliente + magic-link e avvia in background la
+    generazione + consegna dell'analisi Carlo (il "blueprint"). Idempotente
+    (`ensure_client_for_blueprint` fa upsert per email; `processa_acquisto` salta
+    se l'analisi e' gia' stata inviata). Il magic-link e' secondario: se fallisce,
+    l'analisi parte comunque. Ritorna un riepilogo per la UI admin.
+    """
+    from services.ciak_client_accounts import (
+        create_magic_login_token,
+        ensure_client_for_blueprint,
+    )
+
+    client = await ensure_client_for_blueprint(db, diagnostic)
+
+    magic_link = None
+    try:
+        login = await create_magic_login_token(db, client["id"], client["email"])
+        base = os.environ.get("CIAK_BASE_URL") or os.environ.get(
+            "FRONTEND_URL_PROD", "https://ciak.io"
+        )
+        magic_link = f"{base}/cliente/accesso?token={login['token']}"
+        await db.ciak_clients.update_one(
+            {"id": client["id"]},
+            {"$set": {
+                "last_magic_link_created_at": _now_iso(),
+                "last_magic_login_url": magic_link,
+            }},
+        )
+    except Exception as exc:
+        logger.error("[CONSEGNA_BLUEPRINT] magic-link fallito: %s", exc)
+
+    # Analisi Carlo (blueprint): genera + consegna in background. Idempotente e
+    # non solleva (processa_acquisto logga e ritorna lo stato).
+    from services import ciak_analisi_delivery
+
+    ciak_analisi_delivery.set_db(db)
+    background_tasks.add_task(
+        ciak_analisi_delivery.processa_acquisto,
+        session_token=diagnostic.get("session_token"),
+        email=client.get("email") or diagnostic.get("user_email"),
+        nome=diagnostic.get("user_name") or client.get("name"),
+    )
+    return {
+        "client_id": client.get("id"),
+        "email": client.get("email"),
+        "magic_link": magic_link,
+    }
+
+
+@router.post("/admin/consegna-blueprint")
+async def consegna_blueprint(
+    body: ConsegnaBlueprintRequest,
+    background_tasks: BackgroundTasks,
+    auth=Depends(require_admin_or_internal),
+):
+    """L'admin conferma di aver fatto la call di consegna.
+
+    Porta il lead a `call_done`, crea l'account cliente, invia il Blueprint
+    (analisi Carlo) via email col magic-link e sblocca le offerte (Ciak Start /
+    Partnership). Sostituisce il vecchio automatismo sul webhook Cal.com: il via
+    lo da' l'admin, non l'evento MEETING_ENDED.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    # 1. Trova la diagnostic session del lead (session_token > email > client_id).
+    diagnostic = None
+    if body.session_token:
+        diagnostic = await db.diagnostic_sessions.find_one({"session_token": body.session_token})
+    if diagnostic is None and body.email:
+        normalized = body.email.strip().lower()
+        cursor = db.diagnostic_sessions.find({"user_email": normalized}).sort("created_at", -1).limit(1)
+        docs = await cursor.to_list(length=1)
+        diagnostic = docs[0] if docs else None
+    if diagnostic is None and body.client_id:
+        client_doc = await db.ciak_clients.find_one({"id": body.client_id})
+        token = (client_doc or {}).get("session_token") or (client_doc or {}).get("diagnostic_session_token")
+        if token:
+            diagnostic = await db.diagnostic_sessions.find_one({"session_token": token})
+    if diagnostic is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Lead non trovato: fornisci session_token, email o client_id validi.",
+        )
+
+    # 2. Attesta la call completata: porta a call_done (idempotente).
+    if diagnostic.get("current_state") != STATE_CALL_DONE:
+        transition_to(
+            diagnostic,
+            STATE_CALL_DONE,
+            event_metadata={"confirmed_by": auth.get("actor"), "source": "admin_consegna"},
+        )
+        await db.diagnostic_sessions.replace_one({"_id": diagnostic["_id"]}, diagnostic)
+
+    # 3. Consegna Blueprint + sblocco offerte.
+    summary = await _deliver_blueprint(diagnostic, background_tasks)
+    return {"success": True, **summary}
 
 
 @router.post("/admin/offer-decision")

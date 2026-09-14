@@ -49,6 +49,10 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [askMark, setAskMark] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [delivering, setDelivering] = useState(false);
+  const [deliverMsg, setDeliverMsg] = useState(null);
+  const [deliverResult, setDeliverResult] = useState(null);
+  const [askDeliver, setAskDeliver] = useState(false);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -75,6 +79,33 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setMarkMsg("Errore: " + e.message);
     } finally {
       setMarking(false);
+    }
+  }
+
+  // Consegna Blueprint GRATUITO: l'admin conferma di aver fatto la call di consegna.
+  // Innesca account cliente + analisi Carlo via email col magic-link + sblocco offerte.
+  // Azione sensibile (email reale al cliente): passa da un ConfirmDialog in pagina.
+  async function confirmDeliverBlueprint() {
+    setAskDeliver(false);
+    setDelivering(true);
+    setDeliverMsg(null);
+    try {
+      const response = await adminFetch("/api/ciak/client/admin/consegna-blueprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      const r = await response.json();
+      setDeliverResult(r);
+      setDeliverMsg("Fatto: Blueprint in consegna. Il cliente riceve l'email con l'analisi e il link d'accesso; le offerte sono sbloccate sulla sua sales page.");
+      const fresh = await apiGet("/lead", { email: data.email });
+      setData(fresh);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setDeliverMsg("Errore consegna: " + e.message);
+    } finally {
+      setDelivering(false);
     }
   }
 
@@ -117,6 +148,44 @@ export function AdminLeadDetail({ onAuthExpired }) {
         {lead?.nome || data.email}
       </h1>
       <p className="text-slate-500 mb-8">{data.email}</p>
+
+      {/* Consegna Blueprint GRATUITO — azione chiave post-call */}
+      {diagnostics.length > 0 && (
+        <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
+          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
+            Dopo la call di consegna
+          </p>
+          <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+            Quando hai fatto la call, conferma qui: il cliente riceve l'email col{" "}
+            <strong className="text-white">Blueprint</strong> (analisi Carlo) e il link
+            d'accesso, e si sbloccano le offerte <strong className="text-white">Ciak Start</strong>{" "}
+            e <strong className="text-white">Partnership</strong> sulla sua sales page.
+          </p>
+          <button
+            onClick={() => setAskDeliver(true)}
+            disabled={delivering}
+            className="px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
+          >
+            {delivering ? "Invio in corso…" : "Ho fatto la call di consegna → invia il Blueprint"}
+          </button>
+          {deliverMsg && <p className="text-sm text-slate-200 mt-4 leading-relaxed">{deliverMsg}</p>}
+          {deliverResult?.magic_link && (
+            <div className="mt-4 rounded-xl border border-slate-700 p-4">
+              <p className="text-xs text-slate-400 mb-1">Link d'accesso cliente</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <code className="text-xs text-slate-200 break-all">{deliverResult.magic_link}</code>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(deliverResult.magic_link)}
+                  className="text-sm text-yellow-400 shrink-0"
+                >
+                  Copia link
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bridge Partnership */}
       {qualified_for_proposta && (
@@ -261,6 +330,17 @@ export function AdminLeadDetail({ onAuthExpired }) {
         busy={marking}
         onConfirm={confirmMarkPaid}
         onCancel={() => setAskMark(false)}
+      />
+
+      <ConfirmDialog
+        open={askDeliver}
+        title={`Invia il Blueprint — ${data.email}`}
+        body="Conferma di aver fatto la call di consegna. Il cliente riceverà l'email con l'analisi (Blueprint) e il link d'accesso, e le offerte Ciak Start e Partnership diventano acquistabili sulla sua sales page."
+        confirmLabel="Invia il Blueprint"
+        cancelLabel="Annulla"
+        busy={delivering}
+        onConfirm={confirmDeliverBlueprint}
+        onCancel={() => setAskDeliver(false)}
       />
     </div>
   );

@@ -27,10 +27,9 @@ import hmac
 import json
 import logging
 import os
-from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from services.ciak_state_machine import (
     STATE_CALL_BOOKED, STATE_CALL_DONE, STATE_CIAK_COMPLETED,
@@ -118,67 +117,12 @@ def _extract_attendee_email(body: dict) -> Optional[str]:
     return body.get("email")
 
 
-async def _enroll_client_post_call(
-    diagnostic: dict, background_tasks: BackgroundTasks
-) -> None:
-    """Post-call, modello Blueprint GRATUITO.
-
-    A fine call crea/aggiorna l'account cliente + magic-link e avvia in background
-    la generazione + consegna dell'analisi Carlo (il "blueprint"). Replica ciò che
-    prima faceva SOLO il webhook di pagamento Blueprint (checkout.py), ma senza
-    pagamento. Idempotente (ensure_client fa upsert per email; processa_acquisto
-    salta se già inviata) e non-bloccante: un errore qui non deve rompere il webhook
-    Cal.com. NB: la visibilità delle offerte NON dipende da questo — è legata a
-    call_done — quindi se l'analisi tarda o fallisce, il cliente vede comunque le offerte.
-    """
-    try:
-        from services.ciak_client_accounts import (
-            create_magic_login_token,
-            ensure_client_for_blueprint,
-        )
-
-        client = await ensure_client_for_blueprint(db, diagnostic)
-
-        try:
-            login = await create_magic_login_token(db, client["id"], client["email"])
-            base = os.environ.get("CIAK_BASE_URL") or os.environ.get(
-                "FRONTEND_URL_PROD", "https://ciak.io"
-            )
-            magic_link = f"{base}/cliente/accesso?token={login['token']}"
-            await db.ciak_clients.update_one(
-                {"id": client["id"]},
-                {"$set": {
-                    "last_magic_link_created_at": datetime.now(timezone.utc).isoformat(),
-                    "last_magic_login_url": magic_link,
-                }},
-            )
-        except Exception as exc:
-            logger.error("[CALCOM_WEBHOOK] magic-link post-call fallito: %s", exc)
-
-        # Analisi Carlo (blueprint): genera + consegna in background. Idempotente,
-        # non solleva (processa_acquisto logga e ritorna lo stato).
-        from services import ciak_analisi_delivery
-
-        ciak_analisi_delivery.set_db(db)
-        background_tasks.add_task(
-            ciak_analisi_delivery.processa_acquisto,
-            session_token=diagnostic.get("session_token"),
-            email=client.get("email") or diagnostic.get("user_email"),
-            nome=diagnostic.get("user_name") or client.get("name"),
-        )
-    except Exception as exc:
-        logger.error(
-            "[CALCOM_WEBHOOK] arruolamento post-call fallito per token=%s: %s",
-            diagnostic.get("session_token"), exc,
-        )
-
-
 # ═══════════════════════════════════════════════════════════════════
 #  WEBHOOK
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post("/webhook", status_code=status.HTTP_200_OK)
-async def calcom_webhook(request: Request, background_tasks: BackgroundTasks):
+async def calcom_webhook(request: Request):
     """
     Cal.com webhook handler.
 
@@ -271,11 +215,11 @@ async def calcom_webhook(request: Request, background_tasks: BackgroundTasks):
         diagnostic,
     )
 
-    # Post-call (Blueprint GRATUITO): a fine call crea l'account cliente + magic-link
-    # e avvia generazione/consegna dell'analisi Carlo — ciò che prima faceva solo il
-    # webhook di pagamento. Non-bloccante e idempotente.
-    if trigger_event == "MEETING_ENDED":
-        await _enroll_client_post_call(diagnostic, background_tasks)
+    # NB: MEETING_ENDED aggiorna solo lo stato (call_done) e i tag. La CONSEGNA del
+    # Blueprint (account cliente + analisi Carlo + email col magic-link + sblocco
+    # offerte) NON parte da qui: la innesca l'admin confermando di aver fatto la call
+    # di consegna → POST /api/ciak/client/admin/consegna-blueprint. Cal.com non e' una
+    # prova affidabile che la call di consegna sia avvenuta.
 
     # Fire-and-forget Systeme.io tag emission per eventi Cal.com.
     # Triggera email automation: pre-call reminder, post-call thank-you, no-show follow-up.

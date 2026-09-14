@@ -138,25 +138,18 @@ async def require_partnership_proposal_eligibility(email: str) -> dict:
 
     session_token = client.get("session_token") or client.get("diagnostic_session_token")
     session = None
-    analysis = None
     if session_token:
         session = await db.diagnostic_sessions.find_one(
             {"session_token": session_token}, {"_id": 0}
         )
-        analysis = await db.ciak_analisi.find_one(
-            {"session_token": session_token}, {"_id": 0}
-        )
     session = session or {}
-    analysis = analysis or {}
 
-    if not any(e.get("event") == "stripe_payment_completed" for e in session.get("events", [])):
-        raise HTTPException(409, "Pagamento Blueprint non verificato")
-    if not analysis.get("bozza_inviata_at"):
-        raise HTTPException(409, "Analisi Blueprint non ancora consegnata")
+    # Blueprint GRATUITO: l'unico requisito e' che la call sia avvenuta
+    # (call_done). Niente pagamento Blueprint, niente attesa della consegna
+    # dell'analisi (bozza_inviata_at) e niente `offer_decision` manuale: dopo la
+    # call la proposta Partnership e' disponibile.
     if session.get("current_state") != "call_done":
         raise HTTPException(409, "Call Blueprint non ancora completata")
-    if client.get("offer_decision") != "partnership":
-        raise HTTPException(409, "Decisione Partnership non registrata")
     return client
 
 

@@ -12,7 +12,7 @@ jest.mock(
 jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn(), adminFetch: jest.fn() }));
 
 import { AdminLeadDetail } from "./AdminLeadDetail";
-import { apiGet, apiPost } from "../api";
+import { apiGet, apiPost, adminFetch } from "../api";
 
 const LEAD = {
   email: "mario@x.it",
@@ -49,4 +49,28 @@ test("confermando registra l'acquisto via apiPost /lead/mark-purchased", async (
   await waitFor(() =>
     expect(apiPost).toHaveBeenCalledWith("/lead/mark-purchased", { email: "mario@x.it" })
   );
+});
+
+test('"Ho fatto la call di consegna" consegna il Blueprint via admin/consegna-blueprint', async () => {
+  adminFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ success: true, client_id: "c1", magic_link: "https://ciak.io/cliente/accesso?token=tk" }),
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  const trigger = await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog");
+  expect(dialog.textContent).toMatch(/mario@x\.it/);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Invia il Blueprint" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/ciak/client/admin/consegna-blueprint",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ email: "mario@x.it" }),
+      })
+    )
+  );
+  // il link d'accesso restituito viene mostrato all'admin (findByText lancia se assente)
+  expect(await screen.findByText(/token=tk/)).toBeTruthy();
 });
