@@ -66,7 +66,10 @@ export function StartPage({ dashboard }) {
   const callDone = dashboard.diagnostic?.state === "call_done";
   const showStartOffer = active || callDone;
   const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
-  const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? PRICING.start.cents;
+  // Il credito garantito verso la Partnership è il valore di Ciak Start (si riscala
+  // intero). Prima dell'acquisto il backend riporta 0 (`|| startPrice` evita il
+  // fuorviante "credito di 0€" sulla sales page).
+  const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents || startPrice;
   const startLocked = !showStartOffer;
   const clientId = dashboard.client?.id;
 
