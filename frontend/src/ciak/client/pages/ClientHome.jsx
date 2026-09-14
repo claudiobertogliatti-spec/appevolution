@@ -31,8 +31,8 @@ function nextAction(dashboard) {
   if (diagnostic.state === "call_done") {
     return {
       title: "Prossimo passo disponibile",
-      body: "Guarda il percorso consigliato dopo la call.",
-      to: diagnostic.offer_decision === "ciak_start" ? "/cliente/start" : "/cliente/partnership",
+      body: "Il tuo Blueprint è pronto: puoi iniziare da Ciak Start o passare alla Partnership.",
+      to: diagnostic.recommended_offer === "partnership" ? "/cliente/partnership" : "/cliente/start",
     };
   }
   return {
@@ -96,7 +96,9 @@ export function ClientHome({ dashboard }) {
           <p className="mt-1 text-sm text-slate-500">
             {startActive
               ? "Area di lavoro attiva con servizi, avanzamento e credito sempre garantito."
-              : "Si apre dopo il Blueprint e la call, se il team conferma che serve consolidare le fondazioni."}
+              : diagnostic.state === "call_done"
+                ? "Disponibile: puoi attivarlo per costruire le fondazioni, con il credito garantito verso la Partnership."
+                : "Si apre dopo la call di consegna del Blueprint."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">

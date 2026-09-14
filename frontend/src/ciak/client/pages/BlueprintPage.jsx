@@ -41,10 +41,12 @@ export function BlueprintPage({ dashboard }) {
           <p className="text-sm font-semibold text-slate-900">Decisione consigliata</p>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             {diagnostic.offer_decision === "ciak_start"
-              ? "Dopo analisi e call, il team ha confermato Ciak Start per consolidare le fondazioni prima della Partnership."
+              ? "Ciak Start consolida le fondazioni prima della Partnership."
               : diagnostic.offer_decision === "partnership"
-                ? "Dopo analisi e call, il team ha confermato la Partnership completa."
-                : "Il punteggio e' un'indicazione interna. La decisione finale compare solo dopo la call."}
+                ? "La Partnership completa è il percorso consigliato per te."
+                : callState === "call_done"
+                  ? "Dopo la call scegli tu: inizia da Ciak Start per costruire le fondazioni, oppure passa alla Partnership."
+                  : "Il punteggio e' un'indicazione interna. Dopo la call scegli come procedere."}
           </p>
         </div>
       </section>

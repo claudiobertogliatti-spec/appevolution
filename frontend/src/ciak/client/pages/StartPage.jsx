@@ -60,8 +60,11 @@ export function StartPage({ dashboard }) {
 
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
-  const decided = dashboard.diagnostic?.offer_decision === "ciak_start";
-  const showStartOffer = active || decided;
+  // Modello Blueprint GRATUITO "tutto automatico": dopo la call di consegna
+  // (call_done) Ciak Start e' acquistabile dal cliente, senza `offer_decision`
+  // manuale del team. Allineato ai gate backend allentati.
+  const callDone = dashboard.diagnostic?.state === "call_done";
+  const showStartOffer = active || callDone;
   const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
   const creditAmount = dashboard.pricing?.partnership?.credit_amount_cents ?? PRICING.start.cents;
   const startLocked = !showStartOffer;
@@ -125,23 +128,23 @@ export function StartPage({ dashboard }) {
       <section className="rounded-xl border border-yellow-200 bg-white p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Ciak Start</p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {active ? "Fondazioni in corso" : decided ? "Ciak Start proposto" : "Percorso ancora chiuso"}
+          {active ? "Fondazioni in corso" : callDone ? "Ciak Start disponibile" : "Percorso ancora chiuso"}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
           {active
             ? "Ciak Start sistema social, brand base, primo posizionamento, sito vetrina, calendario e strategia contenuti."
-            : decided
-              ? "Questa e' la proposta Start: i servizi sono visibili, ma non ancora attivi."
-              : "La sezione Start resta chiusa finché il Blueprint non definisce il percorso."}
+            : callDone
+              ? "Il tuo Blueprint è pronto: puoi iniziare da Ciak Start per costruire le fondazioni, con il credito garantito verso la Partnership."
+              : "La sezione Start si sblocca dopo la call di consegna del Blueprint."}
         </p>
         {showStartOffer ? (
           <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-slate-700">
             {active
               ? `Ciak Start vale ${euro(startPrice)} e il credito di ${euro(creditAmount)} resta sempre garantito se passi alla Partnership.`
-              : `Proposta Ciak Start da ${euro(startPrice)}. Se la attivi, il credito di ${euro(creditAmount)} resta garantito verso la Partnership.`}
+              : `Ciak Start costa ${euro(startPrice)}. Se lo attivi, il credito di ${euro(creditAmount)} resta garantito verso la Partnership.`}
           </div>
         ) : null}
-        {decided && !active ? (
+        {callDone && !active ? (
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -152,13 +155,13 @@ export function StartPage({ dashboard }) {
               {loading ? "Apro il checkout..." : "Attiva Ciak Start"}
               <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="text-sm text-slate-500">Proposta non attiva, credito Start garantito verso la Partnership.</p>
+            <p className="text-sm text-slate-500">Il credito Start resta garantito verso la Partnership.</p>
           </div>
         ) : null}
         {startLocked ? (
           <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-            <p>Dopo la consegna del Blueprint e la call, qui comparira' Ciak Start solo se il team conferma che non sei ancora pronto per la Partnership.</p>
+            <p>Ciak Start si sblocca dopo la call di consegna del Blueprint.</p>
           </div>
         ) : null}
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
