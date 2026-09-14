@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Users, Search, RefreshCw, Plus, Upload, Edit3, Trash2,
   X, Save, Loader2, Globe, Phone, Snowflake, TrendingUp,
-  Flame, ExternalLink, UserPlus, MapPin, Check,
+  Flame, ExternalLink, UserPlus, MapPin, Check, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch } from "../api";
@@ -97,6 +97,34 @@ function ScoreBadge({ score }) {
   return (
     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg ${cls}`}>
       {score || 0}
+    </span>
+  );
+}
+
+// Selettore di stato inline: il badge diventa una <select> nativa (accessibile
+// da tastiera e touch, niente popover da posizionare). Cambia lo stato in 1
+// interazione, senza aprire il modale. Senza `lead.id` non si può fare PATCH →
+// fallback al badge statico. Il salvataggio (ottimistico + rollback) vive nel
+// componente principale via onChange.
+function InlineStatusSelect({ lead, busy, onChange }) {
+  const cfg = DISCOVERY_STATUSES[lead.status] || { label: lead.status || "—", cls: "bg-gray-100 text-slate-500" };
+  if (!lead.id) return <StatusBadge status={lead.status} map={DISCOVERY_STATUSES} />;
+  return (
+    <span className="relative inline-flex items-center">
+      <select
+        aria-label={`Stato di ${lead.display_name || lead.email || "lead"}`}
+        value={lead.status || "discovered"}
+        disabled={busy}
+        onChange={(e) => onChange(lead, e.target.value)}
+        className={`appearance-none cursor-pointer text-[10px] font-semibold pl-2 pr-6 py-0.5 rounded-full whitespace-nowrap outline-none focus:ring-2 focus:ring-yellow-400 transition-opacity ${cfg.cls} ${busy ? "opacity-50 cursor-wait" : "hover:opacity-80"}`}
+      >
+        {Object.entries(DISCOVERY_STATUSES).map(([key, c]) => (
+          <option key={key} value={key} className="bg-white text-slate-900 font-normal">{c.label}</option>
+        ))}
+      </select>
+      {busy
+        ? <Loader2 className="w-3 h-3 animate-spin absolute right-1.5 pointer-events-none text-current" />
+        : <ChevronDown className="w-3 h-3 absolute right-1.5 pointer-events-none text-current opacity-70" />}
     </span>
   );
 }
@@ -747,6 +775,7 @@ export function LeadManager({ onAuthExpired }) {
   const [deletingId, setDeletingId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -829,6 +858,31 @@ export function LeadManager({ onAuthExpired }) {
   const handleSaved = (updated) => {
     setLeads(prev => prev.map(l => (l.id || l.email) === (updated.id || updated.email) ? updated : l));
     setEditLead(null);
+  };
+
+  // Cambio stato inline dalla tabella: aggiorna subito la riga (ottimistico) e
+  // salva col PATCH parziale già usato dal modale. Se l'API fallisce, ripristina
+  // lo stato precedente e avvisa — nessuna modifica fantasma.
+  const handleStatusChange = async (lead, newStatus) => {
+    if (!lead.id || newStatus === lead.status) return;
+    const prevStatus = lead.status;
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: newStatus } : l));
+    setStatusUpdatingId(lead.id);
+    try {
+      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Errore salvataggio stato");
+      toast.success(`Stato aggiornato a "${DISCOVERY_STATUSES[newStatus]?.label || newStatus}".`);
+    } catch (e) {
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: prevStatus } : l));
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else toast.error("Impossibile aggiornare lo stato.");
+    } finally {
+      setStatusUpdatingId(null);
+    }
   };
 
   const isDiscovery = true;
@@ -969,7 +1023,7 @@ export function LeadManager({ onAuthExpired }) {
                   </td>
                   <td className="px-4 py-3"><ScoreBadge score={lead.score_total} /></td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} map={DISCOVERY_STATUSES} />
+                    <InlineStatusSelect lead={lead} busy={statusUpdatingId === lead.id} onChange={handleStatusChange} />
                   </td>
                   <td className="px-4 py-3">
                     {lead.temperatura && <StatusBadge status={lead.temperatura} map={TEMPERATURE} />}
