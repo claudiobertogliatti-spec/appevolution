@@ -215,6 +215,12 @@ async def calcom_webhook(request: Request):
         diagnostic,
     )
 
+    # NB: MEETING_ENDED aggiorna solo lo stato (call_done) e i tag. La CONSEGNA del
+    # Blueprint (account cliente + analisi Carlo + email col magic-link + sblocco
+    # offerte) NON parte da qui: la innesca l'admin confermando di aver fatto la call
+    # di consegna → POST /api/ciak/client/admin/consegna-blueprint. Cal.com non e' una
+    # prova affidabile che la call di consegna sia avvenuta.
+
     # Fire-and-forget Systeme.io tag emission per eventi Cal.com.
     # Triggera email automation: pre-call reminder, post-call thank-you, no-show follow-up.
     import asyncio as _asyncio

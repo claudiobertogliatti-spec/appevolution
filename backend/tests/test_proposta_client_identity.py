@@ -156,28 +156,26 @@ def _eligible_partnership_db(**client_overrides):
 
 
 @pytest.mark.asyncio
-async def test_partnership_proposal_requires_the_complete_blueprint_path(monkeypatch):
-    cases = [
-        ("pagamento", lambda db: db.diagnostic_sessions.docs[0].update(events=[])),
-        ("analisi", lambda db: db.ciak_analisi.docs[0].update(bozza_inviata_at=None)),
-        ("call", lambda db: db.diagnostic_sessions.docs[0].update(current_state="call_booked")),
-        ("decisione", lambda db: db.ciak_clients.docs[0].update(offer_decision=None)),
-    ]
-    for expected_gate, mutate in cases:
-        db = _eligible_partnership_db()
-        mutate(db)
-        monkeypatch.setattr(proposta, "db", db)
+async def test_partnership_proposal_requires_call_done(monkeypatch):
+    """Modello gratuito: l'unico gate residuo per la proposta Partnership e' la call."""
+    db = _eligible_partnership_db()
+    db.diagnostic_sessions.docs[0].update(current_state="call_booked")
+    monkeypatch.setattr(proposta, "db", db)
 
-        with pytest.raises(HTTPException) as err:
-            await proposta.require_partnership_proposal_eligibility("mario@example.com")
+    with pytest.raises(HTTPException) as err:
+        await proposta.require_partnership_proposal_eligibility("mario@example.com")
 
-        assert err.value.status_code == 409
-        assert expected_gate in str(err.value.detail).lower()
+    assert err.value.status_code == 409
+    assert "call" in str(err.value.detail).lower()
 
 
 @pytest.mark.asyncio
-async def test_partnership_proposal_accepts_only_the_explicit_partnership_decision(monkeypatch):
-    db = _eligible_partnership_db()
+async def test_partnership_proposal_ok_without_payment_analysis_or_decision(monkeypatch):
+    """Blueprint GRATUITO: niente pagamento, analisi non ancora consegnata e nessuna
+    `offer_decision` manuale NON bloccano la proposta se la call e' stata fatta."""
+    db = _eligible_partnership_db(offer_decision=None)
+    db.diagnostic_sessions.docs[0].update(events=[])  # nessun pagamento
+    db.ciak_analisi.docs[0].update(bozza_inviata_at=None)  # analisi non consegnata
     monkeypatch.setattr(proposta, "db", db)
 
     client = await proposta.require_partnership_proposal_eligibility("mario@example.com")
