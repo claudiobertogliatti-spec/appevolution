@@ -25,7 +25,7 @@
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { matchesAdminPath, filterDepartmentPages } from "./navigationMatch";
 import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -394,6 +394,20 @@ function AdminShell({ user, onLogout, children }) {
   // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
   // sotto-pagina di una sezione con landing).
   const back = sectionLandingFor(pathname);
+  // Scorciatoia Cmd/Ctrl+K: porta il focus alla ricerca funzioni da qualunque
+  // schermata (command bar). Esc svuota e sfoca (gestito sull'input).
+  const searchRef = useRef(null);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && (event.key === "k" || event.key === "K")) {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
@@ -418,13 +432,16 @@ function AdminShell({ user, onLogout, children }) {
           <div className="relative py-2">
             <Search className="absolute left-3 top-5 w-4 h-4 text-slate-400" aria-hidden />
             <input
+              ref={searchRef}
               type="search"
               value={globalSearch}
               onChange={(event) => setGlobalSearch(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Escape") { setGlobalSearch(""); event.currentTarget.blur(); } }}
               placeholder="Cerca una funzione"
               aria-label="Cerca in tutto l'admin"
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-yellow-400"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-12 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-yellow-400"
             />
+            <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">⌘K</kbd>
             {globalSearch.trim() && (
               <div className="mt-2 rounded-lg border border-slate-200 bg-white p-1" role="list" aria-label="Risultati ricerca admin">
                 {searchResults.length ? searchResults.map((page) => (
