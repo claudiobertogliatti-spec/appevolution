@@ -11,10 +11,27 @@ Prezzi/listino e casi studio con numeri NON stanno qui (vanno nella proposta
 commerciale). Il contenuto dinamico arriva da `payload` (vedi BLUEPRINT_SCHEMA
 in fondo). Il rendering HTML→PDF passa da services.ciak_pdf.html_to_pdf (playwright).
 """
+import base64
 import html as _html
+import os
 from typing import Any
 
 _BRAND = 'EVOLUTION<span class="accent"> PRO</span>'
+
+_ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+
+
+def _asset_data_uri(name: str, mime: str) -> str:
+    """Legge un asset dal repo e lo restituisce come data URI (stringa vuota se assente)."""
+    try:
+        with open(os.path.join(_ASSET_DIR, name), "rb") as fh:
+            return f"data:{mime};base64," + base64.b64encode(fh.read()).decode("ascii")
+    except Exception:
+        return ""
+
+
+# Spirale (logo icona) in filigrana sulla copertina — brand Evolution PRO.
+_SPIRAL_URI = _asset_data_uri("spiral-icon.png", "image/png")
 
 
 def _esc(s: Any) -> str:
@@ -46,7 +63,8 @@ h2.title{font-size:28pt;letter-spacing:-.025em;margin-bottom:16px}.dark h2.title
 .note{font-size:9.5pt;color:var(--muted);margin-top:16px;max-width:62ch}
 .cover{padding:0;background:linear-gradient(158deg,#0D2952 0%,#101326 72%);color:#fff}
 .cover .cin{position:relative;z-index:2;min-height:267mm;display:flex;flex-direction:column;padding:18mm}
-.cover .cbar{position:absolute;top:0;left:0;height:6px;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent) 32%,transparent 32%)}
+.cover .cbar{position:absolute;top:0;left:0;height:6px;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent) 32%,transparent 32%);z-index:3}
+.cover-spiral{position:absolute;z-index:1;width:190mm;right:-46mm;top:50%;transform:translateY(-46%);filter:brightness(0) invert(1);opacity:.035;pointer-events:none}
 .cover-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:40mm;border-bottom:1px solid rgba(255,255,255,.14)}
 .cover-top .ct{text-align:right;font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:#9fb3d1;line-height:1.9;font-weight:600}
 .cover-mid{flex:1;display:flex;flex-direction:column;justify-content:center}
@@ -267,7 +285,9 @@ def render_blueprint_html(payload: dict) -> str:
 
     # copertina
     cover = (
-        '<section class="page cover"><div class="cbar"></div><div class="cin">'
+        '<section class="page cover"><div class="cbar"></div>'
+        + (f'<img class="cover-spiral" src="{_SPIRAL_URI}" alt="">' if _SPIRAL_URI else "")
+        + '<div class="cin">'
         f'<div class="cover-top"><div class="brand" style="color:#fff;font-size:15pt">{_BRAND}</div>'
         '<div class="ct">Analisi Strategica<br>Evolution PRO</div></div>'
         '<div class="cover-mid"><div class="dt">Analisi Strategica di Posizionamento</div>'
