@@ -4,8 +4,9 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
@@ -572,6 +573,121 @@ async def consegna_blueprint(
     # 3. Consegna Blueprint + sblocco offerte.
     summary = await _deliver_blueprint(diagnostic, background_tasks)
     return {"success": True, **summary}
+
+
+def _consegna_manuale_email_body(nome: str, sales_link: str, pdf_url: str | None) -> str:
+    primo = (nome or "").split()[0] if nome else "ciao"
+    scarica = f"\n\nSe preferisci, puoi scaricarlo anche qui:\n{pdf_url}\n" if pdf_url else "\n"
+    return (
+        f"Ciao {primo},\n\n"
+        "come promesso, in allegato trovi il tuo Blueprint Evolution: l'analisi strategica "
+        "che abbiamo visto insieme nella call."
+        f"{scarica}\n"
+        "Da qui accedi alla tua area riservata e scegli come proseguire — Ciak Start "
+        f"oppure la Partnership completa:\n{sales_link}\n\n"
+        "A presto,\nClaudio\nEvolution PRO"
+    )
+
+
+@router.post("/admin/consegna-manuale")
+async def consegna_manuale(
+    request: Request,
+    auth=Depends(require_admin_or_internal),
+):
+    """Consegna manuale di un Blueprint per un cliente FUORI-FUNNEL (PDF gia' pronto).
+
+    Per i lead che non passano dalle 8 domande (es. ProVideo outbound): l'admin
+    fornisce email + nome + il PDF, e questo endpoint crea l'account cliente + una
+    diagnostic session gia' a `call_done` (sblocca Ciak Start / Partnership e soddisfa
+    i gate di checkout), genera il magic-link e invia l'email col PDF allegato + il
+    link alla sales page. NON genera l'analisi Carlo: usa il PDF caricato.
+
+    Multipart/form-data: `email`, `nome`, `file` (application/pdf).
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+
+    form = await request.form()
+    email = (form.get("email") or "").strip().lower()
+    nome = (form.get("nome") or "").strip()
+    upload = form.get("file")
+    if not email or "@" not in email:
+        raise HTTPException(status_code=422, detail="Email cliente non valida")
+    if upload is None or not hasattr(upload, "read"):
+        raise HTTPException(status_code=400, detail="PDF mancante (campo 'file')")
+    pdf_bytes = await upload.read()
+    if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=422, detail="Il file caricato non e' un PDF valido")
+
+    now = _now_iso()
+    session_token = str(uuid4())
+
+    # 1. Diagnostic session minima a call_done: sblocca le offerte lato cliente e
+    #    soddisfa i gate di checkout (che leggono lo stato dalla sessione).
+    session = {
+        "session_token": session_token,
+        "user_email": email,
+        "user_name": nome or None,
+        "current_state": STATE_CALL_DONE,
+        "source": "manual_delivery",
+        "created_at": now,
+        "state_history": [{"state": STATE_CALL_DONE, "timestamp": now}],
+        "events": [{
+            "event": "manual_delivery",
+            "timestamp": now,
+            "metadata": {"by": auth.get("actor")},
+        }],
+    }
+    await db.diagnostic_sessions.insert_one(dict(session))
+
+    # 2. Account cliente collegato alla sessione.
+    from services.ciak_client_accounts import (
+        create_magic_login_token,
+        ensure_client_for_blueprint,
+    )
+
+    client = await ensure_client_for_blueprint(db, session)
+
+    # 3. Magic-link d'accesso.
+    login = await create_magic_login_token(db, client["id"], client["email"])
+    base = os.environ.get("CIAK_BASE_URL") or os.environ.get(
+        "FRONTEND_URL_PROD", "https://ciak.io"
+    )
+    magic_link = f"{base}/cliente/accesso?token={login['token']}"
+    await db.ciak_clients.update_one(
+        {"id": client["id"]},
+        {"$set": {
+            "last_magic_link_created_at": now,
+            "last_magic_login_url": magic_link,
+            "manual_delivery": True,
+        }},
+    )
+
+    # 4. Upload PDF (best-effort) + email col PDF allegato e il link alla sales page.
+    from services import ciak_analisi_delivery
+
+    ciak_analisi_delivery.set_db(db)
+    pdf_url = await ciak_analisi_delivery._upload_pdf(pdf_bytes, session_token)
+    primo = (nome or "cliente").split()[0].lower() if nome else "cliente"
+    ok, err = ciak_analisi_delivery._send_email_attachment(
+        to=email,
+        subject="Il tuo Blueprint Evolution — analisi + prossimo passo",
+        body_text=_consegna_manuale_email_body(nome, magic_link, pdf_url),
+        pdf_bytes=pdf_bytes,
+        pdf_filename=f"blueprint_{primo}.pdf",
+    )
+    if not ok:
+        logger.error("[CONSEGNA_MANUALE] email ko per %s: %s", email, err)
+
+    return {
+        "success": bool(ok),
+        "email_sent": bool(ok),
+        "email_error": err,
+        "client_id": client["id"],
+        "email": client["email"],
+        "magic_link": magic_link,
+        "pdf_url": pdf_url,
+    }
 
 
 @router.post("/admin/offer-decision")
