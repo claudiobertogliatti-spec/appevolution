@@ -86,6 +86,7 @@ jobs:
           tests/test_ciak_matteo_structured.py
           tests/test_ciak_booking_regen.py
           tests/test_admin_consegna_blueprint.py
+          tests/test_admin_consegna_manuale.py
           tests/test_checkout_trigger.py
           tests/test_ciak_pdf.py
           tests/test_servizi_extra_catalogo.py
