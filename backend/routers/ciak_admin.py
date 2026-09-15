@@ -4340,11 +4340,15 @@ async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    from crediti import Credito
+    from crediti import Credito, concilia_rate_con_saldato
 
     body["id"] = credito_id
     body["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
     validato = Credito(**body).model_dump()
+    # Un credito `saldato` deve avere le rate tutte incassate: le rate sono la
+    # fonte di verita' (residuo e incassato obiettivo le leggono). Senza, un
+    # saldato con rate `attesa` gonfia il residuo e sparisce dall'incassato.
+    concilia_rate_con_saldato(validato, validato["aggiornato_at"])
 
     esistente = await db.crediti.find_one({"id": credito_id}, {"_id": 0, "creato_at": 1})
     validato["creato_at"] = (esistente or {}).get("creato_at") or validato["aggiornato_at"]
