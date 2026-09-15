@@ -30,7 +30,7 @@ const LISTINO = [
   {
     nome: "Blueprint (analisi)",
     prezzo: "GRATIS",
-    nota: "Lead magnet. ⚠️ Il checkout €27 è in migrazione verso il gratuito (in corso).",
+    nota: "Lead magnet gratuito: si ottiene dopo la call di consegna, non si paga.",
   },
 ];
 

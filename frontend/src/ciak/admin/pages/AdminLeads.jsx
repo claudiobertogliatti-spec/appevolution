@@ -19,8 +19,8 @@ const STATE_LABEL = {
   ciak_started: "Diagnostica avviata",
   ciak_completed: "Diagnostica completata",
   report_generated: "Report generato",
-  clicked_67: "Click €27",
-  purchased_67: "Acquisto €27",
+  clicked_67: "Click Blueprint",
+  purchased_67: "Blueprint",
   call_booked: "Call prenotata",
   call_done: "Call effettuata",
   partner_approved: "Partner approvato",
@@ -186,7 +186,7 @@ export function AdminLeads({ onAuthExpired }) {
                     <td className="px-5 py-3 text-slate-600 text-xs">
                       {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
                       {l.purchased && (
-                        <span className="ml-2 text-yellow-600 font-medium">€27 ✓</span>
+                        <span className="ml-2 text-yellow-600 font-medium">Blueprint ✓</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">

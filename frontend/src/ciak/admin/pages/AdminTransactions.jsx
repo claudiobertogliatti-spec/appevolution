@@ -192,7 +192,7 @@ export function AdminTransactions({ onAuthExpired }) {
   return (
     <div className="p-10">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Transazioni</h1>
-      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint €27 e Partnership €2.990.</p>
+      <p className="text-slate-500 mb-6">Acquisti Ciak Blueprint e Partnership €2.990.</p>
 
       <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
@@ -203,7 +203,7 @@ export function AdminTransactions({ onAuthExpired }) {
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          Ciak Blueprint €27
+          Ciak Blueprint
         </button>
         <button
           onClick={() => setTab("partnership")}

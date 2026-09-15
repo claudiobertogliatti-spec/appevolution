@@ -13,10 +13,10 @@
 import { useSearchParams } from "react-router-dom";
 import { PipelineList } from "./PipelineList";
 
-// Mappa tab → stadi del funnel post-€27 (id colonne backend _BLUEPRINT_COLUMNS).
+// Mappa tab → stadi del funnel dopo il Blueprint (id colonne backend _BLUEPRINT_COLUMNS).
 export const STADI_TRATTATIVE = [
-  { id: "tutte", label: "Tutte", subtitle: "Tutte le trattative post-€27, dal Blueprint alla firma" },
-  { id: "blueprint", label: "Blueprint", lockedStages: ["acquistato"], subtitle: "Ha pagato i €27 — analisi acquistata" },
+  { id: "tutte", label: "Tutte", subtitle: "Tutte le trattative, dal Blueprint alla firma" },
+  { id: "blueprint", label: "Blueprint", lockedStages: ["acquistato"], subtitle: "Blueprint generato — pronto per la call" },
   { id: "call", label: "Call", lockedStages: ["call_prenotata", "call_fatta"], subtitle: "Call prenotata e call fatta" },
   { id: "trattativa", label: "In trattativa", lockedStages: ["in_trattativa"], subtitle: "Proposte inviate, viste, accettate o firmate in attesa di pagamento" },
   { id: "ok", label: "OK", lockedStages: ["contratto_pagato"], subtitle: "Contratto firmato + pagato — diventa partner" },

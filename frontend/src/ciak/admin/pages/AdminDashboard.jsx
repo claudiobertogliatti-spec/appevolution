@@ -182,7 +182,7 @@ export function AdminDashboard({ onAuthExpired }) {
     { label: "Iscritti masterclass", value: iscritti, pct: null, to: "/admin/pipeline-prospect" },
     { label: "Checkpoint compilati", value: checkpoint, pct: conv(checkpoint, iscritti), to: "/admin/pipeline-prospect" },
     { label: "8 Domande completate", value: ottoDomande, pct: conv(ottoDomande, checkpoint), to: "/admin/pipeline-prospect" },
-    { label: "Acquisti €27", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
+    { label: "Blueprint", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
     { label: "Call fatte", value: callFatte, pct: conv(callFatte, acquisti), to: "/admin/pipeline-blueprint" },
     { label: "€2.990 firmati", value: firmati, pct: conv(firmati, callFatte), to: "/admin/pipeline-blueprint" },
     { label: "Partner attivi", value: partnerAttivi, pct: conv(partnerAttivi, firmati), to: "/admin/partner" },
@@ -224,7 +224,7 @@ export function AdminDashboard({ onAuthExpired }) {
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
-                Incassato €27
+                Incassato Blueprint
               </p>
               <p className="text-3xl font-semibold text-yellow-600">
                 {euro(transactions.total_incassato_cent)}
