@@ -8,6 +8,7 @@ import os
 import json
 import pickle
 import logging
+import http.client
 from pathlib import Path
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
@@ -21,6 +22,13 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
+
+# Errori di connessione transitori su cui vale la pena ricostruire il client e
+# riprovare (loop lunghi di update: la connessione httplib2 riusata puo' cadere).
+# ssl.SSLError, BrokenPipeError, ConnectionError, TimeoutError sono tutti OSError;
+# httplib2 puo' anche sollevare http.client.HTTPException. NON include HttpError
+# (googleapiclient), che e' una risposta vera dell'API e va gestita a parte.
+_TRANSIENT_NET_ERRORS = (OSError, http.client.HTTPException)
 
 # OAuth2 Scopes
 SCOPES = [
@@ -508,6 +516,32 @@ Prodotto da Evolution PRO LLC
             logger.error(f"Remove from playlist failed: {e}")
             return {"success": False, "error": str(e)}
 
+    def _fresh_service(self):
+        """Forza la ricostruzione del client YouTube (nuova connessione HTTP).
+
+        Su un loop lungo (decine di update) la connessione httplib2 riusata puo'
+        cadere (BrokenPipe / SSL EOF) e restare avvelenata nel service in cache:
+        da quel momento OGNI chiamata fallisce. Azzerando `self.service` la si
+        ricostruisce pulita alla chiamata successiva.
+        """
+        self.service = None
+        return self._get_service()
+
+    def _execute_with_retry(self, make_request, attempts: int = 3):
+        """Esegue una request googleapiclient, ricostruendo il service e
+        riprovando sugli errori di connessione transitori (non sugli HttpError,
+        che sono risposte vere dell'API e vanno gestiti da chi chiama)."""
+        service = self._get_service()
+        last_exc = None
+        for n in range(attempts):
+            try:
+                return make_request(service).execute()
+            except _TRANSIENT_NET_ERRORS as e:
+                last_exc = e
+                logger.warning(f"YouTube connessione caduta ({e!r}), retry {n + 1}/{attempts}")
+                service = self._fresh_service()
+        raise last_exc
+
     def get_videos_snippets(self, video_ids: List[str]) -> Dict[str, Dict]:
         """Ritorna gli snippet correnti dei video richiesti: {video_id: snippet}.
 
@@ -515,12 +549,13 @@ Prodotto da Evolution PRO LLC
         senza cambiare nulla. Batch da 50 (limite dell'API). Un id assente (video
         cancellato o non accessibile) semplicemente non compare nella mappa.
         """
-        service = self._get_service()
         out: Dict[str, Dict] = {}
         ids = [v for v in dict.fromkeys(video_ids) if v]  # dedup, ordine stabile
         for i in range(0, len(ids), 50):
             chunk = ids[i:i + 50]
-            resp = service.videos().list(part="snippet", id=",".join(chunk)).execute()
+            resp = self._execute_with_retry(
+                lambda svc, c=chunk: svc.videos().list(part="snippet", id=",".join(c))
+            )
             for item in resp.get("items", []):
                 out[item["id"]] = item.get("snippet", {})
         return out
@@ -531,11 +566,13 @@ Prodotto da Evolution PRO LLC
         L'API `videos.update` richiede categoryId nel body, quindi si legge prima
         lo snippet corrente e si riscrive tutto con il solo title modificato: non
         si perdono descrizione, tag o categoria. Idempotente a monte: chi chiama
-        salta i video gia' col titolo giusto.
+        salta i video gia' col titolo giusto. Ritorna sempre un dict (mai solleva):
+        cosi' un errore su un video non ferma il batch di chi chiama.
         """
         try:
-            service = self._get_service()
-            resp = service.videos().list(part="snippet", id=video_id).execute()
+            resp = self._execute_with_retry(
+                lambda svc: svc.videos().list(part="snippet", id=video_id)
+            )
             items = resp.get("items", [])
             if not items:
                 return {"success": False, "error": "video non trovato o non accessibile"}
@@ -546,15 +583,19 @@ Prodotto da Evolution PRO LLC
             snippet["title"] = new_title
             # categoryId e' obbligatorio nell'update: se manca (raro) uso Education.
             snippet.setdefault("categoryId", "27")
-            service.videos().update(
-                part="snippet",
-                body={"id": video_id, "snippet": snippet},
-            ).execute()
+            self._execute_with_retry(
+                lambda svc: svc.videos().update(
+                    part="snippet", body={"id": video_id, "snippet": snippet}
+                )
+            )
             logger.info(f"Rinominato video {video_id}: '{old_title}' -> '{new_title}'")
             return {"success": True, "old_title": old_title, "new_title": new_title}
         except HttpError as e:
-            logger.error(f"Rename video {video_id} failed: {e}")
+            logger.error(f"Rename video {video_id} failed (HttpError): {e}")
             return {"success": False, "error": str(e)}
+        except Exception as e:  # connessione irrecuperabile dopo i retry
+            logger.error(f"Rename video {video_id} failed (net): {e!r}")
+            return {"success": False, "error": f"connessione YouTube: {e}"}
 
     async def upload_partner_video(
         self,
