@@ -66,7 +66,6 @@ class Obiettivo(BaseModel):
     target: float
     scadenza: str          # ISO date
     inizio: str            # ISO date
-    incassato: float = 0.0
     # Incassato "vecchio" non tracciato come credito: la cassa entrata prima che
     # i rientri diventassero crediti, o incassi una tantum mai messi a rata. E'
     # una base fissa: si somma ai crediti incassati, non li sostituisce. Serve
@@ -143,21 +142,17 @@ def stato(
     dove chiudi al ritmo tenuto finora. Se e' molto sotto il target, il problema
     non e' spingere di piu' sulle stesse cose.
 
-    `crediti`: se passati, l'incassato e' TUTTO l'incassato = `incassato_pregresso`
-    (il vecchio non a crediti, base fissa) + le rate incassate nei crediti. Cosi'
-    segnare un pagamento aggiorna l'obiettivo, senza perdere l'incassato storico
-    che nei crediti non c'e'. Se None, si usa il campo salvato `ob["incassato"]`
-    -- retrocompatibile per chi non ha i crediti sottomano.
+    L'incassato e' TUTTO l'incassato = `incassato_pregresso` (il vecchio non a
+    crediti, base fissa) + le rate incassate nei crediti. Cosi' segnare un
+    pagamento aggiorna l'obiettivo, senza perdere l'incassato storico che nei
+    crediti non c'e'. Senza `crediti` conta solo il pregresso (i crediti valgono 0).
     """
     oggi = oggi or datetime.now(timezone.utc).date()
     inizio = _data(ob.get("inizio"))
     fine = _data(ob.get("scadenza"))
     target = float(ob.get("target") or 0)
-    if crediti is None:
-        incassato = float(ob.get("incassato") or 0)
-    else:
-        pregresso = float(ob.get("incassato_pregresso") or 0)
-        incassato = round(pregresso + incassato_da_crediti(crediti, ob, oggi), 2)
+    pregresso = float(ob.get("incassato_pregresso") or 0)
+    incassato = round(pregresso + incassato_da_crediti(crediti or [], ob, oggi), 2)
 
     gap = max(target - incassato, 0)
     giorni_rimasti = (fine - oggi).days if fine else None

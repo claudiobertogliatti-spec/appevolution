@@ -4504,9 +4504,9 @@ async def obiettivo_salva(obiettivo_id: str, body: dict, admin=Depends(require_c
 # PUT le azzererebbe se il chiamante non le rimanda tutte. Serve per correggere un
 # singolo valore -- p.es. `incassato_pregresso` (l'incassato vecchio non a crediti).
 _OBIETTIVO_CAMPI_SCALARI = {
-    "titolo", "target", "scadenza", "inizio", "incassato", "incassato_pregresso", "nota",
+    "titolo", "target", "scadenza", "inizio", "incassato_pregresso", "nota",
 }
-_OBIETTIVO_CAMPI_NUMERICI = {"target", "incassato", "incassato_pregresso"}
+_OBIETTIVO_CAMPI_NUMERICI = {"target", "incassato_pregresso"}
 
 
 @router.patch("/obiettivo/{obiettivo_id}")
