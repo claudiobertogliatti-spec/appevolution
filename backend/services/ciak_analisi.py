@@ -303,6 +303,106 @@ async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: i
     return _call_claude_structured(prompt, user_message, _SCHEMA_SCRIPT, "script_call")
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  BLUEPRINT DEFINITIVO — 13 sezioni (layout A4, renderer ciak_pdf_blueprint)
+#  Struttura LOCKATA (Claudio 15/9). Produce il payload per render_blueprint_html.
+# ══════════════════════════════════════════════════════════════════════
+
+_titacc = {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}}, "required": ["title", "accent"]}
+
+_SCHEMA_BLUEPRINT = {
+    "type": "object",
+    "properties": {
+        "meta": {"type": "object", "properties": {
+            "progetto": {"type": "string"}, "accent_progetto": {"type": "string"},
+            "ambito": {"type": "string"}, "sub": {"type": "string"}},
+            "required": ["progetto", "accent_progetto", "ambito"]},
+        "sezioni": {"type": "object", "properties": {
+            "sintesi": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "body": {"type": "string"}, "note": {"type": "string"}}, "required": ["title", "accent", "lead", "body"]},
+            "potenziale": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "cards": {"type": "array", "items": {"type": "object", "properties": {"h": {"type": "string"}, "p": {"type": "string"}}, "required": ["h", "p"]}}}, "required": ["title", "accent", "lead", "cards"]},
+            "mercato": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "trend": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["title", "accent", "lead", "trend"]},
+            "competitor": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "presidia": {"type": "array", "items": {"type": "string"}}, "spazio": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "presidia", "spazio"]},
+            "pubblico": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "segmenti": {"type": "array", "items": {"type": "object", "properties": {"segmento": {"type": "string"}, "chi": {"type": "string"}, "cerca": {"type": "string"}}, "required": ["segmento", "chi", "cerca"]}}}, "required": ["title", "accent", "lead", "segmenti"]},
+            "problema": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "body": {"type": "string"}}, "required": ["title", "accent", "lead", "body"]},
+            "forza": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "punti": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "punti"]},
+            "limiti": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "punti": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "accent", "punti"]},
+            "accademia": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "moduli": {"type": "array", "items": {"type": "object", "properties": {"titolo": {"type": "string"}, "contenuto": {"type": "string"}}, "required": ["titolo", "contenuto"]}}}, "required": ["title", "accent", "lead", "moduli"]},
+            "rischio": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "callout": {"type": "string"}}, "required": ["title", "accent", "lead", "callout"]},
+            "manca": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "items": {"type": "array", "items": {"type": "object", "properties": {"h": {"type": "string"}, "p": {"type": "string"}}, "required": ["h", "p"]}}}, "required": ["title", "accent", "items"]},
+            "roadmap": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "steps": {"type": "array", "items": {"type": "object", "properties": {"titolo": {"type": "string"}, "desc": {"type": "string"}}, "required": ["titolo", "desc"]}}}, "required": ["title", "accent", "lead", "steps"]},
+            "prossimo": {"type": "object", "properties": {"title": {"type": "string"}, "accent": {"type": "string"}, "lead": {"type": "string"}, "no": {"type": "string"}, "yes": {"type": "array", "items": {"type": "string"}}, "chiusura": {"type": "string"}}, "required": ["title", "accent", "lead", "no", "yes"]},
+        }, "required": ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo"]},
+    },
+    "required": ["meta", "sezioni"],
+}
+
+_SEZIONI_BLUEPRINT = ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo"]
+
+_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 13 sezioni, dalle 8 domande del cliente e dal research brief di mercato.
+
+""" + _VINCOLI_STILE + """
+
+OGNI sezione ha un titolo in due parti: `title` (prima parte, in nero) + `accent` (seconda parte, evidenziata in giallo). Es. title="Una competenza rara,", accent="in un mercato che cresce." Devono formare una frase sola, netta, non generica.
+
+Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
+1. sintesi — lead: chi e' e cosa fa (dai dati). body: il vero nodo (vende tempo/presenza). note: "Nota di metodo..." breve.
+2. potenziale — lead: livello sintetico (NON mostrare punteggi numerici). cards: 3 card {h,p} tipo "Competenza ✓", "Pubblico ✓", "Struttura ✗".
+3. mercato — lead + trend: 3-4 segnali di mercato REALI dal research (mai numeri inventati; se un dato manca, parla di "segnali"). note: che le dimensioni precise si validano.
+4. competitor — presidia: 3 punti su chi occupa il mercato (dal research). spazio: 3 punti sullo spazio libero del cliente.
+5. pubblico — lead + segmenti: 2-3 righe {segmento, chi, cerca}.
+6. problema — lead + body: il blocco vero (di solito: dipende dalla presenza, niente prodotto ripetibile).
+7. forza — punti: 3-4 forze concrete (una frase ciascuna).
+8. limiti — punti: 3-4 limiti concreti, diretti non distruttivi.
+9. accademia — lead + moduli: 5-6 moduli {titolo, contenuto} = ipotesi di struttura del percorso, da rifinire in call.
+10. rischio — lead + callout: il rischio di restare fermi + (callout) il rischio opposto di fare in fretta e male. Nel callout puoi usare <b>...</b>.
+11. manca — items: 5 elementi {h,p} che servono per un'accademia che vende.
+12. roadmap — lead + steps: 5 fasi {titolo, desc} dalla strategia al lancio.
+13. prossimo — lead + no (la strada sbagliata) + yes (2 voci: la strada corretta col metodo, e che e' il punto della call) + chiusura: <b>Dopo la call.</b> prosegui con Ciak Start o la Partnership; "nessun guadagno garantito".
+
+meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).
+
+⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri."""
+
+
+async def genera_blueprint(session_token: str) -> dict:
+    """Genera il payload delle 13 sezioni per il renderer (ciak_pdf_blueprint).
+
+    Ricerca mercato (riuso research brief) + generazione strutturata 13 sezioni.
+    Ritorna {"meta": {...}, "sezioni": {...}} pronto per render_blueprint_html.
+    Il nome del cliente lo mette il chiamante (dalla sessione).
+    """
+    if db is None:
+        raise CiakAnalisiError("Database non configurato")
+    session = await db.diagnostic_sessions.find_one({"session_token": session_token})
+    if not session:
+        raise CiakAnalisiError(f"diagnostic_session non trovata: {session_token}")
+    responses = session.get("responses") or {}
+
+    try:
+        research = await genera_research_brief(responses)
+    except Exception as e:
+        logger.warning("[CIAK_BLUEPRINT] research fallita, procedo senza dati web: %s", e)
+        research = {"settore": responses.get("q1_competenza", ""), "dimensione_trend": "", "fascia_prezzo_mercato": "", "note_data_gap": "ricerca web non disponibile"}
+
+    user_message = (
+        "Genera il Blueprint definitivo (13 sezioni).\n\n8 RISPOSTE:\n"
+        f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
+        f"RESEARCH BRIEF DI MERCATO:\n{json.dumps(research, ensure_ascii=False, indent=2)}"
+    )
+    data = _call_claude_structured(_PROMPT_BLUEPRINT, user_message, _SCHEMA_BLUEPRINT, "blueprint", max_tokens=8000)
+
+    sez = data.get("sezioni") or {}
+    mancanti = [k for k in _SEZIONI_BLUEPRINT if k not in sez]
+    if mancanti:
+        raise CiakAnalisiError(f"Blueprint: sezioni mancanti {mancanti}")
+
+    meta = data.get("meta") or {}
+    meta["nome"] = session.get("user_name") or "Cliente"
+    from datetime import datetime as _dt
+    meta.setdefault("data", _dt.now(timezone.utc).strftime("%d/%m/%Y"))
+    return {"meta": meta, "sezioni": sez}
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
