@@ -67,6 +67,52 @@ def test_retry_si_arrende_e_solleva():
         u._execute_with_retry(lambda s: s.videos().list(), attempts=2)
 
 
+def test_rename_video_manda_snippet_pulito():
+    """L'update deve togliere i campi read-only (che danno 400
+    invalidVideoMetadata) e preservare title/categoryId/description/tags."""
+    captured = {}
+
+    class Svc:
+        def videos(self):
+            class V:
+                def list(self, **kw):
+                    class R:
+                        def execute(self):
+                            return {"items": [{"snippet": {
+                                "title": "vecchio",
+                                "categoryId": "22",
+                                "description": "desc importante",
+                                "tags": ["a", "b"],
+                                "thumbnails": {"x": 1},
+                                "publishedAt": "2026-01-01",
+                                "localized": {"title": "x"},
+                                "channelId": "ch1",
+                                "liveBroadcastContent": "none",
+                            }}]}
+                    return R()
+
+                def update(self, **kw):
+                    captured.update(kw.get("body", {}))
+
+                    class R:
+                        def execute(self):
+                            return {}
+                    return R()
+            return V()
+
+    u = _uploader_with_service(Svc())
+    res = u.rename_video("vid", "Andolfi · M01·L01 — Nuovo")
+    assert res["success"] is True
+    snip = captured["snippet"]
+    assert snip["title"] == "Andolfi · M01·L01 — Nuovo"
+    assert snip["categoryId"] == "22"          # preservato
+    assert snip["description"] == "desc importante"  # preservato
+    assert snip["tags"] == ["a", "b"]          # preservato
+    for ro in ("thumbnails", "publishedAt", "localized", "channelId",
+               "liveBroadcastContent"):
+        assert ro not in snip                  # read-only rimossi
+
+
 def test_rename_video_non_solleva_su_errore_di_rete():
     class Req:
         def execute(self):
