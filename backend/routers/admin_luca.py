@@ -400,11 +400,14 @@ async def build_luca_context() -> str:
     try:
         all_partners = await db.partners.find(
             only_real_partners(),
-            {"_id": 0, "id": 1, "name": 1, "phase": 1, "status": 1,
+            {"_id": 0, "id": 1, "name": 1, "phase": 1, "stato": 1,
              "last_activity": 1, "updated_at": 1, "alert": 1}
         ).to_list(300)
 
-        attivi = [p for p in all_partners if str(p.get("status", "")).lower() in ("active", "attivo")]
+        # Attivo = campo `stato` del ciclo di vita (attivo/sospeso/quarantena/ex),
+        # non `status` -- che vale "active" alla creazione e non cambia mai piu'.
+        # Stessa convenzione di daily_report e ciak_admin: assente/None = attivo.
+        attivi = [p for p in all_partners if (p.get("stato") or "attivo") == "attivo"]
         lines.append("")
         lines.append("== DELIVERY (responsabile STEFANIA) ==")
         lines.append(f"Partner totali: {len(all_partners)} · Attivi: {len(attivi)}")
@@ -662,9 +665,11 @@ async def luca_daily_report(token_data=Depends(require_admin_or_report_key)):
     target_optimal = 4
     target_new_contacts = 20
 
+    # `data_pagamento_partnership` e' il campo pagamento reale (scritto dal webhook
+    # Stripe e da partnership.py); `partnership_pagata_at` non lo scrive nessuno.
     partnerships_month = await db.partners.count_documents(only_real_partners({
         "$or": [
-            {"partnership_pagata_at": {"$gte": month_start}},
+            {"data_pagamento_partnership": {"$gte": month_start}},
             {"contract_signed_at": {"$gte": month_start}},
         ]
     }))
