@@ -171,6 +171,7 @@ jobs:
           tests/test_discovery_summary.py
           tests/test_discovery_places_concurrency.py
           tests/test_youtube_titles.py
+          tests/test_youtube_uploader_retry.py
 
   frontend:
     name: Frontend (build smoke)
