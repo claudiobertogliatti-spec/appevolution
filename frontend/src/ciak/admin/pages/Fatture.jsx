@@ -32,7 +32,7 @@ function fmtDate(iso) {
 }
 
 const FONTE_BADGE = {
-  blueprint_67: { label: "Blueprint €27", cls: "bg-blue-100 text-blue-700" },
+  blueprint_67: { label: "Blueprint", cls: "bg-blue-100 text-blue-700" },
   ciak_start: { label: "Ciak Start", cls: "bg-cyan-100 text-cyan-700" },
   partnership: { label: "Partnership", cls: "bg-purple-100 text-purple-700" },
   upgrade: { label: "Upgrade", cls: "bg-fuchsia-100 text-fuchsia-700" },

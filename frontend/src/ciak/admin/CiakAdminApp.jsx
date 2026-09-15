@@ -123,7 +123,7 @@ const NAV = [
     end: true,
     pages: [],
   },
-  // ── ACQUISIZIONE · Luca ── dal freddo al €27 ───────────────────────────
+  // ── ACQUISIZIONE · Luca ── dal freddo al Blueprint ─────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
@@ -139,7 +139,7 @@ const NAV = [
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
-  // ── VENDITE · Gaia ── dal €27 alla firma (assorbe "Acquisizione e vendita":
+  // ── VENDITE · Gaia ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
   //    Chiusura Insider e Listino entrano qui; Collaudo checkout resta route
   //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia). ──
   {
@@ -150,7 +150,7 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/trattative", label: "Trattative", desc: "Pipeline post-€27 in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
+      { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
       { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
@@ -529,7 +529,7 @@ function RepartoLanding({ macro, onAuthExpired }) {
         </div>
       )}
 
-      {/* Vendite: coda pipeline post-€27 (Blueprint → firma). */}
+      {/* Vendite: coda pipeline dopo il Blueprint (Blueprint → firma). */}
       {macro.id === "vendite" && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Coda del reparto</h2>
@@ -688,7 +688,7 @@ export default function CiakAdminApp() {
             <PipelineList
               endpoint="/pipeline-prospect"
               title="Pipeline Prospect"
-              subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €27"
+              subtitle="Funnel pre-call: iscritto → checkpoint → 8 Domande → report → call"
               mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
               onAuthExpired={handleLogout}
               deletable
@@ -713,7 +713,7 @@ export default function CiakAdminApp() {
             <PipelineList
               endpoint="/pipeline-blueprint"
               title="Ciak Blueprint"
-              subtitle="Ha pagato i €27 — analisi acquistata"
+              subtitle="Blueprint consegnato"
               lockedStages={["acquistato"]}
               onAuthExpired={handleLogout}
             />

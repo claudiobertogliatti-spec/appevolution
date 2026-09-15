@@ -168,7 +168,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
         <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
         <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
-        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Acquisti da 27 euro nel mese." />
+        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Blueprint generati nel mese." />
         <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
         <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
         <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />

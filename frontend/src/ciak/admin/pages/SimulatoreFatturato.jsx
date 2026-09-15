@@ -177,7 +177,7 @@ export function SimulatoreFatturato() {
 
   const alerts = [];
   if (state.cac >= PRICE.blueprint) {
-    alerts.push({ tone: "bad", icon: XCircle, title: "Il front-end brucia cassa.", body: `A ${eur0.format(state.cac)} di CAC su un prodotto da 27 €, ogni Blueprint perde ${eur0.format(state.cac - PRICE.blueprint)}. Non autofinanzia le campagne: le sussidia.` });
+    alerts.push({ tone: "bad", icon: XCircle, title: "Il front-end brucia cassa.", body: `A ${eur0.format(state.cac)} di CAC su un prodotto da ${eur0.format(PRICE.blueprint)}, ogni Blueprint perde ${eur0.format(state.cac - PRICE.blueprint)}. Non autofinanzia le campagne: le sussidia.` });
   }
   if (state.partnerSales === 0) {
     alerts.push({ tone: "bad", icon: XCircle, title: "Provvigioni a zero.", body: "Con venduto partner a 0 il 10% non esiste e resta solo il canone EVO-S. È lo stress test: quanto regge il modello senza il successo del partner." });

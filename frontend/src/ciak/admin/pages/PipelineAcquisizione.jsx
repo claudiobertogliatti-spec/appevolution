@@ -55,7 +55,7 @@ export function PipelineAcquisizione({ onAuthExpired }) {
         <PipelineList
           endpoint="/pipeline-prospect"
           title="Pipeline"
-          subtitle="Funnel pre-acquisto: iscritto → 8 Domande → report → click €27"
+          subtitle="Funnel pre-call: iscritto → 8 Domande → report → call"
           mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
           onAuthExpired={onAuthExpired}
           deletable
