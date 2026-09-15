@@ -1822,6 +1822,80 @@ async def set_lesson_youtube_url(
     }
 
 
+@router.post("/videocorso/{partner_id}/normalize-youtube-titles")
+async def normalize_youtube_titles(
+    partner_id: str,
+    dry_run: bool = Query(
+        True,
+        description="True (default): mostra il piano senza toccare YouTube. "
+        "False: esegue davvero le rinomine.",
+    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Rinomina i video FINALI del partner (videocorso + masterclass) su YouTube
+    con titoli chiari e ordinabili ("Cognome · M01·L01 — titolo").
+
+    La playlist YouTube del partner e' un backup privato dove finiscono TUTTI i
+    render: senza titoli chiari non si distingue il video buono dai vecchi. Qui si
+    rinominano SOLO i finali (quelli con `video_youtube_id`, cioe' i pubblicati su
+    Systeme); i vecchi restano ma non confondono piu'. `dry_run=True` (default)
+    restituisce 'titolo attuale -> nuovo' senza cambiare niente. Solo admin.
+    """
+    await require_admin_token(credentials)
+    partner = await get_partner_or_404(partner_id)
+    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+
+    from services.youtube_titles import build_title_plan
+    plan = build_title_plan(partner, videocorso, masterclass)
+    if not plan:
+        return {
+            "success": True, "partner_id": partner_id, "dry_run": dry_run,
+            "message": "Nessun video finale con id YouTube da rinominare.",
+            "items": [], "total": 0,
+        }
+
+    from youtube_uploader import youtube_uploader
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=503, detail="YouTube non autenticato sul backend")
+
+    snippets = youtube_uploader.get_videos_snippets([p["video_id"] for p in plan])
+
+    items = []
+    for p in plan:
+        vid = p["video_id"]
+        exists = vid in snippets
+        current_title = snippets.get(vid, {}).get("title") if exists else None
+        changed = exists and current_title != p["target_title"]
+        item = {
+            "video_id": vid,
+            "kind": p["kind"],
+            "lesson_id": p["lesson_id"],
+            "current_title": current_title,
+            "target_title": p["target_title"],
+            "exists_on_youtube": exists,
+            "changed": changed,
+        }
+        if not dry_run and changed:
+            res = youtube_uploader.rename_video(vid, p["target_title"])
+            item["renamed"] = bool(res.get("success"))
+            if not res.get("success"):
+                item["error"] = res.get("error")
+        items.append(item)
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "dry_run": dry_run,
+        "total": len(items),
+        "to_change": sum(1 for i in items if i["changed"]),
+        "already_ok": sum(1 for i in items if i["exists_on_youtube"] and not i["changed"]),
+        "missing_on_youtube": [i["video_id"] for i in items if not i["exists_on_youtube"]],
+        "renamed": sum(1 for i in items if i.get("renamed")) if not dry_run else 0,
+        "items": items,
+    }
+
+
 @router.post("/videocorso/submit-video-link")
 async def submit_videocorso_video_link(
     req: VideoLinkRequest,
