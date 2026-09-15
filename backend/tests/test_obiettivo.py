@@ -247,3 +247,42 @@ def test_stato_senza_crediti_resta_sul_campo_salvato():
     s = ob.stato(PIANO, OGGI)
 
     assert s["incassato"] == 375.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# incassato PREGRESSO: base "vecchia" non a crediti, sommata (15/9/2026)
+#
+# L'incassato dev'essere TUTTO: vecchio + nuovo. I crediti coprono solo cio' che
+# e' registrato li'; l'incassato storico non tracciato entra come base fissa.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_incassato_e_pregresso_piu_crediti():
+    piano = {**PIANO, "incassato_pregresso": 196.0}
+    crediti = [
+        _credito("Gugliucciello", [
+            {"numero": 1, "importo": 199.0, "stato": "incassata", "incassata_at": "2026-09-10"},
+        ]),
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    s = ob.stato(piano, OGGI, crediti=crediti)
+
+    # 196 (vecchio non a crediti) + 199 + 360 = 755. Con altri crediti reali in
+    # finestra il totale sale: qui verifichiamo che la base venga SOMMATA, non persa.
+    assert s["incassato"] == 755.0
+    assert s["gap"] == round(10000.0 - 755.0, 2)
+
+
+def test_pregresso_assente_vale_zero_e_conta_solo_i_crediti():
+    """Senza base dichiarata l'incassato e' solo cio' che e' nei crediti."""
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    s = ob.stato(PIANO, OGGI, crediti=crediti)  # PIANO non ha incassato_pregresso
+
+    assert s["incassato"] == 360.0
