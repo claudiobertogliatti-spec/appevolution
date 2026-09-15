@@ -138,3 +138,26 @@ def build_title_plan(
             })
 
     return plan
+
+
+def playlist_removal_plan(keep_ids, playlist_items):
+    """Item della playlist da rimuovere = quelli il cui video NON e' fra i finali
+    da tenere (`keep_ids`). Puro: riceve la lista gia' letta da YouTube
+    (dict con `video_id`, `playlist_item_id`, `title`) e ritorna i candidati.
+    Un finale duplicato nella playlist si tiene (il suo video_id e' in keep).
+    """
+    keep = set(keep_ids or [])
+    out = []
+    for it in playlist_items or []:
+        vid = it.get("video_id")
+        item_id = it.get("playlist_item_id") or it.get("id")
+        if not vid or not item_id:
+            continue
+        if vid in keep:
+            continue
+        out.append({
+            "video_id": vid,
+            "playlist_item_id": item_id,
+            "title": it.get("title", ""),
+        })
+    return out

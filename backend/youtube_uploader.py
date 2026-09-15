@@ -505,16 +505,17 @@ Prodotto da Evolution PRO LLC
             Dict with success status
         """
         try:
-            service = self._get_service()
-            
-            service.playlistItems().delete(id=playlist_item_id).execute()
-            
+            self._execute_with_retry(
+                lambda svc: svc.playlistItems().delete(id=playlist_item_id)
+            )
             logger.info(f"Removed item {playlist_item_id} from playlist")
             return {"success": True}
-            
         except HttpError as e:
-            logger.error(f"Remove from playlist failed: {e}")
+            logger.error(f"Remove from playlist failed (HttpError): {e}")
             return {"success": False, "error": str(e)}
+        except Exception as e:  # connessione irrecuperabile dopo i retry
+            logger.error(f"Remove from playlist failed (net): {e!r}")
+            return {"success": False, "error": f"connessione YouTube: {e}"}
 
     def _fresh_service(self):
         """Forza la ricostruzione del client YouTube (nuova connessione HTTP).
