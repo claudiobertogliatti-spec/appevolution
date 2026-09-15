@@ -17,6 +17,7 @@ from services.youtube_titles import (  # noqa: E402
     lesson_title,
     masterclass_title,
     partner_label,
+    playlist_removal_plan,
     youtube_id_from_url,
 )
 
@@ -83,6 +84,24 @@ def test_piano_completo_ordinato_e_solo_finali():
     assert plan[3]["target_title"] == "Andolfi · M02·L01 — Lo stress nel corpo"
     # La lezione senza finale non c'e'.
     assert all(p["lesson_id"] != "m1_l2" for p in plan)
+
+
+def test_playlist_removal_tiene_i_finali_toglie_il_resto():
+    keep = ["FIN1", "FIN2", "MC"]  # 2 lezioni + masterclass finale
+    items = [
+        {"video_id": "FIN1", "playlist_item_id": "pi1", "title": "M01·L01"},
+        {"video_id": "OLD1", "playlist_item_id": "pi2", "title": "render vecchio"},
+        {"video_id": "MC", "playlist_item_id": "pi3", "title": "Masterclass definitiva"},
+        {"video_id": "OLDMC", "playlist_item_id": "pi4", "title": "Masterclass 04/2026"},
+        {"video_id": "FIN2", "playlist_item_id": "pi5", "title": "M01·L02"},
+        # stesso finale duplicato nella playlist: si tiene (video in keep)
+        {"video_id": "FIN1", "playlist_item_id": "pi6", "title": "dup"},
+        # voce malformata (senza item id): ignorata
+        {"video_id": "X", "title": "senza item id"},
+    ]
+    rem = playlist_removal_plan(keep, items)
+    assert {r["playlist_item_id"] for r in rem} == {"pi2", "pi4"}
+    assert all(r["video_id"] not in keep for r in rem)
 
 
 if __name__ == "__main__":

@@ -1822,6 +1822,19 @@ async def set_lesson_youtube_url(
     }
 
 
+async def _load_partner_masterclass(partner_id: str, override_video_id: Optional[str]):
+    """Doc masterclass del partner. La masterclass sta in `masterclass_factory`
+    (set-youtube-url) o in `partner_masterclass` (upload): si prova l'una, poi
+    l'altra. Se il finale non e' registrato da nessuna parte, l'admin puo' passare
+    `masterclass_video_id` a mano (caso di masterclass montate fuori dall'app)."""
+    doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not doc:
+        doc = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    if override_video_id:
+        doc = {**(doc or {}), "video_youtube_id": override_video_id}
+    return doc
+
+
 @router.post("/videocorso/{partner_id}/normalize-youtube-titles")
 async def normalize_youtube_titles(
     partner_id: str,
@@ -1829,6 +1842,11 @@ async def normalize_youtube_titles(
         True,
         description="True (default): mostra il piano senza toccare YouTube. "
         "False: esegue davvero le rinomine.",
+    ),
+    masterclass_video_id: Optional[str] = Query(
+        None,
+        description="Id YouTube della masterclass finale, se non e' registrata "
+        "nel sistema (montata fuori dall'app). Viene inclusa nel rename.",
     ),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
@@ -1844,7 +1862,7 @@ async def normalize_youtube_titles(
     await require_admin_token(credentials)
     partner = await get_partner_or_404(partner_id)
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
-    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await _load_partner_masterclass(partner_id, masterclass_video_id)
 
     from services.youtube_titles import build_title_plan
     plan = build_title_plan(partner, videocorso, masterclass)
@@ -1893,6 +1911,71 @@ async def normalize_youtube_titles(
         "missing_on_youtube": [i["video_id"] for i in items if not i["exists_on_youtube"]],
         "renamed": sum(1 for i in items if i.get("renamed")) if not dry_run else 0,
         "items": items,
+    }
+
+
+@router.post("/videocorso/{partner_id}/prune-playlist")
+async def prune_partner_playlist(
+    partner_id: str,
+    dry_run: bool = Query(
+        True,
+        description="True (default): mostra cosa verrebbe rimosso. "
+        "False: rimuove davvero dalla playlist.",
+    ),
+    masterclass_video_id: Optional[str] = Query(
+        None, description="Id YouTube della masterclass finale: viene TENUTA."
+    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Ripulisce la playlist-backup del partner: TIENE solo i finali (le lezioni
+    con `video_youtube_id` + la masterclass indicata) e RIMUOVE dalla playlist i
+    vecchi render/duplicati. ⚠️ Rimuove SOLO dalla playlist: i video restano su
+    YouTube (non-in-elenco), niente viene cancellato. `dry_run=True` (default)
+    mostra i candidati senza toccare nulla. Solo admin.
+    """
+    await require_admin_token(credentials)
+    partner = await get_partner_or_404(partner_id)
+    playlist_id = partner.get("youtube_playlist_id")
+    if not playlist_id:
+        raise HTTPException(status_code=400, detail="Il partner non ha una playlist YouTube")
+
+    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await _load_partner_masterclass(partner_id, masterclass_video_id)
+
+    from services.youtube_titles import build_title_plan, playlist_removal_plan
+    plan = build_title_plan(partner, videocorso, masterclass)
+    keep_ids = {p["video_id"] for p in plan}
+    if masterclass_video_id:
+        keep_ids.add(masterclass_video_id)
+
+    from youtube_uploader import youtube_uploader
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=503, detail="YouTube non autenticato sul backend")
+
+    listing = youtube_uploader.get_playlist_videos(playlist_id)
+    playlist_items = listing.get("videos", [])
+    to_remove = playlist_removal_plan(keep_ids, playlist_items)
+
+    removed, errors = 0, []
+    if not dry_run:
+        for it in to_remove:
+            res = youtube_uploader.remove_video_from_playlist(it["playlist_item_id"])
+            if res.get("success"):
+                removed += 1
+            else:
+                errors.append({"video_id": it["video_id"], "error": res.get("error")})
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "playlist_id": playlist_id,
+        "dry_run": dry_run,
+        "total_in_playlist": len(playlist_items),
+        "keep_count": len(keep_ids),
+        "to_remove_count": len(to_remove),
+        "to_remove": to_remove,
+        "removed": removed,
+        "errors": errors,
     }
 
 
