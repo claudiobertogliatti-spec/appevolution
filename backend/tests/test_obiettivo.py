@@ -287,3 +287,30 @@ def test_pregresso_assente_vale_zero_e_conta_solo_i_crediti():
     s = ob.stato(piano, OGGI, crediti=crediti)
 
     assert s["incassato"] == 360.0
+
+
+def test_la_proiezione_usa_solo_i_crediti_non_la_base_pregressa():
+    """
+    #4 (15/9): la base `incassato_pregresso` e' cassa una-tantum, non un flusso.
+    Il ritmo giornaliero e la proiezione devono basarsi SOLO sui crediti incassati,
+    altrimenti il gate €10k sembra raggiungibile quando non lo e'.
+    """
+    piano = {
+        "id": "g", "titolo": "t", "target": 10000.0,
+        "inizio": "2026-09-01", "scadenza": "2026-09-30",
+        "incassato_pregresso": 4000.0, "leve": [],
+    }
+    oggi = date(2026, 9, 15)  # 14 giorni passati, 15 rimasti
+    crediti = [
+        _credito("X", [
+            {"numero": 1, "importo": 1000.0, "stato": "incassata", "incassata_at": "2026-09-07"},
+        ]),
+    ]
+
+    s = ob.stato(piano, oggi, crediti=crediti)
+
+    assert s["incassato"] == 5000.0                       # 4000 base + 1000 crediti
+    atteso = round(5000.0 + (1000.0 / 14) * 15, 2)        # ritmo dai SOLI crediti
+    assert s["proiezione_al_ritmo_attuale"] == atteso
+    # Col bug (base proiettata) sarebbe ~10.357: qui deve restare ben sotto.
+    assert s["proiezione_al_ritmo_attuale"] < 7000

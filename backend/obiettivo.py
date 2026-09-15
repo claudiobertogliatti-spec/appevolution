@@ -152,7 +152,8 @@ def stato(
     fine = _data(ob.get("scadenza"))
     target = float(ob.get("target") or 0)
     pregresso = float(ob.get("incassato_pregresso") or 0)
-    incassato = round(pregresso + incassato_da_crediti(crediti or [], ob, oggi), 2)
+    da_crediti = incassato_da_crediti(crediti or [], ob, oggi)
+    incassato = round(pregresso + da_crediti, 2)
 
     gap = max(target - incassato, 0)
     giorni_rimasti = (fine - oggi).days if fine else None
@@ -167,7 +168,11 @@ def stato(
     # storia per dirlo: una proiezione su due giorni sarebbe un numero inventato.
     proiezione = None
     if giorni_passati and giorni_passati >= 3 and giorni_rimasti is not None:
-        al_giorno = incassato / giorni_passati
+        # Il ritmo lo fa SOLO la cassa che entra durante l'obiettivo (le rate
+        # incassate): l'`incassato_pregresso` e' una base una-tantum, gia' in
+        # cassa all'inizio, non un flusso che si ripete. Proiettarla come se
+        # maturasse ogni giorno gonfiava la proiezione proprio sul gate.
+        al_giorno = da_crediti / giorni_passati
         proiezione = round(incassato + al_giorno * max(giorni_rimasti, 0), 2)
 
     leve = ob.get("leve") or []
