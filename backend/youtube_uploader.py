@@ -507,7 +507,55 @@ Prodotto da Evolution PRO LLC
         except HttpError as e:
             logger.error(f"Remove from playlist failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
+    def get_videos_snippets(self, video_ids: List[str]) -> Dict[str, Dict]:
+        """Ritorna gli snippet correnti dei video richiesti: {video_id: snippet}.
+
+        Serve al dry-run della rinomina, per mostrare 'titolo attuale -> nuovo'
+        senza cambiare nulla. Batch da 50 (limite dell'API). Un id assente (video
+        cancellato o non accessibile) semplicemente non compare nella mappa.
+        """
+        service = self._get_service()
+        out: Dict[str, Dict] = {}
+        ids = [v for v in dict.fromkeys(video_ids) if v]  # dedup, ordine stabile
+        for i in range(0, len(ids), 50):
+            chunk = ids[i:i + 50]
+            resp = service.videos().list(part="snippet", id=",".join(chunk)).execute()
+            for item in resp.get("items", []):
+                out[item["id"]] = item.get("snippet", {})
+        return out
+
+    def rename_video(self, video_id: str, new_title: str) -> Dict:
+        """Cambia SOLO il titolo di un video, preservando il resto dello snippet.
+
+        L'API `videos.update` richiede categoryId nel body, quindi si legge prima
+        lo snippet corrente e si riscrive tutto con il solo title modificato: non
+        si perdono descrizione, tag o categoria. Idempotente a monte: chi chiama
+        salta i video gia' col titolo giusto.
+        """
+        try:
+            service = self._get_service()
+            resp = service.videos().list(part="snippet", id=video_id).execute()
+            items = resp.get("items", [])
+            if not items:
+                return {"success": False, "error": "video non trovato o non accessibile"}
+            snippet = items[0].get("snippet", {})
+            old_title = snippet.get("title", "")
+            if old_title == new_title:
+                return {"success": True, "skipped": True, "old_title": old_title}
+            snippet["title"] = new_title
+            # categoryId e' obbligatorio nell'update: se manca (raro) uso Education.
+            snippet.setdefault("categoryId", "27")
+            service.videos().update(
+                part="snippet",
+                body={"id": video_id, "snippet": snippet},
+            ).execute()
+            logger.info(f"Rinominato video {video_id}: '{old_title}' -> '{new_title}'")
+            return {"success": True, "old_title": old_title, "new_title": new_title}
+        except HttpError as e:
+            logger.error(f"Rename video {video_id} failed: {e}")
+            return {"success": False, "error": str(e)}
+
     async def upload_partner_video(
         self,
         video_path: str,
