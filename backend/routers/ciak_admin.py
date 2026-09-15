@@ -4499,6 +4499,50 @@ async def obiettivo_salva(obiettivo_id: str, body: dict, admin=Depends(require_c
     return {"success": True, "obiettivo": validato}
 
 
+# Campi scalari ritoccabili senza reinviare tutto il documento. Le leve NON sono
+# qui: hanno la loro PATCH dedicata (/leva/{nome}), e un $set dell'intero doc via
+# PUT le azzererebbe se il chiamante non le rimanda tutte. Serve per correggere un
+# singolo valore -- p.es. `incassato_pregresso` (l'incassato vecchio non a crediti).
+_OBIETTIVO_CAMPI_SCALARI = {
+    "titolo", "target", "scadenza", "inizio", "incassato", "incassato_pregresso", "nota",
+}
+_OBIETTIVO_CAMPI_NUMERICI = {"target", "incassato", "incassato_pregresso"}
+
+
+@router.patch("/obiettivo/{obiettivo_id}")
+async def obiettivo_aggiorna_campi(
+    obiettivo_id: str, body: dict, admin=Depends(require_ciak_admin)
+):
+    """
+    Aggiorna solo i campi scalari passati, senza toccare le leve.
+
+    Esiste perche' l'unico altro modo di scrivere sull'obiettivo era il PUT, che
+    fa `$set` del documento intero: per cambiare un numero bisognava rimandare
+    anche tutte le leve, o si perdevano. Qui si scrive solo cio' che serve.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    updates = {k: v for k, v in body.items() if k in _OBIETTIVO_CAMPI_SCALARI}
+    if not updates:
+        raise HTTPException(
+            400,
+            f"Nessun campo aggiornabile. Ammessi: {sorted(_OBIETTIVO_CAMPI_SCALARI)}",
+        )
+    for k in _OBIETTIVO_CAMPI_NUMERICI:
+        if k in updates:
+            try:
+                updates[k] = float(updates[k])
+            except (TypeError, ValueError):
+                raise HTTPException(400, f"'{k}' deve essere un numero")
+
+    updates["aggiornato_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.obiettivi.update_one({"id": obiettivo_id}, {"$set": updates})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Obiettivo non trovato")
+    return {"success": True, "aggiornato": updates}
+
+
 @router.patch("/obiettivo/{obiettivo_id}/leva/{nome}")
 async def obiettivo_muovi_leva(
     obiettivo_id: str, nome: str, body: dict, admin=Depends(require_ciak_admin)
