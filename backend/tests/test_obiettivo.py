@@ -24,7 +24,7 @@ PIANO = {
     "target": 10000.0,
     "inizio": "2026-08-01",
     "scadenza": "2026-09-30",
-    "incassato": 375.0,
+    "incassato_pregresso": 375.0,
     "leve": [
         {"nome": "Rosanna Amato", "valore": 1850.0, "stato": "aperta",
          "ultimo_movimento": "2026-08-19", "dipende_da": "solo una call"},
@@ -131,7 +131,7 @@ def test_una_leva_senza_data_di_movimento_non_e_dichiarata_ferma():
 
 
 def test_obiettivo_gia_raggiunto_non_da_gap_negativo():
-    superato = {**PIANO, "incassato": 12000.0}
+    superato = {**PIANO, "incassato_pregresso": 12000.0}
 
     s = ob.stato(superato, OGGI)
 
@@ -228,8 +228,8 @@ def test_incassato_include_i_ricorrenti_perche_sono_cassa_entrata():
     assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 147.0
 
 
-def test_stato_con_crediti_usa_il_derivato_e_ignora_il_campo_salvato():
-    """Il PIANO ha incassato=375 salvato; con i crediti vince il calcolo."""
+def test_stato_somma_pregresso_e_crediti():
+    """Il PIANO ha incassato_pregresso=375; i crediti si SOMMANO alla base."""
     crediti = [
         _credito("Depalma", [
             {"numero": 1, "importo": 600.0, "stato": "incassata", "incassata_at": "2026-09-15"},
@@ -238,12 +238,12 @@ def test_stato_con_crediti_usa_il_derivato_e_ignora_il_campo_salvato():
 
     s = ob.stato(PIANO, OGGI, crediti=crediti)
 
-    assert s["incassato"] == 600.0
-    assert s["gap"] == 9400.0
+    assert s["incassato"] == 975.0   # 375 pregresso + 600 crediti
+    assert s["gap"] == 9025.0
 
 
-def test_stato_senza_crediti_resta_sul_campo_salvato():
-    """Retrocompatibile: chi non passa i crediti vede ancora il campo memorizzato."""
+def test_stato_senza_crediti_conta_solo_il_pregresso():
+    """Senza crediti l'incassato e' solo la base pregressa (i crediti valgono 0)."""
     s = ob.stato(PIANO, OGGI)
 
     assert s["incassato"] == 375.0
@@ -283,6 +283,7 @@ def test_pregresso_assente_vale_zero_e_conta_solo_i_crediti():
         ]),
     ]
 
-    s = ob.stato(PIANO, OGGI, crediti=crediti)  # PIANO non ha incassato_pregresso
+    piano = {**PIANO, "incassato_pregresso": 0}
+    s = ob.stato(piano, OGGI, crediti=crediti)
 
     assert s["incassato"] == 360.0

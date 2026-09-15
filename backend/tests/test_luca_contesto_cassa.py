@@ -81,7 +81,6 @@ OBIETTIVO = {
     "target": 10000.0,
     "inizio": "2026-08-01",
     "scadenza": "2099-12-31",  # lontana: il test non deve scadere col tempo
-    "incassato": 375.0,
     "leve": [
         {"nome": "Rosanna Amato", "valore": 1850.0, "stato": "aperta",
          "ultimo_movimento": "2020-01-01", "dipende_da": "solo una call"},
