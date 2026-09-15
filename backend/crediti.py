@@ -165,10 +165,13 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
     rate_mese = rate_del_mese(crediti, anno, mese)
     aperti = [c for c in crediti if c.get("stato") in (CREDITO_APERTO, CREDITO_IN_PIANO)]
 
+    # Previsto = quello che ci si aspetta di incassare ancora questo mese. Fuori
+    # sia l'incassato (gia' entrato) sia la saltata (esito terminale: non arriva).
+    # Tenere le saltate qui gonfiava il previsto con soldi che si sa non arrivano.
     da_incassare = sum(
         float(r.get("importo") or 0)
         for r in rate_mese
-        if r["stato_effettivo"] != RATA_INCASSATA
+        if r["stato_effettivo"] not in (RATA_INCASSATA, RATA_SALTATA)
     )
     incassato = sum(
         float(r.get("importo") or 0)
@@ -217,14 +220,16 @@ def riepilogo(crediti: List[dict], anno: int, mese: int) -> dict:
             for r in tutte
             if not r.get("scadenza") and r["stato_effettivo"] != RATA_INCASSATA
         ],
-        # Quanto resta da incassare in tutto: la somma delle rate non incassate,
-        # non `importo_totale` -- che include anche quello gia' rientrato.
+        # Quanto resta da recuperare in tutto: la somma delle rate ancora aperte,
+        # non `importo_totale` -- che include anche quello gia' rientrato. Fuori le
+        # incassate (rientrate) e le saltate (esito terminale: non si recuperano).
         # Solo i crediti veri: quanto c'e' da rincorrere.
         "residuo_totale": round(
             sum(
                 float(r.get("importo") or 0)
                 for r in tutte
-                if r["stato_effettivo"] != RATA_INCASSATA and r["tipo"] == TIPO_CREDITO
+                if r["stato_effettivo"] not in (RATA_INCASSATA, RATA_SALTATA)
+                and r["tipo"] == TIPO_CREDITO
             ),
             2,
         ),
