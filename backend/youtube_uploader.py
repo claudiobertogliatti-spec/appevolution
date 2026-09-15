@@ -577,10 +577,19 @@ Prodotto da Evolution PRO LLC
             items = resp.get("items", [])
             if not items:
                 return {"success": False, "error": "video non trovato o non accessibile"}
-            snippet = items[0].get("snippet", {})
+            snippet = dict(items[0].get("snippet", {}))
             old_title = snippet.get("title", "")
             if old_title == new_title:
                 return {"success": True, "skipped": True, "old_title": old_title}
+            # videos.update(part="snippet") RIMPIAZZA lo snippet: si tengono i
+            # campi utili (title, categoryId, description, tags, defaultLanguage)
+            # e si tolgono quelli READ-ONLY che, se rimandati, danno 400
+            # "invalidVideoMetadata" su certi video (successo alla masterclass di
+            # Daniele mentre le 32 lezioni passavano). Preserva tag e descrizione.
+            for ro in ("thumbnails", "publishedAt", "channelId", "channelTitle",
+                       "liveBroadcastContent", "localized", "defaultAudioLanguage",
+                       "categoryTitle"):
+                snippet.pop(ro, None)
             snippet["title"] = new_title
             # categoryId e' obbligatorio nell'update: se manca (raro) uso Education.
             snippet.setdefault("categoryId", "27")
