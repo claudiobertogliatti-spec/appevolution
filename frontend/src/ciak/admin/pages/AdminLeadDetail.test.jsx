@@ -74,3 +74,13 @@ test('"Ho fatto la call di consegna" consegna il Blueprint via admin/consegna-bl
   // il link d'accesso restituito viene mostrato all'admin (findByText lancia se assente)
   expect(await screen.findByText(/token=tk/)).toBeTruthy();
 });
+
+test("a call_done il bottone di consegna sparisce e mostra 'Blueprint consegnato'", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/Blueprint consegnato/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Ho fatto la call di consegna/i })).toBeNull();
+});

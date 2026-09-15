@@ -93,6 +93,7 @@ import { Fatture } from "./pages/Fatture";
 import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
 import { ChiusuraInsider } from "./pages/ChiusuraInsider";
+import { ConsegnaManuale } from "./pages/ConsegnaManuale";
 import { ListinoPrezzi } from "./pages/ListinoPrezzi";
 import { CollaudoCheckout } from "./pages/CollaudoCheckout";
 import {
@@ -152,6 +153,7 @@ const NAV = [
       { to: "/admin/trattative", label: "Trattative", desc: "Pipeline post-€27 in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
       { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
+      { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
@@ -698,6 +700,7 @@ export default function CiakAdminApp() {
 
         {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
         <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
+        <Route path="consegna-manuale" element={<ConsegnaManuale onAuthExpired={handleLogout} />} />
         <Route path="listino-prezzi" element={<ListinoPrezzi />} />
         <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 

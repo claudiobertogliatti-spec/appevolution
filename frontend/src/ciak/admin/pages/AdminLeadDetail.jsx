@@ -149,8 +149,11 @@ export function AdminLeadDetail({ onAuthExpired }) {
       </h1>
       <p className="text-slate-500 mb-8">{data.email}</p>
 
-      {/* Consegna Blueprint GRATUITO — azione chiave post-call */}
-      {diagnostics.length > 0 && (
+      {/* Consegna Blueprint GRATUITO — azione chiave post-call.
+          Solo finché la call NON è già stata segnata come fatta: dopo call_done
+          il bottone sparisce, così non si può ri-inviare (e, sui clienti consegnati
+          a mano, non si sovrascrive il PDF con un'analisi Carlo su dati vuoti). */}
+      {diagnostics.length > 0 && latest_diagnostic?.current_state !== "call_done" && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
             Dopo la call di consegna
@@ -184,6 +187,14 @@ export function AdminLeadDetail({ onAuthExpired }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Blueprint già consegnato: call_done. Niente bottone (evita re-invii). */}
+      {diagnostics.length > 0 && latest_diagnostic?.current_state === "call_done" && (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6 text-sm text-emerald-800">
+          <span className="text-base" aria-hidden="true">✓</span>
+          Blueprint consegnato: il cliente ha ricevuto la mail e ha l'accesso alla sales page. Offerte sbloccate.
         </div>
       )}
 
