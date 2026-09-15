@@ -89,8 +89,15 @@ OBIETTIVO = {
 }
 
 # Una posizione normale e una che NON si sollecita: sono i due casi che il
-# contesto deve trattare in modo diverso.
+# contesto deve trattare in modo diverso. La terza e' gia' incassata: e' quella
+# che alimenta l'`incassato` dell'obiettivo, ora calcolato dai crediti.
 CREDITI = [
+    {
+        "id": "test-incassato", "nome": "Partner Saldato", "importo_totale": 375.0,
+        "causale": "acconto", "stato": "saldato", "tipo": "credito",
+        "rate": [{"numero": 1, "importo": 375.0, "scadenza": "2026-08-10",
+                  "stato": "incassata", "incassata_at": "2026-08-10"}],
+    },
     {
         "id": "test-normale", "nome": "Partner Normale", "importo_totale": 930.0,
         "causale": "seconda rata", "stato": "aperto", "tipo": "credito",
@@ -120,7 +127,8 @@ def test_il_contesto_contiene_obiettivo_gap_e_leve():
 
     assert "CASSA A BREVE" in testo
     assert "10.000 euro entro il 30/9" in testo
-    # Il gap e' 10000 - 375: se compare, il numero e' calcolato e non copiato.
+    # Il gap e' 10000 - 375, e i 375 sono la rata incassata di "Partner Saldato":
+    # se 9625 compare, l'incassato e' stato calcolato dai crediti, non copiato.
     assert "9625" in testo.replace(".", "").replace(",", "")
     assert "Rosanna Amato" in testo
 

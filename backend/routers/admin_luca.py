@@ -307,9 +307,13 @@ async def build_luca_context() -> str:
         lines.append("")
         lines.append("== CASSA A BREVE (il gate) ==")
 
+        # I crediti servono due volte: per calcolare l'incassato dell'obiettivo
+        # (fonte unica) e per il riepilogo del mese. Una query sola.
+        crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+
         ob = await db.obiettivi.find_one({"id": OBIETTIVO_CORRENTE}, {"_id": 0})
         if ob:
-            s = _stato_obiettivo(ob)
+            s = _stato_obiettivo(ob, crediti=crediti)
             lines.append(
                 f"OBIETTIVO {s['titolo']}: target EUR {s['target']:.0f} · "
                 f"incassato EUR {s['incassato']:.0f} · manca EUR {s['gap']:.0f} "
@@ -353,7 +357,6 @@ async def build_luca_context() -> str:
                 f"Non conosci target ne' avanzamento: dillo, non stimarli."
             )
 
-        crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
         if crediti:
             r = _riepilogo_crediti(crediti, now.year, now.month)
             lines.append(

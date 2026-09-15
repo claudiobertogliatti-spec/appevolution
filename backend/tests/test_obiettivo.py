@@ -137,3 +137,113 @@ def test_obiettivo_gia_raggiunto_non_da_gap_negativo():
 
     assert s["gap"] == 0
     assert s["scoperto"] == 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# incassato DERIVATO dai crediti (B, 15/9/2026)
+#
+# Prima l'`incassato` dell'obiettivo era un campo salvato a mano: aggiornare la
+# situazione pagamenti (i crediti) non lo muoveva. Ora `stato(ob, crediti=...)`
+# lo calcola dalle rate davvero incassate dentro la finestra dell'obiettivo, cosi'
+# la Direzione segue i pagamenti senza un secondo posto da ricordarsi.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _credito(nome, rate, tipo="credito"):
+    return {"id": nome.lower().replace(" ", "-"), "nome": nome, "tipo": tipo, "rate": rate}
+
+
+def test_incassato_somma_solo_le_rate_incassate_nella_finestra():
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 360.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+            {"numero": 2, "importo": 240.0, "stato": "attesa", "scadenza": "2026-10-15"},
+        ]),
+        _credito("Falcone", [
+            {"numero": 1, "importo": 358.0, "stato": "incassata", "incassata_at": "2026-09-10"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 718.0
+
+
+def test_incassato_ignora_le_rate_non_incassate():
+    """da_verificare / saltata / attesa non sono cassa entrata."""
+    crediti = [
+        _credito("Tizio", [
+            {"numero": 1, "importo": 500.0, "stato": "saltata", "scadenza": "2026-08-10"},
+            {"numero": 2, "importo": 500.0, "stato": "da_verificare", "scadenza": "2026-08-20"},
+            {"numero": 3, "importo": 500.0, "stato": "attesa", "scadenza": "2026-09-20"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 0.0
+
+
+def test_incassato_usa_la_scadenza_quando_manca_la_data_di_incasso():
+    crediti = [
+        _credito("Senza data incasso", [
+            {"numero": 1, "importo": 200.0, "stato": "incassata", "scadenza": "2026-09-05"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 200.0
+
+
+def test_incassato_esclude_gli_incassi_fuori_dalla_finestra():
+    """Soldi entrati prima dell'inizio o dopo la scadenza non contano per QUESTO obiettivo."""
+    crediti = [
+        _credito("Prima", [
+            {"numero": 1, "importo": 999.0, "stato": "incassata", "incassata_at": "2026-07-31"},
+        ]),
+        _credito("Dopo", [
+            {"numero": 1, "importo": 999.0, "stato": "incassata", "incassata_at": "2026-10-01"},
+        ]),
+        _credito("Dentro", [
+            {"numero": 1, "importo": 100.0, "stato": "incassata", "incassata_at": "2026-08-01"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 100.0
+
+
+def test_incassato_esclude_le_rate_incassate_senza_alcuna_data():
+    """Incassata ma non collocabile nel tempo: non si puo' dire che sia nella finestra."""
+    crediti = [
+        _credito("Senza date", [
+            {"numero": 1, "importo": 300.0, "stato": "incassata"},
+        ]),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 0.0
+
+
+def test_incassato_include_i_ricorrenti_perche_sono_cassa_entrata():
+    """Il residuo esclude i ricorrenti; l'incassato no: una mensilita' riscossa e' cassa in banca."""
+    crediti = [
+        _credito("Filieri canone", [
+            {"numero": 9, "importo": 147.0, "stato": "incassata", "incassata_at": "2026-09-03"},
+        ], tipo="ricorrente"),
+    ]
+
+    assert ob.incassato_da_crediti(crediti, PIANO, OGGI) == 147.0
+
+
+def test_stato_con_crediti_usa_il_derivato_e_ignora_il_campo_salvato():
+    """Il PIANO ha incassato=375 salvato; con i crediti vince il calcolo."""
+    crediti = [
+        _credito("Depalma", [
+            {"numero": 1, "importo": 600.0, "stato": "incassata", "incassata_at": "2026-09-15"},
+        ]),
+    ]
+
+    s = ob.stato(PIANO, OGGI, crediti=crediti)
+
+    assert s["incassato"] == 600.0
+    assert s["gap"] == 9400.0
+
+
+def test_stato_senza_crediti_resta_sul_campo_salvato():
+    """Retrocompatibile: chi non passa i crediti vede ancora il campo memorizzato."""
+    s = ob.stato(PIANO, OGGI)
+
+    assert s["incassato"] == 375.0

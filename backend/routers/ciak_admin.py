@@ -4476,7 +4476,11 @@ async def obiettivo_stato(obiettivo_id: str, admin=Depends(require_admin_or_repo
     ob = await db.obiettivi.find_one({"id": obiettivo_id}, {"_id": 0})
     if not ob:
         raise HTTPException(404, "Obiettivo non trovato")
-    return _stato(ob)
+    # L'incassato si calcola dai crediti (fonte unica): segnare una rata come
+    # incassata in Amministrazione muove anche questo numero. Prima era un campo
+    # salvato a mano che restava fermo mentre i pagamenti cambiavano.
+    crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+    return _stato(ob, crediti=crediti)
 
 
 @router.put("/obiettivo/{obiettivo_id}")
