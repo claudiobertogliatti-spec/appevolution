@@ -136,6 +136,28 @@ def stato_effettivo_rata(rata: dict, oggi: Optional[date] = None) -> str:
     return RATA_DA_VERIFICARE if scad < oggi else RATA_ATTESA
 
 
+def concilia_rate_con_saldato(credito: dict, oggi_iso: Optional[str] = None) -> dict:
+    """
+    Se il credito e' `saldato`, le sue rate devono risultare tutte `incassata`.
+
+    Le rate sono la fonte di verita' del sistema: `residuo_totale` e l'incassato
+    dell'obiettivo leggono lo stato delle RATE, non `credito.stato`. Un credito
+    segnato saldato ma con rate lasciate `attesa` sbaglia due volte -- il residuo
+    le conta come da recuperare, e l'obiettivo NON le conta come incassato. Qui
+    si allinea la causa (le rate), cosi' ogni lettore torna coerente da solo.
+    Modifica il dict in place e lo restituisce.
+    """
+    if credito.get("stato") != CREDITO_SALDATO:
+        return credito
+    oggi_iso = oggi_iso or datetime.now(timezone.utc).isoformat()
+    for r in credito.get("rate") or []:
+        if r.get("stato") != RATA_INCASSATA:
+            r["stato"] = RATA_INCASSATA
+            if not r.get("incassata_at"):
+                r["incassata_at"] = oggi_iso
+    return credito
+
+
 def rate_del_mese(crediti: List[dict], anno: int, mese: int) -> List[dict]:
     """Le rate che scadono nel mese indicato, ordinate per data."""
     fuori = []
