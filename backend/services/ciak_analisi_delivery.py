@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
-from services import ciak_analisi, ciak_pdf
+from services import ciak_analisi, ciak_pdf, ciak_pdf_blueprint
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +75,15 @@ def _send_email_attachment(*, to: str, subject: str, body_text: str,
 
 def _email_body(nome: str, link: Optional[str]) -> str:
     primo = (nome or "").split()[0] if nome else "ciao"
-    link_line = f"\n\nPuoi anche scaricarla qui:\n{link}\n" if link else "\n"
+    link_line = f"\n\nSe preferisci, puoi scaricarlo anche qui:\n{link}\n" if link else "\n"
     return (
         f"Ciao {primo},\n\n"
-        "in allegato trovi l'anteprima della tua analisi strategica Ciak Blueprint."
+        "come promesso, in allegato trovi il tuo Blueprint Evolution: l'analisi strategica "
+        "di posizionamento che abbiamo visto insieme nella call — profilo, mercato, "
+        "pubblico, la tua accademia e la roadmap, sezione per sezione."
         f"{link_line}\n"
-        "È una sintesi: la versione completa — mercato, accademia e roadmap nel dettaglio — "
-        "la vediamo insieme nella call strategica.\n\n"
+        "Quando vuoi proseguire, dalla tua area riservata scegli come muoverti: "
+        "Ciak Start oppure la Partnership completa.\n\n"
         "A presto,\nClaudio\nEvolution PRO"
     )
 
@@ -107,6 +109,30 @@ def _send_email_link(*, to: str, nome: str, subject: str, link: str) -> tuple[bo
         return True, None
     except Exception as e:
         return False, str(e)
+
+
+async def _render_deliverable_pdf(
+    session_token: str, bozza: dict, nome: Optional[str]
+) -> tuple[bytes, str]:
+    """PDF consegnato al cliente.
+
+    Primario: il Blueprint DEFINITIVO a 13 sezioni (layout A4 Evolution,
+    `ciak_pdf_blueprint`). Se la generazione fallisce (Anthropic ko, sezione
+    mancante, sessione senza risposte...), degrada al teaser bozza: la consegna
+    non deve mai bloccarsi. Ritorna (pdf_bytes, kind) con kind in
+    {"blueprint", "teaser"}.
+    """
+    try:
+        payload = await ciak_analisi.genera_blueprint(session_token)
+        pdf = await ciak_pdf_blueprint.genera_blueprint_pdf(payload)
+        return pdf, "blueprint"
+    except Exception as e:
+        logger.warning(
+            "[CIAK_DELIVERY] blueprint 13-sez fallito per %s, uso teaser: %s",
+            session_token, e,
+        )
+        pdf = await ciak_pdf.genera_bozza_pdf(bozza, nome or "")
+        return pdf, "teaser"
 
 
 async def processa_acquisto(session_token: str, email: str, nome: Optional[str]) -> dict:
@@ -135,19 +161,19 @@ async def processa_acquisto(session_token: str, email: str, nome: Optional[str])
         return {"sent": False, "error": "email mancante"}
 
     try:
-        pdf_bytes = await ciak_pdf.genera_bozza_pdf(bozza, nome or "")
+        pdf_bytes, kind = await _render_deliverable_pdf(session_token, bozza, nome)
     except Exception as e:
         logger.error("[CIAK_DELIVERY] render PDF fallito per %s: %s", session_token, e)
         return {"sent": False, "error": f"pdf: {e}"}
 
     pdf_url = await _upload_pdf(pdf_bytes, session_token)
     ok, err = _send_email_attachment(
-        to=dest, subject="La tua analisi Ciak Blueprint — anteprima",
+        to=dest, subject="Il tuo Blueprint Evolution",
         body_text=_email_body(nome, pdf_url),
-        pdf_bytes=pdf_bytes, pdf_filename=f"analisi_ciak_{session_token[:8]}.pdf",
+        pdf_bytes=pdf_bytes, pdf_filename=f"blueprint_evolution_{session_token[:8]}.pdf",
     )
     bozza["pdf_url"] = pdf_url
-    update = {"bozza": bozza}
+    update = {"bozza": bozza, "deliverable_kind": kind}
     if ok:
         update["bozza_inviata_at"] = _now_iso()
     else:

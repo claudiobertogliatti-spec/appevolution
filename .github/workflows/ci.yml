@@ -90,6 +90,8 @@ jobs:
           tests/test_checkout_trigger.py
           tests/test_ciak_pdf.py
           tests/test_ciak_pdf_blueprint.py
+          tests/test_ciak_blueprint_generator.py
+          tests/test_ciak_analisi_delivery.py
           tests/test_servizi_extra_catalogo.py
           tests/test_security_config.py
           tests/test_stripe_webhook_security.py
