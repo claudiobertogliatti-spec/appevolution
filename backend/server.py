@@ -14218,7 +14218,8 @@ async def record_manual_sale(
     product: str,
     amount: float,
     order_id: Optional[str] = None,
-    source: str = "manual"
+    source: str = "manual",
+    _admin=Depends(require_admin_role),
 ):
     """
     Manually record a sale (useful for tracking sales from external sources).
