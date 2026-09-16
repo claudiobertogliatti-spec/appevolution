@@ -18,11 +18,10 @@ router, cosi' le regole restano provabili senza database.
 """
 from __future__ import annotations
 
-import copy
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Optional
 
-from services.ciak_client_accounts import default_start_progress, has_start_entitlement
+from services.ciak_client_accounts import has_start_entitlement
 
 # Gli offset dell'email. Non si toccano senza cambiare il testo gia' spedito.
 MILESTONE_OFFSET_DAYS = (7, 14, 21)
@@ -40,9 +39,15 @@ STATO_DA_APPROVARE = "da_approvare"
 STATO_CONSEGNATA = "consegnata"
 STATI_TAPPA = (STATO_DA_FARE, STATO_DA_APPROVARE, STATO_CONSEGNATA)
 
-# Come lo stato di tappa si scrive sul singolo step del percorso.
-STEP_STATUS_READY = "ready"
-STEP_STATUS_DONE = "done"
+# Come lo stato di tappa si legge e si scrive sul singolo step della journey
+# (`partner_journey_steps`). Il vocabolario e' quello che i motori scrivono
+# davvero: `status` in_progress/done, `approval_status` pending_review/approved
+# (vedi `genera_*_start` e `approva_deliverable_start` in `routers/ciak_admin.py`).
+JOURNEY_STATUS_IN_PROGRESS = "in_progress"
+JOURNEY_STATUS_DONE = "done"
+JOURNEY_STATUS_READY_FOR_REVIEW = "ready_for_review"
+JOURNEY_APPROVAL_PENDING = "pending_review"
+JOURNEY_APPROVAL_APPROVED = "approved"
 
 URGENZA_SCADUTA = "scaduta"
 URGENZA_IMMINENTE = "imminente"
@@ -55,33 +60,38 @@ URGENZA_CHIUSA = "chiusa"
 # sua scrivania.
 IMMINENT_DAYS = INTERNAL_REVIEW_HOURS // 24
 
-# Le tre tappe, con le parole dell'email. `default_start_progress` ha 7 step:
-# i primi 6 stanno a due a due nelle tre tappe promesse. Il settimo (revisione
-# finale e readiness partnership) NON ha una data promessa nell'email e non
-# diventa una quarta tappa: inventargliene una sarebbe una promessa che il
-# cliente non ha mai ricevuto.
+# Le tre tappe, con le parole dell'email, mappate sugli step REALI della journey
+# (`partner_journey_steps`, tier start — 6 step). Non esiste piu' un secondo
+# elenco di stato (`start_progress`, dismesso): il pannello legge la stessa
+# journey che il cliente vede e che i motori di consegna aggiornano.
+#
+# I 6 step del tier start (vedi `models/start_journey.py`) stanno a due a due —
+# tranne la tappa 3, dove strategia e calendario sono un solo step fuso
+# (`start-contenuti-90`). Il settimo passo storico (readiness partnership,
+# `start-readiness`) NON ha una data promessa nell'email e non diventa una quarta
+# tappa: inventargliene una sarebbe una promessa che il cliente non ha ricevuto.
 MILESTONES: tuple[dict[str, Any], ...] = (
     {
         "tappa": 1,
         "titolo": "Posizionamento e brand",
         "contenuto": "Direzione di posizionamento e basi del brand",
-        "step_ids": ("start_1", "start_2"),
+        "step_ids": ("04-posizionamento", "03-brand-kit"),
     },
     {
         "tappa": 2,
         "titolo": "Profili social e sito vetrina",
         "contenuto": "Sistemazione dei profili social e sito vetrina semplice",
-        "step_ids": ("start_3", "start_4"),
+        "step_ids": ("start-profili", "start-vetrina"),
     },
     {
         "tappa": 3,
         "titolo": "Strategia contenuti e calendario 90 giorni",
         "contenuto": "Strategia contenuti e calendario editoriale a 90 giorni",
-        "step_ids": ("start_5", "start_6"),
+        "step_ids": ("start-contenuti-90",),
     },
 )
 
-STEP_SENZA_DATA_PROMESSA = "start_7"
+STEP_SENZA_DATA_PROMESSA = "start-readiness"
 
 
 # ─── Le date: sorgente unica, condivisa con l'email ────────────────────────
@@ -106,38 +116,66 @@ def format_delivery_dates(paid_at: Any) -> list[str]:
     return [moment.strftime("%d/%m/%Y") for moment in delivery_datetimes(paid_at)]
 
 
-# ─── L'avanzamento: UNA funzione sola ──────────────────────────────────────
+# ─── L'avanzamento: letto e scritto sulla journey vera ─────────────────────
 #
-# ⛔ `start_progress` e' un campo IN DISMISSIONE. Si legge e si scrive SOLO nelle
-#    due funzioni qui sotto (`_stato_tappe` e `apply_milestone_status`).
-#    Il Blocco 1 sposta lo stato degli step su `partner_journey_steps` (journey
-#    unica con `tier`): quando atterra si cambiano queste due funzioni, e nient'altro.
+# `start_progress` e' stato DISMESSO. Lo stato delle tappe si legge e si scrive
+# solo su `partner_journey_steps` (journey unica con `tier`, `models/start_journey`):
+# la stessa che il cliente vede e che i motori di consegna aggiornano. Le funzioni
+# restano pure — ricevono gli step gia' caricati dal router e restituiscono righe
+# o aggiornamenti. Le query stanno nel router.
 
 
-def _steps_by_id(client: dict) -> dict[str, dict]:
+def _steps_by_id(steps: Iterable[dict]) -> dict[str, dict]:
     return {
-        step.get("id"): step
-        for step in (client.get("start_progress") or [])
-        if isinstance(step, dict) and step.get("id")
+        step.get("step_id"): step
+        for step in (steps or [])
+        if isinstance(step, dict) and step.get("step_id")
     }
 
 
-def _stato_tappe(client: dict) -> dict[int, dict[str, Any]]:
-    """Stato di avanzamento delle 3 tappe, letto dal percorso del cliente.
+def _step_e_consegnato(step: dict) -> bool:
+    return (
+        step.get("status") == JOURNEY_STATUS_DONE
+        or step.get("approval_status") == JOURNEY_APPROVAL_APPROVED
+    )
 
-    Oggi: `ciak_clients.start_progress`.
-    Domani (Blocco 1): `partner_journey_steps`, journey unica con `tier`.
+
+def _step_e_pronto(step: dict) -> bool:
+    # In_progress da solo non basta: un cliente appena seedato ha il primo step
+    # in_progress senza che nulla sia stato prodotto. "Pronto" = un deliverable
+    # generato che aspetta l'approvazione.
+    return (
+        step.get("approval_status") == JOURNEY_APPROVAL_PENDING
+        or step.get("status") == JOURNEY_STATUS_READY_FOR_REVIEW
+    )
+
+
+def _prima_valorizzata(steps: list[dict], *chiavi: str) -> Any:
+    for step in steps:
+        for chiave in chiavi:
+            valore = step.get(chiave)
+            if valore:
+                return valore
+    return None
+
+
+def _stato_tappe(steps_by_id: dict[str, dict]) -> dict[int, dict[str, Any]]:
+    """Stato di avanzamento delle 3 tappe, letto dagli step della journey.
+
+    Sorgente unica: `partner_journey_steps` (tier start). Una tappa e':
+      - consegnata, quando tutti i suoi step sono done/approvati;
+      - da approvare, quando almeno uno aspetta l'approvazione;
+      - da fare, altrimenti (anche appena seedata: in_progress non basta).
     """
-    steps = _steps_by_id(client)
     stato: dict[int, dict[str, Any]] = {}
 
     for milestone in MILESTONES:
-        presenti = [steps[sid] for sid in milestone["step_ids"] if sid in steps]
+        presenti = [steps_by_id[sid] for sid in milestone["step_ids"] if sid in steps_by_id]
         completa = len(presenti) == len(milestone["step_ids"])
 
-        if completa and all(s.get("status") == STEP_STATUS_DONE for s in presenti):
+        if completa and presenti and all(_step_e_consegnato(s) for s in presenti):
             corrente = STATO_CONSEGNATA
-        elif any(s.get("status") == STEP_STATUS_READY for s in presenti):
+        elif any(_step_e_pronto(s) for s in presenti):
             corrente = STATO_DA_APPROVARE
         else:
             corrente = STATO_DA_FARE
@@ -145,23 +183,16 @@ def _stato_tappe(client: dict) -> dict[int, dict[str, Any]]:
         stato[milestone["tappa"]] = {
             "stato": corrente,
             "step_ids": list(milestone["step_ids"]),
-            "consegnata_at": next(
-                (s.get("delivered_at") for s in presenti if s.get("delivered_at")), None
-            ),
-            "consegnata_da": next(
-                (s.get("delivered_by") for s in presenti if s.get("delivered_by")), None
-            ),
-            "riferimento": next(
-                (s.get("reference") for s in presenti if s.get("reference")), None
-            ),
-            "nota": next((s.get("note") for s in presenti if s.get("note")), None),
-            "pronta_at": next((s.get("ready_at") for s in presenti if s.get("ready_at")), None),
+            "consegnata_at": _prima_valorizzata(presenti, "completed_at", "approved_at", "delivered_at"),
+            "consegnata_da": _prima_valorizzata(presenti, "approved_by", "delivered_by"),
+            "riferimento": _prima_valorizzata(presenti, "reference"),
+            "nota": _prima_valorizzata(presenti, "note"),
+            "pronta_at": _prima_valorizzata(presenti, "ready_at", "updated_at"),
         }
     return stato
 
 
 def apply_milestone_status(
-    client: dict,
     *,
     tappa: int,
     stato: str,
@@ -169,13 +200,14 @@ def apply_milestone_status(
     riferimento: Optional[str] = None,
     nota: Optional[str] = None,
     now: Optional[datetime] = None,
-) -> list[dict]:
-    """Segna una tappa come pronta da approvare o come consegnata.
+) -> list[dict[str, Any]]:
+    """Aggiornamenti da scrivere sugli step della journey per segnare una tappa.
 
-    Restituisce il nuovo `start_progress` da persistere: non muta l'originale e
-    non tocca gli step delle altre tappe. In particolare non sblocca la tappa
-    successiva — la progressione degli step e' materia del Blocco 1, non di un
-    pannello di scadenze.
+    Restituisce una riga per step (`step_id` + i campi `$set`), senza toccare gli
+    step delle altre tappe e senza sbloccare la tappa successiva — la progressione
+    degli step e' materia dei motori di consegna, non di un pannello di scadenze.
+    Scrive lo STESSO campo che l'approvazione dei deliverable aggiorna: una
+    sorgente sola, nessun secondo binario.
     """
     milestone = next((m for m in MILESTONES if m["tappa"] == tappa), None)
     if milestone is None:
@@ -185,33 +217,32 @@ def apply_milestone_status(
             f"Stato non scrivibile: {stato!r}. Ammessi: {STATO_DA_APPROVARE!r}, {STATO_CONSEGNATA!r}."
         )
 
-    progress = copy.deepcopy(client.get("start_progress") or [])
-    if not progress:
-        # Un cliente Start attivato prima che il percorso esistesse non deve far
-        # fallire la marcatura: si ricostruisce il percorso di default.
-        progress = default_start_progress()
-
     momento = (now or datetime.now(timezone.utc)).isoformat()
-    for step in progress:
-        if not isinstance(step, dict) or step.get("id") not in milestone["step_ids"]:
-            continue
-        if stato == STATO_CONSEGNATA:
-            step.update({
-                "status": STEP_STATUS_DONE,
-                "delivered_at": momento,
-                "delivered_by": attore,
-                "reference": riferimento or None,
-                "note": nota or None,
-            })
-        else:
-            step.update({
-                "status": STEP_STATUS_READY,
-                "ready_at": momento,
-                "ready_by": attore,
-                "delivered_at": None,
-                "note": nota or step.get("note") or None,
-            })
-    return progress
+    if stato == STATO_CONSEGNATA:
+        campi: dict[str, Any] = {
+            "status": JOURNEY_STATUS_DONE,
+            "approval_status": JOURNEY_APPROVAL_APPROVED,
+            "approved_at": momento,
+            "approved_by": attore,
+            "completed_at": momento,
+            "updated_at": momento,
+        }
+        if riferimento:
+            campi["reference"] = riferimento
+        if nota:
+            campi["note"] = nota
+    else:
+        campi = {
+            "status": JOURNEY_STATUS_IN_PROGRESS,
+            "approval_status": JOURNEY_APPROVAL_PENDING,
+            "ready_at": momento,
+            "ready_by": attore,
+            "updated_at": momento,
+        }
+        if nota:
+            campi["note"] = nota
+
+    return [{"step_id": sid, "set": dict(campi)} for sid in milestone["step_ids"]]
 
 
 # ─── Le righe del pannello ─────────────────────────────────────────────────
@@ -238,12 +269,18 @@ def _ordine(row: dict) -> tuple[int, int]:
     return (1 if row["stato"] == STATO_CONSEGNATA else 0, row["giorni"])
 
 
-def milestone_rows(client: dict, *, now: Optional[datetime] = None) -> list[dict]:
-    """Le 3 righe di un cliente Start, ordinate per urgenza."""
+def milestone_rows(
+    client: dict, steps: Iterable[dict], *, now: Optional[datetime] = None
+) -> list[dict]:
+    """Le 3 righe di un cliente Start, ordinate per urgenza.
+
+    `steps` sono gli step della journey del cliente (`partner_journey_steps`),
+    gia' caricati dal router: la funzione resta pura e provabile senza database.
+    """
     adesso = now or datetime.now(timezone.utc)
     oggi = adesso.date()
     scadenze = delivery_datetimes(client.get("start_purchased_at"))
-    stato_tappe = _stato_tappe(client)
+    stato_tappe = _stato_tappe(_steps_by_id(steps))
 
     rows = []
     for milestone, scadenza in zip(MILESTONES, scadenze):
@@ -278,13 +315,20 @@ def milestone_rows(client: dict, *, now: Optional[datetime] = None) -> list[dict
     return sorted(rows, key=_ordine)
 
 
-def build_report(clients: Iterable[dict], *, now: Optional[datetime] = None) -> dict:
+def build_report(
+    clients: Iterable[dict],
+    steps_by_client: dict[str, list[dict]] | None = None,
+    *,
+    now: Optional[datetime] = None,
+) -> dict:
     """Il pannello: una riga per tappa per cliente, ordinato per urgenza.
 
-    In cima gli unici due numeri che contano — quante tappe sono scadute e quante
-    scadono entro 48 ore.
+    `steps_by_client` mappa l'id del cliente sui suoi step di journey
+    (`partner_journey_steps`), caricati dal router. In cima gli unici due numeri
+    che contano — quante tappe sono scadute e quante scadono entro 48 ore.
     """
     adesso = now or datetime.now(timezone.utc)
+    steps_by_client = steps_by_client or {}
     items: list[dict] = []
     clienti = 0
 
@@ -292,7 +336,8 @@ def build_report(clients: Iterable[dict], *, now: Optional[datetime] = None) -> 
         if not has_start_entitlement(client):
             continue
         clienti += 1
-        items.extend(milestone_rows(client, now=adesso))
+        steps = steps_by_client.get(client.get("id")) or []
+        items.extend(milestone_rows(client, steps, now=adesso))
 
     items.sort(key=_ordine)
     return {

@@ -398,7 +398,9 @@ async def test_stripe_webhook_checkout_completed_activates_ciak_start():
     assert client["access_level"] == "cliente_start"
     assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
-    assert client["start_progress"][0]["status"] == "todo"
+    # `start_progress` e' stato dismesso: il webhook non lo semina piu'. Il
+    # percorso vive sulla journey (`partner_journey_steps`), seedata dal ponte.
+    assert client.get("start_progress") == []
     assert any(event["event"] == "ciak_start_payment_completed" for event in client["events"])
     assert fake_db.payment_transactions.docs[0]["tipo"] == "ciak_start"
     assert fake_db.payments.docs[0]["amount"] == 390.0

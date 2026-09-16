@@ -63,22 +63,6 @@ def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def default_start_progress() -> list[dict[str, Any]]:
-    labels = [
-        "Direzione di posizionamento",
-        "Basi del brand",
-        "Sistemazione profili social",
-        "Sito vetrina semplice",
-        "Strategia contenuti",
-        "Calendario contenuti",
-        "Revisione finale e readiness partnership",
-    ]
-    return [
-        {"id": f"start_{idx + 1}", "label": label, "status": "locked" if idx else "todo"}
-        for idx, label in enumerate(labels)
-    ]
-
-
 def _score_from_session(session: dict[str, Any]) -> int:
     scoring = session.get("scoring") or {}
     if scoring.get("score_percentuale") is not None:
@@ -175,7 +159,6 @@ async def ensure_client_for_blueprint(db, session: dict[str, Any]) -> dict[str, 
         "access_level": ACCESS_BLUEPRINT,
         "created_at": _now_iso(),
         "start_credit_amount": 0,
-        "start_progress": [],
         "events": [{"event": "client_created_from_blueprint", "timestamp": _now_iso()}],
     }
     await db.ciak_clients.insert_one(doc)
@@ -217,7 +200,6 @@ async def ensure_client_for_direct_start(
         "access_level": ACCESS_BLUEPRINT,
         "created_from": "ciak_start_direct",
         "start_credit_amount": 0,
-        "start_progress": [],
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
         "events": [{"event": "client_created_for_direct_start", "timestamp": _now_iso()}],
@@ -248,7 +230,6 @@ def build_start_entitlement_updates(
     return {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
-        "start_progress": client.get("start_progress") or default_start_progress(),
         "start_credit_amount": START_AMOUNT_CENTS,
         "start_payments": registrati,
         "updated_at": now,

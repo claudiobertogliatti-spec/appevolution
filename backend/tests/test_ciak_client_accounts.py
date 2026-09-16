@@ -5,7 +5,6 @@ import pytest
 from services.ciak_client_accounts import (
     START_AMOUNT_CENTS,
     create_magic_login_token,
-    default_start_progress,
     ensure_client_for_blueprint,
     offer_for_score,
     partnership_price_for_client,
@@ -126,19 +125,6 @@ def test_partnership_price_without_start_is_full_price():
     price = partnership_price_for_client({"access_level": "cliente_blueprint"})
     assert price["due_amount_cents"] == 299000
     assert price["credit_amount_cents"] == 0
-
-
-def test_default_start_progress_has_expected_services():
-    labels = [item["label"] for item in default_start_progress()]
-    assert labels == [
-        "Direzione di posizionamento",
-        "Basi del brand",
-        "Sistemazione profili social",
-        "Sito vetrina semplice",
-        "Strategia contenuti",
-        "Calendario contenuti",
-        "Revisione finale e readiness partnership",
-    ]
 
 
 @pytest.mark.asyncio

@@ -23,7 +23,6 @@ from services.ciak_client_accounts import (
     ACCESS_PARTNER,
     ACCESS_START,
     START_AMOUNT_CENTS,
-    default_start_progress,
     has_start_entitlement,
 )
 from security_config import require_stripe_webhook_secret
@@ -457,7 +456,6 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
         "start_credit_amount": START_AMOUNT_CENTS,
-        "start_progress": client.get("start_progress") or default_start_progress(),
         "updated_at": now,
         "last_checkout_session_id": reference_id,
         "last_checkout_completed_at": now,
@@ -526,8 +524,6 @@ async def process_ciak_client_partnership_payment(db, client_id: str, reference_
     }
     if credit_amount:
         updates["start_credit_amount"] = credit_amount
-    if has_start_entitlement(client) and not client.get("start_progress"):
-        updates["start_progress"] = default_start_progress()
 
     events = _append_payment_event(
         client.get("events"),

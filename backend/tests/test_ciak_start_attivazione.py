@@ -86,8 +86,9 @@ async def test_attiva_crea_il_cliente_che_non_ha_mai_comprato_il_blueprint(monke
     assert client["access_level"] == "cliente_start"
     assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
-    assert len(client["start_progress"]) == 7
-    assert client["start_progress"][0]["status"] == "todo"
+    # `start_progress` e' stato dismesso: l'attivazione non lo scrive piu'. Il
+    # percorso vive sulla journey (`partner_journey_steps`), seedata dal ponte.
+    assert "start_progress" not in client
     assert calls["client_id"] == client["id"]
     assert calls["email"] == "nuova@example.it"
 
