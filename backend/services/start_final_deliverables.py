@@ -4,6 +4,28 @@ from __future__ import annotations
 from typing import Any
 
 from services.quarterly_calendar import build_quarterly_calendar
+from services.start_profili_social import build_profili_social
+from services.start_vetrina import build_vetrina
+
+
+async def build_start_social(dati: dict[str, Any]) -> dict[str, Any]:
+    """Testi profili social a partire dal posizionamento approvato.
+
+    Wrapper sottile sul motore `build_profili_social` (che degrada da solo con
+    fallback dichiarato): normalizza in un deliverable con `type`/`status`.
+    """
+    out = await build_profili_social(dati)
+    return {**out, "type": "social_profiles", "status": "ready_for_review"}
+
+
+async def build_start_vetrina(dati: dict[str, Any]) -> dict[str, Any]:
+    """Pagina vetrina (HTML) + checklist DNS dal posizionamento/brand approvati.
+
+    Wrapper sottile su `build_vetrina`. La `live_url` (pubblicazione) NON e' qui:
+    la imposta il team all'approvazione, dopo aver messo online la pagina.
+    """
+    out = await build_vetrina(dati)
+    return {**out, "type": "showcase", "status": "ready_for_review"}
 
 
 async def build_start_content_plan(data: dict[str, Any]) -> dict[str, Any]:
