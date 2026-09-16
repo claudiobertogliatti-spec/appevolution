@@ -10246,8 +10246,14 @@ async def list_files(
     return file_storage.list_files(category, status, partner_id)
 
 @api_router.get("/files/partner/{partner_id}")
-async def get_partner_files(partner_id: str):
-    """Get all files for a specific partner"""
+async def get_partner_files(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Get all files for a specific partner. Richiede token (partner stesso o
+    admin): prima era APERTO e chiunque con l'id poteva elencare i nomi file di
+    un partner — inclusi bonifici e documenti d'identita'."""
+    await require_partner_or_admin(partner_id, credentials)
     # Get files from database
     files = await db.files.find(
         {"partner_id": partner_id},
