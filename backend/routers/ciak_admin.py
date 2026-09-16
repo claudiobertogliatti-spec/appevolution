@@ -4038,6 +4038,7 @@ class SegnaTappaStartRequest(BaseModel):
 
 class ApprovaStartDeliverableRequest(BaseModel):
     tipo: str
+    live_url: Optional[str] = None  # richiesta solo per la vetrina (showcase)
 
 
 async def _cliente_start_o_errore(client_id: str) -> dict:
@@ -4090,6 +4091,114 @@ async def genera_calendario_start(
     )
     await db.partner_journey_steps.update_one(
         {"partner_id": client_id, "step_id": "start-contenuti-90"},
+        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+async def _posizionamento_struct(client_id: str) -> tuple[dict, dict]:
+    """(answers, posizionamento strutturato) dallo step 04, o 409 se incompleto.
+
+    Il posizionamento strutturato riusa il motore gia' esistente
+    `build_brand_positioning_statement` → forma {brand, categoria,
+    idea_differenziante, vantaggio_cliente, ...} attesa dai generatori.
+    """
+    from services.posizionamento_statement import build_brand_positioning_statement
+
+    positioning = await _start_step(client_id, "04-posizionamento")
+    answers = (positioning.get("data") or {}).get("answers") or {}
+    if not any(answers.get(key) for key in ("metodo_nome", "nicchia", "promessa")):
+        raise HTTPException(409, "Posizionamento incompleto: genera prima il posizionamento")
+    statement = await build_brand_positioning_statement(answers)
+    return answers, statement
+
+
+@router.post("/start/{client_id}/profili/genera")
+async def genera_profili_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Genera la bozza dei testi profili social, senza approvarla automaticamente."""
+    from services.start_final_deliverables import build_start_social
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    brand = await _start_step(client_id, "03-brand-kit")
+    vetrina = await db.ciak_start_deliverables.find_one(
+        {"partner_id": client_id, "type": "showcase"}, {"_id": 0}
+    ) or {}
+    dati = {
+        "nome": client.get("name") or "",
+        "nicchia": answers.get("nicchia") or "",
+        "posizionamento": statement,
+        "brand_kit": (brand.get("data") or {}),
+        "vetrina_url": vetrina.get("live_url"),
+    }
+    deliverable = await build_start_social(dati)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "social_profiles"},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-profili"},
+        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
+@router.post("/start/{client_id}/vetrina/genera")
+async def genera_vetrina_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Genera la bozza della pagina vetrina (HTML + checklist DNS), senza approvarla.
+
+    La `live_url` (pubblicazione) si imposta all'approvazione, dopo l'online.
+    """
+    from services.start_final_deliverables import build_start_vetrina
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    brand = await _start_step(client_id, "03-brand-kit")
+    dati = {
+        "nome": client.get("name") or "",
+        "nicchia": answers.get("nicchia") or "",
+        "posizionamento": statement,
+        "brand_kit": (brand.get("data") or {}),
+    }
+    deliverable = await build_start_vetrina(dati)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": "showcase"},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "start-vetrina"},
         {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
         upsert=True,
     )
@@ -4167,30 +4276,36 @@ async def approva_deliverable_start(
     step_id = mapping.get(body.tipo)
     if not step_id:
         raise HTTPException(422, "Tipo deliverable non valido")
-    generated_types = {"content_plan_90d", "partnership_readiness"}
-    existing = None
-    if body.tipo in generated_types:
-        existing = await db.ciak_start_deliverables.find_one(
-            {"partner_id": client_id, "type": body.tipo}, {"_id": 0}
-        )
-        if not existing:
-            raise HTTPException(409, "Genera prima il deliverable")
-        if body.tipo == "partnership_readiness" and not existing.get("ready"):
-            raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
-    else:
-        step = await _start_step(client_id, step_id)
-        if step.get("status") != "done" or not (step.get("data") or {}):
-            raise HTTPException(409, "Completa prima lo step con dati verificabili")
+    # Tutti e 4 i deliverable Start ora hanno un produttore reale (endpoint
+    # /genera): l'approvazione richiede che la bozza esista, non piu' uno step
+    # "done con dati" che nessuno produceva (era il deadlock su profili/vetrina).
+    existing = await db.ciak_start_deliverables.find_one(
+        {"partner_id": client_id, "type": body.tipo}, {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(409, "Genera prima il deliverable")
+    if body.tipo == "partnership_readiness" and not existing.get("ready"):
+        raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
+    live_url = None
+    if body.tipo == "showcase":
+        # La readiness esige showcase.live_url: la vetrina va prima pubblicata.
+        live_url = (body.live_url or existing.get("live_url") or "").strip()
+        if not live_url:
+            raise HTTPException(409, "Serve la live_url della vetrina pubblicata per approvarla")
     now = datetime.now(timezone.utc).isoformat()
     actor = getattr(admin, "email", None) or "admin"
     approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}
-    if body.tipo in generated_types:
-        await db.ciak_start_deliverables.update_one(
-            {"partner_id": client_id, "type": body.tipo}, {"$set": approval}
-        )
+    deliverable_set = dict(approval)
+    step_set = {"status": "done", **approval, "data.approved_at": now, "updated_at": now}
+    if live_url:
+        deliverable_set["live_url"] = live_url
+        step_set["data.live_url"] = live_url
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": body.tipo}, {"$set": deliverable_set}
+    )
     await db.partner_journey_steps.update_one(
         {"partner_id": client_id, "step_id": step_id},
-        {"$set": {"status": "done", **approval, "data.approved_at": now, "updated_at": now}},
+        {"$set": step_set},
     )
     return {"success": True, "type": body.tipo, **approval}
 
