@@ -1129,7 +1129,8 @@ async def process_partnership_payment(db, user_id: str, reference_id: str, backg
             # container espone la 8080. Questa attivazione falliva a ogni pagamento.
             async with httpx.AsyncClient(timeout=10) as hc:
                 risposta = await hc.post(
-                    internal_api_url(f"/api/flusso-analisi/attiva-partnership/{uid}")
+                    internal_api_url(f"/api/flusso-analisi/attiva-partnership/{uid}"),
+                    headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
                 )
                 if risposta.status_code >= 400:
                     logger.error(
