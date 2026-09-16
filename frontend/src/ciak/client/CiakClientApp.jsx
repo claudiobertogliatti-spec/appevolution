@@ -4,7 +4,7 @@ import {
 } from "react-router-dom";
 import { ClientLayout } from "./ClientLayout";
 import {
-  clientGet, getClientToken, getClientUser, magicLogin,
+  clientGet, getClientToken, getClientUser, magicLogin, requestAccess,
 } from "./api";
 import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
@@ -15,24 +15,73 @@ function AccessPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     const token = params.get("token");
     if (!token) {
-      setError("Link mancante");
+      setError("no-token");
       return;
     }
     magicLogin(token)
       .then(() => navigate("/cliente", { replace: true }))
-      .catch((e) => setError(e.message));
+      .catch(() => setError("scaduto"));
   }, [params, navigate]);
+
+  const showForm = error !== null;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!email.trim() || sending) return;
+    setSending(true);
+    try {
+      await requestAccess(email.trim());
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 text-center">
-      <div>
+      <div className="w-full max-w-sm">
         <img src="/ciak/logo.webp" alt="Ciak.io" className="mx-auto mb-6 h-10 w-auto" />
         <h1 className="text-2xl font-semibold text-slate-900">Accesso al percorso Ciak</h1>
-        <p className="mt-2 text-sm text-slate-500">{error || "Sto preparando la tua area..."}</p>
+        {!showForm ? (
+          <p className="mt-2 text-sm text-slate-500">Sto preparando la tua area...</p>
+        ) : sent ? (
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            Se l'email corrisponde a un account, ti abbiamo inviato il link d'accesso.
+            Controlla la posta (anche lo spam).
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              {error === "no-token"
+                ? "Inserisci la tua email e ti rimandiamo il link d'accesso."
+                : "Il link non è più valido: si usa una volta sola. Inserisci la tua email per riceverne uno nuovo."}
+            </p>
+            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3 text-left">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="La tua email"
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="rounded-lg bg-yellow-400 px-5 py-3 text-sm font-bold text-slate-900 transition hover:brightness-95 disabled:opacity-60"
+              >
+                {sending ? "Invio in corso..." : "Rimandami l'accesso"}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

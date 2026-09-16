@@ -487,6 +487,23 @@ async def magic_login(body: MagicLoginRequest):
     return {"token": token, "client": _public_client(effective_client, canonical_user)}
 
 
+class RequestAccessRequest(BaseModel):
+    email: str
+
+
+@router.post("/auth/request-access")
+async def request_access(body: RequestAccessRequest):
+    """"Rimandami l'accesso": il cliente inserisce l'email e riceve un nuovo
+    magic-link (monouso). Risponde SEMPRE ok, anche se l'email non esiste, per non
+    rivelare chi e' cliente (anti-enumeration). Non solleva."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_client_reengagement import invia_link_accesso
+
+    await invia_link_accesso(db, body.email)
+    return {"ok": True, "message": "Se l'email corrisponde a un account, ti abbiamo inviato l'accesso."}
+
+
 @router.get("/me")
 async def me(client: dict[str, Any] = Depends(require_client)):
     canonical_user = await _canonical_user_for_client(client)
