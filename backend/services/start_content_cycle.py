@@ -293,14 +293,20 @@ def _call_claude(answers: dict, outline: dict | None) -> dict:
         "description": "Restituisci il ciclo di contenuti di 60 giorni strutturato in 3 fasi.",
         "input_schema": _SCHEMA,
     }
+    # 44+ giorni × 5 campi: con 6000 token il tool output veniva TRONCATO a meta'
+    # (stop_reason=max_tokens) → output incompleto → fallback. Budget ampio.
     resp = client.messages.create(
         model=_MODEL,
-        max_tokens=6000,
+        max_tokens=14000,
         system=system_blocks("MARCO", _SYSTEM),
         messages=[{"role": "user", "content": user}],
         tools=[tool],
         tool_choice={"type": "tool", "name": "content_cycle_60d"},
     )
+    # Se il modello si ferma per max_tokens, il JSON del tool e' tagliato: meglio
+    # dichiararlo e ricadere sullo scheletro che consegnare un calendario mozzo.
+    if getattr(resp, "stop_reason", None) == "max_tokens":
+        raise RuntimeError("output AI troncato (stop_reason=max_tokens): calendario oltre il budget di token")
     for block in resp.content:
         if getattr(block, "type", None) == "tool_use":
             return dict(block.input)
