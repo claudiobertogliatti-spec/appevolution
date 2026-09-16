@@ -13977,14 +13977,35 @@ async def check_achievement_unlock(partner_id: str, phase: str):
 # WEBHOOK ENDPOINTS
 # -----------------------------------------------------------------------------
 
+def _systeme_webhook_autorizzato(secret: str, fornito: str) -> bool:
+    """
+    True se la richiesta al webhook Systeme e' ammessa.
+
+    Systeme.io non firma i webhook (nessun HMAC come Stripe): si protegge con un
+    token segreto concordato. `secret` vuoto = non ancora configurato -> ammessa
+    (rollout, il caller logga un warning); `secret` presente -> confronto a tempo
+    costante col token fornito (header o query).
+    """
+    import hmac
+    if not secret:
+        return True
+    return hmac.compare_digest(fornito or "", secret)
+
+
 @api_router.post("/webhooks/systeme")
 async def receive_systeme_webhook(
     payload: Dict[str, Any],
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    request: Request,
 ):
     """
     Main webhook endpoint for Systeme.io events
-    
+
+    Protetto da un secret condiviso (`SYSTEME_WEBHOOK_SECRET`): Systeme non firma
+    i payload, quindi senza questo controllo chiunque potrebbe POSTare un
+    "new_sale" e marcare un cliente come pagato. Il token va passato come header
+    `X-Webhook-Secret` o query `?token=`.
+
     Supported events:
     - new_sale / new_order: Auto-onboard partner
     - new_subscriber / form_subscribed: Create lead
@@ -13992,6 +14013,22 @@ async def receive_systeme_webhook(
     - course_access: Update client stats
     - refund: Alert admin
     """
+    secret = os.environ.get("SYSTEME_WEBHOOK_SECRET", "").strip()
+    fornito = (
+        request.query_params.get("token")
+        or request.headers.get("x-webhook-secret")
+        or request.headers.get("x-webhook-token")
+        or ""
+    )
+    if not _systeme_webhook_autorizzato(secret, fornito):
+        logger.warning("[systeme-webhook] token mancante o errato: richiesta rifiutata")
+        raise HTTPException(status_code=401, detail="Webhook non autorizzato")
+    if not secret:
+        logger.warning(
+            "[systeme-webhook] SYSTEME_WEBHOOK_SECRET non configurato: "
+            "il webhook NON e' protetto (imposta la env + il token nell'URL Systeme)"
+        )
+
     event_type = payload.get("event_type", payload.get("event", "unknown"))
     data = payload.get("data", payload)
     
