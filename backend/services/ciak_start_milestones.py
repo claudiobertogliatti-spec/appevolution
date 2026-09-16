@@ -85,8 +85,8 @@ MILESTONES: tuple[dict[str, Any], ...] = (
     },
     {
         "tappa": 3,
-        "titolo": "Strategia contenuti e calendario 90 giorni",
-        "contenuto": "Strategia contenuti e calendario editoriale a 90 giorni",
+        "titolo": "Strategia e ciclo contenuti 60 giorni",
+        "contenuto": "Ciclo di contenuti di 60 giorni ripetibile, con una live in chiusura",
         "step_ids": ("start-contenuti-90",),
     },
 )

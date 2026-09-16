@@ -478,26 +478,29 @@ export function StartPage({ dashboard }) {
             {deliverables.map((item) => (
               <details key={item.type} className="rounded-lg border border-slate-200 p-4">
                 <summary className="cursor-pointer font-semibold text-slate-800">
-                  {item.type === "content_plan_90d" ? "Calendario contenuti — 90 giorni" : "Verifica finale Partnership"}
+                  {item.type === "content_plan_90d" ? "Ciclo contenuti — 60 giorni (ripetibile)" : "Verifica finale Partnership"}
                 </summary>
                 {item.type === "content_plan_90d" ? (
                   <div className="mt-4 space-y-5">
-                    {(item.calendar?.months || []).map((month) => (
-                      <div key={month.mese}>
-                        <h3 className="text-sm font-semibold text-slate-900">Mese {month.mese}</h3>
-                        {(month.blocchi || []).map((block) => (
-                          <div key={block.fase} className="mt-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{block.fase}</p>
-                            <ul className="mt-2 space-y-2">
-                              {(block.giorni || []).map((day) => (
-                                <li key={`${month.mese}-${day.giorno}`} className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-                                  <span className="font-semibold">Giorno {day.giorno} · {day.formato}</span> — {day.tema}
-                                  <p className="mt-1 text-xs text-slate-500">{day.come_farlo} · CTA: {day.cta}</p>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
+                    {item.calendar?.ritmo ? (
+                      <p className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm leading-relaxed text-slate-700">
+                        {item.calendar.ritmo}
+                      </p>
+                    ) : null}
+                    {(item.calendar?.fasi || []).map((fase) => (
+                      <div key={fase.fase}>
+                        <h3 className="text-sm font-semibold text-slate-900">{fase.fase}</h3>
+                        {fase.obiettivo ? (
+                          <p className="mt-0.5 text-xs text-slate-500">{fase.obiettivo}</p>
+                        ) : null}
+                        <ul className="mt-2 space-y-2">
+                          {(fase.giorni || []).map((day) => (
+                            <li key={`${fase.fase}-${day.giorno}`} className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                              <span className="font-semibold">Giorno {day.giorno} · {day.formato}</span> — {day.tema}
+                              <p className="mt-1 text-xs text-slate-500">{day.come_farlo} · CTA: {day.cta}</p>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     ))}
                   </div>

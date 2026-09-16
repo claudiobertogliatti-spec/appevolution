@@ -362,7 +362,7 @@ export function ConsegneStart({ onAuthExpired }) {
                   {[
                     ["approva_profili", "Approva profili sistemati"],
                     ["approva_vetrina", "Approva sito vetrina"],
-                    ["genera_calendario", "Genera calendario 90 giorni"],
+                    ["genera_calendario", "Genera ciclo contenuti 60 giorni"],
                     ["approva_calendario", "Approva calendario"],
                     ["genera_readiness", "Genera verifica readiness"],
                     ["approva_readiness", "Approva report readiness"],
