@@ -14,8 +14,8 @@ describe('marquee accessibili', () => {
     expect(css).toMatch(/\.collaborations__track\s*\{[^}]*animation:\s*marquee-scroll/);
     render(<LogoMarquee />);
     expect(screen.getByTestId('collaborations-track')).toBeInTheDocument();
-    // 20 partner duplicati per lo scorrimento continuo
-    expect(screen.getAllByTestId('collab-card')).toHaveLength(40);
+    // 15 partner duplicati per lo scorrimento continuo
+    expect(screen.getAllByTestId('collab-card')).toHaveLength(30);
   });
 
   it('mostra i dodici strumenti in una barra scorrevole dentro la sezione direzione', () => {
@@ -50,10 +50,10 @@ describe('marquee accessibili', () => {
 
     const list = screen.getByRole('list', { name: /collaborazioni/i });
     expect(list).toHaveClass('collaborations__semantic');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(20);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(15);
     // nome + ruolo reale (da Ciak) nella lista accessibile
     expect(within(list).getByText('Arianna Aceto — Naturopatia')).toBeInTheDocument();
-    expect(within(list).getByText('Luigi Calafiore — Design automobilistico')).toBeInTheDocument();
+    expect(within(list).getByText('Marco Orlandi — Arte')).toBeInTheDocument();
     // loghi presenti nel banner (decorativi, alt vuoto)
     const srcs = [...document.querySelectorAll('.collab-card__badge img')].map((img) => img.getAttribute('src'));
     expect(srcs).toContain('/collaborations/arianna-aceto.svg');

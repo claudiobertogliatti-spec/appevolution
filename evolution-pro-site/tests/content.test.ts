@@ -30,12 +30,12 @@ describe('contratto dei contenuti istituzionali', () => {
     }
   });
 
-  it('espone tutte le venti collaborazioni approvate', () => {
-    expect(siteContent.collaborations).toHaveLength(20);
+  it('espone tutte le quindici collaborazioni approvate', () => {
+    expect(siteContent.collaborations).toHaveLength(15);
     expect(siteContent.collaborations.map(({ name }) => name)).toEqual(expect.arrayContaining([
       'Andrea Fredi',
       'Daniele Andolfi',
-      'Sara Stella Duè',
+      'Marco Orlandi',
       'Eva Gugliucciello',
     ]));
   });
