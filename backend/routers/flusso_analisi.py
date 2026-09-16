@@ -34,25 +34,9 @@ from internal_api import internal_api_url
 from routers.ciak_admin import require_ciak_admin
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from auth import decode_token
-import hmac as _hmac
+from security_config import internal_or_admin_authorized
 
 _bearer = HTTPBearer(auto_error=False)
-
-
-def _attiva_auth_ok(internal_key: str, fornito: str, is_admin: bool) -> bool:
-    """
-    True se la richiesta ad attiva-partnership e' ammessa.
-
-    `internal_key` vuoto = env non configurata -> ammessa (rollout, warn dal caller).
-    Altrimenti: chiave interna corretta (confronto costante) OPPURE admin.
-    attiva-partnership e' chiamato dal backend stesso (verify_payment, stripe_webhook
-    via internal_api_url): la chiave interna e' la via normale, l'admin il fallback.
-    """
-    if not internal_key:
-        return True
-    if fornito and _hmac.compare_digest(fornito, internal_key):
-        return True
-    return bool(is_admin)
 
 
 async def _require_internal_or_admin(
@@ -68,7 +52,7 @@ async def _require_internal_or_admin(
         return
     token = decode_token(credentials.credentials) if credentials else None
     is_admin = bool(token and getattr(token, "role", None) in ("admin", "superadmin"))
-    if not _attiva_auth_ok(internal_key, x_internal_key or "", is_admin):
+    if not internal_or_admin_authorized(internal_key, x_internal_key or "", is_admin):
         raise HTTPException(status_code=401, detail="Autenticazione richiesta")
 
 # Import Master Prompt e Strategic Research

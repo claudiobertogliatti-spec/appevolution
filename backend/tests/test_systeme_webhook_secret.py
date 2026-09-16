@@ -10,22 +10,18 @@ Nota sul rollout: secret NON configurato = ammesso (per non spegnere l'onboardin
 al primo deploy, prima che la env e l'URL Systeme siano impostati), con warning.
 Secret configurato = imposto, confronto a tempo costante.
 """
-import os
+import sys
+from pathlib import Path
 
 import pytest
 
 pytestmark = pytest.mark.unit
 
-os.environ.setdefault("MONGO_URL", "mongodb://systeme-webhook-test.invalid:27017")
-os.environ.setdefault("DB_NAME", "ciak_ci")
-os.environ.setdefault("JWT_SECRET_KEY", "ci-test-secret-32-characters-long!!")
-os.environ.setdefault("APP_ENV", "test")
-
-import sys
-from pathlib import Path
+# Import da security_config (ermetico): importare `server` in CI fallisce perche'
+# vari moduli creano directory sotto /app a import-time.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from server import _systeme_webhook_autorizzato as autorizzato  # noqa: E402
+from security_config import systeme_webhook_authorized as autorizzato  # noqa: E402
 
 
 def test_secret_configurato_richiede_il_token_giusto():

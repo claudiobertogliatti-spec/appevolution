@@ -10,7 +10,6 @@ Rollout-safe come il webhook Systeme: chiave non configurata = passa (per non
 rompere l'attivazione post-pagamento al deploy) con warning; configurata = imposta.
 """
 import ast
-import os
 import re
 import sys
 from pathlib import Path
@@ -19,15 +18,12 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-os.environ.setdefault("MONGO_URL", "mongodb://attiva-test.invalid:27017")
-os.environ.setdefault("DB_NAME", "ciak_ci")
-os.environ.setdefault("JWT_SECRET_KEY", "ci-test-secret-32-characters-long!!")
-os.environ.setdefault("APP_ENV", "test")
-
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
-from routers.flusso_analisi import _attiva_auth_ok  # noqa: E402
+# Import da security_config (ermetico): importare flusso_analisi/server in CI
+# fallisce perche' moduli a valle creano directory sotto /app a import-time.
+from security_config import internal_or_admin_authorized as _attiva_auth_ok  # noqa: E402
 
 
 def test_chiave_interna_configurata_e_imposta():
