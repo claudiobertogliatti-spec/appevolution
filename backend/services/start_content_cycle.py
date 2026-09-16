@@ -242,9 +242,10 @@ def _fase_giorni(nicchia: str, metodo: str) -> list[list[dict]]:
     return [presenza, prova, live]
 
 
-def _deterministic(answers: dict, outline: dict | None = None) -> dict:
+def _deterministic(answers: dict, outline: dict | None = None, reason: str | None = None) -> dict:
     """Fallback senza AI: 3 fasi dalla struttura bloccata, temi dal posizionamento.
-    Non si blocca mai."""
+    Non si blocca mai. `reason` (se presente) dichiara PERCHE' si e' degradato —
+    diagnostico admin-only, non renderizzato al cliente."""
     nicchia = _t(answers, "nicchia", "il tuo cliente ideale")
     metodo = _t(answers, "metodo_nome", "il tuo metodo")
     blocchi = _fase_giorni(nicchia, metodo)
@@ -258,7 +259,10 @@ def _deterministic(answers: dict, outline: dict | None = None) -> dict:
             giorno += 1
         fasi.append({"fase": fase, "obiettivo": obiettivo, "giorni": giorni})
 
-    return {"cycle_days": CYCLE_DAYS, "recurring": True, "ritmo": _RITMO, "fasi": fasi, "source": "fallback"}
+    out = {"cycle_days": CYCLE_DAYS, "recurring": True, "ritmo": _RITMO, "fasi": fasi, "source": "fallback"}
+    if reason:
+        out["fallback_reason"] = reason
+    return out
 
 
 def _call_claude(answers: dict, outline: dict | None) -> dict:
@@ -322,11 +326,14 @@ async def build_start_content_cycle(answers: dict, outline: dict | None = None) 
     Prova la sintesi AI; in caso di qualunque errore o output incompleto ricade sullo
     scheletro deterministico. Non solleva mai: lo step non deve mai bloccarsi.
     """
+    reason: str | None = None
     try:
         out = await asyncio.to_thread(_call_claude, answers, outline)
         if _valid(out):
             return _normalize(out)
+        reason = "AI: output incompleto o non valido"
         logger.warning("[START-CYCLE] Ciclo 60g AI incompleto — uso scheletro deterministico")
     except Exception as e:  # noqa: BLE001
-        logger.warning(f"[START-CYCLE] Ciclo 60g AI fallito ({e}) — uso scheletro deterministico")
-    return _deterministic(answers, outline)
+        reason = f"{type(e).__name__}: {str(e)[:200]}"
+        logger.warning(f"[START-CYCLE] Ciclo 60g AI fallito ({reason}) — uso scheletro deterministico")
+    return _deterministic(answers, outline, reason=reason)
