@@ -80,6 +80,25 @@ async def test_build_senza_api_key_ricade_sul_fallback(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_il_fallback_dichiara_il_motivo(monkeypatch):
+    """Diagnostica: se l'AI fallisce, il deliverable dichiara PERCHE' (admin-only),
+    cosi' si capisce se e' timeout / errore API / output non valido senza log Cloud Run."""
+    def _boom(answers, outline):
+        raise TimeoutError("simulated timeout")
+
+    monkeypatch.setattr(scc, "_call_claude", _boom)
+    cal = await scc.build_start_content_cycle(ANSWERS)
+    assert cal["source"] == "fallback"
+    assert "TimeoutError" in cal.get("fallback_reason", "")
+
+
+def test_fallback_pulito_senza_motivo_non_ha_il_campo():
+    """Il fallback chiamato direttamente (senza reason) non porta rumore."""
+    cal = scc._deterministic(ANSWERS)
+    assert "fallback_reason" not in cal
+
+
+@pytest.mark.asyncio
 async def test_deliverable_wrapper_e_a_60_giorni(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     out = await build_start_content_plan({"answers": ANSWERS})
