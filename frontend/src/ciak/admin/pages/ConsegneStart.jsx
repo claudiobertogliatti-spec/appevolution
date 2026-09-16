@@ -289,12 +289,17 @@ export function ConsegneStart({ onAuthExpired }) {
       const [route, body] = routes[azione];
       const result = await apiPost(route, body || {});
       const missing = result?.deliverable?.missing || [];
-      setEsito({
-        ok: true,
-        testo: missing.length
-          ? `Verifica generata: restano ${missing.length} evidenze mancanti. Nessun via libera automatico.`
-          : `Operazione completata per ${client.nome || client.email}.`,
-      });
+      let testo;
+      if (result?.generating) {
+        // Il calendario si genera in background (AI lunga): non c'e' ancora nulla
+        // da mostrare, comparira' al prossimo aggiornamento del pannello.
+        testo = `Generazione del calendario avviata per ${client.nome || client.email}: sara' pronto tra 1-2 minuti. Aggiorna il pannello.`;
+      } else if (missing.length) {
+        testo = `Verifica generata: restano ${missing.length} evidenze mancanti. Nessun via libera automatico.`;
+      } else {
+        testo = `Operazione completata per ${client.nome || client.email}.`;
+      }
+      setEsito({ ok: true, testo });
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
