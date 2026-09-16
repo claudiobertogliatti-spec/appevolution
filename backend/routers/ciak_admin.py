@@ -1799,7 +1799,14 @@ async def ciak_transactions_partnership(
         {"pagamento_completato": True}
     ).sort("pagamento_completato_at", -1):
         contract_params = p.get("contract_params", {}) or {}
-        amount = float(contract_params.get("corrispettivo", 2990.0))
+        # 2990 e' lo standard della partnership; `corrispettivo` lo sovrascrive.
+        # Crash-safe: se il campo c'e' ma e' null o non numerico, `float(None)`
+        # farebbe esplodere l'intero endpoint con un 500 -- si torna allo standard.
+        corr = contract_params.get("corrispettivo")
+        try:
+            amount = float(corr) if corr is not None else 2990.0
+        except (TypeError, ValueError):
+            amount = 2990.0
         items.append({
             "email": p.get("prospect_email"),
             "nome": p.get("prospect_nome"),
