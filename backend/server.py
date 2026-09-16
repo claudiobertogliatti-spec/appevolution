@@ -8627,7 +8627,8 @@ async def store_partner_api_credentials(
     meta_access_token: str = Form(None),
     meta_ad_account_id: str = Form(None),
     linkedin_access_token: str = Form(None),
-    linkedin_ad_account_urn: str = Form(None)
+    linkedin_ad_account_urn: str = Form(None),
+    _admin=Depends(require_admin_role),
 ):
     """
     Store Meta/LinkedIn API credentials for a partner
@@ -14421,7 +14422,20 @@ async def telegram_webhook(request: Request):
     """
     Webhook endpoint for receiving Telegram messages.
     Processes incoming messages and responds via STEFANIA AI.
+
+    Protetto dal secret token di Telegram (impostabile su setWebhook e inviato
+    nell'header X-Telegram-Bot-Api-Secret-Token). Rollout-safe: se
+    TELEGRAM_WEBHOOK_SECRET non e' configurato passa con warning, altrimenti impone.
     """
+    _secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "").strip()
+    _fornito = request.headers.get("x-telegram-bot-api-secret-token", "")
+    if not systeme_webhook_authorized(_secret, _fornito):
+        logging.warning("[telegram-webhook] secret token mancante/errato: richiesta rifiutata")
+        raise HTTPException(status_code=401, detail="Webhook non autorizzato")
+    if not _secret:
+        logging.warning(
+            "[telegram-webhook] TELEGRAM_WEBHOOK_SECRET non configurato: webhook NON protetto"
+        )
     try:
         update = await request.json()
         logging.info(f"Telegram webhook received: {update}")
