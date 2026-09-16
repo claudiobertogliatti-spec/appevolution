@@ -12,6 +12,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 from auth import decode_token
+from report_key_auth import require_admin_or_report_key
 from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
 from services.ciak_client_accounts import (
@@ -843,3 +844,15 @@ async def partnership_checkout(client: dict[str, Any] = Depends(require_client))
         "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
         "message": "Per la Partnership apri il link alla proposta ricevuto dal team e completa l'accettazione del contratto.",
     })
+
+
+@router.post("/bonus-reminder/run")
+async def bonus_reminder_run(_auth=Depends(require_admin_or_report_key)):
+    """Innescato ogni ora dallo scheduler (X-Report-Key): manda il promemoria a
+    chi ha la finestra bonus 48h in chiusura entro ~24h e non ha ancora comprato
+    Ciak Start. Idempotente lato servizio. Vedi services/ciak_bonus_reminder."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_bonus_reminder import invia_promemoria_bonus
+
+    return await invia_promemoria_bonus(db)
