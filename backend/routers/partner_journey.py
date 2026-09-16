@@ -3929,8 +3929,16 @@ async def _get_lancio_status_unchecked(partner_id: str):
     """Recupera lo stato di preparazione al lancio"""
     partner = await get_partner_or_404(partner_id)
     
-    # Verifica prerequisiti
-    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    # Verifica prerequisiti.
+    # La masterclass sta in `masterclass_factory` (set-youtube-url + approvazione,
+    # vedi riga ~2085) o in `partner_masterclass` (upload). Prima si leggeva SOLO
+    # partner_masterclass, mai popolata dal flusso factory → il gate lancio non
+    # passava mai (publish-funnel sempre 400). La gemella get_partner_journey_progress
+    # era gia' stata corretta a leggere masterclass_factory: qui si allinea.
+    masterclass = (
+        await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+        or await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    )
     videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
     funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
     lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
