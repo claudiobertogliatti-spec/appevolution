@@ -129,6 +129,7 @@ jobs:
           tests/test_calendario_lancio.py
           tests/test_ciak_start_attivazione.py
           tests/test_ciak_start_consegne.py
+          tests/test_ciak_start_bonus_guida.py
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
           tests/test_ciak_clients_router.py
