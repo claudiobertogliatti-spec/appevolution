@@ -212,6 +212,36 @@ def _analysis_payload(analysis: dict[str, Any] | None, client: dict[str, Any]) -
     }
 
 
+BONUS_GUIDA_VALORE_CENTS = 4900
+BONUS_GUIDA_WINDOW_HOURS = 48
+BONUS_GUIDA_TITOLO = "Come creare un videocorso che vende davvero"
+
+
+def _offer_payload(client: dict[str, Any], already_active: bool) -> dict[str, Any]:
+    """Finestra bonus 48h post-call: la guida videocorso e' in omaggio con Ciak
+    Start solo entro 48h dalla consegna del Blueprint (`bonus_expires_at`, ancorato
+    alla PRIMA consegna). Il countdown in pagina e' guidato da questo timestamp
+    reale — non e' un conto alla rovescia finto (Cod. Consumo). Scaduto o gia'
+    cliente attivo: bonus non attivo.
+    """
+    expires = client.get("bonus_expires_at")
+    attiva = False
+    if expires and not already_active:
+        try:
+            exp_dt = datetime.fromisoformat(str(expires).replace("Z", "+00:00"))
+            if exp_dt.tzinfo is None:
+                exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+            attiva = datetime.now(timezone.utc) < exp_dt
+        except (ValueError, TypeError):
+            attiva = False
+    return {
+        "bonus_expires_at": expires,
+        "bonus_guida_attiva": bool(attiva),
+        "guida_valore_cents": BONUS_GUIDA_VALORE_CENTS,
+        "guida_titolo": BONUS_GUIDA_TITOLO,
+    }
+
+
 def _partner_area_available(client: dict[str, Any]) -> bool:
     if client.get("partnership_attiva") is True:
         return True
@@ -419,6 +449,13 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 else "La Partnership si attiva dopo la conferma del percorso dedicato."
             ),
         },
+        "offer": _offer_payload(
+            effective_client,
+            already_active=(
+                effective_client.get("access_level") in (ACCESS_START, ACCESS_PARTNER)
+                or is_partner
+            ),
+        ),
         "generated_at": _now_iso(),
     }
 
@@ -489,6 +526,19 @@ async def _deliver_blueprint(
     )
 
     client = await ensure_client_for_blueprint(db, diagnostic)
+
+    # Finestra bonus 48h (guida videocorso in omaggio con Ciak Start): ancorata
+    # alla PRIMA consegna del Blueprint e mai resettata (il filtro esclude i doc
+    # dove e' gia' valorizzata). Onesta': la scadenza e' reale, il countdown la usa.
+    if not client.get("bonus_expires_at"):
+        _bonus_expires = (
+            datetime.now(timezone.utc) + timedelta(hours=BONUS_GUIDA_WINDOW_HOURS)
+        ).isoformat()
+        await db.ciak_clients.update_one(
+            {"id": client["id"], "bonus_expires_at": {"$in": [None, ""]}},
+            {"$set": {"bonus_expires_at": _bonus_expires, "blueprint_delivered_at": _now_iso()}},
+        )
+        client["bonus_expires_at"] = _bonus_expires
 
     magic_link = None
     try:
