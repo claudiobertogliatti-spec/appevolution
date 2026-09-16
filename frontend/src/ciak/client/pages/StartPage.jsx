@@ -518,7 +518,7 @@ export function StartPage({ dashboard }) {
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
             Masterclass, videocorso, sistema di vendita e lancio. Quello che compili adesso non si perde:
-            resta dentro e riparte da dove sei arrivato.
+            resta dentro e riparte da dove sei arrivato — <span className="font-semibold text-white">e i tuoi {euro(startPrice)} di Ciak Start sono già scalati sul prezzo della Partnership.</span>
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {lockedSteps.map((step) => (

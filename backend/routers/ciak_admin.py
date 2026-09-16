@@ -4307,6 +4307,14 @@ async def approva_deliverable_start(
         {"partner_id": client_id, "step_id": step_id},
         {"$set": step_set},
     )
+    # Richiamo: avvisa il cliente che il deliverable e' pronto in area (magic-link
+    # fresco). Non deve mai bloccare l'approvazione: la funzione non solleva.
+    try:
+        from services.ciak_client_reengagement import invia_deliverable_pronto
+
+        await invia_deliverable_pronto(db, client_id, body.tipo)
+    except Exception as exc:  # noqa: BLE001 - il richiamo e' accessorio
+        logger.warning("[REENGAGE] avviso deliverable pronto fallito per %s: %s", client_id, exc)
     return {"success": True, "type": body.tipo, **approval}
 
 

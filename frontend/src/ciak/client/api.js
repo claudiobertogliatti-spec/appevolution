@@ -35,6 +35,17 @@ export async function magicLogin(token) {
   return data.client;
 }
 
+export async function requestAccess(email) {
+  // "Rimandami l'accesso": il server risponde sempre ok (anti-enumeration),
+  // quindi non distinguiamo email esistente/non esistente lato client.
+  const res = await fetch("/api/ciak/client/auth/request-access", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return res.ok;
+}
+
 export async function clientGet(path) {
   const res = await fetch(`/api/ciak/client${path}`, {
     headers: { Authorization: `Bearer ${getClientToken()}` },
