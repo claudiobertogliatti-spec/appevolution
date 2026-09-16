@@ -91,7 +91,10 @@ def check_due_item(validated: Mapping[str, Any]) -> Mapping[str, Any]:
         reasons.append("rata priva di data di scadenza")
     elif isinstance(proof, Mapping):
         reconciled = proof.get("reconciled") is True
-        amount_ok = _is_number(proof.get("amount")) and proof.get("amount") == importo
+        # Confronto con tolleranza di 1 cent, non uguaglianza float secca: un
+        # importo come 358,3333 (1075/3) contro un movimento a 358,33 non sarebbe
+        # MAI uguale, e una rata pagata resterebbe "da confermare" all'infinito.
+        amount_ok = _is_number(proof.get("amount")) and abs(float(proof.get("amount")) - float(importo)) < 0.01
         if reconciled and amount_ok:
             status = "incassato_verificato"
             reasons.append("prova riconciliata e importo combaciante")

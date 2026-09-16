@@ -150,6 +150,7 @@ jobs:
           tests/test_crediti.py
           tests/test_obiettivo.py
           tests/test_obiettivo_patch_campi.py
+          tests/test_transactions_partnership_amount.py
           tests/test_briefing_importabile_nel_container.py
           tests/test_luca_contesto_cassa.py
           tests/test_luca_partner_attivi.py

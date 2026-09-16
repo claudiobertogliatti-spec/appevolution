@@ -126,3 +126,21 @@ def test_no_economic_action_is_performed():
 def test_requires_partner_id():
     with pytest.raises(TaskInputError):
         validate_due_item_input({"due_item": {"rate_totali": 5}})
+
+
+def test_importo_con_decimali_periodici_riconcilia_con_tolleranza():
+    """
+    #8 (16/9): confronto con tolleranza, non uguaglianza float secca. Una rata da
+    1075/3 = 358,3333 contro un movimento Stripe a 358,33 deve risultare incassata,
+    non restare "da confermare" per sempre per 3 millesimi di differenza.
+    """
+    art = _chk({**BASE, "importo_rata": 1075 / 3,
+                "payment_proof": {"amount": 358.33, "reconciled": True}})
+    assert art["status"] == "incassato_verificato"
+
+
+def test_una_differenza_oltre_il_cent_resta_da_confermare():
+    """La tolleranza è stretta (1 cent): un importo diverso davvero non passa."""
+    art = _chk({**BASE, "importo_rata": 240.0,
+                "payment_proof": {"amount": 239.5, "reconciled": True}})
+    assert art["status"] == "esito_da_confermare"
