@@ -109,6 +109,30 @@ def trigger_social_publisher():
         logger.error(f"[SCHEDULER] Errore trigger_social_publisher: {e}")
 
 
+def trigger_bonus_guida_reminder():
+    """Ogni ora — promemoria della finestra bonus 48h (guida in omaggio con Ciak
+    Start) per chi si avvicina alla scadenza (~24h) e non ha ancora comprato.
+    Idempotente lato servizio: un solo invio per cliente."""
+    try:
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Bonus reminder saltato: LUCA_REPORT_KEY non configurata")
+            return
+        r = httpx.post(
+            f"{BASE_URL}/ciak/client/bonus-reminder/run",
+            headers={"X-Report-Key": chiave},
+            timeout=90,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Bonus reminder: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        logger.info(f"[SCHEDULER] Bonus reminder — inviati {res.get('inviati', 0)}, "
+                    f"errori {res.get('errori', 0)}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_bonus_guida_reminder: {e}")
+
+
 def trigger_marco_run():
     """Ogni lunedì alle 9:00 — check-in settimanale per tutti i partner F3+."""
     try:
@@ -451,6 +475,15 @@ def start_scheduler():
         trigger_social_publisher,
         CronTrigger(day_of_week="mon,wed,fri", hour=9, minute=15),
         id="social_publisher",
+        replace_existing=True
+    )
+
+    # BONUS GUIDA REMINDER — ogni ora al minuto 20: promemoria finestra 48h in
+    # chiusura (~24h). Orario perche' la finestra e' di 48h e scade a qualsiasi ora.
+    scheduler.add_job(
+        trigger_bonus_guida_reminder,
+        CronTrigger(minute=20),
+        id="bonus_guida_reminder",
         replace_existing=True
     )
 
