@@ -18,7 +18,7 @@ STATI:
 - partner_attivo
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -31,6 +31,7 @@ import io
 import re
 import bcrypt
 from internal_api import internal_api_url
+from routers.ciak_admin import require_ciak_admin
 
 # Import Master Prompt e Strategic Research
 try:
@@ -1634,8 +1635,13 @@ async def verify_payment_partnership(user_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/conferma-bonifico/{user_id}")
-async def conferma_bonifico(user_id: str):
-    """Admin conferma ricezione bonifico"""
+async def conferma_bonifico(user_id: str, _admin=Depends(require_ciak_admin)):
+    """Admin conferma ricezione bonifico.
+
+    ⛔ Solo admin: scrive un pagamento partnership `completato:True` (€2.990). Senza
+    guardia, un anonimo poteva fabbricare un incasso dal nulla e — a valle —
+    attivare la partnership (attiva-partnership richiede questo record + contratto).
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
