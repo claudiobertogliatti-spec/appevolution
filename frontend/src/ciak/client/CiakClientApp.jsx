@@ -10,6 +10,29 @@ import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
+import { WelcomeStart } from "./WelcomeStart";
+
+// Chi ha gia' visto il benvenuto Ciak Start non lo rivede: flag per-cliente.
+// localStorage puo' mancare (finestra privata, storage bloccato): in dubbio si
+// considera "gia' visto", perche' ripresentarlo a ogni visita infastidisce piu'
+// che ometterlo una volta.
+function welcomeAlreadySeen(clientId) {
+  if (!clientId) return true;
+  try {
+    return localStorage.getItem(`ciak_welcome_start_seen_${clientId}`) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markWelcomeSeen(clientId) {
+  if (!clientId) return;
+  try {
+    localStorage.setItem(`ciak_welcome_start_seen_${clientId}`, "1");
+  } catch {
+    // Storage non disponibile: pazienza, si ripresentera' al prossimo caricamento.
+  }
+}
 
 function AccessPage() {
   const [params] = useSearchParams();
@@ -92,6 +115,7 @@ function ProtectedClient() {
   const [params] = useSearchParams();
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -127,8 +151,21 @@ function ProtectedClient() {
     && params.get("payment") === "success"
     && dashboard.client?.access_level === "cliente_start";
 
+  const clientId = dashboard.client?.id;
+  const showWelcome = dashboard.client?.access_level === "cliente_start"
+    && !welcomeDismissed
+    && !welcomeAlreadySeen(clientId);
+
+  const dismissWelcome = () => {
+    markWelcomeSeen(clientId);
+    setWelcomeDismissed(true);
+  };
+
   return (
     <ClientLayout client={dashboard.client || getClientUser()}>
+      {showWelcome ? (
+        <WelcomeStart name={dashboard.client?.name} onClose={dismissWelcome} />
+      ) : null}
       {startPaymentConfirmed ? (
         <div role="status" className="mx-4 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
           <strong>Pagamento ricevuto. Ciak Start è attivo.</strong>{" "}
