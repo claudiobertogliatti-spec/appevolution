@@ -603,6 +603,75 @@ async def ciak_delete_lead(
     }
 
 
+@router.delete("/clients/{client_id}")
+async def elimina_ciak_client(
+    client_id: str,
+    email: str = Query(..., description="Email del cliente: deve combaciare col record (salvaguardia anti-errore)"),
+    admin=Depends(require_ciak_admin),
+):
+    """Elimina a cascata un cliente Ciak e tutto il suo footprint identita'/percorso.
+
+    Speculare a `DELETE /lead` e `DELETE /partner/{id}`: colma il buco per cui un
+    cliente Ciak Start (record `ciak_clients` + ponte partner + journey) non era
+    rimovibile, lasciando residui in Consegne Start e nella lista clienti.
+
+    Collezioni toccate (tutte legate all'id del cliente / al ponte):
+    `ciak_clients`, `partners`, `users`, `partner_journey_steps`,
+    `ciak_start_deliverables`, `ciak_client_login_tokens`,
+    `ciak_client_access_recovery`, `ciak_onboarding_emails`.
+
+    ⛔ NON tocca i record finanziari (`payment_transactions`, `payments`,
+    `crediti`): la contabilita' e' un registro storico, non si cancella
+    eliminando un account.
+
+    Salvaguardia: `email` deve combaciare col record, cosi' un id sbagliato non
+    cancella il cliente altrui. Operazione irreversibile — il frontend chiede
+    conferma esplicita.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+
+    email_norm = (email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: eliminazione annullata")
+
+    deleted: dict[str, int] = {}
+    deleted["ciak_clients"] = (await db.ciak_clients.delete_one({"id": client_id})).deleted_count
+    deleted["partners"] = (await db.partners.delete_one({"id": client_id})).deleted_count
+    deleted["users"] = (await db.users.delete_many(
+        {"$or": [{"id": client_id}, {"partner_id": client_id}, {"ciak_client_id": client_id}]}
+    )).deleted_count
+    deleted["partner_journey_steps"] = (
+        await db.partner_journey_steps.delete_many({"partner_id": client_id})
+    ).deleted_count
+    deleted["ciak_start_deliverables"] = (
+        await db.ciak_start_deliverables.delete_many({"partner_id": client_id})
+    ).deleted_count
+    deleted["ciak_client_login_tokens"] = (
+        await db.ciak_client_login_tokens.delete_many({"client_id": client_id})
+    ).deleted_count
+    deleted["ciak_client_access_recovery"] = (
+        await db.ciak_client_access_recovery.delete_many(
+            {"$or": [{"client_id": client_id}, {"email": email_norm}]}
+        )
+    ).deleted_count
+    deleted["ciak_onboarding_emails"] = (
+        await db.ciak_onboarding_emails.delete_many(
+            {"$or": [{"client_id": client_id}, {"email": email_norm}]}
+        )
+    ).deleted_count
+
+    logger.info(
+        "[CIAK_ADMIN] Cliente Ciak eliminato a cascata: %s (%s) -> %s",
+        client_id, email_norm, deleted,
+    )
+    return {"ok": True, "client_id": client_id, "email": email_norm, "deleted": deleted}
+
+
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
 # --- Mark EUR 27 paid (manuale) ---
