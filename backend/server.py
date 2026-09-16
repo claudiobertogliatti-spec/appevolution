@@ -9827,7 +9827,10 @@ async def admin_promote_partner(
             "partnership_attiva": True,
             "partnership_attivata_at": now,
             "stato_cliente": "partner_attivo",
+            # Scrivi ENTRAMBI i campi: il login legge `hashed_password or password_hash`,
+            # quindi un `hashed_password` vecchio vincerebbe su un reset del solo password_hash.
             "password_hash": new_hash,
+            "hashed_password": new_hash,
             "evolution_id": evolution_id,
             "updated_at": now
         }}
@@ -9963,13 +9966,15 @@ async def admin_reset_password(
 
     target_email = body.get("email")
     if target_email:
+        # Entrambi i campi: senza `hashed_password` il reset non ha effetto sui
+        # partner (che ce l'hanno valorizzato) — il login lo legge per primo.
         result = await db.users.update_one(
             {"email": target_email},
-            {"$set": {"password_hash": new_hash}}
+            {"$set": {"password_hash": new_hash, "hashed_password": new_hash}}
         )
         return {"success": True, "updated": result.modified_count, "target": target_email}
     else:
-        result = await db.users.update_many({}, {"$set": {"password_hash": new_hash}})
+        result = await db.users.update_many({}, {"$set": {"password_hash": new_hash, "hashed_password": new_hash}})
         return {"success": True, "updated": result.modified_count, "target": "all"}
 
 

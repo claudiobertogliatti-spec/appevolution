@@ -1760,7 +1760,9 @@ async def attiva_partnership(
             "partnership_attiva": True,
             "partnership_attivata_at": now.isoformat(),
             "systeme_account_id": systeme_result.get("systeme_contact_id"),
-            "password_hash": new_hash
+            # Entrambi: il login legge `hashed_password or password_hash`.
+            "password_hash": new_hash,
+            "hashed_password": new_hash,
         }}
     )
     
