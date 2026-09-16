@@ -185,8 +185,8 @@ async def send_sollecito_async(email, nome, partner_id, soglia, giorno, giorni_r
 
     if ok:
         try:
-            from services.ciak_systeme import ciak_emit_event
-            asyncio.create_task(ciak_emit_event(
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
                 email=email,
                 event_name=f"ciak_partnership_sollecito_g{soglia}_email_sent",
                 extra_tags=["ciak_partnership_email_sent", "ciak_partnership_sollecito_sent"],
