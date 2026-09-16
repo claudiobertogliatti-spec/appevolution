@@ -6,7 +6,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
     WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
-    file_visible_to_partner, normalize_file_material, safe_step_data, trusted_storage_url,
+    file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
+    trusted_storage_url,
 )
 
 router = APIRouter(tags=["partner-step-materials"])
@@ -81,6 +82,32 @@ async def get_step_materials(partner_id: str, step_id: str,
         "status": step.get("status"), "materials": materials,
         "workbook_notice": WORKBOOK_NOTICE,
     }
+
+
+@router.get("/api/partner-journey/operativo/materiali/{partner_id}")
+async def get_all_partner_materiali(partner_id: str,
+                                    credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Tutti i materiali del partner (fonte reale: collezione `files`), per la
+    pagina Materiali. Un solo elenco di file veri — prodotti da Ciak, caricati
+    dal partner o dall'admin — con preview/download autenticati. In vista admin
+    (role admin) si vedono anche gli `admin_only`; al partner solo i suoi visibili.
+    """
+    token_data = await _authorize(partner_id, credentials)
+    is_admin = getattr(token_data, "role", None) in ("admin", "superadmin")
+
+    docs = await db.files.find(
+        {"partner_id": str(partner_id)}, {"_id": 0}
+    ).sort("uploaded_at", -1).to_list(length=500)
+
+    materials = []
+    for doc in partner_materiali_listing(docs, include_hidden=is_admin):
+        item = normalize_file_material(doc)
+        item["category"] = doc.get("category") or "documento"
+        item["source"] = doc.get("source")
+        item["visibility"] = doc.get("visibility")
+        materials.append(item)
+
+    return {"partner_id": partner_id, "materials": materials, "total": len(materials)}
 
 
 async def _serve(file_id: str, disposition: str, credentials):

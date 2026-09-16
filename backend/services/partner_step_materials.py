@@ -137,6 +137,28 @@ def file_visible_to_partner(file_doc: Dict[str, Any]) -> bool:
     return file_doc.get("visibility") not in PARTNER_HIDDEN_VISIBILITIES
 
 
+def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: bool = False) -> list[Dict[str, Any]]:
+    """File da mostrare nella pagina 'Materiali' del partner: non superseded e
+    visibili al partner (nasconde solo gli `admin_only`/interni). Al partner
+    mostra ciò che Ciak ha prodotto/consegnato E ciò che ha caricato lui o
+    l'admin — decisione di Claudio: 'sono comunque documenti suoi'.
+
+    A differenza di `current_files` NON richiede status/approval_status
+    'approved': quello serve al flusso di review per-step (bozza -> approvato),
+    mentre qui contano anche gli upload e le consegne (status 'uploaded').
+    `include_hidden=True` (solo per l'admin in vista) mostra tutto, anche gli
+    `admin_only`.
+    """
+    out = []
+    for f in files:
+        if f.get("superseded"):
+            continue
+        if not include_hidden and not file_visible_to_partner(f):
+            continue
+        out.append(f)
+    return out
+
+
 def build_drive_registration_record(
     partner_id: str,
     item: Dict[str, Any],

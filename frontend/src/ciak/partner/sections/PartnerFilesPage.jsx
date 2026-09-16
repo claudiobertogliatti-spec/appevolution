@@ -22,6 +22,30 @@ const DRIVE_FOLDERS = [
   { id: "master_pdf", name: "05. Workbook & Certificati", subtitle: "Workbook completo F-1–F-20 e Certificati Ufficiali di Completamento", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
 ];
 
+// Mappa la categoria di un file reale (collezione `files`) alla cartella della
+// vista Materiali. Default: Workbook & documenti (master_pdf).
+const MATERIALI_FOLDER_BY_CATEGORY = {
+  "brand-kit": "brand_kit", brand_kit: "brand_kit", posizionamento: "brand_kit",
+  logo: "brand_kit", image: "brand_kit",
+  masterclass: "scripts", script: "scripts", copione: "scripts",
+  videocorso_script: "scripts", "videocorso-script": "scripts", outline: "scripts",
+  video: "video",
+  vendita_descrizione: "funnel", vendita_faq: "funnel", vendita_privacy: "funnel",
+  vendita_cookie: "funnel", vendita_termini: "funnel", funnel: "funnel",
+  contratto_firmato: "master_pdf", distinta_pagamento: "master_pdf",
+  workbook: "master_pdf", certificato: "master_pdf", documento: "master_pdf",
+};
+
+function materialiFolderId(category) {
+  return MATERIALI_FOLDER_BY_CATEGORY[String(category || "").toLowerCase()] || "master_pdf";
+}
+
+function iconForMaterialType(type) {
+  if (type === "video") return { icon: FileVideo, color: "text-red-500" };
+  if (type === "image") return { icon: Image, color: "text-violet-500" };
+  return { icon: FileText, color: "text-blue-600" };
+}
+
 // Mock File Vault per la demo e l'integrazione reale
 const INITIAL_VAULT_FILES = [
   {
@@ -211,26 +235,6 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
         if (r.ok) {
           const d = await r.json();
-          // Materiali prodotti da Ciak per questo partner (documenti di fase,
-          // script, analisi): vivono in partner_posizionamento.materiali, cosi'
-          // valgono per qualunque partner e non sono cablati nel frontend.
-          for (const m of d?.posizionamento?.materiali || []) {
-            if (!m?.url || !m?.nome) continue;
-            reali.push({
-              id: `m-${reali.length}`,
-              folderId: m.cartella || "brand_kit",
-              name: m.nome,
-              category: m.categoria || "Documento",
-              size: m.fonte || "Documento",
-              date: m.data || "—",
-              owner: m.owner || "⚙️ CIAK",
-              type: "pdf",
-              icon: FileText,
-              iconColor: "text-blue-600",
-              url: m.url,
-              esterno: /^https?:/i.test(m.url),
-            });
-          }
           const drive = d?.posizionamento?.drive_folder_url;
           if (drive) {
             reali.push({
@@ -243,6 +247,38 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           }
         }
       } catch { /* la cartella Drive semplicemente non compare */ }
+      // Fonte REALE dei materiali del partner: la collezione `files` (documenti
+      // prodotti da Ciak, caricati dal partner o dall'admin), filtrata lato
+      // server su cio' che e' visibile al partner. Prima qui si leggeva
+      // `partner_posizionamento.materiali`, un array che NESSUNO scriveva.
+      try {
+        const rm = await fetch(
+          `/api/partner-journey/operativo/materiali/${partnerId}`,
+          { headers: authHeaders() },
+        );
+        if (rm.ok) {
+          const dm = await rm.json();
+          for (const m of dm?.materials || []) {
+            const url = m.download_url || m.public_url;
+            if (!url) continue; // es. video (solo streaming): niente riga scaricabile
+            const { icon, color } = iconForMaterialType(m.type);
+            reali.push({
+              id: m.id,
+              folderId: materialiFolderId(m.category),
+              name: m.title,
+              category: m.category || "Documento",
+              size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : "Documento",
+              date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
+              owner: "⚙️ CIAK",
+              type: m.type,
+              icon,
+              iconColor: color,
+              url,
+              esterno: !!m.public_url && !m.download_url,
+            });
+          }
+        }
+      } catch { /* se la fonte reale non risponde, restano Libretto/Piano/contratto */ }
       try {
         // signed_at (letto da /api/contract/status) viene scritto PRIMA che il
         // PDF sia generato: la generazione e' best-effort, in try/except sia in
