@@ -75,7 +75,7 @@ START_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
         "code": "S-3",
         "fase_legacy": "F2",
         "macro_phase": "esamina",
-        "label": "Strategia e calendario 90 giorni",
+        "label": "Strategia e ciclo contenuti 60 giorni",
         "owner": "MARCO",
         "completion_policy": "content_plan_90d_approved",
         "material_categories": ["strategia_contenuti", "calendario_contenuti"],

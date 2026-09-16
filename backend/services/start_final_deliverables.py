@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from services.quarterly_calendar import build_quarterly_calendar
+from services.start_content_cycle import build_start_content_cycle
 from services.start_profili_social import build_profili_social
 from services.start_vetrina import build_vetrina
 
@@ -29,12 +29,19 @@ async def build_start_vetrina(dati: dict[str, Any]) -> dict[str, Any]:
 
 
 async def build_start_content_plan(data: dict[str, Any]) -> dict[str, Any]:
+    """Ciclo di contenuti di 60 giorni ripetibile, con UNA live in chiusura dove il
+    cliente propone i propri servizi. Diverso dal regime 90g della Partnership.
+
+    NB: il `type` resta `content_plan_90d` (identificatore tecnico legacy usato da
+    approvazione/readiness/frontend) — il contenuto e le etichette sono a 60 giorni.
+    """
     answers = data.get("answers") or {}
     outline = data.get("outline") or None
-    calendar = await build_quarterly_calendar(answers, outline)
+    calendar = await build_start_content_cycle(answers, outline)
     return {
         "type": "content_plan_90d",
-        "period_days": 90,
+        "period_days": 60,
+        "recurring": True,
         "status": "ready_for_review",
         "calendar": calendar,
         "evidence": {

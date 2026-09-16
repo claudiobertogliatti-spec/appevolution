@@ -117,7 +117,7 @@ def test_le_tre_tappe_dicono_cosa_contengono():
     assert [row["titolo"] for row in rows] == [
         "Posizionamento e brand",
         "Profili social e sito vetrina",
-        "Strategia contenuti e calendario 90 giorni",
+        "Strategia e ciclo contenuti 60 giorni",
     ]
     assert all(row["contenuto"] for row in rows)
 
