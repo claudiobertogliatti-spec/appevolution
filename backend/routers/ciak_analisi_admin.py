@@ -169,9 +169,9 @@ async def valida_e_invia(session_token: str, admin=Depends(require_ciak_admin)):
 
     try:
         import asyncio
-        from services.ciak_systeme import ciak_emit_event
+        from services.ciak_systeme import ciak_emit_event, fire_and_forget
         if email:
-            asyncio.create_task(ciak_emit_event(
+            fire_and_forget(ciak_emit_event(
                 email=email, event_name="ciak_analisi_pronta",
                 first_name=nome, metadata={"analisi_url": link},
             ))

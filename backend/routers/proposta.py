@@ -23,7 +23,7 @@ import httpx
 import base64
 import binascii
 
-from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields
+from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields, fire_and_forget
 from services.ciak_partnership_email import (
     send_contratto_firmato_async,
     send_partnership_benvenuto_async,
@@ -735,7 +735,7 @@ async def _activate_partner_account_and_notify(
     if has_real_password:
         logger.info("[PROPOSTA] Partner %s ha già password — skip magic link", prospect_email)
         # Comunque applichiamo il tag così Systeme può mandare benvenuto generico
-        asyncio.create_task(ciak_emit_event(
+        fire_and_forget(ciak_emit_event(
             email=prospect_email,
             event_name="partner_attivo_existing_user",
             first_name=cliente_nome,

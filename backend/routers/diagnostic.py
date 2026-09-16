@@ -38,7 +38,7 @@ from services.ciak_state_machine import (
     STATE_LEAD_CREATED, STATE_REPORT_GENERATED,
     add_event, has_event, transition_to,
 )
-from services.ciak_systeme import ciak_emit_event
+from services.ciak_systeme import ciak_emit_event, fire_and_forget
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +214,7 @@ async def start_diagnostic(payload: StartRequest):
 
     # Fire-and-forget: emit tag Systeme.io (find_or_create contact + tag ciak_started).
     # No await: la response utente non aspetta Systeme. Errori loggati ma non bloccano.
-    asyncio.create_task(ciak_emit_event(
+    fire_and_forget(ciak_emit_event(
         email=payload.email,
         event_name="ciak_started",
         first_name=payload.name,
@@ -378,7 +378,7 @@ async def complete_diagnostic(payload: CompleteRequest):
                 report["tags"]["tag_digital_level"],
                 report["tags"]["tag_obiettivo"],
             ]
-        asyncio.create_task(ciak_emit_event(
+        fire_and_forget(ciak_emit_event(
             email=user_email,
             event_name="ciak_completed",
             extra_tags=completed_tags,
@@ -465,7 +465,7 @@ async def cta_clicked(payload: CtaClickedRequest):
     # Segnala alta intent di acquisto: utile per retargeting + email "non ha completato l'acquisto".
     user_email = session.get("user_email")
     if user_email:
-        asyncio.create_task(ciak_emit_event(
+        fire_and_forget(ciak_emit_event(
             email=user_email,
             event_name="ciak_clicked_67",
             first_name=session.get("user_name"),
