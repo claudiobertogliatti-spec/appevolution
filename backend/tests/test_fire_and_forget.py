@@ -24,13 +24,14 @@ from services.ciak_systeme import fire_and_forget, _in_flight  # noqa: E402
 def test_fire_and_forget_porta_a_termine_la_coroutine():
     async def run():
         done = {"v": False}
+        before = len(_in_flight)  # robusto a eventuale stato di altri test
 
         async def work():
             await asyncio.sleep(0.01)
             done["v"] = True
 
         fire_and_forget(work())
-        assert len(_in_flight) >= 1, "il task deve essere tracciato mentre gira"
+        assert len(_in_flight) == before + 1, "il task deve essere tracciato mentre gira"
         # lascia completare il task in background
         for _ in range(50):
             if done["v"]:
@@ -38,6 +39,19 @@ def test_fire_and_forget_porta_a_termine_la_coroutine():
             await asyncio.sleep(0.01)
         assert done["v"] is True, "la coroutine deve arrivare in fondo"
         await asyncio.sleep(0)  # lascia scattare il done_callback
-        assert len(_in_flight) == 0, "il riferimento va rilasciato a fine task"
+        assert len(_in_flight) == before, "il riferimento va rilasciato a fine task"
 
     asyncio.run(run())
+
+
+def test_fire_and_forget_tollera_create_task_neutralizzato(monkeypatch):
+    """Se `asyncio.create_task` e' mockato a ritornare None (pattern nei test),
+    fire_and_forget non deve esplodere ne' sporcare il set."""
+    before = len(_in_flight)
+    monkeypatch.setattr(asyncio, "create_task", lambda coro: None)
+
+    async def work():
+        return None
+
+    fire_and_forget(work())  # non deve sollevare
+    assert len(_in_flight) == before, "nessun None deve finire nel set"
