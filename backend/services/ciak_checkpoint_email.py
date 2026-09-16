@@ -382,8 +382,8 @@ async def send_checkpoint_email_async(
     # Tag Systeme "email_sent" come segnale aggiuntivo (audit/segmentazione),
     # applicato solo se l'email è realmente partita.
     try:
-        from services.ciak_systeme import ciak_emit_event
-        asyncio.create_task(ciak_emit_event(
+        from services.ciak_systeme import ciak_emit_event, fire_and_forget
+        fire_and_forget(ciak_emit_event(
             email=email,
             event_name=f"ciak_checkpoint_email_sent_stato_{stato}",
             extra_tags=["ciak_checkpoint_email_sent"],
@@ -436,8 +436,8 @@ async def register_email_opened(tracking_token: str) -> Optional[dict]:
         nome = result.get("nome")
         if email and stato:
             try:
-                from services.ciak_systeme import ciak_emit_event
-                asyncio.create_task(ciak_emit_event(
+                from services.ciak_systeme import ciak_emit_event, fire_and_forget
+                fire_and_forget(ciak_emit_event(
                     email=email,
                     event_name=f"ciak_checkpoint_email_opened_stato_{stato}",
                     extra_tags=["ciak_checkpoint_email_opened"],
