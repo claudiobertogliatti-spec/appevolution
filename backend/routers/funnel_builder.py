@@ -328,6 +328,22 @@ async def save_documenti_legali(partner_id: str, body: DocumentiLegaliRequest):
 # ENDPOINT — GENERA DOCUMENTI LEGALI AUTO
 # ════════════════════════════════════════
 
+# Campi GDPR essenziali per un documento legale VALIDO: senza l'identita' del
+# titolare del trattamento (nome, indirizzo, e almeno un identificativo fiscale
+# P.IVA o C.F.) privacy/cookie/condizioni sono formalmente vuoti. Un documento
+# cosi' NON va marcato "generato"/pronto: si genera la bozza ma lo stato resta
+# "incompleto" finche' i dati non ci sono.
+def documenti_legali_completo(dati: dict) -> tuple[bool, list]:
+    critici = []
+    if not (dati.get("titolare_nome") or "").strip():
+        critici.append("titolare_nome")
+    if not (dati.get("indirizzo") or "").strip():
+        critici.append("indirizzo")
+    if not (dati.get("piva") or "").strip() and not (dati.get("codice_fiscale") or "").strip():
+        critici.append("piva/codice_fiscale")
+    return (len(critici) == 0, critici)
+
+
 @router.post("/{partner_id}/documenti-legali/genera-auto")
 async def genera_documenti_legali_auto(partner_id: str):
     """
@@ -390,15 +406,17 @@ async def genera_documenti_legali_auto(partner_id: str):
     now = datetime.now(timezone.utc).isoformat()
     docs = genera_documenti_legali(dati)
 
-    # Campi mancanti da segnalare (non bloccanti)
+    # Campi mancanti da segnalare + i CRITICI che rendono il documento non valido.
     campi_mancanti = [k for k, v in dati.items() if not v]
+    completo, campi_critici_mancanti = documenti_legali_completo(dati)
+    stato = "generato" if completo else "incompleto"
 
     await db.partners.update_one({"id": partner_id}, {"$set": {
         "documenti_legali.dati": dati,
         "documenti_legali.cookie_policy_html": docs["cookie_policy"],
         "documenti_legali.privacy_policy_html": docs["privacy_policy"],
         "documenti_legali.condizioni_vendita_html": docs["condizioni_vendita"],
-        "documenti_legali.stato": "generato",
+        "documenti_legali.stato": stato,
         "documenti_legali.ultimo_aggiornamento": now,
     }})
 
@@ -407,18 +425,24 @@ async def genera_documenti_legali_auto(partner_id: str):
         "azione": "documenti_legali_auto_generati",
         "timestamp": now,
         "campi_mancanti": campi_mancanti,
+        "campi_critici_mancanti": campi_critici_mancanti,
+        "stato": stato,
     })
 
-    logger.info(f"[DOCS_AUTO] Documenti generati per {partner_id}. Mancanti: {campi_mancanti}")
+    logger.info(
+        f"[DOCS_AUTO] Documenti {stato} per {partner_id}. "
+        f"Mancanti: {campi_mancanti} · critici: {campi_critici_mancanti}"
+    )
 
     return {
-        "success": True,
+        "success": completo,
         "cookie_policy_html": docs["cookie_policy"],
         "privacy_policy_html": docs["privacy_policy"],
         "condizioni_vendita_html": docs["condizioni_vendita"],
         "dati_usati": dati,
         "campi_mancanti": campi_mancanti,
-        "stato": "generato",
+        "campi_critici_mancanti": campi_critici_mancanti,
+        "stato": stato,
     }
 
 
