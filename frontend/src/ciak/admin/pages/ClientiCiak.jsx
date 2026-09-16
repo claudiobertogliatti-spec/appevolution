@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const ACCESS_LABELS = {
   cliente_blueprint: "Blueprint",
@@ -221,6 +223,8 @@ export function ClientiCiak({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [decisionLoading, setDecisionLoading] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadItems = useCallback(async ({ silent = false } = {}) => {
     if (silent) setRefreshing(true);
@@ -269,6 +273,35 @@ export function ClientiCiak({ onAuthExpired }) {
       setDecisionLoading(null);
     }
   }, [decisionLoading, onAuthExpired]);
+
+  // Elimina a cascata il cliente Ciak (account + ponte + journey + deliverable).
+  // Backend: DELETE /api/admin/ciak/clients/{id}?email= — l'email deve combaciare
+  // (salvaguardia anti-errore), i record finanziari non si toccano.
+  const confirmDelete = async () => {
+    const client = pendingDelete;
+    if (!client || deleting) return;
+    setDeleting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/clients/${client.id}?email=${encodeURIComponent(client.email)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 160)}` : ""}`);
+      }
+      setPendingDelete(null);
+      toast.success(`Cliente "${client.email}" eliminato.`);
+      loadItems({ silent: true });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message || "Errore nell'eliminazione del cliente.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const rows = useMemo(
     () =>
@@ -440,6 +473,16 @@ export function ClientiCiak({ onAuthExpired }) {
                       ) : (
                         <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete({ id: row.id, email: row.email, name: row.name })}
+                        disabled={!row.id}
+                        title="Elimina cliente a cascata (account + percorso, non i record contabili)"
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-red-700 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Elimina cliente
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -448,6 +491,18 @@ export function ClientiCiak({ onAuthExpired }) {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete ? `Elimina ${pendingDelete.name || pendingDelete.email}` : ""}
+        body="Rimuove a cascata account, percorso (journey) e deliverable del cliente. I record contabili (incassi, crediti) restano. Operazione irreversibile."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
