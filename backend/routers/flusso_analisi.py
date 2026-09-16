@@ -18,7 +18,7 @@ STATI:
 - partner_attivo
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -32,6 +32,44 @@ import re
 import bcrypt
 from internal_api import internal_api_url
 from routers.ciak_admin import require_ciak_admin
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from auth import decode_token
+import hmac as _hmac
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _attiva_auth_ok(internal_key: str, fornito: str, is_admin: bool) -> bool:
+    """
+    True se la richiesta ad attiva-partnership e' ammessa.
+
+    `internal_key` vuoto = env non configurata -> ammessa (rollout, warn dal caller).
+    Altrimenti: chiave interna corretta (confronto costante) OPPURE admin.
+    attiva-partnership e' chiamato dal backend stesso (verify_payment, stripe_webhook
+    via internal_api_url): la chiave interna e' la via normale, l'admin il fallback.
+    """
+    if not internal_key:
+        return True
+    if fornito and _hmac.compare_digest(fornito, internal_key):
+        return True
+    return bool(is_admin)
+
+
+async def _require_internal_or_admin(
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    internal_key = os.environ.get("INTERNAL_API_KEY", "").strip()
+    if not internal_key:
+        logging.warning(
+            "[attiva-partnership] INTERNAL_API_KEY non configurata: "
+            "endpoint non protetto (rollout: impostala per chiuderlo)"
+        )
+        return
+    token = decode_token(credentials.credentials) if credentials else None
+    is_admin = bool(token and getattr(token, "role", None) in ("admin", "superadmin"))
+    if not _attiva_auth_ok(internal_key, x_internal_key or "", is_admin):
+        raise HTTPException(status_code=401, detail="Autenticazione richiesta")
 
 # Import Master Prompt e Strategic Research
 try:
@@ -1613,7 +1651,8 @@ async def verify_payment_partnership(user_id: str):
                 import httpx
                 async with httpx.AsyncClient(timeout=10) as hc:
                     risposta = await hc.post(
-                        internal_api_url(f"/api/flusso-analisi/attiva-partnership/{user_id}")
+                        internal_api_url(f"/api/flusso-analisi/attiva-partnership/{user_id}"),
+                        headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
                     )
                     if risposta.status_code >= 400:
                         logging.error(
@@ -1675,7 +1714,11 @@ async def conferma_bonifico(user_id: str, _admin=Depends(require_ciak_admin)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/attiva-partnership/{user_id}")
-async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
+async def attiva_partnership(
+    user_id: str,
+    background_tasks: BackgroundTasks,
+    _auth=Depends(_require_internal_or_admin),
+):
     """
     Attiva la partnership dopo pagamento completato.
     
