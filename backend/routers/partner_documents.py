@@ -4,7 +4,8 @@ Upload e verifica documenti onboarding partner
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from routers.ciak_admin import require_ciak_admin
+from fastapi.security import HTTPAuthorizationCredentials
+from routers.ciak_admin import require_ciak_admin, security
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -72,8 +73,18 @@ async def _ensure_documents_field(partner_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/status")
-async def get_documents_status(partner_id: str):
-    """Get all document statuses for a partner."""
+async def get_documents_status(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Get all document statuses for a partner.
+
+    Protetto: prima restituiva a chiunque, senza token, gli URL dei documenti
+    d'identita'/CF del partner. Admin/superadmin supervisionano; il partner
+    accede solo al proprio id (require_partner_or_admin_for_partner).
+    """
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
     await _ensure_documents_field(partner_id)
     partner = await db.partners.find_one(
         {"id": partner_id},

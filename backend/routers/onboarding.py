@@ -3,7 +3,8 @@ routers/onboarding.py
 Gestisce l'onboarding dei nuovi partner: profilo, contratto, pagamento, documenti
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -17,6 +18,7 @@ import json
 import subprocess
 
 router = APIRouter(prefix="/api/partner", tags=["onboarding"])
+security = HTTPBearer(auto_error=False)
 
 # Database reference (set from server.py)
 db = None
@@ -367,11 +369,22 @@ async def upload_distinta(partner_id: str, file: UploadFile = File(...)):
 # ============================================================================
 
 @router.get("/{partner_id}/onboarding")
-async def get_onboarding(partner_id: str):
-    """Carica lo stato dell'onboarding per il partner."""
+async def get_onboarding(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Carica lo stato dell'onboarding per il partner.
+
+    Protetto: prima esponeva a chiunque, senza token, gli URL dei documenti
+    d'identita'/CF e della distinta. Admin/superadmin supervisionano; il
+    partner accede solo al proprio id (require_partner_or_admin_for_partner).
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
+    from routers.partner_journey import require_partner_or_admin_for_partner
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+
     try:
         partner = await find_partner(partner_id)
         if not partner:

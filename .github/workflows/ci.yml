@@ -97,6 +97,7 @@ jobs:
           tests/test_stripe_webhook_security.py
           tests/test_systeme_webhook_secret.py
           tests/test_document_admin_auth.py
+          tests/test_operations_pii_auth.py
           tests/test_partner_journey_auth_unittest.py
           tests/test_no_shadow_routes.py
           tests/test_admin_endpoints_auth.py

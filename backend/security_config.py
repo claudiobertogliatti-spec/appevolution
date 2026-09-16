@@ -34,6 +34,17 @@ def internal_or_admin_authorized(internal_key: str, provided: str, is_admin: boo
     return bool(is_admin)
 
 
+# Ruoli ammessi alla Dashboard Operations (Antonella + admin).
+# Antonella fa login con role "operations" (cfr. tests/test_operations.py):
+# require_ciak_admin la bloccherebbe, quindi serve questo set esplicito.
+OPERATIONS_STAFF_ROLES = ("admin", "superadmin", "operations")
+
+
+def operations_staff_authorized(role: str) -> bool:
+    """True se il ruolo puo' accedere agli endpoint /api/operations/*."""
+    return (role or "") in OPERATIONS_STAFF_ROLES
+
+
 VALID_APP_ENVS = {"production", "development", "test"}
 LEGACY_JWT_SECRET = "evolution-pro-os-secret-key-2026"
 PRODUCTION_ORIGINS = (
