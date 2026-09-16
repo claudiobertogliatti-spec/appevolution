@@ -213,7 +213,6 @@ _CLIENTI_CIAK_PUBLIC_FIELDS = {
     "offer_decision",
     "start_credit_amount",
     "start_purchased_at",
-    "start_progress",
     "analysis_status",
     "created_at",
     "updated_at",
@@ -4344,11 +4343,24 @@ async def consegne_start(
             "access_level": 1,
             "start_purchased_at": 1,
             "start_credit_amount": 1,
-            "start_progress": 1,
         },
     ).sort("start_purchased_at", -1).to_list(max_items)
 
-    return build_report(clients)
+    # Lo stato delle tappe vive sulla journey vera (`partner_journey_steps`), non
+    # piu' su `start_progress`: la stessa journey che il cliente vede e che i
+    # motori di consegna aggiornano.
+    client_ids = [c.get("id") for c in clients if c.get("id")]
+    steps_by_client: dict[str, list[dict]] = {}
+    if client_ids:
+        async for step in db.partner_journey_steps.find(
+            {"partner_id": {"$in": client_ids}},
+            {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
+             "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
+             "updated_at": 1, "reference": 1, "note": 1},
+        ):
+            steps_by_client.setdefault(step.get("partner_id"), []).append(step)
+
+    return build_report(clients, steps_by_client)
 
 
 @router.post("/start/consegne/segna")
@@ -4363,6 +4375,7 @@ async def segna_tappa_start(
     """
     from services.ciak_client_accounts import has_start_entitlement
     from services.ciak_start_milestones import apply_milestone_status
+    from models.start_journey import step_definition
 
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -4375,8 +4388,7 @@ async def segna_tappa_start(
 
     actor = getattr(admin, "email", None) or "admin"
     try:
-        progress = apply_milestone_status(
-            client,
+        aggiornamenti = apply_milestone_status(
             tappa=body.tappa,
             stato=body.stato,
             attore=actor,
@@ -4386,13 +4398,29 @@ async def segna_tappa_start(
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
-    await db.ciak_clients.update_one(
-        {"id": body.client_id},
-        {"$set": {
-            "start_progress": progress,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }},
-    )
+    # Scrive la journey vera (`partner_journey_steps`): lo STESSO campo che
+    # l'approvazione dei deliverable aggiorna. Nessun secondo binario. L'upsert
+    # ben formato copre un cliente legacy attivato prima che la journey esistesse:
+    # lo step si crea completo dalla definizione, non come frammento.
+    for riga in aggiornamenti:
+        definizione = step_definition(riga["step_id"]) or {}
+        su_insert = {
+            "partner_id": body.client_id,
+            "step_id": riga["step_id"],
+            **{
+                chiave: definizione[chiave]
+                for chiave in (
+                    "step_number", "code", "fase_legacy", "macro_phase",
+                    "owner", "completion_policy", "material_categories",
+                )
+                if chiave in definizione
+            },
+        }
+        await db.partner_journey_steps.update_one(
+            {"partner_id": body.client_id, "step_id": riga["step_id"]},
+            {"$set": riga["set"], "$setOnInsert": su_insert},
+            upsert=True,
+        )
     logger.info(
         "[CIAK_ADMIN] Tappa Start %s -> %s per %s da %s",
         body.tappa, body.stato, client.get("email"), actor,

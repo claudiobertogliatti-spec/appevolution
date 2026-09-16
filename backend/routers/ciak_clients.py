@@ -22,7 +22,6 @@ from services.ciak_client_accounts import (
     OFFER_PARTNERSHIP,
     OFFER_START,
     START_AMOUNT_CENTS,
-    default_start_progress,
     has_start_entitlement,
     partnership_price_for_client,
     verify_magic_login_token,
@@ -377,7 +376,6 @@ def _public_client(client: dict[str, Any], user: dict[str, Any] | None = None) -
         "recommended_offer",
         "offer_decision",
         "start_credit_amount",
-        "start_progress",
         "analysis_status",
         "analysis_title",
         "analysis_generated_at",
@@ -421,7 +419,6 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         "analysis": _analysis_payload(analysis, client),
         "start": {
             "credit_amount_cents": partnership_price["credit_amount_cents"],
-            "progress": effective_client.get("start_progress") or [],
         },
         "pricing": {
             "blueprint": {
@@ -814,7 +811,6 @@ async def activate_start(
                 "access_level": ACCESS_START,
                 "start_purchased_at": _now_iso(),
                 "start_credit_amount": START_AMOUNT_CENTS,
-                "start_progress": default_start_progress(),
             }
         },
     )

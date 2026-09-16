@@ -40,7 +40,8 @@ function formatCurrency(cents) {
 
 function inferStartStatus(item) {
   if (item.start_status) return item.start_status;
-  if (Array.isArray(item.start_progress) && item.start_progress.length > 0) return "attivo";
+  // `start_progress` e' stato dismesso: lo stato Start si deduce dal livello di
+  // accesso. Il percorso vero vive su `partner_journey_steps`.
   if ((item.access_level || "").toLowerCase() === "cliente_start") return "attivo";
   return null;
 }

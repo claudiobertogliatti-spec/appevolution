@@ -484,7 +484,8 @@ def test_activate_start_accepts_internal_key(monkeypatch, client_app, fake_db):
     assert client["access_level"] == "cliente_start"
     assert client["start_credit_amount"] == 39000
     assert client["start_purchased_at"]
-    assert client["start_progress"][0]["status"] == "todo"
+    # `start_progress` e' stato dismesso: /start/activate non lo semina piu'.
+    assert client.get("start_progress") == []
 
 
 def test_start_checkout_creates_499_euro_session(monkeypatch, client_app, fake_db):
