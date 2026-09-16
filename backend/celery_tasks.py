@@ -428,11 +428,18 @@ Prodotto da Evolution PRO
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e)
         
-        # Mark YouTube step as failed but don't fail entire job
-        run_async(get_db().pipeline_jobs.update_one(
-            {"job_id": job_id},
-            {"$set": {"steps.youtube_upload": f"failed: {str(e)}"}}
-        ))
+        # Mark YouTube step as failed but don't fail entire job.
+        # get_db() ritorna la tupla (client, db): senza unpack, `.pipeline_jobs`
+        # esplodeva (AttributeError) proprio qui, lasciando il job appeso in
+        # "uploading_youtube" invece di chiuderlo come completed_partial.
+        _yt_client, _yt_db = get_db()
+        try:
+            run_async(_yt_db.pipeline_jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {"steps.youtube_upload": f"failed: {str(e)}"}}
+            ))
+        finally:
+            _yt_client.close()
         run_async(mark_job_completed(job_id, None, youtube_failed=True))
         raise
 
@@ -739,26 +746,34 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                     except Exception as e:
                         logger.warning(f"[CELERY] Systeme.io tag failed: {e}")
                 
-                # 2. Send Telegram notification
-                await send_telegram_notification(
-                    f"📧 *Email Benvenuto Analisi Inviata*\n\n"
-                    f"👤 {nome} {cognome}\n"
-                    f"📧 {email}\n"
-                    f"🔗 Booking disponibile: {booking_available.strftime('%d/%m/%Y %H:%M')}\n"
-                    f"✅ Tag Systeme.io aggiunti"
-                )
-                
-                # 3. Update database
-                await db.clienti_analisi.update_one(
-                    {"id": cliente_id},
-                    {"$set": {
-                        "email_benvenuto_inviata": True,
-                        "email_benvenuto_inviata_at": datetime.now(timezone.utc).isoformat(),
-                        "booking_available_at": booking_available.isoformat(),
-                        "booking_link": booking_link,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
+                # 2. Send Telegram notification — la verità sull'invio, non "sempre ok".
+                if _ok:
+                    await send_telegram_notification(
+                        f"📧 *Email Benvenuto Analisi Inviata*\n\n"
+                        f"👤 {nome} {cognome}\n"
+                        f"📧 {email}\n"
+                        f"🔗 Booking disponibile: {booking_available.strftime('%d/%m/%Y %H:%M')}"
+                    )
+                else:
+                    await send_telegram_notification(
+                        f"⚠️ *Email Benvenuto Analisi NON inviata* (SMTP fallito)\n\n"
+                        f"👤 {nome} {cognome}\n"
+                        f"📧 {email}\n"
+                        f"➡️ Va reinviata a mano: il cliente ha pagato e non ha ricevuto il benvenuto."
+                    )
+
+                # 3. Update database. Il flag di INVIO si scrive SOLO se l'email e'
+                # partita davvero; i dati di booking sono calcolati, non un invio,
+                # quindi si salvano comunque.
+                _set = {
+                    "booking_available_at": booking_available.isoformat(),
+                    "booking_link": booking_link,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+                if _ok:
+                    _set["email_benvenuto_inviata"] = True
+                    _set["email_benvenuto_inviata_at"] = datetime.now(timezone.utc).isoformat()
+                await db.clienti_analisi.update_one({"id": cliente_id}, {"$set": _set})
                 
                 # 4. Log email
                 await db.email_logs.insert_one({
@@ -772,11 +787,11 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                     "systeme_tags": ["analisi_pagata", "welcome_analisi"]
                 })
                 
-                logger.info(f"[CELERY] Welcome email sent for {email}")
-                return True
+                logger.info(f"[CELERY] Welcome email {'sent' if _ok else 'FAILED'} for {email}")
+                return _ok
             finally:
                 client.close()
-        
+
         result = run_async(_send_email())
         return {"success": result, "user_id": user_id}
         
@@ -852,24 +867,29 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     except Exception as e:
                         logger.warning(f"[CELERY] Systeme.io reminder tag failed: {e}")
                 
-                # 2. Send Telegram notification to admin
-                await send_telegram_notification(
-                    f"⏰ *Reminder 48h Inviato*\n\n"
-                    f"👤 {nome}\n"
-                    f"📧 {email}\n"
-                    f"📞 Call NON ancora prenotata\n"
-                    f"🔗 Link: {booking_link}"
-                )
-                
-                # 3. Update database
-                await db.clienti_analisi.update_one(
-                    {"id": cliente_id},
-                    {"$set": {
-                        "reminder_48h_inviato": True,
-                        "reminder_48h_inviato_at": datetime.now(timezone.utc).isoformat(),
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
+                # 2. Send Telegram notification to admin — verità sull'invio.
+                if _ok:
+                    await send_telegram_notification(
+                        f"⏰ *Reminder 48h Inviato*\n\n"
+                        f"👤 {nome}\n"
+                        f"📧 {email}\n"
+                        f"📞 Call NON ancora prenotata\n"
+                        f"🔗 Link: {booking_link}"
+                    )
+                else:
+                    await send_telegram_notification(
+                        f"⚠️ *Reminder 48h NON inviato* (SMTP fallito)\n\n"
+                        f"👤 {nome}\n"
+                        f"📧 {email}\n"
+                        f"➡️ Da reinviare a mano."
+                    )
+
+                # 3. Update database — il flag di invio SOLO se l'email e' partita.
+                _set = {"updated_at": datetime.now(timezone.utc).isoformat()}
+                if _ok:
+                    _set["reminder_48h_inviato"] = True
+                    _set["reminder_48h_inviato_at"] = datetime.now(timezone.utc).isoformat()
+                await db.clienti_analisi.update_one({"id": cliente_id}, {"$set": _set})
                 
                 # 4. Log email
                 await db.email_logs.insert_one({
@@ -883,11 +903,11 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     "systeme_tags": ["reminder_48h_analisi"]
                 })
                 
-                logger.info(f"[CELERY] 48h reminder sent for {email}")
-                return True
+                logger.info(f"[CELERY] 48h reminder {'sent' if _ok else 'FAILED'} for {email}")
+                return _ok
             finally:
                 client.close()
-        
+
         result = run_async(_send_reminder())
         return {"success": result, "user_id": user_id}
         
