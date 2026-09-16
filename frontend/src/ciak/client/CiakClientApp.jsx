@@ -10,7 +10,10 @@ import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
-import { WelcomeStart } from "./WelcomeStart";
+// Il benvenuto e' lo STESSO dell'area partner operativa (voce di Simona, team,
+// Metodo E.V.O., video del fondatore): un cliente Start entra nello stesso Ciak,
+// quindi vede la stessa accoglienza, non un layout a parte.
+import Benvenuto from "../partner/operativo/Benvenuto";
 
 // Chi ha gia' visto il benvenuto Ciak Start non lo rivede: flag per-cliente.
 // localStorage puo' mancare (finestra privata, storage bloccato): in dubbio si
@@ -113,6 +116,7 @@ function AccessPage() {
 function ProtectedClient() {
   const token = getClientToken();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
@@ -156,16 +160,24 @@ function ProtectedClient() {
     && !welcomeDismissed
     && !welcomeAlreadySeen(clientId);
 
-  const dismissWelcome = () => {
-    markWelcomeSeen(clientId);
-    setWelcomeDismissed(true);
-  };
+  // Gate di benvenuto al primo accesso del cliente Start: la stessa schermata
+  // dell'area partner operativa (Simona, team, Metodo E.V.O., video). A schermo
+  // intero come per il partner, poi si prosegue sul percorso.
+  if (showWelcome) {
+    return (
+      <Benvenuto
+        partnerName={dashboard.client?.name}
+        onStart={() => {
+          markWelcomeSeen(clientId);
+          setWelcomeDismissed(true);
+          navigate("/cliente/start");
+        }}
+      />
+    );
+  }
 
   return (
     <ClientLayout client={dashboard.client || getClientUser()}>
-      {showWelcome ? (
-        <WelcomeStart name={dashboard.client?.name} onClose={dismissWelcome} />
-      ) : null}
       {startPaymentConfirmed ? (
         <div role="status" className="mx-4 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
           <strong>Pagamento ricevuto. Ciak Start è attivo.</strong>{" "}
