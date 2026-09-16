@@ -30,7 +30,7 @@ from acquisition_policy import (
     get_lista_fredda_freeze_message,
     is_lista_fredda_systeme_import_allowed,
 )
-from security_config import build_cors_origins
+from security_config import build_cors_origins, systeme_webhook_authorized
 try:
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 except ImportError:
@@ -13977,21 +13977,6 @@ async def check_achievement_unlock(partner_id: str, phase: str):
 # WEBHOOK ENDPOINTS
 # -----------------------------------------------------------------------------
 
-def _systeme_webhook_autorizzato(secret: str, fornito: str) -> bool:
-    """
-    True se la richiesta al webhook Systeme e' ammessa.
-
-    Systeme.io non firma i webhook (nessun HMAC come Stripe): si protegge con un
-    token segreto concordato. `secret` vuoto = non ancora configurato -> ammessa
-    (rollout, il caller logga un warning); `secret` presente -> confronto a tempo
-    costante col token fornito (header o query).
-    """
-    import hmac
-    if not secret:
-        return True
-    return hmac.compare_digest(fornito or "", secret)
-
-
 @api_router.post("/webhooks/systeme")
 async def receive_systeme_webhook(
     payload: Dict[str, Any],
@@ -14020,7 +14005,7 @@ async def receive_systeme_webhook(
         or request.headers.get("x-webhook-token")
         or ""
     )
-    if not _systeme_webhook_autorizzato(secret, fornito):
+    if not systeme_webhook_authorized(secret, fornito):
         logger.warning("[systeme-webhook] token mancante o errato: richiesta rifiutata")
         raise HTTPException(status_code=401, detail="Webhook non autorizzato")
     if not secret:
