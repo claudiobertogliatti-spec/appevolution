@@ -706,10 +706,11 @@ async def import_leads_from_csv(request: ImportCSVRequest):
 
 @router.get("/leads/hot")
 async def get_hot_leads(
-    limit: int = 20, 
+    limit: int = 20,
     min_score: int = 80,
     only_with_email: bool = True,
-    outreach_status: Optional[str] = None
+    outreach_status: Optional[str] = None,
+    admin=Depends(require_ciak_admin),
 ):
     """
     Ritorna i lead HOT (score >= 80) ordinati per score.
@@ -765,7 +766,8 @@ async def get_leads(
     source: Optional[LeadSource] = None,
     min_score: int = 0,
     limit: int = 50,
-    skip: int = 0
+    skip: int = 0,
+    admin=Depends(require_ciak_admin),
 ):
     """Lista leads con filtri"""
     query = {}
@@ -791,7 +793,7 @@ async def get_leads(
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead(lead_id: str):
+async def get_lead(lead_id: str, admin=Depends(require_ciak_admin)):
     """Dettaglio singolo lead"""
     lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
