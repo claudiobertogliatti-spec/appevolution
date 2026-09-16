@@ -4129,11 +4129,17 @@ async def _start_step(client_id: str, step_id: str) -> dict:
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,
+    background_tasks: BackgroundTasks,
     admin=Depends(require_ciak_admin),
 ):
-    """Genera la bozza del calendario Start, senza approvarla automaticamente."""
-    from services.start_final_deliverables import build_start_content_plan
+    """Avvia la generazione del calendario Start IN BACKGROUND.
 
+    La sintesi AI del ciclo 60g (max_tokens 14000) dura ~90-150s e supera il
+    timeout del gateway (~60s): una chiamata sincrona tornerebbe un errore anche
+    se poi completa. Qui si risponde subito (`generating: true`), si marca lo step
+    `generation_status: in_corso`, e la scrittura avviene quando la generazione
+    finisce. Il pannello polla lo stato dello step.
+    """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     await _cliente_start_o_errore(client_id)
@@ -4142,27 +4148,68 @@ async def genera_calendario_start(
     if not any(answers.get(key) for key in ("metodo_nome", "nicchia", "promessa")):
         raise HTTPException(409, "Posizionamento incompleto: il calendario non puo' essere generato")
 
-    deliverable = await build_start_content_plan({"answers": answers})
     now = datetime.now(timezone.utc).isoformat()
     actor = getattr(admin, "email", None) or "admin"
-    payload = {
-        **deliverable,
-        "partner_id": client_id,
-        "generated_at": now,
-        "generated_by": actor,
-        "approval_status": "pending_review",
-    }
-    await db.ciak_start_deliverables.update_one(
-        {"partner_id": client_id, "type": "content_plan_90d"},
-        {"$set": payload, "$setOnInsert": {"created_at": now}},
-        upsert=True,
-    )
     await db.partner_journey_steps.update_one(
         {"partner_id": client_id, "step_id": "start-contenuti-90"},
-        {"$set": {"status": "in_progress", "approval_status": "pending_review", "data": payload, "updated_at": now}},
+        {"$set": {
+            "status": "in_progress",
+            "generation_status": "in_corso",
+            "generation_started_at": now,
+            "updated_at": now,
+        }},
         upsert=True,
     )
-    return {"success": True, "deliverable": payload}
+    background_tasks.add_task(_genera_calendario_bg, client_id, dict(answers), actor)
+    return {"success": True, "generating": True}
+
+
+async def _genera_calendario_bg(client_id: str, answers: dict, actor: str) -> None:
+    """Genera il calendario (chiamata AI lunga) e scrive deliverable + step.
+
+    Gira DOPO la risposta HTTP: non deve mai sollevare fuori. In caso di errore
+    marca lo step `generation_status: errore` cosi' il pannello lo mostra.
+    """
+    from services.start_final_deliverables import build_start_content_plan
+
+    try:
+        deliverable = await build_start_content_plan({"answers": answers})
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {
+            **deliverable,
+            "partner_id": client_id,
+            "generated_at": now,
+            "generated_by": actor,
+            "approval_status": "pending_review",
+        }
+        await db.ciak_start_deliverables.update_one(
+            {"partner_id": client_id, "type": "content_plan_90d"},
+            {"$set": payload, "$setOnInsert": {"created_at": now}},
+            upsert=True,
+        )
+        await db.partner_journey_steps.update_one(
+            {"partner_id": client_id, "step_id": "start-contenuti-90"},
+            {"$set": {
+                "status": "in_progress",
+                "approval_status": "pending_review",
+                "data": payload,
+                "generation_status": "pronto",
+                "updated_at": now,
+            }},
+        )
+    except Exception as exc:  # noqa: BLE001 — il task in background non deve mai propagare
+        logger.exception("[CIAK_ADMIN] genera calendario bg fallito per %s: %s", client_id, exc)
+        try:
+            await db.partner_journey_steps.update_one(
+                {"partner_id": client_id, "step_id": "start-contenuti-90"},
+                {"$set": {
+                    "generation_status": "errore",
+                    "generation_error": str(exc)[:200],
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+        except Exception:
+            pass
 
 
 async def _posizionamento_struct(client_id: str) -> tuple[dict, dict]:

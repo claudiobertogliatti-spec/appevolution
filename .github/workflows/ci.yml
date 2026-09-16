@@ -139,6 +139,7 @@ jobs:
           tests/test_ciak_start_bonus_guida.py
           tests/test_start_deliverables_wiring.py
           tests/test_start_content_cycle.py
+          tests/test_start_final_deliverables_contract.py
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
           tests/test_ciak_clients_router.py
