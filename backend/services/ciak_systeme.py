@@ -57,6 +57,10 @@ def fire_and_forget(coro) -> None:
     comunque arrivare in fondo. Gli errori restano gestiti dentro la coroutine.
     """
     task = asyncio.create_task(coro)
+    # I test neutralizzano spesso `asyncio.create_task` (ritorna None per non
+    # schedulare davvero): in quel caso non c'e' nulla da tracciare.
+    if task is None:
+        return
     _in_flight.add(task)
     task.add_done_callback(_in_flight.discard)
 
