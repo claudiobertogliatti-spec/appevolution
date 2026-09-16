@@ -4583,8 +4583,9 @@ async def create_partner(data: PartnerCreate):
 
 @api_router.patch("/partners/{partner_id}")
 async def update_partner(
-    partner_id: str, 
-    request: Request
+    partner_id: str,
+    request: Request,
+    _admin=Depends(require_admin_role),
 ):
     """
     Aggiorna i dati di un partner.
@@ -4702,7 +4703,7 @@ async def update_partner(
 
 
 @api_router.delete("/partners/{partner_id}")
-async def delete_partner(partner_id: str):
+async def delete_partner(partner_id: str, _admin=Depends(require_admin_role)):
     """
     Elimina definitivamente un partner e tutti i suoi dati associati.
     """
@@ -5065,7 +5066,7 @@ async def get_partner_payments(partner_id: str):
     return payments
 
 @api_router.post("/partners/{partner_id}/payments")
-async def add_partner_payment(partner_id: str, payment: PaymentRecord):
+async def add_partner_payment(partner_id: str, payment: PaymentRecord, _admin=Depends(require_admin_role)):
     """Add a payment record"""
     payment_data = payment.model_dump()
     payment_data["id"] = str(uuid.uuid4())
@@ -5084,7 +5085,7 @@ async def add_partner_payment(partner_id: str, payment: PaymentRecord):
 
 
 @api_router.patch("/partners/{partner_id}/payments/{payment_id}")
-async def update_partner_payment(partner_id: str, payment_id: str, request: Request):
+async def update_partner_payment(partner_id: str, payment_id: str, request: Request, _admin=Depends(require_admin_role)):
     """Update a payment status"""
     try:
         body = await request.json()
@@ -5122,7 +5123,7 @@ async def update_partner_payment(partner_id: str, payment_id: str, request: Requ
 
 
 @api_router.post("/partners/{partner_id}/segna-pagamento-partnership")
-async def segna_pagamento_partnership(partner_id: str, request: Request):
+async def segna_pagamento_partnership(partner_id: str, request: Request, _admin=Depends(require_admin_role)):
     """
     Segna manualmente che un partner ha effettuato il pagamento della partnership (es. bonifico).
     Crea un record di pagamento e aggiorna il revenue del partner.
