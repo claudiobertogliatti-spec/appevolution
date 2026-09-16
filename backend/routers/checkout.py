@@ -589,10 +589,10 @@ async def _handle_checkout_completed(data: dict, background_tasks: BackgroundTas
     # Fire-and-forget Systeme.io tag emission per ciak_bought_67.
     # Triggera automation post-acquisto: email conferma + link Cal.com per booking.
     import asyncio as _asyncio
-    from services.ciak_systeme import ciak_emit_event as _ciak_emit_event
+    from services.ciak_systeme import ciak_emit_event as _ciak_emit_event, fire_and_forget
     _user_email = diagnostic.get("user_email") or customer_email
     if _user_email:
-        _asyncio.create_task(_ciak_emit_event(
+        fire_and_forget(_ciak_emit_event(
             email=_user_email,
             event_name="ciak_bought_67",
             first_name=diagnostic.get("user_name"),
