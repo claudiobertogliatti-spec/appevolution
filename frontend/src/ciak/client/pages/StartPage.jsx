@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
+  Zap, Camera, ClipboardList, Bot, Mic,
+} from "lucide-react";
 import { clientGet, clientPost, journeyGet } from "../api";
 import { PRICING } from "../../pricing";
 
@@ -89,6 +92,14 @@ const BONUS_INCLUDE = [
   "Il funnel: attira, nutri, converti",
   "Prezzo e offerte oneste",
   "Il lancio e la checklist finale",
+];
+
+const PILLARS = [
+  { Icon: Zap, t: "Col metodo giusto, è veloce", d: "Sai già cosa dire e in che ordine: registrare diventa la parte breve. E Ciak è fatto per andare spediti, senza giri a vuoto." },
+  { Icon: Camera, t: "Zero attrezzatura costosa", d: "Niente studio né telecamere da migliaia di euro. Basta quello che hai già. La qualità che serve, non quella che si sfoggia." },
+  { Icon: ClipboardList, t: "Non parti da zero", d: "Template e script già pronti, e gli argomenti su cui costruire. Riempi una traccia con la tua esperienza, non un foglio bianco." },
+  { Icon: Bot, t: "Agenti AI attivi 24 ore su 24", d: "Ti danno una mano quando vuoi tu — la sera, all'alba, tra un cliente e l'altro. Ti organizzi come è meglio per te, senza aspettare nessuno." },
+  { Icon: Mic, t: "La voce resta la tua", d: "L'AI non fa tutto: gli script li personalizzi nel tuo stile. Il metodo fa risparmiare tempo, il tuo modo di dire le cose resta tuo." },
 ];
 
 const REASSURANCE = [
@@ -333,6 +344,41 @@ export function StartPage({ dashboard }) {
             </div>
           </section>
         ) : null}
+
+        {/* REGISTRAZIONE — obiezione "porta via troppo tempo" */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-7">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+              <span className="h-0.5 w-6 bg-yellow-400" /> «Ce la faccio?» Sì.
+            </p>
+            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              La paura è la parte lunga.<br /><span className="text-yellow-500">La registrazione no.</span>
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-500">
+              Immagini mesi di lavoro, tecnica da imparare, serate perse. Non è così — ed ecco perché.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PILLARS.map(({ Icon, t, d }) => (
+              <div key={t} className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-yellow-400">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-base font-extrabold leading-tight text-slate-900">{t}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center gap-4 rounded-2xl p-6 text-white" style={{ background: NAVY_GRADIENT }}>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-yellow-400 text-slate-900">
+              <Check className="h-5 w-5" strokeWidth={3} />
+            </span>
+            <p className="text-[15px] leading-relaxed text-slate-200">
+              <b className="font-extrabold text-white">La tua parte è piccola, ed è quella che sai già fare:</b>{" "}
+              mettere la tua competenza davanti alla telecamera. Al peso — struttura, montaggio, funnel — pensiamo noi.
+            </p>
+          </div>
+        </section>
 
         {/* REASSURANCE */}
         <section className="rounded-2xl border border-slate-200 bg-white p-7">
