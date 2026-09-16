@@ -76,3 +76,45 @@ def test_get_onboarding_requires_partner_or_admin():
     handler = _handler(_tree("onboarding.py"), "get_onboarding")
     assert handler is not None, "get_onboarding non trovato"
     assert "require_partner_or_admin_for_partner" in _calls_names(handler)
+
+
+# Scritture/letture partner-facing dell'onboarding: prima anonime, chiunque poteva
+# caricare/sovrascrivere documenti e contratti su un partner_id qualsiasi.
+ONBOARDING_PARTNER_HANDLERS = [
+    "salva_profilo",
+    "scarica_contratto",
+    "upload_contratto_firmato",
+    "conferma_pagamento",
+    "upload_documenti",
+    "upload_distinta",
+]
+
+
+@pytest.mark.parametrize("name", ONBOARDING_PARTNER_HANDLERS)
+def test_onboarding_partner_writes_require_partner_or_admin(name):
+    handler = _handler(_tree("onboarding.py"), name)
+    assert handler is not None, f"{name} non trovato"
+    assert "require_partner_or_admin_for_partner" in _calls_names(handler), (
+        f"{name} deve chiamare require_partner_or_admin_for_partner"
+    )
+
+
+def _has_depends_on(handler, dep_name: str) -> bool:
+    defaults = [*handler.args.defaults, *handler.args.kw_defaults]
+    return any(
+        isinstance(d, ast.Call)
+        and isinstance(d.func, ast.Name)
+        and d.func.id == "Depends"
+        and d.args
+        and isinstance(d.args[0], ast.Name)
+        and d.args[0].id == dep_name
+        for d in defaults
+        if d is not None
+    )
+
+
+def test_approva_step_is_admin_only():
+    """L'approvazione step (avanza a F2) deve essere admin-only, non partner."""
+    handler = _handler(_tree("onboarding.py"), "approva_step")
+    assert handler is not None, "approva_step non trovato"
+    assert _has_depends_on(handler, "require_ciak_admin")
