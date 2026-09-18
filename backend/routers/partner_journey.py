@@ -7987,6 +7987,27 @@ async def get_stefania_context(
     }
 
 
+_OPERATIVO_IMAGE_EXTS = (
+    "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic", "heif", "tif", "tiff", "avif",
+)
+_OPERATIVO_VIDEO_EXTS = ("mp4", "mov", "avi", "webm", "mkv")
+
+
+def operativo_resource_type(ext: str) -> str:
+    """Cloudinary resource_type per un upload del Percorso.
+    Solo le immagini vere -> "image"; i video -> "video"; tutto il resto
+    (PDF e documenti Office: xlsx, docx, pptx, csv, txt, zip…) -> "raw", così
+    Cloudinary li accetta e sono serviti/scaricabili. Prima gli Office cadevano
+    su "image" -> Cloudinary li rifiutava -> fallback locale /static non servibile
+    da _serve -> 404 all'apertura nei Materiali del partner."""
+    e = (ext or "").lower()
+    if e in _OPERATIVO_VIDEO_EXTS:
+        return "video"
+    if e in _OPERATIVO_IMAGE_EXTS:
+        return "image"
+    return "raw"
+
+
 async def _register_operativo_file_in_files(
     partner_id, filename, ext, resource_type, is_video, is_pdf, url, stored, size,
 ):
@@ -7994,7 +8015,7 @@ async def _register_operativo_file_in_files(
     così compare in 'I miei file' (Workspace) ed è eliminabile. Best-effort:
     non deve mai rompere l'upload se fallisce."""
     try:
-        category = "video" if is_video else ("document" if is_pdf else "image")
+        category = "video" if is_video else ("image" if resource_type == "image" else "document")
         await db.files.insert_one({
             "file_id": uuid.uuid4().hex,
             "original_name": filename or f"upload.{ext}",
@@ -8030,7 +8051,7 @@ async def upload_operativo_file(
     ext = (file.filename or "file").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "bin"
     is_video = ext in ("mp4", "mov", "avi", "webm", "mkv")
     is_pdf = ext == "pdf"
-    resource_type = "video" if is_video else ("raw" if is_pdf else "image")
+    resource_type = operativo_resource_type(ext)
 
     try:
         from cloudinary_service import upload_file_direct, is_cloudinary_configured

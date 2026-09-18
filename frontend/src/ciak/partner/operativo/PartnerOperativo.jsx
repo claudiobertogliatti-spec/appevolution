@@ -6,6 +6,7 @@ import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
 import Benvenuto from "./Benvenuto";
 import GuidedHome from "./GuidedHome";
+import { STEP_COPY } from "./JourneyMap";
 import { useSearchParams } from "react-router-dom";
 import SerenoHome from "../sereno/SerenoHome";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
@@ -170,7 +171,11 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   } else if (allDone) {
     StepComponent = OperativoContinuo;
   } else if (stepToShow) {
-    StepComponent = STEP_COMPONENTS[stepToShow.step_id];
+    // La fase Ottimizza continuativa vive in OperativoContinuo: mappiamo qui lo
+    // step di journey così non cade nel fallback "in preparazione".
+    StepComponent = stepToShow.step_id === "20-ottimizzazione"
+      ? OperativoContinuo
+      : STEP_COMPONENTS[stepToShow.step_id];
   }
 
   return (
@@ -266,8 +271,26 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                   />
                 </Suspense>
               ) : (
-                <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
-                  Step "{stepToShow?.step_id}" non ancora implementato.
+                <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                  <span className="inline-block mb-3 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">
+                    In preparazione
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {STEP_COPY[stepToShow?.step_id]?.title || "Questo passo"}
+                  </h3>
+                  <p className="mt-2 text-slate-600 max-w-md mx-auto">
+                    {STEP_COPY[stepToShow?.step_id]?.desc
+                      ? STEP_COPY[stepToShow.step_id].desc + " "
+                      : ""}
+                    Il team sta completando questa parte del tuo percorso: la troverai
+                    qui a breve. Nel frattempo puoi proseguire con gli altri passi.
+                  </p>
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
+                  >
+                    Parla con il tuo tutor
+                  </button>
                 </div>
               )}
             </div>

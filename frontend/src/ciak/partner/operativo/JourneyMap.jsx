@@ -14,7 +14,7 @@ import {
  * futuri bloccati col lucchetto). In fondo "Prossimo passo": l'unico passo che
  * conta ora, in evidenza, con foto agente e CTA.
  */
-const STEP_COPY = {
+export const STEP_COPY = {
   "01-contratto": { title: "Il tuo contratto", desc: "Hai firmato. Si parte da qui." },
   "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
   "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },

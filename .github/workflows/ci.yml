@@ -195,6 +195,7 @@ jobs:
           tests/test_youtube_titles.py
           tests/test_youtube_uploader_retry.py
           tests/test_partner_materiali_listing.py
+          tests/test_operativo_upload_resource_type.py
 
   frontend:
     name: Frontend (build smoke)
