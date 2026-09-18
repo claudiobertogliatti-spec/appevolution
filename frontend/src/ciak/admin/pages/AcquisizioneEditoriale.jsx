@@ -78,15 +78,31 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
   const [generating, setGenerating] = useState(false);
   const [approving, setApproving] = useState(false);
 
-  useEffect(() => {
-    apiGet("/editorial/brands")
+  const loadBrands = (selectId) => {
+    return apiGet("/editorial/brands")
       .then((r) => {
         const list = r.brands || [];
         setBrands(list);
-        if (list.length) setBrandId(list[0].brand_id);
+        setBrandId((cur) => selectId || cur || (list[0] && list[0].brand_id) || null);
       })
       .catch((e) => { if (e.message === "AUTH_EXPIRED") onAuthExpired?.(); });
-  }, [onAuthExpired]);
+  };
+
+  useEffect(() => {
+    loadBrands();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleNewBrand = async () => {
+    const name = window.prompt("Nome del nuovo brand (es. il partner)");
+    if (!name || !name.trim()) return;
+    try {
+      const r = await apiPost("/editorial/brands", { name: name.trim() });
+      await loadBrands(r.brand?.brand_id);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+    }
+  };
 
   const loadContents = () => {
     const params = { year: YEAR, month };
@@ -195,7 +211,7 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
             ) : (
               <span className="font-semibold text-slate-900 bg-slate-100 rounded-full px-3 py-1">nessuno</span>
             )}
-            <button className="text-slate-500 hover:text-slate-900">+ Nuovo brand</button>
+            <button onClick={handleNewBrand} className="text-slate-500 hover:text-slate-900">+ Nuovo brand</button>
           </span>
         </div>
       </div>

@@ -4992,7 +4992,19 @@ class EditorialContentIn(BaseModel):
 
 @router.get("/editorial/brands")
 async def editorial_brands(owner: Optional[str] = None, admin=Depends(require_ciak_admin)):
-    """Lista dei brand editoriali (Ciak + un brand per ogni partner)."""
+    """Lista dei brand editoriali (Ciak + un brand per ogni partner).
+    Auto-seed del brand 'Ciak' al primo accesso, così il workspace parte pronto."""
+    if not await db.ciak_editorial_brands.count_documents({}):
+        from uuid import uuid4
+        now = datetime.now(timezone.utc).isoformat()
+        await db.ciak_editorial_brands.insert_one({
+            "brand_id": uuid4().hex, "name": "Ciak", "owner": "ciak",
+            "description": "Ciak — il sistema per costruire accademie digitali che vendono formazione.",
+            "language": "it", "platform_default": "instagram",
+            "palette": ["#0F172A", "#FACC15", "#FFFFFF"], "logo_url": None,
+            "tagline": "", "style_notes": "", "knowledge_files": [],
+            "created_at": now, "updated_at": now,
+        })
     query = {"owner": owner} if owner else {}
     brands = await db.ciak_editorial_brands.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
     return {"brands": brands}
