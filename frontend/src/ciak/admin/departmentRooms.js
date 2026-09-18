@@ -30,13 +30,13 @@ export const DEPARTMENT_ROOMS = {
     persone: ["Mariangela"],
     agenti: ["Carlo", "Andrea"],
     agent: {
-      id: "luca",
-      name: "Luca",
-      role: "Coordinatore Acquisizione Evolution",
-      avatar: "/agents/luca.jpg",
-      initials: "L",
-      chat: "luca",
-      prompt: "Luca, dimmi quali messaggi stanno portando lead giusti e dove devo intervenire oggi su Acquisizione Evolution.",
+      id: "carlo",
+      name: "Carlo",
+      role: "Responsabile Acquisizione",
+      initials: "C",
+      accent: "bg-slate-900 text-yellow-400",
+      chat: "pending",
+      prompt: "Carlo, dimmi a che punto siamo su lead, questionari e call prenotate, e dove devo intervenire oggi.",
     },
     metrics: [
       "Nuovi lead 7 giorni",
@@ -55,15 +55,15 @@ export const DEPARTMENT_ROOMS = {
     prompts: [
       {
         label: "Priorita' del giorno",
-        prompt: "Luca, dimmi quali contatti lavorare oggi per Acquisizione Evolution.",
+        prompt: "Carlo, dimmi quali contatti lavorare oggi per Acquisizione.",
       },
       {
         label: "Recuperi caldi",
-        prompt: "Luca, trova chi ha cliccato checkout, completato le 8 Domande o acquistato Blueprint senza call.",
+        prompt: "Carlo, trova chi ha completato le 8 Domande o ha l'analisi pronta ma non ha ancora prenotato la call.",
       },
       {
         label: "Contenuto acquisizione",
-        prompt: "Andrea, prepara un contenuto Claudio che porti professionisti reali verso Ciak Blueprint.",
+        prompt: "Andrea, prepara un contenuto Claudio che porti professionisti reali verso l'analisi gratuita Ciak.",
       },
     ],
   },
