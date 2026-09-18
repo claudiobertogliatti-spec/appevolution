@@ -76,6 +76,7 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
   const [brandId, setBrandId] = useState(null);
   const [data, setData] = useState({ contents: [], stats: { total: 0, month: 0, da_approvare: 0, pubblicati: 0 } });
   const [generating, setGenerating] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     apiGet("/editorial/brands")
@@ -110,6 +111,19 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleApproveMonth = async () => {
+    if (!brandId || approving) return;
+    setApproving(true);
+    try {
+      await apiPost("/editorial/contents/approve-month", { brand_id: brandId, year: YEAR, month });
+      await loadContents();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -250,8 +264,28 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
         )}
       </div>
 
+      {(stats.da_approvare || 0) > 0 && (
+        <div className="bg-slate-900 text-white rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-sm font-semibold">Approva {MONTH_FULL[month]}</div>
+            <div className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+              {stats.da_approvare} contenuti in attesa. Approva in blocco → il motore renderizza
+              le slide e le mette in coda per la pubblicazione su IG/FB/LinkedIn (lun/mer/ven).
+            </div>
+          </div>
+          <button
+            onClick={handleApproveMonth}
+            disabled={approving}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-5 py-2.5 hover:bg-yellow-300 transition disabled:opacity-50"
+          >
+            {approving ? "Approvo…" : `Approva ${stats.da_approvare} contenuti`}
+          </button>
+        </div>
+      )}
+
       <p className="text-xs text-slate-400 text-center">
-        Brand attivo: {brandName}. Generazione AI e rendering slide in arrivo (F2b/F2c).
+        Brand attivo: {brandName}. La generazione AI usa il modello Claude (Andrea); il rendering
+        slide e la pubblicazione LinkedIn richiedono le chiavi in produzione.
       </p>
     </div>
   );

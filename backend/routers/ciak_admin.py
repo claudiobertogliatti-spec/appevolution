@@ -5102,3 +5102,65 @@ async def editorial_generate_month(body: EditorialGenerateIn, admin=Depends(requ
     if docs:
         await db.ciak_editorial_contents.insert_many([dict(d) for d in docs])
     return {"ok": True, "generated": len(docs)}
+
+
+class EditorialApproveIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+
+
+_EDITORIAL_CHAN_MAP = {"ig": "instagram", "fb": "facebook", "linkedin": "linkedin"}
+
+
+@router.post("/editorial/contents/approve-month")
+async def editorial_approve_month(body: EditorialApproveIn, admin=Depends(require_ciak_admin)):
+    """Approva il mese: per ogni contenuto 'da approvare' renderizza le slide (HTML→PNG→
+    Cloudinary) e lo mette in coda di pubblicazione (IG/FB/LinkedIn, lun/mer/ven)."""
+    from services.ciak_slide_render import render_content_slides
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    pending = await db.ciak_editorial_contents.find({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": "da_approvare",
+    }, {"_id": 0}).to_list(500)
+
+    now = datetime.now(timezone.utc).isoformat()
+    approvati, in_coda = 0, 0
+    for content in pending:
+        rendered = await render_content_slides(brand, content)
+        image_urls = rendered.get("image_urls") or []
+        await db.ciak_editorial_contents.update_one(
+            {"content_id": content["content_id"]},
+            {"$set": {
+                "status": "approvato",
+                "cover_url": rendered.get("cover_url"),
+                "slides": rendered.get("slides") or content.get("slides"),
+                "image_urls": image_urls,
+                "updated_at": now,
+            }},
+        )
+        approvati += 1
+        # In coda solo con immagini reali: il publisher rifiuta i post senza immagini.
+        if image_urls:
+            channels = [_EDITORIAL_CHAN_MAP.get(c, c) for c in (content.get("channels") or ["ig"])]
+            await db.ciak_social_queue.insert_one({
+                "post_id": content["content_id"],
+                "source": "editorial",
+                "brand_id": body.brand_id,
+                "image_urls": image_urls,
+                "caption": content.get("caption") or content.get("topic") or "",
+                "channels": channels,
+                "scheduled_date": content.get("scheduled_date"),
+                "status": "pending",
+                "attempts": 0,
+                "created_at": now,
+            })
+            await db.ciak_editorial_contents.update_one(
+                {"content_id": content["content_id"]}, {"$set": {"status": "in_coda"}})
+            in_coda += 1
+
+    return {"ok": True, "approvati": approvati, "in_coda": in_coda}
