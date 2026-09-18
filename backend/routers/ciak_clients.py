@@ -582,6 +582,7 @@ async def _deliver_blueprint(
         session_token=diagnostic.get("session_token"),
         email=client.get("email") or diagnostic.get("user_email"),
         nome=diagnostic.get("user_name") or client.get("name"),
+        access_link=magic_link,
     )
     return {
         "client_id": client.get("id"),

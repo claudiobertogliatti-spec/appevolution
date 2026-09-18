@@ -70,3 +70,31 @@ async def test_processa_acquisto_degrada_a_teaser(monkeypatch):
 
 
 async def _a(v): return v
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_processa_acquisto_include_access_link(monkeypatch):
+    """Se passato, il link d'accesso all'area riservata finisce nel corpo email."""
+    doc = {"session_token": "t4", "email": "c@x.it",
+           "bozza": {"intro": "x", "bullet_per_capitolo": {}}, "bozza_inviata_at": None}
+    delivery.set_db(FakeDB(doc))
+    monkeypatch.setattr(delivery.ciak_analisi, "genera_e_salva", lambda t, force=False: _a({"already_exists": False}))
+    monkeypatch.setattr(delivery.ciak_analisi, "genera_blueprint", lambda t: _a({"meta": {}, "sezioni": {}}))
+    monkeypatch.setattr(delivery.ciak_pdf_blueprint, "genera_blueprint_pdf", lambda p: _a(b"PDF"))
+    monkeypatch.setattr(delivery, "_upload_pdf", lambda data, token: _a("https://cdn/x.pdf"))
+    sent = {}
+    monkeypatch.setattr(delivery, "_send_email_attachment",
+                        lambda **k: sent.update(k) or (True, None))
+    access = "https://ciak.io/cliente/accesso?token=ABC123"
+    res = await delivery.processa_acquisto("t4", "c@x.it", "Cliente", access_link=access)
+    assert res["sent"] is True
+    assert access in sent["body_text"]
+
+
+@pytest.mark.unit
+def test_email_body_senza_access_link_non_mette_riga_vuota():
+    """Retrocompatibile: senza access_link il corpo resta valido (nessun link d'accesso)."""
+    body = delivery._email_body("Maria", "https://cdn/x.pdf", None)
+    assert "cliente/accesso" not in body
+    assert "https://cdn/x.pdf" in body

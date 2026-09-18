@@ -65,6 +65,8 @@ async def test_deliver_crea_account_e_avvia_analisi(monkeypatch):
     assert getattr(func, "__name__", "") == "processa_acquisto"
     assert kwargs["session_token"] == "tok-consegna"
     assert kwargs["email"] == "lead@ciak.it"
+    # il magic-link viene passato all'invio email (link d'accesso nel corpo)
+    assert "token=tk" in (kwargs.get("access_link") or "")
     # magic-link persistito sul cliente e restituito nel riepilogo
     cc.db.ciak_clients.update_one.assert_awaited()
     assert summary["client_id"] == "c1"

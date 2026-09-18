@@ -31,10 +31,36 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+// Nessuna chiamata admin deve poter restare appesa all'infinito: senza un
+// tetto, uno stallo del proxy Vercel→Cloud Run lasciava la pagina in
+// caricamento per sempre (caso consegna Blueprint). fetchWithTimeout abortisce
+// dopo `timeoutMs` e traduce l'abort in un errore leggibile, così il chiamante
+// spegne lo spinner e mostra un messaggio invece di girare a vuoto.
+const DEFAULT_TIMEOUT_MS = 45000;
+
+export async function fetchWithTimeout(url, options = {}) {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, signal: _ignored, ...rest } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...rest, signal: controller.signal });
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      throw new Error(
+        "Ci ha messo troppo tempo: la richiesta è stata interrotta. " +
+          "L'operazione potrebbe essere comunque andata a buon fine — ricarica la pagina per controllare."
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Login via /api/auth/login. Ritorna { ok, error?, user? }. */
 export async function login(email, password) {
   try {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetchWithTimeout("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.trim(), password }),
@@ -70,7 +96,7 @@ export async function apiGet(path, params = {}) {
     Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== "")
   ).toString();
   const url = `/api/admin/ciak${path}${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 401 || res.status === 403) {
@@ -86,7 +112,7 @@ export async function apiGet(path, params = {}) {
 /** PUT JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
 export async function apiPut(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -108,7 +134,7 @@ export async function apiPut(path, body = {}) {
 /** POST JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
 export async function apiPost(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -133,7 +159,7 @@ export async function apiPost(path, body = {}) {
  */
 export async function apiPatch(path, body = {}) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -155,10 +181,11 @@ export async function apiPatch(path, body = {}) {
 /** POST multipart autenticato, senza impostare Content-Type (lo aggiunge il browser col boundary). */
 export async function apiMultipart(path, formData) {
   const token = getToken();
-  const res = await fetch(`/api/admin/ciak${path}`, {
+  const res = await fetchWithTimeout(`/api/admin/ciak${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
+    timeoutMs: 120000,
   });
   if (res.status === 401 || res.status === 403) {
     clearSession();
@@ -194,7 +221,7 @@ export async function downloadAdminFile(path, fallbackName) {
  */
 export async function adminFetch(path, options = {}) {
   const token = getToken();
-  const res = await fetch(path, {
+  const res = await fetchWithTimeout(path, {
     ...options,
     headers: {
       ...(options.headers || {}),
