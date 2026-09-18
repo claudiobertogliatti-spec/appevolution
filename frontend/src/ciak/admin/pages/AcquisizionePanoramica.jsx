@@ -17,11 +17,10 @@ import { apiGet } from "../api";
 
 const TABS = [
   { label: "Panoramica", to: null },
-  { label: "New Lead", to: "/admin/lead-manager" },
-  { label: "Lista Fredda", to: "/admin/lista-fredda" },
+  { label: "Editoriale EVO", to: "/admin/acq-calendario" },
+  { label: "ADS", to: "/admin/acq-campagne-ads" },
+  { label: "Prospect", to: "/admin/pipeline-prospect" },
   { label: "Pipeline", to: "/admin/pipeline" },
-  { label: "Campagne Ads", to: "/admin/acq-campagne-ads" },
-  { label: "Calendario", to: "/admin/acq-calendario" },
 ];
 
 function pct(num, den) {
