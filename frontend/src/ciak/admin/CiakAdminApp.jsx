@@ -61,6 +61,7 @@ import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
+import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
@@ -659,7 +660,11 @@ export default function CiakAdminApp() {
           <Route
             key={m.id}
             path={`reparto/${m.id}`}
-            element={<RepartoLanding macro={m} onAuthExpired={handleLogout} />}
+            element={
+              m.id === "acquisizione"
+                ? <AcquisizionePanoramica onAuthExpired={handleLogout} />
+                : <RepartoLanding macro={m} onAuthExpired={handleLogout} />
+            }
           />
         ))}
 

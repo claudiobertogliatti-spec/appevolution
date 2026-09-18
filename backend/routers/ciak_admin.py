@@ -845,6 +845,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     leads_today = await db.ciak_leads.count_documents({"created_at": {"$gte": today_start}})
     diagnostics_today = await db.diagnostic_sessions.count_documents({"created_at": {"$gte": today_start}})
+    leads_month = await db.ciak_leads.count_documents({"created_at": {"$gte": month_start}})
 
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
@@ -866,6 +867,8 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     blueprint_month = 0
     call_booked_month = 0
     call_done_month = 0
+    questionnaire_month = 0
+    report_ready_month = 0
     clicked_no_purchase = []
     completed_no_purchase = []
     purchased_no_call = []
@@ -883,6 +886,13 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         if call_done_ts and call_done_ts >= month_start:
             call_done_month += 1
 
+        completed_ts = _state_ts(d, "ciak_completed")
+        if completed_ts and completed_ts >= month_start:
+            questionnaire_month += 1
+        report_ready_ts = _state_ts(d, "report_generated")
+        if report_ready_ts and report_ready_ts >= month_start:
+            report_ready_month += 1
+
         if state == "clicked_67":
             clicked_no_purchase.append(
                 _lead_item(
@@ -898,7 +908,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
                     em,
                     _name(em, d),
                     _state_ts(d, "report_generated") or d.get("created_at"),
-                    "Ha completato le 8 domande: va riportato al Blueprint da 27 euro.",
+                    "Ha l'analisi gratuita pronta ma non ha ancora prenotato la call di consegna.",
                 )
             )
         elif state == "purchased_67":
@@ -954,20 +964,20 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     if blueprint_month < max(target_partnerships * 3, 8):
         bottlenecks.append({
             "level": "warning",
-            "title": "Servono piu' Blueprint acquistati",
-            "message": "Per chiudere 4 partnership al mese, la pipeline deve generare abbastanza call qualificate. Spingi Stato 3-4 verso il Blueprint.",
+            "title": "Servono piu' analisi completate",
+            "message": "Per chiudere 4 partnership al mese, la pipeline deve produrre abbastanza analisi gratuite qualificate. Spingi Stato 3-4 a completare le 8 Domande.",
         })
     if call_booked_month < target_partnerships * 2:
         bottlenecks.append({
             "level": "warning",
             "title": "Call sotto ritmo",
-            "message": "Il collo di bottiglia non e' solo traffico: chi acquista il Blueprint deve arrivare velocemente alla call con Claudio.",
+            "message": "Il collo di bottiglia non e' solo traffico: chi ha l'analisi pronta deve arrivare velocemente a prenotare la call di consegna.",
         })
-    if clicked_no_purchase:
+    if completed_no_purchase:
         bottlenecks.append({
             "level": "hot",
-            "title": "Checkout caldo non recuperato",
-            "message": "Ci sono lead che hanno cliccato il checkout ma non hanno pagato. Sono i recuperi piu' vicini al fatturato.",
+            "title": "Analisi pronte senza call",
+            "message": "Ci sono lead con l'analisi gratuita pronta ma senza call prenotata. Sono i recuperi piu' vicini alla vendita.",
         })
 
     luca_routine = [
@@ -979,25 +989,25 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "priority": "alta",
         },
         {
-            "id": "hot_recoveries",
-            "title": "Recupera checkout cliccati e Blueprint non pagati",
-            "owner": "Luca + Marco",
-            "metric": f"{len(clicked_no_purchase)} recuperi caldi",
-            "priority": "critica" if clicked_no_purchase else "normale",
-        },
-        {
-            "id": "diagnostic_recoveries",
-            "title": "Porta chi ha completato le 8 Domande verso il Blueprint",
-            "owner": "Luca + Andrea",
-            "metric": f"{len(completed_no_purchase)} diagnosi da convertire",
-            "priority": "alta" if completed_no_purchase else "normale",
-        },
-        {
             "id": "call_recoveries",
-            "title": "Fai prenotare la call a chi ha acquistato il Blueprint",
-            "owner": "Luca + Gaia",
-            "metric": f"{len(purchased_no_call)} Blueprint senza call",
-            "priority": "alta" if purchased_no_call else "normale",
+            "title": "Fai prenotare la call di consegna a chi ha l'analisi pronta",
+            "owner": "Carlo + Gaia",
+            "metric": f"{len(completed_no_purchase)} analisi senza call",
+            "priority": "critica" if completed_no_purchase else "normale",
+        },
+        {
+            "id": "content_nurture",
+            "title": "Contenuti Claudio con CTA verso l'analisi gratuita",
+            "owner": "Andrea",
+            "metric": "conversazioni e nuove 8 Domande",
+            "priority": "alta",
+        },
+        {
+            "id": "source_check",
+            "title": "Controlla le fonti: taglia chi porta questionari ma zero call",
+            "owner": "Carlo",
+            "metric": "qualita' delle fonti",
+            "priority": "normale",
         },
         {
             "id": "evening_report",
@@ -1012,7 +1022,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         "allowed": [
             "rete calda, WhatsApp, referral ed ex clienti",
             "LinkedIn organico con DM mirati",
-            "contenuti Claudio con CTA verso Ciak Blueprint",
+            "contenuti Claudio con CTA verso l'analisi gratuita Ciak",
             "custom audience Meta dalla lista fredda",
         ],
         "blocked": [
@@ -1058,6 +1068,12 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "call_done": call_done_month,
             "proposals_open": proposal_month,
             "contracts_paid": paid_contract_month,
+        },
+        "funnel_stages": {
+            "leads": leads_month,
+            "questionnaire_completed": questionnaire_month,
+            "report_ready": report_ready_month,
+            "call_booked": call_booked_month,
         },
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
