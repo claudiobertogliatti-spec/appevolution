@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  BarChart3,
   ArrowRight,
   BadgeCheck,
   Bot,
@@ -21,6 +22,7 @@ import {
   Video,
 } from "lucide-react";
 import { KpiTile as MetricCard } from "../components/ui/KpiTile";
+import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const APPS = [
   {
@@ -100,6 +102,36 @@ function SectionTitle({ icon: Icon, eyebrow, title, children }) {
 export function AcqCampaignsPage() {
   return (
     <div className="p-8 space-y-6">
+      <AcquisizioneSubNav active="ADS" />
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-yellow-600" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Analisi KPI</p>
+            <h2 className="text-xl font-semibold text-slate-900">Performance ADS del mese</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          {[
+            { k: "Spesa mese", v: "—", h: "da Meta Ads" },
+            { k: "Costo per lead", v: "—", h: "spesa / lead" },
+            { k: "Lead da ADS", v: "—", h: "nel mese" },
+            { k: "Call da ADS", v: "—", h: "prenotate" },
+          ].map((m) => (
+            <div key={m.k} className="bg-slate-50 rounded-xl p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
+              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          Collega Meta Ads per i dati live (spesa, costo per lead, ad → questionario → call). Integrazione non ancora attiva.
+        </div>
+      </div>
+
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>
