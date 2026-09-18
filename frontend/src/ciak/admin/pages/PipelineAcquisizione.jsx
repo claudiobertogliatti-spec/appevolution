@@ -17,6 +17,7 @@ import { BarChart3, ListChecks, Target } from "lucide-react";
 import { AcquisizioneCommandCenter } from "./AcquisizioneCommandCenter";
 import { MasterclassAnalytics } from "./MasterclassAnalytics";
 import { PipelineList } from "./PipelineList";
+import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const TABS = [
   { id: "oggi", label: "Da lavorare oggi", icon: Target },
@@ -29,8 +30,9 @@ export function PipelineAcquisizione({ onAuthExpired }) {
 
   return (
     <div>
+      <div className="px-8 pt-8"><AcquisizioneSubNav active="Pipeline" /></div>
       {/* Switch viste */}
-      <div className="px-8 pt-8 pb-1">
+      <div className="px-8 pt-4 pb-1">
         <div className="inline-flex gap-1 p-1 rounded-xl bg-gray-100">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
