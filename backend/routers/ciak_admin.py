@@ -4955,3 +4955,104 @@ async def regenerate_missing_reports(
         result["found"], result["regenerated"], result["still_failing"], dry_run,
     )
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  EDITORIALE — workspace caroselli AI (multi-brand)
+#  Collezioni: ciak_editorial_brands, ciak_editorial_contents
+#  Multi-brand: brand "ciak" (nostra acquisizione) + un brand per ogni
+#  partner (il motore è anche un servizio extra vendibile ai partner).
+# ═══════════════════════════════════════════════════════════════════
+
+class EditorialBrandIn(BaseModel):
+    name: str
+    owner: str = "ciak"            # "ciak" oppure partner_id
+    description: str = ""
+    language: str = "it"
+    platform_default: str = "instagram"
+    palette: list[str] = Field(default_factory=list)
+    logo_url: Optional[str] = None
+    tagline: str = ""
+    style_notes: str = ""
+
+
+class EditorialContentIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int                      # 1-12, mese di calendario
+    objective: str = ""
+    format: str = "carosello"       # carosello|post|reel|storie
+    channels: list[str] = Field(default_factory=lambda: ["ig"])
+    topic: str = ""
+    caption: str = ""
+    cta: str = ""
+    scheduled_date: Optional[str] = None
+    status: str = "bozza"           # bozza|da_approvare|approvato|in_coda|pubblicato|fallito
+
+
+@router.get("/editorial/brands")
+async def editorial_brands(owner: Optional[str] = None, admin=Depends(require_ciak_admin)):
+    """Lista dei brand editoriali (Ciak + un brand per ogni partner)."""
+    query = {"owner": owner} if owner else {}
+    brands = await db.ciak_editorial_brands.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
+    return {"brands": brands}
+
+
+@router.post("/editorial/brands")
+async def editorial_brand_create(body: EditorialBrandIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    brand = {
+        "brand_id": uuid4().hex,
+        **body.dict(),
+        "knowledge_files": [],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_brands.insert_one(dict(brand))
+    return {"ok": True, "brand": brand}
+
+
+@router.get("/editorial/contents")
+async def editorial_contents(
+    brand_id: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    admin=Depends(require_ciak_admin),
+):
+    """Contenuti editoriali filtrati per brand e mese. Il client li raggruppa per obiettivo."""
+    query: dict = {}
+    if brand_id:
+        query["brand_id"] = brand_id
+    if year:
+        query["year"] = year
+    if month:
+        query["month"] = month
+    contents = await db.ciak_editorial_contents.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(500)
+    brand_scope = {"brand_id": brand_id} if brand_id else {}
+    stats = {
+        "total": await db.ciak_editorial_contents.count_documents(brand_scope),
+        "month": len(contents),
+        "da_approvare": sum(1 for c in contents if c.get("status") == "da_approvare"),
+        "pubblicati": sum(1 for c in contents if c.get("status") == "pubblicato"),
+    }
+    return {"contents": contents, "stats": stats}
+
+
+@router.post("/editorial/contents")
+async def editorial_content_create(body: EditorialContentIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    content = {
+        "content_id": uuid4().hex,
+        **body.dict(),
+        "slides": [],
+        "cover_url": None,
+        "permalink": None,
+        "published_at": None,
+        "created_by": "human",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_contents.insert_one(dict(content))
+    return {"ok": True, "content": content}
