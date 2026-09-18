@@ -14,48 +14,11 @@ import {
   ArrowRight, CalendarClock, Flame, Gauge, PhoneCall, Target, Users, AlertTriangle,
 } from "lucide-react";
 import { apiGet } from "../api";
-
-const TABS = [
-  { label: "Home", to: null },
-  { label: "Editoriale", to: "/admin/acq-calendario" },
-  { label: "ADS", to: "/admin/acq-campagne-ads" },
-  { label: "Prospect", to: "/admin/pipeline-prospect" },
-  { label: "Pipeline", to: "/admin/pipeline" },
-];
+import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 function pct(num, den) {
   if (!den) return 0;
   return Math.round((num / den) * 100);
-}
-
-function SubNav() {
-  return (
-    <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl p-2 overflow-x-auto">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600 px-2.5 whitespace-nowrap">
-        Acquisizione
-      </span>
-      <span className="w-px h-5 bg-slate-200 flex-shrink-0" />
-      {TABS.map((t) =>
-        t.to ? (
-          <Link
-            key={t.label}
-            to={t.to}
-            className="text-sm font-medium text-slate-600 rounded-lg px-3.5 py-2 whitespace-nowrap hover:bg-slate-100 transition"
-          >
-            {t.label}
-          </Link>
-        ) : (
-          <span
-            key={t.label}
-            aria-current="page"
-            className="text-sm font-semibold text-white bg-slate-900 rounded-lg px-3.5 py-2 whitespace-nowrap"
-          >
-            {t.label}
-          </span>
-        )
-      )}
-    </div>
-  );
 }
 
 function FunnelStrip({ stages }) {
@@ -114,8 +77,8 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
     [data]
   );
 
-  if (error) return <div className="p-8"><SubNav /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><SubNav /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (error) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
+  if (!data) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -129,7 +92,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
 
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <SubNav />
+      <AcquisizioneSubNav active="Home" />
 
       {/* HERO + north-star */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
