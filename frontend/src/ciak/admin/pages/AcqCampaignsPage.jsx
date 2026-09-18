@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { apiGet } from "../api";
 import {
   AlertTriangle,
   BarChart3,
@@ -100,6 +102,14 @@ function SectionTitle({ icon: Icon, eyebrow, title, children }) {
 }
 
 export function AcqCampaignsPage() {
+  const [ads, setAds] = useState(null);
+  useEffect(() => {
+    apiGet("/ads/overview", { days: 30 })
+      .then(setAds)
+      .catch(() => setAds({ configured: false }));
+  }, []);
+  const on = !!(ads && ads.configured && !ads.error);
+
   return (
     <div className="p-8 space-y-6">
       <AcquisizioneSubNav active="ADS" />
@@ -114,10 +124,10 @@ export function AcqCampaignsPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
           {[
-            { k: "Spesa mese", v: "—", h: "da Meta Ads" },
-            { k: "Costo per lead", v: "—", h: "spesa / lead" },
-            { k: "Lead da ADS", v: "—", h: "nel mese" },
-            { k: "Call da ADS", v: "—", h: "prenotate" },
+            { k: "Spesa (30gg)", v: on ? `€${ads.spend}` : "—", h: "Meta Ads" },
+            { k: "Costo per lead", v: on ? (ads.cost_per_lead != null ? `€${ads.cost_per_lead}` : "n/d") : "—", h: "spesa / lead" },
+            { k: "Lead da ADS", v: on ? ads.leads : "—", h: "ultimi 30gg" },
+            { k: "Clic", v: on ? ads.clicks.toLocaleString("it-IT") : "—", h: on ? `CTR ${ads.ctr}%` : "CTR —" },
           ].map((m) => (
             <div key={m.k} className="bg-slate-50 rounded-xl p-4">
               <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
@@ -126,10 +136,16 @@ export function AcqCampaignsPage() {
             </div>
           ))}
         </div>
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          Collega Meta Ads per i dati live (spesa, costo per lead, ad → questionario → call). Integrazione non ancora attiva.
-        </div>
+        {on ? (
+          <div className="mt-4 text-xs text-slate-500">
+            Account {ads.account} · {ads.impressions.toLocaleString("it-IT")} impression · {ads.landing_page_views.toLocaleString("it-IT")} landing view · {(ads.campaigns || []).length} campagne
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {ads?.error ? `Errore Meta Ads: ${ads.error}` : (ads?.note || "Collega Meta Ads per i dati live (spesa, costo per lead, lead).")}
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
