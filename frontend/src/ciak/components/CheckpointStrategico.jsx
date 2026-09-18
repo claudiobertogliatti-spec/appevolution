@@ -451,8 +451,7 @@ export function CheckpointStrategico({ source = "masterclass", gateMode = false,
                 Scopri Ciak Blueprint
               </Link>
               <p className="text-xs text-slate-400 mt-6 leading-relaxed">
-                Sessione Strategica + Roadmap Operativa Personalizzata — €27 IVA
-                inclusa.
+                Sessione Strategica + Roadmap Operativa Personalizzata — gratuita.
               </p>
             </div>
           </div>
