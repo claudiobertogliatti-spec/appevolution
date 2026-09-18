@@ -5025,6 +5025,30 @@ async def editorial_brand_create(body: EditorialBrandIn, admin=Depends(require_c
     return {"ok": True, "brand": brand}
 
 
+class EditorialBrandPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    language: Optional[str] = None
+    platform_default: Optional[str] = None
+    palette: Optional[list[str]] = None
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    style_notes: Optional[str] = None
+
+
+@router.put("/editorial/brands/{brand_id}")
+async def editorial_brand_update(brand_id: str, body: EditorialBrandPatch, admin=Depends(require_ciak_admin)):
+    """Aggiorna i campi di un brand (editor Brand & knowledge)."""
+    updates = {k: v for k, v in body.dict().items() if v is not None}
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        res = await db.ciak_editorial_brands.update_one({"brand_id": brand_id}, {"$set": updates})
+        if res.matched_count == 0:
+            raise HTTPException(404, "Brand non trovato")
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": brand_id}, {"_id": 0})
+    return {"ok": True, "brand": brand}
+
+
 @router.get("/editorial/contents")
 async def editorial_contents(
     brand_id: Optional[str] = None,
