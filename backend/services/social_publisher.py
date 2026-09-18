@@ -49,6 +49,14 @@ def _cfg() -> tuple[str | None, str | None]:
     return (ig or None), (token or None)
 
 
+def _linkedin_cfg() -> tuple[str | None, str | None]:
+    """(access_token, author_urn) LinkedIn. None se non configurato (fail-closed)."""
+    return (
+        os.environ.get("LINKEDIN_ACCESS_TOKEN") or None,
+        os.environ.get("LINKEDIN_AUTHOR_URN") or None,  # es. urn:li:organization:12345
+    )
+
+
 def is_meta_publish_configured() -> bool:
     ig, token = _cfg()
     return bool(ig and token)
@@ -158,6 +166,60 @@ async def _pubblica_fb(client, page_id, token, image_urls: list[str], caption: s
     return {"post_id": post_id, "permalink": info.get("permalink_url")}
 
 
+# ─── LinkedIn ───────────────────────────────────────────────────────────────────
+async def _pubblica_linkedin(client, urls: list[str], caption: str) -> dict:
+    """Pubblica un post immagine (cover) su LinkedIn via UGC Posts API. Fail-closed:
+    senza LINKEDIN_ACCESS_TOKEN/LINKEDIN_AUTHOR_URN solleva (il canale risulta failed,
+    IG/FB escono comunque). NB: flusso documentato LinkedIn, da collaudare col token reale."""
+    token, author = _linkedin_cfg()
+    if not (token and author):
+        raise ValueError("LinkedIn non configurato (LINKEDIN_ACCESS_TOKEN/LINKEDIN_AUTHOR_URN)")
+    if not urls:
+        raise ValueError("post senza immagini")
+    headers = {"Authorization": f"Bearer {token}", "X-Restli-Protocol-Version": "2.0.0"}
+
+    reg = await client.post(
+        "https://api.linkedin.com/v2/assets?action=registerUpload",
+        headers={**headers, "Content-Type": "application/json"},
+        json={"registerUploadRequest": {
+            "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+            "owner": author,
+            "serviceRelationships": [
+                {"relationshipType": "OWNER", "identifier": "urn:li:userGeneratedContent"}
+            ],
+        }},
+    )
+    reg.raise_for_status()
+    val = reg.json()["value"]
+    upload_url = val["uploadMechanism"][
+        "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+    ]["uploadUrl"]
+    asset = val["asset"]
+
+    img = await client.get(urls[0], timeout=30)
+    img.raise_for_status()
+    up = await client.post(upload_url, headers={"Authorization": f"Bearer {token}"}, content=img.content)
+    up.raise_for_status()
+
+    ugc = await client.post(
+        "https://api.linkedin.com/v2/ugcPosts",
+        headers={**headers, "Content-Type": "application/json"},
+        json={
+            "author": author,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {"com.linkedin.ugc.ShareContent": {
+                "shareCommentary": {"text": caption},
+                "shareMediaCategory": "IMAGE",
+                "media": [{"status": "READY", "media": asset}],
+            }},
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+        },
+    )
+    ugc.raise_for_status()
+    pid = ugc.headers.get("x-restli-id") or (ugc.json() or {}).get("id")
+    return {"post_id": pid, "permalink": f"https://www.linkedin.com/feed/update/{pid}" if pid else None}
+
+
 # ─── Orchestrazione ─────────────────────────────────────────────────────────────
 async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, list[str]]:
     """
@@ -178,6 +240,8 @@ async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, 
                 results["instagram"] = await _pubblica_ig(client, ig, token, urls, caption)
             elif canale == "facebook":
                 results["facebook"] = await _pubblica_fb(client, page_id, token, urls, caption)
+            elif canale == "linkedin":
+                results["linkedin"] = await _pubblica_linkedin(client, urls, caption)
             else:
                 errori.append(f"{canale}: canale sconosciuto")
         except Exception as e:

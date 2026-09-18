@@ -1,8 +1,10 @@
 /**
- * Ciak.io /report/[token] — visualizzazione report Matteo
+ * Ciak.io /report/[token] — visualizzazione report Carlo (le 8 Domande).
  * Markdown rendering minimo (no librerie esterne per non gonfiare bundle).
  * Emette evento "report_viewed" al primo rendering (per analytics).
- * CTA differenziata per stato 1-4 (vedi memory/funnel_67_analisi.md).
+ *
+ * L'analisi è GRATUITA: al termine del questionario il report è pronto e la CTA
+ * porta a PRENOTARE la call di consegna gratuita — nessun pagamento, nessun €27.
  */
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
@@ -10,10 +12,10 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
 const STATE_CONFIG = {
-  1: { label: "Non ancora pronto",     color: "bg-slate-200 text-slate-700",   cta: "secondary" },
-  2: { label: "Da validare",            color: "bg-blue-100 text-blue-800",     cta: "primary"   },
-  3: { label: "Buon potenziale",        color: "bg-emerald-100 text-emerald-800", cta: "primary" },
-  4: { label: "Alto potenziale",        color: "bg-yellow-400 text-slate-900",  cta: "priority"  },
+  1: { label: "Non ancora pronto",     color: "bg-slate-200 text-slate-700" },
+  2: { label: "Da validare",            color: "bg-blue-100 text-blue-800" },
+  3: { label: "Buon potenziale",        color: "bg-emerald-100 text-emerald-800" },
+  4: { label: "Alto potenziale",        color: "bg-yellow-400 text-slate-900" },
 };
 
 export function CiakReport() {
@@ -21,6 +23,7 @@ export function CiakReport() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [calcomUrl, setCalcomUrl] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -36,6 +39,14 @@ export function CiakReport() {
       }
     })();
   }, [token]);
+
+  // Config pubblica: link Cal.com per la call di consegna gratuita.
+  useEffect(() => {
+    fetch("/api/admin/ciak/public-config")
+      .then((r) => r.json())
+      .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
+      .catch(() => {}); // silent: resta il fallback testuale
+  }, []);
 
   if (loading) {
     return (
@@ -63,7 +74,12 @@ export function CiakReport() {
   }
 
   const stateCfg = STATE_CONFIG[report.stato] || STATE_CONFIG[2];
-  const blueprintUrl = `/blueprint?utm_source=report&utm_campaign=stato_${report.stato}&session_token=${encodeURIComponent(token)}`;
+  const ctaHeadline =
+    report.stato >= 3
+      ? "Hai potenziale. Ora serve la direzione giusta."
+      : report.stato === 2
+        ? "Hai il tuo stato attuale. Ora serve una direzione."
+        : "Prima di tutto: non correre.";
 
   return (
     <>
@@ -80,7 +96,7 @@ export function CiakReport() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-semibold leading-tight">
-            La tua diagnostica strategica.
+            La tua analisi strategica, gratuita.
           </h1>
         </div>
       </section>
@@ -92,55 +108,34 @@ export function CiakReport() {
             {report.report_markdown || "Report non ancora generato."}
           </article>
 
-          {/* CTA differenziata per stato */}
+          {/* CTA gratuita: prenotazione call di consegna (nessun pagamento) */}
           <div className="mt-12 p-6 md:p-8 rounded-2xl bg-slate-900 text-white">
-            {stateCfg.cta === "secondary" && (
-              <>
-                <h3 className="text-xl font-semibold mb-2">Prima di tutto: non correre.</h3>
-                <p className="text-slate-300 text-sm mb-5">
-                  Il tuo stato attuale dice una cosa importante: prima di pensare a strumenti,
-                  campagne, agenzie o investimenti più grandi, serve capire esattamente dove andare.
-                </p>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  Il passaggio corretto ora è il{" "}
-                  <a href={blueprintUrl} className="text-yellow-400 underline">Ciak Blueprint da €27</a>:
-                  una sessione strategica con Claudio, analisi del tuo mercato e roadmap operativa
-                  per partire con lucidità.
-                </p>
-              </>
+            <h3 className="text-xl font-semibold mb-2">{ctaHeadline}</h3>
+            <p className="text-slate-300 text-sm mb-5">
+              La tua analisi è pronta. Nella call di consegna con Claudio la ripercorriamo
+              insieme, mettiamo a fuoco il punto di partenza e costruiamo la tua roadmap operativa.
+            </p>
+            {calcomUrl ? (
+              <a
+                href={calcomUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
+              >
+                Prenota la call di consegna →
+              </a>
+            ) : (
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Il calendario non è disponibile in questo momento. Scrivi a{" "}
+                <a href="mailto:assistenza@evolution-pro.it" className="underline">
+                  assistenza@evolution-pro.it
+                </a>{" "}
+                per fissare la call.
+              </p>
             )}
-            {stateCfg.cta === "primary" && (
-              <>
-                <h3 className="text-xl font-semibold mb-2">Hai il tuo stato attuale. Ora serve una direzione.</h3>
-                <p className="text-slate-300 text-sm mb-5">
-                  Prima di fare qualsiasi investimento più grande, fermati un attimo. Il Blueprint
-                  serve proprio a questo: capire cosa fare nel tuo caso specifico, cosa evitare e
-                  quali priorità seguire nei prossimi mesi.
-                </p>
-                <a href={blueprintUrl} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
-                  Richiedi il tuo Ciak Blueprint →
-                </a>
-                <p className="text-xs text-slate-400 mt-4 leading-relaxed">
-                  €27 IVA inclusa. Prima capisci dove andare, poi decidi se e come accelerare.
-                </p>
-              </>
-            )}
-            {stateCfg.cta === "priority" && (
-              <>
-                <h3 className="text-xl font-semibold mb-2">Hai potenziale. Proprio per questo serve precisione.</h3>
-                <p className="text-slate-300 text-sm mb-5">
-                  Il tuo profilo mostra segnali interessanti, ma accelerare senza una roadmap rischia
-                  di disperdere energia e budget. Il Blueprint ti aiuta a capire dove concentrare
-                  attenzione, investimenti e prossime azioni.
-                </p>
-                <a href={blueprintUrl} className="inline-block px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition">
-                  Richiedi il Blueprint prioritario €27 →
-                </a>
-                <p className="text-xs text-slate-400 mt-4 leading-relaxed">
-                  Sessione strategica di 60 minuti, analisi del mercato e roadmap operativa personalizzata.
-                </p>
-              </>
-            )}
+            <p className="text-xs text-slate-400 mt-4 leading-relaxed">
+              L'analisi e la call di consegna sono gratuite.
+            </p>
           </div>
         </div>
       </section>

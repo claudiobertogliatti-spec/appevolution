@@ -845,6 +845,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     leads_today = await db.ciak_leads.count_documents({"created_at": {"$gte": today_start}})
     diagnostics_today = await db.diagnostic_sessions.count_documents({"created_at": {"$gte": today_start}})
+    leads_month = await db.ciak_leads.count_documents({"created_at": {"$gte": month_start}})
 
     diagnostics_by_email: dict[str, dict] = {}
     async for d in db.diagnostic_sessions.find({}).sort("created_at", -1):
@@ -866,6 +867,8 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     blueprint_month = 0
     call_booked_month = 0
     call_done_month = 0
+    questionnaire_month = 0
+    report_ready_month = 0
     clicked_no_purchase = []
     completed_no_purchase = []
     purchased_no_call = []
@@ -883,6 +886,13 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         if call_done_ts and call_done_ts >= month_start:
             call_done_month += 1
 
+        completed_ts = _state_ts(d, "ciak_completed")
+        if completed_ts and completed_ts >= month_start:
+            questionnaire_month += 1
+        report_ready_ts = _state_ts(d, "report_generated")
+        if report_ready_ts and report_ready_ts >= month_start:
+            report_ready_month += 1
+
         if state == "clicked_67":
             clicked_no_purchase.append(
                 _lead_item(
@@ -898,7 +908,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
                     em,
                     _name(em, d),
                     _state_ts(d, "report_generated") or d.get("created_at"),
-                    "Ha completato le 8 domande: va riportato al Blueprint da 27 euro.",
+                    "Ha l'analisi gratuita pronta ma non ha ancora prenotato la call di consegna.",
                 )
             )
         elif state == "purchased_67":
@@ -954,20 +964,20 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     if blueprint_month < max(target_partnerships * 3, 8):
         bottlenecks.append({
             "level": "warning",
-            "title": "Servono piu' Blueprint acquistati",
-            "message": "Per chiudere 4 partnership al mese, la pipeline deve generare abbastanza call qualificate. Spingi Stato 3-4 verso il Blueprint.",
+            "title": "Servono piu' analisi completate",
+            "message": "Per chiudere 4 partnership al mese, la pipeline deve produrre abbastanza analisi gratuite qualificate. Spingi Stato 3-4 a completare le 8 Domande.",
         })
     if call_booked_month < target_partnerships * 2:
         bottlenecks.append({
             "level": "warning",
             "title": "Call sotto ritmo",
-            "message": "Il collo di bottiglia non e' solo traffico: chi acquista il Blueprint deve arrivare velocemente alla call con Claudio.",
+            "message": "Il collo di bottiglia non e' solo traffico: chi ha l'analisi pronta deve arrivare velocemente a prenotare la call di consegna.",
         })
-    if clicked_no_purchase:
+    if completed_no_purchase:
         bottlenecks.append({
             "level": "hot",
-            "title": "Checkout caldo non recuperato",
-            "message": "Ci sono lead che hanno cliccato il checkout ma non hanno pagato. Sono i recuperi piu' vicini al fatturato.",
+            "title": "Analisi pronte senza call",
+            "message": "Ci sono lead con l'analisi gratuita pronta ma senza call prenotata. Sono i recuperi piu' vicini alla vendita.",
         })
 
     luca_routine = [
@@ -979,25 +989,25 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "priority": "alta",
         },
         {
-            "id": "hot_recoveries",
-            "title": "Recupera checkout cliccati e Blueprint non pagati",
-            "owner": "Luca + Marco",
-            "metric": f"{len(clicked_no_purchase)} recuperi caldi",
-            "priority": "critica" if clicked_no_purchase else "normale",
-        },
-        {
-            "id": "diagnostic_recoveries",
-            "title": "Porta chi ha completato le 8 Domande verso il Blueprint",
-            "owner": "Luca + Andrea",
-            "metric": f"{len(completed_no_purchase)} diagnosi da convertire",
-            "priority": "alta" if completed_no_purchase else "normale",
-        },
-        {
             "id": "call_recoveries",
-            "title": "Fai prenotare la call a chi ha acquistato il Blueprint",
-            "owner": "Luca + Gaia",
-            "metric": f"{len(purchased_no_call)} Blueprint senza call",
-            "priority": "alta" if purchased_no_call else "normale",
+            "title": "Fai prenotare la call di consegna a chi ha l'analisi pronta",
+            "owner": "Carlo + Gaia",
+            "metric": f"{len(completed_no_purchase)} analisi senza call",
+            "priority": "critica" if completed_no_purchase else "normale",
+        },
+        {
+            "id": "content_nurture",
+            "title": "Contenuti Claudio con CTA verso l'analisi gratuita",
+            "owner": "Andrea",
+            "metric": "conversazioni e nuove 8 Domande",
+            "priority": "alta",
+        },
+        {
+            "id": "source_check",
+            "title": "Controlla le fonti: taglia chi porta questionari ma zero call",
+            "owner": "Carlo",
+            "metric": "qualita' delle fonti",
+            "priority": "normale",
         },
         {
             "id": "evening_report",
@@ -1012,7 +1022,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         "allowed": [
             "rete calda, WhatsApp, referral ed ex clienti",
             "LinkedIn organico con DM mirati",
-            "contenuti Claudio con CTA verso Ciak Blueprint",
+            "contenuti Claudio con CTA verso l'analisi gratuita Ciak",
             "custom audience Meta dalla lista fredda",
         ],
         "blocked": [
@@ -1058,6 +1068,12 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "call_done": call_done_month,
             "proposals_open": proposal_month,
             "contracts_paid": paid_contract_month,
+        },
+        "funnel_stages": {
+            "leads": leads_month,
+            "questionnaire_completed": questionnaire_month,
+            "report_ready": report_ready_month,
+            "call_booked": call_booked_month,
         },
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
@@ -4939,3 +4955,248 @@ async def regenerate_missing_reports(
         result["found"], result["regenerated"], result["still_failing"], dry_run,
     )
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  EDITORIALE — workspace caroselli AI (multi-brand)
+#  Collezioni: ciak_editorial_brands, ciak_editorial_contents
+#  Multi-brand: brand "ciak" (nostra acquisizione) + un brand per ogni
+#  partner (il motore è anche un servizio extra vendibile ai partner).
+# ═══════════════════════════════════════════════════════════════════
+
+class EditorialBrandIn(BaseModel):
+    name: str
+    owner: str = "ciak"            # "ciak" oppure partner_id
+    description: str = ""
+    language: str = "it"
+    platform_default: str = "instagram"
+    palette: list[str] = Field(default_factory=list)
+    logo_url: Optional[str] = None
+    tagline: str = ""
+    style_notes: str = ""
+
+
+class EditorialContentIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int                      # 1-12, mese di calendario
+    objective: str = ""
+    format: str = "carosello"       # carosello|post|reel|storie
+    channels: list[str] = Field(default_factory=lambda: ["ig"])
+    topic: str = ""
+    caption: str = ""
+    cta: str = ""
+    scheduled_date: Optional[str] = None
+    status: str = "bozza"           # bozza|da_approvare|approvato|in_coda|pubblicato|fallito
+
+
+@router.get("/editorial/brands")
+async def editorial_brands(owner: Optional[str] = None, admin=Depends(require_ciak_admin)):
+    """Lista dei brand editoriali (Ciak + un brand per ogni partner).
+    Auto-seed del brand 'Ciak' al primo accesso, così il workspace parte pronto."""
+    if not await db.ciak_editorial_brands.count_documents({}):
+        from uuid import uuid4
+        now = datetime.now(timezone.utc).isoformat()
+        await db.ciak_editorial_brands.insert_one({
+            "brand_id": uuid4().hex, "name": "Ciak", "owner": "ciak",
+            "description": "Ciak — il sistema per costruire accademie digitali che vendono formazione.",
+            "language": "it", "platform_default": "instagram",
+            "palette": ["#0F172A", "#FACC15", "#FFFFFF"], "logo_url": None,
+            "tagline": "", "style_notes": "", "knowledge_files": [],
+            "created_at": now, "updated_at": now,
+        })
+    query = {"owner": owner} if owner else {}
+    brands = await db.ciak_editorial_brands.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
+    return {"brands": brands}
+
+
+@router.post("/editorial/brands")
+async def editorial_brand_create(body: EditorialBrandIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    brand = {
+        "brand_id": uuid4().hex,
+        **body.dict(),
+        "knowledge_files": [],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_brands.insert_one(dict(brand))
+    return {"ok": True, "brand": brand}
+
+
+class EditorialBrandPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    language: Optional[str] = None
+    platform_default: Optional[str] = None
+    palette: Optional[list[str]] = None
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    style_notes: Optional[str] = None
+
+
+@router.put("/editorial/brands/{brand_id}")
+async def editorial_brand_update(brand_id: str, body: EditorialBrandPatch, admin=Depends(require_ciak_admin)):
+    """Aggiorna i campi di un brand (editor Brand & knowledge)."""
+    updates = {k: v for k, v in body.dict().items() if v is not None}
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        res = await db.ciak_editorial_brands.update_one({"brand_id": brand_id}, {"$set": updates})
+        if res.matched_count == 0:
+            raise HTTPException(404, "Brand non trovato")
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": brand_id}, {"_id": 0})
+    return {"ok": True, "brand": brand}
+
+
+@router.get("/editorial/contents")
+async def editorial_contents(
+    brand_id: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    admin=Depends(require_ciak_admin),
+):
+    """Contenuti editoriali filtrati per brand e mese. Il client li raggruppa per obiettivo."""
+    query: dict = {}
+    if brand_id:
+        query["brand_id"] = brand_id
+    if year:
+        query["year"] = year
+    if month:
+        query["month"] = month
+    contents = await db.ciak_editorial_contents.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(500)
+    brand_scope = {"brand_id": brand_id} if brand_id else {}
+    stats = {
+        "total": await db.ciak_editorial_contents.count_documents(brand_scope),
+        "month": len(contents),
+        "da_approvare": sum(1 for c in contents if c.get("status") == "da_approvare"),
+        "pubblicati": sum(1 for c in contents if c.get("status") == "pubblicato"),
+    }
+    return {"contents": contents, "stats": stats}
+
+
+@router.post("/editorial/contents")
+async def editorial_content_create(body: EditorialContentIn, admin=Depends(require_ciak_admin)):
+    from uuid import uuid4
+    now = datetime.now(timezone.utc).isoformat()
+    content = {
+        "content_id": uuid4().hex,
+        **body.dict(),
+        "slides": [],
+        "cover_url": None,
+        "permalink": None,
+        "published_at": None,
+        "created_by": "human",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ciak_editorial_contents.insert_one(dict(content))
+    return {"ok": True, "content": content}
+
+
+class EditorialGenerateIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+    n: int = 8
+
+
+@router.post("/editorial/contents/generate")
+async def editorial_generate_month(body: EditorialGenerateIn, admin=Depends(require_ciak_admin)):
+    """Genera con l'AI il piano del mese (diviso per obiettivi), salvato come 'da approvare'.
+    Rigenerando sostituisce solo le bozze AI non ancora approvate dello stesso brand/mese."""
+    from uuid import uuid4
+    from services.ciak_editorial_gen import generate_month
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    await db.ciak_editorial_contents.delete_many({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": {"$in": ["bozza", "da_approvare"]}, "created_by": "ai",
+    })
+
+    items = await generate_month(brand, body.year, body.month, n=body.n)
+    now = datetime.now(timezone.utc).isoformat()
+    docs = []
+    for it in items:
+        docs.append({
+            "content_id": uuid4().hex,
+            "brand_id": body.brand_id,
+            "year": body.year,
+            "month": body.month,
+            **it,
+            "cover_url": None,
+            "permalink": None,
+            "published_at": None,
+            "status": "da_approvare",
+            "created_by": "ai",
+            "created_at": now,
+            "updated_at": now,
+        })
+    if docs:
+        await db.ciak_editorial_contents.insert_many([dict(d) for d in docs])
+    return {"ok": True, "generated": len(docs)}
+
+
+class EditorialApproveIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+
+
+_EDITORIAL_CHAN_MAP = {"ig": "instagram", "fb": "facebook", "linkedin": "linkedin"}
+
+
+@router.post("/editorial/contents/approve-month")
+async def editorial_approve_month(body: EditorialApproveIn, admin=Depends(require_ciak_admin)):
+    """Approva il mese: per ogni contenuto 'da approvare' renderizza le slide (HTML→PNG→
+    Cloudinary) e lo mette in coda di pubblicazione (IG/FB/LinkedIn, lun/mer/ven)."""
+    from services.ciak_slide_render import render_content_slides
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    pending = await db.ciak_editorial_contents.find({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": "da_approvare",
+    }, {"_id": 0}).to_list(500)
+
+    now = datetime.now(timezone.utc).isoformat()
+    approvati, in_coda = 0, 0
+    for content in pending:
+        rendered = await render_content_slides(brand, content)
+        image_urls = rendered.get("image_urls") or []
+        await db.ciak_editorial_contents.update_one(
+            {"content_id": content["content_id"]},
+            {"$set": {
+                "status": "approvato",
+                "cover_url": rendered.get("cover_url"),
+                "slides": rendered.get("slides") or content.get("slides"),
+                "image_urls": image_urls,
+                "updated_at": now,
+            }},
+        )
+        approvati += 1
+        # In coda solo con immagini reali: il publisher rifiuta i post senza immagini.
+        if image_urls:
+            channels = [_EDITORIAL_CHAN_MAP.get(c, c) for c in (content.get("channels") or ["ig"])]
+            await db.ciak_social_queue.insert_one({
+                "post_id": content["content_id"],
+                "source": "editorial",
+                "brand_id": body.brand_id,
+                "image_urls": image_urls,
+                "caption": content.get("caption") or content.get("topic") or "",
+                "channels": channels,
+                "scheduled_date": content.get("scheduled_date"),
+                "status": "pending",
+                "attempts": 0,
+                "created_at": now,
+            })
+            await db.ciak_editorial_contents.update_one(
+                {"content_id": content["content_id"]}, {"$set": {"status": "in_coda"}})
+            in_coda += 1
+
+    return {"ok": True, "approvati": approvati, "in_coda": in_coda}

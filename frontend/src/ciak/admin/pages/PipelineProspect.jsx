@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 // Configurazione colonne del funnel
 const STEPS = [
@@ -593,6 +594,7 @@ export function PipelineProspect({ onAuthExpired }) {
 
   return (
     <div className="p-10 space-y-5">
+      <AcquisizioneSubNav active="Prospect" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

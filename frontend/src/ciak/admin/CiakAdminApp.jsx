@@ -61,6 +61,8 @@ import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
+import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
+import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
@@ -659,7 +661,11 @@ export default function CiakAdminApp() {
           <Route
             key={m.id}
             path={`reparto/${m.id}`}
-            element={<RepartoLanding macro={m} onAuthExpired={handleLogout} />}
+            element={
+              m.id === "acquisizione"
+                ? <AcquisizionePanoramica onAuthExpired={handleLogout} />
+                : <RepartoLanding macro={m} onAuthExpired={handleLogout} />
+            }
           />
         ))}
 
@@ -697,6 +703,7 @@ export default function CiakAdminApp() {
         />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
+        <Route path="acquisizione-editoriale" element={<AcquisizioneEditoriale onAuthExpired={handleLogout} />} />
 
         {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
         <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
