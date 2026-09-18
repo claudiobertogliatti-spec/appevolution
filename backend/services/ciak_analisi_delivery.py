@@ -73,17 +73,27 @@ def _send_email_attachment(*, to: str, subject: str, body_text: str,
         return False, str(e)
 
 
-def _email_body(nome: str, link: Optional[str]) -> str:
+def _email_body(nome: str, pdf_url: Optional[str], access_link: Optional[str] = None) -> str:
     primo = (nome or "").split()[0] if nome else "ciao"
-    link_line = f"\n\nSe preferisci, puoi scaricarlo anche qui:\n{link}\n" if link else "\n"
+    pdf_line = f"\n\nSe preferisci, puoi scaricarlo anche qui:\n{pdf_url}\n" if pdf_url else "\n"
+    if access_link:
+        accesso = (
+            "Per proseguire, entra nella tua area riservata da qui (il link e' "
+            f"personale):\n{access_link}\n\n"
+            "Da li' scegli come muoverti: Ciak Start oppure la Partnership completa."
+        )
+    else:
+        accesso = (
+            "Quando vuoi proseguire, dalla tua area riservata scegli come muoverti: "
+            "Ciak Start oppure la Partnership completa."
+        )
     return (
         f"Ciao {primo},\n\n"
         "come promesso, in allegato trovi il tuo Blueprint Evolution: l'analisi strategica "
         "di posizionamento che abbiamo visto insieme nella call — profilo, mercato, "
         "pubblico, la tua accademia e la roadmap, sezione per sezione."
-        f"{link_line}\n"
-        "Quando vuoi proseguire, dalla tua area riservata scegli come muoverti: "
-        "Ciak Start oppure la Partnership completa.\n\n"
+        f"{pdf_line}\n"
+        f"{accesso}\n\n"
         "A presto,\nClaudio\nEvolution PRO"
     )
 
@@ -135,10 +145,19 @@ async def _render_deliverable_pdf(
         return pdf, "teaser"
 
 
-async def processa_acquisto(session_token: str, email: str, nome: Optional[str]) -> dict:
+async def processa_acquisto(
+    session_token: str,
+    email: str,
+    nome: Optional[str],
+    access_link: Optional[str] = None,
+) -> dict:
     """
     Background post-Blueprint: genera (idempotente) + invia bozza PDF una sola volta.
     Non solleva: logga e ritorna lo stato (non deve mai rompere il webhook).
+
+    `access_link` (magic-link all'area riservata) viene incluso nel corpo email:
+    cosi' il cliente riceve blueprint E accesso nella stessa mail. Se assente
+    (es. vecchio webhook €27) il corpo resta valido senza link d'accesso.
     """
     if db is None:
         logger.error("[CIAK_DELIVERY] db non configurato")
@@ -169,7 +188,7 @@ async def processa_acquisto(session_token: str, email: str, nome: Optional[str])
     pdf_url = await _upload_pdf(pdf_bytes, session_token)
     ok, err = _send_email_attachment(
         to=dest, subject="Il tuo Blueprint Evolution",
-        body_text=_email_body(nome, pdf_url),
+        body_text=_email_body(nome, pdf_url, access_link),
         pdf_bytes=pdf_bytes, pdf_filename=f"blueprint_evolution_{session_token[:8]}.pdf",
     )
     bozza["pdf_url"] = pdf_url
