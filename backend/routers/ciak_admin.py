@@ -5200,3 +5200,69 @@ async def editorial_approve_month(body: EditorialApproveIn, admin=Depends(requir
             in_coda += 1
 
     return {"ok": True, "approvati": approvati, "in_coda": in_coda}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ADS — KPI Meta Ads (Marketing API) per il tab ADS
+#  Multi-brand: default = account Ciak (env); un partner_id usa le sue
+#  credenziali in `partner_api_credentials`.
+# ═══════════════════════════════════════════════════════════════════
+
+def _parse_action(actions: list, types: tuple) -> int:
+    total = 0
+    for a in actions or []:
+        if a.get("action_type") in types:
+            try:
+                total += int(float(a.get("value", 0) or 0))
+            except (TypeError, ValueError):
+                pass
+    return total
+
+
+@router.get("/ads/overview")
+async def ads_overview(days: int = 30, partner_id: Optional[str] = None, admin=Depends(require_ciak_admin)):
+    """KPI Meta Ads live per il tab ADS. Fail-closed: senza credenziali ritorna
+    configured=False (la UI mostra "Collega Meta Ads")."""
+    import os
+    from ads_api_integration import MetaAdsClient
+
+    if partner_id:
+        creds = await db.partner_api_credentials.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        token = creds.get("meta_access_token")
+        account = creds.get("meta_ad_account_id")
+    else:
+        token = os.environ.get("META_ADS_ACCESS_TOKEN") or os.environ.get("META_PAGE_ACCESS_TOKEN")
+        account = os.environ.get("META_AD_ACCOUNT_ID") or "act_1382427760577453"
+
+    if not (token and account):
+        return {"configured": False, "note": "Collega Meta Ads: configura META_AD_ACCOUNT_ID + token (ads_read)."}
+
+    try:
+        client = MetaAdsClient(token, account)
+        raw = await client.get_account_insights_aggregated(days)
+        row = (raw.get("data") or [{}])[0] if isinstance(raw, dict) else {}
+        actions = row.get("actions", [])
+        spend = float(row.get("spend", 0) or 0)
+        leads = _parse_action(actions, ("lead", "leadgen_grouped", "onsite_conversion.lead_grouped"))
+        lpv = _parse_action(actions, ("landing_page_view", "omni_landing_page_view"))
+        campaigns = await client.get_campaigns()
+        return {
+            "configured": True,
+            "account": account,
+            "days": days,
+            "spend": round(spend, 2),
+            "impressions": int(row.get("impressions", 0) or 0),
+            "clicks": int(row.get("clicks", 0) or 0),
+            "ctr": round(float(row.get("ctr", 0) or 0), 2),
+            "cpc": round(float(row.get("cpc", 0) or 0), 2),
+            "leads": leads,
+            "landing_page_views": lpv,
+            "cost_per_lead": round(spend / leads, 2) if leads else None,
+            "campaigns": [
+                {"id": c.get("id"), "name": c.get("name"), "status": c.get("status"), "objective": c.get("objective")}
+                for c in (campaigns or [])
+            ],
+        }
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[ADS] overview error: {e}")
+        return {"configured": True, "error": str(e)[:200]}
