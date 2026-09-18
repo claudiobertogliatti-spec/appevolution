@@ -30,9 +30,10 @@ export const DEPARTMENT_ROOMS = {
     persone: ["Mariangela"],
     agenti: ["Carlo", "Andrea"],
     agent: {
-      id: "carlo",
+      id: "matteo",
       name: "Carlo",
       role: "Responsabile Acquisizione",
+      avatar: "/agents/matteo.jpg",
       initials: "C",
       accent: "bg-slate-900 text-yellow-400",
       chat: "pending",
