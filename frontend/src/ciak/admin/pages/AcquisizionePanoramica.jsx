@@ -16,7 +16,7 @@ import {
 import { apiGet } from "../api";
 
 const TABS = [
-  { label: "Panoramica", to: null },
+  { label: "Home", to: null },
   { label: "Editoriale EVO", to: "/admin/acq-calendario" },
   { label: "ADS", to: "/admin/acq-campagne-ads" },
   { label: "Prospect", to: "/admin/pipeline-prospect" },
