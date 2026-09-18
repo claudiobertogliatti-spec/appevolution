@@ -5056,3 +5056,49 @@ async def editorial_content_create(body: EditorialContentIn, admin=Depends(requi
     }
     await db.ciak_editorial_contents.insert_one(dict(content))
     return {"ok": True, "content": content}
+
+
+class EditorialGenerateIn(BaseModel):
+    brand_id: str
+    year: int
+    month: int
+    n: int = 8
+
+
+@router.post("/editorial/contents/generate")
+async def editorial_generate_month(body: EditorialGenerateIn, admin=Depends(require_ciak_admin)):
+    """Genera con l'AI il piano del mese (diviso per obiettivi), salvato come 'da approvare'.
+    Rigenerando sostituisce solo le bozze AI non ancora approvate dello stesso brand/mese."""
+    from uuid import uuid4
+    from services.ciak_editorial_gen import generate_month
+
+    brand = await db.ciak_editorial_brands.find_one({"brand_id": body.brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(404, "Brand non trovato")
+
+    await db.ciak_editorial_contents.delete_many({
+        "brand_id": body.brand_id, "year": body.year, "month": body.month,
+        "status": {"$in": ["bozza", "da_approvare"]}, "created_by": "ai",
+    })
+
+    items = await generate_month(brand, body.year, body.month, n=body.n)
+    now = datetime.now(timezone.utc).isoformat()
+    docs = []
+    for it in items:
+        docs.append({
+            "content_id": uuid4().hex,
+            "brand_id": body.brand_id,
+            "year": body.year,
+            "month": body.month,
+            **it,
+            "cover_url": None,
+            "permalink": None,
+            "published_at": None,
+            "status": "da_approvare",
+            "created_by": "ai",
+            "created_at": now,
+            "updated_at": now,
+        })
+    if docs:
+        await db.ciak_editorial_contents.insert_many([dict(d) for d in docs])
+    return {"ok": True, "generated": len(docs)}

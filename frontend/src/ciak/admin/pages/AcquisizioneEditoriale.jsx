@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus, LayoutGrid, BookOpen, Wand2, Images } from "lucide-react";
-import { apiGet } from "../api";
+import { apiGet, apiPost } from "../api";
 import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const SECTIONS = [
@@ -75,6 +75,7 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
   const [brands, setBrands] = useState([]);
   const [brandId, setBrandId] = useState(null);
   const [data, setData] = useState({ contents: [], stats: { total: 0, month: 0, da_approvare: 0, pubblicati: 0 } });
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     apiGet("/editorial/brands")
@@ -86,13 +87,31 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
       .catch((e) => { if (e.message === "AUTH_EXPIRED") onAuthExpired?.(); });
   }, [onAuthExpired]);
 
-  useEffect(() => {
+  const loadContents = () => {
     const params = { year: YEAR, month };
     if (brandId) params.brand_id = brandId;
-    apiGet("/editorial/contents", params)
+    return apiGet("/editorial/contents", params)
       .then((r) => setData({ contents: r.contents || [], stats: r.stats || {} }))
       .catch((e) => { if (e.message === "AUTH_EXPIRED") onAuthExpired?.(); });
-  }, [brandId, month, onAuthExpired]);
+  };
+
+  useEffect(() => {
+    loadContents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId, month]);
+
+  const handleGenerate = async () => {
+    if (!brandId || generating) return;
+    setGenerating(true);
+    try {
+      await apiPost("/editorial/contents/generate", { brand_id: brandId, year: YEAR, month });
+      await loadContents();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const byObjective = useMemo(() => {
     const groups = {};
@@ -120,8 +139,12 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg px-4 py-2 hover:bg-slate-50 transition">
-              <Sparkles className="w-4 h-4" /> Genera il mese con AI
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !brandId}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg px-4 py-2 hover:bg-slate-50 transition disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" /> {generating ? "Genero…" : "Genera il mese con AI"}
             </button>
             <button className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-4 py-2 hover:bg-yellow-300 transition">
               <Plus className="w-4 h-4" /> Crea carosello
@@ -196,8 +219,12 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
               Oppure crea un singolo carosello.
             </p>
             <div className="flex gap-2 justify-center mt-4 flex-wrap">
-              <button className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-5 py-2.5 hover:bg-yellow-300 transition">
-                <Sparkles className="w-4 h-4" /> Genera {MONTH_FULL[month]} con AI
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !brandId}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-5 py-2.5 hover:bg-yellow-300 transition disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" /> {generating ? "Genero…" : `Genera ${MONTH_FULL[month]} con AI`}
               </button>
               <button className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg px-5 py-2.5 hover:bg-slate-50 transition">
                 <Plus className="w-4 h-4" /> Crea carosello
