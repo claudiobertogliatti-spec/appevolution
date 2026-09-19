@@ -3,11 +3,11 @@ import { MemoryRouter } from "react-router-dom";
 import { MasterclassLanding } from "./MasterclassLanding";
 import { hasMarketingConsent, trackLead } from "../lib/metaPixel";
 
-const navigate = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
-  useNavigate: () => navigate,
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock("../components/CiakHeader", () => ({
@@ -32,10 +32,10 @@ function renderLanding() {
 }
 
 function fillValidLead() {
-  fireEvent.change(screen.getAllByPlaceholderText("Il tuo nome")[0], {
+  fireEvent.change(screen.getAllByPlaceholderText("Es. Mario Rossi")[0], {
     target: { value: "Claudio" },
   });
-  fireEvent.change(screen.getAllByPlaceholderText("La tua email")[0], {
+  fireEvent.change(screen.getAllByPlaceholderText("mario.rossi@email.it")[0], {
     target: { value: "CLAUDIO@example.net" },
   });
 }
@@ -48,7 +48,7 @@ function submitHeroForm() {
 
 describe("MasterclassLanding lead capture", () => {
   beforeEach(() => {
-    navigate.mockReset();
+    mockNavigate.mockReset();
     trackLead.mockReset();
     hasMarketingConsent.mockReturnValue(true);
     global.fetch = jest.fn();
@@ -99,7 +99,7 @@ describe("MasterclassLanding lead capture", () => {
     expect(localStorage.getItem("ciak_lead_email")).toBe("claudio@example.net");
     expect(localStorage.getItem("ciak_lead_name")).toBe("Claudio");
     expect(localStorage.getItem("ciak_lead_nome")).toBe("Claudio");
-    expect(navigate).toHaveBeenCalledWith("/masterclass/guarda");
+    expect(mockNavigate).toHaveBeenCalledWith("/masterclass/guarda");
   });
 
   test("non invia cookie Meta né traccia Lead senza consenso marketing", async () => {
@@ -116,7 +116,7 @@ describe("MasterclassLanding lead capture", () => {
     const payload = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(payload).toMatchObject({ marketing_consent: false, fbp: null, fbc: null });
     expect(trackLead).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith("/masterclass/guarda");
+    expect(mockNavigate).toHaveBeenCalledWith("/masterclass/guarda");
   });
 
   test("non traccia né naviga quando il backend rifiuta l'opt-in", async () => {
@@ -128,7 +128,7 @@ describe("MasterclassLanding lead capture", () => {
 
     expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent(/riprova/i);
     expect(trackLead).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(screen.getAllByRole("button", { name: /guarda la masterclass gratuita/i })[0]).toBeEnabled();
   });
 
@@ -141,7 +141,7 @@ describe("MasterclassLanding lead capture", () => {
 
     expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent(/riprova/i);
     expect(trackLead).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(screen.getAllByRole("button", { name: /guarda la masterclass gratuita/i })[0]).toBeEnabled();
   });
 
@@ -150,10 +150,10 @@ describe("MasterclassLanding lead capture", () => {
     ["dominio non deliverable", "claudio@mailinator.com", /non riceve messaggi/i],
   ])("rifiuta %s senza chiamare il backend", async (_label, invalidEmail, error) => {
     renderLanding();
-    fireEvent.change(screen.getAllByPlaceholderText("Il tuo nome")[0], {
+    fireEvent.change(screen.getAllByPlaceholderText("Es. Mario Rossi")[0], {
       target: { value: "Claudio" },
     });
-    fireEvent.change(screen.getAllByPlaceholderText("La tua email")[0], {
+    fireEvent.change(screen.getAllByPlaceholderText("mario.rossi@email.it")[0], {
       target: { value: invalidEmail },
     });
 
@@ -161,7 +161,7 @@ describe("MasterclassLanding lead capture", () => {
 
     expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent(error);
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   test("impedisce il doppio invio anche tra modulo hero e modulo finale", async () => {
@@ -175,7 +175,7 @@ describe("MasterclassLanding lead capture", () => {
     submitHeroForm();
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-    const submitButtons = screen.getAllByRole("button", { name: /invio in corso/i });
+    const submitButtons = screen.getAllByRole("button", { name: /accesso in corso/i });
     expect(submitButtons).toHaveLength(2);
     expect(submitButtons[0]).toBeDisabled();
     expect(submitButtons[1]).toBeDisabled();
