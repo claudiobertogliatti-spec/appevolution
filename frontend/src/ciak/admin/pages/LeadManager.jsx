@@ -974,7 +974,7 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
 
 const PER_PAGE = 50;
 
-export function LeadManager({ onAuthExpired }) {
+export function LeadManager({ onAuthExpired, embedded = false }) {
   // Solo Discovery Leads: lo switch alla Lista Fredda è stato rimosso
   // (la Lista Fredda ha la sua pagina dedicata /admin/lista-fredda).
   const activeTab = "discovery";
@@ -1082,9 +1082,13 @@ export function LeadManager({ onAuthExpired }) {
   const isDiscovery = true;
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
-      <p className="text-slate-500 mb-6">Discovery Leads — scraping, scoring e promozione controllata nel Motore Vendite Evolution.</p>
+    <div className={embedded ? "" : "p-8"}>
+      {!embedded && (
+        <>
+          <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
+          <p className="text-slate-500 mb-6">Discovery Leads — scraping, scoring e promozione controllata nel Motore Vendite Evolution.</p>
+        </>
+      )}
 
       {/* Header / toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
