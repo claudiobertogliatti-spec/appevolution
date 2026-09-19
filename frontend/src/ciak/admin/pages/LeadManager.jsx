@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Users, Search, RefreshCw, Plus, Upload, Edit3, Trash2,
   X, Save, Loader2, Globe, Phone, Snowflake, TrendingUp,
-  Flame, ExternalLink, UserPlus, MapPin, Check,
+  Flame, ExternalLink, UserPlus, MapPin, Check, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch } from "../api";
@@ -25,11 +25,28 @@ const DISCOVERY_STATUSES = {
   scored:         { label: "Scorato",       cls: "bg-yellow-100 text-yellow-700" },
   message_ready:  { label: "Msg pronto",    cls: "bg-yellow-100 text-yellow-600" },
   message_sent:   { label: "Msg inviato",   cls: "bg-emerald-100 text-emerald-600" },
-  contacted:      { label: "Contattato",    cls: "bg-emerald-100 text-emerald-600" },
-  interested:     { label: "Interessato",   cls: "bg-red-100 text-red-500" },
-  not_interested: { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
-  pending:        { label: "In attesa",     cls: "bg-gray-100 text-slate-500" },
+  contacted:          { label: "Contattato",    cls: "bg-emerald-100 text-emerald-600" },
+  responded_positive: { label: "Ha risposto",   cls: "bg-red-100 text-red-500" },
+  qualified:          { label: "Qualificato",   cls: "bg-indigo-100 text-indigo-600" },
+  converted:          { label: "Cliente",       cls: "bg-emerald-100 text-emerald-700" },
+  responded_negative: { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
+  rejected:           { label: "Scartato",      cls: "bg-gray-100 text-slate-500" },
+  interested:         { label: "Ha risposto",   cls: "bg-red-100 text-red-500" },
+  not_interested:     { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
+  pending:            { label: "In attesa",     cls: "bg-gray-100 text-slate-500" },
 };
+
+// Pipeline di LAVORAZIONE (avanzamento del lead): l'ordine con cui un contatto
+// outbound si muove verso la vendita. La freccia "avanza" passa allo stadio dopo;
+// "Non interessato" è l'uscita laterale. Scrive su discovery_leads.status.
+const WORK_STAGES = [
+  { key: "discovered",         label: "Nuovo" },
+  { key: "contacted",          label: "Contattato" },
+  { key: "responded_positive", label: "Ha risposto" },
+  { key: "qualified",          label: "Qualificato" },
+  { key: "converted",          label: "Cliente" },
+];
+const WORK_ORDER = WORK_STAGES.map(s => s.key);
 
 const SOURCES = {
   instagram:     { label: "Instagram",      cls: "bg-pink-100 text-pink-600" },
@@ -723,6 +740,160 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// LEAD WORKSPACE — fase di LAVORAZIONE (click sul lead)
+// Lo stato avanza in base a ciò che viene svolto sul contatto: "Contatta" (email
+// Brevo) porta a Contattato da solo; gli stadi di giudizio (ha risposto,
+// qualificato, cliente) si avanzano a mano. Scrive su discovery_leads.status.
+// ─────────────────────────────────────────────────────────────
+
+function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
+  const [status, setStatus] = useState(lead.status || "discovered");
+  const [notes, setNotes] = useState(lead.notes_admin || "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [lastContact, setLastContact] = useState(lead.last_contacted_at || null);
+  const [showContact, setShowContact] = useState(false);
+  const nome = (lead.display_name || "").split(" ")[0] || "";
+  const [subject, setSubject] = useState(nome ? `Un'idea per te, ${nome}` : "Un'idea per la tua attività");
+  const [html, setHtml] = useState(
+    `Ciao${nome ? " " + nome : ""},<br><br>ho dato un'occhiata alla tua attività e credo ci sia un modo concreto per portarti più clienti dal digitale.<br><br>Ti va se ti mando un'analisi gratuita, senza impegno?<br><br>Un saluto,<br>Evolution PRO`
+  );
+  const [sending, setSending] = useState(false);
+  const [contactMsg, setContactMsg] = useState(null);
+
+  const patchLead = async (body) => {
+    const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error("Errore salvataggio");
+  };
+
+  const setStage = async (key) => {
+    if (busy || key === status) return;
+    setBusy(true); setMsg(null);
+    try { await patchLead({ status: key }); setStatus(key); onChanged({ ...lead, status: key }); }
+    catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel cambio stato." }); }
+    finally { setBusy(false); }
+  };
+
+  const saveNotes = async () => {
+    setBusy(true); setMsg(null);
+    try { await patchLead({ notes_admin: notes }); onChanged({ ...lead, notes_admin: notes }); setMsg({ err: false, text: "Note salvate." }); }
+    catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel salvataggio note." }); }
+    finally { setBusy(false); }
+  };
+
+  const sendContact = async () => {
+    if (sending || !subject.trim() || !html.trim()) return;
+    setSending(true); setContactMsg(null);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/leads/${lead.id}/contatta`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, html }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setContactMsg({ err: true, text: data.detail || "Invio non riuscito." }); return; }
+      if (data.configured === false) { setContactMsg({ err: true, text: "Brevo non è collegato (manca BREVO_API_KEY)." }); return; }
+      if (data.ok) {
+        const now = new Date().toISOString();
+        setContactMsg({ err: false, text: "Email inviata e registrata. Stato → Contattato." });
+        setStatus("contacted"); setLastContact(now); setShowContact(false);
+        onChanged({ ...lead, status: "contacted", last_contacted_at: now });
+        return;
+      }
+      setContactMsg({ err: true, text: data.error || "Invio non riuscito." });
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setContactMsg({ err: true, text: "Errore di rete." }); }
+    finally { setSending(false); }
+  };
+
+  const email = lead.email || "";
+  const phone = lead.business_phone || lead.phone || "";
+  const curIdx = WORK_ORDER.indexOf(status);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 bg-slate-900">
+          <div className="min-w-0">
+            <div className="font-semibold text-white truncate">{lead.display_name || email || "Lead"}</div>
+            <div className="text-xs text-white/50 truncate">
+              {[SOURCES[lead.source]?.label || lead.source, lead.niche_detected, lead.business_address].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2 text-slate-400">Avanzamento lavorazione</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {WORK_STAGES.map((s, i) => {
+                const active = s.key === status;
+                const done = curIdx > -1 && i < curIdx;
+                return (
+                  <button key={s.key} onClick={() => setStage(s.key)} disabled={busy}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${active ? "bg-yellow-400 border-yellow-400 text-slate-900" : done ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-200 text-slate-500 hover:bg-gray-50"}`}>
+                    {s.label}
+                  </button>
+                );
+              })}
+              <span className="mx-1 text-gray-300">·</span>
+              <button onClick={() => setStage("responded_negative")} disabled={busy}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${status === "responded_negative" ? "bg-gray-200 border-gray-300 text-slate-600" : "bg-white border-gray-200 text-slate-400 hover:bg-gray-50"}`}>
+                Non interessato
+              </button>
+            </div>
+            {msg && <p className={`text-xs mt-2 ${msg.err ? "text-red-600" : "text-emerald-600"}`}>{msg.text}</p>}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Contatto</div>
+              {lastContact && <span className="text-[11px] text-slate-400">ultimo contatto: {new Date(lastContact).toLocaleDateString("it-IT")}</span>}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-sm text-slate-700 flex-wrap">
+              {email ? <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" />{email}</span> : <span className="text-slate-400">senza email</span>}
+              {phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600" />{phone}</span>}
+            </div>
+            {!showContact ? (
+              <button onClick={() => setShowContact(true)} disabled={!email}
+                title={email ? "Invia email via Brevo" : "Aggiungi un'email per scrivergli"}
+                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-4 py-2 hover:bg-yellow-300 transition disabled:opacity-40">
+                <Send className="w-4 h-4" /> Scrivi email
+              </button>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Oggetto"
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+                <textarea value={html} onChange={e => setHtml(e.target.value)} rows={5}
+                  className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 font-mono text-[12.5px] resize-y" />
+                <div className="flex items-center gap-2">
+                  <button onClick={sendContact} disabled={sending}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-yellow-400 rounded-lg px-4 py-2 disabled:opacity-50">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Invia via Brevo
+                  </button>
+                  <button onClick={() => setShowContact(false)} className="text-sm text-slate-600 px-3 py-2 rounded-lg hover:bg-gray-100">Annulla</button>
+                </div>
+                {contactMsg && <p className={`text-xs ${contactMsg.err ? "text-red-600" : "text-emerald-600"}`}>{contactMsg.text}</p>}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Note di lavorazione</div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Cosa è stato fatto, prossimo passo…"
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
+            <button onClick={saveNotes} disabled={busy}
+              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:opacity-50">
+              <Save className="w-4 h-4" /> Salva note
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
@@ -741,6 +912,7 @@ export function LeadManager({ onAuthExpired }) {
   const [filterScore, setFilterScore] = useState(0);
   const [page, setPage] = useState(0);
   const [editLead, setEditLead] = useState(null);
+  const [workspaceLead, setWorkspaceLead] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
@@ -900,6 +1072,8 @@ export function LeadManager({ onAuthExpired }) {
         </button>
       </div>
 
+      <p className="text-[12.5px] text-slate-400 mb-2">Clicca un lead per lavorarlo: avanzi lo stato, lo contatti via email, prendi note.</p>
+
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {loading ? (
@@ -922,7 +1096,8 @@ export function LeadManager({ onAuthExpired }) {
             </thead>
             <tbody>
               {leads.map((lead, i) => (
-                <tr key={lead.id || i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                <tr key={lead.id || i} onClick={() => setWorkspaceLead(lead)}
+                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900">{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
@@ -975,7 +1150,7 @@ export function LeadManager({ onAuthExpired }) {
                     {lead.temperatura && <StatusBadge status={lead.temperatura} map={TEMPERATURE} />}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
+                    <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
                       {lead.platform_url && (
                         <a href={lead.platform_url} target="_blank" rel="noopener noreferrer"
                           className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -1030,6 +1205,9 @@ export function LeadManager({ onAuthExpired }) {
       )}
 
       {/* Modals */}
+      {workspaceLead && (
+        <LeadWorkspaceModal lead={workspaceLead} onClose={() => setWorkspaceLead(null)} onChanged={handleSaved} onAuthExpired={onAuthExpired} />
+      )}
       {editLead && (
         <DiscoveryEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
       )}
