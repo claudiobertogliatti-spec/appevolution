@@ -47,6 +47,8 @@ const WORK_STAGES = [
   { key: "converted",          label: "Cliente" },
 ];
 const WORK_ORDER = WORK_STAGES.map(s => s.key);
+// Colonne del board "In lavorazione" (sotto la tabella): gli stadi DOPO l'ingresso.
+const BOARD_STAGES = WORK_STAGES.filter(s => s.key !== "discovered");
 
 const SOURCES = {
   instagram:     { label: "Instagram",      cls: "bg-pink-100 text-pink-600" },
@@ -988,6 +990,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   const [page, setPage] = useState(0);
   const [editLead, setEditLead] = useState(null);
   const [workspaceLead, setWorkspaceLead] = useState(null);
+  const [board, setBoard] = useState({});
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
@@ -1025,6 +1028,20 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   };
 
   useEffect(() => { load(); }, [filterStatus, filterSource, filterScore, page]);
+
+  // Board "In lavorazione": i lead con stato avanzato (contattato → cliente),
+  // raggruppati per stadio. Fetch a parte (indipendente da pagina/filtri).
+  const loadBoard = async () => {
+    try {
+      const res = await adminFetch(`/api/discovery/leads?limit=300`);
+      const data = await res.json();
+      const grouped = {};
+      for (const s of BOARD_STAGES) grouped[s.key] = [];
+      for (const l of (data.leads || [])) if (grouped[l.status]) grouped[l.status].push(l);
+      setBoard(grouped);
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); }
+  };
+  useEffect(() => { loadBoard(); /* eslint-disable-next-line */ }, []);
 
   // Deep-link dalle scorciatoie della home Acquisizione: apre subito il modale
   // giusto (?apri=importa|nuovo|ricerca) riusando gli stessi flussi/endpoint.
@@ -1077,6 +1094,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   const handleSaved = (updated) => {
     setLeads(prev => prev.map(l => (l.id || l.email) === (updated.id || updated.email) ? updated : l));
     setEditLead(null);
+    loadBoard();
   };
 
   const isDiscovery = true;
@@ -1268,6 +1286,46 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* ── PIPELINE DI LAVORAZIONE (la parte sotto): le fasi verso la Vendita ── */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-yellow-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Pipeline di lavorazione</h2>
+        </div>
+        <p className="text-sm text-slate-500 mt-1 mb-4">
+          Dal primo contatto fino al passaggio in Vendite. Clicca una card per far avanzare il lead.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {BOARD_STAGES.map((s, i) => {
+            const items = board[s.key] || [];
+            const isWin = s.key === "converted";
+            return (
+              <div key={s.key} className={`rounded-2xl border p-3 ${isWin ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-1">
+                    <span className="text-slate-300">{i + 1}</span> {s.label}
+                    {s.key === "qualified" && <span className="text-[9px] font-semibold text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">→ Vendite</span>}
+                  </span>
+                  <span className="text-xs font-bold text-slate-900 bg-white border border-gray-200 rounded-full px-2 py-0.5">{items.length}</span>
+                </div>
+                <div className="space-y-2 min-h-[40px]">
+                  {items.length === 0 ? (
+                    <p className="text-[12px] text-slate-300 py-3 text-center">—</p>
+                  ) : items.slice(0, 15).map(l => (
+                    <button key={l.id} onClick={() => setWorkspaceLead(l)}
+                      className="w-full text-left bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition">
+                      <div className="text-[13px] font-medium text-slate-900 truncate">{l.display_name || l.email || "—"}</div>
+                      <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
+                    </button>
+                  ))}
+                  {items.length > 15 && <p className="text-[11px] text-slate-400 text-center">+{items.length - 15}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Pagination */}
