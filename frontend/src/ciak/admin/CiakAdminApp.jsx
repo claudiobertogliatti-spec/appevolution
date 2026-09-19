@@ -60,11 +60,10 @@ import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { TrattativePipeline } from "./pages/TrattativePipeline";
-import { AcquisizionePipeline } from "./pages/AcquisizionePipeline";
+import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspect";
 import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
 import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
-import { AcquisizioneProspect } from "./pages/AcquisizioneProspect";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
@@ -683,12 +682,12 @@ export default function CiakAdminApp() {
         {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
-        {/* Pipeline = GESTIONE lead: recuperi da lavorare oggi, conversioni, lista
-            contatti con azione "Contatta" (email 1:1 via Brevo). Prospect fa entrare
-            i contatti, Pipeline li lavora. */}
-        <Route path="pipeline" element={<AcquisizionePipeline onAuthExpired={handleLogout} />} />
+        {/* Pipeline Prospect = pagina unica acquisizione: ingresso (ricerca/inserimento)
+            + gestione (recuperi con owner AI/team, funnel, lista con "Contatta" via Brevo).
+            Fonde le ex pagine Prospect e Pipeline (decisione Claudio 19/9). */}
+        <Route path="pipeline" element={<AcquisizionePipelineProspect onAuthExpired={handleLogout} />} />
         {/* Briefing operativo & canali (ex vista "oggi" della Pipeline), raggiungibile
-            dai link in fondo alla Pipeline. */}
+            dai link in fondo alla pagina. */}
         <Route path="acquisizione-briefing" element={<AcquisizioneCommandCenter onAuthExpired={handleLogout} />} />
         {/* Route vecchie mantenute per i link diretti */}
         <Route
@@ -711,7 +710,8 @@ export default function CiakAdminApp() {
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
         <Route path="acquisizione-editoriale" element={<AcquisizioneEditoriale onAuthExpired={handleLogout} />} />
-        <Route path="acquisizione-prospect" element={<AcquisizioneProspect onAuthExpired={handleLogout} />} />
+        {/* Ex pagina Prospect: fusa in Pipeline Prospect. Redirect per i vecchi link. */}
+        <Route path="acquisizione-prospect" element={<Navigate to="/admin/pipeline" replace />} />
 
         {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
         <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
