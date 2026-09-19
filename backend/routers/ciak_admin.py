@@ -5266,3 +5266,49 @@ async def ads_overview(days: int = 30, partner_id: Optional[str] = None, admin=D
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[ADS] overview error: {e}")
         return {"configured": True, "error": str(e)[:200]}
+
+
+# ─── Pipeline: contatto lead via Brevo ──────────────────────────────────────
+
+class ContattaLeadIn(BaseModel):
+    subject: str
+    html: str
+    to_email: Optional[str] = None  # override; default = email del lead
+
+
+@router.post("/leads/{lead_id}/contatta")
+async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(require_ciak_admin)):
+    """Invia una email 1:1 al lead via Brevo e registra il touch sul lead.
+
+    Motore degli invii di acquisizione: Brevo per le email 1:1 tracciate (Register
+    resta il transazionale di sistema, Systeme le automazioni per stato). Fail-closed:
+    senza BREVO_API_KEY non invia nulla (configured=False) e non scrive nessun touch.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.brevo_client import send_email
+
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+    to_email = (body.to_email or lead.get("email") or "").strip()
+    if not to_email:
+        raise HTTPException(400, "Il lead non ha email: aggiungila prima di contattarlo.")
+
+    res = await send_email(to_email, lead.get("display_name"), body.subject, body.html)
+    now = datetime.now(timezone.utc).isoformat()
+    if res.get("ok"):
+        await db.discovery_leads.update_one(
+            {"id": lead_id},
+            {
+                "$push": {"touches": {
+                    "channel": "email", "via": "brevo", "subject": body.subject,
+                    "at": now, "message_id": res.get("message_id"), "by": "admin",
+                }},
+                "$set": {
+                    "last_contacted_at": now, "status": "contacted",
+                    "outreach_status": "sent", "updated_at": now,
+                },
+            },
+        )
+    return res

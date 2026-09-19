@@ -8,7 +8,7 @@ const TABS = [
   { label: "Home", to: "/admin/reparto/acquisizione" },
   { label: "Editoriale", to: "/admin/acquisizione-editoriale" },
   { label: "ADS", to: "/admin/acq-campagne-ads" },
-  { label: "Prospect", to: "/admin/pipeline-prospect" },
+  { label: "Prospect", to: "/admin/acquisizione-prospect" },
   { label: "Pipeline", to: "/admin/pipeline" },
 ];
 
