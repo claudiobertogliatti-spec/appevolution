@@ -5282,17 +5282,36 @@ class ContattaLeadIn(BaseModel):
     to_email: Optional[str] = None  # override; default = email del lead
 
 
+class AvanzaLeadIn(BaseModel):
+    stage: str
+
+
+# Stato di lavorazione → tag Systeme. Le automazioni UI di Systeme trasformano il
+# tag in sequenza + appartenenza community (lead vs partner). "discovered" non ha tag
+# (è l'ingresso, prima di qualsiasi lavorazione).
+_STAGE_SYSTEME_TAG = {
+    "contacted": "lead_contattato",
+    "responded_positive": "lead_ha_risposto",
+    "qualified": "lead_qualificato",
+    "converted": "lead_cliente",
+    "responded_negative": "lead_non_interessato",
+    "discovered": None,
+}
+
+
 @router.post("/leads/{lead_id}/contatta")
 async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(require_ciak_admin)):
-    """Invia una email 1:1 al lead via Brevo e registra il touch sul lead.
+    """Contatta il lead 1:1: email via SMTP (in prod = relay Brevo autenticato, arriva
+    su Microsoft/hotmail) E mette il contatto in sequenza/community su Systeme (tag
+    `lead_contattato` + `community_lead`). Registra il touch e avanza a `contacted`.
 
-    Motore degli invii di acquisizione: Brevo per le email 1:1 tracciate (Register
-    resta il transazionale di sistema, Systeme le automazioni per stato). Fail-closed:
-    senza BREVO_API_KEY non invia nulla (configured=False) e non scrive nessun touch.
+    Riusa i canali esistenti: SMTP_* (nessuna chiave nuova) + ciak_systeme.ciak_emit_event.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    from services.brevo_client import send_email
+    import asyncio
+    from services.lead_outreach import send_lead_email
+    from services.ciak_systeme import ciak_emit_event
 
     lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
@@ -5301,15 +5320,23 @@ async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(requir
     if not to_email:
         raise HTTPException(400, "Il lead non ha email: aggiungila prima di contattarlo.")
 
-    res = await send_email(to_email, lead.get("display_name"), body.subject, body.html)
+    ok, err = await asyncio.to_thread(send_lead_email, to_email, body.subject, body.html)
     now = datetime.now(timezone.utc).isoformat()
-    if res.get("ok"):
+    systeme_ok = False
+    if ok:
+        first = (lead.get("display_name") or "").split(" ")[0] or None
+        try:
+            systeme_ok = await ciak_emit_event(
+                to_email, "lead_contattato", extra_tags=["community_lead"], first_name=first
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[CONTATTA] Systeme emit fallito per {to_email}: {e}")
         await db.discovery_leads.update_one(
             {"id": lead_id},
             {
                 "$push": {"touches": {
-                    "channel": "email", "via": "brevo", "subject": body.subject,
-                    "at": now, "message_id": res.get("message_id"), "by": "admin",
+                    "channel": "email", "via": "smtp_brevo", "subject": body.subject,
+                    "at": now, "systeme": systeme_ok, "by": "admin",
                 }},
                 "$set": {
                     "last_contacted_at": now, "status": "contacted",
@@ -5317,4 +5344,41 @@ async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(requir
                 },
             },
         )
-    return res
+    return {"ok": ok, "systeme": systeme_ok, "error": err}
+
+
+@router.post("/leads/{lead_id}/avanza")
+async def avanza_lead(lead_id: str, body: AvanzaLeadIn, admin=Depends(require_ciak_admin)):
+    """Avanza lo stato di LAVORAZIONE del lead e riflette il passaggio su Systeme
+    (tag → sequenza + community). Lo stato avanza in base a ciò che si svolge sul lead;
+    diventando Cliente entra anche nella community partner.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_systeme import ciak_emit_event
+
+    stage = (body.stage or "").strip()
+    if stage not in _STAGE_SYSTEME_TAG:
+        raise HTTPException(400, "Stadio di lavorazione non valido.")
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.discovery_leads.update_one(
+        {"id": lead_id}, {"$set": {"status": stage, "updated_at": now}}
+    )
+
+    systeme_ok = False
+    tag = _STAGE_SYSTEME_TAG.get(stage)
+    email = lead.get("email")
+    if tag and email:
+        extra = ["community_lead"]
+        if stage == "converted":
+            extra.append("community_partner")
+        first = (lead.get("display_name") or "").split(" ")[0] or None
+        try:
+            systeme_ok = await ciak_emit_event(email, tag, extra_tags=extra, first_name=first)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[AVANZA] Systeme emit fallito per {email}: {e}")
+    return {"ok": True, "stage": stage, "systeme": systeme_ok}
