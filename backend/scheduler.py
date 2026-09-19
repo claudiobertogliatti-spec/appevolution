@@ -197,6 +197,45 @@ def trigger_discovery_cleanup():
         logger.error(f"[SCHEDULER] Errore trigger_discovery_cleanup: {e}")
 
 
+def trigger_lead_autosearch():
+    """Ogni giorno alle 6:00 — ricerca automatica ~20 lead nuovi (Google Places).
+
+    Alimenta la pipeline di acquisizione senza lavoro manuale (deciso con Claudio
+    19/9/2026). ⛔ INERTE finché `LEAD_AUTOSEARCH_ENABLED` non è "1": il codice può
+    stare su main senza far partire spesa API Places prima che Claudio lo attivi.
+    L'endpoint importa lead pronti da lavorare a mano in Prospect/Pipeline — nessun
+    invio automatico.
+    """
+    try:
+        if os.environ.get("LEAD_AUTOSEARCH_ENABLED", "").strip() != "1":
+            logger.info("[SCHEDULER] Lead autosearch: LEAD_AUTOSEARCH_ENABLED non attivo, salto")
+            return
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Lead autosearch saltato: LUCA_REPORT_KEY non configurata")
+            return
+        target = int(os.environ.get("LEAD_AUTOSEARCH_TARGET", "20") or "20")
+        r = httpx.post(
+            f"{BASE_URL}/discovery/worker/autosearch",
+            params={"target_new": target},
+            headers={"X-Report-Key": chiave},
+            timeout=280,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Lead autosearch: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        if res.get("configured") is False:
+            logger.warning("[SCHEDULER] Lead autosearch: GOOGLE_PLACES_API_KEY non configurata")
+            return
+        logger.info(
+            f"[SCHEDULER] Lead autosearch — +{res.get('new_leads', 0)} nuovi "
+            f"({res.get('hot_leads', 0)} caldi, {res.get('combos_tried', 0)} combo)"
+        )
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_lead_autosearch: {e}")
+
+
 def trigger_systeme_sync():
     """Ogni 6 ore — sync completo con Systeme.io per non perdere lead."""
     try:
@@ -444,6 +483,15 @@ def start_scheduler():
         id="discovery_cleanup",
         replace_existing=True
     )
+
+    # LEAD AUTOSEARCH — ogni giorno alle 6:00 (dopo il cleanup delle 3:00).
+    # Inerte finché LEAD_AUTOSEARCH_ENABLED != "1" (guardia costo API Places).
+    scheduler.add_job(
+        trigger_lead_autosearch,
+        CronTrigger(hour=6, minute=0),
+        id="lead_autosearch",
+        replace_existing=True
+    )
     
     # SYSTEME.IO SYNC — ogni 6 ore
     scheduler.add_job(
@@ -494,6 +542,7 @@ def start_scheduler():
         "  • ANDREA: giovedì ore 10\n"
         "  • STEFANIA: giornaliero ore 7\n"
         "  • DISCOVERY CLEANUP: giornaliero ore 3\n"
+        "  • LEAD AUTOSEARCH: giornaliero ore 6 (se LEAD_AUTOSEARCH_ENABLED=1)\n"
         "  • SYSTEME.IO SYNC: ogni 6 ore\n"
         "  • PARTNERSHIP EXPIRY: giornaliero ore 8\n"
         "  • WEEKLY KPI: lunedì ore 8:30"

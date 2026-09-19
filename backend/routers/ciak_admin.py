@@ -840,6 +840,11 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         {"_id": 0},
         sort=[("executed_at", -1)],
     )
+    last_autosearch = await db.celery_job_logs.find_one(
+        {"job": "daily_lead_autosearch"},
+        {"_id": 0},
+        sort=[("executed_at", -1)],
+    )
 
     # Attività reale di oggi (input metrics: cosa si è mosso oggi vs target 20/giorno).
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -1098,6 +1103,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "queued_systeme_failed": queue_failed,
             "lista_fredda_pending_blocked": lista_fredda_pending_blocked,
             "last_import": last_systeme_import,
+            "last_autosearch": last_autosearch,
         },
         "activity_today": {
             "new_leads": leads_today,
