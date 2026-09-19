@@ -60,7 +60,8 @@ import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { TrattativePipeline } from "./pages/TrattativePipeline";
-import { PipelineAcquisizione } from "./pages/PipelineAcquisizione";
+import { AcquisizionePipeline } from "./pages/AcquisizionePipeline";
+import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
 import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
 import { AcquisizioneProspect } from "./pages/AcquisizioneProspect";
@@ -682,8 +683,13 @@ export default function CiakAdminApp() {
         {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
-        {/* Pipeline = Masterclass (Panoramica) + Pipeline Prospect (Contatti) accorpate */}
-        <Route path="pipeline" element={<PipelineAcquisizione onAuthExpired={handleLogout} />} />
+        {/* Pipeline = GESTIONE lead: recuperi da lavorare oggi, conversioni, lista
+            contatti con azione "Contatta" (email 1:1 via Brevo). Prospect fa entrare
+            i contatti, Pipeline li lavora. */}
+        <Route path="pipeline" element={<AcquisizionePipeline onAuthExpired={handleLogout} />} />
+        {/* Briefing operativo & canali (ex vista "oggi" della Pipeline), raggiungibile
+            dai link in fondo alla Pipeline. */}
+        <Route path="acquisizione-briefing" element={<AcquisizioneCommandCenter onAuthExpired={handleLogout} />} />
         {/* Route vecchie mantenute per i link diretti */}
         <Route
           path="masterclass-analytics"
