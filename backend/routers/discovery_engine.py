@@ -2967,6 +2967,124 @@ async def worker_autosearch(
     return log_doc
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYNC SYSTEME → CIAK — porta un segmento di contatti Systeme in lavorazione
+# ═══════════════════════════════════════════════════════════════════════════════
+# I lead lavorati confluiscono in Systeme (taggati per fonte). Questo endpoint fa
+# il contrario: prende un SEGMENTO (per tag) e lo porta in `discovery_leads` così
+# Mariangela + Carlo possono lavorarlo nel workspace (chiamata/contatto/avanzamento).
+# ⛔ SOLO import (nessun invio). Esclude disiscritti/bounce. Dedup per email.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class SystemeSyncIn(BaseModel):
+    tag_id: int
+    limit: int = 200          # tetto contatti importati per run (ritmo sostenibile)
+    source_label: Optional[str] = None  # etichetta fonte sui lead importati
+
+
+def _systeme_field(contact: dict, slug: str) -> str:
+    for f in contact.get("fields", []) or []:
+        if f.get("slug") == slug:
+            return (f.get("value") or "").strip()
+    return ""
+
+
+@router.post("/worker/sync-from-systeme")
+async def sync_from_systeme(body: SystemeSyncIn, admin=Depends(require_admin_or_report_key)):
+    """Importa in `discovery_leads` i contatti Systeme che hanno `tag_id`, pronti da
+    lavorare. Esclude disiscritti/bounce e i già presenti (dedup email). Nessun invio.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    api_key = os.environ.get("SYSTEME_API_KEY", "")
+    if not api_key:
+        return {"configured": False, "note": "SYSTEME_API_KEY non configurata."}
+
+    base = "https://api.systeme.io/api"
+    headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+    limit = max(1, min(int(body.limit or 200), 2000))
+    source = (body.source_label or "systeme").strip().lower()
+
+    imported = skipped_existing = excluded = fetched = 0
+    cursor: Optional[int] = None
+    now = datetime.now(timezone.utc)
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            while imported < limit:
+                params = {"tags": str(body.tag_id), "order": "asc", "limit": 100}
+                if cursor:
+                    params["startingAfter"] = cursor
+                r = await client.get(f"{base}/contacts", headers=headers, params=params)
+                if r.status_code >= 400:
+                    return {"configured": True, "error": f"Systeme HTTP {r.status_code}: {r.text[:200]}"}
+                data = r.json()
+                items = data.get("items", []) or []
+                if not items:
+                    break
+                for c in items:
+                    fetched += 1
+                    cursor = c.get("id") or cursor
+                    email = (c.get("email") or "").strip().lower()
+                    if not email or "@" not in email:
+                        excluded += 1
+                        continue
+                    if c.get("unsubscribed") or c.get("bounced"):
+                        excluded += 1
+                        continue
+                    if await db.discovery_leads.find_one({"email": email}, {"_id": 1}):
+                        skipped_existing += 1
+                        continue
+                    first = _systeme_field(c, "first_name")
+                    surname = _systeme_field(c, "surname")
+                    phone = _systeme_field(c, "phone_number")
+                    display_name = (f"{first} {surname}").strip() or email
+                    lead_id = generate_lead_id("systeme", email)
+                    await db.discovery_leads.insert_one({
+                        "_id": lead_id,
+                        "id": lead_id,
+                        "source": source,
+                        "display_name": display_name,
+                        "platform_username": email,
+                        "platform_url": "",
+                        "email": email,
+                        "business_phone": phone,
+                        "phone": phone,
+                        "niche_detected": surname,
+                        "status": "discovered",
+                        "score_total": 0,
+                        "score_breakdown": {},
+                        "has_website": False,
+                        "followers_count": 0,
+                        "systeme_contact_id": c.get("id"),
+                        "systeme_synced_from_tag": body.tag_id,
+                        "discovered_at": now.isoformat(),
+                        "updated_at": now.isoformat(),
+                    })
+                    imported += 1
+                    if imported >= limit:
+                        break
+                if not data.get("hasMore"):
+                    break
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[SYSTEME-SYNC] errore tag {body.tag_id}: {e}")
+        return {"configured": True, "error": str(e)[:200]}
+
+    log_doc = {
+        "job": "systeme_sync",
+        "executed_at": now.isoformat(),
+        "tag_id": body.tag_id,
+        "imported": imported,
+        "skipped_existing": skipped_existing,
+        "excluded": excluded,
+        "fetched": fetched,
+        "source_label": source,
+    }
+    await db.celery_job_logs.insert_one(dict(log_doc))
+    logger.info(f"[SYSTEME-SYNC] tag {body.tag_id}: +{imported} importati, {skipped_existing} già presenti, {excluded} esclusi")
+    return log_doc
+
+
 @router.post("/cleanup/ai-validation")
 async def ai_cleanup_validation():
     """

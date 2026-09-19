@@ -900,6 +900,75 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SYNC SYSTEME → CIAK — porta un segmento (per tag) in lavorazione
+// ─────────────────────────────────────────────────────────────
+
+function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
+  const [tagId, setTagId] = useState(2073868); // ciak_cold_outreach_places
+  const [limit, setLimit] = useState(200);
+  const [label, setLabel] = useState("systeme_places");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const run = async () => {
+    setBusy(true); setResult(null);
+    try {
+      const res = await adminFetch("/api/discovery/worker/sync-from-systeme", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag_id: Number(tagId), limit: Number(limit), source_label: label || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setResult({ err: true, text: data.detail || "Errore sync." }); return; }
+      if (data.configured === false) { setResult({ err: true, text: "Systeme non collegato (SYSTEME_API_KEY)." }); return; }
+      if (data.error) { setResult({ err: true, text: data.error }); return; }
+      setResult({ err: false, text: `Importati ${data.imported} · ${data.skipped_existing} già in Ciak · ${data.excluded} esclusi (disiscritti/bounce). Sono nella lista, pronti da lavorare.` });
+      if (data.imported > 0) onImported();
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setResult({ err: true, text: "Errore di rete." }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 bg-slate-900">
+          <div>
+            <div className="font-semibold text-white">Porta lead da Systeme</div>
+            <div className="text-xs text-white/50">Un segmento (per tag) entra in lavorazione. Nessun invio.</div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Tag Systeme (ID)</label>
+              <input type="number" value={tagId} onChange={e => setTagId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Max per volta</label>
+              <input type="number" value={limit} onChange={e => setLimit(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Etichetta fonte</label>
+            <input value={label} onChange={e => setLabel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
+          </div>
+          <p className="text-[11px] text-slate-400">Default: tag <code>ciak_cold_outreach_places</code> (2073868) = i professionisti scrapati. Esclude disiscritti/bounce e chi è già in Ciak. Il conteggio esatto del tag è nel dashboard Systeme.</p>
+          {result && <p className={`text-sm ${result.err ? "text-red-600" : "text-emerald-600"}`}>{result.text}</p>}
+          <button onClick={run} disabled={busy}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 disabled:opacity-60">
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Snowflake className="w-5 h-5" />}
+            {busy ? "Importo…" : "Porta in lavorazione"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
@@ -922,6 +991,7 @@ export function LeadManager({ onAuthExpired }) {
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
+  const [showSystemeSync, setShowSystemeSync] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -1076,6 +1146,11 @@ export function LeadManager({ onAuthExpired }) {
           <Upload className="w-4 h-4" />
           Importa lista
         </button>
+        <button onClick={() => setShowSystemeSync(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+          <Snowflake className="w-4 h-4 text-blue-500" />
+          Da Systeme
+        </button>
       </div>
 
       <p className="text-[12.5px] text-slate-400 mb-2">Clicca un lead per lavorarlo: avanzi lo stato, lo contatti via email, prendi note.</p>
@@ -1226,6 +1301,12 @@ export function LeadManager({ onAuthExpired }) {
       {showPlacesSearch && (
         <PlacesSearchModal
           onClose={() => setShowPlacesSearch(false)}
+          onImported={() => { load(); }}
+          onAuthExpired={onAuthExpired} />
+      )}
+      {showSystemeSync && (
+        <SystemeSyncModal
+          onClose={() => setShowSystemeSync(false)}
           onImported={() => { load(); }}
           onAuthExpired={onAuthExpired} />
       )}
