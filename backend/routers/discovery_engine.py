@@ -22,6 +22,7 @@ import json
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from routers.ciak_admin import require_ciak_admin
+from report_key_auth import require_admin_or_report_key
 from services.discovery_summary import summarize_run, aggregate_places_results
 import asyncio
 
@@ -2870,6 +2871,100 @@ async def cleanup_duplicates():
     except Exception as e:
         logger.error(f"[CLEANUP] Errore pulizia duplicati: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RICERCA AUTOMATICA GIORNALIERA — alimenta la pipeline di acquisizione
+# ═══════════════════════════════════════════════════════════════════════════════
+# Obiettivo (deciso con Claudio 19/9/2026): portare ~20 lead NUOVI al giorno senza
+# lavoro manuale, ruotando su tutte le professioni ICP × città italiane. I lead
+# atterrano in `discovery_leads` (stato "discovered") pronti da lavorare a mano in
+# Prospect/Pipeline. ⛔ NESSUN invio automatico: rispetta la policy canali (outbound
+# umano, no email massive a freddo). Dedup nativo per google_place_id.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Cursore di rotazione persistito: combo_idx scorre gruppo-professione (interno) ×
+# città (esterno), così ogni giorno pesca combinazioni fresche e non ri-batte
+# sempre gli stessi risultati già importati.
+_AUTOSEARCH_MAX_COMBOS = 6   # tetto combinazioni/giorno per limitare costo API Places
+
+
+@router.post("/worker/autosearch")
+async def worker_autosearch(
+    target_new: int = 20,
+    max_combos: int = _AUTOSEARCH_MAX_COMBOS,
+    admin=Depends(require_admin_or_report_key),
+):
+    """Ricerca automatica giornaliera: importa ~`target_new` lead nuovi ruotando su
+    professioni ICP × città. Chiamato dallo scheduler. Fail-closed senza chiave.
+
+    Bilancia costo/risultato: prova combinazioni finché raggiunge target_new NUOVI
+    importati o esaurisce `max_combos` (tetto per limitare le chiamate Places Details).
+    """
+    api_key = os.environ.get("GOOGLE_PLACES_API_KEY")
+    if not api_key:
+        return {"configured": False, "note": "GOOGLE_PLACES_API_KEY non configurata."}
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+
+    groups = list(PROFESSION_GROUPS.keys())
+    n_groups = len(groups)
+    n_cities = len(ITALIAN_CITIES)
+
+    state = await db.discovery_autosearch_state.find_one({"_id": "cursor"}) or {}
+    idx = int(state.get("combo_idx", 0))
+
+    total_new = total_skipped = total_hot = combos_tried = 0
+    errors: list[str] = []
+    touched: list[dict] = []
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        while total_new < target_new and combos_tried < max_combos:
+            group_key = groups[idx % n_groups]
+            city = ITALIAN_CITIES[(idx // n_groups) % n_cities]
+            group = PROFESSION_GROUPS[group_key]
+            combo_new = 0
+            for query_text in group["queries"]:
+                try:
+                    r = await _run_places_query(
+                        client, api_key, query_text, group["label"], city,
+                        20, 0.0, False, False,
+                    )
+                    total_new += r["imported"]
+                    total_skipped += r["skipped"]
+                    total_hot += r["hot"]
+                    combo_new += r["imported"]
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"[AUTOSEARCH] '{query_text}' {city}: {e}")
+                    errors.append(f"{query_text} ({city}): {str(e)[:120]}")
+            touched.append({"group": group["label"], "city": city, "new": combo_new})
+            idx += 1
+            combos_tried += 1
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.discovery_autosearch_state.update_one(
+        {"_id": "cursor"},
+        {"$set": {"combo_idx": idx, "last_run": now, "last_new": total_new}},
+        upsert=True,
+    )
+    log_doc = {
+        "job": "daily_lead_autosearch",
+        "executed_at": now,
+        "new_leads": total_new,
+        "skipped_duplicates": total_skipped,
+        "hot_leads": total_hot,
+        "combos_tried": combos_tried,
+        "target_new": target_new,
+        "touched": touched,
+        "errors": errors,
+        "status": "success" if not errors else ("partial" if total_new else "failed"),
+    }
+    await db.celery_job_logs.insert_one(dict(log_doc))
+    logger.info(
+        f"[AUTOSEARCH] +{total_new} nuovi lead ({combos_tried} combo, {total_hot} caldi, "
+        f"{total_skipped} già presenti, {len(errors)} errori)"
+    )
+    return log_doc
 
 
 @router.post("/cleanup/ai-validation")

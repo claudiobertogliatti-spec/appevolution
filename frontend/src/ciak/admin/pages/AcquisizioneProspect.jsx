@@ -6,7 +6,7 @@
  * stanno in Pipeline. Riusa gli endpoint discovery esistenti.
  */
 import { useEffect, useState } from "react";
-import { Search, UserPlus, Upload, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Search, UserPlus, Upload, ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
 import { apiGet, adminFetch } from "../api";
 import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
@@ -22,6 +22,7 @@ async function postJson(path, body) {
 
 export function AcquisizioneProspect({ onAuthExpired }) {
   const [ritmo, setRitmo] = useState({ oggi: 0, target: 20 });
+  const [autoSearch, setAutoSearch] = useState(undefined); // undefined=loading, null=mai
   // Ricerca lead
   const [q, setQ] = useState({ profession: "", city: "", all_italy: false, only_with_website: false, max_results: 50 });
   const [searching, setSearching] = useState(false);
@@ -42,6 +43,7 @@ export function AcquisizioneProspect({ onAuthExpired }) {
       .then((r) => {
         const a = r.activity_today || {};
         setRitmo({ oggi: a.new_leads || 0, target: a.target_new_contacts || r.routine?.daily_new_contacts || 20 });
+        setAutoSearch(r.discovery_engine?.last_autosearch || null);
       })
       .catch(guard);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,9 +58,9 @@ export function AcquisizioneProspect({ onAuthExpired }) {
         max_results: Number(q.max_results) || 50, all_italy: q.all_italy, only_with_website: q.only_with_website,
       });
       if (!ok) { setSearchMsg({ err: true, text: data.detail || "Errore nella ricerca." }); return; }
-      const imp = data.imported ?? data.total_imported ?? data.new ?? 0;
-      const skip = data.skipped ?? data.total_skipped ?? 0;
-      const hot = data.hot ?? data.total_hot ?? 0;
+      const imp = data.new_leads ?? data.imported ?? 0;
+      const skip = data.duplicates_skipped ?? data.skipped ?? 0;
+      const hot = data.hot_leads ?? data.hot ?? 0;
       setSearchMsg({ err: false, text: `Trovati e aggiunti ${imp} professionisti${skip ? ` (${skip} già presenti)` : ""}${hot ? ` · ${hot} caldi` : ""}. Lavorali in Pipeline.` });
     } catch (e) { guard(e); setSearchMsg({ err: true, text: "Errore di rete." }); }
     finally { setSearching(false); }
@@ -113,6 +115,23 @@ export function AcquisizioneProspect({ onAuthExpired }) {
         </div>
         <div className="text-xs text-slate-400">nuovi contatti mirati</div>
       </div>
+
+      {/* RICERCA AUTOMATICA — stato */}
+      {autoSearch !== undefined && (
+        <div className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 border text-[13px] ${autoSearch ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
+          <RefreshCw className={`w-4 h-4 flex-shrink-0 ${autoSearch ? "text-emerald-600" : "text-slate-400"}`} />
+          {autoSearch ? (
+            <span>
+              <span className="font-semibold">Ricerca automatica attiva</span> — ultima:
+              {" "}+{autoSearch.new_leads ?? 0} lead
+              {autoSearch.executed_at ? ` il ${new Date(autoSearch.executed_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+              {typeof autoSearch.hot_leads === "number" && autoSearch.hot_leads > 0 ? ` · ${autoSearch.hot_leads} caldi` : ""}.
+            </span>
+          ) : (
+            <span>Ricerca automatica non ancora attiva. Gira ~20 lead/giorno quando viene abilitata (env <code className="text-[11px]">LEAD_AUTOSEARCH_ENABLED</code>).</span>
+          )}
+        </div>
+      )}
 
       {/* RICERCA LEAD — azione primaria */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6">
