@@ -771,8 +771,15 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
   const setStage = async (key) => {
     if (busy || key === status) return;
     setBusy(true); setMsg(null);
-    try { await patchLead({ status: key }); setStatus(key); onChanged({ ...lead, status: key }); }
-    catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel cambio stato." }); }
+    try {
+      const res = await adminFetch(`/api/admin/ciak/leads/${lead.id}/avanza`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: key }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg({ err: true, text: data.detail || "Errore nel cambio stato." }); return; }
+      setStatus(key); onChanged({ ...lead, status: key });
+      setMsg({ err: false, text: data.systeme ? "Stato aggiornato · sequenza/community Systeme applicata." : "Stato aggiornato." });
+    } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setMsg({ err: true, text: "Errore nel cambio stato." }); }
     finally { setBusy(false); }
   };
 
@@ -792,15 +799,14 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setContactMsg({ err: true, text: data.detail || "Invio non riuscito." }); return; }
-      if (data.configured === false) { setContactMsg({ err: true, text: "Brevo non è collegato (manca BREVO_API_KEY)." }); return; }
       if (data.ok) {
         const now = new Date().toISOString();
-        setContactMsg({ err: false, text: "Email inviata e registrata. Stato → Contattato." });
+        setContactMsg({ err: false, text: data.systeme ? "Email inviata (Brevo) · lead in sequenza/community Systeme." : "Email inviata (Brevo)." });
         setStatus("contacted"); setLastContact(now); setShowContact(false);
         onChanged({ ...lead, status: "contacted", last_contacted_at: now });
         return;
       }
-      setContactMsg({ err: true, text: data.error || "Invio non riuscito." });
+      setContactMsg({ err: true, text: data.error === "SMTP non configurato" ? "Canale email non collegato (SMTP)." : (data.error || "Invio non riuscito.") });
     } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); else setContactMsg({ err: true, text: "Errore di rete." }); }
     finally { setSending(false); }
   };
