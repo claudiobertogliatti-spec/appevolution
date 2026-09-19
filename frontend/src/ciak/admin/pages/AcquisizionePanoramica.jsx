@@ -83,6 +83,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
   const target = data.target || {};
   const funnel = data.funnel || {};
   const stages = data.funnel_stages || {};
+  const lav = data.lavorazione_pipeline || {};
   const activity = data.activity_today || {};
   const routine = data.routine || {};
   const bottlenecks = Array.isArray(data.bottlenecks) ? data.bottlenecks : [];
@@ -122,6 +123,32 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
         <p className="text-sm text-slate-500 mt-1">Dove crolla la conversione questo mese: è il collo di bottiglia da lavorare.</p>
         <div className="mt-5">
           <FunnelStrip stages={stages} />
+        </div>
+      </div>
+
+      {/* PIPELINE DI LAVORAZIONE — stessi numeri del board in Pipeline Prospect */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-yellow-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Pipeline di lavorazione</h2>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">
+          Gli stessi numeri del board in <Link to="/admin/pipeline" className="text-blue-700 font-medium">Pipeline Prospect</Link> — dal contatto al passaggio in Vendite.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+          {[
+            { k: "In lista", v: lav.discovered, h: "nuovi da lavorare" },
+            { k: "Contattati", v: lav.contacted, h: "" },
+            { k: "Ha risposto", v: lav.responded_positive, h: "" },
+            { k: "Qualificati", v: lav.qualified, h: "→ Vendite" },
+            { k: "Clienti", v: lav.converted, h: "chiusi", win: true },
+          ].map((m) => (
+            <div key={m.k} className={`rounded-xl p-4 ${m.win ? "bg-emerald-50 border border-emerald-200" : "bg-slate-50"}`}>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className={`text-2xl font-semibold mt-1 ${m.win ? "text-emerald-700" : "text-slate-900"}`}>{m.v ?? 0}</div>
+              {m.h && <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>}
+            </div>
+          ))}
         </div>
       </div>
 

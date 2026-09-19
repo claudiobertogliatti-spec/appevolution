@@ -991,6 +991,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   const [editLead, setEditLead] = useState(null);
   const [workspaceLead, setWorkspaceLead] = useState(null);
   const [board, setBoard] = useState({});
+  const [boardCounts, setBoardCounts] = useState({});
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState("csv");
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
@@ -1033,12 +1034,17 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   // raggruppati per stadio. Fetch a parte (indipendente da pagina/filtri).
   const loadBoard = async () => {
     try {
-      const res = await adminFetch(`/api/discovery/leads?limit=300`);
+      const [res, cc] = await Promise.all([
+        adminFetch(`/api/discovery/leads?limit=300`),
+        adminFetch(`/api/admin/ciak/acquisizione-command-center`),
+      ]);
       const data = await res.json();
       const grouped = {};
       for (const s of BOARD_STAGES) grouped[s.key] = [];
       for (const l of (data.leads || [])) if (grouped[l.status]) grouped[l.status].push(l);
       setBoard(grouped);
+      const ccData = await cc.json().catch(() => ({}));
+      setBoardCounts(ccData.lavorazione_pipeline || {});
     } catch (e) { if (e.message === "AUTH_EXPIRED") onAuthExpired(); }
   };
   useEffect(() => { loadBoard(); /* eslint-disable-next-line */ }, []);
@@ -1300,6 +1306,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {BOARD_STAGES.map((s, i) => {
             const items = board[s.key] || [];
+            const total = boardCounts[s.key] ?? items.length;
             const isWin = s.key === "converted";
             return (
               <div key={s.key} className={`rounded-2xl border p-3 ${isWin ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
@@ -1308,7 +1315,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                     <span className="text-slate-300">{i + 1}</span> {s.label}
                     {s.key === "qualified" && <span className="text-[9px] font-semibold text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">→ Vendite</span>}
                   </span>
-                  <span className="text-xs font-bold text-slate-900 bg-white border border-gray-200 rounded-full px-2 py-0.5">{items.length}</span>
+                  <span className="text-xs font-bold text-slate-900 bg-white border border-gray-200 rounded-full px-2 py-0.5">{total}</span>
                 </div>
                 <div className="space-y-2 min-h-[40px]">
                   {items.length === 0 ? (
@@ -1320,7 +1327,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                       <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
                     </button>
                   ))}
-                  {items.length > 15 && <p className="text-[11px] text-slate-400 text-center">+{items.length - 15}</p>}
+                  {total > 15 && <p className="text-[11px] text-slate-400 text-center">+{total - Math.min(items.length, 15)} altri</p>}
                 </div>
               </div>
             );

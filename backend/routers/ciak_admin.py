@@ -831,6 +831,17 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     discovery_total = await db.discovery_leads.count_documents({})
     discovery_hot = await db.discovery_leads.count_documents({"score_total": {"$gte": 75}})
     discovery_google_places = await db.discovery_leads.count_documents({"source": "google_places"})
+
+    # Pipeline di LAVORAZIONE per stato: fonte unica dei numeri, condivisa da Home e
+    # dal board del Lead Manager (così i KPI della Home coincidono con la pipeline).
+    lavorazione_pipeline = {
+        "discovered": 0, "contacted": 0, "responded_positive": 0,
+        "qualified": 0, "converted": 0, "responded_negative": 0,
+    }
+    async for _row in db.discovery_leads.aggregate([{"$group": {"_id": "$status", "n": {"$sum": 1}}}]):
+        _st = _row.get("_id")
+        if _st in lavorazione_pipeline:
+            lavorazione_pipeline[_st] = int(_row.get("n", 0) or 0)
     queue_pending = await db.systeme_daily_queue.count_documents({"status": "pending", "source": {"$ne": "lista_fredda"}})
     queue_imported = await db.systeme_daily_queue.count_documents({"status": "imported"})
     queue_failed = await db.systeme_daily_queue.count_documents({"status": "failed"})
@@ -1080,6 +1091,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "report_ready": report_ready_month,
             "call_booked": call_booked_month,
         },
+        "lavorazione_pipeline": lavorazione_pipeline,
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
             "clicked_no_purchase": _sort_limit(clicked_no_purchase),
