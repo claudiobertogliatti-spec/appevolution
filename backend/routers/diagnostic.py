@@ -90,6 +90,7 @@ class StartResponse(BaseModel):
 QuestionId = Literal[
     "q1_competenza", "q2_esperienza", "q3_clienti", "q4_idea",
     "q5_target", "q6_problema", "q7_digitale", "q8_obiettivo",
+    "q9_materiale", "q10_agenzie",
 ]
 
 
@@ -160,6 +161,8 @@ def _build_session_doc(req: StartRequest) -> dict:
             "q6_problema": None,
             "q7_digitale": None,
             "q8_obiettivo": None,
+            "q9_materiale": None,
+            "q10_agenzie": None,
         },
         "scoring": None,
         "report": None,
@@ -185,6 +188,8 @@ def _build_user_payload_for_matteo(session: dict, scoring: Any) -> dict:
         "problema": responses["q6_problema"],
         "digitale": responses["q7_digitale"],
         "obiettivo": responses["q8_obiettivo"],
+        "materiale": responses.get("q9_materiale"),
+        "agenzie": responses.get("q10_agenzie"),
         "score_numerico": scoring.score_numerico,
         "stato": scoring.stato_finale,
         "override_applicato": scoring.override_applicati,

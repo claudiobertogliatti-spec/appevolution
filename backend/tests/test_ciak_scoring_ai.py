@@ -80,6 +80,25 @@ async def test_clamps_score_and_maps_stato():
 
 
 @pytest.mark.asyncio
+async def test_instradamento_esplicito_e_default():
+    # instradamento esplicito dal modello
+    fake = _fake_response('{"score_0_100": 80, "stato": 4, "pronto": true, "instradamento": "partnership", "rationale": "tipo Lamanna"}')
+    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test"}), \
+            patch("services.ciak_scoring_ai.anthropic.Anthropic") as MC:
+        MC.return_value.messages.create.return_value = fake
+        res = await calculate_scoring_ai(_RESP)
+    assert res.instradamento == "partnership"
+    assert res.to_dict()["instradamento"] == "partnership"
+    # instradamento assente → dedotto dallo score (25 < 30 → nurture)
+    fake2 = _fake_response('{"score_0_100": 25, "stato": 2, "pronto": false, "rationale": "aspirante"}')
+    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test"}), \
+            patch("services.ciak_scoring_ai.anthropic.Anthropic") as MC:
+        MC.return_value.messages.create.return_value = fake2
+        res2 = await calculate_scoring_ai(_RESP)
+    assert res2.instradamento == "nurture"
+
+
+@pytest.mark.asyncio
 async def test_fallback_on_unparsable_output():
     fake = _fake_response("mi dispiace, non riesco a rispondere")
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test"}), \
