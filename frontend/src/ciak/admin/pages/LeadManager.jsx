@@ -1185,7 +1185,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
       <p className="text-[12.5px] text-slate-400 mb-2">Clicca un lead per lavorarlo: avanzi lo stato, lo contatti via email, prendi note.</p>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
@@ -1209,7 +1209,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                 <tr key={lead.id || i} onClick={() => setWorkspaceLead(lead)}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{lead.display_name || "—"}</div>
+                    <div className="font-medium text-slate-900 truncate max-w-[240px]" title={lead.display_name || ""}>{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
                       <div className="text-[11px] mt-0.5 text-slate-400">
                         {lead.business_address?.split(",").slice(0, 2).join(",")}
