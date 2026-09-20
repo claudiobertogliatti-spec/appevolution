@@ -63,6 +63,7 @@ import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspect";
 import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
 import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
+import { VenditePanoramica } from "./pages/VenditePanoramica";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
 import { AcquisizioneScript } from "./pages/AcquisizioneScript";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
@@ -666,7 +667,9 @@ export default function CiakAdminApp() {
             element={
               m.id === "acquisizione"
                 ? <AcquisizionePanoramica onAuthExpired={handleLogout} />
-                : <RepartoLanding macro={m} onAuthExpired={handleLogout} />
+                : m.id === "vendite"
+                  ? <VenditePanoramica onAuthExpired={handleLogout} />
+                  : <RepartoLanding macro={m} onAuthExpired={handleLogout} />
             }
           />
         ))}
