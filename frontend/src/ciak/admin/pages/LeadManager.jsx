@@ -51,6 +51,10 @@ const WORK_ORDER = WORK_STAGES.map(s => s.key);
 // lead compaiono come card fin dal primo stadio.
 const BOARD_STAGES = WORK_STAGES;
 
+// Commerciali assegnabili a un lead (owner). Mariangela = setter acquisizione;
+// Claudio conduce le call; Gaia = vendite. Scrive su discovery_leads.owner.
+const COMMERCIALI = ["Mariangela", "Claudio", "Gaia"];
+
 const SOURCES = {
   instagram:     { label: "Instagram",      cls: "bg-pink-100 text-pink-600" },
   linkedin:      { label: "LinkedIn",       cls: "bg-blue-100 text-blue-700" },
@@ -105,18 +109,6 @@ function StatusBadge({ status, map }) {
   return (
     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.cls}`}>
       {cfg.label}
-    </span>
-  );
-}
-
-function ScoreBadge({ score }) {
-  const cls =
-    score >= 80 ? "bg-emerald-100 text-emerald-600"
-    : score >= 50 ? "bg-yellow-100 text-yellow-600"
-    : "bg-gray-100 text-slate-500";
-  return (
-    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg ${cls}`}>
-      {score || 0}
     </span>
   );
 }
@@ -1104,6 +1096,22 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
     loadBoard();
   };
 
+  // Assegna il commerciale (owner) al lead. Ottimistico: aggiorna subito, rollback su errore.
+  const updateOwner = async (lead, owner) => {
+    const prev = lead.owner || "";
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, owner } : l));
+    try {
+      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ owner }),
+      });
+      if (!res.ok) throw new Error("patch fallita");
+    } catch (e) {
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, owner: prev } : l));
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else toast.error("Non sono riuscito ad assegnare il commerciale.");
+    }
+  };
+
   const isDiscovery = true;
 
   return (
@@ -1199,7 +1207,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-                {["Nome", "Email / Username", "Fonte", "Nicchia", "Score", "Stato", "Temp.", ""].map(h => (
+                {["Nome", "Email / Username", "Fonte", "Nicchia", "Commerciale", "Stato", "Temp.", ""].map(h => (
                   <th key={h} className="px-4 py-3 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -1252,7 +1260,13 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                   <td className="px-4 py-3 max-w-[150px]">
                     <span className="text-xs truncate block text-slate-600">{lead.niche_detected || "—"}</span>
                   </td>
-                  <td className="px-4 py-3"><ScoreBadge score={lead.score_total} /></td>
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <select value={lead.owner || ""} onChange={e => updateOwner(lead, e.target.value)}
+                      className={`text-[12px] border rounded-lg px-2 py-1 bg-white ${lead.owner ? "border-gray-200 text-slate-700 font-medium" : "border-gray-200 text-slate-400"}`}>
+                      <option value="">— assegna</option>
+                      {COMMERCIALI.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={lead.status} map={DISCOVERY_STATUSES} />
                   </td>
