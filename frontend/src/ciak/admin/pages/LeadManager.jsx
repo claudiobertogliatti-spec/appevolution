@@ -47,8 +47,9 @@ const WORK_STAGES = [
   { key: "converted",          label: "Cliente" },
 ];
 const WORK_ORDER = WORK_STAGES.map(s => s.key);
-// Colonne del board "In lavorazione" (sotto la tabella): gli stadi DOPO l'ingresso.
-const BOARD_STAGES = WORK_STAGES.filter(s => s.key !== "discovered");
+// Colonne del board: TUTTA la pipeline, da Nuovo (Scoperto) fino a Cliente, così i
+// lead compaiono come card fin dal primo stadio.
+const BOARD_STAGES = WORK_STAGES;
 
 const SOURCES = {
   instagram:     { label: "Instagram",      cls: "bg-pink-100 text-pink-600" },
@@ -1303,7 +1304,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         <p className="text-sm text-slate-500 mt-1 mb-4">
           Dal primo contatto fino al passaggio in Vendite. Clicca una card per far avanzare il lead.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {BOARD_STAGES.map((s, i) => {
             const items = board[s.key] || [];
             const total = boardCounts[s.key] ?? items.length;

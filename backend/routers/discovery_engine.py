@@ -2989,6 +2989,31 @@ def _systeme_field(contact: dict, slug: str) -> str:
     return ""
 
 
+# Mappa i tag Systeme → fase della pipeline di lavorazione, così i lead importati
+# atterrano nella colonna giusta (il lavoro reale degli ultimi mesi), non tutti come
+# "Nuovo". Priorità alto→basso: vince la fase più avanzata. Tag da ciak_systeme /
+# state machine (vedi Systeme dashboard).
+_SYSTEME_STAGE_RULES = [
+    ("converted", {"ciak_bought_67", "ciak_bought_27", "ciak_bought_499",
+                   "partner_attivo", "contratto_firmato", "analisi_pagata", "decisione_positiva"}),
+    ("qualified", {"call_prenotata", "ciak_call_booked", "call_fatta"}),
+    ("responded_positive", {"ciak_completed", "questionario_compilato",
+                            "riattivazione_risposto", "riattivazione_caldo"}),
+    ("contacted", {"ciak_cold_outreach_places", "ciak_cold_outreach_legacy", "ciak_started",
+                   "ciak_optin_masterclass", "lead_registrato", "lista_fredda",
+                   "riattivazione_lotto_1", "lista_fredda_tag1", "lista_fredda_tag2",
+                   "lista_fredda_tag3", "lista_fredda_tag4"}),
+]
+
+
+def _systeme_pipeline_status(tags: list) -> str:
+    names = {(t.get("name") or "").strip().lower() for t in (tags or [])}
+    for stage, keys in _SYSTEME_STAGE_RULES:
+        if names & {k.lower() for k in keys}:
+            return stage
+    return "discovered"
+
+
 @router.post("/worker/sync-from-systeme")
 async def sync_from_systeme(body: SystemeSyncIn, admin=Depends(require_admin_or_report_key)):
     """Importa in `discovery_leads` i contatti Systeme che hanno `tag_id`, pronti da
@@ -3051,7 +3076,7 @@ async def sync_from_systeme(body: SystemeSyncIn, admin=Depends(require_admin_or_
                         "business_phone": phone,
                         "phone": phone,
                         "niche_detected": surname,
-                        "status": "discovered",
+                        "status": _systeme_pipeline_status(c.get("tags")),
                         "score_total": 0,
                         "score_breakdown": {},
                         "has_website": False,
