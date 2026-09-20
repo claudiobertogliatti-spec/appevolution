@@ -4668,6 +4668,172 @@ async def crediti_salva(credito_id: str, body: dict, admin=Depends(require_ciak_
     return {"success": True, "credito": validato}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# WATCHDOG 60 GIORNI — partner a rate: online entro 60gg dall'attivazione, o saldo
+#
+# Regola di Claudio: chi paga a rate deve essere ONLINE entro 60 giorni; al 60°
+# giorno senza online scatta il saldo totale. Qui il dato diventa visibile PRIMA
+# che la scadenza passi. ⛔ Sola lettura: il pannello PREPARA, il saldo lo esegue
+# una persona (nessun addebito automatico). I `non_sollecitare` restano nei conti
+# ma fuori dall'azione, coerente con crediti.py.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _wd_parse_date(val):
+    """ISO date/datetime → date, o None. Ignora dict e valori non parsabili."""
+    if not val or not isinstance(val, str):
+        return None
+    try:
+        return datetime.fromisoformat(val[:10]).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _wd_start_date(p: dict):
+    """
+    Data di partenza del conteggio 60gg, a cascata (la prima presente vince):
+    attivazione esplicita → onboarding (welcome email) → pagamento/conversione →
+    firma contratto → creazione record. Ritorna (date|None, etichetta_fonte).
+    Non esiste un campo "attivazione" affidabile: la firma è l'unico sempre
+    presente, quindi è il fallback dichiarato (mostrato per-partner).
+    """
+    onb = p.get("onboarding_status") or {}
+    contract = p.get("contract")
+    for val, label in [
+        (p.get("data_attivazione"), "attivazione"),
+        (onb.get("welcome_email_date"), "onboarding"),
+        (p.get("data_pagamento_partnership"), "pagamento partnership"),
+        (p.get("conversion_date"), "conversione"),
+        (contract if isinstance(contract, str) else None, "firma contratto"),
+        (p.get("created_at"), "creazione record"),
+    ]:
+        d = _wd_parse_date(val)
+        if d:
+            return d, label
+    return None, None
+
+
+@router.get("/watchdog/partner-online")
+async def watchdog_partner_online(
+    admin=Depends(require_admin_or_report_key),
+    soglia_giorni: int = Query(60),
+    preavviso_giorni: int = Query(15),
+):
+    """
+    Partner con piano a RATE: sono ONLINE (funnel pubblicato) entro `soglia_giorni`
+    dall'attivazione? Chi non lo è al 60° giorno ha il saldo dovuto.
+
+    `online` = lancio pubblicato OR funnel pubblicato + URL. `residuo` dai crediti
+    (rate non incassate/saltate, solo tipo credito). Accetta la chiave read-only:
+    così un domani il briefing di Luca può spingerlo la mattina. Sola lettura:
+    prepara, non addebita.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    from crediti import (
+        stato_effettivo_rata, TIPO_CREDITO, CREDITO_SALDATO,
+        RATA_INCASSATA, RATA_SALTATA,
+    )
+
+    def _residuo(c: dict) -> float:
+        if (c.get("tipo") or TIPO_CREDITO) != TIPO_CREDITO:
+            return 0.0
+        tot = 0.0
+        for r in c.get("rate") or []:
+            if stato_effettivo_rata(r) not in (RATA_INCASSATA, RATA_SALTATA):
+                tot += float(r.get("importo") or 0)
+        return round(tot, 2)
+
+    # 1) Solo i crediti che sono un PIANO A RATE (>=2 rate) con residuo ancora aperto.
+    crediti = await db.crediti.find({}, {"_id": 0}).to_list(500)
+    piani = [
+        (c, _residuo(c)) for c in crediti
+        if len(c.get("rate") or []) >= 2 and c.get("stato") != CREDITO_SALDATO
+    ]
+    piani = [(c, res) for c, res in piani if res > 0]
+
+    # 2) Aggancio al partner (per id, poi per email).
+    partners = await db.partners.find({}, {"_id": 0}).to_list(1000)
+    by_id = {p.get("id"): p for p in partners if p.get("id")}
+    by_email = {(p.get("email") or "").lower(): p for p in partners if p.get("email")}
+
+    def _match_partner(c):
+        if c.get("partner_id") and c["partner_id"] in by_id:
+            return by_id[c["partner_id"]]
+        return by_email.get((c.get("email") or "").lower())
+
+    coinvolti = {c["id"]: (c, res, _match_partner(c)) for c, res in piani}
+    partner_ids = [p.get("id") for (_c, _r, p) in coinvolti.values() if p and p.get("id")]
+
+    # 3) Segnale ONLINE dai funnel/lancio dei soli partner coinvolti (fetch mirato).
+    funnels, lanci = {}, {}
+    if partner_ids:
+        async for f in db.partner_funnel.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            funnels[f.get("partner_id")] = f
+        async for lan in db.partner_lancio.find({"partner_id": {"$in": partner_ids}}, {"_id": 0}):
+            lanci[lan.get("partner_id")] = lan
+
+    def _online(pid):
+        lan = lanci.get(pid) or {}
+        fun = funnels.get(pid) or {}
+        if lan.get("launched") or lan.get("funnel_published"):
+            return True, "lancio pubblicato"
+        if fun.get("published") and (fun.get("funnel_url") or fun.get("vendita_url") or fun.get("optin_url")):
+            return True, "funnel pubblicato"
+        return False, "nessun funnel pubblicato"
+
+    oggi = datetime.now(timezone.utc).date()
+    rows = []
+    for c, res, p in coinvolti.values():
+        pid = p.get("id") if p else None
+        start, start_src = _wd_start_date(p) if p else (None, None)
+        giorni = (oggi - start).days if start else None
+        online, signal = _online(pid) if pid else (None, "partner non collegato")
+        if online:
+            bucket = "online"
+        elif giorni is None:
+            bucket = "senza_data"
+        elif giorni >= soglia_giorni:
+            bucket = "scaduto"
+        elif giorni >= (soglia_giorni - preavviso_giorni):
+            bucket = "in_scadenza"
+        else:
+            bucket = "in_regola"
+        rows.append({
+            "credito_id": c.get("id"),
+            "partner_id": pid,
+            "nome": (p.get("name") if p else None) or c.get("nome"),
+            "email": (p.get("email") if p else None) or c.get("email"),
+            "start_date": start.isoformat() if start else None,
+            "start_source": start_src,
+            "giorni_trascorsi": giorni,
+            "online": online,
+            "online_signal": signal,
+            "residuo": res,
+            "non_sollecitare": bool(c.get("non_sollecitare")),
+            "bucket": bucket,
+        })
+
+    ordine = {"scaduto": 0, "in_scadenza": 1, "senza_data": 2, "in_regola": 3, "online": 4}
+    rows.sort(key=lambda r: (ordine.get(r["bucket"], 9), -(r["giorni_trascorsi"] or 0)))
+
+    scaduti = [r for r in rows if r["bucket"] == "scaduto"]
+    return {
+        "generato_at": datetime.now(timezone.utc).isoformat(),
+        "soglia_giorni": soglia_giorni,
+        "preavviso_giorni": preavviso_giorni,
+        "partner": rows,
+        "totali": {
+            "a_piano": len(rows),
+            "scaduti": len(scaduti),
+            "in_scadenza": len([r for r in rows if r["bucket"] == "in_scadenza"]),
+            # Residuo "da saldare" = solo scaduti sollecitabili (i non_sollecitare
+            # restano nei conti ma non nell'azione, come in crediti.py).
+            "residuo_scaduto": round(sum(r["residuo"] for r in scaduti if not r["non_sollecitare"]), 2),
+        },
+    }
+
+
 @router.get("/collaudo")
 async def collaudo_catene(admin=Depends(require_admin_or_report_key)):
     """
