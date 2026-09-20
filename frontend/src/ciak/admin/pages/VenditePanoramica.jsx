@@ -89,6 +89,7 @@ export function VenditePanoramica({ onAuthExpired }) {
 
   const target = data.target || {};
   const funnel = data.funnel || {};
+  const split = data.vendite_split || {};
   const bottlenecks = Array.isArray(data.bottlenecks) ? data.bottlenecks : [];
 
   const firmateMese = target.partnerships_closed ?? 0;
@@ -137,6 +138,27 @@ export function VenditePanoramica({ onAuthExpired }) {
             <p className="text-base font-semibold text-slate-900 mt-1">Ciak Start €390</p>
             <p className="text-[13px] text-slate-600 mt-1">Il gradino per chi non è ancora pronto — vale come credito verso la Partnership.</p>
           </div>
+        </div>
+      </div>
+
+      {/* SPLIT INSTRADAMENTO DEL MESE — la spina resa numeri */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center gap-2">
+          <Route className="w-5 h-5 text-yellow-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Instradamento del mese</h2>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">Chi ha completato il questionario questo mese, per offerta consigliata dallo scoring.</p>
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          {[
+            { k: "Pronti → Partnership", v: split.partnership, cls: "bg-emerald-50 border-emerald-200" },
+            { k: "Non pronti → Start", v: split.start, cls: "bg-yellow-50 border-yellow-200" },
+            { k: "Da nutrire", v: split.nurture, cls: "bg-slate-50 border-slate-200" },
+          ].map((m) => (
+            <div key={m.k} className={`rounded-xl border p-4 ${m.cls}`}>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
+              <div className="text-2xl font-semibold mt-1 text-slate-900">{m.v ?? 0}</div>
+            </div>
+          ))}
         </div>
       </div>
 
