@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, Gauge, Target, Handshake, AlertTriangle, TrendingUp, Route,
+  ArrowRight, Gauge, Target, Handshake, AlertTriangle, TrendingUp, Route, PhoneCall,
 } from "lucide-react";
 import { apiGet } from "../api";
 import { VenditeSubNav } from "../components/VenditeSubNav";
@@ -24,6 +24,15 @@ import { VenditeSubNav } from "../components/VenditeSubNav";
 function pct(num, den) {
   if (!den) return 0;
   return Math.round((num / den) * 100);
+}
+
+function fmtOra(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "—";
+  }
 }
 
 // La catena della vendita: dove i soldi si bloccano tra la call prenotata e il
@@ -68,6 +77,7 @@ function SalesChain({ funnel }) {
 
 export function VenditePanoramica({ onAuthExpired }) {
   const [data, setData] = useState(null);
+  const [calls, setCalls] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -77,6 +87,8 @@ export function VenditePanoramica({ onAuthExpired }) {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
         else setError(e.message);
       });
+    // Pannello secondario: se fallisce non blocca la home.
+    apiGet("/calls-today").then(setCalls).catch(() => {});
   }, [onAuthExpired]);
 
   const acquistatoSenzaCall = useMemo(
@@ -117,6 +129,38 @@ export function VenditePanoramica({ onAuthExpired }) {
           </p>
         </div>
       </div>
+
+      {/* CALL DI OGGI — il cuore operativo (cal.com) */}
+      {calls && calls.count > 0 && (
+        <div className="bg-white border border-yellow-300 rounded-2xl p-6">
+          <div className="flex items-center gap-2">
+            <PhoneCall className="w-5 h-5 text-yellow-600" />
+            <h2 className="text-lg font-semibold text-slate-900">Call di oggi</h2>
+            <span className="text-xs font-bold text-slate-900 bg-yellow-100 rounded-full px-2 py-0.5">{calls.count}</span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">Le call di consegna prenotate per oggi. Apri per il Report Carlo, pronto per la call.</p>
+          <div className="mt-4 divide-y divide-slate-100">
+            {calls.calls.map((c) => (
+              <Link
+                key={c.session_token || c.email}
+                to={`/admin/leads/${encodeURIComponent(c.email)}`}
+                className="group flex items-center justify-between gap-4 py-3 px-2 rounded-lg hover:bg-slate-50 transition"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-sm font-bold tabular-nums text-slate-900 w-12 flex-shrink-0">{fmtOra(c.starts_at)}</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 truncate">{c.nome || c.email}</p>
+                    <p className="text-xs text-slate-500 truncate">{c.email}</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 whitespace-nowrap">
+                  Apri Report <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SPINA COMMERCIALE — la regola che evita gli insoluti del passato */}
       <div className="bg-white border border-yellow-300 rounded-2xl p-6">

@@ -1136,6 +1136,44 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     }
 
 
+# ─── Call di oggi (cal.com) ──────────────────────────────────────────────────
+
+@router.get("/calls-today")
+async def calls_today(admin=Depends(require_admin_or_report_key)):
+    """
+    Le call di consegna prenotate per OGGI (cal.com), il cuore operativo di Vendite.
+
+    Fonte: gli eventi cal.com sulle diagnostic_sessions (`booking.py`):
+    `calcom_booking_created.starts_at`, aggiornato da `calcom_booking_rescheduled.
+    new_starts_at`, azzerato da `calcom_booking_cancelled`. Solo lo stato
+    `call_booked` (non ancora fatta). Accetta la chiave report per il briefing.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    oggi = datetime.now(timezone.utc).date().isoformat()
+    calls = []
+    async for d in db.diagnostic_sessions.find({"current_state": "call_booked"}):
+        start = None
+        for ev in d.get("events", []):
+            name = ev.get("event")
+            md = ev.get("metadata") or {}
+            if name == "calcom_booking_created":
+                start = md.get("starts_at") or start
+            elif name == "calcom_booking_rescheduled":
+                start = md.get("new_starts_at") or start
+            elif name == "calcom_booking_cancelled":
+                start = None
+        if start and str(start)[:10] == oggi:
+            calls.append({
+                "email": d.get("user_email"),
+                "nome": d.get("user_name"),
+                "starts_at": start,
+                "session_token": d.get("session_token"),
+            })
+    calls.sort(key=lambda c: c.get("starts_at") or "")
+    return {"date": oggi, "count": len(calls), "calls": calls}
+
+
 # ─── Leads list ────────────────────────────────────────────────────────────
 
 @router.get("/leads")
