@@ -838,7 +838,10 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         "discovered": 0, "contacted": 0, "responded_positive": 0,
         "qualified": 0, "converted": 0, "responded_negative": 0,
     }
-    async for _row in db.discovery_leads.aggregate([{"$group": {"_id": "$status", "n": {"$sum": 1}}}]):
+    async for _row in db.discovery_leads.aggregate([
+        {"$match": {"in_lavorazione": True}},
+        {"$group": {"_id": "$status", "n": {"$sum": 1}}},
+    ]):
         _st = _row.get("_id")
         if _st in lavorazione_pipeline:
             lavorazione_pipeline[_st] = int(_row.get("n", 0) or 0)

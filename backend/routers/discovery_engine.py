@@ -766,11 +766,13 @@ async def get_leads(
     status: Optional[LeadStatus] = None,
     source: Optional[LeadSource] = None,
     min_score: int = 0,
+    in_lavorazione: Optional[bool] = None,
     limit: int = 50,
     skip: int = 0,
     admin=Depends(require_ciak_admin),
 ):
-    """Lista leads con filtri"""
+    """Lista leads con filtri. `in_lavorazione`: true = già in pipeline (approvati);
+    false = coda di ingresso (da assegnare/approvare)."""
     query = {}
     if status:
         query["status"] = status.value
@@ -778,6 +780,10 @@ async def get_leads(
         query["source"] = source.value
     if min_score > 0:
         query["score_total"] = {"$gte": min_score}
+    if in_lavorazione is True:
+        query["in_lavorazione"] = True
+    elif in_lavorazione is False:
+        query["in_lavorazione"] = {"$ne": True}
     
     leads = await db.discovery_leads.find(
         query, {"_id": 0, "website_html": 0}  # Escludi HTML pesante
@@ -843,6 +849,8 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
         "business_phone", "business_address", "profession_category",
         # Assegnazione operativa outbound (ProVideo/Mariangela)
         "owner", "next_followup",
+        # Cancello verso la pipeline di lavorazione (approvato+assegnato → board)
+        "in_lavorazione",
     }
     update = {k: v for k, v in body.items() if k in allowed}
     if not update:
