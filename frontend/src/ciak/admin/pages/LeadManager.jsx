@@ -938,7 +938,12 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
       const data = await res.json();
       const grouped = {};
       for (const s of BOARD_STAGES) grouped[s.key] = [];
-      for (const l of (data.leads || [])) if (grouped[l.status]) grouped[l.status].push(l);
+      // Solo i lead APPROVATI (in_lavorazione) entrano nel board. Filtro anche
+      // lato client: se il backend non ha ancora il filtro in_lavorazione (deploy
+      // in corso), la coda di ingresso non "sfonda" comunque nel board.
+      for (const l of (data.leads || [])) {
+        if (l.in_lavorazione === true && grouped[l.status]) grouped[l.status].push(l);
+      }
       setBoard(grouped);
       const ccData = await cc.json().catch(() => ({}));
       setBoardCounts(ccData.lavorazione_pipeline || {});
@@ -1241,10 +1246,10 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                   </span>
                   <span className="text-xs font-bold text-slate-900 bg-white border border-gray-200 rounded-full px-2 py-0.5">{total}</span>
                 </div>
-                <div className="space-y-2 min-h-[40px]">
+                <div className="space-y-2 min-h-[40px] max-h-[460px] overflow-y-auto pr-1">
                   {items.length === 0 ? (
                     <p className="text-[12px] text-slate-300 py-3 text-center">—</p>
-                  ) : items.slice(0, 15).map(l => (
+                  ) : items.map(l => (
                     <div key={l.id}
                       className="w-full bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition flex items-start gap-1">
                       <button onClick={() => setWorkspaceLead(l)} className="flex-1 min-w-0 text-left">
@@ -1259,7 +1264,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                       </button>
                     </div>
                   ))}
-                  {total > 15 && <p className="text-[11px] text-slate-400 text-center">+{total - Math.min(items.length, 15)} altri</p>}
+                  {total > items.length && <p className="text-[11px] text-slate-400 text-center pt-1">+{total - items.length} oltre i primi 300</p>}
                 </div>
               </div>
             );
