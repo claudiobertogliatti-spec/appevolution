@@ -34,24 +34,27 @@ def _payload():
                         "steps": [{"titolo": "Step1", "desc": "d1"}]},
             "prossimo": {"title": "T", "accent": "a", "lead": "L", "no": "strada-no",
                          "yes": ["strada-si"], "chiusura": "<b>fine</b>"},
+            "cta": {"title": "T", "accent": "a", "lead": "cta-lead", "body": "cta-body",
+                    "callout": "<b>cta-callout</b>", "note": "cta-note"},
         },
     }
 
 
-def test_sono_13_sezioni_locked_in_ordine():
+def test_sono_14_sezioni_locked_in_ordine():
+    # 13 sezioni diagnostiche LOCKATE + la CTA finale (sez. 14).
     assert [k for (k, *_r) in _SEZIONI] == [
         "sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema",
-        "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo",
+        "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo", "cta",
     ]
 
 
-def test_render_produce_cover_sommario_e_13_pagine():
+def test_render_produce_cover_sommario_e_14_pagine():
     html = render_blueprint_html(_payload())
-    # copertina + sommario + 13 = 15 blocchi pagina
-    assert html.count('<section class="page') == 15
+    # copertina + sommario + 14 = 16 blocchi pagina
+    assert html.count('<section class="page') == 16
     assert "Sommario" in html and "Analisi Strategica di Posizionamento" in html
-    # i numeri di tutte e 13 le sezioni nell'eyebrow
-    for n in ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"]:
+    # i numeri di tutte e 14 le sezioni nell'eyebrow
+    for n in ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14"]:
         assert f'>{n} · ' in html
 
 
@@ -63,6 +66,7 @@ def test_componenti_specifici_delle_nuove_sezioni():
     assert "Mod1" in html                                           # 09 accademia
     assert "Step1" in html and 'class="steps"' in html             # 12 roadmap
     assert "strada-no" in html and "strada-si" in html             # 13 prossimo
+    assert "cta-lead" in html and "cta-callout" in html            # 14 cta finale
 
 
 def test_escape_dei_dati_utente():

@@ -364,8 +364,48 @@ meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del proge
 ⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri."""
 
 
+def _build_cta_section(instradamento, nome: str) -> dict:
+    """Sezione 14 (CTA) del Blueprint, personalizzata sullo INSTRADAMENTO del
+    questionario. Deterministica: l'instradamento è il verdetto dello scoring, non
+    un'invenzione dell'AI. ⛔ Niente prezzi (Blueprint gratuito). Urgenza REALE:
+    per la Partnership la scarsità "max progetti/mese"; per lo Start il bonus guida
+    entro 48h (enforced backend). Rimanda alla mail di consegna → area riservata /
+    sales page (sinergia). Vedi [[template_blueprint_evolution_locked]],
+    [[ciak_start_bonus_urgenza_48h]], [[ciak_reparto_vendite_design]].
+    """
+    n = ((nome or "").split() or [""])[0] or "Ciao"
+    if instradamento == "partnership":
+        return {
+            "eyebrow": "Il tuo passo, adesso",
+            "title": "Sei pronto per la",
+            "accent": "Partnership.",
+            "lead": (f"{n}, da questa analisi emerge che hai già la competenza, i contenuti e un "
+                     "pubblico: il passo giusto per te è la Partnership Evolution. Costruiamo e "
+                     "vendiamo insieme il tuo percorso, che resta tuo al 100%."),
+            "body": ("Non ti manca il talento: ti manca una struttura che venda al posto tuo, e "
+                     "quella la mettiamo noi. Non serve altro tempo per capire se hai i pezzi: ce li hai."),
+            "callout": ("<b>Seguiamo solo un numero chiuso di nuovi progetti ogni mese</b>, per dare a "
+                        "ciascuno la cura giusta. Il link per prenotare il tuo posto è nella mail che "
+                        "accompagna questa analisi."),
+            "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
+        }
+    return {
+        "eyebrow": "Il tuo passo, adesso",
+        "title": "Il tuo primo passo è",
+        "accent": "Ciak Start.",
+        "lead": (f"{n}, hai basi solide ma il progetto va ancora messo a fuoco. Parti da Ciak Start: "
+                 "il gradino guidato che ti porta pronto alla Partnership — e vale come credito verso di essa."),
+        "body": ("È la via più rapida e sicura per trasformare la tua competenza in qualcosa di "
+                 "vendibile, senza bruciare tempo e budget in tentativi."),
+        "callout": ("<b>Solo se parti entro 48 ore dalla nostra call</b> ricevi in omaggio la guida "
+                    "«Come creare un videocorso che vende davvero». Il link e il tempo che resta sono "
+                    "nella mail che accompagna questa analisi."),
+        "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
+    }
+
+
 async def genera_blueprint(session_token: str) -> dict:
-    """Genera il payload delle 13 sezioni per il renderer (ciak_pdf_blueprint).
+    """Genera il payload delle 13 sezioni + la CTA (14) per il renderer (ciak_pdf_blueprint).
 
     Ricerca mercato (riuso research brief) + generazione strutturata 13 sezioni.
     Ritorna {"meta": {...}, "sezioni": {...}} pronto per render_blueprint_html.
@@ -400,6 +440,10 @@ async def genera_blueprint(session_token: str) -> dict:
     meta["nome"] = session.get("user_name") or "Cliente"
     from datetime import datetime as _dt
     meta.setdefault("data", _dt.now(timezone.utc).strftime("%d/%m/%Y"))
+    # Sezione 14 (CTA): iniettata deterministicamente dallo scoring del questionario,
+    # non dall'AI. Pronto → Partnership · non pronto → Ciak Start (con bonus 48h).
+    scoring = session.get("scoring") or {}
+    sez["cta"] = _build_cta_section(scoring.get("instradamento"), meta["nome"])
     return {"meta": meta, "sezioni": sez}
 
 

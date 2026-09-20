@@ -124,6 +124,7 @@ _SEZIONI = [
     ("manca", "11", "Cosa manca davvero", "Gli elementi da costruire", ""),
     ("roadmap", "12", "La roadmap", "Le fasi per arrivarci", "surface"),
     ("prossimo", "13", "Il prossimo passo", "Le due strade davanti a te", "dark"),
+    ("cta", "14", "Il tuo passo, adesso", "Come procedere da qui", ""),
 ]
 
 
@@ -249,6 +250,17 @@ def _c_roadmap(s, num):
             f'<div class="steps">{steps}</div>')
 
 
+def _c_cta(s, num):
+    lead = f'<p class="lead">{_esc(s["lead"])}</p>' if s.get("lead") else ""
+    body = f'<p class="body">{_esc(s["body"])}</p>' if s.get("body") else ""
+    call = (f'<div class="callout" style="margin-top:22px"><div class="b">→</div><p>{s.get("callout","")}</p></div>'
+            if s.get("callout") else "")
+    note = f'<p class="note" style="margin-top:18px">{_esc(s["note"])}</p>' if s.get("note") else ""
+    return (f'<div class="eyebrow">{num} · {_esc(s.get("eyebrow"))}</div>'
+            f'<h2 class="title">{_title_html(s.get("title",""), s.get("accent",""))}</h2>'
+            f'{lead}{body}{call}{note}')
+
+
 def _c_prossimo(s, num):
     yes = "".join(f'<div class="cx yes"><span class="x">✓</span><p>{_esc(x)}</p></div>' for x in (s.get("yes") or []))
     no = f'<div class="cx no"><span class="x">✕</span><p>{_esc(s.get("no"))}</p></div>' if s.get("no") else ""
@@ -265,7 +277,7 @@ _RENDERERS = {
     "competitor": _c_competitor, "pubblico": _c_tabella_pubblico, "problema": _c_prosa,
     "forza": lambda s, n: _c_lista(s, n, mut=False), "limiti": lambda s, n: _c_lista(s, n, mut=True),
     "accademia": _c_moduli, "rischio": _c_rischio, "manca": _c_manca,
-    "roadmap": _c_roadmap, "prossimo": _c_prossimo,
+    "roadmap": _c_roadmap, "prossimo": _c_prossimo, "cta": _c_cta,
 }
 
 
@@ -312,7 +324,7 @@ def render_blueprint_html(payload: dict) -> str:
         f'<div class="rhead"><div class="brand">{_BRAND}</div><span>Analisi Strategica</span></div>'
         '<div class="pbody top"><div class="eyebrow">Sommario</div>'
         '<h2 class="title">Cosa troverai in <span class="accent">questa analisi.</span></h2>'
-        '<p class="lead" style="margin-top:6px">Tredici passaggi: dalla lettura del profilo al mercato, al percorso, fino alla mossa giusta.</p>'
+        '<p class="lead" style="margin-top:6px">Quattordici passaggi: dalla lettura del profilo al mercato e al percorso, fino al passo giusto per partire.</p>'
         f'<div class="toc-list">{toc_rows}</div></div>'
         f'<div class="rfoot"><span>{_esc(foot)}</span><span>Evolution PRO</span></div></section>'
     )
@@ -357,5 +369,8 @@ BLUEPRINT_SCHEMA = {
         "manca": {"title": "str", "accent": "str", "items": [{"h": "str", "p": "str"}]},
         "roadmap": {"title": "str", "accent": "str", "lead": "str", "steps": [{"titolo": "str", "desc": "str"}]},
         "prossimo": {"title": "str", "accent": "str", "lead": "str", "no": "str", "yes": ["str"], "chiusura": "str(html-safe)"},
+        # Sezione 14 CTA: NON generata dall'AI, iniettata dal generatore in base
+        # allo `scoring.instradamento` (partnership/start). Deterministica, senza prezzi.
+        "cta": {"title": "str", "accent": "str", "lead": "str", "body": "str?", "callout": "str(html-safe)", "note": "str?"},
     },
 }

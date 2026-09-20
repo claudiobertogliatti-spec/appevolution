@@ -63,9 +63,12 @@ async def test_genera_blueprint_costruisce_payload_13_sezioni(monkeypatch):
     assert payload["meta"]["nome"] == "Mario Rossi"       # nome dalla sessione
     assert payload["meta"]["progetto"] == "Progetto"
     assert payload["meta"].get("data")                     # data riempita
-    # il payload deve renderizzare senza errori (13 sezioni + cover + sommario)
+    # il payload deve renderizzare senza errori (13 sezioni + CTA + cover + sommario)
     html = render_blueprint_html(payload)
-    assert html.count('<section class="page') == 15
+    assert html.count('<section class="page') == 16
+    # la CTA (sez. 14) è iniettata dal generatore, non dall'AND dell'AI
+    assert "cta" in payload["sezioni"]
+    assert payload["sezioni"]["cta"]["title"]
 
 
 @pytest.mark.asyncio
