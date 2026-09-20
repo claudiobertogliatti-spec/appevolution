@@ -40,34 +40,47 @@ def _get_client() -> anthropic.Anthropic:
 # Sorgente di verità dei criteri: memory/ciak_technical_spec.md (scoring) + decisione
 # 7/9 (soglia 50, pronto/non-pronto). Qui i criteri valgono su risposte APERTE.
 _SYSTEM = """Sei l'analista interno di Ciak (Evolution PRO). Valuti quanto un professionista
-è PRONTO OGGI a trasformare la sua competenza in un'accademia digitale che vende.
+è PRONTO OGGI a trasformare la sua competenza in un'accademia digitale che vende, e se somiglia
+ai partner migliori (hanno un METODO loro, contenuto già prodotto, clienti paganti, e investono
+sul serio) oppure a un aspirante che parte da zero.
 
-Ricevi le sue 8 risposte aperte. Valuta SOLO ciò che ha scritto: niente supposizioni,
+Ricevi le sue 10 risposte aperte. Valuta SOLO ciò che ha scritto: niente supposizioni,
 niente invenzioni, niente adulazione. Se una risposta è vaga o assente di sostanza, pesala come debole.
 
-Criteri (dal più al meno pesante):
-1. Prova di domanda reale (clienti/risultati concreti già ottenuti) — il segnale più forte.
-2. Esperienza e padronanza della competenza.
-3. Chiarezza dell'offerta che immagina + chiarezza del target a cui parla.
-4. Livello di dimestichezza con il mondo online.
-5. Motivazione: un "perché" chiaro e solido. Chi non sa perché lo fa, non esegue e non chiude.
-6. Specificità della competenza e del problema che risolve.
+Criteri ICP (dal più al meno pesante):
+1. METODO/ASSET proprietario: ha un metodo, un marchio, un libro, una tecnica codificata con un nome suo.
+2. CONTENUTO già prodotto: libro, podcast, videocorso, dispense, masterclass già esistenti (anche grezzi).
+3. PROVA di clienti PAGANTI e risultati concreti già ottenuti — segnale forte.
+4. Esperienza e padronanza, e a quante persone ha già erogato.
+5. Offerta chiara: ha già un'offerta a pagamento (non solo un'intuizione) + target chiaro.
+6. Mentalità da imprenditore del suo sapere (parla di offerta, prezzo, clienti), non "vorrei iniziare".
 
-Regole dure:
-- Se NON ha alcuna prova di clienti/risultati → lo stato non può superare 3.
-- Se NON ha alcuna idea di cosa offrire → lo stato non può superare 3.
+Segnali secondari:
+- Si è già affidato ad agenzie/consulenti = serietà + budget + capisce il valore (positivo).
+- Motivazione: un "perché" solido. Chi non sa perché lo fa, non esegue e non chiude.
+- Dimestichezza col mondo online.
+
+Kill-criteria (aspirante da nurturare, non da chiamare):
+- Se NON ha né un metodo/asset, né alcun contenuto prodotto, né clienti paganti → stato max 2, non pronto.
+- Se l'offerta è assente o solo un'intuizione confusa → abbassa.
 - Se la motivazione è confusa o assente → abbassa.
 
 Mappa lo score 0-100 sullo stato:
   0-24 → 1 (non pronto)   25-49 → 2 (da validare)   50-74 → 3 (buon potenziale)   75-100 → 4 (alto potenziale)
 "pronto" = score >= 50.
 
+Instradamento (decisione commerciale interna, mai mostrata al cliente):
+- "partnership": ICP forte — metodo/asset + contenuto prodotto + clienti paganti (tipo Lamanna/Fredi). Di norma score >= 60.
+- "start": ha competenza e potenziale ma manca l'asset o le prove, o non è ancora pronto → Ciak Start. Di norma score 30-59.
+- "nurture": aspirante che scatta un kill-criterion → niente call, solo nurturing. Di norma score < 30.
+
 Rispondi SOLO con JSON valido, nient'altro:
 {
   "score_0_100": <int 0-100>,
   "stato": <int 1-4>,
   "pronto": <true|false>,
-  "rationale": "<2-3 frasi asciutte per il commerciale: cosa lo rende pronto e cosa lo frena. Interno, mai mostrato al cliente.>"
+  "instradamento": "partnership" | "start" | "nurture",
+  "rationale": "<2-3 frasi asciutte per il commerciale: quanto è tipo Lamanna/Fredi (metodo, contenuto, clienti paganti) e cosa lo frena. Interno, mai mostrato al cliente.>"
 }"""
 
 
@@ -77,6 +90,7 @@ class ScoringAIResult:
     stato_finale: int
     pronto: bool
     rationale: str
+    instradamento: str = "start"  # partnership | start | nurture (interno)
     override_applicati: list = field(default_factory=list)
     is_fallback: bool = False
 
@@ -96,6 +110,7 @@ class ScoringAIResult:
             "score_numerico": self.score_0_100,
             "stato_finale": self.stato_finale,
             "pronto": self.pronto,
+            "instradamento": self.instradamento,
             "rationale": self.rationale,
             "override_applicati": self.override_applicati,
             "_fallback": self.is_fallback,
@@ -131,13 +146,15 @@ def _clamp_stato(score: int) -> int:
 
 
 _ORDER = [
-    ("q1_competenza", "Competenza"),
-    ("q2_esperienza", "Esperienza / da quanto e come"),
-    ("q3_clienti", "Clienti già seguiti e risultati"),
-    ("q4_idea", "Idea di offerta"),
+    ("q1_competenza", "Competenza + metodo/marchio proprio"),
+    ("q2_esperienza", "Esperienza / da quanto, come, a quante persone"),
+    ("q3_clienti", "Clienti già seguiti, PAGANTI, e risultati"),
+    ("q4_idea", "Idea di offerta / ce l'ha già a pagamento?"),
+    ("q9_materiale", "Materiale/asset già creato (libro, podcast, videocorso, dispense)"),
     ("q5_target", "Target a cui parla"),
     ("q6_problema", "Problema che risolve / trasformazione"),
     ("q7_digitale", "Rapporto col mondo online"),
+    ("q10_agenzie", "Agenzie/consulenti già coinvolti (e cosa è mancato)"),
     ("q8_obiettivo", "Perché lo fa / cosa cambierebbe"),
 ]
 
@@ -194,6 +211,9 @@ async def calculate_scoring_ai(responses: dict[str, Any]) -> ScoringAIResult:
         stato = max(1, min(4, stato))
         rationale = str(data.get("rationale") or "").strip() or "Nessun razionale fornito."
         pronto = bool(data.get("pronto", score >= 50))
+        instradamento = str(data.get("instradamento") or "").strip().lower()
+        if instradamento not in ("partnership", "start", "nurture"):
+            instradamento = "partnership" if score >= 60 else ("start" if score >= 30 else "nurture")
     except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
         return _fallback_result(f"output non parsabile: {e}")
 
@@ -202,4 +222,5 @@ async def calculate_scoring_ai(responses: dict[str, Any]) -> ScoringAIResult:
         stato_finale=stato,
         pronto=pronto,
         rationale=rationale,
+        instradamento=instradamento,
     )
