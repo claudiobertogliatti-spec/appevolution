@@ -952,8 +952,10 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     # quella lista conteneva solo i fantasmi di giugno e mandava Luca a ricontattare
     # persone su uno stadio che non esiste piu'.
 
+    week_start = _week_start()
     proposal_month = 0
     paid_contract_month = 0
+    paid_contract_week = 0
     async for p in db.proposte.find({}):
         status = p.get("stato")
         proposal_ts = p.get("created_at") or p.get("inviata_at") or p.get("visto_at")
@@ -962,8 +964,11 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             proposal_month += 1
         if p.get("pagamento_completato") and (not paid_ts or paid_ts >= month_start):
             paid_contract_month += 1
+        if p.get("pagamento_completato") and paid_ts and paid_ts >= week_start:
+            paid_contract_week += 1
 
     partner_closed_emails = set()
+    partner_closed_week = set()
     async for p in db.partners.find(
         {
             "$or": [
@@ -975,12 +980,14 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         {"email": 1, "created_at": 1, "contract_signed_at": 1, "partnership_pagata_at": 1},
     ):
         created = p.get("partnership_pagata_at") or p.get("contract_signed_at") or p.get("created_at")
-        if created and created >= month_start:
-            em = _email(p.get("email"))
-            if em:
-                partner_closed_emails.add(em)
+        em = _email(p.get("email"))
+        if created and created >= month_start and em:
+            partner_closed_emails.add(em)
+        if created and created >= week_start and em:
+            partner_closed_week.add(em)
 
     partnerships_month = max(paid_contract_month, len(partner_closed_emails))
+    partnerships_week = max(paid_contract_week, len(partner_closed_week))
     gap = max(target_partnerships - partnerships_month, 0)
 
     def _sort_limit(items: list[dict], limit: int = 8) -> list[dict]:
@@ -1084,6 +1091,8 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "optimal_monthly": target_optimal,
             "partnerships_monthly": target_partnerships,
             "partnerships_closed": partnerships_month,
+            "partnerships_week": partnerships_week,
+            "week_start": week_start,
             "gap": gap,
             "month_start": month_start,
             "target_label": "minimo 3, ottimale 4 ingressi Metodo EVO/mese",
