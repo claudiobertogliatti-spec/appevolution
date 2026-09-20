@@ -115,7 +115,7 @@ export function VenditePanoramica({ onAuthExpired }) {
       {/* HERO + north-star */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Reparto · Gaia</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Reparto · Marco</p>
           <h1 className="text-3xl font-semibold mt-1">Vendite</h1>
           <p className="text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
             Da "call prenotata" (caldo da Acquisizione col Report Carlo) fino al partner

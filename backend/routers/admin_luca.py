@@ -89,8 +89,8 @@ Pensa all'azienda come a una catena: uno sconosciuto entra, diventa lead, compra
    Pagina: /admin/lead-manager · /admin/calendario-editoriale
    Numero-guida: nuovi lead/contatti generati.
 
-2. VENDITE — responsabile GAIA
-   Mandato: trasformare i lead in partnership firmate. Pipeline Blueprint, analisi da validare (€67), servizi extra, chiusura. Chi chiude di fatto e' Claudio.
+2. VENDITE — responsabile MARCO
+   Mandato: trasformare i lead in partnership firmate. Pipeline Blueprint, follow-up proposte ferme, servizi extra, chiusura. Chi chiude di fatto e' Claudio.
    Pagina: /admin/pipeline-blueprint · /admin/lead-manager
    Numero-guida: analisi pagate, partnership firmate.
 
@@ -460,10 +460,10 @@ async def build_luca_context() -> str:
     except Exception as e:
         logger.warning(f"[admin_luca] journey steps: {e}")
 
-    # --- VENDITE + ACQUISIZIONE (Gaia / Luca): lead e pipeline ---
+    # --- VENDITE + ACQUISIZIONE (Marco / Luca): lead e pipeline ---
     try:
         lines.append("")
-        lines.append("== ACQUISIZIONE (Luca) + VENDITE (Gaia) ==")
+        lines.append("== ACQUISIZIONE (Luca) + VENDITE (Marco) ==")
         leads_tot = await db.ciak_leads.count_documents({})
         lines.append(f"Lead Ciak totali: {leads_tot}")
         try:
