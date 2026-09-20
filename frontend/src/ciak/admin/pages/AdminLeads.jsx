@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { apiGet, adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -99,10 +100,12 @@ export function AdminLeads({ onAuthExpired }) {
   };
 
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Leads & Pipeline</h1>
+    <div className="p-6 md:p-8">
+      <div className="mb-5 max-w-6xl"><AcquisizioneSubNav active="Lead" /></div>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead inbound · dal funnel</h1>
       <p className="text-slate-500 mb-6">
-        Ogni lead dall'opt-in masterclass, arricchito con Checkpoint e 8 Domande.
+        Ogni lead dall'opt-in masterclass, arricchito con Checkpoint e questionario. I fermi
+        alla masterclass sono da svegliare con una chiamata di Mariangela verso il questionario.
       </p>
 
       {/* Filtri */}
