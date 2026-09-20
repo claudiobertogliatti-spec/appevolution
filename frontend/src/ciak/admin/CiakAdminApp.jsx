@@ -64,6 +64,7 @@ import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspe
 import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
 import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
+import { AcquisizioneScript } from "./pages/AcquisizioneScript";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
@@ -710,6 +711,7 @@ export default function CiakAdminApp() {
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
         <Route path="acquisizione-editoriale" element={<AcquisizioneEditoriale onAuthExpired={handleLogout} />} />
+        <Route path="acquisizione-script" element={<AcquisizioneScript />} />
         {/* Ex pagina Prospect: fusa in Pipeline Prospect. Redirect per i vecchi link. */}
         <Route path="acquisizione-prospect" element={<Navigate to="/admin/pipeline" replace />} />
 

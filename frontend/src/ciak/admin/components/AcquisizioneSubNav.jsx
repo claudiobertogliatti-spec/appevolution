@@ -9,6 +9,7 @@ const TABS = [
   { label: "Editoriale", to: "/admin/acquisizione-editoriale" },
   { label: "ADS", to: "/admin/acq-campagne-ads" },
   { label: "Pipeline Prospect", to: "/admin/pipeline" },
+  { label: "Script", to: "/admin/acquisizione-script" },
 ];
 
 export function AcquisizioneSubNav({ active }) {
