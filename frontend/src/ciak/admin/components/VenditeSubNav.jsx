@@ -9,7 +9,7 @@ const TABS = [
   { label: "Home", to: "/admin/reparto/vendite" },
   { label: "Pipeline", to: "/admin/trattative" },
   { label: "Clienti", to: "/admin/clienti-ciak" },
-  { label: "Listino", to: "/admin/listino-prezzi" },
+  { label: "Catalogo", to: "/admin/catalogo" },
 ];
 
 export function VenditeSubNav({ active }) {
