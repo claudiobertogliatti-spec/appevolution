@@ -891,6 +891,10 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     clicked_no_purchase = []
     completed_no_purchase = []
     purchased_no_call = []
+    # Split commerciale del mese (la spina Vendite): tra chi ha completato il
+    # questionario questo mese, quanti sono instradati a Partnership (pronti) vs
+    # Ciak Start (non pronti) vs nurturing — dal verdetto dello scoring.
+    vendite_split = {"partnership": 0, "start": 0, "nurture": 0}
 
     for em, d in diagnostics_by_email.items():
         state = d.get("current_state")
@@ -908,6 +912,9 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         completed_ts = _state_ts(d, "ciak_completed")
         if completed_ts and completed_ts >= month_start:
             questionnaire_month += 1
+            _instr = ((d.get("scoring") or {}).get("instradamento") or "").lower()
+            if _instr in vendite_split:
+                vendite_split[_instr] += 1
         report_ready_ts = _state_ts(d, "report_generated")
         if report_ready_ts and report_ready_ts >= month_start:
             report_ready_month += 1
@@ -1095,6 +1102,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "call_booked": call_booked_month,
         },
         "lavorazione_pipeline": lavorazione_pipeline,
+        "vendite_split": vendite_split,
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
             "clicked_no_purchase": _sort_limit(clicked_no_purchase),
