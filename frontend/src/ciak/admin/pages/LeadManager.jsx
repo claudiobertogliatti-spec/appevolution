@@ -114,133 +114,6 @@ function StatusBadge({ status, map }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// EDIT MODAL — DISCOVERY LEAD
-// ─────────────────────────────────────────────────────────────
-
-function DiscoveryEditModal({ lead, onClose, onSaved, onAuthExpired }) {
-  const isPlaces = lead.source === "google_places";
-  const [form, setForm] = useState({
-    display_name: lead.display_name || "",
-    email: lead.email || "",
-    bio: lead.bio || "",
-    website_url: lead.website_url || "",
-    platform_url: lead.platform_url || "",
-    platform_username: lead.platform_username || "",
-    phone: lead.phone || lead.business_phone || "",
-    niche_detected: lead.niche_detected || "",
-    source: lead.source || "manual",
-    status: lead.status || "discovered",
-    score_total: lead.score_total || 0,
-    temperatura: lead.temperatura || "",
-    notes_admin: lead.notes_admin || "",
-    business_phone: lead.business_phone || "",
-    business_address: lead.business_address || "",
-    profession_category: lead.profession_category || "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Errore salvataggio");
-      onSaved({ ...lead, ...form });
-    } catch (e) {
-      if (e.message === "AUTH_EXPIRED") onAuthExpired();
-      else setError(e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const F = ({ label, k, multiline, type = "text", options }) => (
-    <div>
-      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
-      {options ? (
-        <select value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900">
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      ) : multiline ? (
-        <textarea value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          rows={3} className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
-      ) : (
-        <input type={type} value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
-      )}
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 bg-slate-900">
-          <div>
-            <div className="font-semibold text-white">{lead.display_name || lead.platform_username}</div>
-            <div className="text-xs text-white/50">{lead.source} · {lead.id}</div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {isPlaces && (
-            <div className="p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Google Attività · {lead.google_rating ? `★ ${lead.google_rating}` : ""} · {lead.google_review_count || 0} recensioni · {lead.has_website ? "ha sito" : "no sito web ✓"}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <F label="Nome" k="display_name" />
-            <F label="Email" k="email" type="email" />
-            {isPlaces ? (
-              <>
-                <F label="Telefono (Google)" k="business_phone" />
-                <F label="Categoria professionale" k="profession_category" />
-                <div className="col-span-2">
-                  <F label="Indirizzo" k="business_address" />
-                </div>
-              </>
-            ) : (
-              <>
-                <F label="Username piattaforma" k="platform_username" />
-                <F label="Telefono" k="phone" />
-                <F label="Sito web" k="website_url" />
-                <F label="URL profilo" k="platform_url" />
-              </>
-            )}
-            <F label="Nicchia rilevata" k="niche_detected" />
-            <F label="Score (0-100)" k="score_total" type="number" />
-            <F label="Fonte" k="source" options={Object.entries(SOURCES).map(([v, c]) => ({ value: v, label: c.label }))} />
-            <F label="Stato" k="status" options={Object.entries(DISCOVERY_STATUSES).map(([v, c]) => ({ value: v, label: c.label }))} />
-            <F label="Temperatura ELENA" k="temperatura" options={[
-              { value: "", label: "— non classificato —" },
-              ...Object.entries(TEMPERATURE).map(([v, c]) => ({ value: v, label: c.label })),
-            ]} />
-          </div>
-          {!isPlaces && <F label="Bio / Descrizione" k="bio" multiline />}
-          <F label="Note admin (interne)" k="notes_admin" multiline />
-        </div>
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          {error ? <span className="text-sm text-red-600">{error}</span> : <span />}
-          <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-gray-100">Annulla</button>
-            <button onClick={save} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-yellow-400 text-slate-900">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Salva
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // EDIT MODAL — LISTA FREDDA
 // ─────────────────────────────────────────────────────────────
 
@@ -344,8 +217,12 @@ function FreddaEditModal({ lead, onClose, onSaved, onAuthExpired }) {
 // IMPORT MODAL — Discovery (CSV + manuale)
 // ─────────────────────────────────────────────────────────────
 
-function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpired }) {
-  const [tab, setTab] = useState(initialTab);
+function ImportModal({ type, initialTab = "csv", editLead = null, onClose, onImported, onAuthExpired }) {
+  // Modalità modifica: stesso form di "Nuovo lead", precompilato, che salva in
+  // PATCH sul lead esistente invece di crearne uno nuovo. Si apre cliccando un
+  // lead nella coda di ingresso o la matita di una card in pipeline.
+  const isEdit = !!editLead;
+  const [tab, setTab] = useState(isEdit ? "manual" : initialTab);
   const [csvFile, setCsvFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -354,7 +231,20 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
   const emptyForm = type === "discovery"
     ? { display_name: "", email: "", source: "manual", platform_username: "", bio: "", website_url: "", niche_detected: "", phone: "" }
     : { first_name: "", last_name: "", email: "", phone: "", tag: "lista-fredda-2025" };
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(
+    isEdit
+      ? {
+          display_name: editLead.display_name || "",
+          email: editLead.email || "",
+          source: editLead.source || "manual",
+          platform_username: editLead.platform_username || "",
+          bio: editLead.bio || "",
+          website_url: editLead.website_url || "",
+          niche_detected: editLead.niche_detected || "",
+          phone: editLead.phone || editLead.business_phone || "",
+        }
+      : emptyForm
+  );
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState(null);
 
@@ -384,6 +274,17 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
     setManualSaving(true);
     setManualError(null);
     try {
+      if (isEdit) {
+        const res = await adminFetch(`/api/discovery/leads/${editLead.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Errore salvataggio");
+        onImported({ ...editLead, ...form });
+        return;
+      }
       let url, body;
       if (type === "discovery") {
         url = "/api/discovery/import";
@@ -426,7 +327,7 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 bg-slate-900">
           <div>
-            <div className="font-semibold text-white">{tab === "manual" ? "Nuovo lead" : "Importa lista"}</div>
+            <div className="font-semibold text-white">{isEdit ? "Modifica lead" : tab === "manual" ? "Nuovo lead" : "Importa lista"}</div>
             <div className="text-xs text-white/50">
               {type === "discovery" ? "Discovery Leads" : "Lista Fredda"}
             </div>
@@ -434,14 +335,16 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
           <button onClick={onClose} aria-label="Chiudi inserimento lead" className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
         </div>
 
-        <div className="flex border-b border-gray-200 bg-gray-50">
-          {[["csv", "CSV Upload"], ["manual", "Inserimento manuale"]].map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${tab === id ? "border-yellow-400 text-slate-900 bg-white" : "border-transparent text-slate-500"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {!isEdit && (
+          <div className="flex border-b border-gray-200 bg-gray-50">
+            {[["csv", "CSV Upload"], ["manual", "Inserimento manuale"]].map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)}
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${tab === id ? "border-yellow-400 text-slate-900 bg-white" : "border-transparent text-slate-500"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="p-5">
           {tab === "csv" && (
@@ -534,8 +437,8 @@ function ImportModal({ type, initialTab = "csv", onClose, onImported, onAuthExpi
               {manualError && <p className="text-sm text-red-600">{manualError}</p>}
               <button onClick={handleManualSave} disabled={manualSaving || !form.email}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm ${!form.email || manualSaving ? "bg-gray-100 text-slate-400" : "bg-slate-900 text-yellow-400"}`}>
-                {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-                Aggiungi lead
+                {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : isEdit ? <Save className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                {isEdit ? "Salva modifiche" : "Aggiungi lead"}
               </button>
             </div>
           )}
@@ -996,7 +899,8 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   const load = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE });
+      // Tabella = coda di INGRESSO: solo i lead non ancora approvati/in lavorazione.
+      const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE, in_lavorazione: "false" });
       if (filterStatus) params.set("status", filterStatus);
       if (filterSource) params.set("source", filterSource);
       if (filterScore > 0) params.set("min_score", filterScore);
@@ -1028,7 +932,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
   const loadBoard = async () => {
     try {
       const [res, cc] = await Promise.all([
-        adminFetch(`/api/discovery/leads?limit=300`),
+        adminFetch(`/api/discovery/leads?limit=300&in_lavorazione=true`),
         adminFetch(`/api/admin/ciak/acquisizione-command-center`),
       ]);
       const data = await res.json();
@@ -1074,14 +978,26 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
     }
   };
 
+  // Approva = assegna + approva. Il lead esce dalla coda di ingresso (tabella) ed
+  // entra nel board di lavorazione, nella colonna del suo stato (un lead nuovo →
+  // "Nuovo"), così può essere lavorato. Richiede un commerciale già assegnato.
   const handleApprove = async (lead) => {
     if (!lead.id) return;
+    if (!lead.owner) {
+      toast.error("Assegna prima un commerciale, poi approva.");
+      return;
+    }
     setApprovingId(lead.id);
     try {
-      const res = await adminFetch(`/api/lista-fredda/approve-from-discovery/${lead.id}`, { method: "POST" });
+      const res = await adminFetch(`/api/discovery/leads/${lead.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ in_lavorazione: true }),
+      });
       if (!res.ok) throw new Error("Errore approvazione");
       setLeads(prev => prev.filter(l => l.id !== lead.id));
       setTotal(t => Math.max(0, t - 1));
+      loadBoard();
+      toast.success(`"${lead.display_name || lead.email}" è in lavorazione · ${lead.owner}.`);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
       else toast.error("Errore nell'approvazione del lead.");
@@ -1190,10 +1106,10 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         </button>
       </div>
 
-      <p className="text-[12.5px] text-slate-400 mb-2">Clicca un lead per lavorarlo: avanzi lo stato, lo contatti via email, prendi note.</p>
+      <p className="text-[12.5px] text-slate-400 mb-2">Coda di ingresso: clicca un lead per completarne i dati, assegna un commerciale, poi <strong className="text-slate-500">Approva</strong> — passa nella pipeline sotto, pronto da lavorare.</p>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
@@ -1204,28 +1120,31 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
             <p className="text-sm text-slate-400">Nessun lead trovato</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-                {["Nome", "Email / Username", "Fonte", "Nicchia", "Commerciale", "Stato", "Temp.", ""].map(h => (
-                  <th key={h} className="px-4 py-3 font-semibold">{h}</th>
-                ))}
+                <th className="px-4 py-3 font-semibold w-[24%]">Nome</th>
+                <th className="px-4 py-3 font-semibold w-[26%]">Email / Username</th>
+                <th className="px-4 py-3 font-semibold w-[13%]">Fonte</th>
+                <th className="px-4 py-3 font-semibold w-[17%]">Nicchia</th>
+                <th className="px-4 py-3 font-semibold w-[12%]">Commerciale</th>
+                <th className="px-4 py-3 font-semibold w-[8%]"></th>
               </tr>
             </thead>
             <tbody>
               {leads.map((lead, i) => (
-                <tr key={lead.id || i} onClick={() => setWorkspaceLead(lead)}
+                <tr key={lead.id || i} onClick={() => setEditLead(lead)}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900 truncate max-w-[240px]" title={lead.display_name || ""}>{lead.display_name || "—"}</div>
+                    <div className="font-medium text-slate-900 truncate" title={lead.display_name || ""}>{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
-                      <div className="text-[11px] mt-0.5 text-slate-400">
+                      <div className="text-[11px] mt-0.5 text-slate-400 truncate">
                         {lead.business_address?.split(",").slice(0, 2).join(",")}
                       </div>
                     ) : lead.website_url ? (
-                      <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] flex items-center gap-1 text-slate-400">
-                        <Globe className="w-3 h-3" /> {lead.website_url.replace(/^https?:\/\//, "").slice(0, 30)}
+                      <a href={lead.website_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="text-[11px] flex items-center gap-1 text-slate-400 truncate">
+                        <Globe className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{lead.website_url.replace(/^https?:\/\//, "")}</span>
                       </a>
                     ) : null}
                   </td>
@@ -1246,10 +1165,10 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                         )}
                       </div>
                     ) : (
-                      <div>
-                        <div className="text-xs text-slate-600">{lead.email}</div>
-                        {lead.platform_username && (
-                          <div className="text-[11px] text-slate-400">@{lead.platform_username}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-600 truncate">{lead.email || "—"}</div>
+                        {lead.platform_username && lead.platform_username !== lead.email && (
+                          <div className="text-[11px] text-slate-400 truncate">@{lead.platform_username}</div>
                         )}
                       </div>
                     )}
@@ -1268,12 +1187,6 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} map={DISCOVERY_STATUSES} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {lead.temperatura && <StatusBadge status={lead.temperatura} map={TEMPERATURE} />}
-                  </td>
-                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
                       {lead.platform_url && (
                         <a href={lead.platform_url} target="_blank" rel="noopener noreferrer"
@@ -1288,10 +1201,6 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           : <Check className="w-3.5 h-3.5" />}
                         Approva
-                      </button>
-                                            <button onClick={() => setEditLead(lead)}
-                        className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
-                        <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
                       </button>
                       <button onClick={() => setPendingDelete(lead)} disabled={deletingId === lead.id}
                         aria-label={`Elimina ${lead.display_name || lead.email}`}
@@ -1336,11 +1245,19 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                   {items.length === 0 ? (
                     <p className="text-[12px] text-slate-300 py-3 text-center">—</p>
                   ) : items.slice(0, 15).map(l => (
-                    <button key={l.id} onClick={() => setWorkspaceLead(l)}
-                      className="w-full text-left bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition">
-                      <div className="text-[13px] font-medium text-slate-900 truncate">{l.display_name || l.email || "—"}</div>
-                      <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
-                    </button>
+                    <div key={l.id}
+                      className="w-full bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition flex items-start gap-1">
+                      <button onClick={() => setWorkspaceLead(l)} className="flex-1 min-w-0 text-left">
+                        <div className="text-[13px] font-medium text-slate-900 truncate">{l.display_name || l.email || "—"}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
+                        {l.owner && <div className="text-[10px] font-semibold text-yellow-700 truncate mt-0.5">{l.owner}</div>}
+                      </button>
+                      <button onClick={() => setEditLead(l)} title="Modifica i dati del lead"
+                        aria-label={`Modifica ${l.display_name || l.email || "lead"}`}
+                        className="p-1 rounded-md hover:bg-yellow-50 flex-shrink-0">
+                        <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
+                      </button>
+                    </div>
                   ))}
                   {total > 15 && <p className="text-[11px] text-slate-400 text-center">+{total - Math.min(items.length, 15)} altri</p>}
                 </div>
@@ -1374,12 +1291,15 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         <LeadWorkspaceModal lead={workspaceLead} onClose={() => setWorkspaceLead(null)} onChanged={handleSaved} onAuthExpired={onAuthExpired} />
       )}
       {editLead && (
-        <DiscoveryEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
+        <ImportModal type="discovery" editLead={editLead}
+          onClose={() => setEditLead(null)}
+          onImported={handleSaved}
+          onAuthExpired={onAuthExpired} />
       )}
       {showImport && (
         <ImportModal type="discovery" initialTab={importTab}
           onClose={() => setShowImport(false)}
-          onImported={() => { load(); }}
+          onImported={() => { load(); loadBoard(); }}
           onAuthExpired={onAuthExpired} />
       )}
       {showPlacesSearch && (
