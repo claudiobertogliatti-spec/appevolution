@@ -105,6 +105,7 @@ export function VenditePanoramica({ onAuthExpired }) {
   const bottlenecks = Array.isArray(data.bottlenecks) ? data.bottlenecks : [];
 
   const firmateMese = target.partnerships_closed ?? 0;
+  const firmeSettimana = target.partnerships_week ?? 0;
   const gap = target.gap ?? 0;
 
   return (
@@ -281,14 +282,15 @@ export function VenditePanoramica({ onAuthExpired }) {
           <h2 className="text-lg font-semibold text-slate-900">Ritmo call → firma</h2>
         </div>
         <p className="text-sm text-slate-500 mt-1">Se le call si accumulano senza diventare firme, il collo è nella chiusura.</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
           {[
+            { k: "Firme settimana", v: firmeSettimana, h: "questa settimana", hot: true },
             { k: "Call fatte", v: funnel.call_done ?? 0, h: "questo mese" },
             { k: "Proposte", v: funnel.proposals_open ?? 0, h: "inviate" },
             { k: "Pagati", v: funnel.contracts_paid ?? 0, h: "firmato + saldato" },
             { k: "Firme / target", v: `${firmateMese} / ${firmateMese + gap}`, h: "partnership del mese" },
           ].map((m) => (
-            <div key={m.k} className="rounded-xl bg-slate-50 p-4">
+            <div key={m.k} className={`rounded-xl p-4 ${m.hot ? "bg-yellow-50 border border-yellow-200" : "bg-slate-50"}`}>
               <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
               <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
