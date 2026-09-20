@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Dettaglio lead. GET /api/admin/ciak/lead?email=...
  *
- * Vista 360°: record ciak_leads + diagnostic sessions (8 Domande + report Matteo)
+ * Vista 360°: record ciak_leads + diagnostic sessions (10 Domande + report Carlo)
  * + checkpoint events. Per i lead qualificati (call_done + Stato 3-4) mostra il
  * pannello "Genera Proposta Partnership" — il bridge verso Evolution.
  */
@@ -15,6 +15,14 @@ const STATO_LABEL = {
   2: "Strutturazione",
   3: "Validazione",
   4: "Evoluzione Strategica",
+};
+
+// Instradamento ICP (da scoring AI): cosa proporre in call. Etichette senza
+// prezzo (i prezzi vivono nell'offerta, non qui, così non invecchiano).
+const INSTRADAMENTO = {
+  partnership: { label: "Partnership Evolution", cls: "bg-emerald-100 text-emerald-700" },
+  start:       { label: "Ciak Start",            cls: "bg-yellow-100 text-yellow-700" },
+  nurture:     { label: "Nurturing",             cls: "bg-gray-100 text-slate-500" },
 };
 
 function Section({ title, children }) {
@@ -244,7 +252,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       </Section>
 
       {/* Diagnostiche / 8 Domande */}
-      <Section title={`8 Domande Ciak (${diagnostics.length})`}>
+      <Section title={`10 Domande Ciak (${diagnostics.length})`}>
         {diagnostics.length === 0 ? (
           <p className="text-slate-400 text-sm">Nessuna diagnostica avviata.</p>
         ) : (
@@ -260,6 +268,25 @@ export function AdminLeadDetail({ onAuthExpired }) {
                 }
               />
               <Field label="Score numerico" value={d.scoring?.score_numerico} />
+              {d.scoring?.instradamento && (
+                <div className="mb-2">
+                  <span className="text-xs text-slate-400">Instradamento (proposta consigliata): </span>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${INSTRADAMENTO[d.scoring.instradamento]?.cls || "bg-gray-100 text-slate-600"}`}>
+                    {INSTRADAMENTO[d.scoring.instradamento]?.label || d.scoring.instradamento}
+                  </span>
+                  {typeof d.scoring.pronto === "boolean" && (
+                    <span className={`ml-2 text-[11px] font-semibold ${d.scoring.pronto ? "text-emerald-600" : "text-slate-400"}`}>
+                      {d.scoring.pronto ? "· pronto" : "· non ancora pronto"}
+                    </span>
+                  )}
+                </div>
+              )}
+              {d.scoring?.rationale && (
+                <details className="mb-2">
+                  <summary className="text-xs text-slate-400 cursor-pointer">Perché questo instradamento</summary>
+                  <p className="text-[13px] text-slate-700 mt-1 whitespace-pre-wrap">{d.scoring.rationale}</p>
+                </details>
+              )}
               <Field
                 label="Override"
                 value={(d.scoring?.override_applicati || []).join(", ") || "—"}
