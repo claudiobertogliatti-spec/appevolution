@@ -56,6 +56,8 @@ export function AdminLeads({ onAuthExpired }) {
   const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingEdit, setPendingEdit] = useState(null); // { email, nome, phone }
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(() => {
     setData(null);
@@ -96,6 +98,29 @@ export function AdminLeads({ onAuthExpired }) {
       else toast.error("Errore nell'eliminazione del lead.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Modifica: SOLO nome e telefono. Email = chiave cross-collezione, in sola lettura.
+  const saveEdit = async () => {
+    const it = pendingEdit;
+    if (!it?.email) return;
+    setSavingEdit(true);
+    try {
+      const res = await adminFetch("/api/admin/ciak/lead", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: it.email, nome: it.nome, phone: it.phone }),
+      });
+      if (!res.ok) throw new Error("Errore modifica");
+      setPendingEdit(null);
+      toast.success("Lead aggiornato.");
+      load();
+    } catch (err) {
+      if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error("Errore nella modifica del lead.");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -196,6 +221,16 @@ export function AdminLeads({ onAuthExpired }) {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setPendingEdit({ email: l.email, nome: l.nome || "", phone: l.phone || "" });
+                        }}
+                        title="Modifica lead"
+                        className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline mr-3"
+                      >
+                        Modifica
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setPendingDelete(l);
                         }}
                         title="Elimina lead"
@@ -247,6 +282,36 @@ export function AdminLeads({ onAuthExpired }) {
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
+
+      {pendingEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="presentation" onClick={() => setPendingEdit(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-lead-title" className="w-full max-w-md rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Modifica lead</p>
+            <h2 id="edit-lead-title" className="mt-1 text-lg font-semibold text-slate-900 truncate">{pendingEdit.email}</h2>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Nome</label>
+                <input value={pendingEdit.nome} onChange={(e) => setPendingEdit((p) => ({ ...p, nome: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Telefono</label>
+                <input value={pendingEdit.phone} onChange={(e) => setPendingEdit((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+39…" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Email · non modificabile</label>
+                <input value={pendingEdit.email} readOnly disabled
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm text-slate-500" />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPendingEdit(null)} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400 transition-colors">Annulla</button>
+              <button type="button" onClick={saveEdit} disabled={savingEdit} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 transition-colors">{savingEdit ? "Salvo…" : "Salva"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

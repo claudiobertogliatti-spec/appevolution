@@ -1205,6 +1205,7 @@ async def ciak_leads_list(
         items.append({
             "email": em,
             "nome": lead.get("nome"),
+            "phone": lead.get("phone") or lead.get("telefono"),
             "source": lead.get("source"),
             "utm": lead.get("utm", {}),
             "created_at": lead.get("created_at"),
