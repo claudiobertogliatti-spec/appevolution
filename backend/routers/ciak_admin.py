@@ -1236,6 +1236,51 @@ async def ciak_leads_list(
     }
 
 
+# ─── Lead edit ─────────────────────────────────────────────────────────────
+
+class LeadEditIn(BaseModel):
+    email: str
+    nome: Optional[str] = None
+    phone: Optional[str] = None
+
+
+@router.patch("/lead")
+async def ciak_lead_edit(body: LeadEditIn, admin=Depends(require_ciak_admin)):
+    """
+    Modifica di un lead inbound: SOLO nome e telefono.
+
+    ⛔ L'email NON è modificabile: è la chiave che lega ciak_leads +
+    diagnostic_sessions + checkpoint; cambiarla orfanerebbe questionario e
+    cronologia. Il nome vive in due posti (ciak_leads.nome per la lista Lead,
+    diagnostic user_name per la lista Trattative) → si aggiornano entrambi. Il
+    telefono si salva su ciak_leads (serve per le chiamate ai fermi-masterclass).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = (body.email or "").strip()
+    if not email:
+        raise HTTPException(400, "Email mancante")
+    set_lead: dict = {}
+    if body.nome is not None:
+        set_lead["nome"] = body.nome.strip()
+    if body.phone is not None:
+        set_lead["phone"] = body.phone.strip()
+    if not set_lead:
+        raise HTTPException(400, "Niente da aggiornare")
+
+    touched = 0
+    r1 = await db.ciak_leads.update_one({"email": email}, {"$set": set_lead})
+    touched += r1.matched_count
+    if body.nome is not None:
+        r2 = await db.diagnostic_sessions.update_many(
+            {"user_email": email}, {"$set": {"user_name": body.nome.strip()}}
+        )
+        touched += r2.matched_count
+    if touched == 0:
+        raise HTTPException(404, "Lead non trovato")
+    return {"success": True, "email": email, **set_lead}
+
+
 # ─── Lead detail ───────────────────────────────────────────────────────────
 
 @router.get("/lead")
@@ -1886,6 +1931,16 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
             if (em or "").strip().lower() in partner_emails and \
                _BLUEPRINT_RANK["contratto_pagato"] > _BLUEPRINT_RANK.get(e.get("stage"), -1):
                 e["stage"] = "contratto_pagato"
+
+    # Telefono da ciak_leads (per la modale "Modifica" e le chiamate): batch per email.
+    entry_emails = [e for e in entries.keys() if e]
+    if entry_emails:
+        async for cl in db.ciak_leads.find(
+            {"email": {"$in": entry_emails}}, {"_id": 0, "email": 1, "phone": 1, "telefono": 1}
+        ):
+            row = entries.get(cl.get("email"))
+            if row is not None:
+                row["phone"] = cl.get("phone") or cl.get("telefono")
 
     columns = _columns_from_entries(entries, _BLUEPRINT_COLUMNS)
     return {"columns": columns, "total": sum(c["count"] for c in columns)}

@@ -55,6 +55,7 @@ export function TrattativePipeline({ onAuthExpired }) {
         subtitle={active.subtitle}
         lockedStages={active.lockedStages}
         deletable
+        editable
         onAuthExpired={onAuthExpired}
       />
     </div>
