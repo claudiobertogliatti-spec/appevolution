@@ -836,6 +836,19 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
         </div>
         <div className="p-5 space-y-3">
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Preset</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { setTagId(2073868); setLabel("systeme_places"); }}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition ${String(tagId) === "2073868" ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-gray-200 hover:border-slate-400"}`}>
+                Places (freddi)
+              </button>
+              <button type="button" onClick={() => { setTagId(2004404); setLabel("masterclass"); }}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition ${String(tagId) === "2004404" ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-gray-200 hover:border-slate-400"}`}>
+                Masterclass (da svegliare)
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Tag Systeme (ID)</label>
@@ -853,7 +866,7 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
             <input value={label} onChange={e => setLabel(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
           </div>
-          <p className="text-[11px] text-slate-400">Default: tag <code>ciak_cold_outreach_places</code> (2073868) = i professionisti scrapati. Esclude disiscritti/bounce e chi è già in Ciak. Il conteggio esatto del tag è nel dashboard Systeme.</p>
+          <p className="text-[11px] text-slate-400"><b>Places</b> (2073868) = professionisti scrapati, freddi. <b>Masterclass</b> (2004404) = opt-in fermi alla masterclass → entrano in colonna <b>Nuovo</b>, da svegliare con una chiamata verso il questionario. Esclude disiscritti/bounce e chi è già in Ciak; conteggio esatto nel dashboard Systeme.</p>
           {result && <p className={`text-sm ${result.err ? "text-red-600" : "text-emerald-600"}`}>{result.text}</p>}
           <button onClick={run} disabled={busy}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 disabled:opacity-60">
