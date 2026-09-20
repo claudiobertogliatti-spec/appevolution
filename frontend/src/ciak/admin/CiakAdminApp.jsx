@@ -11,7 +11,7 @@
  * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
  *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
- *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
+ *  - Vendite      (Marco)     → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
  *  - Back office  (Valentina) → Pagamenti · Fatture · Date contratti · Servizi extra
@@ -144,14 +144,15 @@ const NAV = [
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
     ],
   },
-  // ── VENDITE · Gaia ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
+  // ── VENDITE · Marco ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
   //    Chiusura Insider e Listino entrano qui; Collaudo checkout resta route
-  //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia). ──
+  //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia).
+  //    Responsabile = Marco (accountability/follow-up); Gaia resta al Supporto Tecnico. ──
   {
     id: "vendite",
     label: "Vendite",
     persone: ["Mariangela"],
-    agenti: ["Gaia", "Carlo"],
+    agenti: ["Marco", "Carlo"],
     landing: true,
     hideFor: ["antonella"],
     pages: [
