@@ -15,7 +15,7 @@ import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 const FLUSSO = [
   { icon: Linkedin, t: "Collegamento + messaggio LinkedIn a freddo" },
   { icon: Phone, t: "Chiamata di qualifica" },
-  { icon: MessageCircle, t: "Gruppo WhatsApp a 3 + le 8 Domande Ciak" },
+  { icon: MessageCircle, t: "Gruppo WhatsApp a 3 + le 10 Domande Ciak" },
   { icon: Video, t: "Videocall di approfondimento (Cal.com)" },
   { icon: BarChart3, t: "Analisi di mercato (generata da Ciak, commentata in call)" },
   { icon: CalendarCheck, t: "Conferma appuntamento" },
@@ -48,8 +48,34 @@ Resto a disposizione. Cordiali saluti, Mariangela`,
     warn: "Onestà (Codice del Consumo): parliamo di potenziale (\"può diventare\"), non di risultati già ottenuti. Niente numeri, percentuali o testimonianze inventate.",
   },
   {
+    n: "1b", title: "Email di presentazione dettagliata (se la chiede prima della call)",
+    note: "Da usare SOLO con chi, dopo il 1° contatto, chiede più dettagli via email prima di fissare la call conoscitiva (quindi prima del questionario). Non sostituisce la call: serve ad arrivarci informati e a fissarla.",
+    script: `Gentile [Nome],
+come d'accordo Le scrivo qui.
+
+La ringrazio ancora per il collegamento: nel Suo campo, [settore], la competenza è tutto, ed è esattamente ciò che con Evolution Pro aiutiamo a trasformare in un asset.
+
+In una riga: prendiamo l'esperienza di professionisti e formatori e la trasformiamo in un videocorso strutturato. Lei mette la competenza e i contenuti; noi ci occupiamo di struttura, produzione, marketing, promozione e vendite. Un percorso che lavora anche quando Lei non c'è, senza togliere tempo alle Sue attività.
+
+Per i nostri partner il videocorso può diventare, nel tempo, tre cose insieme:
+– una fonte di reddito ricorrente, slegata dalle ore;
+– una calamita che porta nuove persone verso coaching e consulenze;
+– una vetrina che promuove eventi, live e percorsi di valore più alto.
+
+Stiamo selezionando quattro figure di riferimento, e leggendo il Suo profilo ho pensato a Lei.
+
+Le propongo una telefonata di 10 minuti, con Mariangela (la nostra consulente senior): Le spiegherà il modello di partnership per capire se ha senso approfondire meglio. Nessun impegno.
+
+Mi dica pure quali sono le Sue disponibilità e il numero su cui chiamarLa.
+
+Buon lavoro e a presto,
+Claudio Bertogliatti
+Evolution Pro`,
+    warn: "Onestà (Codice del Consumo): «può diventare», non «diventa». Nessun numero, percentuale o risultato garantito. Nota di ruolo: qui apri tu (Claudio) e la call di qualifica la conduce Mariangela — canale alternativo allo Script standard, dove è Mariangela ad aprire.",
+  },
+  {
     n: "2", title: "Script della chiamata di qualifica",
-    note: "A chi ha risposto positivamente. Obiettivo: rapport, qualificare, portare al gruppo a 3 + le 8 Domande Ciak. Non si parla di prezzi.",
+    note: "A chi ha risposto positivamente. Obiettivo: rapport, qualificare, portare al gruppo a 3 + le 10 Domande Ciak. Non si parla di prezzi.",
     blocks: [
       { h: "Apertura", s: `Buongiorno [Nome], sono Mariangela di Evolution Pro. Grazie ancora per aver risposto. Le spiego in due parole di cosa ci occupiamo e, se ha senso, vediamo se ci sono i presupposti per lavorare insieme — senza impegno.` },
       { h: "Posizionamento", s: `Noi creiamo videocorsi e percorsi formativi in partnership con i professionisti: Lei mette la competenza e i contenuti, noi ci occupiamo di tutto il resto — struttura del percorso, tecnologia, marketing e vendite. Non è solo marketing: è un percorso strutturato pensato per durare nel tempo. E una cosa importante: il corso resta di Sua proprietà.` },
@@ -59,42 +85,44 @@ Resto a disposizione. Cordiali saluti, Mariangela`,
 • Ha già dei contenuti o dei corsi, anche solo abbozzati?
 • Nel Suo settore, chi considera i principali riferimenti o competitor? (← competitor)
 • C'è un motivo per cui vorrebbe partire proprio adesso? (← urgenza)` },
-      { h: "Il processo (cosa succede dopo)", s: `Funziona così: Le mando un link dove rispondere a 8 domande aperte sul Suo progetto, 5-10 minuti, con parole Sue. In base alle Sue risposte prepariamo un'analisi di mercato personalizzata — potenziale del corso, target migliore, competitor e strategie. Poi ci vediamo in videocall e la analizziamo insieme. E le dico una cosa: anche se poi non dovessimo collaborare, quell'analisi resta a Lei, è un valore concreto a prescindere.` },
+      { h: "Il processo (cosa succede dopo)", s: `Funziona così: Le mando un link dove rispondere a 10 domande aperte sul Suo progetto, circa 10 minuti, con parole Sue. In base alle Sue risposte prepariamo un'analisi di mercato personalizzata — potenziale del corso, target migliore, competitor e strategie. Poi ci vediamo in videocall e la analizziamo insieme. E le dico una cosa: anche se poi non dovessimo collaborare, quell'analisi resta a Lei, è un valore concreto a prescindere.` },
       { h: "Chiusura verso il gruppo a 3", s: `Facciamo così: Le creo un piccolo gruppo WhatsApp con Claudio, che segue i percorsi videocorsi, così Le mando il link delle domande e fissiamo la videocall. Le va bene se lo apro adesso?
 
 Se esita: Nessun impegno — serve solo per organizzarci e per farLe arrivare l'analisi di mercato. Il resto lo decidiamo insieme in call.` },
     ],
-    tip: "Le 3 domande in più (lista/follower, competitor, \"perché adesso\") non sono nelle 8 Domande Ciak online: raccoglierle qui in call rende l'analisi più ricca e umana.",
+    tip: "Le 3 domande in più (lista/follower, competitor, \"perché adesso\") non sono nelle 10 Domande Ciak online: raccoglierle qui in call rende l'analisi più ricca e umana.",
   },
   {
     n: "3", title: "Script del gruppo WhatsApp a 3",
-    note: "Presentazione reciproca + link alle 8 Domande Ciak + appuntamento + urgenza. Nel gruppo: partner + Mariangela + Claudio.",
+    note: "Presentazione reciproca + link alle 10 Domande Ciak + appuntamento + urgenza. Nel gruppo: partner + Mariangela + Claudio.",
     script: `Ciao [Nome], ti presento Claudio, che segue i percorsi videocorsi qui in Evolution Pro. Claudio, ti presento [Nome], [professione/settore] — un/una grande professionista nel suo settore.
 
-Ecco il link per rispondere alle 8 domande sul tuo progetto: https://ciak.io/diagnostica
+Ecco il link per rispondere alle 10 domande sul tuo progetto: https://ciak.io/diagnostica
 
 Ci vediamo [giorno GG/MM] alle ore [HH:MM] in videocall.
 
 Importante: compilale per favore tra oggi e domani, così abbiamo 2-3 giorni per preparare l'analisi e arrivare pronti tutti alla call. Grazie! 🙌`,
   },
   {
-    n: "4", title: "Le 8 Domande Ciak (su ciak.io/diagnostica)",
-    note: "⛔ Non usare più VideoAsk / Google Form. Il prospect risponde su Ciak: le risposte generano l'analisi in automatico e restano tracciate. Solo per tuo riferimento:",
+    n: "4", title: "Le 10 Domande Ciak (su ciak.io/diagnostica)",
+    note: "⛔ Non usare più VideoAsk / Google Form. Il prospect risponde su Ciak: le risposte generano l'analisi in automatico e restano tracciate. Nell'ordine reale del questionario, solo per tuo riferimento:",
     list: [
-      "Competenza — Qual è la competenza su cui hai costruito il tuo lavoro?",
-      "Esperienza — Da quanto la pratichi, e come sei arrivato/a a padroneggiarla?",
-      "Clienti / prova — Con chi hai già lavorato e un risultato concreto che hai aiutato a ottenere.",
-      "Idea offerta — Se immagini un tuo corso o percorso digitale, cosa ti vedi offrire?",
-      "Target — A chi vorresti parlare, e cosa la tiene sveglia la notte?",
-      "Problema — Qual è il problema che risolvi meglio di chiunque, e la vita di chi ti sceglie prima e dopo?",
-      "Digitale — Che rapporto hai col mondo online, cosa hai già provato e dove ti blocchi?",
-      "Obiettivo — Perché vuoi farlo davvero, e cosa cambierebbe nella tua vita?",
+      "Competenza — La competenza su cui hai costruito il lavoro, e se ha un nome/metodo/marchio tuo (libro, percorso, tecnica).",
+      "Esperienza — Da quanto la pratichi, come ci sei arrivato/a e a quante persone l'hai già insegnata.",
+      "Clienti / prova — Con chi hai già lavorato (e ti hanno pagato), e un risultato concreto.",
+      "Idea offerta — Cosa ti vedi offrire, e se è già un'offerta a pagamento o solo un'intuizione.",
+      "Materiale esistente — Cosa hai già creato: libro, podcast, videocorso, dispense, masterclass (anche grezzo).",
+      "Target — A chi vuoi parlare, e cosa la tiene sveglia la notte.",
+      "Problema — Il problema che risolvi meglio di chiunque, e la vita di chi ti sceglie prima e dopo.",
+      "Digitale — Che rapporto hai col mondo online, cosa hai già provato e dove ti blocchi.",
+      "Agenzie — Se ti sei già affidato ad agenzie o consulenti, com'è andata e cosa ti è mancato.",
+      "Obiettivo — Perché vuoi farlo davvero, e cosa cambierebbe nella tua vita.",
     ],
     tip: "Al termine il prospect vede un popup di ringraziamento col calendario. L'indice di prontezza 0-100 resta interno: lo vede solo Claudio e guida la proposta in call.",
   },
   {
     n: "5", title: "Analisi di mercato (generata da Ciak, commentata in call)",
-    note: "L'analisi (\"Ciak Blueprint\") la genera Ciak in automatico dalle 8 risposte. Resta al partner in ogni caso. In videocall Claudio la commenta e ci costruisce sopra la proposta.",
+    note: "L'analisi (\"Ciak Blueprint\") la genera Ciak in automatico dalle 10 risposte. Resta al partner in ogni caso. In videocall Claudio la commenta e ci costruisce sopra la proposta.",
     list: [
       "Profilo e posizionamento — chi è, in cosa è forte, come si presenta oggi.",
       "Potenziale del videocorso — c'è domanda per questo tema? Segnali di mercato, trend.",
@@ -185,7 +213,7 @@ export function AcquisizioneScript() {
         </div>
         <div className="mt-4 flex items-start gap-2 text-[13px] text-slate-600 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
           <Info className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-          <span>Il questionario non è più un form esterno: il prospect compila le 8 Domande su <span className="font-semibold">ciak.io/diagnostica</span>. Da lì Ciak prepara in automatico l'analisi personalizzata (tutto tracciato: lead, punteggio interno, memoria del prospect).</span>
+          <span>Il questionario non è più un form esterno: il prospect compila le 10 Domande su <span className="font-semibold">ciak.io/diagnostica</span>. Da lì Ciak prepara in automatico l'analisi personalizzata (tutto tracciato: lead, punteggio interno, memoria del prospect).</span>
         </div>
       </div>
 
