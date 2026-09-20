@@ -64,6 +64,7 @@ import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspe
 import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
 import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { VenditePanoramica } from "./pages/VenditePanoramica";
+import { VenditeCatalogo } from "./pages/VenditeCatalogo";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
 import { AcquisizioneScript } from "./pages/AcquisizioneScript";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
@@ -723,6 +724,7 @@ export default function CiakAdminApp() {
         <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
         <Route path="consegna-manuale" element={<ConsegnaManuale onAuthExpired={handleLogout} />} />
         <Route path="listino-prezzi" element={<ListinoPrezzi />} />
+        <Route path="catalogo" element={<VenditeCatalogo />} />
         <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 
         {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I path per stadio
