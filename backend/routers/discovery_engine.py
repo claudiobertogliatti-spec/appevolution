@@ -3008,9 +3008,13 @@ _SYSTEME_STAGE_RULES = [
     ("responded_positive", {"ciak_completed", "questionario_compilato",
                             "riattivazione_risposto", "riattivazione_caldo"}),
     ("contacted", {"ciak_cold_outreach_places", "ciak_cold_outreach_legacy", "ciak_started",
-                   "ciak_optin_masterclass", "lead_registrato", "lista_fredda",
+                   "lead_registrato", "lista_fredda",
                    "riattivazione_lotto_1", "lista_fredda_tag1", "lista_fredda_tag2",
                    "lista_fredda_tag3", "lista_fredda_tag4"}),
+    # ⛔ `ciak_optin_masterclass` NON è "contattato": è un opt-in di massa alla
+    # masterclass. Chi si è fermato lì (solo questo tag) cade nel default
+    # "discovered" → colonna "Nuovo", da svegliare con una chiamata di Mariangela.
+    # Chi ha anche completato il questionario matcha prima "responded_positive".
 ]
 
 
