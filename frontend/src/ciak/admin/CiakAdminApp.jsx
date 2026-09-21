@@ -66,7 +66,6 @@ import { AcquisizionePanoramica } from "./pages/AcquisizionePanoramica";
 import { VenditePanoramica } from "./pages/VenditePanoramica";
 import { VenditeCatalogo } from "./pages/VenditeCatalogo";
 import { DeliveryPanoramica } from "./pages/DeliveryPanoramica";
-import { DeliveryFase } from "./pages/DeliveryFase";
 import { AcquisizioneEditoriale } from "./pages/AcquisizioneEditoriale";
 import { AcquisizioneScript } from "./pages/AcquisizioneScript";
 import { AcqCampaignsPage } from "./pages/AcqCampaignsPage";
@@ -792,8 +791,6 @@ export default function CiakAdminApp() {
         {/* ── Delivery ── */}
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
         <Route path="delivery-audit" element={<DeliveryAudit onAuthExpired={handleLogout} />} />
-        {/* Delivery — pagina per fase EVO: /admin/delivery/<esamina|valida|ottimizza|online|bloccati> */}
-        <Route path="delivery/:fase" element={<DeliveryFase onAuthExpired={handleLogout} />} />
         <Route path="motore-vendite-partner" element={<PartnerSalesEngine onAuthExpired={handleLogout} />} />
         <Route path="quarantena-partner" element={<QuarantenaPartner onAuthExpired={handleLogout} />} />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
