@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ContractBody } from '../components/ContractBody';
 
 /**
  * ContractAccept — testo del contratto leggibile + checkbox, stile bancario (Task 7).
@@ -69,7 +70,8 @@ export default function ContractAccept({ partnerId, onConfirm, disabled = false 
         aria-label="Testo del contratto"
       >
         {contractText
-          || (loadFailed
+          ? <ContractBody text={contractText} />
+          : (loadFailed
             ? 'Non è stato possibile caricare il testo del contratto. Riprova tra poco.'
             : 'Caricamento testo contratto…')}
       </div>
