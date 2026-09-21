@@ -1,5 +1,7 @@
 /**
- * Sotto-nav a tab del reparto Delivery (Home · Partner · Audit · Video · Motore).
+ * Sotto-nav a tab del reparto Delivery: la Home (board a 5 colonne) + una pagina
+ * per ogni fase EVO (Esamina · Valida · Ottimizza · Online · Bloccati) + le pagine
+ * strumento già esistenti (Audit · Video · Motore).
  * Il tab attivo è passato via prop `active` (label) e reso non-cliccabile.
  * Speculare a Vendite/Acquisizione SubNav: stesso pattern e brand lock Ciak.
  */
@@ -7,7 +9,11 @@ import { Link } from "react-router-dom";
 
 const TABS = [
   { label: "Home", to: "/admin/reparto/delivery" },
-  { label: "Partner", to: "/admin/partner" },
+  { label: "Esamina", to: "/admin/delivery/esamina" },
+  { label: "Valida", to: "/admin/delivery/valida" },
+  { label: "Ottimizza", to: "/admin/delivery/ottimizza" },
+  { label: "Online", to: "/admin/delivery/online" },
+  { label: "Bloccati", to: "/admin/delivery/bloccati" },
   { label: "Audit", to: "/admin/delivery-audit" },
   { label: "Video", to: "/admin/video-review" },
   { label: "Motore", to: "/admin/motore-vendite-partner" },
