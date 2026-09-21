@@ -129,6 +129,10 @@ export function StartPage({ dashboard }) {
   const upgradePrice = dashboard.pricing?.partnership?.upgrade_from_start_cents ?? (partnershipPrice - startPrice);
   const clientId = dashboard.client?.id;
   const primo = (dashboard.client?.name || "").trim().split(" ")[0] || "";
+  // Instradamento dal Blueprint: se l'analisi consiglia la Partnership, la sales
+  // page mette la Partnership come percorso consigliato (coerente con la CTA del
+  // Blueprint). Altrimenti resta Ciak Start come primo passo.
+  const recPartnership = dashboard.diagnostic?.recommended_offer === "partnership";
 
   // Finestra bonus 48h (guida videocorso in omaggio): countdown REALE dal backend.
   const offer = dashboard.offer || {};
@@ -207,8 +211,14 @@ export function StartPage({ dashboard }) {
           </div>
         </section>
 
-        {/* COUNTDOWN BONUS 48h (solo se attivo) */}
-        {bonusAttiva ? (
+        {/* PERCORSO CONSIGLIATO dalla tua analisi (instradamento del Blueprint) */}
+        {recPartnership ? (
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl px-5 py-4 text-center text-white" style={{ background: NAVY_GRADIENT }}>
+            <span className="inline-flex items-center gap-2 text-sm font-bold">
+              <span className="h-0.5 w-6 bg-yellow-400" /> Dalla tua analisi, il percorso consigliato per te è la <span className="text-yellow-400">Partnership Evolution PRO</span>
+            </span>
+          </div>
+        ) : bonusAttiva ? (
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-yellow-400 px-5 py-4 text-center text-slate-900">
             <span className="inline-flex items-center gap-2 text-sm font-bold">
               <Gift className="h-4 w-4" /> Guida in omaggio attivando Ciak Start — l'offerta scade tra
@@ -220,9 +230,9 @@ export function StartPage({ dashboard }) {
         {/* DUE TIER */}
         <div className="grid gap-5 lg:grid-cols-2">
           {/* START */}
-          <section className="relative flex flex-col rounded-2xl border-2 border-yellow-400 bg-white p-7 shadow-[0_18px_50px_rgba(16,19,38,0.10)]">
+          <section className={`relative flex flex-col rounded-2xl bg-white p-7 shadow-[0_18px_50px_rgba(16,19,38,0.10)] ${recPartnership ? "border border-slate-200" : "border-2 border-yellow-400"}`} style={{ order: recPartnership ? 2 : 1 }}>
             <span className="absolute -top-3 left-6 rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-slate-900 shadow">
-              Consigliato per iniziare
+              {recPartnership ? "Se preferisci partire leggero" : "Consigliato per iniziare"}
             </span>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Ciak Start</p>
             <h2 className="mt-2 text-2xl font-extrabold text-slate-900">Le fondamenta, fatte bene</h2>
@@ -269,9 +279,9 @@ export function StartPage({ dashboard }) {
           </section>
 
           {/* PARTNERSHIP TURBO */}
-          <section className="relative flex flex-col rounded-2xl border border-transparent p-7 text-white" style={{ background: NAVY_GRADIENT }}>
-            <span className="absolute -top-3 left-6 rounded-full bg-slate-900 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-yellow-400 shadow">
-              Il turbo
+          <section className={`relative flex flex-col rounded-2xl p-7 text-white ${recPartnership ? "border-2 border-yellow-400" : "border border-transparent"}`} style={{ background: NAVY_GRADIENT, order: recPartnership ? 1 : 2 }}>
+            <span className={`absolute -top-3 left-6 rounded-full px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide shadow ${recPartnership ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-yellow-400"}`}>
+              {recPartnership ? "Consigliato per te" : "Il turbo"}
             </span>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-300">Partnership Evolution PRO</p>
             <h2 className="mt-2 text-2xl font-extrabold text-white">Il sistema completo, con noi</h2>
