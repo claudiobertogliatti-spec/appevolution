@@ -860,6 +860,99 @@ async def partnership_checkout(client: dict[str, Any] = Depends(require_client))
     })
 
 
+class SalesChatRequest(BaseModel):
+    message: str
+    conversation_history: list[dict[str, str]] = Field(default_factory=list)
+    bonus_attiva: bool = False
+
+
+@router.post("/sales-chat")
+async def sales_chat(
+    body: SalesChatRequest,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Assistente di supporto della sales page (post-call): risponde ai dubbi sul
+    passo successivo — Ciak Start vs Partnership, prezzi, credito, Klarna, bonus.
+    Claude Haiku, risposte brevi. Legge il `recommended_offer` reale del cliente
+    lato server (niente numeri inventati, niente promesse di guadagno)."""
+    try:
+        import anthropic
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return {"reply": "Il supporto non è al momento disponibile. Per qualsiasi domanda scrivi a assistenza@evolution-pro.it"}
+
+        start_eur = START_AMOUNT_CENTS // 100
+        partnership_eur = PARTNERSHIP_PRICE_CENTS // 100
+        upgrade_eur = (PARTNERSHIP_PRICE_CENTS - START_AMOUNT_CENTS) // 100
+        rec_partnership = client.get("recommended_offer") == OFFER_PARTNERSHIP
+        primo = (client.get("name") or "").strip().split(" ")[0]
+
+        consiglio = (
+            f"Dall'analisi (Blueprint) di questa persona, il percorso consigliato è la PARTNERSHIP: "
+            f"se chiede \"cosa mi conviene\", spiega perché il team ha consigliato la Partnership "
+            f"(sistema completo costruito insieme), senza sminuire Ciak Start come primo passo valido."
+            if rec_partnership else
+            f"Dall'analisi (Blueprint) di questa persona, il primo passo consigliato è CIAK START: "
+            f"se chiede \"cosa mi conviene\", spiega perché partire dalle fondamenta ha senso per lei, "
+            f"lasciando la Partnership come evoluzione naturale quando è pronta."
+        )
+        bonus_txt = (
+            "La finestra BONUS è ATTIVA: attivando Ciak Start entro 48h dalla call riceve in omaggio "
+            "la guida \"Come creare un videocorso che vende\" (40 pagine). È una scadenza reale, non un finto conto alla rovescia."
+            if body.bonus_attiva else
+            "Nessun bonus 48h attivo al momento: non inventare urgenze o scadenze."
+        )
+
+        system_prompt = f"""Sei l'assistente di Evolution PRO che accompagna {primo or 'la persona'} sulla pagina dove sceglie il passo successivo dopo la call di consegna del suo Blueprint.
+
+TONO: caldo, diretto, concreto. Niente gergo. Massimo 120 parole. Dai del tu. Chiudi sempre con una frase che aiuta a decidere il passo successivo.
+
+⛔ ONESTÀ (regola assoluta, ha la precedenza su tutto):
+- MAI promettere guadagni, fatturato, numero di clienti o percentuali di successo. Il metodo è lo strumento; i risultati dipendono dal mercato e dall'impegno della persona.
+- MAI inventare recensioni, testimonianze o dati.
+- Usa SOLO i prezzi e i fatti qui sotto. Se non sai qualcosa: "Per questo ti risponde il team — scrivi a assistenza@evolution-pro.it".
+- Rispondi solo a domande su offerta, prezzi, modalità, cosa è incluso, come si procede. Per il resto rimanda ad assistenza.
+
+━━━ I DUE PERCORSI (prezzi reali, non modificarli) ━━━
+▸ CIAK START — {start_eur}€ una tantum. Le fondamenta fatte bene: posizionamento, basi del brand e sistemazione dei profili social, sito vetrina semplice, strategia + calendario dei contenuti, revisione finale. È il primo passo concreto.
+▸ PARTNERSHIP EVOLUTION PRO — {partnership_eur}€, tutto incluso. Il sistema completo costruito insieme fino al lancio: tutto ciò che c'è in Start + masterclass/videocorso costruiti con te, funnel + email di vendita, lancio guidato, revisione continua.
+
+━━━ FATTI CHIAVE ━━━
+- CREDITO GARANTITO: i {start_eur}€ di Ciak Start si scalano INTERI se poi passi alla Partnership. Non paghi due volte. L'upgrade da Start costa {upgrade_eur}€ (i {start_eur}€ sono già scalati).
+- RATEIZZAZIONE: puoi rateizzare con Klarna, direttamente nel checkout (Stripe). Nessuna richiesta a nessuno.
+- COME SI ATTIVA CIAK START: dal pulsante "Attiva Ciak Start" in questa pagina, checkout sicuro.
+- COME SI ATTIVA LA PARTNERSHIP: NON si compra da questa pagina. Si passa dalla proposta con contratto che il team ti fa avere ("Ne parliamo insieme"). Se la vuoi, dillo e il team ti manda la proposta.
+- {bonus_txt}
+
+━━━ CONSIGLIO PERSONALIZZATO PER QUESTA PERSONA ━━━
+{consiglio}"""
+
+        full_message = body.message
+        if body.conversation_history:
+            history_text = "\n".join(
+                f"{'Utente' if m.get('role') == 'user' else 'Assistente'}: {m.get('content', '')}"
+                for m in body.conversation_history[-6:]
+            )
+            full_message = f"[Contesto conversazione precedente]\n{history_text}\n\n[Nuova domanda]\n{body.message}"
+
+        ai = anthropic.Anthropic(api_key=api_key)
+        response = ai.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system=system_prompt,
+            messages=[{"role": "user", "content": full_message}],
+        )
+        reply = "".join(
+            b.text for b in response.content if getattr(b, "type", None) == "text"
+        ).strip()
+        return {"reply": reply or "Non ho una risposta pronta. Scrivi a assistenza@evolution-pro.it e ti aiutiamo subito."}
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[SALES CHAT] Error: {e}")
+        return {"reply": "Si è verificato un errore. Riprova tra poco o scrivi a assistenza@evolution-pro.it"}
+
+
 @router.post("/bonus-reminder/run")
 async def bonus_reminder_run(_auth=Depends(require_admin_or_report_key)):
     """Innescato ogni ora dallo scheduler (X-Report-Key): manda il promemoria a
