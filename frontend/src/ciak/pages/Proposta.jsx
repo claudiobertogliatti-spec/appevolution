@@ -25,6 +25,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
+import { ContractBody } from "../components/ContractBody";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { PRICING } from "../pricing";
@@ -884,8 +885,10 @@ function ContrattoInline({ proposta, onFirma, firmato }) {
         <h2 className="font-semibold text-lg">Contratto di Partnership</h2>
         <p className="text-slate-400 text-sm">Leggi attentamente e firma in basso.</p>
       </div>
-      <div className="p-6 max-h-[500px] overflow-y-auto text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-        {contractText || "Caricamento testo contratto…"}
+      <div className="px-6 md:px-8 py-6 max-h-[68vh] overflow-y-auto">
+        {contractText
+          ? <ContractBody text={contractText} />
+          : <p className="text-sm text-slate-400">Caricamento testo contratto…</p>}
       </div>
       <div className="border-t border-gray-200 p-6 bg-gray-50">
         <label className="flex items-start gap-3 mb-6 cursor-pointer">
