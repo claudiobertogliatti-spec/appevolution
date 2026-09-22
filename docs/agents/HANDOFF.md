@@ -4,7 +4,9 @@
 
 **PERCHÉ QUESTA VOCE:** prima volta che si verifica se Manus ha davvero permessi di scrittura Git su questo repo (punto aperto in `docs/agents/PROTOCOL.md` §5-ter). **Risultato: sì, il push funziona.** Verificato da me in due modi indipendenti: (1) sul GitHub reale via API — branch e commit esistono, `main` è rimasto a `e052af88` invariato, nessuna PR era stata aperta da Manus stessa (rispettato il limite dichiarato); (2) sul diff riga per riga prima di aprire la PR — 5 file, cambio minimo, gate conservativo (solo `instradamento === "nurture"` nasconde il calendario; valori mancanti/sconosciuti/legacy mantengono il comportamento attuale), test scritti prima dell'implementazione con auto-correzione quando il primo rosso non era una prova valida, verifica dei due test adiacenti falliti tramite worktree baseline sullo stesso commit di `origin/main` (confermato: non regressioni).
 
-**⛔ NON ANCORA MERGIATA.** Decisione di merge a Claudio. `docs/agents/PROTOCOL.md` §5-ter aggiornato con l'esito.
+**✅ AGGIORNAMENTO 22/9/2026:** PR #212 mergiata da Claudio (commit `495a58dd`) — il gate è in produzione, deploy automatico backend+frontend già partito. Chi riprende: **nessuno smoke test post-deploy ancora eseguito** su questo lavoro specifico — prima di darlo per buono in produzione, verificare che un lead nurture reale non veda più il calendario e che partnership/start lo vedano ancora.
+
+**⚠️ Decisione di Claudio per il prossimo giro:** far preparare la PR direttamente a Manus (non solo il push del branch) — resta comunque a Claude Code/Claudio la revisione del diff prima del merge, e il merge resta sempre di Claudio. Dettaglio in `docs/agents/PROTOCOL.md` §5-ter.
 
 ### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — PR #209 MERGIATA su main
 
