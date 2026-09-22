@@ -1,9 +1,9 @@
 # Protocollo multi-agente — Evolution PRO / Ciak
 
-**Vale per: Claude Code · Codex CLI · Antigravity · qualunque agente lavori su questo repo.**
+**Vale per: Claude Code · Codex CLI · Antigravity · Manus AI · qualunque agente lavori su questo repo.**
 Leggere questo file PRIMA di `AGENTS.md` e `CLAUDE.md`.
 
-Ultimo aggiornamento: 2026-07-27.
+Ultimo aggiornamento: 2026-09-22 (aggiunto Manus AI, §2 e §5-ter).
 
 ---
 
@@ -31,7 +31,7 @@ Se l'ultimo commit ha più di qualche giorno mentre GitHub è avanti, sei nel re
 
 ## 1. Perché esiste questo file
 
-Le tre piattaforme **non si parlano in tempo reale**. Non esiste un bus, un orchestratore,
+Le quattro piattaforme **non si parlano in tempo reale**. Non esiste un bus, un orchestratore,
 o un canale condiviso. Ognuna parte da zero e vede solo quello che trova su disco.
 
 L'unica cosa che condividono è **questo repository**. Quindi il repo è il bus:
@@ -52,8 +52,9 @@ presunte specializzazioni di modello.
 | **Claude Code** (Luca) | Piano, priorità, memoria di lungo periodo, verifica alla fonte, esecuzione | È l'unica con i file di memoria e il piano commerciale. Ha gli MCP (GitHub, Drive, Gmail, Meta). |
 | **Codex CLI** | Voce esterna: review indipendente del diff, challenge adversarial, consulto tecnico | Modello diverso, contesto diverso, nessuna memoria delle decisioni precedenti. Trova quello che chi ha scritto il codice non vede. Gira **read-only**. |
 | **Antigravity** | Lavoro lungo dentro l'IDE, su branch dedicati | Sessioni lunghe nell'editor. Soggetta al gate di evidenza del §4. |
+| **Manus AI** | Ricerca aumentata dal web (plugin dati di mercato/SEO/competitor), bozze di piano e implementazione di prova nel proprio sandbox cloud | Unica piattaforma con un ecosistema di plugin di ricerca esterna integrato; non richiede una macchina locale. Soggetta al vincolo speciale del §5-ter: il suo sandbox non è garantito allineato a `origin/main`. |
 
-**Nessuno dei tre decide.** Le decisioni su prezzo, sconti, contratti, chiavi e
+**Nessuno dei quattro decide.** Le decisioni su prezzo, sconti, contratti, chiavi e
 credenziali restano a Claudio. Un accordo fra due agenti è una raccomandazione,
 non una delibera.
 
@@ -67,7 +68,7 @@ non una delibera.
 2. **`main` è in produzione.** Un push su `main` fa partire Cloud Build e
    ridiploya backend e frontend. Non si pusha su `main` per "provare".
 3. **Un agente = un branch**, quando il lavoro dura più di un commit.
-   Naming: `cc/<tema>` (Claude Code), `ag/<tema>` (Antigravity).
+   Naming: `cc/<tema>` (Claude Code), `ag/<tema>` (Antigravity), `mn/<tema>` (Manus AI).
 4. **Prima di iniziare**: `git fetch origin && git status`. Se il working tree
    di un altro agente è sporco, non ci si lavora sopra: si scrive in HANDOFF.md
    e ci si ferma.
@@ -79,7 +80,7 @@ non una delibera.
 
 > **Niente è "fatto" senza prova.**
 
-Vale per tutti e tre, senza eccezioni, incluso chi sta scrivendo questo file.
+Vale per tutti e quattro, senza eccezioni, incluso chi sta scrivendo questo file.
 
 Una prova è una di queste, e nient'altro:
 
@@ -112,6 +113,17 @@ dati partner o la pipeline video. Non per ogni virgola.
 
 ---
 
+## 5-ter. Come si usa Manus AI
+
+Manus (manus.im) è una piattaforma cloud, **non un'app locale**: lavora in un sandbox remoto con una propria copia clonata del repo pubblico. Punti di forza reali, verificati il 22/9/2026 su un task completo: non fa mai commit, push o deploy senza conferma esplicita ("azione esterna e irreversibile"); rifiuta fix automatici rischiosi (es. `npm audit fix --force` su vulnerabilità critiche non testate); non modifica alla cieca test ambigui quando non è chiaro se il difetto sia nel test o nel codice. Ha inoltre un ecosistema di plugin di ricerca esterna (dati di mercato, SEO, competitor) che nessuna delle altre tre piattaforme ha.
+
+**⛔ Vincolo non negoziabile — il sandbox non è mai garantito allineato.** Verificato lo stesso giorno, tre volte nella stessa sessione di lavoro: due "bug trovati e corretti" erano in realtà già risolti su `origin/main` (il sandbox partiva da una copia vecchia), e un intero piano di redesign (Prospect/Pipeline) contraddiceva una decisione architetturale già presa e già in produzione (PR #184/#185, fusione delle due pagine decisa il 19/9), perché il sandbox non rifletteva quello stato. Regola operativa, da richiedere esplicitamente a Manus a inizio di ogni task su questo repo: **prima di dichiarare un bug, uno stato architetturale o un piano, esegua `git fetch origin && git diff origin/main` nel proprio sandbox** (o equivalente) e legga i file sorgente aggiornati, non fidandosi della propria memoria di sessioni precedenti né di una copia locale non risincronizzata.
+
+**Cosa gli si affida bene:** ricerca di mercato/competitor con dati reali (non inventati) tramite i suoi plugin; bozze di analisi e piano di implementazione; contenuti (presentazioni, pagine, immagini) per uso interno o commerciale, sempre nel rispetto del brand lock Ciak/Evolution.
+**Cosa NON gli si affida senza supervisione:** implementazione diretta di codice destinato a `main` — la sua capacità di scrittura Git su questo repository (branch dedicato `mn/<tema>`, apertura PR) **non è stata ancora verificata**: finché non è confermata, il codice che produce nel suo sandbox va passato a Claude Code o Antigravity per la revisione, il commit e la PR, non spinto direttamente da Manus.
+
+Non gira in autenticazione API key: uso da interfaccia web con l'account di Claudio (Claudio Bertogliatti, piano Manus 1.6 Max, crediti a consumo per task — verificare il saldo prima di task pesanti). Dettagli e casi verificati in `memory/tool_manus_ai_sandbox_disallineato.md` (memoria di Claude, non in questo repo).
+
 ## 5-bis. Decisioni chiuse — non riaprire senza Claudio
 
 Un protocollo che dice solo *come* lavorare lascia gli agenti a inseguire l'ultimo piano che
@@ -134,6 +146,15 @@ nessuna chiave nuova, nessuna infrastruttura da mantenere.
 
 **✅ IN VIGORE — la voce esterna non usa API key.** Codex CLI si autentica con `codex login`
 (account ChatGPT). Se un piano ti chiede una `OPENAI_API_KEY` per farlo girare, è il piano vecchio.
+
+**❌ SUPERATO — Prospect e Pipeline come due pagine separate nel reparto Acquisizione.**
+Decisione presa il 19/9/2026: le due pagine sono **fuse in un'unica pagina** (`AcquisizionePipelineProspect`,
+route `/admin/pipeline`), tramite le PR #184 e #185 già mergiate su `main`. Il vecchio link Prospect fa
+solo redirect a quella pagina; `LeadManager` è riusato internamente (i suoi modali), non è più una pagina
+a sé. Un piano che propone di "differenziare meglio" due pagine Prospect/Pipeline separate sta leggendo
+uno stato superato (visto il 22/9/2026 in un piano di Manus AI basato su un sandbox disallineato,
+corretto in [[tool_manus_ai_sandbox_disallineato]] — memoria di Claude): verificare `CiakAdminApp.jsx`
+e `AcquisizionePipelineProspect.jsx` su `origin/main` prima di riproporlo.
 
 **⛔ PRECEDENZA ASSOLUTA — il piano commerciale batte l'infrastruttura.** Fino a nuovo ordine,
 nessun lavoro di piattaforma ha la precedenza sul lavoro che incassa. Se stai per costruire
