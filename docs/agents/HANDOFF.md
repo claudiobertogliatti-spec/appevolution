@@ -1,3 +1,11 @@
+### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Manus AI — prima scrittura Git verificata, PR #212 aperta (non mergiata)
+
+**COSA:** PR [#212](https://github.com/claudiobertogliatti-spec/appevolution/pull/212) "fix(ciak): gate del calendario per i lead nurture" — branch `mn/gate-instradamento-calendario`, commit `7153c40e`, implementato interamente da **Manus AI** nel suo sandbox cloud, su un piano che avevo verificato e approvato in precedenza (bug trovato dalla stessa Manus durante l'analisi CEO del 22/9: `/api/diagnostic/complete` calcola l'`instradamento` ma non lo espone, quindi tutti i lead — anche i "nurture" non pronti — vedevano lo stesso calendario di prenotazione call dei lead qualificati).
+
+**PERCHÉ QUESTA VOCE:** prima volta che si verifica se Manus ha davvero permessi di scrittura Git su questo repo (punto aperto in `docs/agents/PROTOCOL.md` §5-ter). **Risultato: sì, il push funziona.** Verificato da me in due modi indipendenti: (1) sul GitHub reale via API — branch e commit esistono, `main` è rimasto a `e052af88` invariato, nessuna PR era stata aperta da Manus stessa (rispettato il limite dichiarato); (2) sul diff riga per riga prima di aprire la PR — 5 file, cambio minimo, gate conservativo (solo `instradamento === "nurture"` nasconde il calendario; valori mancanti/sconosciuti/legacy mantengono il comportamento attuale), test scritti prima dell'implementazione con auto-correzione quando il primo rosso non era una prova valida, verifica dei due test adiacenti falliti tramite worktree baseline sullo stesso commit di `origin/main` (confermato: non regressioni).
+
+**⛔ NON ANCORA MERGIATA.** Decisione di merge a Claudio. `docs/agents/PROTOCOL.md` §5-ter aggiornato con l'esito.
+
 ### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — PR #209 MERGIATA su main
 
 **AGGIORNAMENTO:** PR #209 mergiata da Claudio, 20:57 UTC, commit `c8f332ae`. Tocca `backend/**` → deploy automatico Cloud Run già partito. ⛔ **Non ancora verificato**: nessuno smoke test post-deploy eseguito su questo lavoro. Chi riprende: prima di dare per buono il fix in produzione, verificare che il deploy sia andato a buon fine (Cloud Run revisione attiva, nessun errore di avvio) e — se possibile — che una generazione Blueprint reale non sia peggiorata.

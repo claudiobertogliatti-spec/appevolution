@@ -3,7 +3,7 @@
 **Vale per: Claude Code · Codex CLI · Antigravity · Manus AI · qualunque agente lavori su questo repo.**
 Leggere questo file PRIMA di `AGENTS.md` e `CLAUDE.md`.
 
-Ultimo aggiornamento: 2026-09-22 (aggiunto Manus AI, §2 e §5-ter).
+Ultimo aggiornamento: 2026-09-22 (aggiunto Manus AI, §2 e §5-ter; verificata scrittura Git di Manus, PR #212).
 
 ---
 
@@ -119,8 +119,10 @@ Manus (manus.im) è una piattaforma cloud, **non un'app locale**: lavora in un s
 
 **⛔ Vincolo non negoziabile — il sandbox non è mai garantito allineato.** Verificato lo stesso giorno, tre volte nella stessa sessione di lavoro: due "bug trovati e corretti" erano in realtà già risolti su `origin/main` (il sandbox partiva da una copia vecchia), e un intero piano di redesign (Prospect/Pipeline) contraddiceva una decisione architetturale già presa e già in produzione (PR #184/#185, fusione delle due pagine decisa il 19/9), perché il sandbox non rifletteva quello stato. Regola operativa, da richiedere esplicitamente a Manus a inizio di ogni task su questo repo: **prima di dichiarare un bug, uno stato architetturale o un piano, esegua `git fetch origin && git diff origin/main` nel proprio sandbox** (o equivalente) e legga i file sorgente aggiornati, non fidandosi della propria memoria di sessioni precedenti né di una copia locale non risincronizzata.
 
-**Cosa gli si affida bene:** ricerca di mercato/competitor con dati reali (non inventati) tramite i suoi plugin; bozze di analisi e piano di implementazione; contenuti (presentazioni, pagine, immagini) per uso interno o commerciale, sempre nel rispetto del brand lock Ciak/Evolution.
-**Cosa NON gli si affida senza supervisione:** implementazione diretta di codice destinato a `main` — la sua capacità di scrittura Git su questo repository (branch dedicato `mn/<tema>`, apertura PR) **non è stata ancora verificata**: finché non è confermata, il codice che produce nel suo sandbox va passato a Claude Code o Antigravity per la revisione, il commit e la PR, non spinto direttamente da Manus.
+**✅ Scrittura Git verificata il 22/9/2026** su un caso reale (gate instradamento calendario, commit `7153c40e`, branch `mn/gate-instradamento-calendario`): fetch di `origin/main` prima di iniziare, test scritti prima dell'implementazione (rosso→verde, con auto-correzione quando il primo rosso non era una prova valida per ambiente di test incompleto), verifica delle due suite adiacenti fallite tramite un worktree baseline sullo stesso commit di `origin/main` (confermato: non erano regressioni), commit atomico dei soli file approvati, push del solo branch **senza aprire PR** (rispettato il limite dichiarato). Verificato da Claude Code sia sul GitHub reale (branch e commit esistono, `main` invariato) sia riga per riga sul diff prima di aprire la PR (#212).
+
+**Cosa gli si affida bene:** ricerca di mercato/competitor con dati reali (non inventati) tramite i suoi plugin; bozze di analisi e piano di implementazione; contenuti (presentazioni, pagine, immagini) per uso interno o commerciale, sempre nel rispetto del brand lock Ciak/Evolution; **ora anche implementazione di codice su branch dedicato**, quando il task è ben delimitato (piano minimo concordato, file espliciti) — la PR verso `main` resta aperta da chi rilegge il diff (Claude Code o Claudio), non da Manus.
+**Cosa NON gli si affida senza supervisione:** apertura di PR verso `main` (non lo fa da solo, per dichiarazione propria) e qualunque decisione di prezzo/contratto/credenziali. Il diff prodotto va comunque riletto riga per riga prima di aprire la PR — la scrittura Git verificata non sostituisce la verifica del contenuto.
 
 Non gira in autenticazione API key: uso da interfaccia web con l'account di Claudio (Claudio Bertogliatti, piano Manus 1.6 Max, crediti a consumo per task — verificare il saldo prima di task pesanti). Dettagli e casi verificati in `memory/tool_manus_ai_sandbox_disallineato.md` (memoria di Claude, non in questo repo).
 
