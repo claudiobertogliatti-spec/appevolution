@@ -225,7 +225,11 @@ async def test_verify_magic_login_token_leaves_token_unused_when_client_missing(
 
 
 @pytest.mark.asyncio
-async def test_verify_magic_login_token_rejects_replay_after_first_use():
+async def test_verify_magic_login_token_allows_reuse_within_validity():
+    # Il link e' RIUTILIZZABILE entro la validita' (30gg): la stessa persona puo'
+    # riaprirlo piu' volte (leggo il Blueprint, ci penso, torno a pagare) senza che
+    # si "bruci" al primo uso. Due accessi con lo stesso token, anche concorrenti,
+    # riescono entrambi.
     db = FakeDB(
         ciak_clients=[
             {
@@ -248,7 +252,5 @@ async def test_verify_magic_login_token_rejects_replay_after_first_use():
     successes = [result for result in results if isinstance(result, dict)]
     failures = [result for result in results if isinstance(result, Exception)]
 
-    assert [result["id"] for result in successes] == ["client-1"]
-    assert len(failures) == 1
-    assert isinstance(failures[0], ValueError)
-    assert str(failures[0]) == "token non valido"
+    assert [result["id"] for result in successes] == ["client-1", "client-1"]
+    assert failures == []

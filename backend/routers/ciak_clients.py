@@ -134,6 +134,9 @@ async def _create_checkout_session(
         success_url=success_url,
         cancel_url=cancel_url,
         metadata=metadata,
+        # Ciak Start: il cliente puo' rateizzare con Klarna, come promesso nella
+        # sales page ("Puoi rateizzare con Klarna, gia' dentro il checkout").
+        payment_method_types=["card", "klarna"],
     )
     try:
         return await checkout.create_checkout_session(session_request)
@@ -491,8 +494,8 @@ class RequestAccessRequest(BaseModel):
 @router.post("/auth/request-access")
 async def request_access(body: RequestAccessRequest):
     """"Rimandami l'accesso": il cliente inserisce l'email e riceve un nuovo
-    magic-link (monouso). Risponde SEMPRE ok, anche se l'email non esiste, per non
-    rivelare chi e' cliente (anti-enumeration). Non solleva."""
+    magic-link (valido 30 giorni, riutilizzabile). Risponde SEMPRE ok, anche se
+    l'email non esiste, per non rivelare chi e' cliente (anti-enumeration). Non solleva."""
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
     from services.ciak_client_reengagement import invia_link_accesso

@@ -573,7 +573,11 @@ async def pagamento_stripe(token: str, request: Request):
                 "partner_id": proposta.get("partner_id", ""),
                 "prospect_email": proposta.get("prospect_email", ""),
                 "prospect_nome": proposta.get("prospect_nome", "")
-            }
+            },
+            # Klarna abilitato anche in Partnership (deciso da Claudio 22/9). NB:
+            # Klarna ha limiti d'importo propri: su corrispettivi alti puo' non
+            # comparire come opzione a checkout, gestito da Stripe/Klarna.
+            payment_method_types=["card", "klarna"],
         )
 
         session = await checkout.create_checkout_session(session_request)

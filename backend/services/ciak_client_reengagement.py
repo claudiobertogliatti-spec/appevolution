@@ -1,7 +1,7 @@
 """
 Re-engagement dell'area cliente Ciak (ponte verso la Partnership).
 
-Il cliente accede via magic-link monouso (scelta di design, niente password):
+Il cliente accede via magic-link (niente password), riutilizzabile entro 30 giorni:
 per farlo tornare quando vuole serve un modo di rimandargli l'accesso, e per
 tenerlo dentro conviene richiamarlo quando un deliverable e' pronto. Due funzioni,
 entrambe robuste: NON sollevano mai (loggano e ritornano bool), cosi' non possono
