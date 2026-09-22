@@ -244,7 +244,9 @@ async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, 
         "email": email.strip().lower(),
         "token_hash": _token_hash(token),
         "used_at": None,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
+        # 30 giorni + riutilizzabile (vedi verify): copre la finestra "leggo il
+        # Blueprint, decido, pago" senza costringere a rigenerare il link.
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
         "created_at": _now_iso(),
     }
     await db.ciak_client_login_tokens.insert_one(doc)
@@ -253,7 +255,7 @@ async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, 
 
 async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     doc = await db.ciak_client_login_tokens.find_one({"token_hash": _token_hash(token)})
-    if not doc or doc.get("used_at"):
+    if not doc:
         raise ValueError("token non valido")
     expires_at = datetime.fromisoformat(doc["expires_at"].replace("Z", "+00:00"))
     if expires_at < datetime.now(timezone.utc):
@@ -261,13 +263,13 @@ async def verify_magic_login_token(db, token: str) -> dict[str, Any]:
     client = await db.ciak_clients.find_one({"id": doc["client_id"]}, {"_id": 0})
     if not client:
         raise ValueError("cliente non trovato")
-    result = await db.ciak_client_login_tokens.update_one(
-        {"id": doc["id"], "used_at": None},
-        {"$set": {"used_at": _now_iso()}},
-    )
-    modified_count = getattr(result, "modified_count", None)
-    if modified_count is None and isinstance(result, dict):
-        modified_count = result.get("modified_count", 0)
-    if not modified_count:
-        raise ValueError("token non valido")
+    # Link RIUTILIZZABILE entro la validità (30gg): non si "brucia" al primo uso,
+    # così la persona può riaprire lo stesso link finché non scade. Registriamo
+    # comunque il primo accesso (`used_at`) come traccia di audit, senza bloccare
+    # i riusi successivi.
+    if not doc.get("used_at"):
+        await db.ciak_client_login_tokens.update_one(
+            {"id": doc["id"], "used_at": None},
+            {"$set": {"used_at": _now_iso()}},
+        )
     return client

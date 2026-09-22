@@ -133,12 +133,14 @@ def fake_stripe_checkout_module(monkeypatch):
     checkout_module = types.ModuleType("emergentintegrations.payments.stripe.checkout")
 
     class CheckoutSessionRequest:
-        def __init__(self, amount, currency="eur", success_url="", cancel_url="", metadata=None):
+        def __init__(self, amount, currency="eur", success_url="", cancel_url="",
+                     metadata=None, payment_method_types=None):
             self.amount = amount
             self.currency = currency
             self.success_url = success_url
             self.cancel_url = cancel_url
             self.metadata = metadata or {}
+            self.payment_method_types = payment_method_types or ["card"]
 
     checkout_module.StripeCheckout = FakeStripeCheckout
     checkout_module.CheckoutSessionRequest = CheckoutSessionRequest

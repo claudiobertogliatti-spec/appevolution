@@ -85,9 +85,18 @@ function AccessPage() {
         ) : (
           <>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              {error === "no-token"
-                ? "Inserisci la tua email e ti rimandiamo il link d'accesso."
-                : "Il link non è più valido: si usa una volta sola. Inserisci la tua email per riceverne uno nuovo."}
+              {error === "no-token" ? (
+                "Inserisci la tua email e ti rimandiamo il link d'accesso."
+              ) : (
+                <>
+                  Per ragioni di sicurezza il link d'accesso scade dopo 30 giorni.
+                  Inserisci la tua email qui sotto per riceverne uno nuovo; oltre quella
+                  data scrivi ad{" "}
+                  <a href="mailto:assistenza@evolution-pro.it" className="font-semibold text-slate-700 underline">
+                    assistenza@evolution-pro.it
+                  </a>.
+                </>
+              )}
             </p>
             <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3 text-left">
               <input

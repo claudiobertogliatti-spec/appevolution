@@ -16,6 +16,11 @@ class CheckoutSessionRequest:
     success_url: str = ""
     cancel_url: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # Metodi di pagamento mostrati nel checkout. Default: solo carta (per gli
+    # incassi che devono restare in unica soluzione, es. Partnership Art. 5.1).
+    # Lo Start passa ["card", "klarna"] per far rateizzare il cliente come promesso
+    # nella sales page.
+    payment_method_types: list = field(default_factory=lambda: ["card"])
 
 
 @dataclass
@@ -58,7 +63,7 @@ class StripeCheckout:
         metadata = {k: str(v) for k, v in (request.metadata or {}).items()}
 
         session = await stripe.checkout.Session.create_async(
-            payment_method_types=["card"],
+            payment_method_types=request.payment_method_types or ["card"],
             line_items=[{
                 "price_data": {
                     "currency": request.currency,
