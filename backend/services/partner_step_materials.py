@@ -153,8 +153,17 @@ def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: b
     for f in files:
         if f.get("superseded"):
             continue
-        if not include_hidden and not file_visible_to_partner(f):
-            continue
+        if not include_hidden:
+            if not file_visible_to_partner(f):
+                continue
+            # Non mostrare al partner i file che l'app non sa aprire: `_serve`
+            # serve SOLO lo storage fidato (Cloudinary/GCS) via `internal_url`, e
+            # i file ancora solo su Drive darebbero un 404 al click (era il bug
+            # "i materiali non si aprono"). L'admin li vede con include_hidden per
+            # migrarli. I video non passano da `_serve` (streaming), quindi non li
+            # filtriamo qui.
+            if material_type(f) != "video" and not trusted_storage_url(f.get("internal_url")):
+                continue
         out.append(f)
     return out
 
