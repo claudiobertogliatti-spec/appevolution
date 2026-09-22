@@ -374,6 +374,11 @@ def _build_cta_section(instradamento, nome: str) -> dict:
     [[ciak_start_bonus_urgenza_48h]], [[ciak_reparto_vendite_design]].
     """
     n = ((nome or "").split() or [""])[0] or "Ciao"
+    if instradamento not in ("partnership", "start", "nurture", None):
+        logger.warning(
+            "[CIAK_BLUEPRINT] instradamento inatteso %r, uso il default prudente Ciak Start",
+            instradamento,
+        )
     if instradamento == "partnership":
         return {
             "eyebrow": "Il tuo passo, adesso",

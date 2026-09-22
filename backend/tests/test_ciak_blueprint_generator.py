@@ -89,3 +89,40 @@ async def test_genera_blueprint_solleva_se_sezione_mancante(monkeypatch):
     monkeypatch.setattr(ca, "_call_claude_structured", MagicMock(return_value=bad))
     with pytest.raises(ca.CiakAnalisiError):
         await ca.genera_blueprint("tok")
+
+
+def test_cta_partnership_ha_la_leva_numero_chiuso_non_il_bonus_48h():
+    cta = ca._build_cta_section("partnership", "Mario")
+    assert "numero chiuso" in cta["callout"]
+    assert "48 ore" not in cta["callout"]
+    assert "Partnership" in cta["accent"]
+
+
+def test_cta_start_ha_la_leva_48h_non_il_numero_chiuso():
+    cta = ca._build_cta_section("start", "Mario")
+    assert "48 ore" in cta["callout"]
+    assert "numero chiuso" not in cta["callout"]
+    assert "Ciak Start" in cta["accent"]
+
+
+@pytest.mark.parametrize("instradamento", [None, "", "nurture", "qualcosa_di_invalido", 42])
+def test_cta_con_instradamento_non_partnership_ricade_su_start(instradamento):
+    # regressione: qualunque instradamento diverso da "partnership" (incluso
+    # mancante o palesemente invalido) deve ricadere sul default prudente Start,
+    # senza sollevare — ma un valore non riconosciuto va comunque segnalato nei
+    # log (vedi test successivo), non ignorato in silenzio.
+    cta = ca._build_cta_section(instradamento, "Mario")
+    assert "Ciak Start" in cta["accent"]
+
+
+def test_cta_con_instradamento_sconosciuto_logga_un_warning(caplog):
+    with caplog.at_level("WARNING"):
+        ca._build_cta_section("valore_mai_visto", "Mario")
+    assert any("instradamento inatteso" in r.message for r in caplog.records)
+
+
+@pytest.mark.parametrize("instradamento", ["partnership", "start", "nurture", None])
+def test_cta_con_instradamento_noto_non_logga_warning(instradamento, caplog):
+    with caplog.at_level("WARNING"):
+        ca._build_cta_section(instradamento, "Mario")
+    assert not any("instradamento inatteso" in r.message for r in caplog.records)

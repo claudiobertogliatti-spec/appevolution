@@ -38,6 +38,41 @@ def _esc(s: Any) -> str:
     return _html.escape(str(s or ""))
 
 
+# Campi dichiarati "str(html-safe)" in BLUEPRINT_SCHEMA (rischio.callout,
+# prossimo.chiusura, cta.callout): possono contenere un piccolo enfasi tipografica
+# (es. "<b>Dopo la call.</b>"), ma quello che li riempie in due casi su tre è
+# output dell'AI (_PROMPT_BLUEPRINT), non testo scritto da Claudio — "html-safe"
+# nello schema è un'istruzione al prompt, non una garanzia imposta dal codice.
+# _esc_safe consente SOLO questi tag di formattazione, senza attributi: qualunque
+# altro markup (script, eventi, tag sconosciuti) resta escapato come testo normale.
+_ALLOWED_SAFE_TAGS = ("b", "i", "em", "strong")
+
+
+def _esc_safe(s: Any) -> str:
+    escaped = _html.escape(str(s or ""))
+    for tag in _ALLOWED_SAFE_TAGS:
+        escaped = escaped.replace(f"&lt;{tag}&gt;", f"<{tag}>").replace(f"&lt;/{tag}&gt;", f"</{tag}>")
+    for br in ("&lt;br&gt;", "&lt;br/&gt;", "&lt;br /&gt;"):
+        escaped = escaped.replace(br, "<br>")
+    return escaped
+
+
+# Limite di sicurezza sui campi di prosa libera generati dall'AI: la pagina A4 usa
+# `overflow:hidden` (serve per non rompere l'impaginazione a pagina singola), quindi
+# un testo troppo lungo verrebbe tagliato SENZA nessun avviso. Qui il taglio diventa
+# visibile (puntini di sospensione) invece che invisibile. Limite scelto in modo
+# prudente sulla base dello spazio di prosa disponibile in pagina, non misurato pixel
+# per pixel: è un argine di sicurezza, non una garanzia tipografica esatta.
+_MAX_PROSA_LEN = 900
+
+
+def _tronca(s: Any, limit: int = _MAX_PROSA_LEN) -> str:
+    s = str(s or "")
+    if len(s) <= limit:
+        return s
+    return s[: limit - 1].rstrip() + "…"
+
+
 # ─── CSS (dal template A4 approvato) ─────────────────────────────────────────
 _CSS = """
 :root{--ink:#101326;--navy:#0D2952;--accent:#FBC002;--muted:#64748B;--soft:#94a3b8;--border:#E5E7EB;--surface:#F8FAFC;--white:#fff}
@@ -155,9 +190,9 @@ def _c_prosa(s, num):
     if s.get("lead"):
         h += f'<p class="lead">{_esc(s["lead"])}</p>'
     if s.get("body"):
-        h += f'<p class="body">{_esc(s["body"])}</p>'
+        h += f'<p class="body">{_esc(_tronca(s["body"]))}</p>'
     if s.get("note"):
-        h += f'<p class="note">{_esc(s["note"])}</p>'
+        h += f'<p class="note">{_esc(_tronca(s["note"]))}</p>'
     return h
 
 
@@ -233,7 +268,7 @@ def _c_manca(s, num):
 
 def _c_rischio(s, num):
     lead = f'<p class="lead">{_esc(s["lead"])}</p>' if s.get("lead") else ""
-    call = f'<div class="callout"><div class="b">!</div><p>{s.get("callout","")}</p></div>' if s.get("callout") else ""
+    call = f'<div class="callout"><div class="b">!</div><p>{_esc_safe(_tronca(s["callout"]))}</p></div>' if s.get("callout") else ""
     return (f'<div class="eyebrow">{num} · {_esc(s.get("eyebrow"))}</div>'
             f'<h2 class="title">{_title_html(s.get("title",""), s.get("accent",""))}</h2>{lead}{call}')
 
@@ -252,8 +287,8 @@ def _c_roadmap(s, num):
 
 def _c_cta(s, num):
     lead = f'<p class="lead">{_esc(s["lead"])}</p>' if s.get("lead") else ""
-    body = f'<p class="body">{_esc(s["body"])}</p>' if s.get("body") else ""
-    call = (f'<div class="callout" style="margin-top:22px"><div class="b">→</div><p>{s.get("callout","")}</p></div>'
+    body = f'<p class="body">{_esc(_tronca(s["body"]))}</p>' if s.get("body") else ""
+    call = (f'<div class="callout" style="margin-top:22px"><div class="b">→</div><p>{_esc_safe(_tronca(s["callout"]))}</p></div>'
             if s.get("callout") else "")
     note = f'<p class="note" style="margin-top:18px">{_esc(s["note"])}</p>' if s.get("note") else ""
     return (f'<div class="eyebrow">{num} · {_esc(s.get("eyebrow"))}</div>'
@@ -265,7 +300,7 @@ def _c_prossimo(s, num):
     yes = "".join(f'<div class="cx yes"><span class="x">✓</span><p>{_esc(x)}</p></div>' for x in (s.get("yes") or []))
     no = f'<div class="cx no"><span class="x">✕</span><p>{_esc(s.get("no"))}</p></div>' if s.get("no") else ""
     lead = f'<p class="lead">{_esc(s["lead"])}</p>' if s.get("lead") else ""
-    chius = (f'<div class="callout" style="margin-top:26px"><div class="b">→</div><p>{s.get("chiusura","")}</p></div>'
+    chius = (f'<div class="callout" style="margin-top:26px"><div class="b">→</div><p>{_esc_safe(_tronca(s["chiusura"]))}</p></div>'
              if s.get("chiusura") else "")
     return (f'<div class="eyebrow">{num} · {_esc(s.get("eyebrow"))}</div>'
             f'<h2 class="title">{_title_html(s.get("title",""), s.get("accent",""))}</h2>{lead}'
