@@ -4,8 +4,10 @@
  * Nuovo flusso (7/9/2026):
  *   CTA "Fai la tua analisi gratuita" → /diagnostica → 8 domande aperte (libero sfogo)
  *   → /complete (Carlo valuta le risposte: pronto/non-pronto INTERNO + report)
- *   → popup complimenti + calendario Cal.com (NO report, NO punteggio al cliente).
- *   L'analisi la commenta Claudio in videocall; il report resta interno.
+ *   → popup complimenti + calendario Cal.com per partnership/start;
+ *     per nurture, passo formativo senza call (NO report, NO punteggio al cliente).
+ *   Per partnership/start l'analisi la commenta Claudio in videocall;
+ *   il report resta interno in ogni percorso.
  *
  * Email: riusata dal gate (localStorage ciak_lead_email/name).
  * Se assente (ingresso diretto), mini-form email prima della domanda 1.
@@ -16,12 +18,13 @@
  * Contratto backend (routers/diagnostic.py — FONTE DI VERITÀ):
  *   POST /api/diagnostic/start    {email, name, tracking} → {session_token, lead_id}
  *   POST /api/diagnostic/answer   {session_token, question_id, value} → 204
- *   POST /api/diagnostic/complete {session_token} → {report_url, stato, session_token}
+ *   POST /api/diagnostic/complete {session_token} → {report_url, stato, session_token, instradamento}
  *
  * Le risposte sono APERTE: lo scoring pronto/non-pronto è di Carlo (services/ciak_scoring_ai.py).
  */
 import { useState, useEffect, useCallback } from "react";
 import { CiakHeader } from "../components/CiakHeader";
+import { masterclassSkipUrl } from "../lib/funnelRouting";
 
 // question_id STABILI (il backend /answer li salva); tutte APERTE (libero sfogo).
 // Lo scoring pronto/non-pronto è calcolato da Carlo (AI) sulle risposte testuali
@@ -153,6 +156,7 @@ export function CiakDiagnostica() {
 
   // Link Cal.com (config pubblica) per il popup finale di prenotazione
   const [calcomUrl, setCalcomUrl] = useState("");
+  const [postQuestionnaireRoute, setPostQuestionnaireRoute] = useState("call");
 
   // Avvia la sessione diagnostica sul backend
   const startSession = useCallback(async (leadEmail, leadName) => {
@@ -260,9 +264,9 @@ export function CiakDiagnostica() {
       return;
     }
 
-    // Ultima domanda → complete → popup complimenti + calendario.
+    // Ultima domanda → complete → popup con il passo coerente all'instradamento.
     // ⚠️ Nel nuovo funnel il report/analisi NON si mostra al cliente (resta interno,
-    // lo commenta Claudio in videocall): quindi qui NON si naviga più a /report.
+    // e per partnership/start lo commenta Claudio in call): qui NON si naviga a /report.
     setPhase("submitting");
     try {
       const res = await fetch("/api/diagnostic/complete", {
@@ -281,11 +285,19 @@ export function CiakDiagnostica() {
       } catch {
         /* ignore */
       }
-      // Carica il link Cal.com (config pubblica) e apre il popup finale.
-      fetch("/api/admin/ciak/public-config")
-        .then((r) => r.json())
-        .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
-        .catch(() => {}); // fallback testuale (email) se manca
+      // Contratto retrocompatibile: solo `nurture` chiude il booking. Partnership,
+      // start, valori ignoti e payload legacy senza campo mantengono il flusso call.
+      const nextRoute = String(data.instradamento || "").trim().toLowerCase() === "nurture"
+        ? "nurture"
+        : "call";
+      setPostQuestionnaireRoute(nextRoute);
+      if (nextRoute === "call") {
+        // Carica il link Cal.com (config pubblica) e apre il popup finale.
+        fetch("/api/admin/ciak/public-config")
+          .then((r) => r.json())
+          .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
+          .catch(() => {}); // fallback testuale (email) se manca
+      }
       setPhase("done");
     } catch (e) {
       setError(e.message);
@@ -353,8 +365,8 @@ export function CiakDiagnostica() {
     );
   }
 
-  // ─── Render: done (popup finale — complimenti + calendario) ───────
-  // Nessun punteggio, nessun report: solo il ringraziamento e la prenotazione.
+  // ─── Render: done (popup finale — booking o passo formativo) ─────
+  // Nessun punteggio, nessun report e nessun instradamento interno esposto.
   if (phase === "done") {
     return (
       <>
@@ -367,33 +379,52 @@ export function CiakDiagnostica() {
             <h1 className="text-2xl md:text-3xl font-semibold mb-5 leading-snug text-slate-900">
               Grazie, ci siamo.
             </h1>
-            <p className="text-slate-600 leading-relaxed mb-8">
-              Grazie per esserti raccontato/a con questa apertura — non è affatto
-              scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello che
-              serve per preparare la tua analisi di mercato personalizzata. Ora
-              scegli quando vederla insieme.
-            </p>
-            {calcomUrl ? (
-              <a
-                href={calcomUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
-              >
-                Prenota la tua videocall strategica →
-              </a>
-            ) : (
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Ti scriviamo noi via email con il link per prenotare la videocall.
-                Se preferisci, contattaci a{" "}
+            {postQuestionnaireRoute === "nurture" ? (
+              <>
+                <p className="text-slate-600 leading-relaxed mb-8">
+                  Abbiamo ricevuto le tue risposte. In questo momento il passo più
+                  utile è rafforzare le basi prima di una sessione strategica.
+                  Continua dalla masterclass gratuita per mettere a fuoco metodo,
+                  contenuti e prove sul mercato.
+                </p>
                 <a
-                  href="mailto:assistenza@evolution-pro.it"
-                  className="underline hover:text-slate-900"
+                  href={masterclassSkipUrl()}
+                  className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
                 >
-                  assistenza@evolution-pro.it
+                  Guarda la masterclass gratuita →
                 </a>
-                .
-              </p>
+              </>
+            ) : (
+              <>
+                <p className="text-slate-600 leading-relaxed mb-8">
+                  Grazie per esserti raccontato/a con questa apertura — non è affatto
+                  scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello che
+                  serve per preparare la tua analisi di mercato personalizzata. Ora
+                  scegli quando vederla insieme.
+                </p>
+                {calcomUrl ? (
+                  <a
+                    href={calcomUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
+                  >
+                    Prenota la tua videocall strategica →
+                  </a>
+                ) : (
+                  <p className="text-slate-500 text-sm leading-relaxed">
+                    Ti scriviamo noi via email con il link per prenotare la videocall.
+                    Se preferisci, contattaci a{" "}
+                    <a
+                      href="mailto:assistenza@evolution-pro.it"
+                      className="underline hover:text-slate-900"
+                    >
+                      assistenza@evolution-pro.it
+                    </a>
+                    .
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

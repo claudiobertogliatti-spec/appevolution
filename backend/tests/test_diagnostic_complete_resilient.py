@@ -51,12 +51,17 @@ class _FakeDB:
         self.diagnostic_sessions = _FakeSessions(doc)
 
 
-def _fake_scoring():
+def _fake_scoring(instradamento="start"):
     s = MagicMock()
     s.stato_finale = 2
     s.score_numerico = 40
+    s.instradamento = instradamento
     s.override_applicati = []
-    s.to_dict.return_value = {"stato_finale": 2, "score_0_100": 40}
+    s.to_dict.return_value = {
+        "stato_finale": 2,
+        "score_0_100": 40,
+        "instradamento": instradamento,
+    }
     return s
 
 
@@ -97,6 +102,7 @@ async def test_complete_degrada_se_matteo_fallisce(monkeypatch):
     assert isinstance(res, CompleteResponse)
     assert res.stato == 2
     assert res.session_token == "tok-test"
+    assert res.instradamento == "start"
     # la sessione salvata è marcata per la rigenerazione, senza report
     saved = fake_db.diagnostic_sessions.saved
     assert saved is not None
@@ -135,3 +141,28 @@ async def test_complete_ok_quando_matteo_funziona(monkeypatch):
     saved = fake_db.diagnostic_sessions.saved
     assert saved.get("report") == report
     assert "report_error" not in saved
+
+
+@pytest.mark.parametrize("instradamento", ["partnership", "start", "nurture"])
+@pytest.mark.asyncio
+async def test_complete_espone_instradamento_calcolato(monkeypatch, instradamento):
+    """Il frontend riceve il verdetto già calcolato senza doverlo dedurre dallo stato."""
+    fake_db = _FakeDB(_session_doc())
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    async def _fake_emit(**kwargs):
+        pass
+
+    with patch.object(
+        diag,
+        "calculate_scoring_ai",
+        AsyncMock(return_value=_fake_scoring(instradamento)),
+    ), patch.object(diag, "generate_report", AsyncMock(return_value=None)), patch.object(
+        diag, "ciak_emit_event", _fake_emit
+    ):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert isinstance(res, CompleteResponse)
+    assert res.instradamento == instradamento
+    assert fake_db.diagnostic_sessions.saved["scoring"]["instradamento"] == instradamento
