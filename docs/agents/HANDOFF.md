@@ -1,3 +1,7 @@
+### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — PR #209 MERGIATA su main
+
+**AGGIORNAMENTO:** PR #209 mergiata da Claudio, 20:57 UTC, commit `c8f332ae`. Tocca `backend/**` → deploy automatico Cloud Run già partito. ⛔ **Non ancora verificato**: nessuno smoke test post-deploy eseguito su questo lavoro. Chi riprende: prima di dare per buono il fix in produzione, verificare che il deploy sia andato a buon fine (Cloud Run revisione attiva, nessun errore di avvio) e — se possibile — che una generazione Blueprint reale non sia peggiorata.
+
 ### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — 4/5 rischi corretti (PR #209), 1 aperto per Claudio
 
 **CONTESTO:** revisione a due AI indipendenti (Antigravity + Codex CLI) sul renderer del Blueprint (`backend/services/ciak_pdf_blueprint.py`, `backend/services/ciak_analisi.py`), ognuna verificata da me leggendo il codice riga per riga prima di agire.
