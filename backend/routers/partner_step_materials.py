@@ -112,8 +112,10 @@ async def get_all_partner_materiali(partner_id: str,
 
 async def _serve(file_id: str, disposition: str, credentials):
     doc = await _file_or_404(file_id, credentials)
-    if normalize_file_material(doc)["type"] == "video":
-        raise HTTPException(403, "I video sono disponibili in streaming e non per il download")
+    # I video-materiale del partner (es. reel) sono servibili come gli altri file
+    # SE stanno su storage fidato (Cloudinary). Le lezioni/masterclass NON sono
+    # qui: vivono in `partner_videocorso`/`masterclass_factory` con streaming GCS
+    # dedicato, quindi restano protette a prescindere da questo endpoint.
     source = trusted_storage_url(doc.get("internal_url"))
     if not source:
         raise HTTPException(404, "File non disponibile")

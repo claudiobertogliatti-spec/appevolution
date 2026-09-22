@@ -108,11 +108,16 @@ def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:
     file_id = str(doc.get("file_id") or doc.get("id") or "")
     kind = material_type(doc)
     base = f"/api/partner-step-materials/{file_id}"
+    # Un video e' servibile (preview/download) solo se sta su storage fidato
+    # (Cloudinary): i reel migrati si aprono/scaricano; i video "solo YouTube"
+    # restano su `public_url`. I non-video hanno sempre le url (la lista esclude
+    # comunque i non apribili).
+    served = kind != "video" or bool(trusted_storage_url(doc.get("internal_url")))
     return {
         "id": file_id, "type": kind,
         "title": doc.get("original_name") or doc.get("filename") or doc.get("category") or "Materiale",
-        "preview_url": f"{base}/preview" if kind != "video" else None,
-        "download_url": f"{base}/download" if kind != "video" else None,
+        "preview_url": f"{base}/preview" if served else None,
+        "download_url": f"{base}/download" if served else None,
         "public_url": allowed_public_url(doc.get("public_url")),
         "version": int(doc.get("version") or 1),
         "created_at": doc.get("uploaded_at") or doc.get("created_at"),
@@ -156,13 +161,13 @@ def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: b
         if not include_hidden:
             if not file_visible_to_partner(f):
                 continue
-            # Non mostrare al partner i file che l'app non sa aprire: `_serve`
-            # serve SOLO lo storage fidato (Cloudinary/GCS) via `internal_url`, e
-            # i file ancora solo su Drive darebbero un 404 al click (era il bug
-            # "i materiali non si aprono"). L'admin li vede con include_hidden per
-            # migrarli. I video non passano da `_serve` (streaming), quindi non li
-            # filtriamo qui.
-            if material_type(f) != "video" and not trusted_storage_url(f.get("internal_url")):
+            # Non mostrare al partner i file che non sa aprire. Apribile = storage
+            # fidato (Cloudinary/GCS via `internal_url`, servito da `_serve`) OPPURE
+            # un `public_url` consentito (YouTube/*.ciak.io). I file ancora solo su
+            # Drive darebbero un 404 al click (era il bug "i materiali non si
+            # aprono"). Vale anche per i video: i reel su Cloudinary sono apribili.
+            # L'admin li vede con include_hidden per migrarli.
+            if not (trusted_storage_url(f.get("internal_url")) or allowed_public_url(f.get("public_url"))):
                 continue
         out.append(f)
     return out

@@ -55,16 +55,20 @@ def test_admin_vede_anche_gli_admin_only_ma_mai_i_superseded():
     assert "vecchio" not in ids      # superseded resta fuori anche per l'admin
 
 
-def test_partner_non_vede_i_file_non_apribili_tranne_i_video():
-    # Il bug "i materiali non si aprono": i file solo-Drive davano 404. Ora il
-    # partner li vede solo se apribili (storage fidato). I video sono esenti dal
-    # filtro (non passano da _serve, hanno il loro streaming).
+def test_partner_vede_solo_i_file_apribili_inclusi_i_reel_su_storage():
+    # Il bug "i materiali non si aprono": i file solo-Drive davano 404. Regola
+    # unificata: il partner vede un file solo se APRIBILE = storage fidato
+    # (Cloudinary) OPPURE public_url consentito (YouTube). I reel su Cloudinary
+    # ora si aprono/scaricano; i solo-Drive restano nascosti al partner.
+    CLOUD_VIDEO = "https://res.cloudinary.com/demo/video/upload/v1/reel.mp4"
     files = [
         {"file_id": "cloud_doc", "internal_url": CLOUD},
+        {"file_id": "cloud_reel", "internal_url": CLOUD_VIDEO, "original_name": "reel.mp4"},
+        {"file_id": "youtube_video", "public_url": "https://youtu.be/abc", "original_name": "lezione.mp4"},
         {"file_id": "drive_doc", "internal_url": DRIVE, "original_name": "Calendario.xlsx"},
-        {"file_id": "drive_video", "internal_url": DRIVE, "original_name": "reel.mp4"},
+        {"file_id": "drive_reel", "internal_url": DRIVE, "original_name": "reel.mp4"},
     ]
     partner = {f["file_id"] for f in partner_materiali_listing(files)}
     admin = {f["file_id"] for f in partner_materiali_listing(files, include_hidden=True)}
-    assert partner == {"cloud_doc", "drive_video"}
-    assert admin == {"cloud_doc", "drive_doc", "drive_video"}
+    assert partner == {"cloud_doc", "cloud_reel", "youtube_video"}
+    assert admin == {"cloud_doc", "cloud_reel", "youtube_video", "drive_doc", "drive_reel"}

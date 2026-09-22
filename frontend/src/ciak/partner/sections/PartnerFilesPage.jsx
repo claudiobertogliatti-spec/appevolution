@@ -208,9 +208,9 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   const [filterOwner, setFilterOwner] = useState("all");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-  // Documenti REALI del partner. Nessun video: i montaggi in produzione sono
-  // ancora quelli vecchi (sottotitoli, pause e errori non tagliati) e non vanno
-  // mostrati finche' non sono rifatti.
+  // Materiali REALI del partner (documenti, immagini e video-materiale come i
+  // reel). La fonte filtra lato server su cio' che e' apribile (storage fidato o
+  // public_url): i file solo-Drive non appaiono, cosi' niente click a vuoto.
   useEffect(() => {
     if (!partnerId) return undefined;
     let annullato = false;
@@ -260,14 +260,14 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           const dm = await rm.json();
           for (const m of dm?.materials || []) {
             const url = m.download_url || m.public_url;
-            if (!url) continue; // es. video (solo streaming): niente riga scaricabile
+            if (!url) continue; // nessuna sorgente apribile: niente riga
             const { icon, color } = iconForMaterialType(m.type);
             reali.push({
               id: m.id,
               folderId: materialiFolderId(m.category),
               name: m.title,
               category: m.category || "Documento",
-              size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : "Documento",
+              size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : m.type === "video" ? "Video" : "Documento",
               date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
               owner: "⚙️ CIAK",
               type: m.type,
