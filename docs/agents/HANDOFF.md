@@ -1,4 +1,117 @@
+### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Allineamento stato reale — leggere prima di lavorare su admin/materiali/migrazione
+
+**PERCHÉ QUESTA VOCE:** Claudio ha chiesto che chi lavora al progetto (Claude Code, Cowork, Antigravity, Codex) parta sempre dallo stato reale e non da conversazioni/prompt vecchi, per non rifare lavoro già spedito. Nessuna modifica applicativa in questo aggiornamento: solo verifica e allineamento.
+
+**VERIFICATO — lavoro che risultava aperto ma è già concluso:**
+- PR [#107](https://github.com/claudiobertogliatti-spec/appevolution/pull/107) "Admin: riorganizzazione stile Poste (Home Regia + home reparto + collaboratrici)", branch `cc/admin-semplificazione` → **MERGED su main il 2026-09-10T13:15:16Z**. Il blocco Codex `e55a6dd6` e il prompt `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md` sopra in questo file descrivono la semplificazione admin come "da fare": **è superato**, il lavoro è in produzione. Chi apre quel prompt non deve ripartire da lì.
+- PR [#207](https://github.com/claudiobertogliatti-spec/appevolution/pull/207) "fix(ciak): Materiali partner — nascondi i file non apribili (Drive/404)" → **MERGED 2026-09-22T15:40:26Z**.
+- PR [#208](https://github.com/claudiobertogliatti-spec/appevolution/pull/208) "feat(ciak): Materiali — il partner può aprire/scaricare i suoi video (reel)" → **MERGED 2026-09-22T16:11:48Z**.
+- PR aperte al momento di questa verifica (`gh pr list --state open`): solo #114 (admin CRM inline status + Cmd/K, ferma dal 14/9), #75, #74. Nessuna riguarda admin-semplificazione o materiali/migrazione.
+
+**VERIFICATO — ATTENZIONE, due migrazioni Drive→Ciak distinte, non confonderle:**
+- **Metodo attuale, funzionante, verificato in produzione** (22/9, via subagent Claude Code): pilota **Daniele (23)**, 8/9 reel già migrati Drive→Cloudinary→Ciak e verificati apribili live (`GET /api/partner-step-materials/.../download` → 200, byte identici a Drive). Manca solo `reel_g9` (bloccato dal limite 10MB del tool MCP Drive, serve download manuale di Claudio). Metodo e comandi esatti in `memory/ciak_video_materiale_consegna_e_migrazione_drive.md` (memoria di Claude, non in questo repo). **Questo è il metodo da riusare per gli altri partner.**
+- **Conversazione Antigravity "Migrazione Dati Partner Evolution"** (progetto `appevolution` in Antigravity, non un branch git): approccio **diverso e più vecchio** (dossier JSON con revisione Codex/Claude), **ferma dal 2026-08-13 18:54** al primo partner elaborato, **Marco Serra**, in attesa di conferma per procedere con **Arianna Aceto**. Nessuna scrittura reale eseguita (`DRIVE_WRITES/CIAK_WRITES/EXECUTABLE_PAYLOADS` a 0). **Non è il metodo corrente**: prima di riprenderla, valutare se ha senso rispetto al metodo subagent sopra, che è già verificato live. ⚠️ Il "Marco Serra" di questa conversazione è un partner Ciak: non confonderlo con l'omonimo cliente di un progetto non-Ciak (SlimAmour).
+- Branch corrente in lavorazione su Claude Code al momento di questa voce: `cc/blog-videocorsi`, con una modifica non committata in `evolution-pro-site/src/components/Header.tsx` (voce di menu "Blog").
+
+**REGOLA OPERATIVA PER CHI LEGGE:** prima di iniziare un task su admin, materiali partner o migrazione dati, eseguire `gh pr list --state open` e rileggere questa voce, per evitare di rifare lavoro già mergiato o di duplicare l'elaborazione già fatta su un partner. Su Claude Code il modello di default è ora Sonnet 5; Opus si usa solo sui nodi difficili e va dichiarato quando succede.
+
+### 2026-09-09 · Codex · Primo blocco applicativo admin verificato
+
+**CONSEGNA:** commit locale `e55a6dd6`, branch `codex/admin-semplificazione`, worktree `.worktrees/codex-admin-semplificazione`, base aggiornata origin/main `20f43d4d`. Ricerca strumenti reparto; code prima del supporto espandibile; un solo titolo; matching sidebar per segmento; Nuovo lead/Importa lista/Ricerca automatica aprono gli stessi flussi esistenti. Nessun modulo o route eliminato, nessun push/deploy.
+
+**PROVE:** 3 suite/9 test PASS; build completa e postbuild exit 0 con warning hook in parti non modificate; confronto NAV, blocco Routes/componenti e handler manuale/CSV identici alla base PASS. Diff-check finale e scansione pattern credenziali PASS. Esiti, comando Jest con override Windows e matrice di parità in `docs/agents/ADMIN-SEMPLIFICAZIONE-BLOCCO1.md` del worktree. Non certifica ogni azione dell'intera app né comportamento live.
+
+**CONTINUA CLAUDE:** prompt condiviso `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md` aggiornato con worktree. Partire dal commit, non ricreare il blocco. Restano riorganizzazione completa, parità di azioni annidate, ricerca trasversale e collegamenti contestuali, collaudo account/permessi/browser. Non toccato il backend né risolta l'intermittenza scraping. Tutte le capacità devono restare salvo doppioni provati.
+
+### 2026-09-09 · Codex · Anteprima personalizzata e consegna Claude
+
+**VINCOLO FINALE DI CLAUDIO:** mantenere TUTTE le funzionalità attuali; solo riorganizzazione e semplificazione. Accorpare esclusivamente doppioni verificati, preservando azioni, filtri, varianti e permessi. Richiesta matrice di parità prima/dopo: il censimento di 52 route NON prova da solo la completezza delle capacità.
+
+**CONSEGNA:** personalizzate voci e accessi per reparto nella preview locale; eliminato Apri scheda duplicato nell'elenco partner (restano Apri account/Vista partner). Prompt pronto in `docs/agents/CLAUDE-ADMIN-SEMPLIFICAZIONE.md`, con scope principale di riorganizzazione e gap backend separati. README preview aggiornato con limiti e verifiche.
+
+**VERIFICATO:** Node syntax app.js/workspace.js exit 0; verify-catalog.cjs PASS 52 route statiche senza mancanti/inventate; browser Delivery con voci specifiche e account, Nuovo lead validato con email fittizia ed esito nessun salvataggio, apertura Importa lista senza importazione. Nessuna modifica al frontend applicativo, dati reali, commit o deploy. Integrazione nel prodotto e parità di tutte le azioni da completare a cura di Claude.
+
+### 2026-09-09 · Codex · Priorità di semplificazione app
+
+**RICHIESTA:** personalizzare le voci per reparto e indicare cosa implementare davvero, mantenendo funzionalità e brand. Anteprima estesa con catalogo 52 route statiche (verify-catalog.cjs PASS), viste pipeline/KPI/obiettivi/clienti/partner, tre azioni Acquisizione e gestione materiali dimostrativa per account Delivery. Modifica e conferma eliminazione dimostrativa verificate nel browser; nessuna API collegata.
+
+**VERIFICATO ORA:** letti router admin, cliente e partner e componenti materiali/supporto da origin/main 4c98b302. Import CSV e manuale già presenti in LeadManager sotto Importa. PartnerFilesPage dichiara caricamento diretto non attivo e rimanda a Telegram. TeamSupportoPage ora gestisce esplicitamente invio fallito: non ripetere il difetto storico di falso successo come attuale. Non eseguito collaudo completo dell'app o delle scritture.
+
+**PROPOSTA:** etichette e viste specifiche per reparto; ricerca e scheda persona comune; azioni contestuali collegate al record; gestione materiali e versioni; stati/KPI riconciliati; passaggi fra reparti e monitoraggio import/ricerca. Nessuna nuova implementazione applicativa, commit o deploy in questo passaggio.
+
+### 2026-09-09 · Codex · Anteprima riorganizzazione admin
+
+**RICHIESTA:** Claudio vuole vedere una riorganizzazione con barre di ricerca, senza modificare colori, sfondi, palette, font o logo.
+
+**CONSEGNA:** anteprima autonoma locale in `output/admin-reorganisation-preview/`, server loopback http://127.0.0.1:4186. Direzione e quattro viste reparto; ricerca globale e locale, filtri, apertura scheda/materiali e supporto in pannello. Tutti i dati operativi sono esempi dichiarati, nessuna API Ciak collegata.
+
+**VERIFICATO:** logo SHA256 identico a `frontend/public/ciak/logo.webp`; Poppins effettivamente caricato; colori ricavati da AdminShell/KpiTile/CabinaRegia. Check sintattici Node exit 0; ricerca Anna → persona/attività/documento e apertura diretta del documento; Bloccati → 2 righe, ricerca Marco → 1; Delivery → 3 righe. Desktop 1366 e mobile 390 senza overflow orizzontale, screenshot controllati, responsabile visibile anche su mobile. Dettagli nel README dell'anteprima.
+
+**APERTO:** solo proposta interattiva; nessun codice applicativo, dato reale, commit, push o deploy modificato. Preservati i worktree concorrenti. Integrazione e approvazione del layout da affrontare dopo la valutazione di Claudio.
+
+### 2026-09-09 · Codex · Revisione strategica UI admin — sola lettura
+
+**RICHIESTA:** analisi dettagliata di `/admin` e proposte per eliminare doppioni e azioni superflue.
+
+**VERIFICATO:** fetch origin riuscito; sorgenti analizzati da origin/main `4c98b302`, senza aggiornare il checkout locale. Browser autenticato Claudio: Direzione, cinque landing operative incluse Acquisizione e vendita, Trattative KO, Calendario Acquisizione, Partner Per atto/Tabella. Confermati titolo Direzione errato nella nuova landing commerciale, intestazioni duplicate, chat prima delle code, landing KO/calendario composte da collegamenti, differenze di stato fra Kanban e tabella. Sorgenti confermano doppie landing video e assenza di collegamento operativo nelle code Vendite/Back office.
+
+**CONSEGNA:** report locale `output/revisione-admin-ui-2026-09-09.md`, con 12 gruppi di correzioni, priorità, architettura proposta, criteri e puntatori al commit. Non trattare i valori UI come riconciliazione contabile o prova di consegna.
+
+**APERTO:** proposte non implementate; nessuna modifica applicativa, invio, approvazione, pagamento, commit o deploy. Nessun collaudo mobile o degli altri ruoli. Preservato lavoro concorrente; vista Partner ripristinata a Per atto.
+
+### 2026-09-08 · Codex · Area partner serena — primo blocco e anteprima
+
+**AUTORIZZATO:** layout approvato da Claudio, logo originale fedele, anteprima per ogni blocco; sviluppo isolato con piattaforma attuale operativa.
+
+**AREA RISERVATA:** `codex/partner-sereno`, `.worktrees/codex-partner-sereno`, base `71ce73c9`. Shell/Home partner e preview locale; non tocca il lavoro backend di `codex/evolution-autonomia`.
+
+**VERIFICATO:** prima integrazione dietro `REACT_APP_PARTNER_SERENO=true` (default disattivato); 13 test passati, build frontend exit 0 con warning in file non modificati; preview http://127.0.0.1:4178/partner testata desktop/390/320px; logo SHA256 identico all'originale. Dettagli e comandi in `docs/agents/PARTNER-SERENO.md` nel branch.
+
+**APERTO:** preview con fixture dichiarate; dettaglio revisione, materiali, assistenza, catalogo e piano da completare/collegare. Nessun merge, deploy o modifica a dati reali. Prossimo blocco: mappa canonica e approvazioni. Non attivare il flag in produzione prima dei gate del documento.
+
+### 2026-09-08 · Codex · Avvio backend autonomia — in corso
+
+**AUTORIZZATO:** Claudio: "ok iniziamo immediatamente", dopo accordo backend-first con admin attuale operativo.
+
+**AREA RISERVATA:** branch `codex/evolution-autonomia`, worktree `.worktrees/codex-evolution-autonomia`, base `71ce73c9`. Catalogo `backend/services/operational_tasks/`, test dedicati e documentazione strategia/evidenze. Nessun nuovo consumer attivato; non integrare automaticamente i file di questo branch.
+
+**CONTINUAZIONE:** Claudio chiede "proseguiamo". T04 in corso dalla base `8798339e`: `backend/integrated_services.py`, modulo `operational_tasks/completion.py` e test completion. Nessun deploy; il branch resta bozza. Preservare queste aree durante il lavoro concorrente.
+
+**VERIFICATO:** primo blocco pubblicato come commit `8798339e`, bozza PR https://github.com/claudiobertogliatti-spec/appevolution/pull/78. Fondazione catalogo inerte, nessun consumer collegato; 21 test passati, compile/lint/diff-check e review indipendente finale PASS. CI https://github.com/claudiobertogliatti-spec/appevolution/actions/runs/34252991906 conclusa PASS: Backend 1m58s, Frontend 1m15s, Security 15s. Baseline in `docs/agents/evidence/2026-09-08-autonomia-baseline.md` del branch. **APERTO:** T01 campioni runtime, integrazione T03 e T04 falsi completamenti legacy; nessun merge o deploy della nuova architettura. Proseguire dallo stesso worktree/branch.
+
+### 2026-09-08 · Codex · Audit UX area partner (sola lettura)
+
+**VERIFICATO:** fetch origin riuscito, baseline origin/main 5a9b8a21. Browser Chrome, https://www.ciak.io/partner in supervisione Cosimo Filieri: sessione inizialmente AUTH_EXPIRED, login riuscito con credenziali gia compilate; Home F-15 Prezzo + webinar mostra Approva Posizionamento e selettore test accessi. /partner/percorso: 11/21, testo venti passaggi, ordine F-2 prima di F-1 e F-17 prima di F-16, F-15 In coda. /partner/team: sei agenti e cinque referenti, supporto umano sotto agenti. /partner/materiali: tre voci, cartelle Script/Video/Piattaforma vuote; aperto e chiuso dialog upload senza invio. Sorgenti origin/main confermano upload simulato in PartnerFilesPage, falso messaggio di presa in carico nel catch di TeamSupportoPage, CTA mappa verso Home e onOpenStep inutilizzato in GuidedHome.
+
+**DICHIARATO:** proposta di revisione per prossima azione reale, stati coerenti, supporto unico, materiali riconciliati e navigazione uniforme.
+
+**APERTO:** nessuna modifica applicativa, salvataggio partner, invio chat, upload, commit o deploy. Audit live su un partner in vista admin; mobile letto nel codice, non verificato su dispositivo. Preservato lavoro concorrente.
+
 # HANDOFF — staffetta fra agenti
+
+### 2026-09-08 · Codex · Architettura condivisa e collaborazioni — LEGGERE
+
+**DECISIONE DI CLAUDIO:** rendere ben visibile in memoria l'architettura perché lavora anche con Claude. Fonte condivisa: **[evolution-architettura-concordata.md](../strategy/evolution-architettura-concordata.md)**, richiamata in cima a CLAUDE.md. Direzione Claudio/Luca; Acquisizione e Vendite con Mariangela Caccia; Delivery e casi studio con Antonella Rossi; Back office coordina contratti, orari, provvigioni e bonus. Nomi agenti da confermare, nessuna autonomia economica implicita.
+
+**VERIFICATO:** esiste il PDF locale di Mariangela indicato da Claudio (225447 byte); condizioni e firme non ancora lette/verificate. Antonella: contratto già in Ciak secondo Claudio, da reperire. Nessun contenuto contrattuale pubblicato o caricato.
+
+**APERTO:** task collaborazioni aggiunti al piano; architettura documentata, non implementata. Per continuità Claude leggere il documento condiviso, non presumere accesso alla memoria privata Codex.
+
+
+### 2026-09-08 · Codex · Piano organigramma e autonomia Evolution
+
+**DICHIARATO**
+- Richiesta di Claudio: piano operativo dettagliato per Direzione Claudio/Luca e quattro reparti, con completamento verificabile dei compiti degli agenti e admin coerente.
+- Scritti `docs/superpowers/specs/2026-09-08-evolution-organigramma-autonomia-design.md` e `docs/superpowers/plans/2026-09-08-evolution-organigramma-autonomia.md`: 22 task, 5 milestone, dipendenze, mandati, gate, verifiche e rollout progressivo.
+
+**VERIFICATO**
+- File presenti; controllo dei titoli T01–T22 e `git diff --check` eseguiti durante la stesura. Questo prova la consegna documentale, non l'implementazione del piano.
+- Baseline dell'audit precedente: reference locale origin/main `cd07cb56109cc6d4e306eda63d95d5d5da3ffb65`; refresh remoto non riuscito nel turno di audit. Il piano richiede un nuovo baseline prima dell'esecuzione.
+
+**APERTO**
+- T01–T22 da eseguire. Nomi dei capi reparto e nuove autorizzazioni da definire in T02; nessun invio, pagamento o pubblicazione autorizzato implicitamente dal piano.
+- Nessuna modifica applicativa, migrazione, commit o deploy in questa consegna. Conservato il lavoro concorrente.
+
 
 Chi apre una sessione su questo repo **legge questo file per primo** (dopo
 [`PROTOCOL.md`](./PROTOCOL.md)) e **lo aggiorna prima di chiudere**.
