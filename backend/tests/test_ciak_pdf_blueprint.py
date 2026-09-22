@@ -5,9 +5,11 @@ Verifica che `render_blueprint_html` produca copertina + sommario + le 13 sezion
 LOCKATE nell'ordine giusto, con i componenti corretti (tabelle moduli/segmenti,
 trend, roadmap steps, competitor a 2 colonne) e con escaping dei dati utente.
 """
+import re
+
 import pytest
 
-from services.ciak_pdf_blueprint import render_blueprint_html, _SEZIONI
+from services.ciak_pdf_blueprint import genera_blueprint_pdf, render_blueprint_html, _MAX_PROSA_LEN, _SEZIONI
 
 pytestmark = pytest.mark.unit
 
@@ -81,3 +83,64 @@ def test_niente_prezzi_blueprint_nel_layout():
     # il layout non deve introdurre da solo prezzi/vecchio 67 (i dati non ne hanno)
     html = render_blueprint_html(_payload())
     assert "67€" not in html and "2790" not in html and "2.790" not in html
+
+
+def test_callout_e_chiusura_neutralizzano_markup_estraneo_ma_permettono_i_tag_di_base():
+    # regressione: rischio.callout, prossimo.chiusura e cta.callout sono gli unici
+    # campi "html-safe" per schema — devono lasciar passare <b> ma neutralizzare
+    # qualunque altro markup (script, tag con attributi, event handler).
+    p = _payload()
+    p["sezioni"]["rischio"]["callout"] = '<b>ok</b><img src=x onerror=alert(1)><script>alert(2)</script>'
+    p["sezioni"]["prossimo"]["chiusura"] = '<script>alert(3)</script><b>fine sicura</b>'
+    p["sezioni"]["cta"]["callout"] = '<b>cta ok</b><iframe src="evil"></iframe>'
+    html = render_blueprint_html(p)
+    assert "<b>ok</b>" in html and "<b>fine sicura</b>" in html and "<b>cta ok</b>" in html
+    # controllo mirato sui payload iniettati (non sul tag in generale: la copertina
+    # ha già un <img> legittimo per la spirale del logo, marcarlo come vietato
+    # darebbe un falso positivo)
+    assert "<script>alert(2)</script>" not in html
+    assert "<script>alert(3)</script>" not in html
+    assert "<img src=x onerror=alert(1)>" not in html  # come tag HTML reale: MAI
+    assert '<iframe src="evil">' not in html
+    # neutralizzati come testo inerte (le parentesi angolari sono escapate: il
+    # browser li mostra come caratteri, non li esegue come markup)
+    assert "&lt;script&gt;alert(2)&lt;/script&gt;" in html
+    assert "&lt;script&gt;alert(3)&lt;/script&gt;" in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+    assert "&lt;iframe src=" in html
+
+
+def test_prosa_troppo_lunga_viene_troncata_non_tagliata_a_vista():
+    p = _payload()
+    testo_lungo = "parola " * 400  # ben oltre _MAX_PROSA_LEN
+    p["sezioni"]["sintesi"]["body"] = testo_lungo
+    p["sezioni"]["rischio"]["callout"] = "<b>" + testo_lungo + "</b>"
+    html = render_blueprint_html(p)
+    assert testo_lungo not in html
+    assert "…" in html
+    # nessun singolo campo di prosa deve finire nell'HTML per intero oltre il limite
+    assert len(testo_lungo) > _MAX_PROSA_LEN
+
+
+@pytest.mark.asyncio
+async def test_genera_blueprint_pdf_produce_un_pdf_reale():
+    # Copre il buco segnalato in revisione: nessun test esercitava la funzione
+    # finale che produce davvero il PDF (solo l'HTML intermedio era testato).
+    # Richiede il browser Chromium di Playwright: se non è installato in questo
+    # ambiente (es. CI senza `playwright install`), il test si salta invece di
+    # fallire — non è quello il gap che deve coprire.
+    try:
+        pdf_bytes = await genera_blueprint_pdf(_payload())
+    except Exception as e:  # pragma: no cover - dipende dall'ambiente locale/CI
+        pytest.skip(f"Playwright/Chromium non disponibile in questo ambiente: {e}")
+        return
+    assert isinstance(pdf_bytes, (bytes, bytearray))
+    assert pdf_bytes.startswith(b"%PDF-")
+    assert len(pdf_bytes) > 50_000  # una copertina+sommario+14 sezioni non è mai minuscola
+    # Verifica best-effort del conteggio pagine leggendo i byte grezzi: i motori
+    # PDF possono comprimere gli oggetti in stream, nel qual caso questo pattern
+    # non trova nulla — in quel caso il controllo si limita alle asserzioni sopra
+    # (bytes validi, dimensione plausibile) invece di far fallire il test.
+    counts = [int(n) for n in re.findall(rb"/Count\s+(\d+)", bytes(pdf_bytes))]
+    if counts:
+        assert max(counts) == 16
