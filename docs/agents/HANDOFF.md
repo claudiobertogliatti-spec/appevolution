@@ -1,3 +1,13 @@
+### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Blueprint — 4/5 rischi corretti (PR #209), 1 aperto per Claudio
+
+**CONTESTO:** revisione a due AI indipendenti (Antigravity + Codex CLI) sul renderer del Blueprint (`backend/services/ciak_pdf_blueprint.py`, `backend/services/ciak_analisi.py`), ognuna verificata da me leggendo il codice riga per riga prima di agire.
+
+**CONSEGNA:** PR [#209](https://github.com/claudiobertogliatti-spec/appevolution/pull/209) (branch `cc/blueprint-hardening`, base `origin/main` aggiornata) corregge 4 rischi: injection HTML su `callout`/`chiusura` (nuova `_esc_safe`, consente solo tag di formattazione già in uso: b/i/em/strong/br), clipping silenzioso su testo AI troppo lungo (nuova `_tronca`, taglio visibile con ellissi), fallback CTA silenzioso su instradamento sconosciuto (ora logga un warning, default resta Ciak Start), buco nei test su `genera_blueprint_pdf()` (nuovo test che genera un PDF vero via Playwright, si salta se Chromium assente).
+
+**PROVE:** 23/23 test passano (8 preesistenti + 15 nuovi), `py_compile` pulito. Prova visiva: PDF di esempio rigenerato con le correzioni, byte identici al precedente per contenuto normale (217.803 byte) — zero regressione visiva sul template lockato del 15/9. Nessuna modifica a palette/font/layout. Nessun push su main, nessun dato reale toccato.
+
+**⛔ APERTO — decisione per Claudio, non tecnica:** il claim di urgenza nella CTA (bonus 48h su Ciak Start, numero chiuso mensile su Partnership) resta testo fisso, non collegato a uno stato/scadenza reale. Cercato nel backend un meccanismo che lo verifichi: **non esiste**. Il commento "(enforced backend)" nel codice sorgente di `_build_cta_section` non è supportato da nulla di verificabile — è una nota aspirazionale o un processo manuale, non un controllo automatico. Prima di decidere come intervenire (calcolare davvero la scadenza, o accettare che è una policy applicata a mano da Claudio/team), serve la sua decisione: è un tema di onestà del claim (Codice del Consumo), non un bug di codice.
+
 ### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Allineamento stato reale — leggere prima di lavorare su admin/materiali/migrazione
 
 **PERCHÉ QUESTA VOCE:** Claudio ha chiesto che chi lavora al progetto (Claude Code, Cowork, Antigravity, Codex) parta sempre dallo stato reale e non da conversazioni/prompt vecchi, per non rifare lavoro già spedito. Nessuna modifica applicativa in questo aggiornamento: solo verifica e allineamento.
