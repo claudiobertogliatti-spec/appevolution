@@ -108,6 +108,7 @@ class CompleteResponse(BaseModel):
     report_url: str
     stato: int
     session_token: str
+    instradamento: Literal["partnership", "start", "nurture"]
 
 
 class ReportResponse(BaseModel):
@@ -287,10 +288,11 @@ async def complete_diagnostic(payload: CompleteRequest):
 
     ⚠️ Matteo genera l'analisi INTERNA (la commenta Claudio in call): un suo guasto
     (credito API, JSON malformato, timeout) NON deve impedire al cliente di arrivare
-    alla prenotazione della videocall. Perciò il fallimento di Matteo è degradato con
-    grazia: la sessione è salvata, il tag ciak_completed è emesso (mail di recupero),
-    la risposta è 200 e il frontend mostra il popup Cal.com. L'analisi si rigenera dopo
-    (admin/retry) leggendo le sessioni con `report_error`.
+    al passo coerente con l'instradamento. Perciò il fallimento di Matteo è degradato
+    con grazia: la sessione è salvata, il tag ciak_completed è emesso (mail di recupero),
+    la risposta è 200 e il frontend mostra il calendario per partnership/start oppure
+    il passo formativo per nurture. L'analisi si rigenera dopo (admin/retry) leggendo
+    le sessioni con `report_error`.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -336,7 +338,7 @@ async def complete_diagnostic(payload: CompleteRequest):
     )
 
     # 3. Invoca Matteo (analisi INTERNA). Il suo fallimento NON blocca l'acquisizione:
-    #    degrado grazioso → il cliente arriva comunque alla prenotazione della call.
+    #    degrado grazioso → il cliente arriva comunque al passo del suo instradamento.
     user_payload = _build_user_payload_for_matteo(session, scoring)
     report = None
     try:
@@ -401,6 +403,7 @@ async def complete_diagnostic(payload: CompleteRequest):
         report_url=f"{frontend_base}/report/{payload.session_token}",
         stato=scoring.stato_finale,
         session_token=payload.session_token,
+        instradamento=scoring.instradamento,
     )
 
 
