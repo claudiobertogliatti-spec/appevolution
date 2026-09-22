@@ -10192,9 +10192,12 @@ async def upload_file(
     result = await file_storage.upload_file(file, partner_id, category)
 
     if result["success"]:
+        import hashlib as _hashlib
         internal_url = result["internal_url"]
+        cloudinary_ok = False
 
-        # Push durevole su Cloudinary (best-effort). Se fallisce, resta il locale.
+        # Push durevole su Cloudinary (best-effort). Se fallisce resta il locale
+        # (NON servibile da _serve): il chiamante lo sa da `cloudinary` in risposta.
         if _file_bytes:
             try:
                 from cloudinary_service import upload_file_direct, is_cloudinary_configured
@@ -10214,12 +10217,26 @@ async def upload_file(
                     )
                     if _cl.get("success") and _cl.get("secure_url"):
                         internal_url = _cl["secure_url"]
+                        cloudinary_ok = True
             except Exception as _e:
                 logging.warning(f"Cloudinary upload (partner files) fallito: {_e}")
 
-        # Save file metadata to database
+        # `file_storage` deriva il file_id da sha256(CONTENUTO): ricaricare lo stesso
+        # contenuto (o un file gia' presente da un giro precedente) collideva sullo
+        # stesso id → con `insert` nascevano record duplicati e il vecchio (magari con
+        # url locale non servibile) vinceva su _serve → 404. Fix: file_id SCOPED al
+        # partner + UPSERT. Cosi' niente collisioni tra partner e la ri-migrazione
+        # dello stesso file AGGIORNA il record (self-heal), non lo duplica.
+        if _file_bytes:
+            file_id = _hashlib.sha256(
+                f"{partner_id}:".encode("utf-8") + _file_bytes
+            ).hexdigest()[:16]
+        else:
+            file_id = result["file_id"]
+
+        # Save file metadata to database (upsert su file_id partner-scoped)
         file_record = StoredFile(
-            file_id=result["file_id"],
+            file_id=file_id,
             original_name=result["original_name"],
             stored_name=result["stored_name"],
             file_type=result["file_type"],
@@ -10230,8 +10247,14 @@ async def upload_file(
             size=result["size"],
             uploaded_at=result["uploaded_at"]
         )
-        await db.files.insert_one(file_record.model_dump())
+        await db.files.update_one(
+            {"file_id": file_id},
+            {"$set": file_record.model_dump()},
+            upsert=True,
+        )
+        result["file_id"] = file_id
         result["internal_url"] = internal_url
+        result["cloudinary"] = cloudinary_ok
 
         # Update agent status (ANDREA for videos, LUCA for documents)
         if result["file_type"] == "video":
