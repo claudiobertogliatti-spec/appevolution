@@ -28,6 +28,49 @@ const STATE_LABEL = {
   partner_active: "Partner attivo",
 };
 
+// Le 4 tappe che contano per capire la situazione reale di un lead, a colpo
+// d'occhio: questionario compilato, report/blueprint generato, call fissata,
+// call fatta. Ognuna con la sua data (da state_history, non dedotta dal solo
+// current_state) — un pallino pieno + data al passaggio del mouse, vuoto se
+// la tappa non è ancora avvenuta.
+const STAGES = [
+  { key: "questionario_at", label: "Questionario" },
+  { key: "report_at", label: "Report/Blueprint" },
+  { key: "call_booked_at", label: "Call fissata" },
+  { key: "call_done_at", label: "Call fatta" },
+];
+
+function formatDate(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+function StageTracker({ item }) {
+  return (
+    <div className="flex items-center gap-1">
+      {STAGES.map((s) => {
+        const ts = item[s.key];
+        const date = formatDate(ts);
+        return (
+          <span
+            key={s.key}
+            title={`${s.label}${date ? ": " + date : " — non ancora"}`}
+            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+              ts ? "bg-slate-900 text-yellow-400" : "bg-gray-100 text-slate-300"
+            }`}
+          >
+            {ts ? "✓" : "·"}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatoBadge({ stato, preliminary }) {
   if (!stato) return <span className="text-slate-300">—</span>;
   return (
@@ -182,7 +225,9 @@ export function AdminLeads({ onAuthExpired }) {
                   <th className="px-5 py-3 font-semibold">Source</th>
                   <th className="px-5 py-3 font-semibold">Checkpoint</th>
                   <th className="px-5 py-3 font-semibold">8 Domande</th>
-                  <th className="px-5 py-3 font-semibold">Pipeline</th>
+                  <th className="px-5 py-3 font-semibold" title="Questionario · Report/Blueprint · Call fissata · Call fatta">
+                    Percorso
+                  </th>
                   <th className="px-5 py-3 font-semibold"></th>
                 </tr>
               </thead>
@@ -211,11 +256,14 @@ export function AdminLeads({ onAuthExpired }) {
                     <td className="px-5 py-3">
                       <StatoBadge stato={l.stato_finale} />
                     </td>
-                    <td className="px-5 py-3 text-slate-600 text-xs">
-                      {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
-                      {l.purchased && (
-                        <span className="ml-2 text-yellow-600 font-medium">Blueprint ✓</span>
-                      )}
+                    <td className="px-5 py-3">
+                      <StageTracker item={l} />
+                      <div className="mt-1 text-slate-400 text-[11px]">
+                        {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
+                        {l.purchased && (
+                          <span className="ml-2 text-yellow-600 font-medium">Blueprint €27 ✓</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <button
