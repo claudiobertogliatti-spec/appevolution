@@ -76,6 +76,27 @@ function StageChecklist({ diagnostic }) {
   );
 }
 
+// Scarica il Blueprint in PDF (template lockato) generato dal backend, senza
+// effetti collaterali (nessuna email, nessun cambio di stato). La generazione
+// richiama l'AI: puo' richiedere 1-2 minuti.
+async function downloadBlueprintPdf(email) {
+  const res = await adminFetch(
+    `/api/ciak/client/admin/blueprint-pdf?email=${encodeURIComponent(email)}`,
+    { timeoutMs: 180000 }
+  );
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safeEmail = (email || "blueprint").replace(/[^a-z0-9]+/gi, "-");
+  a.href = url;
+  a.download = `Blueprint-${safeEmail}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
@@ -108,6 +129,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [deliverMsg, setDeliverMsg] = useState(null);
   const [deliverResult, setDeliverResult] = useState(null);
   const [askDeliver, setAskDeliver] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -142,6 +165,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setDeliverMsg("Errore consegna: " + e.message);
     } finally {
       setDelivering(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      await downloadBlueprintPdf(data.email);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setPdfError("Errore PDF: " + e.message);
+    } finally {
+      setPdfLoading(false);
     }
   }
 
@@ -348,6 +384,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
                 <details className="mt-3">
                   <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
                     Report Carlo
+                    <button
+                      type="button"
+                      disabled={pdfLoading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDownloadPdf();
+                      }}
+                      className="ml-3 inline-flex items-center gap-1 rounded-lg border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700 hover:bg-yellow-100 disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {pdfLoading ? "Genero il PDF… (fino a 2 min)" : "⬇ Scarica Blueprint PDF"}
+                    </button>
+                    {pdfError && <span className="ml-3 text-xs text-red-600">{pdfError}</span>}
                   </summary>
                   <pre className="mt-2 text-xs text-slate-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 leading-relaxed">
                     {d.report.report_markdown}

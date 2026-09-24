@@ -102,6 +102,21 @@ class _FakeDiagnostics:
                 return d
         return None
 
+    def find(self, query):
+        matches = [d for d in self.docs if all(d.get(k) == v for k, v in query.items())]
+
+        class _Cursor:
+            def sort(self, *_a, **_k):
+                return self
+
+            def limit(self, _n):
+                return self
+
+            async def to_list(self, length=None):
+                return matches
+
+        return _Cursor()
+
     async def replace_one(self, flt, doc):
         self.replaced.append(doc)
         return SimpleNamespace(matched_count=1, modified_count=1)
@@ -166,6 +181,50 @@ def test_consegna_endpoint_404_se_lead_inesistente(admin_app):
     resp = client.post(
         "/api/ciak/client/admin/consegna-blueprint",
         json={"session_token": "non-esiste"},
+        headers={"X-Internal-Key": "internal-secret"},
+    )
+    assert resp.status_code == 404
+
+
+# ─── Endpoint admin /admin/blueprint-pdf (anteprima senza effetti collaterali) ───
+
+def test_blueprint_pdf_restituisce_pdf_senza_effetti_collaterali(admin_app):
+    client, db = admin_app
+    with patch("services.ciak_analisi.set_db", MagicMock()), \
+            patch("services.ciak_analisi.genera_blueprint",
+                  AsyncMock(return_value={"meta": {}, "sezioni": {}})) as gen, \
+            patch("services.ciak_pdf_blueprint.genera_blueprint_pdf",
+                  AsyncMock(return_value=b"%PDF-1.4 fake")) as render, \
+            patch("services.ciak_analisi_delivery.processa_acquisto", AsyncMock()) as invio:
+        resp = client.get(
+            "/api/ciak/client/admin/blueprint-pdf",
+            params={"email": "lead@ciak.it"},
+            headers={"X-Internal-Key": "internal-secret"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert resp.content.startswith(b"%PDF")
+    gen.assert_awaited_once_with("tok-consegna")
+    render.assert_awaited_once()
+    # nessun effetto collaterale: stato invariato, nulla persistito, nessuna email
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
+    assert not db.diagnostic_sessions.replaced
+    invio.assert_not_awaited()
+    db.ciak_clients.update_one.assert_not_awaited()
+
+
+def test_blueprint_pdf_richiede_auth(admin_app):
+    client, _db = admin_app
+    resp = client.get("/api/ciak/client/admin/blueprint-pdf", params={"email": "lead@ciak.it"})
+    assert resp.status_code == 401
+
+
+def test_blueprint_pdf_404_se_lead_inesistente(admin_app):
+    client, _db = admin_app
+    resp = client.get(
+        "/api/ciak/client/admin/blueprint-pdf",
+        params={"session_token": "non-esiste"},
         headers={"X-Internal-Key": "internal-secret"},
     )
     assert resp.status_code == 404
