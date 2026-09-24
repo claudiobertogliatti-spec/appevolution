@@ -1266,6 +1266,13 @@ async def ciak_leads_list(
             "has_report": bool(report.get("report_markdown")),
             "session_token": (diag or {}).get("session_token"),
             "purchased": (diag or {}).get("current_state") in _PURCHASED_STATES,
+            # Le 4 tappe del percorso, con data reale da state_history — non dedotte
+            # dal solo current_state (che è un singolo valore e nasconde le tappe
+            # precedenti). Vedi _state_ts().
+            "questionario_at": _state_ts(diag or {}, "ciak_completed"),
+            "report_at": _state_ts(diag or {}, "report_generated"),
+            "call_booked_at": _state_ts(diag or {}, "call_booked"),
+            "call_done_at": _state_ts(diag or {}, "call_done"),
         })
 
     # Filtri post-merge (su campi derivati dalla diagnostic)

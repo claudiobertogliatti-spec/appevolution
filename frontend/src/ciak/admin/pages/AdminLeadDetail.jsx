@@ -25,6 +25,57 @@ const INSTRADAMENTO = {
   nurture:     { label: "Nurturing",             cls: "bg-gray-100 text-slate-500" },
 };
 
+// Le 4 tappe che contano per capire la situazione reale del lead prima di una
+// call: questionario compilato, report/blueprint generato, call fissata, call
+// fatta. Data reale da state_history (non dedotta dal solo current_state, che
+// è un singolo valore e nasconde le tappe precedenti) — vedi _state_ts() nel
+// backend, stessa logica qui lato client sullo stesso campo.
+const STAGES = [
+  { key: "ciak_completed", label: "Questionario compilato" },
+  { key: "report_generated", label: "Report / Blueprint generato" },
+  { key: "call_booked", label: "Call fissata" },
+  { key: "call_done", label: "Call fatta" },
+];
+
+function stateTs(diagnostic, state) {
+  const history = diagnostic?.state_history || [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i]?.state === state) return history[i].timestamp;
+  }
+  return null;
+}
+
+function formatDateTime(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+function StageChecklist({ diagnostic }) {
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {STAGES.map((s) => {
+        const ts = stateTs(diagnostic, s.key);
+        const when = formatDateTime(ts);
+        return (
+          <div
+            key={s.key}
+            className={`rounded-lg border px-3 py-2 text-xs ${
+              ts ? "border-slate-900 bg-slate-900 text-yellow-400" : "border-gray-200 bg-gray-50 text-slate-400"
+            }`}
+          >
+            <div className="font-semibold">{ts ? "✓" : "—"} {s.label}</div>
+            <div className={ts ? "text-slate-300" : "text-slate-400"}>{when || "non ancora"}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
@@ -258,6 +309,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
         ) : (
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
+              <StageChecklist diagnostic={d} />
               <Field label="Stato corrente" value={d.current_state} />
               <Field
                 label="Stato finale"
