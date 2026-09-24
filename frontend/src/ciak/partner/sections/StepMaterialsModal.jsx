@@ -68,7 +68,7 @@ export default function StepMaterialsModal({ partnerId, step, onClose }) {
                           {m.download_url && <button onClick={() => fetchBlob(m, true)} className="px-3 py-1.5 rounded-lg border text-xs font-bold inline-flex gap-1"><Download className="h-3.5 w-3.5" /> Scarica</button>}
                           {m.public_url && safePublicUrl(m.public_url) && <a href={m.public_url} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold inline-flex gap-1"><ExternalLink className="h-3.5 w-3.5" /> Guarda su YouTube</a>}
                         </div>
-                        {m.type === "data" && <dl className="mt-3 space-y-2">{Object.entries(m.metadata || {}).map(([k, v]) => <div key={k}><dt className="text-[11px] uppercase text-slate-400">{k.replaceAll("_", " ")}</dt><dd className="text-sm break-words">{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd></div>)}</dl>}
+                        {m.type === "data" && <dl className="mt-3 space-y-2">{Object.entries(m.metadata || {}).map(([k, v]) => <div key={k}><dt className="text-[11px] uppercase text-slate-400">{k.replaceAll("_", " ")}</dt><dd className="text-sm break-words whitespace-pre-line">{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd></div>)}</dl>}
                         {m.metadata?.pending && <p className="mt-2 text-xs text-amber-700">La playlist ufficiale è in preparazione.</p>}
                       </div>
                     ))}

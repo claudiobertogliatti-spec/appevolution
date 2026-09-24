@@ -168,3 +168,42 @@ async def test_register_drive_file_once_is_idempotent_and_never_overwrites_revie
     assert files.calls[0][1] == {"$setOnInsert": first_record}
     assert files.calls[1][1] == {"$setOnInsert": second_record}
     assert all(call[2] is True for call in files.calls)
+
+
+def test_launch_calendar_text_is_shown_in_its_step_archive():
+    data = {
+        "calendario": "Giorno 1 - Storia personale\nGiorno 2 - Contenuto educativo",
+        "calendario_fallback": False,
+        "calendario_generated_at": "2026-08-06T10:40:15",
+    }
+
+    assert materials.safe_step_data("11-calendario-30gg", data) == {"calendario": data["calendario"]}
+
+
+def test_generic_fallback_calendar_is_never_shown_as_partner_material():
+    data = {"calendario": "Giorno 1 - post generico", "calendario_fallback": True}
+
+    assert materials.safe_step_data("11-calendario-30gg", data) == {}
+
+
+def test_step_archive_hides_files_the_partner_cannot_open():
+    drive_only = {"file_id": "d", "internal_url": "https://drive.google.com/file/d/x/view"}
+    cloudinary = {"file_id": "c", "internal_url": "https://res.cloudinary.com/demo/raw/upload/a.xlsx"}
+    youtube = {"file_id": "y", "public_url": "https://www.youtube.com/watch?v=abc"}
+
+    assert materials.file_is_openable(drive_only) is False
+    assert materials.file_is_openable(cloudinary) is True
+    assert materials.file_is_openable(youtube) is True
+    assert [f["file_id"] for f in materials.step_archive_files([drive_only, cloudinary, youtube])] == ["c", "y"]
+    assert len(materials.step_archive_files([drive_only, cloudinary], include_hidden=True)) == 2
+
+
+def test_step_assignment_only_accepts_known_steps_and_marks_the_file_approved():
+    assert materials.step_assignment_fields("11-calendario-30gg") == {
+        "step_id": "11-calendario-30gg",
+        "step_ref": "11-calendario-30gg",
+        "status": "approved",
+        "approval_status": "approved",
+    }
+    with pytest.raises(ValueError, match="step"):
+        materials.step_assignment_fields("15-calendario-30gg")

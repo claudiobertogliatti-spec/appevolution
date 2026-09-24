@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material, current_files,
+    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material,
     file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
-    trusted_storage_url,
+    step_archive_files, step_assignment_fields, trusted_storage_url,
 )
 
 router = APIRouter(tags=["partner-step-materials"])
@@ -38,7 +38,8 @@ async def _file_or_404(file_id: str, credentials):
 @router.get("/api/partner-journey/operativo/step-materials/{partner_id}/{step_id}")
 async def get_step_materials(partner_id: str, step_id: str,
                              credentials: HTTPAuthorizationCredentials = Depends(security)):
-    await _authorize(partner_id, credentials)
+    token_data = await _authorize(partner_id, credentials)
+    is_admin = getattr(token_data, "role", None) in ("admin", "superadmin")
     step = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": step_id}, {"_id": 0}
     )
@@ -50,7 +51,7 @@ async def get_step_materials(partner_id: str, step_id: str,
     if categories:
         query["$or"].append({"category": {"$in": categories}})
     docs = await db.files.find(query, {"_id": 0}).sort("uploaded_at", -1).to_list(length=100)
-    materials = [normalize_file_material(doc) for doc in current_files(docs)]
+    materials = [normalize_file_material(doc) for doc in step_archive_files(docs, include_hidden=is_admin)]
 
     data = safe_step_data(step_id, step.get("data") or {})
     if data:
@@ -108,6 +109,25 @@ async def get_all_partner_materiali(partner_id: str,
         materials.append(item)
 
     return {"partner_id": partner_id, "materials": materials, "total": len(materials)}
+
+
+@router.patch("/api/partner-step-materials/{file_id}/step")
+async def assign_material_to_step(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: collega un file gia' registrato a uno step del Percorso, cosi'
+    compare nell'Archivio di quello step. Non tocca la `visibility`."""
+    doc = await db.files.find_one({"file_id": file_id, "superseded": {"$ne": True}}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Materiale non trovato")
+    token_data = await _authorize(str(doc.get("partner_id")), credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+    try:
+        fields = step_assignment_fields(str((body or {}).get("step_id") or ""))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    await db.files.update_one({"file_id": file_id, "partner_id": doc.get("partner_id")}, {"$set": fields})
+    return {"success": True, "file_id": file_id, **fields}
 
 
 async def _serve(file_id: str, disposition: str, credentials):

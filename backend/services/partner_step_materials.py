@@ -33,6 +33,7 @@ DATA_WHITELISTS = {
     "burocrazia": {"ragione_sociale", "partita_iva", "codice_fiscale", "paese", "citta"},
     "06-outline-lezioni": {"titolo", "descrizione", "moduli"},
     "09-registra-lezioni": {"lessons_count", "approved_count", "modules_count"},
+    "11-calendario-30gg": {"calendario"},
     "13-lancio": {"launched_at", "funnel_url", "status"},
 }
 
@@ -127,7 +128,11 @@ def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 def safe_step_data(step_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     allowed = DATA_WHITELISTS.get(step_id, set())
-    return {key: data[key] for key in allowed if key in data and data[key] not in (None, "", [], {})}
+    result = {key: data[key] for key in allowed if key in data and data[key] not in (None, "", [], {})}
+    # Il calendario di ripiego e' generico, non del partner: niente sintesi inventate.
+    if step_id == "11-calendario-30gg" and data.get("calendario_fallback"):
+        result.pop("calendario", None)
+    return result
 
 
 def current_files(files: Iterable[Dict[str, Any]]) -> list[Dict[str, Any]]:
@@ -140,6 +145,27 @@ def current_files(files: Iterable[Dict[str, Any]]) -> list[Dict[str, Any]]:
 def file_visible_to_partner(file_doc: Dict[str, Any]) -> bool:
     """I record legacy restano visibili; le nuove classi fail-closed no."""
     return file_doc.get("visibility") not in PARTNER_HIDDEN_VISIBILITIES
+
+
+def file_is_openable(file_doc: Dict[str, Any]) -> bool:
+    """Apribile dal partner = storage fidato (servito da `_serve`) oppure un
+    `public_url` consentito. I file solo-Drive darebbero 404 al click."""
+    return bool(trusted_storage_url(file_doc.get("internal_url")) or allowed_public_url(file_doc.get("public_url")))
+
+
+def step_archive_files(files: Iterable[Dict[str, Any]], include_hidden: bool = False) -> list[Dict[str, Any]]:
+    """File dell'Archivio di uno step: approvati/visibili (`current_files`) e, per
+    il partner, solo quelli che sa davvero aprire. L'admin li vede tutti."""
+    return [f for f in current_files(files) if include_hidden or file_is_openable(f)]
+
+
+def step_assignment_fields(step_id: str) -> Dict[str, Any]:
+    """Campi che collegano un file gia' registrato a uno step del Percorso.
+    `status`/`approval_status` = approved: senza, `current_files` lo scarta e
+    l'Archivio dello step resta vuoto (gli upload nascono con status 'uploaded')."""
+    if step_id not in STEP_CATEGORIES:
+        raise ValueError(f"step non valido: {step_id}")
+    return {"step_id": step_id, "step_ref": step_id, "status": "approved", "approval_status": "approved"}
 
 
 def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: bool = False) -> list[Dict[str, Any]]:
@@ -167,7 +193,7 @@ def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: b
             # Drive darebbero un 404 al click (era il bug "i materiali non si
             # aprono"). Vale anche per i video: i reel su Cloudinary sono apribili.
             # L'admin li vede con include_hidden per migrarli.
-            if not (trusted_storage_url(f.get("internal_url")) or allowed_public_url(f.get("public_url"))):
+            if not file_is_openable(f):
                 continue
         out.append(f)
     return out
