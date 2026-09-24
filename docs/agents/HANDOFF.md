@@ -1,3 +1,9 @@
+### 2026-09-24 · Claude Sonnet 5 (Claude Code) · PR #213 MERGIATA — 4 tappe reali del lead in admin
+
+**COSA:** PR [#213](https://github.com/claudiobertogliatti-spec/appevolution/pull/213) mergiata da Claudio (commit `347867cd`) — la lista e il dettaglio Lead in admin mostravano solo il `current_state` singolo della diagnostic session (nasconde le tappe precedenti). Ora espongono le 4 date reali da `state_history` già presente: questionario compilato, report/blueprint generato, call fissata, call fatta. Tocca `backend/routers/ciak_admin.py` + 2 file frontend → **deploy automatico Cloud Build già partito**. **Non ancora verificato**: nessuno smoke test post-deploy su questo lavoro specifico — verificare che i 4 pallini/date compaiano davvero in produzione su un lead reale prima di darlo per definitivo.
+
+⚠️ **Nota per chi lavora in un worktree su questo frontend:** i test CRA/jest non vengono raccolti (0 su centinaia) se il worktree vive sotto `.worktrees/`. Workaround in `memory/reference_test_frontend_da_worktree_git.md` (memoria di Claude, non in questo repo).
+
 ### 2026-09-22 · Claude Sonnet 5 (Claude Code) · Manus AI — prima scrittura Git verificata, PR #212 aperta (non mergiata)
 
 **COSA:** PR [#212](https://github.com/claudiobertogliatti-spec/appevolution/pull/212) "fix(ciak): gate del calendario per i lead nurture" — branch `mn/gate-instradamento-calendario`, commit `7153c40e`, implementato interamente da **Manus AI** nel suo sandbox cloud, su un piano che avevo verificato e approvato in precedenza (bug trovato dalla stessa Manus durante l'analisi CEO del 22/9: `/api/diagnostic/complete` calcola l'`instradamento` ma non lo espone, quindi tutti i lead — anche i "nurture" non pronti — vedevano lo stesso calendario di prenotazione call dei lead qualificati).
