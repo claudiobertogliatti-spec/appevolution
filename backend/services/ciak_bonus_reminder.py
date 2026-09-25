@@ -55,7 +55,11 @@ Evolution PRO
 """
     html = plain.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
     msg = MIMEMultipart("alternative")
-    msg["From"] = os.environ.get("CIAK_EMAIL_FROM", f"Claudio Bertogliatti <{user}>")
+    msg["From"] = (
+        os.environ.get("CIAK_EMAIL_FROM")
+        or os.environ.get("SMTP_FROM")
+        or f"Claudio Bertogliatti <{user}>"
+    )
     msg["To"] = email
     msg["Reply-To"] = os.environ.get("CIAK_EMAIL_REPLY_TO", "info@evolution-pro.it")
     msg["Subject"] = f"{primo}, la guida in omaggio scade tra poche ore"
