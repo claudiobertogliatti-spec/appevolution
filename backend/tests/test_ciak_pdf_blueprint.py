@@ -144,3 +144,9 @@ async def test_genera_blueprint_pdf_produce_un_pdf_reale():
     counts = [int(n) for n in re.findall(rb"/Count\s+(\d+)", bytes(pdf_bytes))]
     if counts:
         assert max(counts) == 16
+
+
+def test_callout_su_pagina_chiara_ha_sfondo_scuro():
+    """La CTA (pagina 14) e' chiara ma il callout ha testo chiaro: senza sfondo scuro e' illeggibile."""
+    from services.ciak_pdf_blueprint import _CSS
+    assert ".page:not(.dark) .callout{background:var(--ink)" in _CSS
