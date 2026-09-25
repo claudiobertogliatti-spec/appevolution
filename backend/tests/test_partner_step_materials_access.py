@@ -120,3 +120,51 @@ async def test_link_rejects_unknown_step_and_missing_file(monkeypatch):
     with pytest.raises(HTTPException) as missing:
         await route.assign_material_to_step("nope", {"step_id": "11-calendario-30gg"}, object())
     assert missing.value.status_code == 404
+
+
+class FakeCollidingFiles:
+    """Due record con lo stesso file_id (collisione di hash sul contenuto)."""
+
+    def __init__(self):
+        self.docs = [
+            {"file_id": "dup", "partner_id": "13", "original_name": "Template_Script.pdf"},
+            {"file_id": "dup", "partner_id": "13", "original_name": "Script_Vero.pdf"},
+        ]
+        self.updates = []
+
+    async def find_one(self, query, projection):
+        for doc in self.docs:
+            if all(doc.get(k) == v for k, v in query.items() if k != "superseded"):
+                return dict(doc)
+        return None
+
+    async def update_one(self, key, update):
+        self.updates.append((key, update))
+        return SimpleNamespace(matched_count=1)
+
+
+@pytest.mark.asyncio
+async def test_link_can_target_the_right_record_when_file_ids_collide(monkeypatch):
+    files = FakeCollidingFiles()
+    route.db = SimpleNamespace(files=files)
+    _as(monkeypatch, "admin")
+
+    await route.assign_material_to_step(
+        "dup", {"step_id": "05-script-masterclass", "original_name": "Script_Vero.pdf"}, object()
+    )
+
+    key, _ = files.updates[0]
+    assert key == {"file_id": "dup", "partner_id": "13", "original_name": "Script_Vero.pdf"}
+
+
+@pytest.mark.asyncio
+async def test_link_with_unknown_name_is_404_not_a_silent_wrong_match(monkeypatch):
+    route.db = SimpleNamespace(files=FakeCollidingFiles())
+    _as(monkeypatch, "admin")
+
+    with pytest.raises(HTTPException) as exc:
+        await route.assign_material_to_step(
+            "dup", {"step_id": "05-script-masterclass", "original_name": "Non_Esiste.pdf"}, object()
+        )
+
+    assert exc.value.status_code == 404

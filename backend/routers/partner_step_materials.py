@@ -115,8 +115,16 @@ async def get_all_partner_materiali(partner_id: str,
 async def assign_material_to_step(file_id: str, body: dict,
                                   credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Solo admin: collega un file gia' registrato a uno step del Percorso, cosi'
-    compare nell'Archivio di quello step. Non tocca la `visibility`."""
-    doc = await db.files.find_one({"file_id": file_id, "superseded": {"$ne": True}}, {"_id": 0})
+    compare nell'Archivio di quello step. Non tocca la `visibility`.
+
+    `original_name` (opzionale) distingue i record che condividono lo stesso
+    `file_id` (collisione di hash sul contenuto, storica): senza, si aggiorna il
+    primo trovato, che puo' essere quello sbagliato."""
+    key = {"file_id": file_id}
+    original_name = (body or {}).get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    doc = await db.files.find_one({**key, "superseded": {"$ne": True}}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Materiale non trovato")
     token_data = await _authorize(str(doc.get("partner_id")), credentials)
@@ -126,7 +134,7 @@ async def assign_material_to_step(file_id: str, body: dict,
         fields = step_assignment_fields(str((body or {}).get("step_id") or ""))
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    await db.files.update_one({"file_id": file_id, "partner_id": doc.get("partner_id")}, {"$set": fields})
+    await db.files.update_one({**key, "partner_id": doc.get("partner_id")}, {"$set": fields})
     return {"success": True, "file_id": file_id, **fields}
 
 
