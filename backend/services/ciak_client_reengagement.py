@@ -45,7 +45,11 @@ def _send(email: str, nome: str | None, subject: str, corpo: str, link: str) -> 
     plain = f"{corpo.format(primo=primo)}\n\nEntra qui:\n{link}\n\nA presto,\nClaudio\nEvolution PRO\n"
     html = plain.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
     msg = MIMEMultipart("alternative")
-    msg["From"] = os.environ.get("CIAK_EMAIL_FROM", f"Claudio Bertogliatti <{user}>")
+    msg["From"] = (
+        os.environ.get("CIAK_EMAIL_FROM")
+        or os.environ.get("SMTP_FROM")
+        or f"Claudio Bertogliatti <{user}>"
+    )
     msg["To"] = email
     msg["Reply-To"] = os.environ.get("CIAK_EMAIL_REPLY_TO", "info@evolution-pro.it")
     msg["Subject"] = subject

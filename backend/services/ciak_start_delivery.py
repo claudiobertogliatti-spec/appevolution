@@ -114,7 +114,11 @@ Claudio
         message.attach(part)
     else:
         message = body
-    message["From"] = os.environ.get("CIAK_EMAIL_FROM", f"Claudio Bertogliatti <{user}>")
+    message["From"] = (
+        os.environ.get("CIAK_EMAIL_FROM")
+        or os.environ.get("SMTP_FROM")
+        or f"Claudio Bertogliatti <{user}>"
+    )
     message["To"] = email
     message["Reply-To"] = os.environ.get("CIAK_EMAIL_REPLY_TO", "info@evolution-pro.it")
     message["Subject"] = f"{safe_name}, Ciak Start e' attivo"

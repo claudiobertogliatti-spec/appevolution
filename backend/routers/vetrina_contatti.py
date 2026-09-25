@@ -114,7 +114,11 @@ def _invia_notifica(*, destinatario: str, nome: str, email: str, messaggio: str,
         f"— {sito}\n"
     )
     mail = MIMEMultipart("alternative")
-    mail["From"] = os.environ.get("CIAK_EMAIL_FROM", f"Ciak <{user}>")
+    mail["From"] = (
+        os.environ.get("CIAK_EMAIL_FROM")
+        or os.environ.get("SMTP_FROM")
+        or f"Ciak <{user}>"
+    )
     mail["To"] = destinatario
     mail["Reply-To"] = email
     mail["Subject"] = f"Messaggio dal tuo sito: {nome}"
