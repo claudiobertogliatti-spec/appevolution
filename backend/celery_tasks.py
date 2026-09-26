@@ -586,6 +586,7 @@ def check_stuck_video_pipelines():
     try:
         async def _check():
             from video_pipeline_task import process_partner_video
+            from services.video_retry_guard import attempts_exhausted, MAX_PIPELINE_ATTEMPTS
             client, db = get_db()
             now = datetime.now(timezone.utc)
             cutoff_hb = (now - timedelta(minutes=HEARTBEAT_DEAD_MINUTES)).isoformat()
@@ -600,20 +601,25 @@ def check_stuck_video_pipelines():
                     {"pipeline_heartbeat_at": {"$exists": True, "$lt": cutoff_hb}},
                     {"pipeline_heartbeat_at": {"$exists": False}, "updated_at": {"$lt": cutoff_old}},
                 ]
-            }, {"partner_id": 1, "video_pipeline_status": 1, "video_raw_url": 1, "pipeline_heartbeat_at": 1}).to_list(50)
+            }, {"partner_id": 1, "video_pipeline_status": 1, "video_raw_url": 1, "pipeline_heartbeat_at": 1,
+                "pipeline_attempts": 1, "pipeline_attempts_since": 1}).to_list(50)
 
             for doc_mc in stuck_mc:
                 pid = doc_mc["partner_id"]
                 old_status = doc_mc["video_pipeline_status"]
                 video_url = doc_mc.get("video_raw_url", "")
                 has_hb = bool(doc_mc.get("pipeline_heartbeat_at"))
-                can_retrigger = has_hb and bool(video_url)
+                exhausted = attempts_exhausted(doc_mc.get("pipeline_attempts"), doc_mc.get("pipeline_attempts_since"), now)
+                can_retrigger = has_hb and bool(video_url) and not exhausted
 
                 await db.masterclass_factory.update_one(
                     {"partner_id": pid},
                     {"$set": {
                         "video_pipeline_status": "queued" if can_retrigger else "error",
-                        "video_pipeline_error": f"[Auto-recovery] bloccata in '{old_status}' — {'retrigger' if can_retrigger else 'reset manuale necessario'}",
+                        "video_pipeline_error": (
+                            f"[Auto-recovery] bloccata in '{old_status}' — tetto di {MAX_PIPELINE_ATTEMPTS} tentativi raggiunto, serve intervento manuale"
+                            if exhausted else
+                            f"[Auto-recovery] bloccata in '{old_status}' — {'retrigger' if can_retrigger else 'reset manuale necessario'}"),
                         "pipeline_heartbeat_at": None,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }}
@@ -645,12 +651,15 @@ def check_stuck_video_pipelines():
                     if not is_stuck:
                         continue
                     lk = f"lessons.{lid}"
-                    can_ret = bool(hb) and bool(video_url_vc)
+                    exhausted_vc = attempts_exhausted(lesson.get("pipeline_attempts"), lesson.get("pipeline_attempts_since"), now)
+                    can_ret = bool(hb) and bool(video_url_vc) and not exhausted_vc
                     await db.partner_videocorso.update_one(
                         {"partner_id": pid},
                         {"$set": {
                             f"{lk}.pipeline_status": "queued" if can_ret else "error",
-                            f"{lk}.pipeline_error": f"[Auto-recovery] bloccata in '{ls}'",
+                            f"{lk}.pipeline_error": (
+                                f"[Auto-recovery] bloccata in '{ls}' — tetto di {MAX_PIPELINE_ATTEMPTS} tentativi raggiunto, serve intervento manuale"
+                                if exhausted_vc else f"[Auto-recovery] bloccata in '{ls}'"),
                             f"{lk}.pipeline_heartbeat_at": None,
                             "updated_at": datetime.now(timezone.utc).isoformat()
                         }}

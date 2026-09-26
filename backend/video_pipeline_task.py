@@ -28,6 +28,7 @@ import random
 import httpx
 
 from celery_app import celery_app
+from services.video_retry_guard import MAX_PIPELINE_ATTEMPTS, next_attempt
 try:
     from key_moments_extractor import extract_key_moments
 except ImportError:
@@ -1559,12 +1560,51 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                            **{f"{key}.{k}": v for k, v in extra.items()}}}
             )
 
+    async def register_attempt() -> int:
+        """Conta questo avvio PRIMA di qualunque lavoro pesante (vedi services/video_retry_guard)."""
+        now = datetime.now(timezone.utc)
+        if video_type == "masterclass":
+            coll, prefix, upsert = db.masterclass_factory, "", True
+        else:
+            coll, prefix, upsert = db.partner_videocorso, f"lessons.{lesson_id}.", False
+        doc = await coll.find_one(
+            {"partner_id": partner_id},
+            {f"{prefix}pipeline_attempts": 1, f"{prefix}pipeline_attempts_since": 1, f"{prefix}pipeline_attempts_url": 1},
+        ) or {}
+        prev = doc if video_type == "masterclass" else ((doc.get("lessons") or {}).get(lesson_id) or {})
+        attempt, since = next_attempt(
+            prev.get("pipeline_attempts"), prev.get("pipeline_attempts_since"),
+            prev.get("pipeline_attempts_url"), video_url, now,
+        )
+        await coll.update_one(
+            {"partner_id": partner_id},
+            {"$set": {f"{prefix}pipeline_attempts": attempt, f"{prefix}pipeline_attempts_since": since,
+                      f"{prefix}pipeline_attempts_url": video_url}},
+            upsert=upsert,
+        )
+        return attempt
+
     try:
         partner = await db.partners.find_one({"id": partner_id})
         name = partner.get("name", partner_id) if partner else partner_id
         label = f"{video_type}" + (f" lezione {lesson_id}" if lesson_id else "")
 
-        logger.info(f"[VIDEO-PIPE] START {label} — {name}")
+        attempt = await register_attempt()
+        if attempt > MAX_PIPELINE_ATTEMPTS:
+            # Tetto raggiunto: non rifare il lavoro che ha già saturato il worker.
+            # Uscita normale → il messaggio viene confermato e sparisce dalla coda.
+            msg = (f"[Tetto tentativi] {MAX_PIPELINE_ATTEMPTS} avvii automatici senza completare "
+                   f"(probabile esaurimento memoria o file troppo pesante) — serve intervento manuale")
+            logger.error(f"[VIDEO-PIPE] {label} — {name}: {msg}")
+            err_key = "video_pipeline_error" if video_type == "masterclass" else "pipeline_error"
+            await set_status("error", {err_key: msg, "pipeline_heartbeat_at": None})
+            try:
+                await telegram(f"🛑 <b>Pipeline video fermata</b>\n👤 {name} — {label}\n{msg}")
+            except Exception:
+                pass
+            return
+
+        logger.info(f"[VIDEO-PIPE] START {label} — {name} (tentativo {attempt}/{MAX_PIPELINE_ATTEMPTS})")
         await set_status("downloading")
         await telegram(f"⏬ <b>Pipeline video avviata</b>\n👤 {name} — {label}\nDownload in corso...")
 
