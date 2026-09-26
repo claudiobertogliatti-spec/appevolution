@@ -175,8 +175,8 @@ export function AgentDashboard({ onAuthExpired }) {
     return (
       <div className="p-8 flex items-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#FFD24D' }} />
-          <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento Agent Hub...</p>
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#64748B' }} />
+          <p className="text-sm" style={{ color: '#64748B' }}>Caricamento Agent Hub...</p>
         </div>
       </div>
     );
@@ -191,7 +191,7 @@ export function AgentDashboard({ onAuthExpired }) {
             <Bot className="w-8 h-8" />
             Agent Hub
           </h1>
-          <p className="text-sm" style={{ color: '#9CA3AF' }}>
+          <p className="text-sm" style={{ color: '#64748B' }}>
             Centro di controllo per i 6 agenti AI Evolution PRO
           </p>
         </div>
@@ -200,7 +200,7 @@ export function AgentDashboard({ onAuthExpired }) {
           onClick={() => { loadData(true); loadDiscoveryLeads(); }}
           disabled={isRefreshing}
           className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90"
-          style={{ background: '#FFD24D', color: '#0F172A' }}
+          style={{ background: '#FACC15', color: '#0F172A' }}
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Aggiorna
@@ -217,8 +217,8 @@ export function AgentDashboard({ onAuthExpired }) {
               : "hover:bg-gray-100"
           }`}
           style={{
-            color: activeTab === "leads" ? '#0F172A' : '#9CA3AF',
-            borderBottom: activeTab === "leads" ? '3px solid #FFD24D' : 'none'
+            color: activeTab === "leads" ? '#0F172A' : '#64748B',
+            borderBottom: activeTab === "leads" ? '3px solid #FACC15' : 'none'
           }}
         >
           <Search className="w-4 h-4" />
@@ -232,8 +232,8 @@ export function AgentDashboard({ onAuthExpired }) {
               : "hover:bg-gray-100"
           }`}
           style={{
-            color: activeTab === "agents" ? '#0F172A' : '#9CA3AF',
-            borderBottom: activeTab === "agents" ? '3px solid #FFD24D' : 'none'
+            color: activeTab === "agents" ? '#0F172A' : '#64748B',
+            borderBottom: activeTab === "agents" ? '3px solid #FACC15' : 'none'
           }}
         >
           <Bot className="w-4 h-4" />
@@ -253,7 +253,7 @@ export function AgentDashboard({ onAuthExpired }) {
                   <Target className="w-5 h-5 text-orange-500" />
                   Discovery Leads - Manager Coach
                 </h2>
-                <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                <p className="text-xs mt-1" style={{ color: '#64748B' }}>
                   Lead caldi scoperti da Gaia • Analizzati con Ollama/Llama 3.1
                 </p>
               </div>
@@ -278,7 +278,7 @@ export function AgentDashboard({ onAuthExpired }) {
               <div className="flex flex-wrap gap-4">
                 {/* Filtro Status */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Status</label>
+                  <label className="text-xs font-medium" style={{ color: '#64748B' }}>Status</label>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
@@ -298,7 +298,7 @@ export function AgentDashboard({ onAuthExpired }) {
 
                 {/* Filtro Piattaforma */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Piattaforma</label>
+                  <label className="text-xs font-medium" style={{ color: '#64748B' }}>Piattaforma</label>
                   <select
                     value={filterSource}
                     onChange={(e) => setFilterSource(e.target.value)}
@@ -318,7 +318,7 @@ export function AgentDashboard({ onAuthExpired }) {
 
                 {/* Filtro Score Minimo */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Score Minimo</label>
+                  <label className="text-xs font-medium" style={{ color: '#64748B' }}>Score Minimo</label>
                   <select
                     value={filterMinScore}
                     onChange={(e) => setFilterMinScore(parseInt(e.target.value))}
@@ -351,7 +351,7 @@ export function AgentDashboard({ onAuthExpired }) {
               {/* Filtri attivi badge */}
               {(filterStatus !== 'all' || filterSource !== 'all' || filterMinScore > 0) && (
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xs" style={{ color: '#9CA3AF' }}>Filtri attivi:</span>
+                  <span className="text-xs" style={{ color: '#64748B' }}>Filtri attivi:</span>
                   {filterStatus !== 'all' && (
                     <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#E0F2FE', color: '#0284C7' }}>
                       Status: {filterStatus}
@@ -374,13 +374,13 @@ export function AgentDashboard({ onAuthExpired }) {
 
           {loadingLeads ? (
             <div className="p-10 text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: '#FFD24D' }} />
-              <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento lead...</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: '#64748B' }} />
+              <p className="text-sm" style={{ color: '#64748B' }}>Caricamento lead...</p>
             </div>
           ) : discoveryLeads.length === 0 ? (
             <div className="p-10 text-center">
               <Search className="w-12 h-12 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+              <p className="text-sm" style={{ color: '#64748B' }}>
                 {filterStatus !== 'all' || filterSource !== 'all' || filterMinScore > 0
                   ? 'Nessun lead corrisponde ai filtri selezionati'
                   : 'Nessun lead nel Discovery Engine'}
@@ -391,16 +391,16 @@ export function AgentDashboard({ onAuthExpired }) {
               <table className="w-full">
                 <thead>
                   <tr style={{ background: '#FAFAF7' }}>
-                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Nome</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Sito Web</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Source</th>
-                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Relevance Score</th>
-                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Azione</th>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#64748B' }}>Nome</th>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#64748B' }}>Sito Web</th>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#64748B' }}>Source</th>
+                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#64748B' }}>Relevance Score</th>
+                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#64748B' }}>Azione</th>
                   </tr>
                 </thead>
                 <tbody>
                   {discoveryLeads.map((lead, idx) => {
-                    const scoreColor = lead.score_total >= 80 ? '#10B981' : lead.score_total >= 60 ? '#F59E0B' : '#9CA3AF';
+                    const scoreColor = lead.score_total >= 80 ? '#10B981' : lead.score_total >= 60 ? '#F59E0B' : '#64748B';
                     const isHot = lead.score_total >= 70;
 
                     return (
@@ -419,7 +419,7 @@ export function AgentDashboard({ onAuthExpired }) {
                               >
                                 {lead.display_name}
                               </div>
-                              <div className="text-xs" style={{ color: '#9CA3AF' }}>
+                              <div className="text-xs" style={{ color: '#64748B' }}>
                                 {lead.niche_detected?.replace(/_/g, ' ') || lead.bio?.slice(0, 50) || 'N/A'}
                               </div>
                             </div>
@@ -438,7 +438,7 @@ export function AgentDashboard({ onAuthExpired }) {
                               {lead.website_url.replace(/https?:\/\/(www\.)?/, '').slice(0, 30)}
                             </a>
                           ) : (
-                            <span className="text-xs" style={{ color: '#9CA3AF' }}>—</span>
+                            <span className="text-xs" style={{ color: '#64748B' }}>—</span>
                           )}
                         </td>
                         <td className="p-4">
@@ -480,7 +480,7 @@ export function AgentDashboard({ onAuthExpired }) {
                               disabled={analyzingLead === lead.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-wait"
                               style={{
-                                background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#FFD24D',
+                                background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#FACC15',
                                 color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#0F172A'
                               }}
                               data-testid={`analyze-btn-${lead.id}`}
@@ -536,7 +536,7 @@ export function AgentDashboard({ onAuthExpired }) {
               📊 Business Summary
             </h2>
             <div className="flex items-center gap-2">
-              <span className="text-sm" style={{ color: '#9CA3AF' }}>Health:</span>
+              <span className="text-sm" style={{ color: '#64748B' }}>Health:</span>
               <span className="text-2xl">{summary.health?.overall || "🟢"}</span>
             </div>
           </div>
@@ -546,7 +546,7 @@ export function AgentDashboard({ onAuthExpired }) {
               <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                 {summary.summary?.total_partners || 0}
               </div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Attivi</div>
+              <div className="text-xs" style={{ color: '#64748B' }}>Partner Attivi</div>
             </div>
             <div className="p-4 rounded-xl" style={{ background: '#EAFAF1' }}>
               <div className="text-3xl font-black" style={{ color: '#10B981' }}>
@@ -558,7 +558,7 @@ export function AgentDashboard({ onAuthExpired }) {
               <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                 €{summary.summary?.avg_ltv || "2.580"}
               </div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>LTV Medio</div>
+              <div className="text-xs" style={{ color: '#64748B' }}>LTV Medio</div>
             </div>
           </div>
         </div>
@@ -635,7 +635,7 @@ export function AgentDashboard({ onAuthExpired }) {
                     </div>
                     <div>
                       <div className="font-bold" style={{ color: '#0F172A' }}>{agent.id}</div>
-                      <div className="text-xs" style={{ color: '#9CA3AF' }}>{agent.info?.name}</div>
+                      <div className="text-xs" style={{ color: '#64748B' }}>{agent.info?.name}</div>
                     </div>
                   </div>
 
@@ -658,7 +658,7 @@ export function AgentDashboard({ onAuthExpired }) {
                         <div className="text-lg font-bold" style={{ color: config.color }}>
                           {typeof value === 'number' ? value.toLocaleString() : value}
                         </div>
-                        <div className="text-xs truncate" style={{ color: '#9CA3AF' }}>
+                        <div className="text-xs truncate" style={{ color: '#64748B' }}>
                           {key.replace(/_/g, ' ')}
                         </div>
                       </div>
@@ -667,10 +667,10 @@ export function AgentDashboard({ onAuthExpired }) {
                 )}
 
                 <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: '1px solid #ECEDEF' }}>
-                  <span className="text-xs" style={{ color: '#9CA3AF' }}>
+                  <span className="text-xs" style={{ color: '#64748B' }}>
                     Budget: ${agent.budget || 0}
                   </span>
-                  <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+                  <ChevronRight className="w-4 h-4" style={{ color: '#64748B' }} />
                 </div>
               </div>
             );
@@ -695,7 +695,7 @@ export function AgentDashboard({ onAuthExpired }) {
                     <h3 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                       {selectedAgent.id}
                     </h3>
-                    <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                    <p className="text-sm" style={{ color: '#64748B' }}>
                       {selectedAgent.info?.name} - {selectedAgent.info?.category}
                     </p>
                   </div>
@@ -820,7 +820,7 @@ export function AgentDashboard({ onAuthExpired }) {
                 onClick={() => setSelectedLead(null)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
+                <X className="w-5 h-5" style={{ color: '#64748B' }} />
               </button>
             </div>
 
@@ -828,7 +828,7 @@ export function AgentDashboard({ onAuthExpired }) {
             <div className="p-6 space-y-6">
               {/* Bio */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Bio</h3>
+                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#64748B' }}>Bio</h3>
                 <p className="text-sm leading-relaxed" style={{ color: '#0F172A' }}>
                   {selectedLead.bio || 'Nessuna bio disponibile'}
                 </p>
@@ -836,7 +836,7 @@ export function AgentDashboard({ onAuthExpired }) {
 
               {/* Focus/Niche */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Focus / Nicchia</h3>
+                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#64748B' }}>Focus / Nicchia</h3>
                 <span
                   className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium"
                   style={{ background: '#F3F4F6', color: '#0F172A' }}
@@ -847,7 +847,7 @@ export function AgentDashboard({ onAuthExpired }) {
 
               {/* Social Links */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>Link Social</h3>
+                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#64748B' }}>Link Social</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedLead.platform_url && (
                     <a
@@ -887,25 +887,25 @@ export function AgentDashboard({ onAuthExpired }) {
 
               {/* Stats */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>Statistiche</h3>
+                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#64748B' }}>Statistiche</h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
                     <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.followers_count?.toLocaleString() || '—'}
                     </div>
-                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Followers</div>
+                    <div className="text-xs" style={{ color: '#64748B' }}>Followers</div>
                   </div>
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
                     <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.target_fit_level || '—'}
                     </div>
-                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Target Fit</div>
+                    <div className="text-xs" style={{ color: '#64748B' }}>Target Fit</div>
                   </div>
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
                     <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.status || '—'}
                     </div>
-                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Status</div>
+                    <div className="text-xs" style={{ color: '#64748B' }}>Status</div>
                   </div>
                 </div>
               </div>
@@ -913,7 +913,7 @@ export function AgentDashboard({ onAuthExpired }) {
               {/* Website Analysis (if available) */}
               {selectedLead.website_analysis && !selectedLead.website_analysis.error && (
                 <div>
-                  <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>
+                  <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#64748B' }}>
                     Analisi Sito (via {selectedLead.website_analysis.llm_used || 'AI'})
                   </h3>
                   <div className="p-4 rounded-xl" style={{ background: '#EAFAF1' }}>
@@ -961,7 +961,7 @@ export function AgentDashboard({ onAuthExpired }) {
                   onClick={() => { handleAnalyzeLead(selectedLead.id); }}
                   disabled={analyzingLead === selectedLead.id}
                   className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ background: '#FFD24D', color: '#0F172A' }}
+                  style={{ background: '#FACC15', color: '#0F172A' }}
                 >
                   {analyzingLead === selectedLead.id ? (
                     <>
@@ -1037,7 +1037,7 @@ export function AgentDashboard({ onAuthExpired }) {
               <p className="font-bold text-base mt-1" style={{ color: '#0F172A' }}>
                 {confirmDeleteLead.display_name}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+              <p className="text-xs mt-1" style={{ color: '#64748B' }}>
                 {confirmDeleteLead.email || confirmDeleteLead.website_url || 'Nessun contatto'}
               </p>
             </div>

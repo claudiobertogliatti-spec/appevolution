@@ -11,7 +11,7 @@ import { apiGet } from "../api";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
-  text: "#0F172A", muted: "#5F6572", dim: "#9CA3AF",
+  text: "#0F172A", muted: "#5F6572", dim: "#64748B",
   ok: "#34C77B", okDim: "#F0FDF4",
   warn: "#D4A017", warnDim: "#FEF9E7",
   crit: "#EF4444", critDim: "#FEE2E2",

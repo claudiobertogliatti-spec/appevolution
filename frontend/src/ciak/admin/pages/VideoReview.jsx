@@ -19,8 +19,8 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
-  text: "#0F172A", muted: "#5F6572", dim: "#9CA3AF",
-  yellow: "#FFD24D", yellowDark: "#D4A017",
+  text: "#0F172A", muted: "#5F6572", dim: "#64748B",
+  yellow: "#FACC15", yellowDark: "#D4A017",
   green: "#34C77B", greenDim: "#F0FDF4",
   red: "#EF4444", redDim: "#FEE2E2",
   blue: "#3B82F6", blueDim: "#EFF6FF",

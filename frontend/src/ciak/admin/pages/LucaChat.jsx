@@ -40,8 +40,8 @@ function LucaAvatar({ size = 32 }) {
       className="rounded-full flex-shrink-0 block"
     >
       <circle cx="50" cy="50" r="50" fill="#1A1F24" />
-      <circle cx="50" cy="50" r="41" fill="none" stroke="#FFD24D" strokeOpacity="0.5" strokeWidth="2.5" />
-      <text x="50" y="55" textAnchor="middle" dominantBaseline="middle" fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="50" fill="#FFD24D">L</text>
+      <circle cx="50" cy="50" r="41" fill="none" stroke="#FACC15" strokeOpacity="0.5" strokeWidth="2.5" />
+      <text x="50" y="55" textAnchor="middle" dominantBaseline="middle" fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="50" fill="#FACC15">L</text>
     </svg>
   );
 }
