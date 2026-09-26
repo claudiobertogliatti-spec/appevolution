@@ -40,9 +40,9 @@ function Stat({ k, v, h, tone }) {
   const color = tone === "amber" ? "text-amber-700" : tone === "green" ? "text-emerald-600" : "text-slate-900";
   return (
     <div className="bg-slate-50 rounded-xl p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{k}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{k}</div>
       <div className={`text-2xl font-semibold mt-1 ${color}`}>{v}</div>
-      <div className="text-[11px] text-slate-400 mt-1">{h}</div>
+      <div className="text-[11px] text-slate-500 mt-1">{h}</div>
     </div>
   );
 }
@@ -63,7 +63,7 @@ function ContentCard({ c }) {
       <div className="p-3">
         <div className="text-[12.5px] font-medium text-slate-900 leading-snug line-clamp-2">{c.caption || c.topic}</div>
         <div className="flex items-center justify-between mt-2.5">
-          <span className="text-[11px] text-slate-400">{chans}{c.scheduled_date ? " · " + c.scheduled_date.slice(0, 10) : ""}</span>
+          <span className="text-[11px] text-slate-500">{chans}{c.scheduled_date ? " · " + c.scheduled_date.slice(0, 10) : ""}</span>
           <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${st.cls}`}>{st.label}</span>
         </div>
       </div>
@@ -390,7 +390,7 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
           <h2 className="text-lg font-semibold text-slate-900">Galleria — {brandName}</h2>
           <p className="text-sm text-slate-500 mt-1">Tutti i contenuti del brand, tutti i mesi.</p>
           {gallery.length === 0 ? (
-            <p className="text-sm text-slate-400 mt-5">Nessun contenuto ancora.</p>
+            <p className="text-sm text-slate-500 mt-5">Nessun contenuto ancora.</p>
           ) : (
             <div className="grid gap-3.5 mt-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
               {gallery.map((c) => <ContentCard key={c.content_id} c={c} />)}

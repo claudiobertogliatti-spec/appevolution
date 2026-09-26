@@ -78,7 +78,7 @@ export function AdminHome({ user }) {
       {/* Richiede attenzione */}
       <div className="mb-8" aria-label="Richiede la tua attenzione">
         {!attnReady ? (
-          <p className="text-sm text-slate-400">Controllo cosa richiede attenzione…</p>
+          <p className="text-sm text-slate-500">Controllo cosa richiede attenzione…</p>
         ) : !attnAvailable ? (
           <p className="text-sm text-slate-500">Dati sulle urgenze non disponibili.</p>
         ) : attn.length === 0 ? (
@@ -119,7 +119,7 @@ export function AdminHome({ user }) {
               <span className="block text-base text-slate-500 mt-1 leading-snug">{desc}</span>
               <span className="block text-sm text-slate-600 mt-3">
                 {sl}: {sv === null
-                  ? <span className="text-slate-400">…</span>
+                  ? <span className="text-slate-500">…</span>
                   : <b className="text-slate-900 font-semibold">{sv}</b>}
               </span>
             </span>

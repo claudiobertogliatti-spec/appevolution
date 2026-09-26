@@ -71,7 +71,7 @@ function Riquadro({ etichetta, valore, tono = "slate" }) {
   }[tono];
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
         {etichetta}
       </p>
       <p className={`text-3xl font-semibold ${colore}`}>{valore}</p>
@@ -109,7 +109,7 @@ function VoceConsegna({ item, onRetry, inCorso }) {
           </div>
           <div className="text-right shrink-0">
             <p className="text-lg font-semibold text-slate-900">{fmtEuro(item.importo_eur)}</p>
-            <p className="text-xs text-slate-400">{fmtOre(item.pagato_da_ore)}</p>
+            <p className="text-xs text-slate-500">{fmtOre(item.pagato_da_ore)}</p>
           </div>
         </div>
 
@@ -196,7 +196,7 @@ export function ConsegneMancate({ onAuthExpired }) {
       </div>
     );
   }
-  if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   const critiche = data.items.filter((i) => i.severity === "critica").length;
 

@@ -179,7 +179,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
 
   // ─── Stato caricamento / errore ───────────────────────────────────────────
 
-  if (loading) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (loading) return <div className="p-10 text-slate-500">Caricamento…</div>;
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
 
   // ─── Vista dettaglio ──────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
       </h1>
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-slate-400">
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-slate-500">
           Nessuna analisi in attesa.
         </div>
       ) : (
@@ -376,7 +376,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
                       <span className="font-medium">{item.stato_cliente || "—"}</span>
                     </p>
                   </div>
-                  <p className="text-xs text-slate-400 shrink-0">{fmtDate(item.generated_at)}</p>
+                  <p className="text-xs text-slate-500 shrink-0">{fmtDate(item.generated_at)}</p>
                 </div>
               </button>
             </li>

@@ -176,16 +176,16 @@ export function CasiStudio({ onAuthExpired }) {
         icon={ClipboardCheck}
       />
       {!partners ? (
-        <div className="text-slate-400">Caricamento...</div>
+        <div className="text-slate-500">Caricamento...</div>
       ) : candidates.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-500">
           Nessun candidato pronto.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
                 <th className="px-5 py-3 font-semibold">Atto</th>
                 <th className="px-5 py-3 font-semibold">Revenue</th>
@@ -260,16 +260,16 @@ export function DateContratti({ onAuthExpired }) {
         icon={CalendarDays}
       />
       {!partners ? (
-        <div className="text-slate-400">Caricamento...</div>
+        <div className="text-slate-500">Caricamento...</div>
       ) : rows.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-500">
           Nessun contratto tracciato.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
                 <th className="px-5 py-3 font-semibold">Contratto</th>
                 <th className="px-5 py-3 font-semibold">Pagamento</th>
@@ -286,7 +286,7 @@ export function DateContratti({ onAuthExpired }) {
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     {p.contract_signed ? "Firmato" : p.contract || "-"}
-                    <div className="text-xs text-slate-400">{fmtDate(p.contratto_firmato_at)}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(p.contratto_firmato_at)}</div>
                   </td>
                   <td className="px-5 py-3 text-slate-600">{fmtDate(p.pagamento_completato_at || p.pagato_at)}</td>
                   <td className="px-5 py-3 text-slate-600">

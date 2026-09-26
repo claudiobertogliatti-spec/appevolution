@@ -116,7 +116,7 @@ export function ContractParamsModal({ partnerId, partnerName, onClose, onAuthExp
             <FileText className="w-5 h-5 text-amber-400" />
             <div>
               <h2 className="text-white font-bold text-base">Parametri Contratto</h2>
-              <p className="text-slate-400 text-xs">{partnerName}</p>
+              <p className="text-slate-500 text-xs">{partnerName}</p>
             </div>
           </div>
           {isSigned && (

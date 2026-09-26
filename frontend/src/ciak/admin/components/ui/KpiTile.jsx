@@ -14,7 +14,7 @@ export function KpiTile({ label, value, hint, accent = false, tone }) {
       : tone === "critical"
       ? "text-red-700"
       : accent
-      ? "text-yellow-600"
+      ? "text-yellow-700"
       : "text-slate-900";
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">

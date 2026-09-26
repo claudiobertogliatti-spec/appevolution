@@ -700,7 +700,7 @@ export function AgentDashboard({ onAuthExpired }) {
                     </p>
                   </div>
                 </div>
-                <button onClick={() => setSelectedAgent(null)} className="text-gray-400 hover:text-gray-600 text-2xl">
+                <button onClick={() => setSelectedAgent(null)} className="text-slate-500 hover:text-gray-600 text-2xl">
                   ×
                 </button>
               </div>

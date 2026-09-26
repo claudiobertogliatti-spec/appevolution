@@ -161,7 +161,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
       </div>
 
       {error && <div className="p-10 text-slate-600">Errore: {error}</div>}
-      {!data && !error && <div className="p-10 text-slate-400">Caricamento…</div>}
+      {!data && !error && <div className="p-10 text-slate-500">Caricamento…</div>}
 
       {data && (
         <>
@@ -197,7 +197,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
                   Editor — {KEYS.find(k => k.key === selectedKey)?.label}
                 </h2>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500">
                   {editorContent.length.toLocaleString("it-IT")} caratteri
                 </span>
               </div>
@@ -228,7 +228,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
                 <button
                   onClick={handleSaveClick}
                   disabled={saving}
-                  className="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg text-sm font-semibold text-slate-900 transition"
+                  className="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-slate-500 rounded-lg text-sm font-semibold text-slate-900 transition"
                 >
                   {saving ? "Salvo…" : "Salva e attiva"}
                 </button>
@@ -266,7 +266,7 @@ export function AnalisiPromptEditor({ onAuthExpired }) {
                 Storico versioni
               </h2>
               {versions.length === 0 ? (
-                <p className="text-sm text-slate-400 px-1">
+                <p className="text-sm text-slate-500 px-1">
                   Nessuna versione salvata ancora.
                 </p>
               ) : (

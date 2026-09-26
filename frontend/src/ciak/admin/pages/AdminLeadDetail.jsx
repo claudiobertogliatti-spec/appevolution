@@ -64,11 +64,11 @@ function StageChecklist({ diagnostic }) {
           <div
             key={s.key}
             className={`rounded-lg border px-3 py-2 text-xs ${
-              ts ? "border-slate-900 bg-slate-900 text-yellow-400" : "border-gray-200 bg-gray-50 text-slate-400"
+              ts ? "border-slate-900 bg-slate-900 text-yellow-400" : "border-gray-200 bg-gray-50 text-slate-500"
             }`}
           >
             <div className="font-semibold">{ts ? "✓" : "—"} {s.label}</div>
-            <div className={ts ? "text-slate-300" : "text-slate-400"}>{when || "non ancora"}</div>
+            <div className={ts ? "text-slate-300" : "text-slate-500"}>{when || "non ancora"}</div>
           </div>
         );
       })}
@@ -79,7 +79,7 @@ function StageChecklist({ diagnostic }) {
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-4">
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-4">
         {title}
       </h2>
       {children}
@@ -90,7 +90,7 @@ function Section({ title, children }) {
 function Field({ label, value }) {
   return (
     <div className="mb-2">
-      <span className="text-xs text-slate-400">{label}: </span>
+      <span className="text-xs text-slate-500">{label}: </span>
       <span className="text-sm text-slate-800">{value ?? "—"}</span>
     </div>
   );
@@ -168,7 +168,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
   }
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   const { lead, diagnostics, checkpoints, latest_diagnostic, qualified_for_proposta } = data;
 
@@ -176,7 +176,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
     <div className="p-10 max-w-4xl">
       <button
         onClick={() => navigate("/admin/leads")}
-        className="text-sm text-slate-400 hover:text-slate-700 mb-4"
+        className="text-sm text-slate-500 hover:text-slate-700 mb-4"
       >
         ← Tutti i leads
       </button>
@@ -280,7 +280,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       {/* Checkpoint */}
       <Section title={`Checkpoint Strategico (${checkpoints.length})`}>
         {checkpoints.length === 0 ? (
-          <p className="text-slate-400 text-sm">Nessun Checkpoint completato.</p>
+          <p className="text-slate-500 text-sm">Nessun Checkpoint completato.</p>
         ) : (
           checkpoints.map((c, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-3 last:mb-0">
@@ -289,14 +289,14 @@ export function AdminLeadDetail({ onAuthExpired }) {
                 <strong>
                   S{c.stato_server} — {STATO_LABEL[c.stato_server]}
                 </strong>{" "}
-                <span className="text-slate-400">(score {c.total_score}/15)</span>
+                <span className="text-slate-500">(score {c.total_score}/15)</span>
               </p>
               {c.override_applicati?.length > 0 && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Override: {c.override_applicati.join(", ")}
                 </p>
               )}
-              <p className="text-xs text-slate-400">{c.created_at}</p>
+              <p className="text-xs text-slate-500">{c.created_at}</p>
             </div>
           ))
         )}
@@ -305,7 +305,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       {/* Diagnostiche / 8 Domande */}
       <Section title={`10 Domande Ciak (${diagnostics.length})`}>
         {diagnostics.length === 0 ? (
-          <p className="text-slate-400 text-sm">Nessuna diagnostica avviata.</p>
+          <p className="text-slate-500 text-sm">Nessuna diagnostica avviata.</p>
         ) : (
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
@@ -322,12 +322,12 @@ export function AdminLeadDetail({ onAuthExpired }) {
               <Field label="Score numerico" value={d.scoring?.score_numerico} />
               {d.scoring?.instradamento && (
                 <div className="mb-2">
-                  <span className="text-xs text-slate-400">Instradamento (proposta consigliata): </span>
+                  <span className="text-xs text-slate-500">Instradamento (proposta consigliata): </span>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${INSTRADAMENTO[d.scoring.instradamento]?.cls || "bg-gray-100 text-slate-600"}`}>
                     {INSTRADAMENTO[d.scoring.instradamento]?.label || d.scoring.instradamento}
                   </span>
                   {typeof d.scoring.pronto === "boolean" && (
-                    <span className={`ml-2 text-[11px] font-semibold ${d.scoring.pronto ? "text-emerald-600" : "text-slate-400"}`}>
+                    <span className={`ml-2 text-[11px] font-semibold ${d.scoring.pronto ? "text-emerald-600" : "text-slate-500"}`}>
                       {d.scoring.pronto ? "· pronto" : "· non ancora pronto"}
                     </span>
                   )}
@@ -335,7 +335,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
               )}
               {d.scoring?.rationale && (
                 <details className="mb-2">
-                  <summary className="text-xs text-slate-400 cursor-pointer">Perché questo instradamento</summary>
+                  <summary className="text-xs text-slate-500 cursor-pointer">Perché questo instradamento</summary>
                   <p className="text-[13px] text-slate-700 mt-1 whitespace-pre-wrap">{d.scoring.rationale}</p>
                 </details>
               )}
@@ -346,7 +346,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
               <Field label="Avviata" value={d.created_at} />
               {d.report?.report_markdown && (
                 <details className="mt-3">
-                  <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
+                  <summary className="text-sm text-yellow-700 cursor-pointer font-medium">
                     Report Carlo
                   </summary>
                   <pre className="mt-2 text-xs text-slate-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 leading-relaxed">

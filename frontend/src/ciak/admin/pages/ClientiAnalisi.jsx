@@ -120,7 +120,7 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
               <div className="grid grid-cols-2 gap-4">
                 {[["nome", "Nome"], ["cognome", "Cognome"], ["email", "Email"], ["telefono", "Telefono"], ["paese", "Paese"]].map(([key, label]) => (
                   <div key={key} className={key === "email" ? "col-span-2" : ""}>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-400">{label}</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-500">{label}</label>
                     <input type="text" value={form[key] || ""}
                       onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                       className="w-full px-3 py-2.5 rounded-lg text-sm border border-gray-200 text-slate-900 outline-none focus:ring-2 focus:ring-yellow-400" />
@@ -133,10 +133,10 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
           {activeTab === "questionario" && (
             <div className="space-y-4">
               {Object.entries(form.questionario || {}).length === 0 ? (
-                <p className="text-sm text-center py-6 text-slate-400">Nessuna risposta al questionario.</p>
+                <p className="text-sm text-center py-6 text-slate-500">Nessuna risposta al questionario.</p>
               ) : Object.entries(form.questionario).map(([key, val]) => (
                 <div key={key}>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-400">
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-500">
                     {QLABELS[key] || key}
                   </label>
                   <textarea
@@ -149,7 +149,7 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
               ))}
               {/* Aggiungi campo questionario */}
               <div className="pt-2 border-t border-gray-200">
-                <p className="text-xs font-semibold mb-2 text-slate-400">Aggiungi campo:</p>
+                <p className="text-xs font-semibold mb-2 text-slate-500">Aggiungi campo:</p>
                 <div className="flex gap-2">
                   <select className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-200"
                     onChange={e => {
@@ -170,7 +170,7 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
 
           {activeTab === "stato" && (
             <div className="space-y-4">
-              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-slate-400">Flag funnel</div>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-slate-500">Flag funnel</div>
               {[
                 ["questionario_compilato", "Questionario compilato"],
                 ["pagamento_analisi", "Pagamento analisi"],
@@ -186,7 +186,7 @@ function ClienteEditModal({ cliente, onClose, onSaved, onAuthExpired }) {
                 </div>
               ))}
               <div className="pt-3">
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-400">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5 text-slate-500">
                   Note admin (interne)
                 </label>
                 <textarea value={form.note_admin || ""}
@@ -224,8 +224,8 @@ const STATUS_CONFIG = {
   pagato: { label: "Pagato", color: "text-slate-500", icon: Clock, bg: "bg-gray-100" },
   questionario_completato: { label: "Questionario ✓", color: "text-blue-500", icon: FileText, bg: "bg-blue-100" },
   analisi_pronta: { label: "Analisi pronta", color: "text-purple-600", icon: Sparkles, bg: "bg-purple-100" },
-  call_fissata: { label: "Call fissata", color: "text-yellow-600", icon: Calendar, bg: "bg-yellow-100" },
-  proposta_inviata: { label: "Proposta inviata", color: "text-yellow-600", icon: Target, bg: "bg-yellow-100" },
+  call_fissata: { label: "Call fissata", color: "text-yellow-700", icon: Calendar, bg: "bg-yellow-100" },
+  proposta_inviata: { label: "Proposta inviata", color: "text-yellow-700", icon: Target, bg: "bg-yellow-100" },
   convertito: { label: "Partner ✓", color: "text-emerald-600", icon: CheckCircle, bg: "bg-emerald-100" },
   non_convertito: { label: "Non convertito", color: "text-red-500", icon: XCircle, bg: "bg-red-100" },
 };
@@ -561,7 +561,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Gestione Clienti</h1>
-          <p className="text-sm text-slate-400">Analisi Strategiche acquistate</p>
+          <p className="text-sm text-slate-500">Analisi Strategiche acquistate</p>
         </div>
         <button onClick={loadClienti} disabled={loading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-slate-600 hover:border-yellow-400 transition-colors">
@@ -575,7 +575,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
         {[
           { label: "Totale", value: stats.totale, icon: Users, cls: "bg-gray-100 text-slate-600" },
           { label: "Questionario ✓", value: stats.questionario_completato, icon: FileText, cls: "bg-blue-100 text-blue-500" },
-          { label: "Call fissata", value: stats.call_fissata, icon: Calendar, cls: "bg-yellow-100 text-yellow-600" },
+          { label: "Call fissata", value: stats.call_fissata, icon: Calendar, cls: "bg-yellow-100 text-yellow-700" },
           { label: "Convertiti", value: stats.convertiti, icon: CheckCircle, cls: "bg-emerald-100 text-emerald-600" },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-2xl p-4 border border-gray-200">
@@ -585,7 +585,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
               </div>
               <div>
                 <div className="text-2xl font-semibold text-slate-900">{stat.value}</div>
-                <div className="text-xs text-slate-400">{stat.label}</div>
+                <div className="text-xs text-slate-500">{stat.label}</div>
               </div>
             </div>
           </div>
@@ -623,13 +623,13 @@ export function ClientiAnalisi({ onAuthExpired }) {
           {loading ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
               <Loader2 className="w-8 h-8 animate-spin text-yellow-400 mx-auto mb-4" />
-              <p className="text-sm text-slate-400">Caricamento...</p>
+              <p className="text-sm text-slate-500">Caricamento...</p>
             </div>
           ) : filteredClienti.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
               <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <p className="font-semibold text-slate-900">Nessun cliente trovato</p>
-              <p className="text-sm text-slate-400">I clienti appariranno qui dopo l'acquisto dell'Analisi</p>
+              <p className="text-sm text-slate-500">I clienti appariranno qui dopo l'acquisto dell'Analisi</p>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -665,7 +665,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-slate-400 truncate">{cliente.email}</div>
+                        <div className="text-sm text-slate-500 truncate">{cliente.email}</div>
                       </div>
 
                       {/* Questionario Column */}
@@ -680,7 +680,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                             <AlertTriangle className="w-3 h-3" /> Non compilato
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">⏳ In attesa</span>
+                          <span className="text-xs text-slate-500">⏳ In attesa</span>
                         )}
                       </div>
 
@@ -692,7 +692,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                             <Download className="w-3 h-3" /> DOCX
                           </button>
                         ) : cliente.workflow_status === "generazione_ai" || cliente.workflow_status === "generazione_docx" ? (
-                          <span className="text-xs text-yellow-600 flex items-center gap-1 justify-center">
+                          <span className="text-xs text-yellow-700 flex items-center gap-1 justify-center">
                             <Loader2 className="w-3 h-3 animate-spin" /> In corso
                           </span>
                         ) : hasQuestionario && !cliente.docx_analisi_url ? (
@@ -701,7 +701,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                             <Sparkles className="w-3 h-3" /> Genera
                           </button>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-slate-500">—</span>
                         )}
                       </div>
 
@@ -738,7 +738,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                     <h3 className="text-lg font-semibold text-slate-900">
                       {selectedCliente.nome} {selectedCliente.cognome}
                     </h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-slate-500">
                       {new Date(selectedCliente.created_at).toLocaleDateString("it-IT")}
                     </p>
                   </div>
@@ -765,7 +765,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
             <div className="p-6 space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
               {/* Contact Info */}
               <div>
-                <h4 className="text-xs font-semibold text-slate-400 mb-3">CONTATTI</h4>
+                <h4 className="text-xs font-semibold text-slate-500 mb-3">CONTATTI</h4>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="w-4 h-4 text-slate-400" />
@@ -782,11 +782,11 @@ export function ClientiAnalisi({ onAuthExpired }) {
 
               {/* Status Update */}
               <div>
-                <h4 className="text-xs font-semibold text-slate-400 mb-3">AGGIORNA STATO</h4>
+                <h4 className="text-xs font-semibold text-slate-500 mb-3">AGGIORNA STATO</h4>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { status: "approved", label: "🟢 Approvato", cls: "bg-emerald-50 text-emerald-600 border-emerald-500" },
-                    { status: "roadmap", label: "🟡 Roadmap", cls: "bg-yellow-50 text-yellow-600 border-yellow-500" },
+                    { status: "roadmap", label: "🟡 Roadmap", cls: "bg-yellow-50 text-yellow-700 border-yellow-500" },
                     { status: "not_approved", label: "🔴 Non idoneo", cls: "bg-red-50 text-red-500 border-red-500" },
                   ].map((opt) => (
                     <button key={opt.status}
@@ -804,7 +804,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
               {/* Generate Analysis Button */}
               {selectedCliente.questionnaire && (
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-400 mb-3">DOCUMENTO ANALISI</h4>
+                  <h4 className="text-xs font-semibold text-slate-500 mb-3">DOCUMENTO ANALISI</h4>
                   <button onClick={() => loadAnalysis(selectedCliente.id)} disabled={generatingAnalysis}
                     className="w-full py-3 rounded-xl font-semibold text-sm bg-yellow-400 text-slate-900 hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                     {generatingAnalysis ? (
@@ -819,7 +819,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                       </>
                     )}
                   </button>
-                  <p className="text-xs text-slate-400 text-center mt-2">
+                  <p className="text-xs text-slate-500 text-center mt-2">
                     Documento AI personalizzato per la videocall
                   </p>
                 </div>
@@ -828,11 +828,11 @@ export function ClientiAnalisi({ onAuthExpired }) {
               {/* Questionnaire Answers */}
               {selectedCliente.questionnaire && (
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-400 mb-3">RISPOSTE QUESTIONARIO</h4>
+                  <h4 className="text-xs font-semibold text-slate-500 mb-3">RISPOSTE QUESTIONARIO</h4>
                   <div className="space-y-3">
                     {Object.entries(selectedCliente.questionnaire).map(([key, value]) => (
                       <div key={key} className="p-3 rounded-xl bg-gray-50">
-                        <div className="text-xs font-semibold text-slate-400 mb-1">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">
                           {QUESTION_LABELS[key] || key}
                         </div>
                         <div className="text-sm text-slate-900">{value}</div>
@@ -845,7 +845,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
               {!selectedCliente.questionnaire && (
                 <div className="p-4 rounded-xl bg-gray-50 text-center">
                   <AlertTriangle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm text-slate-400">Questionario non compilato</p>
+                  <p className="text-sm text-slate-500">Questionario non compilato</p>
                 </div>
               )}
 
@@ -876,14 +876,14 @@ export function ClientiAnalisi({ onAuthExpired }) {
               </div>
               <div>
                 <h3 className="font-semibold text-base text-slate-900">Elimina Cliente</h3>
-                <p className="text-xs text-slate-400">Operazione irreversibile</p>
+                <p className="text-xs text-slate-500">Operazione irreversibile</p>
               </div>
             </div>
             <div className="px-6 py-5 space-y-3">
               <p className="text-sm text-slate-600">
                 Stai per eliminare <strong className="text-slate-900">{deleteConfirm.nome} {deleteConfirm.cognome}</strong> ({deleteConfirm.email}) e tutti i dati collegati.
               </p>
-              <ul className="space-y-1 text-xs text-slate-400">
+              <ul className="space-y-1 text-xs text-slate-500">
                 {["Account utente", "Questionario", "Analisi strategica", "Proposta e contratto", "Pagamenti"].map(item => (
                   <li key={item} className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
@@ -931,7 +931,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                 <h2 className="text-xl font-semibold text-slate-900">
                   Analisi Strategica - {selectedCliente?.nome} {selectedCliente?.cognome}
                 </h2>
-                <p className="text-sm text-slate-400">Documento generato con AI</p>
+                <p className="text-sm text-slate-500">Documento generato con AI</p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={downloadAnalysisPDF}
@@ -993,7 +993,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
 
             {/* Modal Footer */}
             <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 💡 Puoi scaricare questo documento e modificarlo prima della videocall
               </p>
               <button onClick={() => generateAnalysis(selectedCliente.id)} disabled={generatingAnalysis}
@@ -1014,7 +1014,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900">Risposte Questionario</h2>
-                <p className="text-sm text-slate-400">{selectedCliente.nome} {selectedCliente.cognome}</p>
+                <p className="text-sm text-slate-500">{selectedCliente.nome} {selectedCliente.cognome}</p>
               </div>
               <button onClick={() => setShowQuestionarioModal(false)} className="p-2 hover:bg-gray-50 rounded-lg">
                 <X className="w-5 h-5 text-slate-400" />
@@ -1030,10 +1030,10 @@ export function ClientiAnalisi({ onAuthExpired }) {
                       {key === "perche_adesso" && (
                         <div className="flex items-center gap-1 mb-2">
                           <Target className="w-4 h-4 text-yellow-500" />
-                          <span className="text-xs font-semibold text-yellow-600">LA PIÙ IMPORTANTE</span>
+                          <span className="text-xs font-semibold text-yellow-700">LA PIÙ IMPORTANTE</span>
                         </div>
                       )}
-                      <div className="text-xs font-semibold text-slate-400 mb-1">{label}</div>
+                      <div className="text-xs font-semibold text-slate-500 mb-1">{label}</div>
                       <div className="text-sm text-slate-900">{selectedCliente.questionario.risposte[key] || "—"}</div>
                     </div>
                   ))}
@@ -1041,7 +1041,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
               ) : (
                 <div className="text-center py-8">
                   <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                  <p className="text-slate-400">Questionario non ancora compilato</p>
+                  <p className="text-slate-500">Questionario non ancora compilato</p>
                 </div>
               )}
 
@@ -1089,7 +1089,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-slate-900">Fissa Call</h2>
-              <p className="text-sm text-slate-400">Con {selectedCliente.nome} {selectedCliente.cognome}</p>
+              <p className="text-sm text-slate-500">Con {selectedCliente.nome} {selectedCliente.cognome}</p>
             </div>
 
             {/* Content */}

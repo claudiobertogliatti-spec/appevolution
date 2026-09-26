@@ -367,7 +367,7 @@ export function TemplateEmail({ onAuthExpired }) {
                       {getCategoryLabel(template.category)}
                     </span>
                     {template.is_default && (
-                      <span className="text-xs text-slate-400">default</span>
+                      <span className="text-xs text-slate-500">default</span>
                     )}
                   </div>
                 </div>
@@ -546,7 +546,7 @@ export function TemplateEmail({ onAuthExpired }) {
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+            <div className="flex flex-col items-center justify-center p-12 text-slate-500">
               <FileText className="w-12 h-12 mb-3" />
               <p>Seleziona un template per modificarlo</p>
             </div>

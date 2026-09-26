@@ -112,7 +112,7 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
   };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-8 text-slate-500">Caricamento…</div>;
 
   // Appiattisce le colonne in righe, preservando l'ordine del funnel.
   const rows = [];
@@ -166,14 +166,14 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-500">
           Nessun contatto in questo stadio.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Contatto</th>
                 <th className="px-5 py-3 font-semibold">Stadio</th>
                 <th className="px-5 py-3 font-semibold">Aggiornato</th>
@@ -264,17 +264,17 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
             <h2 id="edit-lead-title" className="mt-1 text-lg font-semibold text-slate-900 truncate">{pendingEdit.email}</h2>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Nome</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Nome</label>
                 <input value={pendingEdit.nome} onChange={(e) => setPendingEdit((p) => ({ ...p, nome: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Telefono</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Telefono</label>
                 <input value={pendingEdit.phone} onChange={(e) => setPendingEdit((p) => ({ ...p, phone: e.target.value }))}
                   placeholder="+39…" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Email · non modificabile</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Email · non modificabile</label>
                 <input value={pendingEdit.email} readOnly disabled
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm text-slate-500" />
               </div>

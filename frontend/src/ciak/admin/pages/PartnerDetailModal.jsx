@@ -841,25 +841,25 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
     <div data-testid="partner-op-header" className="px-6 py-4 bg-slate-50 border-b border-slate-200">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Target className="w-3.5 h-3.5" aria-hidden />Situazione
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{situazione}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Sparkles className="w-3.5 h-3.5" aria-hidden />Prossimo risultato
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{risultato}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <User className="w-3.5 h-3.5" aria-hidden />Responsabile
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{responsabile}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Calendar className="w-3.5 h-3.5" aria-hidden />Scadenza
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{scadenza || "—"}</div>
@@ -867,9 +867,9 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Prossima azione</div>
           <div className="text-sm font-semibold text-slate-900 truncate">
-            {prossima || <span className="text-slate-400 font-normal">Nessuna azione in coda</span>}
+            {prossima || <span className="text-slate-500 font-normal">Nessuna azione in coda</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -878,7 +878,7 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
               <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blocco.text}
             </span>
           ) : (
-            <span className="text-xs text-slate-400">Nessun blocco</span>
+            <span className="text-xs text-slate-500">Nessun blocco</span>
           )}
           <button
             type="button"
@@ -1548,7 +1548,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <div>
                 <h2 className="text-xl font-black text-white">{partnerName}</h2>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-gray-400">{headerPartner.email}</span>
+                  <span className="text-sm text-slate-500">{headerPartner.email}</span>
                   <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>
                     {attoEvo(formData.phase) || "—"}
                   </span>
@@ -1620,9 +1620,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {activeTab === "panoramica" && (
               <div className="space-y-5" data-testid="tab-content-panoramica">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Prossima azione</div>
                   <div className="text-sm font-semibold text-slate-900 mt-0.5">
-                    {audit?.next_action || <span className="text-slate-400 font-normal">Nessuna azione in coda.</span>}
+                    {audit?.next_action || <span className="text-slate-500 font-normal">Nessuna azione in coda.</span>}
                   </div>
                 </div>
                 <div>
@@ -1636,7 +1636,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ].map(({ ok, label }) => (
                       <div
                         key={label}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}`}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500"}`}
                       >
                         {ok ? <CheckCircle className="w-3.5 h-3.5" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden />}
                         {label}
@@ -1644,7 +1644,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
                 </p>
               </div>
@@ -1674,7 +1674,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onAuthExpired={onAuthExpired}
                   />
                 ) : (
-                  <div className="text-center py-12 text-gray-400">
+                  <div className="text-center py-12 text-slate-500">
                     <button onClick={loadJourneyData} className="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium">
                       Carica dati journey
                     </button>
@@ -1794,7 +1794,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ))}
                   </div>
                   {formData.kpi_manual?.aggiornato_at && (
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-slate-500 mt-2">
                       Ultimo aggiornamento: {new Date(formData.kpi_manual.aggiornato_at).toLocaleString("it-IT")}
                     </p>
                   )}
@@ -1897,7 +1897,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.partnership_pagata || false}
                         onChange={e => setPendingToggle({ field: "partnership_pagata", next: e.target.checked, label: "il pagamento partnership" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Partnership Pagata</span>
                     </label>
@@ -1907,7 +1907,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.contratto_firmato || false}
                         onChange={e => setPendingToggle({ field: "contratto_firmato", next: e.target.checked, label: "il contratto firmato" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
                     </label>
@@ -1927,7 +1927,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.onboarding_completato || false}
                         onChange={e => setPendingToggle({ field: "onboarding_completato", next: e.target.checked, label: "l'onboarding completato" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Onboarding Completato</span>
                     </label>
@@ -1937,7 +1937,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.masterclass_pronta || false}
                         onChange={e => setPendingToggle({ field: "masterclass_pronta", next: e.target.checked, label: "la masterclass pronta" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Masterclass Pronta</span>
                     </label>
@@ -2021,8 +2021,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                                   status === "verified" ? "bg-emerald-100 text-emerald-600" :
                                   status === "rejected" ? "bg-red-100 text-red-500" :
-                                  hasFile ? "bg-amber-100 text-amber-600" :
-                                  "bg-gray-100 text-gray-400"
+                                  hasFile ? "bg-amber-100 text-yellow-700" :
+                                  "bg-gray-100 text-slate-500"
                                 }`}>
                                   {status === "verified" ? <CheckCircle className="w-4 h-4" /> :
                                    status === "rejected" ? <XCircle className="w-4 h-4" /> :
@@ -2034,7 +2034,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                     {cfg.required && <span className="text-[10px] text-red-500 ml-1">*</span>}
                                   </div>
                                   {hasFile && (
-                                    <div className="text-xs text-gray-400">
+                                    <div className="text-xs text-slate-500">
                                       {doc.original_name || "Documento"} {doc.size_readable ? `• ${doc.size_readable}` : ""}
                                       {doc.uploaded_at && ` • ${new Date(doc.uploaded_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
                                     </div>
@@ -2078,7 +2078,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                 )}
                                 {/* Status for non-uploaded */}
                                 {!hasFile && status !== "not_required" && (
-                                  <span className="text-xs text-gray-400">Non caricato</span>
+                                  <span className="text-xs text-slate-500">Non caricato</span>
                                 )}
                                 {status === "not_required" && (
                                   <span className="text-xs text-gray-300">Opzionale</span>
@@ -2092,7 +2092,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   ) : (
                     <div className="text-center py-8 bg-gray-50 rounded-xl">
                       <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm text-gray-400">Nessun documento di onboarding</p>
+                      <p className="text-sm text-slate-500">Nessun documento di onboarding</p>
                     </div>
                   )}
                 </div>
@@ -2393,7 +2393,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   <div className="p-5 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #0F172A 0%, #2D3038 100%)" }}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <span className="text-gray-400 text-sm">Totale Pagato</span>
+                        <span className="text-slate-500 text-sm">Totale Pagato</span>
                         <div className="text-2xl font-black text-green-400">
                           €{payments
                             .filter(p => p.status === "paid")
@@ -2402,7 +2402,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         </div>
                       </div>
                       <div>
-                        <span className="text-gray-400 text-sm">Da Incassare</span>
+                        <span className="text-slate-500 text-sm">Da Incassare</span>
                         <div className="text-2xl font-black" style={{ color: "#FFD24D" }}>
                           €{payments
                             .filter(p => p.status === "pending")
@@ -2447,13 +2447,13 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   {piano && !pianoDraft && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Tipo</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Tipo</div>
                         <div className="text-sm font-bold text-slate-800">
                           {piano.tipo === "mensile" ? "Mensilità" : "Rate concordate"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Rate</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Rate</div>
                         <div className="text-sm font-bold text-slate-800">{piano.rate_pagate}/{piano.rate_totali}</div>
                         <div className="w-full h-1.5 rounded-full bg-gray-200 mt-1">
                           <div
@@ -2466,18 +2466,18 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Importo rata</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Importo rata</div>
                         <div className="text-sm font-bold text-slate-800">
                           {piano.importo_rata != null ? `€ ${Number(piano.importo_rata).toLocaleString("it-IT")}` : "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Prossima</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Prossima</div>
                         <div className="text-sm font-bold text-slate-800">{piano.prossima_scadenza || "—"}</div>
                       </div>
                       {piano.note && (
                         <div className="col-span-2 md:col-span-4">
-                          <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Note</div>
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Note</div>
                           <div className="text-sm text-slate-600">{piano.note}</div>
                         </div>
                       )}
@@ -2574,7 +2574,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         Partner sospeso su richiesta — la morosità si segnala solo su partner attivi. Riattivalo da <strong>Quarantena Partner</strong> per cambiarne lo stato.
                       </p>
                     ) : statoLocal === "ex" ? (
-                      <p className="text-xs text-slate-400">Partner archiviato come ex — nessuna azione sui pagamenti.</p>
+                      <p className="text-xs text-slate-500">Partner archiviato come ex — nessuna azione sui pagamenti.</p>
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-slate-500">Il partner non sta pagando le rate concordate?</p>

@@ -175,7 +175,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
   }
 
   const KPI_CARDS = dashboard ? [
-    { icon: Target, chip: "bg-yellow-100 text-yellow-600", label: "Campagne", value: dashboard.overview.total_campaigns },
+    { icon: Target, chip: "bg-yellow-100 text-yellow-700", label: "Campagne", value: dashboard.overview.total_campaigns },
     { icon: DollarSign, chip: "bg-slate-100 text-slate-600", label: "Spesa", value: `€${dashboard.overview.total_spend.toFixed(0)}` },
     { icon: Users, chip: "bg-emerald-100 text-emerald-600", label: "Lead", value: dashboard.overview.total_leads },
     { icon: BarChart3, chip: "bg-blue-100 text-blue-600", label: "CPL Medio", value: `€${dashboard.overview.avg_cpl.toFixed(2)}` },
@@ -248,11 +248,11 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
 
       {/* Partner Selector */}
       <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
           <Users className="w-4 h-4" /> Seleziona partner
         </label>
         {partners.length === 0 ? (
-          <p className="text-sm text-slate-400">Nessun partner disponibile.</p>
+          <p className="text-sm text-slate-500">Nessun partner disponibile.</p>
         ) : (
           <div className="flex gap-2 flex-wrap">
             {partners.map((p) => (
@@ -285,7 +285,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${kpi.chip}`}>
                     <kpi.icon className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{kpi.label}</span>
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{kpi.label}</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{kpi.value}</div>
               </div>
@@ -300,20 +300,20 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900">Meta Ads</h3>
-                <p className="text-xs text-slate-400">Visceral · Emotional · Broad Targeting</p>
+                <p className="text-xs text-slate-500">Visceral · Emotional · Broad Targeting</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wide">Spend</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">Spend</div>
                 <div className="font-bold text-slate-900">€{dashboard.by_platform?.meta?.spend?.toFixed(0) || 0}</div>
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wide">Leads</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">Leads</div>
                 <div className="font-bold text-slate-900">{dashboard.by_platform?.meta?.leads || 0}</div>
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wide">ROAS</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">ROAS</div>
                 <div className="font-bold text-emerald-600">{dashboard.platform_comparison?.meta?.roas?.toFixed(2) || "0.00"}x</div>
               </div>
             </div>
@@ -346,7 +346,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
             </div>
 
             {!selectedPartner && (
-              <div className="text-center py-8 text-slate-400">Seleziona un partner per generare gli hook.</div>
+              <div className="text-center py-8 text-slate-500">Seleziona un partner per generare gli hook.</div>
             )}
 
             {hookGallery && (
@@ -357,7 +357,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
                       <span className="text-2xl">{hookType.icon}</span>
                       <div>
                         <span className={`font-semibold text-sm ${hookType.color}`}>{hookType.label}</span>
-                        <p className="text-[10px] text-slate-400">{hookType.desc}</p>
+                        <p className="text-[10px] text-slate-500">{hookType.desc}</p>
                       </div>
                     </div>
                     <div className="bg-white border border-gray-200 rounded-lg p-3 min-h-[100px]">
@@ -365,7 +365,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
                     </div>
                     <button
                       onClick={() => copyToClipboard(hookGallery[hookType.id] || "")}
-                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-slate-900 py-2 transition"
+                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-900 py-2 transition"
                     >
                       <Copy className="w-3 h-3" /> Copia
                     </button>
@@ -393,7 +393,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
                   <span className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
                     <Video className="w-4 h-4 text-slate-400" /> Passa i 3 hook ad Andrea
                   </span>
-                  <p className="text-xs text-slate-400 mt-0.5">Copia gli hook qui sopra e inviali ad Andrea per la produzione dei video-ads.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Copia gli hook qui sopra e inviali ad Andrea per la produzione dei video-ads.</p>
                 </div>
               </div>
             </div>
@@ -414,14 +414,14 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
               placeholder="URL destinazione (Systeme.io)"
               value={destinationUrl}
               onChange={(e) => setDestinationUrl(e.target.value)}
-              className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+              className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
             />
             <input
               type="text"
               placeholder="Nome campagna"
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
             />
           </div>
 

@@ -67,7 +67,7 @@ export function DepartmentMetricStrip({ metrics, values = {} }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {metrics.slice(0, 7).map((metric) => (
         <div key={metric} className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{metric}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{metric}</p>
           <p className="mt-3 text-xl font-semibold text-slate-900">{values[metric] ?? "Da collegare"}</p>
         </div>
       ))}
@@ -84,7 +84,7 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {}, sh
             <LayoutDashboard className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Reparto admin</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Reparto admin</p>
             <h1 className="text-3xl font-semibold leading-tight text-slate-900">{room.label}</h1>
             {(room.persone?.length || room.agenti?.length) ? (
               <p className="mt-2 text-sm text-slate-500">
@@ -107,7 +107,7 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {}, sh
             <div className="flex items-start gap-4">
               <AgentAvatar agent={room.agent} />
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Chat responsabile</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Chat responsabile</p>
                 <h2 className="text-2xl font-semibold text-slate-900">{room.agent.name}</h2>
                 <p className="mt-1 text-sm text-slate-500">{room.agent.role}</p>
               </div>

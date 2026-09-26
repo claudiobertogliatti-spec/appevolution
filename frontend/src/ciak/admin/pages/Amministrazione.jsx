@@ -397,7 +397,7 @@ function Posizioni({ lista, riepilogo, highlightId }) {
                     <span className="text-slate-700">{STATO_CREDITO[c.stato] || c.stato || "—"}</span>
                   )}
                 </td>
-                <td className={`py-2.5 pr-3 text-right tabular-nums ${c.tipo === "ricorrente" ? "text-slate-400" : "font-semibold text-slate-900"}`}>
+                <td className={`py-2.5 pr-3 text-right tabular-nums ${c.tipo === "ricorrente" ? "text-slate-500" : "font-semibold text-slate-900"}`}>
                   {c.tipo === "ricorrente" ? "fuori residuo" : euro(residuoDi(c))}
                 </td>
                 <td className="py-2.5 pr-3 text-slate-600">{prossimaRata(c)}</td>
@@ -491,7 +491,7 @@ function Watchdog({ data }) {
                     </td>
                     <td className="py-2.5 pr-3 text-slate-600">
                       {r.online ? "Sì" : r.online === false ? "No" : "—"}
-                      <span className="block text-[11px] text-slate-400">{r.online_signal}</span>
+                      <span className="block text-[11px] text-slate-500">{r.online_signal}</span>
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums font-semibold text-slate-900">{euro(r.residuo)}</td>
                     <td className="py-2.5">
@@ -503,7 +503,7 @@ function Watchdog({ data }) {
                           <Copy className="w-3 h-3" aria-hidden /> {copied === r.credito_id ? "Copiato" : "Bozza saldo"}
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
                   </tr>

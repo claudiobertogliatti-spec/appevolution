@@ -205,7 +205,7 @@ export function AcquisizioneScript() {
             return (
               <div key={i} className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full bg-yellow-400 text-slate-900 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                <Icon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+                <Icon className="w-4 h-4 text-yellow-700 flex-shrink-0" />
                 <span className="text-sm text-slate-700">{s.t}</span>
               </div>
             );
@@ -261,7 +261,7 @@ export function AcquisizioneScript() {
         </div>
       ))}
 
-      <div className="flex items-center gap-2 text-[12.5px] text-slate-400 px-1">
+      <div className="flex items-center gap-2 text-[12.5px] text-slate-500 px-1">
         <RotateCcw className="w-3.5 h-3.5" /> Stessa macchina di ProVideo, promessa Evolution: lo script è adattato all'offerta Evolution (Start/Partnership), non alla revenue-share.
       </div>
     </div>

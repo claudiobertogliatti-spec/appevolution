@@ -38,7 +38,7 @@ function FunnelStrip({ stages }) {
           <div className="px-3">
             <div className="text-3xl font-semibold text-slate-900 leading-none">{s.value ?? 0}</div>
             <div className="text-[13px] font-medium text-slate-700 mt-1">{s.name}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{s.sub}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{s.sub}</div>
           </div>
           {i < steps.length - 1 && (
             <div className="flex flex-col items-center justify-center px-2 min-w-[64px]">
@@ -78,7 +78,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
   );
 
   if (error) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (!data) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-500 mt-6">Caricamento panoramica...</p></div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -108,7 +108,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
         <div className="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4 min-w-[220px]">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-400">Call prenotate · mese</p>
           <p className="text-4xl font-bold mt-1 leading-none">{funnel.call_booked || 0}</p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             consegnate a Vendite · {target.gap || 0} ingressi ancora al target
           </p>
         </div>
@@ -144,9 +144,9 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
             { k: "Clienti", v: lav.converted, h: "chiusi", win: true },
           ].map((m) => (
             <div key={m.k} className={`rounded-xl p-4 ${m.win ? "bg-emerald-50 border border-emerald-200" : "bg-slate-50"}`}>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
               <div className={`text-2xl font-semibold mt-1 ${m.win ? "text-emerald-700" : "text-slate-900"}`}>{m.v ?? 0}</div>
-              {m.h && <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>}
+              {m.h && <div className="text-[11px] text-slate-500 mt-1">{m.h}</div>}
             </div>
           ))}
         </div>
@@ -163,7 +163,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
             <p className="text-sm text-slate-500 mt-1">Il recupero che vale di più: hanno l'analisi, manca il passo alla call.</p>
           </div>
           {analisiSenzaCall.length === 0 ? (
-            <div className="p-5 text-sm text-slate-400">Nessun lead fermo con analisi pronta.</div>
+            <div className="p-5 text-sm text-slate-500">Nessun lead fermo con analisi pronta.</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {analisiSenzaCall.map((item) => (
@@ -220,9 +220,9 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
             { k: "Call mese", v: funnel.call_booked || 0, h: "prenotate → Vendite" },
           ].map((m) => (
             <div key={m.k} className="rounded-xl bg-slate-50 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{m.h}</div>
             </div>
           ))}
         </div>

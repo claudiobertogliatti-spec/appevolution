@@ -23,7 +23,7 @@ const DISCOVERY_STATUSES = {
   discovered:     { label: "Scoperto",      cls: "bg-blue-100 text-blue-600" },
   analyzing:      { label: "In analisi",    cls: "bg-purple-100 text-purple-600" },
   scored:         { label: "Scorato",       cls: "bg-yellow-100 text-yellow-700" },
-  message_ready:  { label: "Msg pronto",    cls: "bg-yellow-100 text-yellow-600" },
+  message_ready:  { label: "Msg pronto",    cls: "bg-yellow-100 text-yellow-700" },
   message_sent:   { label: "Msg inviato",   cls: "bg-emerald-100 text-emerald-600" },
   contacted:          { label: "Contattato",    cls: "bg-emerald-100 text-emerald-600" },
   responded_positive: { label: "Ha risposto",   cls: "bg-red-100 text-red-500" },
@@ -86,13 +86,13 @@ const ITALIAN_CITIES = [
 
 const TEMPERATURE = {
   caldo:   { label: "Caldo",   cls: "bg-red-100 text-red-500" },
-  tiepido: { label: "Tiepido", cls: "bg-yellow-100 text-yellow-600" },
+  tiepido: { label: "Tiepido", cls: "bg-yellow-100 text-yellow-700" },
   freddo:  { label: "Freddo",  cls: "bg-blue-100 text-blue-500" },
 };
 
 const FREDDA_STATI = {
   nuovo:        { label: "Nuovo",        cls: "bg-blue-100 text-blue-500" },
-  in_sequenza:  { label: "In sequenza",  cls: "bg-yellow-100 text-yellow-600" },
+  in_sequenza:  { label: "In sequenza",  cls: "bg-yellow-100 text-yellow-700" },
   caldo:        { label: "Caldo 🔥",     cls: "bg-red-100 text-red-500" },
   in_funnel:    { label: "In funnel",    cls: "bg-emerald-100 text-emerald-600" },
   convertito:   { label: "Convertito",   cls: "bg-emerald-100 text-emerald-700" },
@@ -166,13 +166,13 @@ function FreddaEditModal({ lead, onClose, onSaved, onAuthExpired }) {
           <div className="grid grid-cols-2 gap-3">
             {[["Nome", "first_name"], ["Cognome", "last_name"], ["Email", "email"], ["Telefono", "phone"], ["Tag", "tag"]].map(([label, k]) => (
               <div key={k}>
-                <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">{label}</label>
                 <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
               </div>
             ))}
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Stato</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Stato</label>
               <select value={form.stato} onChange={e => setForm(p => ({ ...p, stato: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200">
                 {Object.entries(FREDDA_STATI).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
@@ -192,7 +192,7 @@ function FreddaEditModal({ lead, onClose, onSaved, onAuthExpired }) {
             ))}
           </div>
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Note admin</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Note admin</label>
             <textarea value={form.note_admin} onChange={e => setForm(p => ({ ...p, note_admin: e.target.value }))}
               rows={3} className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
           </div>
@@ -362,7 +362,7 @@ function ImportModal({ type, initialTab = "csv", editLead = null, onClose, onImp
                 <p className="text-sm font-medium text-slate-900">
                   {csvFile ? csvFile.name : "Clicca o trascina il file CSV"}
                 </p>
-                <p className="text-xs mt-1 text-slate-400">Solo file .csv</p>
+                <p className="text-xs mt-1 text-slate-500">Solo file .csv</p>
                 <input ref={fileRef} type="file" accept=".csv" className="hidden"
                   onChange={e => setCsvFile(e.target.files[0])} />
               </div>
@@ -405,20 +405,20 @@ function ImportModal({ type, initialTab = "csv", editLead = null, onClose, onImp
                 <div className="grid grid-cols-2 gap-3">
                   {[["Nome completo", "display_name"], ["Email", "email"], ["Username", "platform_username"], ["Telefono", "phone"], ["Sito web", "website_url"], ["Nicchia", "niche_detected"]].map(([label, k]) => (
                     <div key={k}>
-                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
+                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">{label}</label>
                       <input aria-label={label} type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                         className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
                     </div>
                   ))}
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Fonte</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Fonte</label>
                     <select value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))}
                       className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200">
                       {Object.entries(SOURCES).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Bio / Note</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Bio / Note</label>
                     <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
                       rows={2} className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
                   </div>
@@ -427,7 +427,7 @@ function ImportModal({ type, initialTab = "csv", editLead = null, onClose, onImp
                 <div className="grid grid-cols-2 gap-3">
                   {[["Nome", "first_name"], ["Cognome", "last_name"], ["Email", "email"], ["Telefono", "phone"], ["Tag", "tag"]].map(([label, k]) => (
                     <div key={k}>
-                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">{label}</label>
+                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">{label}</label>
                       <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                         className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
                     </div>
@@ -523,7 +523,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 
           {form.use_group ? (
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Categoria professionale</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Categoria professionale</label>
               <select value={form.profession_group} onChange={e => setForm(p => ({ ...p, profession_group: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200">
                 {PROFESSION_GROUPS.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
@@ -531,7 +531,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
             </div>
           ) : (
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Professione (testo libero)</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Professione (testo libero)</label>
               <input type="text" value={form.custom_profession} onChange={e => setForm(p => ({ ...p, custom_profession: e.target.value }))}
                 placeholder="es. commercialista, fisioterapista..."
                 className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200" />
@@ -540,14 +540,14 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Città {form.all_italy ? "(tutta Italia)" : ""}</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Città {form.all_italy ? "(tutta Italia)" : ""}</label>
               <select value={form.city} disabled={form.all_italy} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200">
                 {ITALIAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Max risultati</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Max risultati</label>
               <select value={form.max_results} onChange={e => setForm(p => ({ ...p, max_results: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200">
                 {[10, 20, 40, 60].map(n => <option key={n} value={n}>{n} professionisti</option>)}
@@ -558,7 +558,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
           <div className={`flex items-center justify-between p-3 rounded-xl border ${form.all_italy ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
             <div>
               <div className="text-sm font-semibold text-slate-900">Cerca in tutta Italia</div>
-              <div className="text-[11px] text-slate-400">Scorre le città italiane principali (ignora la città singola). Più lenta.</div>
+              <div className="text-[11px] text-slate-500">Scorre le città italiane principali (ignora la città singola). Più lenta.</div>
             </div>
             <button onClick={() => setForm(p => ({ ...p, all_italy: !p.all_italy }))}
               className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.all_italy ? "bg-emerald-600" : "bg-gray-300"}`}>
@@ -570,7 +570,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
           <div className={`flex items-center justify-between p-3 rounded-xl border ${form.only_with_website ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
             <div>
               <div className="text-sm font-semibold text-slate-900">Solo con sito web</div>
-              <div className="text-[11px] text-slate-400">Tiene solo chi ha un sito: email reperibile per coda Systeme ammessa dalla policy</div>
+              <div className="text-[11px] text-slate-500">Tiene solo chi ha un sito: email reperibile per coda Systeme ammessa dalla policy</div>
             </div>
             <button onClick={() => setForm(p => ({ ...p, only_with_website: !p.only_with_website }))}
               className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${form.only_with_website ? "bg-emerald-600" : "bg-gray-300"}`}>
@@ -608,7 +608,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
                 </div>
                 {result.message && <div className="text-xs mt-1 text-slate-600">{result.message}</div>}
                 {result.duplicates_skipped > 0 && (
-                  <div className="text-xs mt-1 text-slate-400">{result.duplicates_skipped} già presenti, saltati</div>
+                  <div className="text-xs mt-1 text-slate-500">{result.duplicates_skipped} già presenti, saltati</div>
                 )}
                 {errs.length > 0 && (
                   <div className="text-xs mt-1 text-red-500">
@@ -627,7 +627,7 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 
         <div className="px-5 pb-5">
           <button onClick={run} disabled={loading || (form.use_group ? false : !form.custom_profession)}
-            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${loading ? "bg-gray-200 text-slate-400" : "bg-emerald-600 text-white"}`}>
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${loading ? "bg-gray-200 text-slate-500" : "bg-emerald-600 text-white"}`}>
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
             {loading ? "Ricerca in corso..." : "Avvia ricerca su Google Attività"}
           </button>
@@ -728,7 +728,7 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2 text-slate-400">Avanzamento lavorazione</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2 text-slate-500">Avanzamento lavorazione</div>
             <div className="flex items-center gap-1.5 flex-wrap">
               {WORK_STAGES.map((s, i) => {
                 const active = s.key === status;
@@ -742,7 +742,7 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
               })}
               <span className="mx-1 text-gray-300">·</span>
               <button onClick={() => setStage("responded_negative")} disabled={busy}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${status === "responded_negative" ? "bg-gray-200 border-gray-300 text-slate-600" : "bg-white border-gray-200 text-slate-400 hover:bg-gray-50"}`}>
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-60 ${status === "responded_negative" ? "bg-gray-200 border-gray-300 text-slate-600" : "bg-white border-gray-200 text-slate-500 hover:bg-gray-50"}`}>
                 Non interessato
               </button>
             </div>
@@ -751,11 +751,11 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
 
           <div>
             <div className="flex items-center justify-between">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Contatto</div>
-              {lastContact && <span className="text-[11px] text-slate-400">ultimo contatto: {new Date(lastContact).toLocaleDateString("it-IT")}</span>}
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Contatto</div>
+              {lastContact && <span className="text-[11px] text-slate-500">ultimo contatto: {new Date(lastContact).toLocaleDateString("it-IT")}</span>}
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm text-slate-700 flex-wrap">
-              {email ? <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" />{email}</span> : <span className="text-slate-400">senza email</span>}
+              {email ? <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" />{email}</span> : <span className="text-slate-500">senza email</span>}
               {phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600" />{phone}</span>}
             </div>
             {!showContact ? (
@@ -783,7 +783,7 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
           </div>
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Note di lavorazione</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Note di lavorazione</div>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Cosa è stato fatto, prossimo passo…"
               className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900 resize-y" />
             <button onClick={saveNotes} disabled={busy}
@@ -837,7 +837,7 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
         </div>
         <div className="p-5 space-y-3">
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Preset</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Preset</label>
             <div className="flex gap-2">
               <button type="button" onClick={() => { setTagId(2073868); setLabel("systeme_places"); }}
                 className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition ${String(tagId) === "2073868" ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-gray-200 hover:border-slate-400"}`}>
@@ -851,22 +851,22 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Tag Systeme (ID)</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Tag Systeme (ID)</label>
               <input type="number" value={tagId} onChange={e => setTagId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Max per volta</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Max per volta</label>
               <input type="number" value={limit} onChange={e => setLimit(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Etichetta fonte</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-500">Etichetta fonte</label>
             <input value={label} onChange={e => setLabel(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm border border-gray-200 text-slate-900" />
           </div>
-          <p className="text-[11px] text-slate-400"><b>Places</b> (2073868) = professionisti scrapati, freddi. <b>Masterclass</b> (2004404) = opt-in fermi alla masterclass → entrano in colonna <b>Nuovo</b>, da svegliare con una chiamata verso il questionario. Esclude disiscritti/bounce e chi è già in Ciak; conteggio esatto nel dashboard Systeme.</p>
+          <p className="text-[11px] text-slate-500"><b>Places</b> (2073868) = professionisti scrapati, freddi. <b>Masterclass</b> (2004404) = opt-in fermi alla masterclass → entrano in colonna <b>Nuovo</b>, da svegliare con una chiamata verso il questionario. Esclude disiscritti/bounce e chi è già in Ciak; conteggio esatto nel dashboard Systeme.</p>
           {result && <p className={`text-sm ${result.err ? "text-red-600" : "text-emerald-600"}`}>{result.text}</p>}
           <button onClick={run} disabled={busy}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 disabled:opacity-60">
@@ -1063,7 +1063,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
           <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white text-slate-900 shadow-sm">
             <Users className="w-4 h-4" />
             Discovery Lead
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-600">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
               {total}
             </span>
           </div>
@@ -1124,7 +1124,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         </button>
       </div>
 
-      <p className="text-[12.5px] text-slate-400 mb-2">Coda di ingresso: clicca un lead per completarne i dati, assegna un commerciale, poi <strong className="text-slate-500">Approva</strong> — passa nella pipeline sotto, pronto da lavorare.</p>
+      <p className="text-[12.5px] text-slate-500 mb-2">Coda di ingresso: clicca un lead per completarne i dati, assegna un commerciale, poi <strong className="text-slate-500">Approva</strong> — passa nella pipeline sotto, pronto da lavorare.</p>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -1135,12 +1135,12 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
         ) : leads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Users className="w-12 h-12 text-gray-300" />
-            <p className="text-sm text-slate-400">Nessun lead trovato</p>
+            <p className="text-sm text-slate-500">Nessun lead trovato</p>
           </div>
         ) : (
           <table className="w-full text-sm table-fixed">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-4 py-3 font-semibold w-[24%]">Nome</th>
                 <th className="px-4 py-3 font-semibold w-[26%]">Email / Username</th>
                 <th className="px-4 py-3 font-semibold w-[13%]">Fonte</th>
@@ -1156,12 +1156,12 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900 truncate" title={lead.display_name || ""}>{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
-                      <div className="text-[11px] mt-0.5 text-slate-400 truncate">
+                      <div className="text-[11px] mt-0.5 text-slate-500 truncate">
                         {lead.business_address?.split(",").slice(0, 2).join(",")}
                       </div>
                     ) : lead.website_url ? (
                       <a href={lead.website_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="text-[11px] flex items-center gap-1 text-slate-400 truncate">
+                        className="text-[11px] flex items-center gap-1 text-slate-500 truncate">
                         <Globe className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{lead.website_url.replace(/^https?:\/\//, "")}</span>
                       </a>
                     ) : null}
@@ -1176,7 +1176,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                           </div>
                         )}
                         {lead.google_rating && (
-                          <div className="text-[11px] text-slate-400">
+                          <div className="text-[11px] text-slate-500">
                             ★ {lead.google_rating} ({lead.google_review_count || 0} rec.)
                             {!lead.has_website && <span className="ml-1 font-semibold text-emerald-600">· no sito</span>}
                           </div>
@@ -1186,7 +1186,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                       <div className="min-w-0">
                         <div className="text-xs text-slate-600 truncate">{lead.email || "—"}</div>
                         {lead.platform_username && lead.platform_username !== lead.email && (
-                          <div className="text-[11px] text-slate-400 truncate">@{lead.platform_username}</div>
+                          <div className="text-[11px] text-slate-500 truncate">@{lead.platform_username}</div>
                         )}
                       </div>
                     )}
@@ -1199,7 +1199,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                   </td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     <select value={lead.owner || ""} onChange={e => updateOwner(lead, e.target.value)}
-                      className={`text-[12px] border rounded-lg px-2 py-1 bg-white ${lead.owner ? "border-gray-200 text-slate-700 font-medium" : "border-gray-200 text-slate-400"}`}>
+                      className={`text-[12px] border rounded-lg px-2 py-1 bg-white ${lead.owner ? "border-gray-200 text-slate-700 font-medium" : "border-gray-200 text-slate-500"}`}>
                       <option value="">— assegna</option>
                       {COMMERCIALI.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -1267,7 +1267,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                       className="w-full bg-white rounded-lg border border-gray-200 px-2.5 py-2 hover:border-yellow-300 transition flex items-start gap-1">
                       <button onClick={() => setWorkspaceLead(l)} className="flex-1 min-w-0 text-left">
                         <div className="text-[13px] font-medium text-slate-900 truncate">{l.display_name || l.email || "—"}</div>
-                        <div className="text-[11px] text-slate-400 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
+                        <div className="text-[11px] text-slate-500 truncate">{l.niche_detected || l.business_phone || l.phone || l.email || ""}</div>
                         {l.owner && <div className="text-[10px] font-semibold text-yellow-700 truncate mt-0.5">{l.owner}</div>}
                       </button>
                       <button onClick={() => setEditLead(l)} title="Modifica i dati del lead"
@@ -1277,7 +1277,7 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                       </button>
                     </div>
                   ))}
-                  {total > items.length && <p className="text-[11px] text-slate-400 text-center pt-1">+{total - items.length} oltre i primi 300</p>}
+                  {total > items.length && <p className="text-[11px] text-slate-500 text-center pt-1">+{total - items.length} oltre i primi 300</p>}
                 </div>
               </div>
             );

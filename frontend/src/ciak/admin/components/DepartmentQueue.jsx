@@ -107,14 +107,14 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
           {emptyLabel}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-slate-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-slate-200">
                 <th className="px-4 py-3 font-semibold">{firstColLabel}</th>
                 <th className="px-4 py-3 font-semibold">Passaggio</th>
                 <th className="px-4 py-3 font-semibold">Prossima azione</th>
@@ -146,7 +146,7 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
                     <td className="px-4 py-3 font-medium text-slate-900">{r.name}</td>
                     <td className="px-4 py-3 text-slate-600">{r.passaggio || "—"}</td>
                     <td className="px-4 py-3 text-xs text-slate-700 max-w-[220px]">
-                      {r.next_action || <span className="text-slate-400">—</span>}
+                      {r.next_action || <span className="text-slate-500">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-700">
                       {r.owner ? (
@@ -157,17 +157,17 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
                           </span>
                         </span>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-slate-500">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">{r.scadenza || <span className="text-slate-400">—</span>}</td>
+                    <td className="px-4 py-3 text-xs text-slate-700">{r.scadenza || <span className="text-slate-500">—</span>}</td>
                     <td className="px-4 py-3">
                       {blk ? (
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${blk.cls}`}>
                           <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blk.text}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
                   </tr>
@@ -233,7 +233,7 @@ export function DeliveryQueue({ onOpenPartner, ownerFilter }) {
   }, []);
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
-  if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
+  if (!items) return <p className="text-sm text-slate-500">Caricamento coda…</p>;
   const ownerKey = (value) => String(value || "").trim().toLocaleLowerCase("it-IT").split(/\s+/)[0];
   const shown = ownerFilter ? items.filter((r) => ownerKey(r.owner) === ownerKey(ownerFilter)) : items;
   return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />;
@@ -309,7 +309,7 @@ export function VenditeQueue({ onOpenPartner, ownerFilter }) {
   }, []);
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
-  if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
+  if (!items) return <p className="text-sm text-slate-500">Caricamento coda…</p>;
   const ownerKey = (value) => String(value || "").trim().toLocaleLowerCase("it-IT").split(/\s+/)[0];
   const shown = ownerFilter ? items.filter((r) => ownerKey(r.owner) === ownerKey(ownerFilter)) : items;
   return <DepartmentQueue items={shown} onOpenPartner={onOpenPartner} firstColLabel="Prospect" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : undefined} />;
@@ -366,6 +366,6 @@ export function BackOfficeQueue({ onOpenPartner }) {
   }, []);
 
   if (error) return <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>;
-  if (!items) return <p className="text-sm text-slate-400">Caricamento coda…</p>;
+  if (!items) return <p className="text-sm text-slate-500">Caricamento coda…</p>;
   return <DepartmentQueue items={items} onOpenPartner={onOpenPartner} firstColLabel="Cliente" />;
 }

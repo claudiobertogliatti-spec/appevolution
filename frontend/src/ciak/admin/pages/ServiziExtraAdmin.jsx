@@ -93,7 +93,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
             <div className="text-3xl font-bold text-gray-900">
               {stats.servizi_attivi?.calendario_pro || 0}
             </div>
-            <div className="text-sm text-gray-400">abbonati attivi</div>
+            <div className="text-sm text-slate-500">abbonati attivi</div>
           </div>
 
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
@@ -106,7 +106,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
             <div className="text-3xl font-bold text-gray-900">
               {stats.servizi_attivi?.pacchetto_starter || 0}
             </div>
-            <div className="text-sm text-gray-400">acquisti totali</div>
+            <div className="text-sm text-slate-500">acquisti totali</div>
           </div>
 
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
@@ -119,7 +119,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
             <div className="text-3xl font-bold text-gray-900">
               €{stats.revenue_mensile?.totale_ricorrente || 0}
             </div>
-            <div className="text-sm text-gray-400">ricorrente</div>
+            <div className="text-sm text-slate-500">ricorrente</div>
           </div>
 
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
@@ -132,7 +132,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
             <div className="text-3xl font-bold text-gray-900">
               €{stats.revenue_totale?.totale || 0}
             </div>
-            <div className="text-sm text-gray-400">tutti i servizi</div>
+            <div className="text-sm text-slate-500">tutti i servizi</div>
           </div>
         </div>
       )}
@@ -144,11 +144,11 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
             <Package className="w-5 h-5 text-gray-400" />
             Catalogo Servizi
           </h2>
-          <span className="text-xs text-gray-400">{catalogo.length} servizi attivi</span>
+          <span className="text-xs text-slate-500">{catalogo.length} servizi attivi</span>
         </div>
 
         {catalogo.length === 0 ? (
-          <p className="text-sm text-gray-400">Nessun servizio nel catalogo.</p>
+          <p className="text-sm text-slate-500">Nessun servizio nel catalogo.</p>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {catalogo.map((s) => {
@@ -168,7 +168,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-xl font-bold text-gray-900">{prezzo.big}</div>
-                      <div className="text-xs text-gray-400">{prezzo.small}</div>
+                      <div className="text-xs text-slate-500">{prezzo.small}</div>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
@@ -221,7 +221,7 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
                       acquisto.stato
                     )}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-slate-500">
                     {new Date(acquisto.data_attivazione).toLocaleDateString('it-IT')}
                   </div>
                 </div>

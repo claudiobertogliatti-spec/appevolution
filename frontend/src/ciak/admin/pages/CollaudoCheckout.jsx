@@ -37,11 +37,11 @@ export function CollaudoCheckout() {
     <div className="p-10 max-w-4xl">
       <Link
         to="/admin/reparto/acquisizione-vendita"
-        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-4"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-4"
       >
         <ArrowLeft className="w-4 h-4" /> Acquisizione e vendita
       </Link>
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
         Acquisizione e vendita
       </p>
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Collaudo checkout</h1>
@@ -57,7 +57,7 @@ export function CollaudoCheckout() {
             <div key={r.nome} className="flex items-baseline justify-between gap-4 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
               <div>
                 <p className="text-sm text-slate-900">{r.nome}</p>
-                <p className="text-xs text-slate-400 font-mono">{r.endpoint}</p>
+                <p className="text-xs text-slate-500 font-mono">{r.endpoint}</p>
               </div>
               <p className="text-lg font-semibold text-slate-900 whitespace-nowrap">{r.importo}</p>
             </div>

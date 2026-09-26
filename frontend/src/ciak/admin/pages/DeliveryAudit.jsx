@@ -63,7 +63,7 @@ function Flag({ ok, labelOk, labelNo }) {
       <CheckCircle2 className="w-3.5 h-3.5" /> {labelOk}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
+    <span className="inline-flex items-center gap-1 text-slate-500 text-xs">
       <Circle className="w-3.5 h-3.5" /> {labelNo}
     </span>
   );
@@ -118,7 +118,7 @@ function RegiaPanel({ item, onClose, onSaved, onAuthExpired }) {
       <div className="w-full max-w-md h-full bg-white shadow-xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-bold text-slate-900">Regia — {item.name || item.id}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-700 text-xl leading-none">×</button>
         </div>
         <p className="text-xs text-slate-500 mb-4">
           Correzioni manuali che vincono sulla stima automatica. Lascia vuoto per usare la stima.
@@ -218,7 +218,7 @@ export function DeliveryAudit({ onAuthExpired }) {
   }, [data, overrides, filter]);
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento delivery audit...</div>;
+  if (!data) return <div className="p-8 text-slate-500">Caricamento delivery audit...</div>;
 
   const c = data.counters || {};
   const nAlta = items.filter((i) => i.priorita === "alta").length;
@@ -276,7 +276,7 @@ export function DeliveryAudit({ onAuthExpired }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
+              <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100">
                 <th className="px-4 py-3 font-semibold">Partner</th>
                 <th className="px-4 py-3 font-semibold">Prio</th>
                 <th className="px-4 py-3 font-semibold">Fase EVO</th>
@@ -299,7 +299,7 @@ export function DeliveryAudit({ onAuthExpired }) {
                       <p className="font-semibold text-slate-900 group-hover:text-blue-700 truncate max-w-[180px]">
                         {i.name || i.id}
                       </p>
-                      <p className="text-xs text-slate-400 truncate max-w-[180px]">{i.niche || "—"}</p>
+                      <p className="text-xs text-slate-500 truncate max-w-[180px]">{i.niche || "—"}</p>
                     </button>
                   </td>
                   <td className="px-4 py-3">
@@ -311,10 +311,10 @@ export function DeliveryAudit({ onAuthExpired }) {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium ${MACRO_TONE[i.macro_phase] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
                       {i.macro_label}
                     </span>
-                    <p className="text-[11px] text-slate-400 mt-1">{i.phase} · {i.current_step || "—"}</p>
+                    <p className="text-[11px] text-slate-500 mt-1">{i.phase} · {i.current_step || "—"}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-sm font-semibold ${i.positioning_filled >= 6 ? "text-emerald-600" : i.positioning_filled > 0 ? "text-amber-600" : "text-rose-500"}`}>
+                    <span className={`text-sm font-semibold ${i.positioning_filled >= 6 ? "text-emerald-600" : i.positioning_filled > 0 ? "text-yellow-700" : "text-rose-500"}`}>
                       {i.positioning_filled}/6
                     </span>
                   </td>
@@ -331,7 +331,7 @@ export function DeliveryAudit({ onAuthExpired }) {
                     <span className={`inline-flex items-center gap-1 text-sm font-medium ${i.videocorso_lessons > 0 ? "text-slate-700" : "text-rose-500"}`}>
                       <Film className="w-3.5 h-3.5" /> {i.videocorso_lessons}
                       {i.videocorso_lessons > 0 && (
-                        <span className="text-xs text-slate-400">({i.videocorso_lessons_ready} pronte)</span>
+                        <span className="text-xs text-slate-500">({i.videocorso_lessons_ready} pronte)</span>
                       )}
                     </span>
                   </td>
@@ -342,7 +342,7 @@ export function DeliveryAudit({ onAuthExpired }) {
                     {i.blocked ? (
                       <span className="inline-flex items-center gap-1 text-rose-600 text-xs font-medium"><XCircle className="w-3.5 h-3.5" /> Bloccato</span>
                     ) : i.stale ? (
-                      <span className="inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><AlertTriangle className="w-3.5 h-3.5" /> Fermo</span>
+                      <span className="inline-flex items-center gap-1 text-yellow-700 text-xs font-medium"><AlertTriangle className="w-3.5 h-3.5" /> Fermo</span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 className="w-3.5 h-3.5" /> In moto</span>
                     )}
@@ -361,7 +361,7 @@ export function DeliveryAudit({ onAuthExpired }) {
                   <td className="px-4 py-3">
                     <p className="text-sm text-slate-600 max-w-[240px] leading-snug">{i.next_action}</p>
                     {i.stato_reale && (
-                      <p className="text-[11px] text-slate-400 mt-1 max-w-[240px] leading-snug">{i.stato_reale}</p>
+                      <p className="text-[11px] text-slate-500 mt-1 max-w-[240px] leading-snug">{i.stato_reale}</p>
                     )}
                     {i.nota_regia && <p className="text-[11px] text-violet-500 mt-1 max-w-[240px] leading-snug">“{i.nota_regia}”</p>}
                   </td>
@@ -375,7 +375,7 @@ export function DeliveryAudit({ onAuthExpired }) {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-slate-400">Nessun partner in questo filtro.</td>
+                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500">Nessun partner in questo filtro.</td>
                 </tr>
               )}
             </tbody>

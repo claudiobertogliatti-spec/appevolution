@@ -287,7 +287,7 @@ function LoginScreen({ onLogin }) {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6 font-[Poppins,system-ui,sans-serif]">
       <div className="w-full max-w-sm bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_rgba(15,23,42,0.08)] p-6">
         <img src="/ciak/logo.webp" alt="Ciak.io" className="h-10 w-auto object-contain mb-5" />
-        <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
+        <p className="text-yellow-700 text-xs font-semibold uppercase tracking-widest mb-2">
           Area Admin
         </p>
         <h1 className="text-2xl font-semibold text-slate-900 mb-2">Accedi</h1>
@@ -412,7 +412,7 @@ function AdminShell({ user, onLogout, children }) {
           <Link to="/admin" aria-label="Vai alla Home admin">
             <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
           </Link>
-          <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
+          <p className="text-xs font-semibold text-yellow-700 uppercase tracking-widest mt-4">Area Admin</p>
           <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
             Cabina operativa per funnel, partner e Metodo EVO.
           </p>

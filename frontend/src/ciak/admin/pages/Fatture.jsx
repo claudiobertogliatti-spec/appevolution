@@ -133,13 +133,13 @@ function InvoiceModal({ initial, onClose, onSaved }) {
           <h2 className="text-lg font-semibold text-slate-900">
             {initial.source_key ? "Genera fattura" : "Nuova fattura manuale"}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-700 text-xl leading-none">×</button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Cliente */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-yellow-600 font-semibold mb-2">Intestatario</p>
+            <p className="text-xs uppercase tracking-widest text-yellow-700 font-semibold mb-2">Intestatario</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nome e cognome" value={cliente.nome} onChange={(v) => setC("nome", v)} />
               <Field label="Ragione sociale" value={cliente.ragione_sociale} onChange={(v) => setC("ragione_sociale", v)} />
@@ -158,7 +158,7 @@ function InvoiceModal({ initial, onClose, onSaved }) {
 
           {/* Righe */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-yellow-600 font-semibold mb-2">Righe</p>
+            <p className="text-xs uppercase tracking-widest text-yellow-700 font-semibold mb-2">Righe</p>
             <div className="space-y-2">
               {righe.map((r, i) => (
                 <div key={i} className="flex gap-2 items-center">
@@ -284,7 +284,7 @@ function EmittenteEditor({ onAuthExpired }) {
         className="w-full px-5 py-3 flex items-center justify-between text-left"
       >
         <span className="text-sm font-medium text-slate-700">Dati emittente (Evolution PRO LLC)</span>
-        <span className="text-slate-400">{open ? "−" : "+"}</span>
+        <span className="text-slate-500">{open ? "−" : "+"}</span>
       </button>
       {open && data && (
         <div className="px-5 pb-5 space-y-3">
@@ -330,12 +330,12 @@ function SourceGroup({ title, items, onGen, showEvoS }) {
     <div>
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-        <span className="text-xs text-slate-400">{items.length}</span>
+        <span className="text-xs text-slate-500">{items.length}</span>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-5 py-3 font-semibold">Fonte</th>
               <th className="px-5 py-3 font-semibold">Cliente</th>
               <th className="px-5 py-3 font-semibold">Descrizione</th>
@@ -351,13 +351,13 @@ function SourceGroup({ title, items, onGen, showEvoS }) {
                 <td className="px-5 py-3"><Badge fonte={s.fonte} /></td>
                 <td className="px-5 py-3">
                   <div className="text-slate-800">{s.cliente?.nome || s.cliente?.ragione_sociale || "—"}</div>
-                  <div className="text-xs text-slate-400">{s.cliente?.email}</div>
+                  <div className="text-xs text-slate-500">{s.cliente?.email}</div>
                 </td>
                 <td className="px-5 py-3 text-slate-600">
                   {s.descrizione}
                   <PeriodicitaChip periodicita={s.periodicita} />
                   {showEvoS && s.piano && (
-                    <div className="text-xs text-slate-400 mt-0.5">
+                    <div className="text-xs text-slate-500 mt-0.5">
                       {s.piano}
                       {s.source_subscription_id ? ` · ${s.source_subscription_id}` : ""}
                     </div>
@@ -513,9 +513,9 @@ export function Fatture({ onAuthExpired }) {
 
       {tab === "da-fatturare" && (
         !sources ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-400">Caricamento…</div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-500">Caricamento…</div>
         ) : sources.items.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-400">Nessuna vendita trovata.</div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-slate-500">Nessuna vendita trovata.</div>
         ) : (
           <div className="space-y-6">
             <SourceGroup title="Offerte principali" items={(sources.gruppi?.principali) || sources.items} onGen={genFromSource} />
@@ -538,13 +538,13 @@ export function Fatture({ onAuthExpired }) {
           )}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             {!issued ? (
-              <div className="p-6 text-slate-400">Caricamento…</div>
+              <div className="p-6 text-slate-500">Caricamento…</div>
             ) : issued.items.length === 0 ? (
-              <div className="p-6 text-slate-400">Nessuna fattura emessa.</div>
+              <div className="p-6 text-slate-500">Nessuna fattura emessa.</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+                  <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                     <th className="px-5 py-3 font-semibold">Numero</th>
                     <th className="px-5 py-3 font-semibold">Data</th>
                     <th className="px-5 py-3 font-semibold">Cliente</th>

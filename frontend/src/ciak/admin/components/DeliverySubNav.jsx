@@ -16,7 +16,7 @@ const TABS = [
 export function DeliverySubNav({ active }) {
   return (
     <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl p-2 overflow-x-auto">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600 px-2.5 whitespace-nowrap">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-700 px-2.5 whitespace-nowrap">
         Delivery
       </span>
       <span className="w-px h-5 bg-slate-200 flex-shrink-0" />

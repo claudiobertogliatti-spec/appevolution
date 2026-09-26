@@ -21,7 +21,7 @@ const fmt = (s) => {
 };
 
 const TYPE_META = {
-  filler: { label: "Intercalare", icon: Scissors, color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
+  filler: { label: "Intercalare", icon: Scissors, color: "text-yellow-700", bg: "bg-amber-50 border-amber-200" },
   silence: { label: "Pausa lunga", icon: Volume2, color: "text-sky-600", bg: "bg-sky-50 border-sky-200" },
   smart: { label: "Ripetizione", icon: Repeat, color: "text-rose-600", bg: "bg-rose-50 border-rose-200" },
 };
@@ -164,11 +164,11 @@ export function MasterclassReview({ onAuthExpired }) {
             Revisione del taglio{isLesson ? ` — Lezione ${lessonId}` : ""}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Leggi la trascrizione confrontandola con lo script. I tagli proposti sono <span className="line-through text-slate-400">barrati</span>. Togli un taglio se mozza una frase, poi approva.
+            Leggi la trascrizione confrontandola con lo script. I tagli proposti sono <span className="line-through text-slate-500">barrati</span>. Togli un taglio se mozza una frase, poi approva.
           </p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-slate-900">{keptCount}<span className="text-base font-normal text-slate-400">/{segs.length} tagli</span></div>
+          <div className="text-2xl font-bold text-slate-900">{keptCount}<span className="text-base font-normal text-slate-500">/{segs.length} tagli</span></div>
           <div className="text-xs text-slate-500">risparmio ~{fmt(savedS)}</div>
         </div>
       </div>
@@ -192,7 +192,7 @@ export function MasterclassReview({ onAuthExpired }) {
             <h2 className="font-semibold text-slate-800">Script del team (riferimento)</h2>
           </div>
           <div className="p-5 text-sm leading-relaxed text-slate-600 whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-            {data?.script ? data.script : <span className="text-slate-400">Script non disponibile per questo partner.</span>}
+            {data?.script ? data.script : <span className="text-slate-500">Script non disponibile per questo partner.</span>}
           </div>
         </div>
 
@@ -212,7 +212,7 @@ export function MasterclassReview({ onAuthExpired }) {
                 );
               })
             ) : (
-              <span className="whitespace-pre-wrap">{data?.transcript || <span className="text-slate-400">Trascrizione non disponibile.</span>}</span>
+              <span className="whitespace-pre-wrap">{data?.transcript || <span className="text-slate-500">Trascrizione non disponibile.</span>}</span>
             )}
           </div>
         </div>
@@ -223,10 +223,10 @@ export function MasterclassReview({ onAuthExpired }) {
         <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
           <Scissors className="w-4 h-4 text-slate-400" />
           <h2 className="font-semibold text-slate-800">Tagli proposti</h2>
-          <span className="ml-auto text-xs text-slate-400">{segs.length} totali · {keptCount} mantenuti</span>
+          <span className="ml-auto text-xs text-slate-500">{segs.length} totali · {keptCount} mantenuti</span>
         </div>
         {segs.length === 0 ? (
-          <div className="px-5 py-8 text-center text-slate-400 text-sm">Nessun taglio proposto: il registrato è già pulito.</div>
+          <div className="px-5 py-8 text-center text-slate-500 text-sm">Nessun taglio proposto: il registrato è già pulito.</div>
         ) : (
           <ul className="divide-y divide-slate-100">
             {segs.map((s) => {
@@ -244,7 +244,7 @@ export function MasterclassReview({ onAuthExpired }) {
                     <div className="text-sm text-slate-800 truncate">
                       <span className="font-medium">{meta.label}</span> · <span className="text-slate-500">{desc}</span>
                     </div>
-                    <div className="text-xs text-slate-400">{fmt(s.start)} → {fmt(s.end)}</div>
+                    <div className="text-xs text-slate-500">{fmt(s.start)} → {fmt(s.end)}</div>
                   </div>
                   {(s.type === "smart" || long) && (
                     <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">

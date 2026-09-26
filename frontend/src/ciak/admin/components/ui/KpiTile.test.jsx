@@ -21,7 +21,7 @@ test("senza accento la cifra e' navy (slate-900)", () => {
 
 test("con accent la cifra e' gialla (la cifra-obiettivo)", () => {
   render(<KpiTile label="Obiettivo" value="€ 10.000" accent />);
-  expect(screen.getByText("€ 10.000").closest("p").className).toMatch(/text-yellow-600/);
+  expect(screen.getByText("€ 10.000").closest("p").className).toMatch(/text-yellow-700/);
 });
 
 test("tone warn colora la cifra di ambra, non solo un pallino", () => {

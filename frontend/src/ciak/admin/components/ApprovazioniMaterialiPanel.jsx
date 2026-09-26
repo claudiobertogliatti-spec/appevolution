@@ -32,7 +32,7 @@ export default function ApprovazioniMaterialiPanel({ open, onClose, onChange }) 
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-900 text-2xl leading-none"
+            className="text-slate-500 hover:text-slate-900 text-2xl leading-none"
             aria-label="Chiudi"
           >
             ×

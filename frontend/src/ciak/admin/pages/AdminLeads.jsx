@@ -214,13 +214,13 @@ export function AdminLeads({ onAuthExpired }) {
 
       {error && <div className="text-slate-600 mb-4">Errore: {error}</div>}
       {!data ? (
-        <div className="text-slate-400">Caricamento…</div>
+        <div className="text-slate-500">Caricamento…</div>
       ) : (
         <>
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+                <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                   <th className="px-5 py-3 font-semibold">Lead</th>
                   <th className="px-5 py-3 font-semibold">Source</th>
                   <th className="px-5 py-3 font-semibold">Checkpoint</th>
@@ -234,7 +234,7 @@ export function AdminLeads({ onAuthExpired }) {
               <tbody>
                 {data.items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-slate-500">
                       Nessun lead trovato.
                     </td>
                   </tr>
@@ -258,10 +258,10 @@ export function AdminLeads({ onAuthExpired }) {
                     </td>
                     <td className="px-5 py-3">
                       <StageTracker item={l} />
-                      <div className="mt-1 text-slate-400 text-[11px]">
+                      <div className="mt-1 text-slate-500 text-[11px]">
                         {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
                         {l.purchased && (
-                          <span className="ml-2 text-yellow-600 font-medium">Blueprint €27 ✓</span>
+                          <span className="ml-2 text-yellow-700 font-medium">Blueprint €27 ✓</span>
                         )}
                       </div>
                     </td>
@@ -338,17 +338,17 @@ export function AdminLeads({ onAuthExpired }) {
             <h2 id="edit-lead-title" className="mt-1 text-lg font-semibold text-slate-900 truncate">{pendingEdit.email}</h2>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Nome</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Nome</label>
                 <input value={pendingEdit.nome} onChange={(e) => setPendingEdit((p) => ({ ...p, nome: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Telefono</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Telefono</label>
                 <input value={pendingEdit.phone} onChange={(e) => setPendingEdit((p) => ({ ...p, phone: e.target.value }))}
                   placeholder="+39…" className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Email · non modificabile</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Email · non modificabile</label>
                 <input value={pendingEdit.email} readOnly disabled
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm text-slate-500" />
               </div>

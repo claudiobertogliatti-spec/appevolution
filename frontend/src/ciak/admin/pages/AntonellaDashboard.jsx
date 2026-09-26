@@ -54,7 +54,7 @@ function AlertBanner({ alerts, onGo }) {
             <strong className={a.urgent ? "text-red-700" : "text-yellow-700"}>{a.count}</strong>{" "}
             {a.label}
           </span>
-          <span className="text-xs font-medium text-slate-400">{a.cta} →</span>
+          <span className="text-xs font-medium text-slate-500">{a.cta} →</span>
         </button>
       ))}
     </div>
@@ -73,7 +73,7 @@ function KpiCard({ icon: Icon, label, value, chip, onClick }) {
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${chip}`}>
           <Icon className="w-4 h-4" />
         </div>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{label}</span>
       </div>
       <p className="text-3xl font-semibold text-slate-900">{value}</p>
     </button>
@@ -143,7 +143,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
     });
   }, [onAuthExpired]);
 
-  if (!d) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (!d) return <div className="p-8 text-slate-500">Caricamento…</div>;
 
   const { partnerAttivi, partnerTot, materiali, video, ads, adsAlerts } = d;
   const ov = ads?.overview || {};
@@ -178,12 +178,12 @@ export function AntonellaDashboard({ onAuthExpired }) {
       <AlertBanner alerts={alerts} onGo={navigate} />
 
       {/* ② CAMPAGNE ADS */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Campagne Ads
       </h2>
       {ads ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-          <KpiCard icon={Target} chip="bg-yellow-100 text-yellow-600" label="Campagne"
+          <KpiCard icon={Target} chip="bg-yellow-100 text-yellow-700" label="Campagne"
             value={num(ov.total_campaigns)} onClick={() => navigate("/admin/campagne-ads")} />
           <KpiCard icon={DollarSign} chip="bg-slate-100 text-slate-600" label="Spesa"
             value={`€${num(ov.total_spend).toFixed(0)}`} onClick={() => navigate("/admin/campagne-ads")} />
@@ -195,7 +195,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-10 text-sm text-slate-500">
           Nessun dato campagne disponibile al momento.{" "}
-          <button onClick={() => navigate("/admin/campagne-ads")} className="text-yellow-600 font-semibold">
+          <button onClick={() => navigate("/admin/campagne-ads")} className="text-yellow-700 font-semibold">
             Vai a Campagne Ads →
           </button>
         </div>
@@ -204,7 +204,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
       {/* ③ IL TUO LAVORO + SCORCIATOIE */}
       <div className="grid lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Il tuo lavoro
           </h2>
           <div className="grid grid-cols-3 gap-3">
@@ -218,7 +218,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Scorciatoie
           </h2>
           <div className="grid grid-cols-1 gap-3">

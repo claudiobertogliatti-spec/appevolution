@@ -46,7 +46,7 @@ export default function RifiutaModal({ open, partnerName, onConfirm, onCancel })
           placeholder="Es: Il target ICP non è abbastanza specifico. Restringi a un sotto-segmento (età, settore, ruolo)."
           className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-y mb-1"
         />
-        <div className="text-xs text-slate-400 mb-4">{note.trim().length}/10 min</div>
+        <div className="text-xs text-slate-500 mb-4">{note.trim().length}/10 min</div>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
