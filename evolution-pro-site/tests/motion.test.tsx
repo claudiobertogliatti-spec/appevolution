@@ -85,9 +85,9 @@ describe('hero agenti con movimento ridotto', () => {
 
     expect(screen.getByTestId('home-section')).toHaveAttribute('data-animation', 'autoplay');
     expect(screen.getAllByTestId('active-hero-agent')).toHaveLength(1);
-    expect(screen.getByRole('link', { name: /guarda la masterclass gratuita/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /fai la tua analisi gratuita/i })).toHaveAttribute(
       'href',
-      'https://www.ciak.io/masterclass',
+      'https://www.ciak.io/analisi',
     );
     expect(screen.getByAltText(/Claudio B\., CEO\/Founder/i)).toBeInTheDocument();
   });

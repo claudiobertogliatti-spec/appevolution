@@ -46,9 +46,9 @@ describe('demo Ciak', () => {
 
   it('porta al dominio applicativo corretto', () => {
     render(<CiakPlatformDemo />);
-    expect(screen.getByRole('link', { name: /guarda la masterclass gratuita/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /fai la tua analisi gratuita/i })).toHaveAttribute(
       'href',
-      'https://www.ciak.io/masterclass',
+      'https://www.ciak.io/analisi',
     );
   });
 

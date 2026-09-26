@@ -11,8 +11,8 @@ describe('contratto dei contenuti istituzionali', () => {
 
   it('indirizza la CTA primaria solo alla piattaforma Ciak attiva', () => {
     expect(JSON.stringify(siteContent)).not.toContain('app.evolution-pro.it');
-    expect(siteContent.primaryCta.href).toBe('https://www.ciak.io/masterclass');
-    expect(siteContent.primaryCta.label).toBe('Guarda la masterclass gratuita');
+    expect(siteContent.primaryCta.href).toBe('https://www.ciak.io/analisi');
+    expect(siteContent.primaryCta.label).toBe('Fai la tua analisi gratuita');
   });
 
   it('descrive il Metodo EVO come protocollo in tre passaggi testato in 7 anni', () => {
