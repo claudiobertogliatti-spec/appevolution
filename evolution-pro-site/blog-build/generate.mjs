@@ -55,7 +55,10 @@ footer{background:var(--navy);color:#CBD5E1;padding:56px 0 30px;margin-top:64px}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:44px;padding-top:22px;display:flex;justify-content:space-between;font-size:12.5px;color:#64748B;flex-wrap:wrap;gap:10px}
 /* index */
 .hero{background:var(--navy);color:#fff;padding:60px 0 130px;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;top:-120px;right:-80px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle at center,rgba(250,204,21,.18),transparent 62%);pointer-events:none}
+.hero::before,.hero::after{content:"";position:absolute;top:50%;right:-3%;width:min(600px,76vw);aspect-ratio:800/879;transform:translateY(-50%);background:center/contain no-repeat;pointer-events:none}
+.hero::before{background-image:url('/brand/evolution-globe-ghost.webp');opacity:.3}
+.hero::after{background-image:url('/brand/evolution-globe-yellow.webp');opacity:.42}
+.hero .wrap{position:relative;z-index:1}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);margin-bottom:18px}
 .eyebrow::before{content:"";width:26px;height:2px;background:var(--yellow)}
 .hero h1{font-size:clamp(30px,4.6vw,50px);line-height:1.08;font-weight:800;letter-spacing:-.025em;max-width:16ch}
@@ -86,8 +89,11 @@ aside{position:sticky;top:100px;align-self:start;display:flex;flex-direction:col
 .subForm{margin:0}.subMsg{font-size:12.5px;margin-top:8px;font-weight:500}
 /* article */
 .a-hero{background:var(--navy);color:#fff;position:relative;overflow:hidden}
-.a-hero::before{content:"";position:absolute;top:-140px;right:-90px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle at center,rgba(250,204,21,.18),transparent 62%);pointer-events:none}
-.a-hero .inner{max-width:var(--read);margin:0 auto;padding:34px 24px 46px}
+.a-hero::before,.a-hero::after{content:"";position:absolute;top:50%;right:-4%;width:min(500px,70vw);aspect-ratio:800/879;transform:translateY(-50%);background:center/contain no-repeat;pointer-events:none}
+.a-hero::before{background-image:url('/brand/evolution-globe-ghost.webp');opacity:.26}
+.a-hero::after{background-image:url('/brand/evolution-globe-yellow.webp');opacity:.3}
+.a-hero .inner{position:relative;z-index:1;max-width:var(--read);margin:0 auto;padding:34px 24px 46px}
+@media(max-width:700px){.hero::before,.hero::after{right:-32%}.hero::before{opacity:.2}.hero::after{opacity:.26}.a-hero::before,.a-hero::after{right:-36%}.a-hero::before{opacity:.18}.a-hero::after{opacity:.2}}
 .crumbs{font-size:13px;color:#94A3B8;margin-bottom:22px}.crumbs a:hover{color:var(--yellow)}
 .a-cat{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);background:var(--yellow);padding:6px 13px;border-radius:999px;margin-bottom:18px}
 .a-hero h1{font-size:clamp(28px,4.2vw,42px);line-height:1.14;font-weight:800;letter-spacing:-.02em}
