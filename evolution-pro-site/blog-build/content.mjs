@@ -87,6 +87,46 @@ const RAW = [
   { cat:'Brand & Posizionamento', read:8, slug:'autorita-senza-numeri-gonfiati', kw:'autorevolezza nei videocorsi', title:"Autorità: come costruirla senza numeri gonfiati né testimonianze finte", excerpt:"La fiducia vera si costruisce con onestà, non con vanity metric. Cosa mostrare e cosa non inventare mai." },
   { cat:'Funnel & Acquisizione', read:7, slug:'traffico-a-pagamento-videocorsi', kw:'pubblicità per videocorsi', title:"Traffico a pagamento: quando ha senso e quando bruci budget", excerpt:"Le ads amplificano ciò che già funziona; non salvano ciò che non funziona. Quando accenderle davvero." },
   { cat:'Mindset & Ostacoli', read:7, slug:'primo-lancio-va-male', kw:'lancio di un videocorso', title:"Cosa fare quando il primo lancio va male (e perché non significa nulla)", excerpt:"Un primo lancio è una raccolta dati, non un verdetto. Come leggerlo e cosa correggere per il secondo." },
+  { cat:'Metodo EVO', read:7, slug:'studenti-non-finiscono-videocorso', kw:'completamento dei videocorsi', date:'2026-09-27', title:"Perché i tuoi studenti non finiscono il videocorso (e perché è un problema di vendita, non di didattica)", excerpt:"Uno studente che si ferma a metà non torna a comprare e non ti consiglia a nessuno. Il completamento non è un dettaglio didattico: è il motore silenzioso della tua accademia.", body:`
+  <p class="lede">Hai venduto il videocorso. Lo studente ha pagato, ha fatto il login, ha guardato la prima lezione con entusiasmo. Poi la seconda. Poi, un martedì qualsiasi, ha smesso. Non ti ha scritto, non ha chiesto un rimborso: semplicemente non è più tornato. Se ti suona familiare, sappi che non è un problema di contenuto. È un problema di progettazione — e costa molto più di quanto pensi.</p>
+  <p>Chi crea videocorsi tende a pensare che il lavoro finisca con la vendita. L'incasso è arrivato, lo studente ha accesso, il resto è affar suo. Ma c'è un dettaglio che cambia tutto: <strong>uno studente che non arriva in fondo non ottiene il risultato che gli avevi promesso</strong>. E chi non ottiene il risultato non ti consiglia, non compra il passo successivo, non lascia una recensione sincera. Per la tua accademia, è come se non l'avessi mai venduto.</p>
+  <h2>Il completamento è una leva commerciale</h2>
+  <p>Proviamo a guardarla dal lato del business. Da dove arrivano i clienti migliori di un'accademia di videocorsi? Dal passaparola di chi ha avuto un risultato. Dagli studenti soddisfatti che salgono al livello successivo. Dalle storie vere che puoi raccontare — con il loro permesso — perché sono successe davvero.</p>
+  <p>Tutte e tre queste fonti hanno una condizione in comune: lo studente deve essere arrivato in fondo. Se il tuo videocorso ha tante iscrizioni ma pochi completamenti, stai riempiendo un secchio bucato. Ogni mese devi trovare nuovi clienti da zero, perché quelli di prima non ti stanno portando nessuno.</p>
+  <blockquote>Un videocorso venduto e abbandonato è una vendita. Un videocorso completato è un cliente che torna e ne porta altri.</blockquote>
+  <h2>Perché gli studenti si fermano</h2>
+  <p>Quasi mai si fermano perché il contenuto è scarso. Si fermano per ragioni molto più banali, e proprio per questo più facili da correggere.</p>
+  <ul>
+    <li><strong>Il primo risultato arriva troppo tardi.</strong> Se servono sei moduli di teoria prima di fare qualcosa di concreto, la motivazione iniziale si esaurisce prima di arrivarci.</li>
+    <li><strong>Le lezioni sono troppo lunghe.</strong> Un video di un'ora richiede di trovare un'ora libera. Un video di dieci minuti si guarda in pausa pranzo. Indovina quale dei due viene rimandato.</li>
+    <li><strong>Non c'è una mappa.</strong> Lo studente non sa dov'è, quanto manca, perché sta guardando proprio quella lezione. Senza orientamento, ogni video sembra un compito in più.</li>
+    <li><strong>Nessuno si accorge della sua assenza.</strong> Se smette di entrare e non succede nulla, il messaggio implicito è: «non importa a nessuno se vai avanti».</li>
+    <li><strong>Troppo materiale, poca direzione.</strong> Molti formatori riempiono il corso di contenuti extra per aumentarne il valore percepito. Il risultato, spesso, è l'opposto: lo studente si sente sommerso e rinuncia.</li>
+  </ul>
+  <h2>Progettare il videocorso per essere finito</h2>
+  <p>La buona notizia è che il completamento si progetta. Non serve una piattaforma costosa né un team: servono alcune scelte precise, prese prima di registrare.</p>
+  <h3>1. Parti dalla trasformazione, non dall'indice</h3>
+  <p>L'errore classico è costruire il videocorso come un manuale: tutto quello che sai, in ordine logico. Ma lo studente non ha comprato «tutto quello che sai». Ha comprato un risultato. Chiediti: qual è il percorso <em>più corto</em> tra dove si trova oggi e dove vuole arrivare? Tutto ciò che non serve a quel percorso può diventare un materiale extra, separato, facoltativo.</p>
+  <h3>2. Dai una vittoria rapida entro la prima lezione</h3>
+  <p>La prima lezione ha un compito solo: far fare allo studente qualcosa di concreto e utile, subito. Un esercizio, una decisione, un piccolo risultato visibile. Chi ottiene una vittoria all'inizio ha una ragione per tornare. Chi trova solo premesse e introduzioni ha una ragione per rimandare.</p>
+  <h3>3. Lezioni brevi, un obiettivo ciascuna</h3>
+  <p>Ogni lezione dovrebbe rispondere a una domanda sola e chiudersi con un'azione. Se una lezione copre tre argomenti, spezzala in tre. Lezioni brevi rendono il progresso visibile, e il progresso visibile è uno dei motivatori più potenti che esistano.</p>
+  <h3>4. Metti una mappa all'inizio di ogni modulo</h3>
+  <p>Trenta secondi all'inizio di ogni modulo bastano: dove siamo, cosa otterrai alla fine di questa parte, quanto manca. Sembra banale, ma lo studente orientato va avanti; quello disorientato si ferma a chiedersi se ne vale la pena.</p>
+  <h3>5. Accorgiti di chi si ferma</h3>
+  <p>Non serve un sistema complesso. Basta una email automatica a chi non entra da una settimana, scritta con il tono di chi si interessa davvero: «ho notato che ti sei fermato al modulo due, spesso è il punto in cui ci si blocca per questo motivo, ecco come ripartire». Molti studenti non hanno smesso per scelta: hanno solo perso il filo. Un messaggio al momento giusto glielo restituisce.</p>
+  <h2>Dove entra il Metodo EVO</h2>
+  <p>Nel Metodo EVO il completamento non è un tema da affrontare «dopo». Attraversa tutte e tre le fasi.</p>
+  <ol>
+    <li><strong>Esamina</strong>: capisci qual è il risultato che il tuo pubblico vuole davvero, con parole sue. È da lì che nasce il percorso più corto.</li>
+    <li><strong>Valida</strong>: prima di registrare tutto, fai passare un primo gruppo di persone attraverso il percorso. Dove si bloccano, lì c'è da riprogettare.</li>
+    <li><strong>Ottimizza</strong>: osserva dove gli studenti si fermano e intervieni su quei punti precisi — una lezione da accorciare, un esercizio da chiarire, un messaggio da inviare al momento giusto.</li>
+  </ol>
+  <p>È un lavoro meno visibile del lancio, e per questo quasi tutti lo trascurano. Ma è proprio qui che un corso smette di essere un prodotto venduto una volta e diventa un'accademia che cresce.</p>
+  <h2>La domanda da farti oggi</h2>
+  <p>Apri il tuo videocorso e mettiti nei panni di chi lo compra oggi. Quanto tempo passa prima che ottenga il primo risultato concreto? Quante lezioni superano la mezz'ora? Cosa succede se smette di entrare per due settimane?</p>
+  <p>Se le risposte ti mettono a disagio, hai appena trovato la leva più sottovalutata della tua accademia di videocorsi. Non ti serve vendere di più per crescere: ti serve che <strong>chi ha già comprato arrivi in fondo</strong>. Il resto — passaparola, rinnovi, nuovi percorsi — viene da lì.</p>
+` },
 ];
 
 // Corpi aggiuntivi per slug (si estende un lotto alla volta). Se un corpo non contiene "cta-box",
