@@ -97,6 +97,44 @@ async function downloadBlueprintPdf(email) {
   URL.revokeObjectURL(url);
 }
 
+// Stesso ordine e stesso testo mostrato al lead in Diagnostica.jsx — le
+// risposte grezze non erano mai esposte in admin prima di questa modifica
+// (bug segnalato da Claudio: servono per prepararsi/rivedere prima della call).
+const QUESTIONS = [
+  { id: "q1_competenza", text: "Qual è la competenza su cui hai costruito il tuo lavoro? E questo lavoro ha un nome, un metodo o un marchio tuo — un libro, un percorso, una tecnica che hai codificato?" },
+  { id: "q2_esperienza", text: "Da quanto la pratichi, come sei arrivato/a a padroneggiarla, e a quante persone l'hai già insegnata o erogata?" },
+  { id: "q3_clienti", text: "Con chi hai già lavorato su questo tema, e ti hanno pagato per questo? Raccontami un risultato concreto che hai aiutato a ottenere." },
+  { id: "q4_idea", text: "Se immagini un tuo corso o percorso digitale, cosa ti vedi offrire? Ce l'hai già un'offerta a pagamento, o è ancora un'intuizione?" },
+  { id: "q9_materiale", text: "Che materiale hai già creato sul tuo tema — un libro, un podcast, un videocorso, delle dispense, una masterclass? Raccontami cosa esiste già, anche se grezzo." },
+  { id: "q5_target", text: "A chi vorresti parlare con questo progetto? Descrivimi la persona che hai in mente e cosa la tiene sveglia la notte." },
+  { id: "q6_problema", text: "Qual è il problema che risolvi meglio di chiunque altro? Com'è la vita di chi ti sceglie, prima e dopo di te?" },
+  { id: "q7_digitale", text: "Che rapporto hai oggi con il mondo online? Cosa hai già provato — social, sito, vendite — e cosa ti mette ancora in difficoltà?" },
+  { id: "q10_agenzie", text: "Ti sei già affidato ad agenzie o consulenti per portare online il tuo lavoro? Com'è andata, e cosa ti è mancato?" },
+  { id: "q8_obiettivo", text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?" },
+];
+
+function QuestionnaireAnswers({ responses }) {
+  if (!responses || Object.keys(responses).length === 0) {
+    return <p className="text-slate-400 text-sm">Nessuna risposta registrata.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {QUESTIONS.map((q) => {
+        const answer = responses[q.id];
+        if (!answer) return null;
+        return (
+          <div key={q.id}>
+            <p className="text-xs font-medium text-slate-500 mb-1">{q.text}</p>
+            <p className="text-sm text-slate-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 leading-relaxed">
+              {answer}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
@@ -346,6 +384,16 @@ export function AdminLeadDetail({ onAuthExpired }) {
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
               <StageChecklist diagnostic={d} />
+              {d.responses && Object.keys(d.responses).length > 0 && (
+                <details className="mb-4" open>
+                  <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
+                    Risposte al questionario
+                  </summary>
+                  <div className="mt-3">
+                    <QuestionnaireAnswers responses={d.responses} />
+                  </div>
+                </details>
+              )}
               <Field label="Stato corrente" value={d.current_state} />
               <Field
                 label="Stato finale"
