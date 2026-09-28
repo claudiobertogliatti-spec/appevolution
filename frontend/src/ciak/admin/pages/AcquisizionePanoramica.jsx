@@ -83,6 +83,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
   const target = data.target || {};
   const funnel = data.funnel || {};
   const stages = data.funnel_stages || {};
+  const bySource = data.funnel_by_source || {};
   const lav = data.lavorazione_pipeline || {};
   const activity = data.activity_today || {};
   const routine = data.routine || {};
@@ -123,6 +124,17 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
         <p className="text-sm text-slate-500 mt-1">Dove crolla la conversione questo mese: è il collo di bottiglia da lavorare.</p>
         <div className="mt-5">
           <FunnelStrip stages={stages} />
+        </div>
+        <div className="mt-6 pt-5 border-t border-slate-100 space-y-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Per fonte — non mescolare le due pipeline</p>
+          <div>
+            <p className="text-[13px] font-medium text-slate-600 mb-2">Traffico organico (sito, self-service)</p>
+            <FunnelStrip stages={bySource.organico || {}} />
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-slate-600 mb-2">Canale Mariangela (outbound, link ?utm_source=mariangela)</p>
+            <FunnelStrip stages={bySource.mariangela || {}} />
+          </div>
         </div>
       </div>
 

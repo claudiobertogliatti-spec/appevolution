@@ -896,7 +896,22 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
     # Ciak Start (non pronti) vs nurturing — dal verdetto dello scoring.
     vendite_split = {"partnership": 0, "start": 0, "nurture": 0}
 
+    # Funnel diviso per fonte: traffico organico (sito, self-service) vs canale
+    # Mariangela (outbound umano, link con ?utm_source=mariangela). Le due pipeline
+    # non sono paragonabili — mescolarle nasconde se il sito converte davvero.
+    # Per il canale Mariangela "leads" = questionari avviati questo mese (non esiste
+    # un record ciak_leads: il suo link salta l'opt-in, vedi diagnostic.py::complete).
+    funnel_by_source = {
+        "organico": {"leads": leads_month, "questionnaire_completed": 0, "report_ready": 0, "call_booked": 0},
+        "mariangela": {"leads": 0, "questionnaire_completed": 0, "report_ready": 0, "call_booked": 0},
+    }
+
     for em, d in diagnostics_by_email.items():
+        _utm_source = ((d.get("tracking") or {}).get("utm_source") or "").strip().lower()
+        _bucket = funnel_by_source["mariangela"] if _utm_source == "mariangela" else funnel_by_source["organico"]
+        _created_ts = d.get("created_at")
+        if _created_ts and _created_ts >= month_start and _utm_source == "mariangela":
+            funnel_by_source["mariangela"]["leads"] += 1
         state = d.get("current_state")
         purchased_ts = _state_ts(d, "purchased_67") or _event_ts(d, "stripe_payment_completed")
         call_booked_ts = _state_ts(d, "call_booked")
@@ -906,18 +921,21 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             blueprint_month += 1
         if call_booked_ts and call_booked_ts >= month_start:
             call_booked_month += 1
+            _bucket["call_booked"] += 1
         if call_done_ts and call_done_ts >= month_start:
             call_done_month += 1
 
         completed_ts = _state_ts(d, "ciak_completed")
         if completed_ts and completed_ts >= month_start:
             questionnaire_month += 1
+            _bucket["questionnaire_completed"] += 1
             _instr = ((d.get("scoring") or {}).get("instradamento") or "").lower()
             if _instr in vendite_split:
                 vendite_split[_instr] += 1
         report_ready_ts = _state_ts(d, "report_generated")
         if report_ready_ts and report_ready_ts >= month_start:
             report_ready_month += 1
+            _bucket["report_ready"] += 1
 
         if state == "clicked_67":
             clicked_no_purchase.append(
@@ -1110,6 +1128,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "report_ready": report_ready_month,
             "call_booked": call_booked_month,
         },
+        "funnel_by_source": funnel_by_source,
         "lavorazione_pipeline": lavorazione_pipeline,
         "vendite_split": vendite_split,
         "priorities": {
