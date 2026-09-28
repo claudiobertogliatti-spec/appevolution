@@ -158,6 +158,13 @@ export function CiakDiagnostica() {
   const [calcomUrl, setCalcomUrl] = useState("");
   const [postQuestionnaireRoute, setPostQuestionnaireRoute] = useState("call");
 
+  // Canale Mariangela (?utm_source=mariangela): la call la fissa lei a voce nel
+  // gruppo WhatsApp, non il self-service Cal.com — niente popup di prenotazione
+  // qui, altrimenti il lead riceve due inviti a fissare la stessa call.
+  const [isMariangelaChannel] = useState(
+    () => new URLSearchParams(window.location.search).get("utm_source")?.trim().toLowerCase() === "mariangela"
+  );
+
   // Avvia la sessione diagnostica sul backend
   const startSession = useCallback(async (leadEmail, leadName) => {
     setPhase("starting");
@@ -291,8 +298,9 @@ export function CiakDiagnostica() {
         ? "nurture"
         : "call";
       setPostQuestionnaireRoute(nextRoute);
-      if (nextRoute === "call") {
+      if (nextRoute === "call" && !isMariangelaChannel) {
         // Carica il link Cal.com (config pubblica) e apre il popup finale.
+        // Canale Mariangela escluso: la call la fissa lei, non serve il booking.
         fetch("/api/admin/ciak/public-config")
           .then((r) => r.json())
           .then((d) => setCalcomUrl(d.calcom_booking_url || ""))
@@ -394,6 +402,13 @@ export function CiakDiagnostica() {
                   Guarda la masterclass gratuita →
                 </a>
               </>
+            ) : isMariangelaChannel ? (
+              <p className="text-slate-600 leading-relaxed mb-2">
+                Grazie per esserti raccontato/a con questa apertura — non è affatto
+                scontato, ed è già il segnale di chi fa sul serio. Ho tutto quello
+                che serve per preparare la tua analisi di mercato personalizzata.
+                Mariangela ti contatterà per fissare la videocall.
+              </p>
             ) : (
               <>
                 <p className="text-slate-600 leading-relaxed mb-8">
