@@ -113,6 +113,13 @@ const QUESTIONS = [
   { id: "q8_obiettivo", text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?" },
 ];
 
+// Stessi stati considerati "call già fissata o oltre" lato backend
+// (routers/ciak_admin.py::_CALL_ALREADY_BOOKED_OR_PAST) — sotto questi stati
+// il bottone "Conferma call fissata" non ha più senso mostrarlo.
+const _CALL_STAGES_BOOKED_OR_PAST = new Set([
+  "call_booked", "call_done", "partner_approved", "partner_active",
+]);
+
 function QuestionnaireAnswers({ responses }) {
   if (!responses || Object.keys(responses).length === 0) {
     return <p className="text-slate-400 text-sm">Nessuna risposta registrata.</p>;
@@ -169,6 +176,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [askDeliver, setAskDeliver] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [bookingConfirming, setBookingConfirming] = useState(false);
+  const [bookingMsg, setBookingMsg] = useState(null);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -203,6 +212,31 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setDeliverMsg("Errore consegna: " + e.message);
     } finally {
       setDelivering(false);
+    }
+  }
+
+  // Conferma manuale che la call è fissata — canale Mariangela: lei la fissa a
+  // voce nel gruppo WhatsApp, niente popup Cal.com self-service per quei lead
+  // (vedi diagnostic.py::complete), quindi nessuno stato "call_booked" arriva
+  // da sola. Senza questa conferma il lead resta bloccato a "report_generated".
+  async function handleConfirmCallBooked() {
+    setBookingConfirming(true);
+    setBookingMsg(null);
+    try {
+      const response = await adminFetch("/api/admin/ciak/lead/mark-call-booked", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      setBookingMsg("Call fissata confermata.");
+      const fresh = await apiGet("/lead", { email: data.email });
+      setData(fresh);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setBookingMsg("Errore: " + e.message);
+    } finally {
+      setBookingConfirming(false);
     }
   }
 
@@ -384,6 +418,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
               <StageChecklist diagnostic={d} />
+              {!_CALL_STAGES_BOOKED_OR_PAST.has(d.current_state) && (
+                <div className="mb-4 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmCallBooked}
+                    disabled={bookingConfirming}
+                    className="px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition disabled:opacity-50"
+                  >
+                    {bookingConfirming ? "Conferma in corso…" : "Conferma call fissata"}
+                  </button>
+                  {bookingMsg && <span className="text-xs text-slate-500">{bookingMsg}</span>}
+                </div>
+              )}
               {d.responses && Object.keys(d.responses).length > 0 && (
                 <details className="mb-4" open>
                   <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
