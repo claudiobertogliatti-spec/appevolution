@@ -143,6 +143,62 @@ async def test_complete_ok_quando_matteo_funziona(monkeypatch):
     assert "report_error" not in saved
 
 
+@pytest.mark.asyncio
+async def test_complete_canale_mariangela_non_emette_tag_recupero(monkeypatch):
+    """utm_source=mariangela: niente tag "ciak_completed" (quello che Systeme
+    ascolta per iscrivere alla campagna di recupero automatico) — la call la
+    fissa Mariangela a voce, non serve/non deve arrivare l'email self-service.
+    Lo stato interno (STATE_CIAK_COMPLETED) resta identico: solo l'evento
+    Systeme cambia nome ed espone un tag extra per la segmentazione.
+    """
+    doc = _session_doc()
+    doc["tracking"] = {"utm_source": "mariangela"}
+    fake_db = _FakeDB(doc)
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    emitted = {}
+
+    async def _fake_emit(**kwargs):
+        emitted.update(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        res = await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert isinstance(res, CompleteResponse)
+    # lo stato interno non cambia: stessa transizione di sempre
+    saved = fake_db.diagnostic_sessions.saved
+    assert saved["current_state"] == "ciak_completed"
+    # ma l'evento Systeme non è il tag che triggera il recupero automatico
+    assert emitted.get("event_name") == "ciak_completed_mariangela"
+    assert "source_mariangela" in emitted.get("extra_tags", [])
+
+
+@pytest.mark.asyncio
+async def test_complete_senza_tracking_mariangela_emette_tag_normale(monkeypatch):
+    """Caso comune (self-service, nessun tracking Mariangela): comportamento invariato."""
+    doc = _session_doc()
+    doc["tracking"] = {"utm_source": None}
+    fake_db = _FakeDB(doc)
+    monkeypatch.setattr(diag, "db", fake_db)
+
+    emitted = {}
+
+    async def _fake_emit(**kwargs):
+        emitted.update(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai", AsyncMock(return_value=_fake_scoring())), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+
+    assert emitted.get("event_name") == "ciak_completed"
+    assert "source_mariangela" not in emitted.get("extra_tags", [])
+
+
 @pytest.mark.parametrize("instradamento", ["partnership", "start", "nurture"])
 @pytest.mark.asyncio
 async def test_complete_espone_instradamento_calcolato(monkeypatch, instradamento):

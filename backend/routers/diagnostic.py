@@ -376,9 +376,24 @@ async def complete_diagnostic(payload: CompleteRequest):
     # Fire-and-forget Systeme.io tag emission per ciak_completed.
     # Emette sempre: ciak_completed + stato_<n> (→ mail di recupero + segmentazione base).
     # I tag Matteo (segment/digital/obiettivo) si aggiungono solo se il report è stato generato.
+    #
+    # ECCEZIONE — canale Mariangela (outbound umano, ?utm_source=mariangela sul link
+    # del questionario): la call la fissa lei a voce nel gruppo WhatsApp, non il
+    # self-service Cal.com. Il tag "ciak_completed" testuale è quello che la regola
+    # Systeme "tag_added ciak_completed → iscrivi a campagna Recupero Analisi Gratuita"
+    # ascolta — mandarlo anche per questi lead genera l'email automatica "prenota la
+    # tua call" a chi la sta già prenotando a voce con Mariangela. Qui si evita SOLO
+    # quel tag/quella iscrizione automatica: lo stato interno (STATE_CIAK_COMPLETED,
+    # sopra) resta identico per tutti, dashboard e booking non cambiano.
+    utm_source = (session.get("tracking") or {}).get("utm_source") or ""
+    is_mariangela = utm_source.strip().lower() == "mariangela"
+    completed_event_name = "ciak_completed_mariangela" if is_mariangela else "ciak_completed"
+
     user_email = session.get("user_email")
     if user_email:
         completed_tags = [f"stato_{scoring.stato_finale}"]
+        if is_mariangela:
+            completed_tags.append("source_mariangela")
         if report is not None:
             completed_tags += [
                 report["tags"]["tag_segment"],
@@ -387,7 +402,7 @@ async def complete_diagnostic(payload: CompleteRequest):
             ]
         fire_and_forget(ciak_emit_event(
             email=user_email,
-            event_name="ciak_completed",
+            event_name=completed_event_name,
             extra_tags=completed_tags,
             first_name=session.get("user_name"),
             metadata={
