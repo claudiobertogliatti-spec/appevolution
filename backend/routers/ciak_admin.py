@@ -752,6 +752,89 @@ async def ciak_mark_lead_purchased(
     }
 
 
+class MarkCallBookedRequest(BaseModel):
+    email: str = Field(..., description="Email del lead di cui confermare la call fissata")
+    starts_at: Optional[str] = Field(None, description="Data/ora della call, se nota (ISO 8601)")
+    note: Optional[str] = Field(None, description="Nota interna facoltativa (es. canale/chi ha fissato)")
+
+
+# Stati in cui la call risulta già fissata o oltre: qui la conferma manuale
+# non deve fare nulla (idempotente), mai retrocedere uno stato più avanzato.
+_CALL_ALREADY_BOOKED_OR_PAST = {
+    "call_booked", "call_done", "partner_approved", "partner_active",
+}
+
+
+@router.post("/lead/mark-call-booked")
+async def ciak_mark_call_booked(
+    payload: MarkCallBookedRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Segna MANUALMENTE la call come fissata per un lead, senza passare dal
+    webhook Cal.com. Replica l'effetto del webhook (`BOOKING_CREATED`):
+    transizione diagnostic_session a call_booked + evento equivalente
+    (flag manual=True) + stesso tag Systeme `ciak_call_booked` (aziona
+    reminder pre-call e le altre automazioni collegate a quel tag).
+
+    Serve al canale Mariangela: lei fissa la call a voce nel gruppo WhatsApp,
+    non tramite il popup Cal.com self-service (disattivato per quel canale,
+    vedi diagnostic.py::complete) — senza questa conferma manuale quei lead
+    restavano bloccati per sempre a "report_generated" nella pipeline.
+
+    Idempotente: se la sessione è già call_booked o oltre, non fa nulla.
+    Richiede una diagnostic_session esistente per l'email.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_state_machine import transition_to, add_event, STATE_CALL_BOOKED
+
+    email = payload.email.strip().lower()
+    diag = await db.diagnostic_sessions.find_one(
+        {"user_email": email}, sort=[("created_at", -1)]
+    )
+    if not diag:
+        raise HTTPException(
+            404,
+            "Nessuna diagnostic session per questa email: il lead deve aver "
+            "completato le 10 Domande Ciak prima di poter confermare la call.",
+        )
+
+    admin_id = getattr(admin, "email", None) or getattr(admin, "user_id", None)
+    already = diag.get("current_state") in _CALL_ALREADY_BOOKED_OR_PAST
+
+    if not already:
+        now = datetime.now(timezone.utc)
+        meta = {
+            "booking_id": "manual-" + now.strftime("%Y%m%d%H%M%S"),
+            "starts_at": payload.starts_at,
+            "manual": True,
+            "confirmed_by": admin_id,
+            "note": payload.note,
+        }
+        transition_to(diag, STATE_CALL_BOOKED, event_metadata=meta)
+        add_event(diag, "calcom_booking_created", meta)
+        await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
+
+        user_email = diag.get("user_email") or email
+        if user_email:
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
+                email=user_email,
+                event_name="ciak_call_booked",
+                metadata={"manual": True, "starts_at": payload.starts_at},
+            ))
+
+    return {
+        "ok": True,
+        "email": email,
+        "current_state": diag.get("current_state"),
+        "already_booked": already,
+        "manual": True,
+        "session_token": diag.get("session_token"),
+    }
+
+
 @router.get("/clienti-ciak")
 async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
     """Lista pipeline clienti Ciak per il pannello admin."""

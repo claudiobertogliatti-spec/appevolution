@@ -76,6 +76,72 @@ function StageChecklist({ diagnostic }) {
   );
 }
 
+// Scarica il Blueprint in PDF (template lockato) generato dal backend, senza
+// effetti collaterali (nessuna email, nessun cambio di stato). La generazione
+// richiama l'AI: puo' richiedere 1-2 minuti.
+async function downloadBlueprintPdf(email) {
+  const res = await adminFetch(
+    `/api/ciak/client/admin/blueprint-pdf?email=${encodeURIComponent(email)}`,
+    { timeoutMs: 180000 }
+  );
+  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safeEmail = (email || "blueprint").replace(/[^a-z0-9]+/gi, "-");
+  a.href = url;
+  a.download = `Blueprint-${safeEmail}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Stesso ordine e stesso testo mostrato al lead in Diagnostica.jsx — le
+// risposte grezze non erano mai esposte in admin prima di questa modifica
+// (bug segnalato da Claudio: servono per prepararsi/rivedere prima della call).
+const QUESTIONS = [
+  { id: "q1_competenza", text: "Qual è la competenza su cui hai costruito il tuo lavoro? E questo lavoro ha un nome, un metodo o un marchio tuo — un libro, un percorso, una tecnica che hai codificato?" },
+  { id: "q2_esperienza", text: "Da quanto la pratichi, come sei arrivato/a a padroneggiarla, e a quante persone l'hai già insegnata o erogata?" },
+  { id: "q3_clienti", text: "Con chi hai già lavorato su questo tema, e ti hanno pagato per questo? Raccontami un risultato concreto che hai aiutato a ottenere." },
+  { id: "q4_idea", text: "Se immagini un tuo corso o percorso digitale, cosa ti vedi offrire? Ce l'hai già un'offerta a pagamento, o è ancora un'intuizione?" },
+  { id: "q9_materiale", text: "Che materiale hai già creato sul tuo tema — un libro, un podcast, un videocorso, delle dispense, una masterclass? Raccontami cosa esiste già, anche se grezzo." },
+  { id: "q5_target", text: "A chi vorresti parlare con questo progetto? Descrivimi la persona che hai in mente e cosa la tiene sveglia la notte." },
+  { id: "q6_problema", text: "Qual è il problema che risolvi meglio di chiunque altro? Com'è la vita di chi ti sceglie, prima e dopo di te?" },
+  { id: "q7_digitale", text: "Che rapporto hai oggi con il mondo online? Cosa hai già provato — social, sito, vendite — e cosa ti mette ancora in difficoltà?" },
+  { id: "q10_agenzie", text: "Ti sei già affidato ad agenzie o consulenti per portare online il tuo lavoro? Com'è andata, e cosa ti è mancato?" },
+  { id: "q8_obiettivo", text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?" },
+];
+
+// Stessi stati considerati "call già fissata o oltre" lato backend
+// (routers/ciak_admin.py::_CALL_ALREADY_BOOKED_OR_PAST) — sotto questi stati
+// il bottone "Conferma call fissata" non ha più senso mostrarlo.
+const _CALL_STAGES_BOOKED_OR_PAST = new Set([
+  "call_booked", "call_done", "partner_approved", "partner_active",
+]);
+
+function QuestionnaireAnswers({ responses }) {
+  if (!responses || Object.keys(responses).length === 0) {
+    return <p className="text-slate-400 text-sm">Nessuna risposta registrata.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {QUESTIONS.map((q) => {
+        const answer = responses[q.id];
+        if (!answer) return null;
+        return (
+          <div key={q.id}>
+            <p className="text-xs font-medium text-slate-500 mb-1">{q.text}</p>
+            <p className="text-sm text-slate-800 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 leading-relaxed">
+              {answer}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
@@ -108,6 +174,10 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [deliverMsg, setDeliverMsg] = useState(null);
   const [deliverResult, setDeliverResult] = useState(null);
   const [askDeliver, setAskDeliver] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+  const [bookingConfirming, setBookingConfirming] = useState(false);
+  const [bookingMsg, setBookingMsg] = useState(null);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -142,6 +212,44 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setDeliverMsg("Errore consegna: " + e.message);
     } finally {
       setDelivering(false);
+    }
+  }
+
+  // Conferma manuale che la call è fissata — canale Mariangela: lei la fissa a
+  // voce nel gruppo WhatsApp, niente popup Cal.com self-service per quei lead
+  // (vedi diagnostic.py::complete), quindi nessuno stato "call_booked" arriva
+  // da sola. Senza questa conferma il lead resta bloccato a "report_generated".
+  async function handleConfirmCallBooked() {
+    setBookingConfirming(true);
+    setBookingMsg(null);
+    try {
+      const response = await adminFetch("/api/admin/ciak/lead/mark-call-booked", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      setBookingMsg("Call fissata confermata.");
+      const fresh = await apiGet("/lead", { email: data.email });
+      setData(fresh);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setBookingMsg("Errore: " + e.message);
+    } finally {
+      setBookingConfirming(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      await downloadBlueprintPdf(data.email);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setPdfError("Errore PDF: " + e.message);
+    } finally {
+      setPdfLoading(false);
     }
   }
 
@@ -310,6 +418,29 @@ export function AdminLeadDetail({ onAuthExpired }) {
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
               <StageChecklist diagnostic={d} />
+              {!_CALL_STAGES_BOOKED_OR_PAST.has(d.current_state) && (
+                <div className="mb-4 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmCallBooked}
+                    disabled={bookingConfirming}
+                    className="px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition disabled:opacity-50"
+                  >
+                    {bookingConfirming ? "Conferma in corso…" : "Conferma call fissata"}
+                  </button>
+                  {bookingMsg && <span className="text-xs text-slate-500">{bookingMsg}</span>}
+                </div>
+              )}
+              {d.responses && Object.keys(d.responses).length > 0 && (
+                <details className="mb-4" open>
+                  <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
+                    Risposte al questionario
+                  </summary>
+                  <div className="mt-3">
+                    <QuestionnaireAnswers responses={d.responses} />
+                  </div>
+                </details>
+              )}
               <Field label="Stato corrente" value={d.current_state} />
               <Field
                 label="Stato finale"
@@ -348,6 +479,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
                 <details className="mt-3">
                   <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
                     Report Carlo
+                    <button
+                      type="button"
+                      disabled={pdfLoading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDownloadPdf();
+                      }}
+                      className="ml-3 inline-flex items-center gap-1 rounded-lg border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700 hover:bg-yellow-100 disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {pdfLoading ? "Genero il PDF… (fino a 2 min)" : "⬇ Scarica Blueprint PDF"}
+                    </button>
+                    {pdfError && <span className="ml-3 text-xs text-red-600">{pdfError}</span>}
                   </summary>
                   <pre className="mt-2 text-xs text-slate-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 leading-relaxed">
                     {d.report.report_markdown}

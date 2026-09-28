@@ -123,6 +123,7 @@ h2.title{font-size:28pt;letter-spacing:-.025em;margin-bottom:16px}.dark h2.title
 .callout{margin-top:22px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:20px 22px;display:flex;gap:16px;align-items:flex-start}
 .callout .b{flex:0 0 auto;width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:800;font-size:15pt}
 .callout p{font-size:11pt;line-height:1.55;color:#dbe4f2}.callout b{color:#fff}
+.page:not(.dark) .callout{background:var(--ink);border-color:var(--ink)}
 .missing{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .miss{background:#fff;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:12px;padding:14px 18px}
 .miss h4{font-size:11.5pt;font-weight:700;margin-bottom:3px}.miss p{font-size:10pt;color:#475569;line-height:1.45}

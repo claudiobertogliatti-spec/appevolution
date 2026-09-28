@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
@@ -642,6 +642,47 @@ async def consegna_blueprint(
     # 3. Consegna Blueprint + sblocco offerte.
     summary = await _deliver_blueprint(diagnostic, background_tasks)
     return {"success": True, **summary}
+
+
+@router.get("/admin/blueprint-pdf")
+async def blueprint_pdf_preview(
+    email: str | None = None,
+    session_token: str | None = None,
+    auth=Depends(require_admin_or_internal),
+):
+    """PDF del Blueprint (template lockato 13+CTA) per uso interno dell'admin.
+
+    Stessa pipeline della consegna (`ciak_analisi.genera_blueprint` +
+    `ciak_pdf_blueprint.genera_blueprint_pdf`) ma SENZA effetti collaterali: non
+    invia email, non porta il lead a `call_done`, non crea l'account cliente, non
+    avvia il bonus 48h. Serve a preparare/portare il Blueprint alla call. Il testo
+    viene rigenerato ad ogni richiesta: puo' differire nella forma da quello
+    consegnato a fine call.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = None
+    if session_token:
+        diagnostic = await db.diagnostic_sessions.find_one({"session_token": session_token})
+    if diagnostic is None and email:
+        cursor = db.diagnostic_sessions.find(
+            {"user_email": email.strip().lower()}
+        ).sort("created_at", -1).limit(1)
+        docs = await cursor.to_list(length=1)
+        diagnostic = docs[0] if docs else None
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+
+    from services import ciak_analisi, ciak_pdf_blueprint
+
+    ciak_analisi.set_db(db)
+    try:
+        payload = await ciak_analisi.genera_blueprint(diagnostic["session_token"])
+        pdf = await ciak_pdf_blueprint.genera_blueprint_pdf(payload)
+    except Exception as exc:
+        logger.error("[BLUEPRINT_PDF] generazione fallita per %s: %s", diagnostic.get("session_token"), exc)
+        raise HTTPException(status_code=502, detail=f"Generazione Blueprint fallita: {exc}")
+    return Response(content=pdf, media_type="application/pdf")
 
 
 def _consegna_manuale_email_body(nome: str, sales_link: str, pdf_url: str | None) -> str:
