@@ -20,10 +20,11 @@ Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
 memory/ciak_technical_spec.md (state machine, scoring).
 """
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
@@ -43,14 +44,79 @@ def set_db(database) -> None:
 
 # ─── Auth ──────────────────────────────────────────────────────────────────
 
-async def require_ciak_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Identico pattern a routers/admin_stefania.py — role admin/superadmin."""
+# Account "commerciale" (oggi solo Mariangela): scope volutamente ristretto al
+# reparto Acquisizione, fino a "call fissata" — la consegna del Blueprint e le
+# offerte sono di Vendite, non sue (stesso confine già dichiarato nella pagina
+# Home Acquisizione: "il reparto finisce a call prenotata, poi passa a Vendite").
+# Default-deny: un path non in questa lista risponde 403, anche chiamato
+# direttamente (non basta nascondere il link nel menu). require_ciak_admin è
+# condivisa da 11 router (discovery_engine, proposta, clienti, ecc. — vedi
+# `from routers.ciak_admin import require_ciak_admin`), quindi coprirla qui
+# copre tutti loro in un colpo solo. Fa eccezione routers/ciak_clients.py,
+# che ha una propria dependency (require_admin_or_internal): lì importiamo
+# COMMERCIAL_ADMIN_TYPES e _path_allowed_for_commercial per replicare lo
+# stesso controllo — necessario perché quel file mescola un endpoint che a
+# Mariangela serve (blueprint-pdf, sola lettura) con altri che sono territorio
+# Vendite/Delivery (consegna-blueprint, consegna-manuale, offer-decision,
+# start/activate) dietro la stessa dependency.
+COMMERCIAL_ADMIN_TYPES = {"mariangela"}
+
+_COMMERCIAL_EXACT_PATHS = {
+    "/api/admin/ciak/acquisizione-command-center",
+    "/api/admin/ciak/leads",
+    "/api/admin/ciak/lead",
+    "/api/admin/ciak/lead/mark-purchased",
+    "/api/admin/ciak/lead/mark-call-booked",
+    "/api/admin/ciak/pipeline-prospect",
+    "/api/admin/ciak/funnel-metrics",
+    "/api/admin/ciak/editorial/brands",
+    "/api/admin/ciak/editorial/contents",
+    "/api/admin/ciak/editorial/contents/generate",
+    "/api/admin/ciak/editorial/contents/approve-month",
+    "/api/admin/ciak/ads/overview",
+    # Router diverso (ciak_clients.py, dependency require_admin_or_internal),
+    # ma stesso allowlist condiviso: vedi il commento su COMMERCIAL_ADMIN_TYPES.
+    # Download PDF senza side-effect (non manda email, non crea account, non
+    # sblocca offerte) — a differenza di consegna-blueprint nello stesso file.
+    "/api/ciak/client/admin/blueprint-pdf",
+}
+# Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza
+_COMMERCIAL_PATTERN_PATHS = [
+    re.compile(r"^/api/admin/ciak/leads/[^/]+/(contatta|avanza)$"),
+    re.compile(r"^/api/admin/ciak/editorial/brands/[^/]+$"),
+]
+_COMMERCIAL_PREFIX_PATHS = ("/api/discovery/",)  # motore Pipeline Prospect, tutto suo
+
+
+def _path_allowed_for_commercial(path: str) -> bool:
+    if path in _COMMERCIAL_EXACT_PATHS:
+        return True
+    if any(path.startswith(p) for p in _COMMERCIAL_PREFIX_PATHS):
+        return True
+    return any(rx.match(path) for rx in _COMMERCIAL_PATTERN_PATHS)
+
+
+async def require_ciak_admin(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Identico pattern a routers/admin_stefania.py — role admin/superadmin.
+
+    Più: un account con admin_type nel set COMMERCIAL_ADMIN_TYPES è comunque
+    role="admin" (stessa autenticazione), ma può toccare solo l'allowlist
+    Acquisizione sopra — 403 su tutto il resto, indipendentemente dal metodo.
+    """
     from auth import decode_token
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     data = decode_token(credentials.credentials)
     if not data or data.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    if data.admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
+        raise HTTPException(
+            status_code=403,
+            detail="Questo account ha accesso solo al reparto Acquisizione.",
+        )
     return data
 
 
