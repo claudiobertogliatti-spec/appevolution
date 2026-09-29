@@ -694,6 +694,17 @@ async def elimina_ciak_client(
     if email_norm != (client.get("email") or "").strip().lower():
         raise HTTPException(400, "L'email non combacia col cliente: eliminazione annullata")
 
+    deleted = await _cascade_delete_client(client_id, email_norm)
+
+    logger.info(
+        "[CIAK_ADMIN] Cliente Ciak eliminato a cascata: %s (%s) -> %s",
+        client_id, email_norm, deleted,
+    )
+    return {"ok": True, "client_id": client_id, "email": email_norm, "deleted": deleted}
+
+
+async def _cascade_delete_client(client_id: str, email_norm: str) -> dict[str, int]:
+    """Account cliente + ponte partner + journey + accessi. Mai i record contabili."""
     deleted: dict[str, int] = {}
     deleted["ciak_clients"] = (await db.ciak_clients.delete_one({"id": client_id})).deleted_count
     deleted["partners"] = (await db.partners.delete_one({"id": client_id})).deleted_count
@@ -719,12 +730,126 @@ async def elimina_ciak_client(
             {"$or": [{"client_id": client_id}, {"email": email_norm}]}
         )
     ).deleted_count
+    return deleted
+
+
+class RiportaCallFattaRequest(BaseModel):
+    email: str = Field(..., description="Email del lead (quella del questionario)")
+
+
+def _riferimenti_start_admin(client: dict) -> tuple[list[str], list[str], list[str]]:
+    """(riferimenti creati dal form admin, riferimenti di pagamenti veri, chi ha attivato).
+
+    Il form "Attiva Ciak Start" registra un incasso con riferimento `admin:<hex>`
+    quando non gli si passa un riferimento reale. Tutto il resto (sessione
+    Stripe, riferimento di un bonifico) è un pagamento vero e non si tocca.
+    """
+    refs = {p.get("reference_id") for p in (client.get("start_payments") or []) if p.get("reference_id")}
+    chi = []
+    for ev in client.get("events") or []:
+        if ev.get("event") == "ciak_start_activated_by_admin":
+            if ev.get("reference_id"):
+                refs.add(ev["reference_id"])
+            if ev.get("by"):
+                chi.append(f"{ev.get('by')} ({str(ev.get('timestamp') or '')[:16]})")
+    if client.get("last_checkout_session_id"):
+        refs.add(client["last_checkout_session_id"])
+    finti = sorted(r for r in refs if str(r).startswith("admin:"))
+    veri = sorted(r for r in refs if not str(r).startswith("admin:"))
+    return finti, veri, chi
+
+
+@router.post("/lead/riporta-a-call-fatta")
+async def riporta_lead_a_call_fatta(
+    body: RiportaCallFattaRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Riporta un lead al punto "call appena fatta, Blueprint da inviare a mano".
+
+    Nato dal caso Francesco Donati (29/9/2026): un Ciak Start mai pagato attivato
+    dal form admin gli aveva creato account, percorso Start e un incasso finto da
+    €390, e il link nella mail del Blueprint apriva un'area da cliente Start
+    invece delle due opzioni. Qui si torna indietro in un colpo solo:
+
+      1. toglie gli incassi Start creati dal form admin (riferimento `admin:…`);
+      2. elimina a cascata l'account cliente (si ricrea pulito all'invio);
+      3. azzera la registrazione degli invii del Blueprint (il contenuto resta);
+      4. lascia il lead a `call_done`.
+
+    Rifiuta (409) se trova un pagamento vero (Stripe o riferimento reale) o un
+    partner già attivo: quelli non si annullano da qui.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_state_machine import STATE_CALL_DONE, add_event
+
+    email = body.email.strip().lower()
+    diag = await db.diagnostic_sessions.find_one(
+        {"user_email": _email_ci(email)}, sort=[("created_at", -1)]
+    )
+    if not diag:
+        raise HTTPException(404, "Lead non trovato: nessun questionario per questa email.")
+    if normalize_state(diag.get("current_state")) != STATE_CALL_DONE:
+        raise HTTPException(
+            409,
+            "Il lead non è a \"call fatta\": questa azione serve solo dopo la call.",
+        )
+    session_token = diag.get("session_token")
+
+    client = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
+    incassi_tolti = {"payments": 0, "payment_transactions": 0}
+    attivato_da: list[str] = []
+    account_eliminato: dict[str, int] = {}
+    if client:
+        if client.get("partnership_attiva") or client.get("access_level") == "partner":
+            raise HTTPException(409, "Il cliente è già partner: non si riporta indietro da qui.")
+        finti, veri, attivato_da = _riferimenti_start_admin(client)
+        if veri:
+            raise HTTPException(
+                409,
+                "Risulta un pagamento Start reale (" + ", ".join(veri)
+                + "): non lo annullo. Verifica su Stripe prima di procedere.",
+            )
+        if finti:
+            incassi_tolti["payments"] = (await db.payments.delete_many(
+                {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+            )).deleted_count
+            incassi_tolti["payment_transactions"] = (await db.payment_transactions.delete_many(
+                {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+            )).deleted_count
+        account_eliminato = await _cascade_delete_client(client["id"], (client.get("email") or email).lower())
+
+    invio_azzerato = {
+        "ciak_analisi": (await db.ciak_analisi.update_one(
+            {"session_token": session_token},
+            {"$unset": {"bozza_inviata_at": "", "bozza_errore": "", "deliverable_kind": "", "bozza.pdf_url": ""}},
+        )).modified_count if session_token else 0,
+        "ciak_blueprints": (await db.ciak_blueprints.update_one(
+            {"session_token": session_token},
+            {"$unset": {"consegna_inviata_at": "", "consegna_errore": "", "pdf_url": ""}},
+        )).modified_count if session_token else 0,
+    }
+
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    add_event(diag, "admin_riportato_a_call_fatta", {
+        "by": actor,
+        "incassi_tolti": incassi_tolti,
+        "start_attivato_da": attivato_da,
+    })
+    await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
 
     logger.info(
-        "[CIAK_ADMIN] Cliente Ciak eliminato a cascata: %s (%s) -> %s",
-        client_id, email_norm, deleted,
+        "[CIAK_ADMIN] Lead %s riportato a call fatta da %s: incassi=%s account=%s invio=%s",
+        email, actor, incassi_tolti, account_eliminato, invio_azzerato,
     )
-    return {"ok": True, "client_id": client_id, "email": email_norm, "deleted": deleted}
+    return {
+        "ok": True,
+        "email": email,
+        "incassi_tolti": incassi_tolti,
+        "start_attivato_da": attivato_da,
+        "account_eliminato": account_eliminato,
+        "invio_azzerato": invio_azzerato,
+    }
 
 
 class MarkCallBookedRequest(BaseModel):
