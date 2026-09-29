@@ -77,3 +77,28 @@ test("adminFetch abortisce e rifiuta con un messaggio se scade il timeout", asyn
   await expectation;
   jest.useRealTimers();
 });
+
+function res403(detail) {
+  const body = { detail };
+  const r = { ok: false, status: 403, json: async () => body };
+  r.clone = () => r;
+  return r;
+}
+
+test("403 di scope (account solo Acquisizione): errore leggibile, la sessione resta", async () => {
+  global.fetch.mockResolvedValue(res403("Questo account ha accesso solo al reparto Acquisizione."));
+  await expect(adminFetch("/api/admin/ciak/partners")).rejects.toThrow("solo al reparto Acquisizione");
+  expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
+});
+
+test("403 da token non valido: logout come prima", async () => {
+  global.fetch.mockResolvedValue(res403("Accesso riservato agli admin"));
+  await expect(adminFetch("/api/admin/ciak/partners")).rejects.toThrow("AUTH_EXPIRED");
+  expect(localStorage.getItem("ciak_admin_token")).toBeNull();
+});
+
+test("403 di contabilità riservata (Antonella): errore leggibile, niente logout", async () => {
+  global.fetch.mockResolvedValue(res403("Contabilita' collaboratori riservata"));
+  await expect(adminFetch("/api/admin/ciak/collaboratori/antonella/settlements")).rejects.toThrow("Contabilita' collaboratori riservata");
+  expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
+});

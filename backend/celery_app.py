@@ -83,10 +83,9 @@ celery_app.conf.update(
             'task': 'celery_tasks.check_stuck_video_pipelines',
             'schedule': 1800.0,  # Every 30 minutes
         },
-        'check-pending-analisi-reminders': {
-            'task': 'celery_tasks.check_pending_analisi_reminders',
-            'schedule': 3600.0,  # Every hour - check for 48h reminders
-        },
+        # 'check-pending-analisi-reminders' SPENTO dal 29/9/2026: mandava
+        # promemoria del vecchio flusso "Analisi Strategica €67", ritirato
+        # (decisione Claudio: il flusso si elimina dopo l'export dei dati).
         'process-auto-approve-leads': {
             'task': 'celery_tasks.process_auto_approve_leads',
             'schedule': 3600.0,  # Every hour - auto-approve hot leads and start sequence

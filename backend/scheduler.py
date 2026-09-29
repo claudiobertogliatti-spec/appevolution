@@ -185,18 +185,6 @@ def trigger_stefania_daily():
         logger.error(f"[SCHEDULER] Errore trigger_stefania_daily: {e}")
 
 
-def trigger_discovery_cleanup():
-    """Ogni giorno alle 3:00 — pulizia duplicati Discovery Engine."""
-    try:
-        logger.info("[SCHEDULER] Discovery cleanup — avvio pulizia duplicati")
-        response = httpx.post(f"{BASE_URL}/discovery/worker/cleanup-duplicates", json={}, timeout=120)
-        result = response.json()
-        total_removed = result.get("total_removed", 0)
-        logger.info(f"[SCHEDULER] Discovery cleanup completato — {total_removed} duplicati rimossi")
-    except Exception as e:
-        logger.error(f"[SCHEDULER] Errore trigger_discovery_cleanup: {e}")
-
-
 def trigger_lead_autosearch():
     """Ogni giorno alle 6:00 — ricerca automatica ~20 lead nuovi (Google Places).
 
@@ -476,15 +464,13 @@ def start_scheduler():
         replace_existing=True
     )
 
-    # DISCOVERY CLEANUP — ogni giorno alle 3:00
-    scheduler.add_job(
-        trigger_discovery_cleanup,
-        CronTrigger(hour=3, minute=0),
-        id="discovery_cleanup",
-        replace_existing=True
-    )
+    # DISCOVERY CLEANUP — SPENTO dal 29/9/2026 (decisione Claudio). Raggruppava
+    # per username vuoto e cancellava i lead inseriti a mano senza username,
+    # tenendone uno solo. La deduplica si fa già all'inserimento
+    # (discovery_engine.check_duplicate). L'endpoint resta solo per un lancio
+    # manuale di Claudio (require_ciak_admin, vietato all'account commerciale).
 
-    # LEAD AUTOSEARCH — ogni giorno alle 6:00 (dopo il cleanup delle 3:00).
+    # LEAD AUTOSEARCH — ogni giorno alle 6:00.
     # Inerte finché LEAD_AUTOSEARCH_ENABLED != "1" (guardia costo API Places).
     scheduler.add_job(
         trigger_lead_autosearch,
@@ -541,7 +527,6 @@ def start_scheduler():
         "  • MARCO: lunedì ore 9\n"
         "  • ANDREA: giovedì ore 10\n"
         "  • STEFANIA: giornaliero ore 7\n"
-        "  • DISCOVERY CLEANUP: giornaliero ore 3\n"
         "  • LEAD AUTOSEARCH: giornaliero ore 6 (se LEAD_AUTOSEARCH_ENABLED=1)\n"
         "  • SYSTEME.IO SYNC: ogni 6 ore\n"
         "  • PARTNERSHIP EXPIRY: giornaliero ore 8\n"

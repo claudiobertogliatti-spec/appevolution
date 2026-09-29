@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiGet, adminFetch, errorDetail } from "../api";
+import { apiGet, adminFetch, errorDetail, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -201,13 +201,15 @@ function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScar
               Apri il PDF inviato
             </a>
           )}
-          <button
-            type="button"
-            onClick={onGenera}
-            className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition"
-          >
-            Genera una copia salvata
-          </button>
+          {onGenera && (
+            <button
+              type="button"
+              onClick={onGenera}
+              className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition"
+            >
+              Genera una copia salvata
+            </button>
+          )}
         </div>
         {message && <p className="text-sm text-slate-600 mt-3">{message}</p>}
       </div>
@@ -223,10 +225,14 @@ function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScar
       </div>
       <p className="text-sm text-slate-600 leading-relaxed mb-4">
         {pronto
-          ? `Generato il ${formatWhen(blueprint.generato_at) || "—"}. Scaricalo per la call: il cliente riceverà esattamente questo documento quando confermi di aver fatto la call.`
+          ? onGenera
+            ? `Generato il ${formatWhen(blueprint.generato_at) || "—"}. Scaricalo per la call: il cliente riceverà esattamente questo documento quando confermi di aver fatto la call.`
+            : `Generato il ${formatWhen(blueprint.generato_at) || "—"}. Scaricalo per la call. L'invio al cliente, dopo la call, lo fa Claudio.`
           : inCorso
             ? "Carlo sta scrivendo il Blueprint (1-2 minuti). La pagina si aggiorna da sola."
-            : "Generalo prima della call: ti serve per prepararti e per mostrarlo in videocall. Non viene inviato niente al cliente."}
+            : onGenera
+              ? "Generalo prima della call: ti serve per prepararti e per mostrarlo in videocall. Non viene inviato niente al cliente."
+              : "Il Blueprint lo prepara Claudio prima della call. Quando è pronto lo trovi qui da scaricare."}
       </p>
       {stato === "errore" && blueprint?.errore && (
         <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4 break-words">
@@ -244,16 +250,18 @@ function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScar
             >
               {pdfLoading ? "Preparo il PDF…" : "⬇ Scarica Blueprint PDF"}
             </button>
-            <button
-              type="button"
-              onClick={onRigenera}
-              disabled={busy}
-              className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition disabled:opacity-50"
-            >
-              Rigenera
-            </button>
+            {onRigenera && (
+              <button
+                type="button"
+                onClick={onRigenera}
+                disabled={busy}
+                className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition disabled:opacity-50"
+              >
+                Rigenera
+              </button>
+            )}
           </>
-        ) : (
+        ) : onGenera && (
           <button
             type="button"
             onClick={onGenera}
@@ -287,6 +295,10 @@ function Field({ label, value }) {
 
 export function AdminLeadDetail({ onAuthExpired }) {
   const { email } = useParams();
+  // Account commerciale (Mariangela): il reparto Acquisizione finisce a "call
+  // fissata". Generare/inviare il Blueprint, la proposta e il ripristino sono
+  // di Claudio (backend: 403, routers/ciak_admin.py): qui non compaiono.
+  const isCommercial = getAdminUser()?.admin_type === "mariangela";
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -378,6 +390,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
       setData((d) => ({ ...d, blueprint: stato }));
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      // Permesso negato (account commerciale): non è una connessione chiusa.
+      else if (e.message === SCOPE_DENIED_DETAIL) setBpMsg(e.message);
       // Una connessione chiusa dal proxy non ferma la generazione: si continua
       // a leggere lo stato reale dalla scheda.
       else setBpMsg("La richiesta si è interrotta, ma la generazione può essere ancora in corso: controllo lo stato…");
@@ -503,8 +517,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
           blueprint={data.blueprint}
           busy={bpBusy}
           message={bpMsg}
-          onGenera={() => generaBlueprint(false)}
-          onRigenera={() => setAskRigenera(true)}
+          onGenera={isCommercial ? null : () => generaBlueprint(false)}
+          onRigenera={isCommercial ? null : () => setAskRigenera(true)}
           onScarica={handleDownloadPdf}
           pdfLoading={pdfLoading}
           pdfError={pdfError}
@@ -515,7 +529,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
           Visibile finché NON risulta un invio registrato (non basta lo stato
           "call fatta": un lead può essere a call_done senza aver mai ricevuto
           l'email). Dopo l'invio resta solo il riepilogo verde. */}
-      {diagnostics.length > 0 && (!blueprintInviato || deliverResult) && (
+      {!isCommercial && diagnostics.length > 0 && (!blueprintInviato || deliverResult) && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
             {callFatta && !blueprintInviato ? "Call fatta · Blueprint non ancora inviato" : "Dopo la call di consegna"}
@@ -572,7 +586,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       )}
 
       {/* Bridge Partnership */}
-      {qualified_for_proposta && (
+      {!isCommercial && qualified_for_proposta && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
             Lead qualificato — Partnership Evolution
@@ -705,7 +719,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
         onCancel={() => setAskDeliver(false)}
       />
 
-      {callFatta && (
+      {!isCommercial && callFatta && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 mt-2 mb-5">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-2">Ripristino</h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-4">

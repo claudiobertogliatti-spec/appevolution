@@ -7,10 +7,15 @@ jest.mock(
   () => ({ useParams: () => ({ email: "mario%40x.it" }), useNavigate: () => jest.fn() }),
   { virtual: true }
 );
-jest.mock("../api", () => ({ apiGet: jest.fn(), adminFetch: jest.fn() }));
+jest.mock("../api", () => ({
+  apiGet: jest.fn(),
+  adminFetch: jest.fn(),
+  getAdminUser: jest.fn(() => null),
+  SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
+}));
 
 import { AdminLeadDetail } from "./AdminLeadDetail";
-import { apiGet, adminFetch } from "../api";
+import { apiGet, adminFetch, getAdminUser } from "../api";
 
 const LEAD = {
   email: "mario@x.it",
@@ -143,4 +148,41 @@ test("il ripristino non compare prima della call", async () => {
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
   expect(screen.queryByRole("button", { name: /Riporta a: call fatta/i })).toBeNull();
+});
+
+test("account commerciale (Mariangela): niente genera, invio, proposta o ripristino", async () => {
+  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    qualified_for_proposta: true,
+    latest_diagnostic: { current_state: "call_done", scoring: { stato_finale: 3 } },
+    blueprint: { stato: "mancante" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/lo prepara Claudio prima della call/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Genera Blueprint/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /invia il Blueprint/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Genera Proposta Partnership/i })).toBeNull();
+  expect(screen.queryByText("Ripristino")).toBeNull();
+  getAdminUser.mockReturnValue(null);
+});
+
+test("account commerciale con Blueprint pronto: può scaricarlo, non rigenerarlo", async () => {
+  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByRole("button", { name: /Scarica Blueprint PDF/i })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Rigenera" })).toBeNull();
+  // Non le si chiede di "confermare la call": l'invio non è suo.
+  expect(screen.getByText(/L'invio al cliente, dopo la call, lo fa Claudio/i)).toBeTruthy();
+  expect(screen.queryByText(/quando confermi di aver fatto la call/i)).toBeNull();
+  getAdminUser.mockReturnValue(null);
+});
+
+test("generazione negata per permesso: si legge il motivo, non 'può essere ancora in corso'", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Genera Blueprint" }));
+  expect(await screen.findByText("Questo account ha accesso solo al reparto Acquisizione.")).toBeTruthy();
+  expect(screen.queryByText(/può essere ancora in corso/i)).toBeNull();
 });

@@ -72,7 +72,36 @@ except ImportError as e:
     logging.warning(f"Master Prompt o Strategic Research non disponibili: {e}")
     MASTER_PROMPT_AVAILABLE = False
 
-router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"])
+# Vecchio flusso "Analisi Strategica €67" (ritirato). Chiuso agli estranei
+# dal 29/9/2026: registrava clienti con password in chiaro, convertiva in
+# partner "active" e lanciava l'LLM senza autenticazione. Si elimina del
+# tutto dopo l'export dei dati storici (decisione Claudio).
+from fastapi import Depends as _Depends, Request as _Request
+from routers.ciak_admin import require_ciak_admin as _require_ciak_admin
+
+
+async def _require_ciak_admin_or_internal_key(
+    request: _Request,
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    """Admin Ciak, oppure il backend stesso con X-Internal-Key.
+
+    Le chiamate interne ad attiva-partnership (stripe_webhook._trigger_attiva,
+    verify-payment-partnership) mandano solo la chiave: con INTERNAL_API_KEY
+    impostata passano. Chiave non configurata = nessuna scorciatoia (qui non
+    si apre nulla, a differenza di _require_internal_or_admin): quelle chiamate
+    prendono 401 e l'attivazione si fa da admin. Al 30/9/2026 la chiave NON è
+    impostata su Cloud Run; oggi nessun checkout vivo arriva a quel ramo
+    (il checkout della proposta porta il token e il webhook esce prima).
+    """
+    internal_key = os.environ.get("INTERNAL_API_KEY", "").strip()
+    if internal_key and x_internal_key and internal_or_admin_authorized(internal_key, x_internal_key, False):
+        return None
+    return await _require_ciak_admin(request, credentials)
+
+
+router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"], dependencies=[_Depends(_require_ciak_admin_or_internal_key)])
 
 # Database reference
 db = None

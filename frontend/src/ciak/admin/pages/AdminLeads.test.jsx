@@ -5,11 +5,16 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 // react-router-dom non si risolve in jest in locale (dist/main.js manca): mock virtuale.
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn(), Link: ({ children }) => children }), { virtual: true });
-jest.mock("../api", () => ({ apiGet: jest.fn(), adminFetch: jest.fn() }));
+jest.mock("../api", () => ({
+  apiGet: jest.fn(),
+  adminFetch: jest.fn(),
+  getAdminUser: jest.fn(() => null),
+  SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
+}));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 import { AdminLeads } from "./AdminLeads";
-import { apiGet, adminFetch } from "../api";
+import { apiGet, adminFetch, getAdminUser } from "../api";
 import { toast } from "sonner";
 
 const LEADS = [{ email: "mario@x.it" }];
@@ -44,4 +49,22 @@ test("confermando l'eliminazione chiama la DELETE per email e conferma con un to
     )
   );
   await waitFor(() => expect(toast.success).toHaveBeenCalled());
+});
+
+test("account commerciale (Mariangela): il bottone Elimina non compare", async () => {
+  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  render(<AdminLeads onAuthExpired={() => {}} />);
+  await screen.findByText("mario@x.it");
+  expect(screen.queryByRole("button", { name: "Elimina" })).toBeNull();
+  getAdminUser.mockReturnValue(null);
+});
+
+test("eliminazione negata dal backend per permesso: il toast dice il perché", async () => {
+  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  render(<AdminLeads onAuthExpired={() => {}} />);
+  await screen.findByText("mario@x.it");
+  fireEvent.click(screen.getByRole("button", { name: "Elimina" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Elimina" }));
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Questo account ha accesso solo al reparto Acquisizione."));
+  expect(screen.queryByRole("dialog")).toBeNull();
 });

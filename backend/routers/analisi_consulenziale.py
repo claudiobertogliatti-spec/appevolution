@@ -23,7 +23,14 @@ import json
 import logging
 import io
 
-router = APIRouter(prefix="/api/analisi-consulenziale", tags=["analisi-consulenziale"])
+# Vecchio flusso "Analisi Strategica €67" (ritirato). Chiuso agli estranei
+# dal 29/9/2026: registrava clienti con password in chiaro, convertiva in
+# partner "active" e lanciava l'LLM senza autenticazione. Si elimina del
+# tutto dopo l'export dei dati storici (decisione Claudio).
+from fastapi import Depends as _Depends
+from routers.ciak_admin import require_ciak_admin as _require_ciak_admin
+
+router = APIRouter(prefix="/api/analisi-consulenziale", tags=["analisi-consulenziale"], dependencies=[_Depends(_require_ciak_admin)])
 
 # Database reference
 db = None

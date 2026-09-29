@@ -401,9 +401,28 @@ export function ClientiAnalisi({ onAuthExpired }) {
     }
   };
 
-  // Download DOCX from workflow
-  const downloadDOCX = (clienteId) => {
-    window.open(`/api/clienti/${clienteId}/scarica-docx`, "_blank");
+  // Download DOCX from workflow. Via adminFetch come il PDF: /api/clienti
+  // richiede il token admin, e window.open non manda l'header Authorization.
+  const downloadDOCX = async (cliente) => {
+    try {
+      const res = await adminFetch(`/api/clienti/${cliente.id}/scarica-docx`);
+      if (!res.ok) {
+        const detail = (await res.json().catch(() => null))?.detail;
+        toast.error(detail || "DOCX non disponibile.");
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Analisi_Strategica_${cliente.nome || ""}_${cliente.cognome || ""}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") return onAuthExpired();
+      toast.error("Errore nel download del DOCX.");
+    }
   };
 
   // Avvia workflow analisi
@@ -687,7 +706,7 @@ export function ClientiAnalisi({ onAuthExpired }) {
                       {/* Analisi Column */}
                       <div className="text-center min-w-[100px]">
                         {cliente.docx_analisi_url ? (
-                          <button onClick={(e) => { e.stopPropagation(); downloadDOCX(cliente.id); }}
+                          <button onClick={(e) => { e.stopPropagation(); downloadDOCX(cliente); }}
                             className="text-xs font-semibold text-purple-600 hover:underline flex items-center gap-1 justify-center">
                             <Download className="w-3 h-3" /> DOCX
                           </button>

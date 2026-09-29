@@ -89,6 +89,41 @@ export async function login(email, password) {
   }
 }
 
+// Testo del 403 che il backend dà a un account a scope ridotto (Mariangela)
+// su una funzione fuori dal suo reparto: NON è una sessione scaduta, quindi
+// si mostra il messaggio invece di fare logout (routers/ciak_admin.py).
+export const SCOPE_DENIED_DETAIL = "Questo account ha accesso solo al reparto Acquisizione.";
+
+// Altri 403 di permesso (token valido, funzione non concessa a quell'account):
+// da quando il token porta admin_type scattano davvero, e non devono sloggare.
+// backend/routers/collaborator_settlements.py::require_billing_admin (Antonella).
+const PERMISSION_DENIED_DETAILS = new Set([
+  SCOPE_DENIED_DETAIL,
+  "Contabilita' collaboratori riservata",
+]);
+
+/**
+ * 401, o 403 da token scaduto/non valido → logout ("AUTH_EXPIRED").
+ * 403 di permesso (scope commerciale, contabilità) → errore leggibile, la sessione resta.
+ */
+async function ensureAuthorized(res) {
+  if (res.status === 401) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (res.status === 403) {
+    let detail = "";
+    try {
+      detail = (await res.clone().json())?.detail || "";
+    } catch {
+      detail = "";
+    }
+    if (PERMISSION_DENIED_DETAILS.has(detail)) throw new Error(detail);
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+}
+
 /** GET autenticato su /api/admin/ciak/*. Lancia su 401 (token scaduto). */
 export async function apiGet(path, params = {}) {
   const token = getToken();
@@ -99,10 +134,7 @@ export async function apiGet(path, params = {}) {
   const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     throw new Error(`Errore ${res.status}`);
   }
@@ -120,10 +152,7 @@ export async function apiPut(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -142,10 +171,7 @@ export async function apiPost(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -167,10 +193,7 @@ export async function apiPatch(path, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
@@ -187,10 +210,7 @@ export async function apiMultipart(path, formData) {
     body: formData,
     timeoutMs: 120000,
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.detail || `Errore ${res.status}`);
@@ -228,10 +248,7 @@ export async function adminFetch(path, options = {}) {
       Authorization: `Bearer ${token}`,
     },
   });
-  if (res.status === 401 || res.status === 403) {
-    clearSession();
-    throw new Error("AUTH_EXPIRED");
-  }
+  await ensureAuthorized(res);
   return res;
 }
 
