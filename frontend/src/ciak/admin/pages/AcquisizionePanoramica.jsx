@@ -24,7 +24,7 @@ function pct(num, den) {
 function FunnelStrip({ stages }) {
   const steps = [
     { name: "Lead nuovi", value: stages.leads, sub: "questo mese" },
-    { name: "Questionario", value: stages.questionnaire_completed, sub: "8 domande" },
+    { name: "Questionario", value: stages.questionnaire_completed, sub: "10 domande" },
     { name: "Analisi pronta", value: stages.report_ready, sub: "Report Carlo" },
     { name: "Call prenotata", value: stages.call_booked, sub: "→ a Vendite" },
   ];
@@ -227,7 +227,7 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
           {[
             { k: "Oggi", v: `${contattiOggi} / ${targetOggi}`, h: "nuovi contatti mirati" },
-            { k: "Diagnosi oggi", v: activity.diagnostics_completed || 0, h: "8 domande completate" },
+            { k: "Diagnosi oggi", v: activity.diagnostics_completed || 0, h: "10 domande completate" },
             { k: "Lead mese", v: `${stages.leads || 0} / 400`, h: "su target mensile" },
             { k: "Call mese", v: funnel.call_booked || 0, h: "prenotate → Vendite" },
           ].map((m) => (

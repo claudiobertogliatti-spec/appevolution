@@ -1,6 +1,7 @@
 /**
- * Ciak.io /blueprint — landing "analisi gratuita" (da 67€ a GRATIS).
- * Il Blueprint non si paga piu': la CTA porta alle 8 Domande Ciak (/diagnostica),
+ * Ciak.io /blueprint — landing "analisi gratuita" (GRATIS — valore 67€, mai
+ * prezzo barrato: decisione 7/9/2026, difendibile con la direttiva Omnibus).
+ * Il Blueprint non si paga piu': la CTA porta alle 10 Domande Ciak (/diagnostica),
  * poi popup + videocall strategica gratuita dove Claudio commenta l'analisi.
  * Palette allineata al logo Ciak (Sfondo Bianco #FFFFFF / #F8FAFC, Giallo #FACC15, Text Slate-950 #0F172A).
  */
@@ -15,7 +16,7 @@ import { isMasterclassOptinBridge, masterclassSkipUrl } from "../lib/funnelRouti
 export function CiakBlueprint() {
   const source = useMemo(() => new URLSearchParams(window.location.search).get("source"), []);
   const showBridge = isMasterclassOptinBridge(source);
-  // Porta alle 8 domande gratuite conservando l'attribuzione (utm/source).
+  // Porta alle 10 domande gratuite conservando l'attribuzione (utm/source).
   const diagnosticaUrl = `/diagnostica${window.location.search}`;
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function CiakBlueprint() {
                 Scopri se la tua competenza ha un mercato.
               </h1>
               <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-slate-600 md:text-xl">
-                Rispondi a 8 domande aperte sul tuo progetto e ti prepariamo un'analisi di mercato personalizzata: cosa funziona, cosa correggere e il primo passo. La vediamo insieme in una videocall strategica gratuita. Di solito 67€, ora gratuita.
+                Rispondi a 10 domande aperte sul tuo progetto e ti prepariamo un'analisi di mercato personalizzata: cosa funziona, cosa correggere e il primo passo. La vediamo insieme in una videocall strategica gratuita. Di solito 67€, ora gratuita.
               </p>
             </div>
 
@@ -79,8 +80,8 @@ export function CiakBlueprint() {
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-widest text-slate-950">In promozione</span>
                   <div className="mt-2 flex items-baseline gap-3">
-                    <span className="text-2xl font-bold font-mono line-through opacity-60">€67</span>
                     <span className="text-5xl font-extrabold">GRATIS</span>
+                    <span className="text-sm font-semibold text-slate-900">valore 67€</span>
                   </div>
                   <p className="mt-2 text-xs text-slate-900 font-medium">Nessun costo, nessun impegno.</p>
                 </div>
@@ -93,7 +94,7 @@ export function CiakBlueprint() {
                     Fai la tua analisi gratuita <ArrowRight className="h-4 w-4 text-yellow-400" />
                   </Link>
                   <p className="mt-3 text-[11px] text-center font-medium opacity-90">
-                    8 domande aperte · analisi personalizzata · videocall gratuita
+                    10 domande aperte · analisi personalizzata · videocall gratuita
                   </p>
                 </div>
               </div>
@@ -114,7 +115,7 @@ export function CiakBlueprint() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="p-5 rounded-xl border border-slate-200 bg-slate-50">
                   <span className="text-amber-600 font-bold text-sm block mb-1">01</span>
-                  <h4 className="font-bold text-slate-900">8 Domande Ciak</h4>
+                  <h4 className="font-bold text-slate-900">10 Domande Ciak</h4>
                   <p className="text-xs text-slate-600 mt-1">Rispondi con parole tue: le tue risposte alimentano l'analisi personalizzata.</p>
                 </div>
 
@@ -175,7 +176,7 @@ export function CiakBlueprint() {
 
             <div className="space-y-6">
               {[
-                ["Fase 01 - Il primo passo, gratis", "Le 8 Domande Ciak", "Rispondi con parole tue a 8 domande aperte che fotografano il tuo progetto. Le risposte alimentano l'analisi personalizzata."],
+                ["Fase 01 - Il primo passo, gratis", "Le 10 Domande Ciak", "Rispondi con parole tue a 10 domande aperte che fotografano il tuo progetto. Le risposte alimentano l'analisi personalizzata."],
                 ["Fase 02 - La prenotazione", "Scegli quando vederla", "Al termine scegli lo slot per la videocall strategica: nessun pagamento, solo la data che preferisci."],
                 ["Fase 03 - La videocall", "Analisi commentata insieme (gratis)", "Con Claudio vediamo insieme la tua analisi di mercato: validazione del potenziale, colli di bottiglia e priorità operative."],
                 ["Fase 04 - Il prossimo passo", "Direzione chiara", "Esci dalla call con una direzione consigliata e le prossime mosse concrete per decidere con lucidità."],
@@ -206,7 +207,7 @@ export function CiakBlueprint() {
                   <span className="text-xs font-bold uppercase tracking-widest text-emerald-600">Nessun rischio</span>
                   <h3 className="text-2xl font-bold text-slate-900 mt-2">Gratis, senza impegno</h3>
                   <p className="mt-3 text-slate-600 leading-relaxed text-sm">
-                    L'analisi e la videocall sono gratuite: non rischi nulla, se non 8 domande del tuo tempo. Nessuna carta, nessun pagamento.
+                    L'analisi e la videocall sono gratuite: non rischi nulla, se non 10 domande del tuo tempo. Nessuna carta, nessun pagamento.
                   </p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-200 flex items-center gap-2 text-xs font-semibold text-emerald-700">
@@ -232,7 +233,7 @@ export function CiakBlueprint() {
             <div className="mt-12 p-8 md:p-12 rounded-2xl bg-yellow-400 text-slate-950 text-center shadow-xl">
               <h2 className="text-3xl font-extrabold md:text-4xl">Fai la tua analisi gratuita</h2>
               <p className="mt-3 text-slate-900 text-base max-w-xl mx-auto">
-                8 domande aperte + analisi di mercato personalizzata + videocall strategica gratuita
+                10 domande aperte + analisi di mercato personalizzata + videocall strategica gratuita
               </p>
               <div className="mt-8">
                 <Link

@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — KB Matteo editor.
  *
- * Edita il system prompt di Matteo (l'agente che genera i report 8 Domande).
+ * Edita il system prompt di Matteo (l'agente che genera i report 10 Domande).
  * Le versioni sono salvate in MongoDB (collection ciak_matteo_prompts). Una sola
  * è "attiva" alla volta. Se nessuna versione in DB, fallback all'hardcoded
  * (v1.4) di `backend/services/ciak_matteo.py`.
@@ -112,7 +112,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
     <div className="p-10 max-w-7xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">KB Carlo</h1>
       <p className="text-slate-500 mb-6">
-        System prompt dell'agente Carlo (genera i report 8 Domande Ciak Blueprint).
+        System prompt dell'agente Carlo (genera i report 10 Domande Ciak Blueprint).
         Le modifiche valgono immediatamente: ogni nuovo report nascerà dal prompt attivo.
       </p>
 

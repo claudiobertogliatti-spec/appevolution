@@ -726,7 +726,7 @@ async def consegna_manuale(
 ):
     """Consegna manuale di un Blueprint per un cliente FUORI-FUNNEL (PDF gia' pronto).
 
-    Per i lead che non passano dalle 8 domande (es. ProVideo outbound): l'admin
+    Per i lead che non passano dalle 10 domande (es. ProVideo outbound): l'admin
     fornisce email + nome + il PDF, e questo endpoint crea l'account cliente + una
     diagnostic session gia' a `call_done` (sblocca Ciak Start / Partnership e soddisfa
     i gate di checkout), genera il magic-link e invia l'email col PDF allegato + il

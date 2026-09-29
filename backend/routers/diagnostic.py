@@ -1,7 +1,7 @@
 """
 Ciak — Router diagnostic.
 
-Endpoint pubblici per il flow utente Ciak (8 domande → scoring → report interno
+Endpoint pubblici per il flow utente Ciak (10 domande → scoring → report interno
 di Carlo). Il report NON si mostra al lead: lo legge solo l'admin prima della call.
 
 Endpoint:

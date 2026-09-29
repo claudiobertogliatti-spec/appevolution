@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Consegna manuale del Blueprint.
  *
- * Per i clienti che NON passano dal funnel 8 domande (es. ProVideo outbound, con
+ * Per i clienti che NON passano dal funnel 10 domande (es. ProVideo outbound, con
  * un PDF già preparato a mano): carica email + nome + PDF e invia. Il backend crea
  * l'account cliente + call_done (sblocca Ciak Start / Partnership), genera il
  * magic-link e invia l'email col PDF allegato + link alla sales page.

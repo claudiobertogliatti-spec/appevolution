@@ -21,7 +21,7 @@ describe("CiakBlueprint (analisi gratuita)", () => {
     trackBlueprintBridgeView.mockReset();
   });
 
-  test("le CTA portano alle 8 domande (/diagnostica), niente checkout", () => {
+  test("le CTA portano alle 10 domande (/diagnostica), niente checkout", () => {
     renderAt("/blueprint");
     const cta = screen.getAllByRole("link", { name: /fai la tua analisi gratuita|inizia ora/i });
     expect(cta.length).toBeGreaterThan(0);

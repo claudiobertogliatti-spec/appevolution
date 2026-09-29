@@ -1,7 +1,7 @@
 """
 Ciak — Servizio Analisi + Roadmap.
 
-Genera 3 artefatti dalle 8 Domande Ciak (diagnostic_session):
+Genera 3 artefatti dalle 10 Domande Ciak (diagnostic_session):
   1. analisi definitiva (6 capitoli, web) — stato da_validare
   2. bozza (bullet teaser, per PDF) — derivata dalla definitiva
   3. script di call (interno, conversione partner €2.990)
@@ -66,7 +66,7 @@ OUTPUT: SOLO JSON valido con questa struttura:
 _PROMPT_DEFINITIVA = """Sei il Senior Strategic Advisor di Evolution PRO. Genera l'ANALISI STRATEGICA DEFINITIVA per un professionista, basata sulle sue 8 risposte e sul research brief di mercato.
 
 L'analisi segue un ARCO NARRATIVO in 6 capitoli che culmina nel desiderio della partnership:
-1. "Il tuo punto di partenza" — sintesi del profilo dalle 8 domande (60-100 parole)
+1. "Il tuo punto di partenza" — sintesi del profilo dalle 10 domande (60-100 parole)
 2. "Dove sei adesso" — stato reale + limite strutturale del modello attuale (tempo=denaro) + costo di restare fermo (120-180 parole)
 3. "Il tuo mercato" — settore, domanda, competitor REALI e prezzi REALI dal research brief, spazio non presidiato (150-220 parole)
 4. "La tua Accademia Digitale" — visione concreta: nome percorso possibile, promessa di trasformazione, 4 moduli, pricing realistico tarato sul mercato trovato (180-250 parole)
@@ -338,7 +338,7 @@ _SCHEMA_BLUEPRINT = {
 
 _SEZIONI_BLUEPRINT = ["sintesi", "potenziale", "mercato", "competitor", "pubblico", "problema", "forza", "limiti", "accademia", "rischio", "manca", "roadmap", "prossimo"]
 
-_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 13 sezioni, dalle 8 domande del cliente e dal research brief di mercato.
+_PROMPT_BLUEPRINT = """Sei Matteo, analista strategico senior di Evolution PRO. Produci il BLUEPRINT DEFINITIVO: un'analisi strategica di posizionamento in 13 sezioni, dalle 10 domande del cliente e dal research brief di mercato.
 
 """ + _VINCOLI_STILE + """
 
