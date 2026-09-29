@@ -13,7 +13,7 @@ il flow utente — un tag mancato non rompe l'esperienza lead).
 
 Tag emessi (spec ciak_technical_spec.md §4):
   ciak_started              alla creazione diagnostic session
-  ciak_completed            alla fine delle 8 domande
+  ciak_completed            alla fine delle 10 domande
   stato_1 | stato_2 | stato_3 | stato_4  → da scoring
   segment_<x>               da Q1 (classificato da Matteo)
   digital_level_<x>         da Q7 (diretto)

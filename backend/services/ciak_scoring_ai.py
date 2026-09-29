@@ -1,7 +1,7 @@
 """
 Ciak — Scoring AI sulle risposte APERTE.
 
-Sostituisce la somma di crocette di `ciak_scoring.py` ora che le 8 Domande Ciak
+Sostituisce la somma di crocette di `ciak_scoring.py` ora che le 10 Domande Ciak
 sono tutte aperte (testo libero). Legge le 8 risposte, chiede a un modello di
 valutare quanto il prospect è PRONTO a costruire un'accademia digitale, e ritorna:
   - score_0_100 (int), stato 1-4, pronto (bool, score>=50), rationale (INTERNO).

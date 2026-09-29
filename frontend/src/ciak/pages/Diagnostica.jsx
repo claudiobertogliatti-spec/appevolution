@@ -1,8 +1,8 @@
 /**
- * Ciak.io /diagnostica — 8 Domande Ciak APERTE (ingresso "analisi gratuita").
+ * Ciak.io /diagnostica — 10 Domande Ciak APERTE (ingresso "analisi gratuita").
  *
  * Nuovo flusso (7/9/2026):
- *   CTA "Fai la tua analisi gratuita" → /diagnostica → 8 domande aperte (libero sfogo)
+ *   CTA "Fai la tua analisi gratuita" → /diagnostica → 10 domande aperte (libero sfogo)
  *   → /complete (Carlo valuta le risposte: pronto/non-pronto INTERNO + report)
  *   → popup complimenti + calendario Cal.com per partnership/start;
  *     per nurture, passo formativo senza call (NO report, NO punteggio al cliente).
@@ -327,7 +327,7 @@ export function CiakDiagnostica() {
               Scopri se la tua competenza ha un mercato
             </h1>
             <p className="text-slate-600 text-sm mb-8 leading-relaxed">
-              8 domande aperte per raccontarci il tuo progetto. Dalle tue risposte
+              10 domande aperte per raccontarci il tuo progetto. Dalle tue risposte
               prepariamo la tua analisi di mercato personalizzata, che vediamo
               insieme in una videocall gratuita.
             </p>

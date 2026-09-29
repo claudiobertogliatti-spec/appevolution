@@ -83,7 +83,7 @@ function last7Sum(trend) {
   return keys.slice(-7).reduce((s, k) => s + (Number(trend[k]) || 0), 0);
 }
 
-// Lead qualificati = completano le 8 Domande con stato 3 o 4.
+// Lead qualificati = completano le 10 Domande con stato 3 o 4.
 function stato34(perStato) {
   if (!perStato) return null;
   return (Number(perStato["3"]) || 0) + (Number(perStato["4"]) || 0);

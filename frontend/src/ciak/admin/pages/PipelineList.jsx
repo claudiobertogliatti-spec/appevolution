@@ -245,7 +245,7 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
       <ConfirmDialog
         open={!!pendingDelete}
         title={pendingDelete ? `Elimina ${pendingDelete.email}` : ""}
-        body="Verranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile."
+        body="Verranno rimossi l'iscrizione e il questionario collegati. Operazione irreversibile."
         confirmLabel="Elimina"
         cancelLabel="Annulla"
         destructive

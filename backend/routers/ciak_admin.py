@@ -11,7 +11,7 @@ Pattern auth identico a routers/admin_stefania.py (require_admin).
 
 Collection lette (sola lettura — questo router non scrive nulla):
   - ciak_leads             (opt-in masterclass)
-  - diagnostic_sessions    (8 Domande Ciak + scoring + report Matteo + state machine)
+  - diagnostic_sessions    (10 Domande Ciak + scoring + report Matteo + state machine)
   - ciak_orphan_purchases  (acquisti Stripe senza diagnostic session collegata)
 
 Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
@@ -638,7 +638,7 @@ async def ciak_delete_lead(
 ):
     """
     Elimina un lead Ciak a cascata: record `ciak_leads` + tutte le
-    `diagnostic_sessions` (8 Domande) + tutti i `ciak_checkpoint_events`
+    `diagnostic_sessions` (10 Domande) + tutti i `ciak_checkpoint_events`
     per quell'email. Operazione irreversibile — il frontend chiede conferma
     esplicita. Stesse collezioni della vista dettaglio (GET /lead).
     """
@@ -1009,7 +1009,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         bottlenecks.append({
             "level": "warning",
             "title": "Servono piu' analisi completate",
-            "message": "Per chiudere 4 partnership al mese, la pipeline deve produrre abbastanza analisi gratuite qualificate. Spingi Stato 3-4 a completare le 8 Domande.",
+            "message": "Per chiudere 4 partnership al mese, la pipeline deve produrre abbastanza analisi gratuite qualificate. Spingi Stato 3-4 a completare le 10 Domande.",
         })
     if call_booked_month < target_partnerships * 2:
         bottlenecks.append({
@@ -1043,7 +1043,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "id": "content_nurture",
             "title": "Contenuti Claudio con CTA verso l'analisi gratuita",
             "owner": "Andrea",
-            "metric": "conversazioni e nuove 8 Domande",
+            "metric": "conversazioni e nuove 10 Domande",
             "priority": "alta",
         },
         {

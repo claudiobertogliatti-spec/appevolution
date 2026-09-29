@@ -108,7 +108,7 @@ export function CiakMasterclass() {
           <div className="mx-auto max-w-5xl px-6 pb-6 pt-10">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-yellow-400">Masterclass Ciak</p>
             <p className="mb-6 max-w-3xl leading-relaxed text-slate-300">
-              Quando avrai finito di guardare, puoi rispondere alle 8 Domande Ciak: in pochi minuti scopri il tuo
+              Quando avrai finito di guardare, puoi rispondere alle 10 Domande Ciak: scopri il tuo
               stato attuale e capisci quale passo ha senso fare prima di investire.
             </p>
             <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
@@ -130,11 +130,11 @@ export function CiakMasterclass() {
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-yellow-600">Prossimo passo</p>
               <h2 className="mb-4 text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">Scopri il tuo stato attuale</h2>
               <p className="mx-auto mb-8 max-w-xl leading-relaxed text-slate-600">
-                Rispondi alle 8 Domande Ciak (2-3 minuti). Prima di pensare a strumenti, campagne o percorsi più
+                Rispondi alle 10 Domande Ciak. Prima di pensare a strumenti, campagne o percorsi più
                 grandi, capisci dove sei e da quale direzione partire.
               </p>
               <Link onClick={() => emitEvent("cta_clicked")} to="/diagnostica" className="inline-block rounded-lg bg-slate-900 px-8 py-4 font-semibold text-yellow-400 transition hover:bg-slate-800">
-                Inizia le 8 Domande Ciak →
+                Inizia le 10 Domande Ciak →
               </Link>
             </div>
           </section>
@@ -146,7 +146,7 @@ export function CiakMasterclass() {
           <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
             <p className="text-sm leading-snug text-slate-700 md:text-base">Hai visto abbastanza: ora scopri il tuo stato attuale.</p>
             <Link onClick={() => emitEvent("cta_clicked")} to="/diagnostica" className="flex-shrink-0 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-slate-800 md:text-base">
-              Vai alle 8 Domande Ciak →
+              Vai alle 10 Domande Ciak →
             </Link>
           </div>
         </div>

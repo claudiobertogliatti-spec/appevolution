@@ -15,7 +15,7 @@ if (!noscript.test(base)) throw new Error("blocco noscript non trovato");
 const pages = {
   "index.ciak.html": { path: "/", title: "Ciak | Il sistema per accademie digitali", description: "Ciak aiuta professionisti, consulenti e formatori a costruire un progetto digitale con il Metodo EVO.", index: true, noscript: "Ciak: un sistema per trasformare competenza professionale in un progetto digitale ordinato." },
   "masterclass.ciak.html": { path: "/masterclass", title: "Masterclass gratuita | Ciak", description: "Una masterclass gratuita per capire cosa blocca un progetto digitale professionale prima di costruirlo.", index: true, noscript: "Accedi alla masterclass gratuita Ciak." },
-  "masterclass-guarda.ciak.html": { path: "/masterclass/guarda", title: "Guarda la Masterclass | Ciak", description: "Guarda la masterclass Ciak e prosegui con le 8 Domande.", index: false, noscript: "Guarda la masterclass Ciak." },
+  "masterclass-guarda.ciak.html": { path: "/masterclass/guarda", title: "Guarda la Masterclass | Ciak", description: "Guarda la masterclass Ciak e prosegui con le 10 Domande.", index: false, noscript: "Guarda la masterclass Ciak." },
   "blueprint.ciak.html": { path: "/blueprint", title: "Analisi gratuita | Ciak Blueprint", description: "Scopri gratis se la tua competenza ha un mercato: rispondi alle domande e analizziamo insieme il tuo progetto in una videocall strategica gratuita.", index: true, noscript: "Scopri Ciak Blueprint." },
 };
 
