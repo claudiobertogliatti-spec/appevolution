@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
@@ -410,7 +411,16 @@ export function ClientiCiak({ onAuthExpired }) {
                 rows.map((row) => (
                   <tr key={row.key} className="align-top">
                     <td className="px-4 py-4">
-                      <div className="font-medium text-slate-900">{row.name}</div>
+                      {row.email && row.email !== "-" ? (
+                        <Link
+                          to={`/admin/leads/${encodeURIComponent(row.email)}`}
+                          className="font-medium text-slate-900 hover:text-slate-600 hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      ) : (
+                        <div className="font-medium text-slate-900">{row.name}</div>
+                      )}
                       <div className="mt-1 text-sm text-slate-500">{row.email}</div>
                     </td>
                     <td className="px-4 py-4">
