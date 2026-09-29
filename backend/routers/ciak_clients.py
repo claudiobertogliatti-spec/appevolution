@@ -198,7 +198,7 @@ async def require_admin_or_internal(
     # file per il perché (blueprint-pdf sì, consegna-blueprint/consegna-manuale/
     # offer-decision/start-activate no — sono territorio Vendite/Delivery).
     from routers.ciak_admin import COMMERCIAL_ADMIN_TYPES, _path_allowed_for_commercial
-    if token_data.admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
+    if getattr(token_data, "admin_type", None) in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
         raise HTTPException(
             status_code=403,
             detail="Questo account ha accesso solo al reparto Acquisizione.",

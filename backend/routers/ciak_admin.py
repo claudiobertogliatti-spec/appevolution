@@ -112,7 +112,7 @@ async def require_ciak_admin(
     data = decode_token(credentials.credentials)
     if not data or data.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
-    if data.admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
+    if getattr(data, "admin_type", None) in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
         raise HTTPException(
             status_code=403,
             detail="Questo account ha accesso solo al reparto Acquisizione.",
