@@ -41,11 +41,11 @@ export function ListinoPrezzi() {
     <div className="p-10 max-w-4xl">
       <Link
         to="/admin/reparto/acquisizione-vendita"
-        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 mb-4"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-4"
       >
         <ArrowLeft className="w-4 h-4" /> Acquisizione e vendita
       </Link>
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
         Acquisizione e vendita
       </p>
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Listino &amp; prezzi</h1>

@@ -74,7 +74,7 @@ function AlertBanner({ alerts, onGo }) {
             </strong>{" "}
             {a.label}
           </span>
-          <span className="text-xs font-medium text-slate-400">{a.cta} →</span>
+          <span className="text-xs font-medium text-slate-500">{a.cta} →</span>
         </button>
       ))}
     </div>
@@ -89,12 +89,12 @@ function FunnelCard({ label, value, pct, onClick }) {
       onClick={onClick}
       className="flex-1 min-w-[150px] bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
     >
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 leading-tight">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2 leading-tight">
         {label}
       </p>
       <p className="text-3xl font-semibold text-slate-900">{value}</p>
       {pct != null && (
-        <p className="text-xs text-slate-400 mt-1">{pct}% dallo step prima</p>
+        <p className="text-xs text-slate-500 mt-1">{pct}% dallo step prima</p>
       )}
     </button>
   );
@@ -131,7 +131,7 @@ export function AdminDashboard({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!d) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (!d) return <div className="p-8 text-slate-500">Caricamento…</div>;
 
   const { stats, transactions, partners, blueprint, partnership, freddo } = d;
   const fbs = stats.funnel_by_state || {};
@@ -197,7 +197,7 @@ export function AdminDashboard({ onAuthExpired }) {
       <AlertBanner alerts={alerts} onGo={navigate} />
 
       {/* ② FUNNEL */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Il funnel end-to-end
       </h2>
       <div className="flex flex-wrap gap-3 mb-10">
@@ -215,7 +215,7 @@ export function AdminDashboard({ onAuthExpired }) {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* ③ FATTURATO */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Fatturato
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -223,10 +223,10 @@ export function AdminDashboard({ onAuthExpired }) {
               onClick={() => navigate("/admin/transactions")}
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
                 Incassato Blueprint
               </p>
-              <p className="text-3xl font-semibold text-yellow-600">
+              <p className="text-3xl font-semibold text-yellow-700">
                 {euro(transactions.total_incassato_cent)}
               </p>
             </button>
@@ -234,7 +234,7 @@ export function AdminDashboard({ onAuthExpired }) {
               onClick={() => navigate("/admin/transactions")}
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
                 Transazioni
               </p>
               <p className="text-3xl font-semibold text-slate-900">{transactions.total}</p>
@@ -244,7 +244,7 @@ export function AdminDashboard({ onAuthExpired }) {
 
         {/* ④ SALUTE PARTNER */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Salute partner
           </h2>
           <div className="grid grid-cols-3 gap-3">
@@ -252,7 +252,7 @@ export function AdminDashboard({ onAuthExpired }) {
               onClick={() => navigate("/admin/partner")}
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
                 Attivi
               </p>
               <p className="text-3xl font-semibold text-emerald-600">{partnerAttivi}</p>
@@ -261,7 +261,7 @@ export function AdminDashboard({ onAuthExpired }) {
               onClick={() => navigate("/admin/quarantena-partner")}
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
                 Quarantena
               </p>
               <p className="text-3xl font-semibold text-red-600">{partnerQuarantena}</p>
@@ -270,10 +270,10 @@ export function AdminDashboard({ onAuthExpired }) {
               onClick={() => navigate("/admin/ex-partner")}
               className="bg-white rounded-2xl border border-gray-200 p-5 text-left hover:border-slate-400 hover:shadow-sm transition"
             >
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
                 Ex
               </p>
-              <p className="text-3xl font-semibold text-slate-400">{partnerEx}</p>
+              <p className="text-3xl font-semibold text-slate-500">{partnerEx}</p>
             </button>
           </div>
         </div>

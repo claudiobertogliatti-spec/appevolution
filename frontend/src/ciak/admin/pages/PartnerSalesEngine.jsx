@@ -59,7 +59,7 @@ function Kpi({ icon: Icon, label, value, tone = "slate" }) {
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
           <p className="text-2xl font-semibold text-slate-900">{value}</p>
         </div>
       </div>
@@ -73,7 +73,7 @@ function Progress({ value }) {
       <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
         <div className="h-full bg-yellow-400" style={{ width: `${Math.max(0, Math.min(100, value || 0))}%` }} />
       </div>
-      <p className="text-[11px] text-slate-400 mt-1">{value || 0}% setup</p>
+      <p className="text-[11px] text-slate-500 mt-1">{value || 0}% setup</p>
     </div>
   );
 }
@@ -86,7 +86,7 @@ function SetupChips({ setup }) {
           key={s.key}
           title={s.missing || s.label}
           className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${
-            s.ok ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"
+            s.ok ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
           }`}
         >
           {s.ok ? <CheckCircle2 className="w-3 h-3" /> : <span className="w-3 h-3 rounded-full border border-slate-300" />}
@@ -179,7 +179,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
   }, [data, filter]);
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento Motore Vendite Partner...</div>;
+  if (!data) return <div className="p-8 text-slate-500">Caricamento Motore Vendite Partner...</div>;
 
   const c = data.counters || {};
   const filters = [
@@ -201,7 +201,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
         <div className="flex items-center gap-2">
           <Route className="w-5 h-5 text-yellow-600" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Delivery · Gaia + Luca</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Delivery · Gaia + Luca</p>
             <h1 className="text-2xl font-semibold text-slate-900">Motore Vendite Partner</h1>
           </div>
         </div>
@@ -238,7 +238,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
+              <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100">
                 <th className="px-4 py-3 font-semibold">Partner</th>
                 <th className="px-4 py-3 font-semibold">Stato</th>
                 <th className="px-4 py-3 font-semibold">Setup</th>
@@ -260,8 +260,8 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                   <tr key={i.id} className="align-top hover:bg-slate-50/60">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-900 truncate max-w-[190px]">{i.name}</p>
-                      <p className="text-xs text-slate-400 truncate max-w-[190px]">{i.niche || "—"}</p>
-                      <p className="text-[11px] text-slate-400 mt-1">{i.phase} · {i.macro_label}</p>
+                      <p className="text-xs text-slate-500 truncate max-w-[190px]">{i.niche || "—"}</p>
+                      <p className="text-[11px] text-slate-500 mt-1">{i.phase} · {i.macro_label}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-md border text-xs font-semibold ${status.tone}`}>
@@ -293,14 +293,14 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                       ) : (
                         <span className="text-xs text-rose-500 font-medium">manca funnel</span>
                       )}
-                      {i.systeme?.course_id && <p className="text-[11px] text-slate-400 mt-1">Corso {i.systeme.course_id}</p>}
+                      {i.systeme?.course_id && <p className="text-[11px] text-slate-500 mt-1">Corso {i.systeme.course_id}</p>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-xs text-slate-600 space-y-0.5">
                         <p><b>{fmtNum(i.kpi?.contatti)}</b> contatti</p>
                         <p><b>{fmtNum(i.kpi?.vendite)}</b> vendite</p>
                         <p><b>{fmtEur(i.kpi?.revenue)}</b> revenue</p>
-                        <p className="text-slate-400">Fonte: {FONTE[i.kpi?.fonte] || i.kpi?.fonte}</p>
+                        <p className="text-slate-500">Fonte: {FONTE[i.kpi?.fonte] || i.kpi?.fonte}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -312,7 +312,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                           {i.ottimizza?.live_60_ready ? "Live 60 ok" : "Live 60 manca"}
                         </p>
                         {i.ottimizza?.settimane_alla_live != null && (
-                          <p className="text-slate-400">Live tra {i.ottimizza.settimane_alla_live} sett.</p>
+                          <p className="text-slate-500">Live tra {i.ottimizza.settimane_alla_live} sett.</p>
                         )}
                       </div>
                     </td>
@@ -320,7 +320,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                       <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${ADS_TONE[i.ads_plan?.level] || "bg-slate-100 text-slate-500"}`}>
                         {i.ads_plan?.label || "—"}
                       </span>
-                      <p className="text-[11px] text-slate-400 mt-1 max-w-[160px] leading-snug">
+                      <p className="text-[11px] text-slate-500 mt-1 max-w-[160px] leading-snug">
                         {fmtBudget(i.ads_plan?.budget_monthly)}
                       </p>
                       <div className="mt-2 flex items-center gap-1">
@@ -351,7 +351,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                       <p className="text-xs font-semibold text-slate-700 max-w-[160px] leading-snug">
                         {i.accelerator?.label}
                       </p>
-                      <p className="text-[11px] text-slate-400 mt-1 max-w-[180px] leading-snug">
+                      <p className="text-[11px] text-slate-500 mt-1 max-w-[180px] leading-snug">
                         {i.accelerator?.reason}
                       </p>
                       {i.continuity?.due && (
@@ -366,7 +366,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
                     <td className="px-4 py-3">
                       <p className="text-sm text-slate-700 max-w-[260px] leading-snug">{i.next_action}</p>
                       {i.alignment?.stato_reale && (
-                        <p className="text-[11px] text-slate-400 mt-1 max-w-[260px] leading-snug">{i.alignment.stato_reale}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 max-w-[260px] leading-snug">{i.alignment.stato_reale}</p>
                       )}
                     </td>
                   </tr>
@@ -374,7 +374,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
               })}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400">Nessun partner in questo filtro.</td>
+                  <td colSpan={11} className="px-4 py-8 text-center text-slate-500">Nessun partner in questo filtro.</td>
                 </tr>
               )}
             </tbody>

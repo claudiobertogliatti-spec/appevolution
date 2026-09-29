@@ -26,12 +26,12 @@ function FunnelStep({ label, value, pct, isLast }) {
   return (
     <div className="flex-1 min-w-[140px]">
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 leading-tight">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2 leading-tight">
           {label}
         </p>
         <p className="text-3xl font-semibold text-slate-900">{value}</p>
         {pct != null && (
-          <p className="text-xs text-slate-400 mt-1">{pct}% dallo step prima</p>
+          <p className="text-xs text-slate-500 mt-1">{pct}% dallo step prima</p>
         )}
       </div>
       {!isLast && (
@@ -48,7 +48,7 @@ function StatoBar({ stato, count, total, sublabel }) {
       <div className="flex items-center justify-between text-xs mb-1">
         <span className="text-slate-700 font-medium">{STATO_LABELS[stato]}</span>
         <span className="text-slate-500">
-          {count} {sublabel && <span className="text-slate-400">· {sublabel}</span>}
+          {count} {sublabel && <span className="text-slate-500">· {sublabel}</span>}
         </span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -75,7 +75,7 @@ export function MasterclassAnalytics({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
-  if (!d) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!d) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   const f = d.funnel;
   const conv = d.conversion_pct;
@@ -96,7 +96,7 @@ export function MasterclassAnalytics({ onAuthExpired }) {
       </p>
 
       {/* ① Funnel cumulativo */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Funnel cumulativo
       </h2>
       <div className="flex flex-wrap gap-3 mb-2">
@@ -112,19 +112,19 @@ export function MasterclassAnalytics({ onAuthExpired }) {
         <FunnelStep label="Click Blueprint" value={f.clicked_67} pct={null} />
         <FunnelStep label="Blueprint" value={f.purchased_67} pct={conv.diagnostic_to_purchase} isLast />
       </div>
-      <p className="text-xs text-slate-400 mb-10">
+      <p className="text-xs text-slate-500 mb-10">
         Conversione end-to-end opt-in → acquisto: <strong className="text-slate-700">{conv.optin_to_purchase}%</strong>
       </p>
 
       <div className="grid lg:grid-cols-2 gap-8 mb-10">
         {/* ② Distribuzione stati Checkpoint */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Distribuzione 4 stati — Checkpoint (pre-acquisto)
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             {checkpointTotal === 0 ? (
-              <p className="text-slate-400 text-sm">Nessun checkpoint ancora.</p>
+              <p className="text-slate-500 text-sm">Nessun checkpoint ancora.</p>
             ) : (
               ["1", "2", "3", "4"].map((s) => (
                 <StatoBar
@@ -141,12 +141,12 @@ export function MasterclassAnalytics({ onAuthExpired }) {
 
         {/* ③ Distribuzione stati 8 Domande */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Distribuzione 4 stati — 8 Domande (post-acquisto)
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             {diagnosticTotal === 0 ? (
-              <p className="text-slate-400 text-sm">Nessuna 8 Domande completata ancora.</p>
+              <p className="text-slate-500 text-sm">Nessuna 8 Domande completata ancora.</p>
             ) : (
               ["1", "2", "3", "4"].map((s) => (
                 <StatoBar
@@ -163,13 +163,13 @@ export function MasterclassAnalytics({ onAuthExpired }) {
       </div>
 
       {/* ④ Email checkpoint open rate */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Email checkpoint — open rate per stato
       </h2>
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-10">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-5 py-3 font-semibold">Stato</th>
               <th className="px-5 py-3 font-semibold text-right">Email inviate</th>
               <th className="px-5 py-3 font-semibold text-right">Email aperte</th>
@@ -197,12 +197,12 @@ export function MasterclassAnalytics({ onAuthExpired }) {
       <div className="grid lg:grid-cols-2 gap-8 mb-10">
         {/* ⑤ Sorgenti opt-in */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Sorgenti opt-in (source)
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             {Object.keys(d.sources).length === 0 ? (
-              <p className="text-slate-400 text-sm">Nessun lead ancora.</p>
+              <p className="text-slate-500 text-sm">Nessun lead ancora.</p>
             ) : (
               <ul className="space-y-2">
                 {Object.entries(d.sources).map(([src, n]) => (
@@ -218,12 +218,12 @@ export function MasterclassAnalytics({ onAuthExpired }) {
 
         {/* ⑥ UTM source */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Top UTM sources (10)
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             {Object.keys(d.utm_sources).length === 0 ? (
-              <p className="text-slate-400 text-sm">Nessun UTM ancora.</p>
+              <p className="text-slate-500 text-sm">Nessun UTM ancora.</p>
             ) : (
               <ul className="space-y-2">
                 {Object.entries(d.utm_sources).map(([src, n]) => (
@@ -239,12 +239,12 @@ export function MasterclassAnalytics({ onAuthExpired }) {
       </div>
 
       {/* ⑦ Trend ultimi 30 giorni */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Trend opt-in — ultimi 30 giorni
       </h2>
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         {trendEntries.length === 0 ? (
-          <p className="text-slate-400 text-sm">Nessun lead negli ultimi 30 giorni.</p>
+          <p className="text-slate-500 text-sm">Nessun lead negli ultimi 30 giorni.</p>
         ) : (
           <div className="flex items-end gap-1 h-32">
             {trendEntries.map(([day, n]) => (
@@ -258,7 +258,7 @@ export function MasterclassAnalytics({ onAuthExpired }) {
           </div>
         )}
         {trendEntries.length > 0 && (
-          <div className="flex justify-between text-xs text-slate-400 mt-2">
+          <div className="flex justify-between text-xs text-slate-500 mt-2">
             <span>{trendEntries[0]?.[0]}</span>
             <span>{trendEntries[trendEntries.length - 1]?.[0]}</span>
           </div>

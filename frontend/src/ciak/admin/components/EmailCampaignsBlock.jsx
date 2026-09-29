@@ -38,13 +38,13 @@ export default function EmailCampaignsBlock() {
   return (
     <div className="rounded-2xl overflow-hidden bg-white border border-gray-200">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white">
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
           Campagne email — ultime inviate
         </span>
       </div>
       <div className="p-5">
         {campaigns.length === 0 ? (
-          <div className="text-sm text-slate-400">Nessuna campagna recente</div>
+          <div className="text-sm text-slate-500">Nessuna campagna recente</div>
         ) : (
           <div className="space-y-1">
             {campaigns.map((c) => {
@@ -69,7 +69,7 @@ export default function EmailCampaignsBlock() {
                     <div className="font-semibold text-sm truncate text-slate-900">
                       {c.subject || "(senza oggetto)"}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-500">
                       {dataInvio} · {(c.sent || 0).toLocaleString("it-IT")} inviate
                     </div>
                   </div>
@@ -78,7 +78,7 @@ export default function EmailCampaignsBlock() {
                       <div className="font-mono font-semibold text-sm text-slate-900">
                         {apert}%
                       </div>
-                      <div className="text-[10px] text-slate-400">aperture</div>
+                      <div className="text-[10px] text-slate-500">aperture</div>
                     </div>
                     <div>
                       <div
@@ -88,14 +88,14 @@ export default function EmailCampaignsBlock() {
                       >
                         {click}%
                       </div>
-                      <div className="text-[10px] text-slate-400">click</div>
+                      <div className="text-[10px] text-slate-500">click</div>
                     </div>
                     {(c.spam || 0) > 0 && (
                       <div>
                         <div className="font-mono font-semibold text-sm text-red-500">
                           {c.spam}
                         </div>
-                        <div className="text-[10px] text-slate-400">spam</div>
+                        <div className="text-[10px] text-slate-500">spam</div>
                       </div>
                     )}
                   </div>

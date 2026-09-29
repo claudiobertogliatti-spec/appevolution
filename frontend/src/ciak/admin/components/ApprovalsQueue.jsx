@@ -74,14 +74,14 @@ export function ApprovalsQueue({ onAuthExpired }) {
     <div className="rounded-2xl border border-slate-200 bg-white">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <h2 className="font-bold text-slate-900">Cosa aspetta il tuo OK</h2>
-        <span className="ml-auto text-xs text-slate-400">
+        <span className="ml-auto text-xs text-slate-500">
           {loading ? "…" : `${approvals.length} task`}
         </span>
       </div>
       {loading ? (
-        <div className="px-5 py-10 text-center text-slate-400 text-sm">Carico i task in attesa…</div>
+        <div className="px-5 py-10 text-center text-slate-500 text-sm">Carico i task in attesa…</div>
       ) : approvals.length === 0 ? (
-        <div className="px-5 py-10 text-center text-slate-400 text-sm">
+        <div className="px-5 py-10 text-center text-slate-500 text-sm">
           Nessun task in attesa. I reparti stanno lavorando in autonomia.
         </div>
       ) : (
@@ -98,7 +98,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
                 <div className="flex items-center gap-3">
                   <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                   <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || t.lead_name || "(task senza titolo)"}</span>
-                  <span className="text-xs text-slate-400 shrink-0 mr-1">{t.agent || t.created_by_agent || ""}</span>
+                  <span className="text-xs text-slate-500 shrink-0 mr-1">{t.agent || t.created_by_agent || ""}</span>
                   <button
                     onClick={() => setOpenId(open ? null : id)}
                     className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -107,20 +107,20 @@ export function ApprovalsQueue({ onAuthExpired }) {
                   </button>
                   <button disabled={!!busy} onClick={() => act(t, "approve")} className="text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Approva</button>
                   <button disabled={!!busy} onClick={() => { setRejectReason(""); setRejectFor(t); }} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
-                  <button disabled={!!busy} onClick={() => act(t, "dismiss")} title="Togli dalla coda senza rigenerare" className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50">Scarta</button>
+                  <button disabled={!!busy} onClick={() => act(t, "dismiss")} title="Togli dalla coda senza rigenerare" className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50">Scarta</button>
                 </div>
 
                 {open && (
                   <div className="mt-3 ml-5 rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-3">
                     {t.description && (
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Richiesta</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Richiesta</div>
                         <p className="text-sm text-slate-700 mt-0.5">{t.description}</p>
                       </div>
                     )}
                     {output && (
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Output da approvare</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Output da approvare</div>
                         <pre className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap break-words font-sans">{output}</pre>
                       </div>
                     )}
@@ -129,13 +129,13 @@ export function ApprovalsQueue({ onAuthExpired }) {
                     )}
                     {t.notes && (
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Note</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Note</div>
                         <p className="text-sm text-slate-700 mt-0.5">{t.notes}</p>
                       </div>
                     )}
                     {(t.lead_name || t.lead_email) && (
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lead</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Lead</div>
                         <p className="text-sm text-slate-700 mt-0.5">
                           {t.lead_name || "—"}{t.lead_email ? ` · ${t.lead_email}` : ""}
                           {t.lead_score != null ? ` · score ${t.lead_score}` : ""}
@@ -144,9 +144,9 @@ export function ApprovalsQueue({ onAuthExpired }) {
                       </div>
                     )}
                     {!t.description && !output && !res.message && !t.notes && !t.lead_name && !t.lead_email && (
-                      <p className="text-sm text-slate-400 italic">Nessun contenuto associato a questo task. Se non sai cosa sia, usa «Scarta».</p>
+                      <p className="text-sm text-slate-500 italic">Nessun contenuto associato a questo task. Se non sai cosa sia, usa «Scarta».</p>
                     )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
                       <span>Agente: {t.agent || "—"}</span>
                       <span>Richiesto da: {t.created_by || "—"}</span>
                       <span>Priorità: {t.priority || "—"}</span>
@@ -159,7 +159,7 @@ export function ApprovalsQueue({ onAuthExpired }) {
           })}
         </ul>
       )}
-      <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
+      <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-500">
         Approva sblocca · Rifiuta chiede un motivo e rigenera · Scarta toglie dalla coda senza rigenerare.
       </div>
       {rejectFor && (

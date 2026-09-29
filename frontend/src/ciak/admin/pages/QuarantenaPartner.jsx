@@ -100,7 +100,7 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
       >
         <div className="p-5 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Sospendi partner su richiesta</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-700">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -111,7 +111,7 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
           {/* Selezione partner attivo */}
           {!selected ? (
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Partner attivo
               </label>
               <div className="flex items-center gap-2 mt-2 mb-2 px-3 py-2 rounded-lg border border-gray-300">
@@ -127,9 +127,9 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
               </div>
               <div className="border border-gray-200 rounded-lg max-h-56 overflow-y-auto divide-y divide-gray-100">
                 {attivi === null ? (
-                  <div className="p-4 text-sm text-slate-400">Caricamento…</div>
+                  <div className="p-4 text-sm text-slate-500">Caricamento…</div>
                 ) : filtered.length === 0 ? (
-                  <div className="p-4 text-sm text-slate-400">Nessun partner attivo trovato.</div>
+                  <div className="p-4 text-sm text-slate-500">Nessun partner attivo trovato.</div>
                 ) : (
                   filtered.map((p) => (
                     <button
@@ -158,7 +158,7 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
 
           {/* Motivo */}
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">Motivo</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">Motivo</label>
             <select
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
@@ -182,7 +182,7 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
           {/* Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">Inizio sospensione</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">Inizio sospensione</label>
               <input
                 type="date"
                 value={dataInizio}
@@ -191,14 +191,14 @@ function SospendiModal({ onClose, onDone, onAuthExpired }) {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">Ripresa prevista</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ripresa prevista</label>
               <input
                 type="date"
                 value={ripresa}
                 onChange={(e) => setRipresa(e.target.value)}
                 className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
               />
-              <p className="text-[11px] text-slate-400 mt-1">Opzionale</p>
+              <p className="text-[11px] text-slate-500 mt-1">Opzionale</p>
             </div>
           </div>
         </div>
@@ -268,7 +268,7 @@ export function QuarantenaPartner({ onAuthExpired }) {
   };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!partners) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (!partners) return <div className="p-8 text-slate-500">Caricamento…</div>;
 
   return (
     <div className="p-8">
@@ -287,14 +287,14 @@ export function QuarantenaPartner({ onAuthExpired }) {
       </p>
 
       {partners.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-500">
           Nessun partner sospeso. Usa "Sospendi su richiesta" per chi ha chiesto di mettere in pausa pagamenti e contratto.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
                 <th className="px-5 py-3 font-semibold">Tipo</th>
                 <th className="px-5 py-3 font-semibold">Motivo</th>

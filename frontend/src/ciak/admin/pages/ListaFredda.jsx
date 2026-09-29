@@ -178,9 +178,9 @@ export function ListaFredda({ onAuthExpired }) {
           <StatCard icon={Users} label="Totale archivio" value={stats.totale || 0} color="bg-gray-100 text-slate-600" />
           <StatCard icon={Snowflake} label="Disiscritti (esclusi)" value={stats.per_stato?.disiscritto || 0} color="bg-blue-100 text-blue-600" />
           <StatCard icon={CheckCircle} label="Convertiti" value={stats.per_stato?.convertito || 0} color="bg-emerald-100 text-emerald-600" />
-          <StatCard icon={TrendingUp} label="In Funnel (storico)" value={stats.per_stato?.in_funnel || 0} color="bg-yellow-100 text-yellow-600" />
+          <StatCard icon={TrendingUp} label="In Funnel (storico)" value={stats.per_stato?.in_funnel || 0} color="bg-yellow-100 text-yellow-700" />
           <StatCard icon={Eye} label="Aperture (storico)" value={stats.metriche?.aperture_totali || 0} color="bg-purple-100 text-purple-600" />
-          <StatCard icon={ArrowUpRight} label="Click (storico)" value={stats.metriche?.click_totali || 0} color="bg-yellow-100 text-yellow-600" />
+          <StatCard icon={ArrowUpRight} label="Click (storico)" value={stats.metriche?.click_totali || 0} color="bg-yellow-100 text-yellow-700" />
         </div>
       )}
 
@@ -211,7 +211,7 @@ export function ListaFredda({ onAuthExpired }) {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-4 py-3 font-semibold">Contatto</th>
               <th className="px-4 py-3 font-semibold">Stato</th>
               <th className="px-4 py-3 font-semibold">Email #</th>
@@ -252,7 +252,7 @@ export function ListaFredda({ onAuthExpired }) {
                             {lead.email}
                           </div>
                           {lead.phone && (
-                            <div className="text-xs text-slate-400 flex items-center gap-1">
+                            <div className="text-xs text-slate-500 flex items-center gap-1">
                               <Phone className="w-3 h-3" />
                               {lead.phone}
                             </div>
@@ -278,7 +278,7 @@ export function ListaFredda({ onAuthExpired }) {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {lead.ultimo_click ? (
-                        <span className="flex items-center gap-1 text-yellow-600">
+                        <span className="flex items-center gap-1 text-yellow-700">
                           <ArrowUpRight className="w-3 h-3" />
                           {new Date(lead.ultimo_click).toLocaleDateString("it-IT")}
                         </span>

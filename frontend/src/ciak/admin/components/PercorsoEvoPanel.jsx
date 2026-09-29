@@ -35,7 +35,7 @@ const STATUS_META = {
 const MACRO_STATUS_BADGE = {
   done: "bg-emerald-100 text-emerald-700",
   in_progress: "bg-amber-100 text-amber-700",
-  pending: "bg-gray-100 text-slate-400",
+  pending: "bg-gray-100 text-slate-500",
 };
 
 /** Entra nell'area partner (vista-admin) posizionata su uno step. */
@@ -128,10 +128,10 @@ function StepRow({ step, partner, onChanged }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
       <div className="flex items-center gap-3">
-        <StatusIcon className={`w-5 h-5 flex-shrink-0 ${step.status === "done" ? "text-emerald-500" : step.status === "in_progress" ? "text-amber-500" : "text-gray-300"}`} />
+        <StatusIcon className={`w-5 h-5 flex-shrink-0 ${step.status === "done" ? "text-emerald-500" : step.status === "in_progress" ? "text-yellow-700" : "text-gray-300"}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-mono">{step.step_number}</span>
+            <span className="text-xs text-slate-500 font-mono">{step.step_number}</span>
             <span className="font-medium text-slate-900 truncate">{step.label || step.step_id}</span>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${meta.badge}`}>{meta.label}</span>
             {step.approval_status && (
@@ -226,7 +226,7 @@ export function PercorsoEvoPanel({ partner }) {
   useEffect(() => { load(); }, [load]);
 
   if (error) return <div className="text-sm text-red-600">Errore caricamento percorso: {error}</div>;
-  if (!state) return <div className="text-sm text-slate-400">Carico il percorso…</div>;
+  if (!state) return <div className="text-sm text-slate-500">Carico il percorso…</div>;
 
   const stepById = (id) => state.steps.find((s) => s.step_id === id);
 
@@ -267,7 +267,7 @@ export function PercorsoEvoPanel({ partner }) {
 
             <div className="p-3 space-y-2 bg-white">
               {mpSteps.length === 0 ? (
-                <p className="text-xs text-slate-400 px-1 py-2">
+                <p className="text-xs text-slate-500 px-1 py-2">
                   Fase post-lancio: nessuno step fisso, gestita in continuità dopo il Go Live.
                 </p>
               ) : (

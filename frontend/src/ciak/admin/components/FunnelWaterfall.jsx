@@ -11,7 +11,7 @@ import React from "react";
 function Tile({ label, value, hint, accentGap }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
       <p className={`mt-2 text-2xl font-bold ${accentGap ? "text-rose-600" : "text-slate-900"}`}>{value}</p>
       {hint && <p className="mt-1 text-[11px] text-slate-500 leading-snug">{hint}</p>}
     </div>
@@ -25,7 +25,7 @@ export function FunnelWaterfall({ stages = [], northStar = {} }) {
     <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 mb-7">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Plancia €1M</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Plancia €1M</p>
           <h2 className="text-lg font-semibold text-slate-900">Il funnel, in un colpo d'occhio</h2>
         </div>
         <span className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">
@@ -66,7 +66,7 @@ export function FunnelWaterfall({ stages = [], northStar = {} }) {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[11px] text-slate-400">
+      <p className="mt-3 text-[11px] text-slate-500">
         Le conversioni di Ciak Start e Partnership sono calcolate sui Blueprint (lo split per punteggio dopo le 8 Domande).
       </p>
     </section>

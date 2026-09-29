@@ -158,7 +158,7 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
           />
         </label>
         <label className="text-sm">
-          <span className="font-medium text-slate-700">Nome e cognome <span className="text-slate-400">(se non è già a sistema)</span></span>
+          <span className="font-medium text-slate-700">Nome e cognome <span className="text-slate-500">(se non è già a sistema)</span></span>
           <input
             type="text"
             value={name}
@@ -168,7 +168,7 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
           />
         </label>
         <label className="text-sm md:col-span-2">
-          <span className="font-medium text-slate-700">Riferimento Stripe <span className="text-slate-400">(consigliato)</span></span>
+          <span className="font-medium text-slate-700">Riferimento Stripe <span className="text-slate-500">(consigliato)</span></span>
           <input
             type="text"
             value={riferimento}
@@ -334,7 +334,7 @@ export function ClientiCiak({ onAuthExpired }) {
     <div className="p-8 md:p-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Vendite</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Vendite</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Clienti Ciak</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
             Blueprint, Start e passaggi verso Partnership. Vista rapida per leggere stato, punteggio e prossima offerta.
@@ -342,7 +342,7 @@ export function ClientiCiak({ onAuthExpired }) {
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Clienti</div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Clienti</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{count}</div>
           </div>
           <button
@@ -438,7 +438,7 @@ export function ClientiCiak({ onAuthExpired }) {
                             ? "Suggerita dal Blueprint"
                             : "Da decidere"}
                       </div>
-                      <div className="mt-1 text-xs text-slate-400">
+                      <div className="mt-1 text-xs text-slate-500">
                         {row.analysisStatus ? `Analisi: ${row.analysisStatus}` : "Analisi: -"}
                       </div>
                     </td>
@@ -479,9 +479,9 @@ export function ClientiCiak({ onAuthExpired }) {
                         </button>
                       </div>
                       {row.accessLevel === "partner" ? (
-                        <p className="mt-2 text-xs text-slate-400">Gia' partner.</p>
+                        <p className="mt-2 text-xs text-slate-500">Gia' partner.</p>
                       ) : (
-                        <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
+                        <p className="mt-2 text-xs text-slate-500">Abilita il checkout corretto in area cliente.</p>
                       )}
                       <button
                         type="button"

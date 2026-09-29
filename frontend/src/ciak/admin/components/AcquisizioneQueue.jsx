@@ -47,7 +47,7 @@ const OWNERS = ["Mariangela", "Claudio"];
 function LeadField({ label, value, onChange, type = "text" }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">{label}</span>
+      <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{label}</span>
       <input
         type={type}
         value={value}
@@ -147,7 +147,7 @@ function NuovoLead({ onCreated, onCancel, onAuthExpired }) {
         <LeadField label="Telefono" value={f.business_phone} onChange={set("business_phone")} />
         <LeadField label="Nicchia" value={f.niche_detected} onChange={set("niche_detected")} />
         <label className="block">
-          <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Responsabile</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Responsabile</span>
           <select value={f.owner} onChange={set("owner")} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-900">
             {OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
@@ -155,7 +155,7 @@ function NuovoLead({ onCreated, onCancel, onAuthExpired }) {
         <LeadField label="Prossimo follow-up" value={f.next_followup} onChange={set("next_followup")} type="date" />
       </div>
       <label className="block mt-3">
-        <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Note</span>
+        <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Note</span>
         <textarea value={f.notes_admin} onChange={set("notes_admin")} rows={2} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-900 resize-y" />
       </label>
       {error && <p className="mt-2 text-sm text-red-600" role="alert">{error}</p>}
@@ -224,7 +224,7 @@ export function AcquisizioneQueue({ onAuthExpired, ownerFilter }) {
       {error ? (
         <p className="text-sm text-slate-500">Coda non disponibile: {error}</p>
       ) : leads === null ? (
-        <p className="text-sm text-slate-400">Caricamento coda…</p>
+        <p className="text-sm text-slate-500">Caricamento coda…</p>
       ) : (
         <DepartmentQueue items={items} firstColLabel="Lead" emptyLabel={ownerFilter ? `Nessuna attività assegnata: ${ownerFilter}.` : "Nessun lead in coda con questo filtro."} />
       )}

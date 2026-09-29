@@ -31,5 +31,5 @@ test("l'eyebrow di default e' slate, non gialla", () => {
 
 test('eyebrowTone="brand" rende l\'eyebrow gialla dove serve', () => {
   render(<PageHeader eyebrow="Reparto" title="Titolo" eyebrowTone="brand" />);
-  expect(screen.getByText("Reparto").closest("div").className).toMatch(/text-yellow-600/);
+  expect(screen.getByText("Reparto").closest("div").className).toMatch(/text-yellow-700/);
 });

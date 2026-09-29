@@ -60,7 +60,7 @@ function FunnelProgress({ cliente }) {
   const pct = Math.round((done / total) * 100);
   return (
     <div className="w-full">
-      <div className="flex justify-between text-[10px] mb-0.5 text-slate-400">
+      <div className="flex justify-between text-[10px] mb-0.5 text-slate-500">
         <span>
           {done}/{total}
         </span>
@@ -83,7 +83,7 @@ function CallBadge({ stato }) {
     da_fissare: { label: "Da fissare", cls: "bg-red-100 text-red-500" },
     fissata: { label: "Fissata", cls: "bg-yellow-100 text-yellow-700" },
     completata: { label: "Completata", cls: "bg-emerald-100 text-emerald-500" },
-    annullata: { label: "Annullata", cls: "bg-gray-100 text-slate-400" },
+    annullata: { label: "Annullata", cls: "bg-gray-100 text-slate-500" },
   };
   const cfg = map[stato] || map["da_fissare"];
   return (
@@ -263,7 +263,7 @@ export function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
               <div className="rounded-xl p-4 text-center space-y-2 bg-gray-50 border border-gray-200">
                 <FilePlus className="w-8 h-8 mx-auto text-slate-400" />
                 <p className="text-sm font-medium text-slate-600">Nessun contratto custom</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Il prospect vedrà il contratto standard generato automaticamente.
                 </p>
               </div>
@@ -300,7 +300,7 @@ export function ContrattoCustomModal({ cliente, onClose, onAuthExpired }) {
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
-          <p className="text-[11px] text-slate-400 text-center">
+          <p className="text-[11px] text-slate-500 text-center">
             Il PDF sostituisce il contratto generato. Le clausole e la firma rimangono
             invariate.
           </p>
@@ -445,7 +445,7 @@ function AudioAnalisiModal({ cliente, onClose, onAuthExpired }) {
               <div className="rounded-xl p-4 text-center space-y-2 bg-gray-50 border border-gray-200">
                 <Headphones className="w-8 h-8 mx-auto text-slate-400" />
                 <p className="text-sm font-medium text-slate-600">Nessun audio caricato</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Genera l'audio con NotebookLM e caricalo qui.
                 </p>
               </div>
@@ -599,7 +599,7 @@ export function PipelineProspect({ onAuthExpired }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Prospect & Pipeline</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500">
             {clienti.length} prospect totali — tutti gli step del funnel
           </p>
         </div>
@@ -624,7 +624,7 @@ export function PipelineProspect({ onAuthExpired }) {
           {
             label: "Blueprint",
             value: stats.pagato_67,
-            cls: "bg-yellow-50 border-yellow-200 text-yellow-600",
+            cls: "bg-yellow-50 border-yellow-200 text-yellow-700",
           },
           {
             label: "Analisi OK",
@@ -684,13 +684,13 @@ export function PipelineProspect({ onAuthExpired }) {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th
-                  className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400"
+                  className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500"
                   style={{ minWidth: 200 }}
                 >
                   Cliente
                 </th>
                 <th
-                  className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-400"
+                  className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-500"
                   style={{ minWidth: 60 }}
                 >
                   Prog.
@@ -698,14 +698,14 @@ export function PipelineProspect({ onAuthExpired }) {
                 {STEPS.map((s) => (
                   <th
                     key={s.key}
-                    className="px-2 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-400"
+                    className="px-2 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-500"
                     style={{ minWidth: 68 }}
                   >
                     {s.short}
                   </th>
                 ))}
                 <th
-                  className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-400"
+                  className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-center text-slate-500"
                   style={{ minWidth: 90 }}
                 >
                   Call
@@ -718,7 +718,7 @@ export function PipelineProspect({ onAuthExpired }) {
                 <tr>
                   <td
                     colSpan={STEPS.length + 4}
-                    className="text-center py-12 text-sm text-slate-400"
+                    className="text-center py-12 text-sm text-slate-500"
                   >
                     Nessun prospect trovato
                   </td>
@@ -743,7 +743,7 @@ export function PipelineProspect({ onAuthExpired }) {
                         <div className="font-semibold truncate text-slate-900">
                           {c.nome} {c.cognome}
                         </div>
-                        <div className="text-xs truncate text-slate-400">{c.email}</div>
+                        <div className="text-xs truncate text-slate-500">{c.email}</div>
                       </div>
                     </div>
                   </td>
@@ -798,7 +798,7 @@ export function PipelineProspect({ onAuthExpired }) {
                           e.stopPropagation();
                           openCliente(c);
                         }}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-yellow-100 text-yellow-600"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-yellow-100 text-yellow-700"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -822,7 +822,7 @@ export function PipelineProspect({ onAuthExpired }) {
       </div>
 
       {/* Legenda */}
-      <div className="flex items-center gap-4 text-xs text-slate-400">
+      <div className="flex items-center gap-4 text-xs text-slate-500">
         <div className="flex items-center gap-1">
           <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
           <span>Completato</span>
@@ -874,7 +874,7 @@ export function PipelineProspect({ onAuthExpired }) {
                 </div>
                 <div>
                   <h3 className="font-semibold text-base text-slate-900">Elimina Prospect</h3>
-                  <p className="text-xs text-slate-400">Operazione irreversibile</p>
+                  <p className="text-xs text-slate-500">Operazione irreversibile</p>
                 </div>
               </div>
             </div>
@@ -886,7 +886,7 @@ export function PipelineProspect({ onAuthExpired }) {
                 </strong>{" "}
                 ({deleteModal.email}) e tutti i suoi dati:
               </p>
-              <ul className="space-y-1 text-xs text-slate-400">
+              <ul className="space-y-1 text-xs text-slate-500">
                 {[
                   "Account utente",
                   "Questionario",

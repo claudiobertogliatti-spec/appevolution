@@ -102,7 +102,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
   };
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   const active = data.active;
   const usingFallback = !active;
@@ -148,7 +148,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
             <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
               Editor
             </h2>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500">
               {editorContent.length.toLocaleString("it-IT")} caratteri
             </span>
           </div>
@@ -176,7 +176,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
             <button
               onClick={() => setConfirmSave(true)}
               disabled={saving || editorContent.length < 100 || !editorLabel.trim()}
-              className="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg text-sm font-semibold text-slate-900 transition"
+              className="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-slate-500 rounded-lg text-sm font-semibold text-slate-900 transition"
             >
               {saving ? "Salvo…" : "Salva e attiva"}
             </button>
@@ -213,7 +213,7 @@ export function MatteoKBEditor({ onAuthExpired }) {
             Storico versioni
           </h2>
           {versions.length === 0 ? (
-            <p className="text-sm text-slate-400 px-1">
+            <p className="text-sm text-slate-500 px-1">
               Nessuna versione salvata ancora.
             </p>
           ) : (

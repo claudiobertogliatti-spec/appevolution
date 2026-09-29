@@ -95,7 +95,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
         <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
           <div className="text-4xl mb-3">📊</div>
           <div className="text-lg font-semibold text-slate-700 mb-1">Nessun partner in atto Ottimizza</div>
-          <div className="text-sm text-slate-400">
+          <div className="text-sm text-slate-500">
             Le metriche post-lancio compaiono quando un partner raggiunge l'atto Ottimizza (post-lancio).
           </div>
         </div>
@@ -146,7 +146,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
       </div>
 
       {loading ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-slate-400">
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-slate-500">
           Caricamento metriche…
         </div>
       ) : (
@@ -161,9 +161,9 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
               <span className={`w-1.5 h-1.5 rounded-full ${fonte === "nessuna" ? "bg-slate-400" : "bg-emerald-500"}`} />
               Fonte dati: {FONTE_LABEL[fonte] || fonte}
             </span>
-            {kpi.aggiornato_at && <span className="text-xs text-slate-400">Aggiornato {fmtDate(kpi.aggiornato_at)}</span>}
+            {kpi.aggiornato_at && <span className="text-xs text-slate-500">Aggiornato {fmtDate(kpi.aggiornato_at)}</span>}
             {data?.partnership?.stato && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500">
                 Partnership: {data.partnership.stato}
                 {data.partnership.giorni_rimanenti != null ? ` · ${data.partnership.giorni_rimanenti}gg rimanenti` : ""}
               </span>
@@ -186,8 +186,8 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
             {cards.map((c) => (
               <div key={c.l} className="bg-white border border-gray-200 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <c.icon className="w-4 h-4 text-yellow-600" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{c.l}</span>
+                  <c.icon className="w-4 h-4 text-yellow-700" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{c.l}</span>
                 </div>
                 <div className="text-3xl font-bold text-slate-900">{c.v}</div>
               </div>
@@ -198,7 +198,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
           <div className="grid md:grid-cols-2 gap-4">
             {data?.prossima_azione && (
               <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
                   Prossima azione consigliata
                 </div>
                 <div className="text-sm text-slate-700">{data.prossima_azione}</div>
@@ -207,7 +207,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
             <div className="bg-white border border-gray-200 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="w-4 h-4 text-yellow-600" />
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recensioni raccolte</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Recensioni raccolte</span>
               </div>
               <div className="text-3xl font-bold text-slate-900">{fmtNum(caso.recensioni)}</div>
             </div>
@@ -216,14 +216,14 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
           {/* Metriche non ancora disponibili (onestà sui dati) */}
           {nonDisp.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-2xl p-5">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-3">
                 Non ancora disponibili
               </div>
               <div className="space-y-2">
                 {nonDisp.map(([label, o]) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="font-medium text-slate-600 w-44 flex-shrink-0">{label}</span>
-                    <span className="text-slate-400">{o.motivo}</span>
+                    <span className="text-slate-500">{o.motivo}</span>
                   </div>
                 ))}
               </div>

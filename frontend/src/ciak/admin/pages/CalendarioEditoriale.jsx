@@ -260,14 +260,14 @@ function ReviewQueue({ onAuthExpired }) {
       {error && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       {outcome && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{outcome}</div>}
 
-      {items === null && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-400">Caricamento revisioni…</div>}
+      {items === null && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-500">Caricamento revisioni…</div>}
       {items?.length === 0 && !error && <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-slate-500">Non ci sono calendari in attesa di decisione.</div>}
       {items?.map((item) => (
         <article key={`${item.partner_id}-${item.version}`} className="rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="font-semibold text-slate-900">{item.partner_name || item.partner_email || `Partner ${item.partner_id}`}</p>
             <p className="mt-1 text-xs text-slate-500">Versione {item.version} · inviata il {formatDate(item.partner_confirmed_at)}</p>
-            <p className="mt-1 font-mono text-[11px] text-slate-400">Checksum {String(item.checksum || "").slice(0, 16)}…</p>
+            <p className="mt-1 font-mono text-[11px] text-slate-500">Checksum {String(item.checksum || "").slice(0, 16)}…</p>
           </div>
           <button onClick={() => openReview(item)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-300 hover:bg-slate-800">
             Apri revisione
@@ -329,13 +329,13 @@ function Giorno({ g }) {
   return (
     <div className={`rounded-xl p-3 border ${isWebinar ? "border-yellow-300 bg-yellow-50" : "border-gray-100 bg-white"}`}>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-[11px] font-bold text-slate-400 w-9 flex-shrink-0">G{g.giorno}</span>
-        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isWebinar ? "text-yellow-600" : "text-slate-400"}`} />
+        <span className="text-[11px] font-bold text-slate-500 w-9 flex-shrink-0">G{g.giorno}</span>
+        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isWebinar ? "text-yellow-700" : "text-slate-500"}`} />
         <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{g.formato}</span>
       </div>
       <p className="text-[13px] font-medium text-slate-800 leading-snug">{g.tema}</p>
       {g.come_farlo && <p className="text-[12px] text-slate-500 leading-snug mt-0.5">{g.come_farlo}</p>}
-      {g.fonte && <p className="text-[11px] text-slate-400 leading-snug mt-0.5">Da: {g.fonte}</p>}
+      {g.fonte && <p className="text-[11px] text-slate-500 leading-snug mt-0.5">Da: {g.fonte}</p>}
       {g.cta && (
         <p className="text-[11px] font-semibold text-yellow-700 mt-1.5 inline-flex items-center gap-1">
           <ArrowRight className="w-3 h-3" /> {g.cta}
@@ -350,7 +350,7 @@ function EmptyDeliverable({ icon: Icon, title, hint, partner }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
       <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-        <Icon className="w-5 h-5 text-slate-400" />
+        <Icon className="w-5 h-5 text-slate-500" />
       </div>
       <p className="text-[14px] font-semibold text-slate-900 mb-1">{title}</p>
       <p className="text-[13px] text-slate-500 leading-relaxed max-w-md mx-auto mb-4">{hint}</p>
@@ -374,7 +374,7 @@ function Sezione({ icon: Icon, numero, title, subtitle, children }) {
         </div>
         <div className="min-w-0">
           <h3 className="text-[15px] font-semibold text-slate-900 flex items-center gap-1.5">
-            <Icon className="w-4 h-4 text-yellow-500" /> {title}
+            <Icon className="w-4 h-4 text-yellow-700" /> {title}
           </h3>
           {subtitle && <p className="text-[13px] text-slate-500 leading-snug">{subtitle}</p>}
         </div>
@@ -405,7 +405,7 @@ function Calendario1Lancio({ cal, partner }) {
             <p className="text-[13px] font-semibold text-slate-900 flex items-center gap-1.5">
               <span className="w-1 h-3.5 bg-yellow-400 rounded-sm inline-block" /> Settimana {wi + 1}
             </p>
-            <p className="text-[11px] text-slate-400">{w.obiettivo}</p>
+            <p className="text-[11px] text-slate-500">{w.obiettivo}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {(w.giorni || []).map((g, i) => (
@@ -425,7 +425,7 @@ function Blocco({ b }) {
     <div className="mb-4">
       <div className="flex items-baseline justify-between mb-2">
         <p className="text-[13px] font-semibold text-slate-900">{b.fase}</p>
-        <p className="text-[11px] text-slate-400">{b.obiettivo}</p>
+        <p className="text-[11px] text-slate-500">{b.obiettivo}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {(b.giorni || []).map((g, i) => (
@@ -439,7 +439,7 @@ function Blocco({ b }) {
 function Mese({ m }) {
   return (
     <div className="bg-slate-50 rounded-2xl p-4 border border-gray-200">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Mese {m.mese}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Mese {m.mese}</p>
       {(m.blocchi || []).map((b, i) => (
         <Blocco key={i} b={b} />
       ))}
@@ -504,7 +504,7 @@ function CalendarioRegime({ partner }) {
     <div className="space-y-3">
       {calendar && (
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-500">
             {calendar.source === "ai" ? "Generato sul corso del partner" : "Piano di base"} · 3 mesi
             {generatedAt && ` · aggiornato il ${new Date(generatedAt).toLocaleDateString("it-IT")}`}
           </p>
@@ -592,9 +592,9 @@ function WebinarMotore({ strategia, deck, partner }) {
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <div className="flex items-baseline justify-between mb-3">
           <p className="text-[14px] font-bold text-slate-900">{w.titolo || "Webinar"}</p>
-          {w.durata_min && <span className="text-[12px] text-slate-400">{w.durata_min} min</span>}
+          {w.durata_min && <span className="text-[12px] text-slate-500">{w.durata_min} min</span>}
         </div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
           <ListChecks className="w-3.5 h-3.5" /> Script in {(w.fasi || []).length} fasi
         </p>
         <div className="space-y-2">
@@ -605,7 +605,7 @@ function WebinarMotore({ strategia, deck, partner }) {
                   {i + 1}
                 </span>
                 <span className="text-[13px] font-semibold text-slate-900 flex-1">{f.fase}</span>
-                {f.minuti && <span className="text-[11px] text-slate-400">{f.minuti}</span>}
+                {f.minuti && <span className="text-[11px] text-slate-500">{f.minuti}</span>}
               </div>
               {f.obiettivo && <p className="text-[12px] text-slate-600 mt-1">{f.obiettivo}</p>}
               {f.cosa_dire && <p className="text-[12px] text-slate-500 mt-0.5 leading-snug">{f.cosa_dire}</p>}
@@ -616,26 +616,26 @@ function WebinarMotore({ strategia, deck, partner }) {
 
       {/* Prezzo */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
           <Tag className="w-3.5 h-3.5" /> Prezzo e promo
         </p>
         <div className="flex flex-wrap gap-6">
           <div>
-            <p className="text-[11px] text-slate-400">Listino</p>
+            <p className="text-[11px] text-slate-500">Listino</p>
             <p className="text-[15px] font-bold text-slate-900">{p.listino || "—"}</p>
           </div>
           <div>
-            <p className="text-[11px] text-slate-400">Promo webinar</p>
+            <p className="text-[11px] text-slate-500">Promo webinar</p>
             <p className="text-[15px] font-bold text-emerald-700">{p.promo_webinar || "—"}</p>
           </div>
           <div>
-            <p className="text-[11px] text-slate-400">Scadenza</p>
+            <p className="text-[11px] text-slate-500">Scadenza</p>
             <p className="text-[13px] font-medium text-slate-700">{p.scadenza_promo || "—"}</p>
           </div>
         </div>
         {(p.bonus || []).length > 0 && (
           <div className="mt-3">
-            <p className="text-[11px] text-slate-400 mb-1">Bonus a scadenza</p>
+            <p className="text-[11px] text-slate-500 mb-1">Bonus a scadenza</p>
             <ul className="space-y-0.5">
               {p.bonus.map((b, i) => (
                 <li key={i} className="text-[12.5px] text-slate-700">• {b}</li>
@@ -650,12 +650,12 @@ function WebinarMotore({ strategia, deck, partner }) {
 
       {/* Deck (slide) */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
           <Presentation className="w-3.5 h-3.5" /> Deck del webinar
           {slides.length > 0 && <span className="text-slate-300 normal-case font-normal">· {slides.length} slide</span>}
         </p>
         {slides.length === 0 ? (
-          <p className="text-[13px] text-slate-400">Deck non ancora generato dal partner.</p>
+          <p className="text-[13px] text-slate-500">Deck non ancora generato dal partner.</p>
         ) : (
           <div className="space-y-2">
             {slides.map((s, i) => {
@@ -663,7 +663,7 @@ function WebinarMotore({ strategia, deck, partner }) {
               return (
                 <div key={i}>
                   {showFase && s.fase && (
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-yellow-600 mt-2 mb-1">{s.fase}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-yellow-700 mt-2 mb-1">{s.fase}</p>
                   )}
                   <div className="border border-slate-100 rounded-lg px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -824,16 +824,16 @@ export function CalendarioEditoriale({ onAuthExpired }) {
       {tab === "review" && <ReviewQueue onAuthExpired={onAuthExpired} />}
 
       {tab === "overview" && error && <div className="text-sm text-red-600">Errore: {error}</div>}
-      {tab === "overview" && !partners && !error && <div className="text-slate-400">Caricamento partner…</div>}
+      {tab === "overview" && !partners && !error && <div className="text-slate-500">Caricamento partner…</div>}
 
       {tab === "overview" && partners && (
         <>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" /> Seleziona partner
             </label>
             {partners.length === 0 ? (
-              <p className="text-sm text-slate-400">Nessun partner disponibile.</p>
+              <p className="text-sm text-slate-500">Nessun partner disponibile.</p>
             ) : (
               <div className="flex gap-2 flex-wrap">
                 {partners.map((p) => (
@@ -859,7 +859,7 @@ export function CalendarioEditoriale({ onAuthExpired }) {
           {selected ? (
             <PartnerContenuti key={selected.id} partner={selected} onAuthExpired={onAuthExpired} />
           ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-10 text-center text-slate-400">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-10 text-center text-slate-500">
               Seleziona un partner per vedere i suoi contenuti.
             </div>
           )}

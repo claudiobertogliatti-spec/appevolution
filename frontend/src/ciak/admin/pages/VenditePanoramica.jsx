@@ -54,7 +54,7 @@ function SalesChain({ funnel }) {
           <div className="px-3">
             <div className="text-3xl font-semibold text-slate-900 leading-none">{s.value ?? 0}</div>
             <div className="text-[13px] font-medium text-slate-700 mt-1">{s.name}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{s.sub}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{s.sub}</div>
           </div>
           {i < steps.length - 1 && (
             <div className="flex flex-col items-center justify-center px-2 min-w-[64px]">
@@ -97,7 +97,7 @@ export function VenditePanoramica({ onAuthExpired }) {
   );
 
   if (error) return <div className="p-8"><VenditeSubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><VenditeSubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (!data) return <div className="p-8"><VenditeSubNav active="Home" /><p className="text-slate-500 mt-6">Caricamento panoramica...</p></div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -125,7 +125,7 @@ export function VenditePanoramica({ onAuthExpired }) {
         <div className="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4 min-w-[220px]">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-400">Partnership firmate · mese</p>
           <p className="text-4xl font-bold mt-1 leading-none">{firmateMese}</p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             target 3 min · 4 ottimale · {gap > 0 ? `${gap} ancora al target` : "target raggiunto"}
           </p>
         </div>
@@ -217,7 +217,7 @@ export function VenditePanoramica({ onAuthExpired }) {
         <div className="mt-5">
           <SalesChain funnel={funnel} />
         </div>
-        <p className="text-[12px] text-slate-400 mt-4">
+        <p className="text-[12px] text-slate-500 mt-4">
           Le trattative aperte, stadio per stadio, sono nel board <Link to="/admin/trattative" className="text-blue-700 font-medium">Pipeline</Link>.
         </p>
       </div>
@@ -233,7 +233,7 @@ export function VenditePanoramica({ onAuthExpired }) {
             <p className="text-sm text-slate-500 mt-1">Hanno già dato fiducia (e soldi): la call è il passo che chiude.</p>
           </div>
           {acquistatoSenzaCall.length === 0 ? (
-            <div className="p-5 text-sm text-slate-400">Nessuno fermo con acquisto senza call.</div>
+            <div className="p-5 text-sm text-slate-500">Nessuno fermo con acquisto senza call.</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {acquistatoSenzaCall.map((item) => (
@@ -291,9 +291,9 @@ export function VenditePanoramica({ onAuthExpired }) {
             { k: "Firme / target", v: `${firmateMese} / ${firmateMese + gap}`, h: "partnership del mese" },
           ].map((m) => (
             <div key={m.k} className={`rounded-xl p-4 ${m.hot ? "bg-yellow-50 border border-yellow-200" : "bg-slate-50"}`}>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{m.h}</div>
             </div>
           ))}
         </div>

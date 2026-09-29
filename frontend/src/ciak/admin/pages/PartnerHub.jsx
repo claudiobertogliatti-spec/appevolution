@@ -92,7 +92,7 @@ function contrattoLabel(p) {
   // data della migrazione): NON e' una firma e non va mostrata in questa colonna,
   // altrimenti spaccia una data qualsiasi per contratto siglato.
   if (p.contract_signed) return { text: "Firmato", cls: "text-emerald-600" };
-  return { text: "—", cls: "text-slate-400" };
+  return { text: "—", cls: "text-slate-500" };
 }
 
 // Scadenza operativa del partner: SOLO da campi reali. La prossima rata del piano
@@ -148,7 +148,7 @@ function PartnerCard({ p, onOpen }) {
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           {p.phase && (
-            <span className="text-[10px] font-mono text-slate-400">{p.phase}</span>
+            <span className="text-[10px] font-mono text-slate-500">{p.phase}</span>
           )}
           <StatusPill
             tone={STATO_TONE[stato] || "neutral"}
@@ -174,7 +174,7 @@ function AttoView({ partners, onOpen }) {
         {attivi.length} partner attivi sul percorso, raggruppati per atto del Metodo EVO.
         Clicca un partner per gestire i 14 step.
         {fuoriCount > 0 && (
-          <span className="text-slate-400"> · {fuoriCount} tra sospesi, quarantena ed ex non mostrati.</span>
+          <span className="text-slate-500"> · {fuoriCount} tra sospesi, quarantena ed ex non mostrati.</span>
         )}
       </p>
 
@@ -202,7 +202,7 @@ function AttoView({ partners, onOpen }) {
 
               <div className="p-3 space-y-2 min-h-[120px]">
                 {list.length === 0 ? (
-                  <p className="text-xs text-slate-400 px-1 py-6 text-center">
+                  <p className="text-xs text-slate-500 px-1 py-6 text-center">
                     Nessun partner in questa fase.
                   </p>
                 ) : (
@@ -246,14 +246,14 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-500">
           Nessun partner con questo filtro.
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+              <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
                 <th className="px-5 py-3 font-semibold">Partner</th>
                 <th className="px-5 py-3 font-semibold">Passaggio</th>
                 <th className="px-5 py-3 font-semibold">Prossima azione</th>
@@ -293,7 +293,7 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                             {p.name || "—"}
                           </div>
                           {/* revenue/piano/contratto demoti a sottoriga: contano, ma non sono la prima lettura operativa */}
-                          <div className="text-[11px] text-slate-400 truncate">
+                          <div className="text-[11px] text-slate-500 truncate">
                             {euro(p.revenue)}
                             {p.piano_pagamento ? ` · ${p.piano_pagamento.rate_pagate}/${p.piano_pagamento.rate_totali} rate` : ""}
                             {contr.text !== "—" ? ` · ${contr.text}` : ""}
@@ -306,23 +306,23 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                         {passaggio}
                       </span>
                       {passaggioSub && (
-                        <div className="text-[10px] text-slate-400 mt-0.5">{passaggioSub}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">{passaggioSub}</div>
                       )}
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-700 max-w-[220px]">
-                      {a && a.next_action ? a.next_action : <span className="text-slate-400">—</span>}
+                      {a && a.next_action ? a.next_action : <span className="text-slate-500">—</span>}
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-700">
-                      {a && a.owner ? a.owner : <span className="text-slate-400">—</span>}
+                      {a && a.owner ? a.owner : <span className="text-slate-500">—</span>}
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-700">
-                      {sca || <span className="text-slate-400">—</span>}
+                      {sca || <span className="text-slate-500">—</span>}
                     </td>
                     <td className="px-5 py-3">
                       {blk ? (
                         <StatusPill tone={blk.tone} label={blk.text} />
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -342,7 +342,7 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                         <option value="ex" disabled>Ex</option>
                       </select>
                       {stato === "ex" && (
-                        <div className="mt-1 text-[10px] text-slate-400">{STATO_LABEL.ex}</div>
+                        <div className="mt-1 text-[10px] text-slate-500">{STATO_LABEL.ex}</div>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -567,7 +567,7 @@ export function PartnerHub({ onAuthExpired }) {
   };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!partners) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (!partners) return <div className="p-8 text-slate-500">Caricamento…</div>;
 
   const counts = {
     attivo: partners.filter((p) => (p.stato || "attivo") === "attivo").length,

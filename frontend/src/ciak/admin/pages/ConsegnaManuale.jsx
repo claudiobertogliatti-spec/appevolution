@@ -97,7 +97,7 @@ export function ConsegnaManuale({ onAuthExpired }) {
             onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
           />
-          {file && <p className="mt-1 text-xs text-slate-400">{file.name}</p>}
+          {file && <p className="mt-1 text-xs text-slate-500">{file.name}</p>}
         </div>
         <button
           type="submit"
@@ -119,13 +119,13 @@ export function ConsegnaManuale({ onAuthExpired }) {
           </p>
           {result.magic_link && (
             <div className="mt-3 rounded-xl border border-emerald-200 bg-white p-4">
-              <p className="text-xs text-slate-400 mb-1">Link d'accesso cliente (è già nella sua email)</p>
+              <p className="text-xs text-slate-500 mb-1">Link d'accesso cliente (è già nella sua email)</p>
               <div className="flex flex-wrap items-center gap-3">
                 <code className="text-xs text-slate-700 break-all">{result.magic_link}</code>
                 <button
                   type="button"
                   onClick={() => navigator.clipboard.writeText(result.magic_link)}
-                  className="text-sm font-semibold text-yellow-600 shrink-0"
+                  className="text-sm font-semibold text-yellow-700 shrink-0"
                 >
                   Copia
                 </button>

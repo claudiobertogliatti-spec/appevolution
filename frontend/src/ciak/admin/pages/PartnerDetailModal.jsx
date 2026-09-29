@@ -115,7 +115,7 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, partnerName, isDeletin
 // JOURNEY EDITOR — Editor completo dati step per step
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function JourneySection({ title, icon: Icon, color = "#FFD24D", children, defaultOpen = false }) {
+function JourneySection({ title, icon: Icon, color = "#FACC15", children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
@@ -137,7 +137,7 @@ function JourneySection({ title, icon: Icon, color = "#FFD24D", children, defaul
 function JField({ label, value, onChange, multiline = false, placeholder = "" }) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#9CA3AF" }}>
+      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#64748B" }}>
         {label}
       </label>
       {multiline ? (
@@ -169,7 +169,7 @@ function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all mt-2"
       style={{
         background: saved ? "#F0FDF4" : "#0F172A",
-        color: saved ? "#16A34A" : "#FFD24D",
+        color: saved ? "#16A34A" : "#FACC15",
         border: `1px solid ${saved ? "#BBF7D0" : "transparent"}`
       }}>
       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -191,7 +191,7 @@ function EvoActHeader({ icon, label, agent, tagline }) {
           <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#0F172A" }}>{label}</span>
           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#FFF7DB", color: "#92400E" }}>{agent}</span>
         </div>
-        <p className="text-[11px]" style={{ color: "#9CA3AF" }}>{tagline}</p>
+        <p className="text-[11px]" style={{ color: "#64748B" }}>{tagline}</p>
       </div>
     </div>
   );
@@ -433,7 +433,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
       <JourneySection title="Anagrafica e Sistemi" icon={User} color="#3B82F6" defaultOpen={true}>
         {partner.evolution_id && (
           <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/20">
-            <span className="text-xs text-[#9CA3AF] font-medium">ID Lifecycle:</span>
+            <span className="text-xs text-[#64748B] font-medium">ID Lifecycle:</span>
             <span className="font-mono text-sm font-bold text-[#818CF8] tracking-widest">{partner.evolution_id}</span>
           </div>
         )}
@@ -444,7 +444,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
           <JField label="Subdomain Systeme" value={partner.systeme_subdomain} onChange={v => updatePartner("systeme_subdomain", v)} placeholder="es. mariorossi" />
           <JField label="YouTube Playlist ID" value={partner.youtube_playlist_id} onChange={v => updatePartner("youtube_playlist_id", v)} />
         </div>
-        <p className="text-[11px] text-[#9CA3AF] mt-2">Il percorso del partner si gestisce nella sezione <span className="font-semibold text-[#818CF8]">Percorso EVO</span> in fondo a questa scheda.</p>
+        <p className="text-[11px] text-[#64748B] mt-2">Il percorso del partner si gestisce nella sezione <span className="font-semibold text-[#818CF8]">Percorso EVO</span> in fondo a questa scheda.</p>
         <SaveBtn onClick={() => onSave("partner", "partners", {
           name: partner.name, email: partner.email, nicchia: partner.nicchia,
           systeme_subdomain: partner.systeme_subdomain,
@@ -457,7 +457,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 
       {/* LA TUA STORIA — compilabile a pezzi da admin (il wizard partner no) */}
       <JourneySection title={`La tua storia — ${storiaCompilate}/${STORIA_QUESTIONS.length}`} icon={BookOpen} color="#0EA5E9">
-        <div className="text-xs mb-3 leading-relaxed" style={{ color: "#9CA3AF" }}>
+        <div className="text-xs mb-3 leading-relaxed" style={{ color: "#64748B" }}>
           Il wizard lato partner obbliga a rispondere in sequenza a tutte e {STORIA_QUESTIONS.length} le domande:
           senza risposta il tasto Avanti resta bloccato. Qui invece si compila liberamente, anche solo in parte —
           serve in migrazione, quando del partner abbiamo solo una parte del materiale.
@@ -466,7 +466,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
         </div>
         {storiaBlocchi.map(blocco => (
           <div key={blocco} className="mb-4">
-            <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>{blocco}</div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#64748B" }}>{blocco}</div>
             {STORIA_QUESTIONS.filter(q => q.blocco === blocco).map(q => (
               <JField
                 key={q.id}
@@ -485,14 +485,14 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 
       {/* POSIZIONAMENTO */}
       <JourneySection title="Posizionamento" icon={Target} color="#8B5CF6">
-        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Input del partner</div>
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#64748B" }}>Input del partner</div>
         <div className="grid grid-cols-2 gap-3">
           <JField label="Target" value={pos.inputs?.target} onChange={v => updatePos("inputs.target", v)} multiline placeholder="Chi è il tuo cliente ideale?" />
           <JField label="Risultato principale" value={pos.inputs?.risultato} onChange={v => updatePos("inputs.risultato", v)} multiline placeholder="Che risultato ottiene?" />
           <JField label="Unicità" value={pos.inputs?.unicita} onChange={v => updatePos("inputs.unicita", v)} multiline placeholder="Cosa ti differenzia?" />
           <JField label="Nome corso" value={pos.inputs?.corso_nome} onChange={v => updatePos("inputs.corso_nome", v)} placeholder="Titolo del corso" />
         </div>
-        <div className="text-xs font-bold uppercase tracking-wide mb-2 mt-4" style={{ color: "#9CA3AF" }}>Output generato</div>
+        <div className="text-xs font-bold uppercase tracking-wide mb-2 mt-4" style={{ color: "#64748B" }}>Output generato</div>
         <JField label="Testo posizionamento" value={pos.positioning_output?.positioning_statement || (typeof pos.positioning_output === "string" ? pos.positioning_output : "")}
           onChange={v => updatePos("positioning_output.positioning_statement", v)} multiline placeholder="Statement di posizionamento..." />
         <JField label="Valore unico" value={pos.positioning_output?.unique_value}
@@ -529,7 +529,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
               }}>{mcPipelineStatus.replace(/_/g, " ")}</span>
             )}
             {!mcPipelineStatus && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#F3F4F6", color: "#9CA3AF" }}>nessun video</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#F3F4F6", color: "#64748B" }}>nessun video</span>
             )}
           </div>
           <div className="p-4 space-y-3" style={{ background: "#FAFAFA" }}>
@@ -568,7 +568,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
               <label
                 htmlFor="mc-direct-upload"
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer"
-                style={{ background: uploadingFile ? "#E5E7EB" : "#0F172A", color: uploadingFile ? "#9CA3AF" : "white" }}
+                style={{ background: uploadingFile ? "#E5E7EB" : "#0F172A", color: uploadingFile ? "#64748B" : "white" }}
               >
                 {uploadingFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {uploadingFile ? `Caricamento ${uploadProgress}%` : "Scegli video dal computer\u2026"}
@@ -584,7 +584,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
                 onClick={handleApproveVideo}
                 disabled={approvingVideo || mcPipelineStatus !== "ready_for_review"}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
-                style={{ background: mcPipelineStatus === "ready_for_review" ? "#10B981" : "#E5E7EB", color: mcPipelineStatus === "ready_for_review" ? "white" : "#9CA3AF" }}
+                style={{ background: mcPipelineStatus === "ready_for_review" ? "#10B981" : "#E5E7EB", color: mcPipelineStatus === "ready_for_review" ? "white" : "#64748B" }}
               >
                 {approvingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                 {approvingVideo ? "Approvando..." : "Approva Video"}
@@ -648,7 +648,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
               onClick={handleGenerateMcScript}
               disabled={generatingScript || !partnerId}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
-              style={{ background: "#0F172A", color: "#FFD24D" }}
+              style={{ background: "#0F172A", color: "#FACC15" }}
             >
               {generatingScript ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
               {generatingScript ? "Generando script..." : "Genera Script AI"}
@@ -656,7 +656,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
           </div>
         </div>
 
-        <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: "#9CA3AF" }}>Script (testo completo)</div>
+        <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: "#64748B" }}>Script (testo completo)</div>
         <JField label="Script masterclass" value={mc.script} onChange={v => setMc(p => ({ ...p, script: v }))} multiline placeholder="Incolla lo script completo..." />
         {mc.script_sections && mc.script_sections.length > 0 && (
           <div className="mt-2 space-y-2">
@@ -682,7 +682,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 
       {/* LEZIONI (ex "Videocorso") */}
       <JourneySection title="Lezioni — outline e URL" icon={BookOpen} color="#22C55E">
-        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Blueprint Accademia</div>
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#64748B" }}>Blueprint Accademia</div>
         <div className="grid grid-cols-2 gap-3">
           <JField label="Titolo corso" value={vc.course_data?.titolo_corso}
             onChange={v => updateVc("course_data.titolo_corso", v)} placeholder="Titolo del corso" />
@@ -699,7 +699,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
           onChange={v => updateVc("course_data.production_notes", v)} multiline placeholder="Stato registrazioni, blocchi, revisioni, priorita' per il team video..." />
         {lessons.length > 0 ? (
           <div className="space-y-3 mt-3">
-            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: "#9CA3AF" }}>URL YouTube per lezione</div>
+            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: "#64748B" }}>URL YouTube per lezione</div>
             {lessons.map(([lessonId, lesson]) => (
               <div key={lessonId} className="p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
                 <div className="text-xs font-bold mb-2" style={{ color: "#16A34A" }}>
@@ -719,7 +719,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
             ))}
           </div>
         ) : (
-          <div className="text-xs py-3" style={{ color: "#9CA3AF" }}>
+          <div className="text-xs py-3" style={{ color: "#64748B" }}>
             Nessuna lezione ancora caricata per questo partner.
           </div>
         )}
@@ -731,7 +731,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
 
       {/* FUNNEL & URL */}
       <JourneySection title="Funnel & URL" icon={Link2} color="#EF4444">
-        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Asset pubblici</div>
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#64748B" }}>Asset pubblici</div>
         <div className="grid grid-cols-2 gap-3">
           <JField label="URL Funnel Live (Systeme)" value={fn.live_url}
             onChange={v => setFn(p => ({ ...p, live_url: v }))} placeholder="https://xxx.systeme.io/funnel" />
@@ -743,7 +743,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
             onChange={v => setFn(p => ({ ...p, thank_you_url: v }))} placeholder="https://..." />
         </div>
 
-        <div className="text-xs font-bold uppercase tracking-wide mt-4 mb-2" style={{ color: "#9CA3AF" }}>Stato implementazione Systeme.io</div>
+        <div className="text-xs font-bold uppercase tracking-wide mt-4 mb-2" style={{ color: "#64748B" }}>Stato implementazione Systeme.io</div>
         <div className="grid grid-cols-2 gap-3">
           <JField label="Tipo funnel" value={fn.funnel_type}
             onChange={v => setFn(p => ({ ...p, funnel_type: v }))} placeholder="es. masterclass, VSL, call funnel" />
@@ -780,7 +780,7 @@ function JourneyEditor({ data, saving, saved, onSave, onSaveStep, onAuthExpired 
       {/* VIDEO MASTERCLASS INFO (da pipeline) */}
       {mc.video_systeme_embed && (
         <JourneySection title="Embed Sisteme (masterclass)" icon={Video} color="#EF4444">
-          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#0F172A", color: "#FFD24D" }}>
+          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#0F172A", color: "#FACC15" }}>
             {mc.video_systeme_embed}
           </div>
         </JourneySection>
@@ -841,25 +841,25 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
     <div data-testid="partner-op-header" className="px-6 py-4 bg-slate-50 border-b border-slate-200">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Target className="w-3.5 h-3.5" aria-hidden />Situazione
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{situazione}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Sparkles className="w-3.5 h-3.5" aria-hidden />Prossimo risultato
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{risultato}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <User className="w-3.5 h-3.5" aria-hidden />Responsabile
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{responsabile}</div>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <Calendar className="w-3.5 h-3.5" aria-hidden />Scadenza
           </div>
           <div className="text-sm font-medium text-slate-800 truncate">{scadenza || "—"}</div>
@@ -867,9 +867,9 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Prossima azione</div>
           <div className="text-sm font-semibold text-slate-900 truncate">
-            {prossima || <span className="text-slate-400 font-normal">Nessuna azione in coda</span>}
+            {prossima || <span className="text-slate-500 font-normal">Nessuna azione in coda</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -878,7 +878,7 @@ export function PartnerOpHeader({ partner, audit, piano, phase, onOpenJourney })
               <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blocco.text}
             </span>
           ) : (
-            <span className="text-xs text-slate-400">Nessun blocco</span>
+            <span className="text-xs text-slate-500">Nessun blocco</span>
           )}
           <button
             type="button"
@@ -1541,15 +1541,15 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             <div className="flex items-center gap-4">
               <div
                 className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg"
-                style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
+                style={{ backgroundColor: "#FACC15", color: "#0F172A" }}
               >
                 {partnerName[0]?.toUpperCase()}
               </div>
               <div>
                 <h2 className="text-xl font-black text-white">{partnerName}</h2>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-gray-400">{headerPartner.email}</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>
+                  <span className="text-sm text-slate-500">{headerPartner.email}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FACC15", color: "#0F172A" }}>
                     {attoEvo(formData.phase) || "—"}
                   </span>
                   {formData.phase && (
@@ -1585,7 +1585,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 onClick={() => { setActiveTab(tab.id); if (tab.id === "materiali") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id
-                    ? "border-[#FFD24D] text-gray-900 bg-white"
+                    ? "border-[#FACC15] text-gray-900 bg-white"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50"
                 }`}
                 data-testid={`tab-${tab.id}`}
@@ -1620,9 +1620,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {activeTab === "panoramica" && (
               <div className="space-y-5" data-testid="tab-content-panoramica">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Prossima azione</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Prossima azione</div>
                   <div className="text-sm font-semibold text-slate-900 mt-0.5">
-                    {audit?.next_action || <span className="text-slate-400 font-normal">Nessuna azione in coda.</span>}
+                    {audit?.next_action || <span className="text-slate-500 font-normal">Nessuna azione in coda.</span>}
                   </div>
                 </div>
                 <div>
@@ -1636,7 +1636,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ].map(({ ok, label }) => (
                       <div
                         key={label}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}`}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500"}`}
                       >
                         {ok ? <CheckCircle className="w-3.5 h-3.5" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden />}
                         {label}
@@ -1644,7 +1644,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
                 </p>
               </div>
@@ -1662,7 +1662,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <div className="space-y-5" data-testid="tab-content-materiali">
                 {journeyLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#64748B" }} />
                   </div>
                 ) : journeyData ? (
                   <JourneyEditor
@@ -1674,7 +1674,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onAuthExpired={onAuthExpired}
                   />
                 ) : (
-                  <div className="text-center py-12 text-gray-400">
+                  <div className="text-center py-12 text-slate-500">
                     <button onClick={loadJourneyData} className="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium">
                       Carica dati journey
                     </button>
@@ -1794,7 +1794,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ))}
                   </div>
                   {formData.kpi_manual?.aggiornato_at && (
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-slate-500 mt-2">
                       Ultimo aggiornamento: {new Date(formData.kpi_manual.aggiornato_at).toLocaleString("it-IT")}
                     </p>
                   )}
@@ -1897,7 +1897,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.partnership_pagata || false}
                         onChange={e => setPendingToggle({ field: "partnership_pagata", next: e.target.checked, label: "il pagamento partnership" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Partnership Pagata</span>
                     </label>
@@ -1907,7 +1907,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.contratto_firmato || false}
                         onChange={e => setPendingToggle({ field: "contratto_firmato", next: e.target.checked, label: "il contratto firmato" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
                     </label>
@@ -1927,7 +1927,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.onboarding_completato || false}
                         onChange={e => setPendingToggle({ field: "onboarding_completato", next: e.target.checked, label: "l'onboarding completato" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Onboarding Completato</span>
                     </label>
@@ -1937,7 +1937,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         type="checkbox"
                         checked={formData.masterclass_pronta || false}
                         onChange={e => setPendingToggle({ field: "masterclass_pronta", next: e.target.checked, label: "la masterclass pronta" })}
-                        className="w-4 h-4 text-amber-500 rounded"
+                        className="w-4 h-4 text-yellow-700 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">Masterclass Pronta</span>
                     </label>
@@ -1954,7 +1954,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveProfile}
                     disabled={saving}
                     className="flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
+                    style={{ backgroundColor: "#FACC15", color: "#0F172A" }}
                     data-testid="save-profile-btn"
                   >
                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -2021,8 +2021,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                                   status === "verified" ? "bg-emerald-100 text-emerald-600" :
                                   status === "rejected" ? "bg-red-100 text-red-500" :
-                                  hasFile ? "bg-amber-100 text-amber-600" :
-                                  "bg-gray-100 text-gray-400"
+                                  hasFile ? "bg-amber-100 text-yellow-700" :
+                                  "bg-gray-100 text-slate-500"
                                 }`}>
                                   {status === "verified" ? <CheckCircle className="w-4 h-4" /> :
                                    status === "rejected" ? <XCircle className="w-4 h-4" /> :
@@ -2034,7 +2034,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                     {cfg.required && <span className="text-[10px] text-red-500 ml-1">*</span>}
                                   </div>
                                   {hasFile && (
-                                    <div className="text-xs text-gray-400">
+                                    <div className="text-xs text-slate-500">
                                       {doc.original_name || "Documento"} {doc.size_readable ? `• ${doc.size_readable}` : ""}
                                       {doc.uploaded_at && ` • ${new Date(doc.uploaded_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
                                     </div>
@@ -2078,7 +2078,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                 )}
                                 {/* Status for non-uploaded */}
                                 {!hasFile && status !== "not_required" && (
-                                  <span className="text-xs text-gray-400">Non caricato</span>
+                                  <span className="text-xs text-slate-500">Non caricato</span>
                                 )}
                                 {status === "not_required" && (
                                   <span className="text-xs text-gray-300">Opzionale</span>
@@ -2092,7 +2092,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   ) : (
                     <div className="text-center py-8 bg-gray-50 rounded-xl">
                       <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm text-gray-400">Nessun documento di onboarding</p>
+                      <p className="text-sm text-slate-500">Nessun documento di onboarding</p>
                     </div>
                   )}
                 </div>
@@ -2124,7 +2124,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   <div className="mt-6 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
                     <div className="px-5 py-4 flex items-center justify-between" style={{ background: "#0F172A" }}>
                       <div className="flex items-center gap-3">
-                        <Film className="w-5 h-5" style={{ color: "#FFD24D" }} />
+                        <Film className="w-5 h-5" style={{ color: "#FACC15" }} />
                         <span className="font-bold text-white text-sm">Video Masterclass — Pipeline</span>
                       </div>
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -2148,13 +2148,13 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                             <div className="text-lg font-black" style={{ color: "#0F172A" }}>
                               {Math.floor(videoPipeline.video_raw_duration_s / 60)}:{String(videoPipeline.video_raw_duration_s % 60).padStart(2, "0")}
                             </div>
-                            <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Originale</div>
+                            <div className="text-[11px]" style={{ color: "#64748B" }}>Originale</div>
                           </div>
                           <div className="text-center p-3 bg-white rounded-xl" style={{ border: "1px solid #F0EDE8" }}>
                             <div className="text-lg font-black" style={{ color: "#0F172A" }}>
                               {Math.floor(videoPipeline.video_final_duration_s / 60)}:{String(videoPipeline.video_final_duration_s % 60).padStart(2, "0")}
                             </div>
-                            <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Dopo cleaning</div>
+                            <div className="text-[11px]" style={{ color: "#64748B" }}>Dopo cleaning</div>
                           </div>
                           <div className="text-center p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
                             <div className="text-lg font-black" style={{ color: "#16A34A" }}>
@@ -2212,7 +2212,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         {videoPipeline.pipeline_status === "ready_for_review" && (
                           <button onClick={handleApproveVideo} disabled={approvingVideo}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                            style={{ background: "#FFD24D", color: "#0F172A" }}>
+                            style={{ background: "#FACC15", color: "#0F172A" }}>
                             {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                             Approva Video
                           </button>
@@ -2230,7 +2230,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 )}
 
                 {/* Revision Notes Section (existing) */}
-                <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #FFD24D50" }}>
+                <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #FACC1550" }}>
                   <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#0F172A" }}>
                     <MessageSquare className="w-5 h-5" style={{ color: "#C4990A" }} />
                     Note Revisione Video (Solo Admin)
@@ -2247,7 +2247,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveRevisionNotes}
                     disabled={savingNotes}
                     className="mt-3 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all"
-                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
+                    style={{ backgroundColor: "#FACC15", color: "#0F172A" }}
                   >
                     {savingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Salva Note
@@ -2380,7 +2380,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleAddPayment}
                     disabled={saving || !newPayment.description || !newPayment.amount}
                     className="mt-4 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
+                    style={{ backgroundColor: "#FACC15", color: "#0F172A" }}
                     data-testid="add-payment-btn"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -2393,7 +2393,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   <div className="p-5 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #0F172A 0%, #2D3038 100%)" }}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <span className="text-gray-400 text-sm">Totale Pagato</span>
+                        <span className="text-slate-500 text-sm">Totale Pagato</span>
                         <div className="text-2xl font-black text-green-400">
                           €{payments
                             .filter(p => p.status === "paid")
@@ -2402,8 +2402,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         </div>
                       </div>
                       <div>
-                        <span className="text-gray-400 text-sm">Da Incassare</span>
-                        <div className="text-2xl font-black" style={{ color: "#FFD24D" }}>
+                        <span className="text-slate-500 text-sm">Da Incassare</span>
+                        <div className="text-2xl font-black" style={{ color: "#FACC15" }}>
                           €{payments
                             .filter(p => p.status === "pending")
                             .reduce((sum, p) => sum + (p.amount || 0), 0)
@@ -2447,37 +2447,37 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   {piano && !pianoDraft && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Tipo</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Tipo</div>
                         <div className="text-sm font-bold text-slate-800">
                           {piano.tipo === "mensile" ? "Mensilità" : "Rate concordate"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Rate</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Rate</div>
                         <div className="text-sm font-bold text-slate-800">{piano.rate_pagate}/{piano.rate_totali}</div>
                         <div className="w-full h-1.5 rounded-full bg-gray-200 mt-1">
                           <div
                             className="h-full rounded-full"
                             style={{
                               width: `${Math.max(piano.rate_totali ? Math.round((piano.rate_pagate / piano.rate_totali) * 100) : 0, 4)}%`,
-                              background: piano.rate_pagate >= piano.rate_totali ? "#34C77B" : "#FFD24D",
+                              background: piano.rate_pagate >= piano.rate_totali ? "#34C77B" : "#FACC15",
                             }}
                           />
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Importo rata</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Importo rata</div>
                         <div className="text-sm font-bold text-slate-800">
                           {piano.importo_rata != null ? `€ ${Number(piano.importo_rata).toLocaleString("it-IT")}` : "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Prossima</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Prossima</div>
                         <div className="text-sm font-bold text-slate-800">{piano.prossima_scadenza || "—"}</div>
                       </div>
                       {piano.note && (
                         <div className="col-span-2 md:col-span-4">
-                          <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Note</div>
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-0.5">Note</div>
                           <div className="text-sm text-slate-600">{piano.note}</div>
                         </div>
                       )}
@@ -2535,7 +2535,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <div className="flex gap-2">
                         <button onClick={handleSavePiano} disabled={savingPiano}
                           className="px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
-                          style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}>
+                          style={{ backgroundColor: "#FACC15", color: "#0F172A" }}>
                           {savingPiano ? "Salvataggio…" : "Salva dilazione"}
                         </button>
                         <button onClick={() => setPianoDraft(null)}
@@ -2550,7 +2550,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   {!piano && !pianoDraft && (
                     <button onClick={() => setPianoDraft(emptyPiano)}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm"
-                      style={{ backgroundColor: "#0F172A", color: "#FFD24D" }}>
+                      style={{ backgroundColor: "#0F172A", color: "#FACC15" }}>
                       <Plus className="w-4 h-4" />
                       Concedi dilazione
                     </button>
@@ -2574,7 +2574,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         Partner sospeso su richiesta — la morosità si segnala solo su partner attivi. Riattivalo da <strong>Quarantena Partner</strong> per cambiarne lo stato.
                       </p>
                     ) : statoLocal === "ex" ? (
-                      <p className="text-xs text-slate-400">Partner archiviato come ex — nessuna azione sui pagamenti.</p>
+                      <p className="text-xs text-slate-500">Partner archiviato come ex — nessuna azione sui pagamenti.</p>
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-slate-500">Il partner non sta pagando le rate concordate?</p>

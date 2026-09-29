@@ -1,3 +1,22 @@
+### 2026-09-27 · Claude Sonnet 5 (Claude Code) · Admin Ciak — contrasto WCAG AA e giallo a brand (branch `cc/admin-contrasto-brand`, non mergiato)
+
+**COSA:** primo intervento dell'audit UI dell'admin Ciak, fatto su `origin/main` `b0294816`. Tre commit, solo classi/hex, nessuna logica:
+1. testo `text-slate-400`/`text-gray-400` (2,5:1 su bianco) -> `text-slate-500` (`#64748B`, "Grigio medio" del brand kit, 4,76:1); `text-yellow-500/600` e `text-amber-500/600` (<=3,2:1) -> `text-yellow-700` (4,92:1, gia' usato in 32 punti dell'admin). 71 file, 576 righe, via codemod AST: cambia solo se il primo fondo esplicito risalendo dall'elemento e' chiaro.
+2. hex inline nelle sei pagine "warm v3" (AgentDashboard, PartnerDetailModal, PartnerDocumenti, SystemHealth, VideoPipelineMonitor, VideoReview, LucaChat): testo `#9CA3AF` -> `#64748B` (83 punti), giallo fuori brand `#FFD24D` -> `#FACC15` (34 punti; dove era TESTO su chiaro -> `#0F172A`/`#A16207`).
+3. eliminato `frontend/src/styles/design-system.css` ("Evolution PRO OS v3"): mai importato, nessuna sua classe/variabile usata (`git grep`).
+
+**VERIFICATO (con prova):**
+- nei 71 file del commit 1 le uniche differenze sono i token colore (confronto vecchio/nuovo con token normalizzati, fine riga incluse); nei 7 del commit 2 solo hex.
+- `craco test` su `**/ciak/admin/**`: 44 suite / 157 test verdi sul risultato finale (KpiTile e PageHeader test aggiornati).
+- `craco build`: "Compiled successfully" letto dal LOG (non dall'exit code).
+- prova visiva prima/dopo da artefatto reale (KpiTile, PageHeader, StatusPill, DepartmentQueue montati in jest, HTML in Chrome headless con Poppins): gerarchia invariata, eyebrow e cifra-obiettivo restano oro (piu' scuro), etichette e "—" leggibili.
+
+**⛔ NON verificato:** nessuno screenshot delle pagine admin AUTENTICATE (dietro login, non eseguito da agente). Le sostituzioni su fondo scuro sono decise dall'AST, non dall'occhio: prima del merge aprire a vista Lead Manager, Partner (modale), Clienti Analisi e Agent Dashboard.
+
+**Lasciato di proposito:** icone (44 grigie + 48 gialle: non sono testo), 6 card scure dove `slate-400` fa 6,9:1, 2 bottoni disabilitati (esenti WCAG), `text-slate-300`, e fuori dall'admin `frontend/src/ciak/` (~42 `text-yellow-600`, ~221 `text-slate-400`). I due dialetti di sfondo (`#FAFAF7`/`#ECEDEF` vs slate/gray) restano: unificarli e' un redesign.
+
+**PROSSIMO:** Cmd+K con ricerca sui dati reali (lead/partner). ⚠️ La memoria di Claude diceva "Cmd/K" fatto in #114, ma su `main` `git grep` non trova `cmdk`/`CommandPalette`/`metaKey`/`ctrlKey`: verificare se vive su un altro branch prima di rifarlo.
+
 ### 2026-09-10 · Codex · Mariangela aggiunta a Collaboratori
 
 **DIFETTO LIVE:** `/admin/collaboratori` caricava e mostrava esclusivamente Antonella (`/collaboratori/antonella`), mentre Mariangela Caccia compariva solo nell'organigramma Acquisizione/Vendite.

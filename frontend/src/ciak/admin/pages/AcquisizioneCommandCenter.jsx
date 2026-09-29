@@ -47,7 +47,7 @@ function KpiCard({ icon: Icon, label, value, hint, tone = "blue" }) {
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
           <p className="text-2xl font-semibold text-slate-900 leading-tight">{value}</p>
         </div>
       </div>
@@ -82,7 +82,7 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
         <p className="text-sm text-slate-500 mt-1 leading-relaxed">{description}</p>
       </div>
       {items.length === 0 ? (
-        <div className="p-5 text-sm text-slate-400">{empty}</div>
+        <div className="p-5 text-sm text-slate-500">{empty}</div>
       ) : (
         <div className="divide-y divide-slate-100">
           {items.map((item) => (
@@ -94,10 +94,10 @@ function PriorityList({ title, description, items, empty, tone = "blue" }) {
               <div className="min-w-0">
                 <p className="font-semibold text-slate-900 truncate">{item.nome || item.email}</p>
                 <p className="text-xs text-slate-500 truncate">{item.email}</p>
-                <p className="text-xs text-slate-400 mt-1">{item.reason}</p>
+                <p className="text-xs text-slate-500 mt-1">{item.reason}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-[11px] text-slate-400">{fmtDate(item.updated_at)}</p>
+                <p className="text-[11px] text-slate-500">{fmtDate(item.updated_at)}</p>
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mt-2">
                   Apri <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
                 </span>
@@ -129,7 +129,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
   }, [data]);
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento command center...</div>;
+  if (!data) return <div className="p-8 text-slate-500">Caricamento command center...</div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -147,7 +147,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">CRM Acquisizione</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">CRM Acquisizione</p>
             <h1 className="text-3xl font-semibold text-slate-900 mt-1">
               Acquisizione Evolution
             </h1>
@@ -274,7 +274,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Duplicazione partner</p>
         <h2 className="text-xl font-semibold text-slate-900 mt-1">Motore Vendite Partner</h2>
         <p className="text-sm text-slate-600 mt-2 leading-relaxed">
           {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}

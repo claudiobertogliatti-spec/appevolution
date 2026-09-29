@@ -45,13 +45,13 @@ const URGENZA = {
     bar: "bg-slate-300",
     // Attenuato di proposito: un "13 giorni" nero pesa quanto un "-3 di
     // ritardo" e ruba l'occhio a cio' che e' davvero urgente.
-    numero: "text-slate-400",
+    numero: "text-slate-500",
   },
   chiusa: {
     label: "Consegnata",
     badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
     bar: "bg-emerald-500",
-    numero: "text-slate-400",
+    numero: "text-slate-500",
   },
 };
 
@@ -81,11 +81,11 @@ function Riquadro({ etichetta, valore, dettaglio, tono = "slate" }) {
   }[tono];
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
         {etichetta}
       </p>
       <p className={`text-3xl font-semibold ${colore}`}>{valore}</p>
-      {dettaglio && <p className="text-xs text-slate-400 mt-1">{dettaglio}</p>}
+      {dettaglio && <p className="text-xs text-slate-500 mt-1">{dettaglio}</p>}
     </div>
   );
 }
@@ -133,7 +133,7 @@ function VoceTappa({ item, onSegna, inCorso }) {
               che dice da che parte sta il tempo. */}
           <div className="text-right shrink-0">
             <p className={`text-4xl font-semibold leading-none ${urg.numero}`}>{numero}</p>
-            <p className="text-xs text-slate-400 mt-1">{nota}</p>
+            <p className="text-xs text-slate-500 mt-1">{nota}</p>
           </div>
         </div>
 
@@ -182,7 +182,7 @@ function VoceTappa({ item, onSegna, inCorso }) {
         {apertoForm && !chiusa && (
           <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Riferimento
               </span>
               <input
@@ -194,7 +194,7 @@ function VoceTappa({ item, onSegna, inCorso }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Nota
               </span>
               <input
@@ -322,7 +322,7 @@ export function ConsegneStart({ onAuthExpired }) {
       </div>
     );
   }
-  if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   const clienti = Array.from(
     new Map(data.items.map((item) => [item.client_id, item])).values(),
@@ -423,7 +423,7 @@ export function ConsegneStart({ onAuthExpired }) {
         </ul>
       )}
 
-      <p className="text-xs text-slate-400 mt-6">
+      <p className="text-xs text-slate-500 mt-6">
         La readiness non ha una data promessa: viene valutata solo su evidenze completate e approvate.
       </p>
 

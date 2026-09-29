@@ -12,7 +12,7 @@
  * serve un titolo di reparto "caldo" si passa `eyebrowTone="brand"`.
  */
 export function PageHeader({ eyebrow, title, subtitle, icon: Icon, action, eyebrowTone = "slate" }) {
-  const eyebrowCls = eyebrowTone === "brand" ? "text-yellow-600" : "text-slate-500";
+  const eyebrowCls = eyebrowTone === "brand" ? "text-yellow-700" : "text-slate-500";
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div className="min-w-0">

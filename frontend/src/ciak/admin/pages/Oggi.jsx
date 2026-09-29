@@ -56,7 +56,7 @@ function Block({ title, children, action, onAction, accent }) {
       >
         <span
           className={`text-xs font-semibold uppercase tracking-widest ${
-            accent ? "text-yellow-600" : "text-slate-400"
+            accent ? "text-yellow-700" : "text-slate-500"
           }`}
         >
           {title}
@@ -64,7 +64,7 @@ function Block({ title, children, action, onAction, accent }) {
         {action && (
           <button
             onClick={onAction}
-            className="text-xs font-semibold flex items-center gap-1 text-yellow-600"
+            className="text-xs font-semibold flex items-center gap-1 text-yellow-700"
           >
             {action} <ChevronRight className="w-3 h-3" />
           </button>
@@ -83,7 +83,7 @@ function ActionCard({ count, label, sublabel, urgency, onClick, icon: Icon = Arr
     },
     medium: {
       wrap: "bg-orange-50 border-orange-200",
-      badge: "bg-orange-100 text-yellow-600",
+      badge: "bg-orange-100 text-yellow-700",
     },
     ok: {
       wrap: "bg-white border-gray-200",
@@ -104,9 +104,9 @@ function ActionCard({ count, label, sublabel, urgency, onClick, icon: Icon = Arr
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm text-slate-900">{label}</div>
-        <div className="text-xs mt-0.5 text-slate-400">{sublabel}</div>
+        <div className="text-xs mt-0.5 text-slate-500">{sublabel}</div>
       </div>
-      <Icon className="w-4 h-4 flex-shrink-0 text-slate-400" />
+      <Icon className="w-4 h-4 flex-shrink-0 text-slate-500" />
     </button>
   );
 }
@@ -174,7 +174,7 @@ function FunnelStep({ label, from, to, rate, isWorst }) {
         </div>
       </div>
       <div className="text-right flex-shrink-0">
-        <div className="text-xs text-slate-400">
+        <div className="text-xs text-slate-500">
           {from} → {to}
         </div>
       </div>
@@ -298,7 +298,7 @@ export function Oggi({ onAuthExpired }) {
             label: "Attesa pagamento",
             count: cStats.questionario_compilato || 0,
             nav: "clienti-analisi",
-            cls: "text-yellow-600",
+            cls: "text-yellow-700",
           },
           {
             label: "Call da fissare",
@@ -430,7 +430,7 @@ export function Oggi({ onAuthExpired }) {
     <div className="p-6 md:p-10">
       <div className="space-y-5 max-w-6xl">
         <div className="mb-2">
-          <div className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Dashboard · Luca</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Dashboard · Luca</div>
           <h1 className="text-3xl font-bold text-slate-900 mt-1">Oggi</h1>
           <p className="text-sm text-slate-500 mt-2 max-w-2xl">
             La giornata vista per decisioni: cosa sbloccare, cosa recuperare e quale reparto richiede attenzione prima di tutto.
@@ -532,7 +532,7 @@ export function Oggi({ onAuthExpired }) {
                   <WalletCards className="w-5 h-5 text-yellow-600" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-slate-900 truncate">{item.nome || item.name || item.email || "Contatto da recuperare"}</div>
-                    <div className="text-xs text-slate-400 truncate">{item.reason || item.status || "Intento caldo: serve follow-up diretto"}</div>
+                    <div className="text-xs text-slate-500 truncate">{item.reason || item.status || "Intento caldo: serve follow-up diretto"}</div>
                   </div>
                 </div>
               </button>
@@ -549,7 +549,7 @@ export function Oggi({ onAuthExpired }) {
                   <Target className="w-5 h-5 text-rose-500 mt-0.5" />
                   <div>
                     <div className="text-sm font-semibold text-slate-900">{item.label || item.name || "Punto da migliorare"}</div>
-                    <div className="text-xs text-slate-400 mt-1">{item.action || item.solution || item.description || "Controlla messaggio, offerta e follow-up prima di aumentare traffico."}</div>
+                    <div className="text-xs text-slate-500 mt-1">{item.action || item.solution || item.description || "Controlla messaggio, offerta e follow-up prima di aumentare traffico."}</div>
                   </div>
                 </div>
               </div>
@@ -567,7 +567,7 @@ export function Oggi({ onAuthExpired }) {
             {steps.map((s, i) => (
               <FunnelStep key={i} {...s} isWorst={i === worstIdx} />
             ))}
-            <p className="text-xs mt-3 text-slate-400">
+            <p className="text-xs mt-3 text-slate-500">
               Il peggior step è <strong>{steps[worstIdx]?.label}</strong> (
               {steps[worstIdx]?.rate}%). Agisci qui prima.
             </p>
@@ -589,7 +589,7 @@ export function Oggi({ onAuthExpired }) {
               >
                 <div
                   className={`font-mono text-3xl font-semibold mb-1 ${
-                    p.count > 0 ? p.cls : "text-slate-400"
+                    p.count > 0 ? p.cls : "text-slate-500"
                   }`}
                 >
                   {p.count}
@@ -622,7 +622,7 @@ export function Oggi({ onAuthExpired }) {
                     <div className="font-semibold text-sm truncate text-slate-900">
                       {c.nome || c.email}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-500">
                       {STATO_LABEL[c.stato] || c.stato}
                     </div>
                   </div>
@@ -630,7 +630,7 @@ export function Oggi({ onAuthExpired }) {
                     className={`text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0 ${
                       c.giorni >= 7
                         ? "bg-red-100 text-red-500"
-                        : "bg-orange-100 text-yellow-600"
+                        : "bg-orange-100 text-yellow-700"
                     }`}
                   >
                     {c.giorni}gg
@@ -661,7 +661,7 @@ export function Oggi({ onAuthExpired }) {
                     <div className="text-sm truncate text-slate-900">
                       {a.msg || a.message}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-500">
                       {a.partner} {a.time ? `· ${a.time}` : ""}
                     </div>
                   </div>

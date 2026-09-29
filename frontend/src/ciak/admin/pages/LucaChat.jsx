@@ -40,8 +40,8 @@ function LucaAvatar({ size = 32 }) {
       className="rounded-full flex-shrink-0 block"
     >
       <circle cx="50" cy="50" r="50" fill="#1A1F24" />
-      <circle cx="50" cy="50" r="41" fill="none" stroke="#FFD24D" strokeOpacity="0.5" strokeWidth="2.5" />
-      <text x="50" y="55" textAnchor="middle" dominantBaseline="middle" fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="50" fill="#FFD24D">L</text>
+      <circle cx="50" cy="50" r="41" fill="none" stroke="#FACC15" strokeOpacity="0.5" strokeWidth="2.5" />
+      <text x="50" y="55" textAnchor="middle" dominantBaseline="middle" fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="50" fill="#FACC15">L</text>
     </svg>
   );
 }
@@ -93,7 +93,7 @@ function MessageBubble({ msg, adminInitials }) {
           className={`${isBullet ? "pl-3" : ""} ${isUser ? "text-white/90" : "text-slate-900"}`}
           style={{ marginBottom: i < lines.length - 1 ? 4 : 0 }}
         >
-          {isBullet && <span className="text-yellow-500">• </span>}
+          {isBullet && <span className="text-yellow-700">• </span>}
           {isBullet ? rendered.slice(1) : rendered}
         </p>
       );
@@ -117,7 +117,7 @@ function MessageBubble({ msg, adminInitials }) {
       <div className="max-w-[82%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm leading-relaxed bg-white border border-gray-200 text-slate-900">
         {renderText(text)}
         {msg.ts && (
-          <div className="text-right mt-1 text-[10px] text-slate-400">
+          <div className="text-right mt-1 text-[10px] text-slate-500">
             {new Date(msg.ts).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
           </div>
         )}
@@ -236,7 +236,7 @@ export function LucaChat({ onAuthExpired, compact = false }) {
           <button
             onClick={() => setAskClear(true)}
             aria-label="Cancella cronologia"
-            className="p-2 rounded-lg transition-all hover:bg-red-50 text-slate-400"
+            className="p-2 rounded-lg transition-all hover:bg-red-50 text-slate-500"
             title="Cancella cronologia"
           >
             <Trash2 className="w-4 h-4" />
@@ -264,7 +264,7 @@ export function LucaChat({ onAuthExpired, compact = false }) {
       {/* Quick chips */}
       {!compact && !historyLoading && messages.length <= 2 && (
         <div className="flex flex-wrap gap-2 px-5 pb-3 flex-shrink-0 border-t border-gray-200">
-          <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Azioni rapide
           </div>
           {QUICK_CHIPS.map((chip) => {

@@ -158,7 +158,7 @@ function ServizioCard({ s }) {
         <ul className="mt-3 space-y-1.5">
           {s.include.map((x, i) => (
             <li key={i} className="text-[12.5px] text-slate-600 flex gap-2">
-              <span className="text-yellow-500 flex-shrink-0">•</span>
+              <span className="text-yellow-700 flex-shrink-0">•</span>
               <span>{x}</span>
             </li>
           ))}
@@ -189,7 +189,7 @@ export function VenditeCatalogo() {
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold text-slate-900">{cat.titolo}</h2>
             {cat.tag && (
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-600">{cat.tag}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-yellow-700">{cat.tag}</span>
             )}
           </div>
           {cat.nota && <p className="text-[12.5px] text-slate-500 mt-1">{cat.nota}</p>}
@@ -199,7 +199,7 @@ export function VenditeCatalogo() {
         </div>
       ))}
 
-      <p className="text-[12px] text-slate-400 px-1">
+      <p className="text-[12px] text-slate-500 px-1">
         Importi IVA esclusa se non diversamente indicato. I servizi extra sono acquistabili dai partner del percorso.
         Fonte prezzi: sistema Evolution/Ciak (ciak_offers · servizi_extra).
       </p>

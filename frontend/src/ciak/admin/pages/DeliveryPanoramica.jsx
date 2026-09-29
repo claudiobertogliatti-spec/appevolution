@@ -77,7 +77,7 @@ export function DeliveryPanoramica({ onAuthExpired }) {
   }, [pse]);
 
   if (error) return <div className="p-8"><DeliverySubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><DeliverySubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (!data) return <div className="p-8"><DeliverySubNav active="Home" /><p className="text-slate-500 mt-6">Caricamento panoramica...</p></div>;
 
   const totale = data.total ?? items.length;
 
@@ -98,7 +98,7 @@ export function DeliveryPanoramica({ onAuthExpired }) {
         <div className="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4 min-w-[220px]">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-400">Partner in produzione</p>
           <p className="text-4xl font-bold mt-1 leading-none">{totale}</p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             {online} online · {fermi.length} fermi da sbloccare
           </p>
         </div>
@@ -114,18 +114,18 @@ export function DeliveryPanoramica({ onAuthExpired }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
           {ATTI.map((a) => (
             <div key={a.key} className="rounded-xl bg-slate-50 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{a.label}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{a.label}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{perAtto[a.key] ?? 0}</div>
-              <div className="text-[11px] text-slate-400 mt-1">partner in fase</div>
+              <div className="text-[11px] text-slate-500 mt-1">partner in fase</div>
             </div>
           ))}
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">Online</div>
             <div className="text-2xl font-semibold text-emerald-700 mt-1">{online}</div>
-            <div className="text-[11px] text-slate-400 mt-1">già live</div>
+            <div className="text-[11px] text-slate-500 mt-1">già live</div>
           </div>
         </div>
-        <p className="text-[12px] text-slate-400 mt-4">
+        <p className="text-[12px] text-slate-500 mt-4">
           Il dettaglio fase per fase è nell'<Link to="/admin/delivery-audit" className="text-blue-700 font-medium">Audit</Link> e nella <Link to="/admin/partner" className="text-blue-700 font-medium">pipeline Partner</Link>.
         </p>
       </div>
@@ -169,7 +169,7 @@ export function DeliveryPanoramica({ onAuthExpired }) {
             <p className="text-sm text-slate-500 mt-1">Aspettano il tuo via: sbloccarli fa ripartire il partner.</p>
           </div>
           {serveClaudio.length === 0 ? (
-            <div className="p-5 text-sm text-slate-400">Niente in attesa di approvazione.</div>
+            <div className="p-5 text-sm text-slate-500">Niente in attesa di approvazione.</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {serveClaudio.slice(0, 8).map((p) => (
@@ -203,9 +203,9 @@ export function DeliveryPanoramica({ onAuthExpired }) {
             { k: "Funnel mancante", v: counters.funnel_mancante ?? 0, h: "non ancora online" },
           ].map((m) => (
             <div key={m.k} className="rounded-xl bg-slate-50 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{m.h}</div>
             </div>
           ))}
         </div>
@@ -224,7 +224,7 @@ export function DeliveryPanoramica({ onAuthExpired }) {
         </div>
         <p className="text-sm text-slate-500 mt-1">I lanci in calendario. Portarli online è il traguardo del reparto.</p>
         {prossimiLive.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Nessun live in calendario. Dettaglio nel <Link to="/admin/motore-vendite-partner" className="text-blue-700 font-medium">Motore Vendite Partner</Link>.</p>
+          <p className="mt-4 text-sm text-slate-500">Nessun live in calendario. Dettaglio nel <Link to="/admin/motore-vendite-partner" className="text-blue-700 font-medium">Motore Vendite Partner</Link>.</p>
         ) : (
           <div className="mt-4 divide-y divide-slate-100">
             {prossimiLive.map((p, i) => (
@@ -233,7 +233,7 @@ export function DeliveryPanoramica({ onAuthExpired }) {
                   <span className="text-sm font-bold tabular-nums text-slate-900 w-14 flex-shrink-0">{fmtData(p.at)}</span>
                   <p className="font-semibold text-slate-900 truncate">{p.name || "—"}</p>
                 </div>
-                {p.weeks != null && <span className="text-xs text-slate-400 whitespace-nowrap">tra {p.weeks} sett.</span>}
+                {p.weeks != null && <span className="text-xs text-slate-500 whitespace-nowrap">tra {p.weeks} sett.</span>}
               </div>
             ))}
           </div>

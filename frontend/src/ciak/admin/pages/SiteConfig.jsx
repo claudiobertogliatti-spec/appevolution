@@ -47,7 +47,7 @@ function ConfigRow({ keyName, item, onSave }) {
       <div className="flex items-baseline justify-between mb-2 gap-3">
         <code className="text-xs font-mono text-slate-900 font-semibold">{keyName}</code>
         {item.updated_at && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500">
             Aggiornato {fmtDate(item.updated_at)} · {item.updated_by}
           </span>
         )}
@@ -64,7 +64,7 @@ function ConfigRow({ keyName, item, onSave }) {
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg text-sm font-semibold text-slate-900 transition"
+          className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-200 disabled:text-slate-500 rounded-lg text-sm font-semibold text-slate-900 transition"
         >
           {saving ? "Salvo…" : saved ? "Salvato ✓" : "Salva"}
         </button>
@@ -103,7 +103,7 @@ export function SiteConfig({ onAuthExpired }) {
   };
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
-  if (!config) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!config) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   return (
     <div className="p-10 max-w-3xl">
@@ -113,7 +113,7 @@ export function SiteConfig({ onAuthExpired }) {
         (nessun redeploy richiesto).
       </p>
 
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Cal.com booking
       </h2>
       {Object.entries(config).map(([key, item]) => (

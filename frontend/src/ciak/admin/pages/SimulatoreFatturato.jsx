@@ -59,7 +59,7 @@ function Slider({ f, value, onChange }) {
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full accent-yellow-500 cursor-pointer"
       />
-      {f.hint && <p className="mt-1.5 text-[11px] leading-snug text-slate-400">{f.hint}</p>}
+      {f.hint && <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{f.hint}</p>}
     </div>
   );
 }
@@ -71,11 +71,11 @@ function YearCard({ index, year }) {
     <article className={`rounded-2xl border bg-white overflow-hidden ${index === 2 ? "border-yellow-300 shadow-[0_0_0_1px_#FACC15]" : "border-slate-200"}`}>
       <div className={`px-5 pt-4 pb-4 border-b ${index === 2 ? "bg-yellow-50/70 border-yellow-200" : "border-slate-100"}`}>
         <div className="flex items-baseline justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Anno {index + 1}</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Anno {index + 1}</span>
         </div>
         <p className="text-xs text-slate-500 mt-0.5">{PHASES[index]}</p>
         <p className="mt-2 text-2xl font-bold text-slate-900 font-mono tabular-nums">{eur0.format(year.total)}</p>
-        <p className={`mt-1 text-[11px] font-medium ${over ? "text-emerald-600" : "text-slate-400"}`}>
+        <p className={`mt-1 text-[11px] font-medium ${over ? "text-emerald-600" : "text-slate-500"}`}>
           {over ? `oltre il milione (+${eur0.format(gap)})` : `al milione manca ${eur0.format(-gap)}`}
         </p>
       </div>
@@ -96,10 +96,10 @@ function YearCard({ index, year }) {
           );
         })}
       </div>
-      <div className="px-5 py-3 border-t border-dashed border-slate-200 text-[11px] text-slate-400">
+      <div className="px-5 py-3 border-t border-dashed border-slate-200 text-[11px] text-slate-500">
         Partner prodotti: <b className="text-slate-600">{numIt.format(Math.round(year.partners))}</b>
         {year.clamped && (
-          <span className="text-amber-600"> · domanda {numIt.format(Math.round(year.demand))}, oltre il tetto</span>
+          <span className="text-yellow-700"> · domanda {numIt.format(Math.round(year.demand))}, oltre il tetto</span>
         )}
       </div>
     </article>
@@ -137,9 +137,9 @@ function Trajectory({ years }) {
 function Alert({ tone, icon: Icon, title, children }) {
   const map = {
     bad: "border-rose-200 text-rose-600",
-    warn: "border-amber-200 text-amber-600",
+    warn: "border-amber-200 text-yellow-700",
     ok: "border-emerald-200 text-emerald-600",
-    info: "border-slate-200 text-slate-400",
+    info: "border-slate-200 text-slate-500",
   };
   return (
     <div className={`flex gap-3 rounded-xl border bg-white px-4 py-3 text-[13px] ${map[tone] || map.info}`}>
@@ -195,7 +195,7 @@ export function SimulatoreFatturato() {
     <div className="max-w-6xl p-6 md:p-8 font-[Poppins,system-ui,sans-serif]">
       {/* Header */}
       <div className="mb-6">
-        <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-yellow-600">
+        <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-yellow-700">
           <LineChart className="w-4 h-4" /> Simulatore €1M · Direzione
         </p>
         <h1 className="text-3xl font-bold text-slate-900 mt-2 leading-tight">Il milione è la traiettoria di 3 anni, non il numero dell'anno 1.</h1>
@@ -206,7 +206,7 @@ export function SimulatoreFatturato() {
 
       {/* Scenari */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mr-1">Scenario</span>
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mr-1">Scenario</span>
         {Object.keys(SCENARIOS).map((name) => (
           <button
             key={name}
@@ -217,17 +217,17 @@ export function SimulatoreFatturato() {
             {SCENARIO_LABELS[name]}
           </button>
         ))}
-        <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${scen === "custom" ? "bg-yellow-400 text-yellow-900 border-yellow-400" : "bg-white text-slate-400 border-slate-200"}`}>
+        <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${scen === "custom" ? "bg-yellow-400 text-yellow-900 border-yellow-400" : "bg-white text-slate-500 border-slate-200"}`}>
           Personalizzato
         </span>
-        <span className="w-full sm:w-auto sm:ml-2 text-[11px] text-slate-400 mt-1 sm:mt-0">{SCENARIO_RULE}</span>
+        <span className="w-full sm:w-auto sm:ml-2 text-[11px] text-slate-500 mt-1 sm:mt-0">{SCENARIO_RULE}</span>
       </div>
 
       {/* Leve */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 mb-6">
         <div className="mb-3">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Ipotesi di mercato</p>
-          <p className="text-[11px] text-slate-400">cambiano con lo scenario — il budget si costruisce sul prudente</p>
+          <p className="text-[11px] text-slate-500">cambiano con lo scenario — il budget si costruisce sul prudente</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
           {market.map((f) => (
@@ -239,7 +239,7 @@ export function SimulatoreFatturato() {
 
         <div className="mt-5 pt-5 border-t border-slate-100 mb-3">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Realtà operativa</p>
-          <p className="text-[11px] text-slate-400">le tara chi ha i dati veri: delivery, ads, ritmo di crescita</p>
+          <p className="text-[11px] text-slate-500">le tara chi ha i dati veri: delivery, ads, ritmo di crescita</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
           {ops.map((f) => (
@@ -254,7 +254,7 @@ export function SimulatoreFatturato() {
             <div className="flex gap-3">
               {[0, 1, 2].map((i) => (
                 <label key={i} className="flex-1">
-                  <span className="block text-[11px] text-slate-400 mb-1">Anno {i + 1}</span>
+                  <span className="block text-[11px] text-slate-500 mb-1">Anno {i + 1}</span>
                   <input
                     type="number"
                     min={0}
@@ -279,8 +279,8 @@ export function SimulatoreFatturato() {
       {/* Traiettoria */}
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:p-6 mb-6">
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Traiettoria verso il milione</p>
-          <span className="text-[11px] font-mono text-slate-400">scenario: {scen === "custom" ? "personalizzato" : scen}</span>
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Traiettoria verso il milione</p>
+          <span className="text-[11px] font-mono text-slate-500">scenario: {scen === "custom" ? "personalizzato" : scen}</span>
         </div>
         <Trajectory years={years} />
       </section>
@@ -292,7 +292,7 @@ export function SimulatoreFatturato() {
         ))}
       </div>
 
-      <p className="mt-6 text-[11px] leading-relaxed text-slate-400 max-w-4xl">
+      <p className="mt-6 text-[11px] leading-relaxed text-slate-500 max-w-4xl">
         Simulazione mensile su 36 mesi: ogni anno una coorte di partner distribuita nei 12 mesi (volume = target × rampa, tetto capacità). Ogni partner lancia dopo N mesi e la provvigione 10% matura solo fino a fine 12 mesi di Partnership; dal 13° mese entra in EVO-S = solo canone (media ponderata dei 4 tier ≈ 364 €/mese), con churn. Blueprint al netto del CAC. I ricavi dopo il mese 36 non sono contati, quindi l'anno 3 è una stima conservativa del regime. Numeri per decidere, da confrontare coi dati veri Ciak/Stripe.
       </p>
     </div>

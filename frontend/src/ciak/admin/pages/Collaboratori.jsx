@@ -21,7 +21,7 @@ function money(v) {
 function Stat({ label, value, icon: Icon }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex items-center gap-2 text-slate-400">
+      <div className="flex items-center gap-2 text-slate-500">
         <Icon className="h-4 w-4" />
         <span className="text-[10px] font-semibold uppercase tracking-widest">{label}</span>
       </div>
@@ -133,7 +133,7 @@ export function Collaboratori({ onAuthExpired }) {
   };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento collaboratori...</div>;
+  if (!data) return <div className="p-8 text-slate-500">Caricamento collaboratori...</div>;
 
   const { collaborator, summary, tasks, month } = data;
   const pending = tasks.filter((t) => t.status === "completed" && !t.approved_at);
@@ -142,7 +142,7 @@ export function Collaboratori({ onAuthExpired }) {
   if (selectedCollaborator === "mariangela") return (
     <div className="p-8 max-w-6xl">
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Back office</p>
         <h1 className="mt-1 text-3xl font-semibold text-slate-900">Collaboratori</h1>
         <p className="mt-2 text-sm text-slate-500">Persone, attività e compensi gestiti separatamente.</p>
       </div>
@@ -172,7 +172,7 @@ export function Collaboratori({ onAuthExpired }) {
       <div className="mb-5"><button className="mr-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Attivita' e compensi</button><button onClick={() => setTab("billing")} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Fatture e pagamenti</button></div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Back office</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Back office</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Collaboratori</h1>
           <p className="mt-2 text-sm text-slate-500">
             Persone, attività e compensi gestiti separatamente. Per Antonella sono disponibili ore approvate e pagamenti.
@@ -210,18 +210,18 @@ export function Collaboratori({ onAuthExpired }) {
         </div>
         <div className="divide-y divide-slate-100">
           {pending.length === 0 ? (
-            <div className="p-5 text-sm text-slate-400">Nessun task completato in attesa di approvazione.</div>
+            <div className="p-5 text-sm text-slate-500">Nessun task completato in attesa di approvazione.</div>
           ) : pending.map((task) => (
             <div key={task.task_id} className="flex items-center justify-between gap-4 p-5">
               <div>
                 <h3 className="font-semibold text-slate-900">{task.title}</h3>
                 <p className="mt-1 text-sm text-slate-500">{task.description}</p>
-                {task.resolution_notes && <p className="mt-1 text-xs text-slate-400">Nota: {task.resolution_notes}</p>}
+                {task.resolution_notes && <p className="mt-1 text-xs text-slate-500">Nota: {task.resolution_notes}</p>}
               </div>
               <div className="flex flex-shrink-0 items-center gap-3">
                 <div className="text-right">
                   <div className="font-semibold text-slate-900">{minutesLabel(task.actual_minutes)}</div>
-                  <div className="text-xs text-slate-400">{money((task.actual_minutes / 60) * collaborator.hourly_rate)}</div>
+                  <div className="text-xs text-slate-500">{money((task.actual_minutes / 60) * collaborator.hourly_rate)}</div>
                 </div>
                 <button onClick={() => approve(task)} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
                   Approva ore
@@ -238,16 +238,16 @@ export function Collaboratori({ onAuthExpired }) {
         </div>
         <div className="divide-y divide-slate-100">
           {approved.length === 0 ? (
-            <div className="p-5 text-sm text-slate-400">Nessuna ora approvata nel mese.</div>
+            <div className="p-5 text-sm text-slate-500">Nessuna ora approvata nel mese.</div>
           ) : approved.map((task) => (
             <div key={task.task_id} className="flex items-center justify-between gap-4 p-5">
               <div>
                 <h3 className="font-semibold text-slate-900">{task.title}</h3>
-                <p className="text-xs text-slate-400">Approvato da {task.approved_by || "admin"}</p>
+                <p className="text-xs text-slate-500">Approvato da {task.approved_by || "admin"}</p>
               </div>
               <div className="text-right">
                 <div className="font-semibold text-slate-900">{minutesLabel(task.approved_minutes)}</div>
-                <div className="text-xs text-slate-400">{money(task.approved_amount)}</div>
+                <div className="text-xs text-slate-500">{money(task.approved_amount)}</div>
               </div>
             </div>
           ))}

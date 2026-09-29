@@ -75,7 +75,7 @@ export function PartnerSetupPending({ onAuthExpired }) {
   useEffect(load, [onAuthExpired, includeConsumed]);
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="p-10 text-slate-500">Caricamento…</div>;
 
   return (
     <div className="p-10 max-w-6xl">
@@ -87,19 +87,19 @@ export function PartnerSetupPending({ onAuthExpired }) {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
             Totale
           </p>
           <p className="text-3xl font-semibold text-slate-900">{data.total}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
             In attesa
           </p>
-          <p className="text-3xl font-semibold text-yellow-500">{data.pending}</p>
+          <p className="text-3xl font-semibold text-yellow-700">{data.pending}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
             Completati
           </p>
           <p className="text-3xl font-semibold text-emerald-600">{data.consumed}</p>
@@ -119,7 +119,7 @@ export function PartnerSetupPending({ onAuthExpired }) {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-5 py-3 font-semibold">Partner</th>
               <th className="px-5 py-3 font-semibold">Creato</th>
               <th className="px-5 py-3 font-semibold">Scadenza</th>
@@ -130,7 +130,7 @@ export function PartnerSetupPending({ onAuthExpired }) {
           <tbody>
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
+                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
                   Nessun partner in attesa di setup.
                 </td>
               </tr>

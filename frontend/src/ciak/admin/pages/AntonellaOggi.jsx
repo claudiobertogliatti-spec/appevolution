@@ -34,11 +34,11 @@ function Block({ title, children, action, onAction, accent }) {
   return (
     <div className={`rounded-2xl overflow-hidden bg-white border ${accent ? "border-yellow-300" : "border-gray-200"}`}>
       <div className={`flex items-center justify-between px-5 py-3 border-b border-gray-200 ${accent ? "bg-yellow-50" : "bg-white"}`}>
-        <span className={`text-xs font-semibold uppercase tracking-widest ${accent ? "text-yellow-600" : "text-slate-400"}`}>
+        <span className={`text-xs font-semibold uppercase tracking-widest ${accent ? "text-yellow-700" : "text-slate-500"}`}>
           {title}
         </span>
         {action && (
-          <button onClick={onAction} className="text-xs font-semibold flex items-center gap-1 text-yellow-600">
+          <button onClick={onAction} className="text-xs font-semibold flex items-center gap-1 text-yellow-700">
             {action} <ChevronRight className="w-3 h-3" />
           </button>
         )}
@@ -51,7 +51,7 @@ function Block({ title, children, action, onAction, accent }) {
 function ActionCard({ count, label, sublabel, urgency, icon: Icon, onClick }) {
   const styles = {
     high: { wrap: "bg-red-50 border-red-200", badge: "bg-red-100 text-red-500" },
-    medium: { wrap: "bg-orange-50 border-orange-200", badge: "bg-orange-100 text-yellow-600" },
+    medium: { wrap: "bg-orange-50 border-orange-200", badge: "bg-orange-100 text-yellow-700" },
     ok: { wrap: "bg-white border-gray-200", badge: "bg-emerald-100 text-emerald-500" },
   };
   const s = styles[urgency] || styles.ok;
@@ -62,7 +62,7 @@ function ActionCard({ count, label, sublabel, urgency, icon: Icon, onClick }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm text-slate-900">{label}</div>
-        <div className="text-xs mt-0.5 text-slate-400">{sublabel}</div>
+        <div className="text-xs mt-0.5 text-slate-500">{sublabel}</div>
       </div>
       <span className="flex items-center gap-2 flex-shrink-0">
         {Icon && <span className="text-lg font-semibold text-slate-700">{count}</span>}
@@ -92,14 +92,14 @@ function WorkTaskCard({ task, onStart, onStop, onComplete }) {
             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
               {task.work_category || "contenuti"}
             </span>
-            <span className="text-[11px] text-slate-400">Stima {minutesLabel(task.estimated_minutes)}</span>
+            <span className="text-[11px] text-slate-500">Stima {minutesLabel(task.estimated_minutes)}</span>
           </div>
           <h3 className="mt-2 text-sm font-semibold text-slate-900">{task.title}</h3>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">{task.description}</p>
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-lg font-semibold text-slate-900">{minutesLabel(task.actual_minutes)}</div>
-          <div className="text-[10px] uppercase tracking-wide text-slate-400">effettive</div>
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">effettive</div>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -219,15 +219,15 @@ export function AntonellaOggi({ onAuthExpired }) {
         <Block title="Task assegnati da Simona" accent>
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Budget settimanale</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Budget settimanale</p>
               <p className="mt-1 text-lg font-semibold text-slate-900">4-5h</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Stima aperta</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Stima aperta</p>
               <p className="mt-1 text-lg font-semibold text-slate-900">{minutesLabel(work?.summary?.week_estimated_minutes_open)}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Da approvare</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Da approvare</p>
               <p className="mt-1 text-lg font-semibold text-slate-900">{work?.summary?.pending_approval_count || 0}</p>
             </div>
           </div>
@@ -304,13 +304,13 @@ export function AntonellaOggi({ onAuthExpired }) {
           <Block title="Campagne — andamento" action="Apri" onAction={() => navigate("/admin/campagne-ads")}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { icon: Target, label: "Campagne", value: num(ov.total_campaigns), cls: "text-yellow-600" },
+                { icon: Target, label: "Campagne", value: num(ov.total_campaigns), cls: "text-yellow-700" },
                 { icon: DollarSign, label: "Spesa", value: `€${num(ov.total_spend).toFixed(0)}`, cls: "text-slate-700" },
                 { icon: Users, label: "Lead", value: num(ov.total_leads), cls: "text-emerald-600" },
                 { icon: BarChart3, label: "CPL medio", value: `€${num(ov.avg_cpl).toFixed(2)}`, cls: "text-blue-600" },
               ].map((k) => (
                 <div key={k.label} className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="flex items-center gap-1.5 mb-1 text-slate-400">
+                  <div className="flex items-center gap-1.5 mb-1 text-slate-500">
                     <k.icon className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-semibold uppercase tracking-wide">{k.label}</span>
                   </div>
@@ -332,7 +332,7 @@ export function AntonellaOggi({ onAuthExpired }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm text-slate-900">Calendario Editoriale</div>
-              <div className="text-xs mt-0.5 text-slate-400">
+              <div className="text-xs mt-0.5 text-slate-500">
                 Lancio, regime e webinar di ogni partner — genera e revisiona i contenuti
               </div>
             </div>

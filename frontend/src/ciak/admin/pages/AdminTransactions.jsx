@@ -44,7 +44,7 @@ function BlueprintTable({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   if (error) return <div className="text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="text-slate-500">Caricamento…</div>;
 
   return (
     <div>
@@ -56,7 +56,7 @@ function BlueprintTable({ onAuthExpired }) {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-5 py-3 font-semibold">Cliente</th>
               <th className="px-5 py-3 font-semibold">Importo</th>
               <th className="px-5 py-3 font-semibold">Data</th>
@@ -67,7 +67,7 @@ function BlueprintTable({ onAuthExpired }) {
           <tbody>
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
+                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
                   Nessuna transazione ancora.
                 </td>
               </tr>
@@ -127,7 +127,7 @@ function PartnershipTable({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   if (error) return <div className="text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="text-slate-400">Caricamento…</div>;
+  if (!data) return <div className="text-slate-500">Caricamento…</div>;
 
   return (
     <div>
@@ -139,7 +139,7 @@ function PartnershipTable({ onAuthExpired }) {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
+            <tr className="text-left text-xs uppercase tracking-widest text-slate-500 border-b border-gray-200">
               <th className="px-5 py-3 font-semibold">Partner</th>
               <th className="px-5 py-3 font-semibold">Importo</th>
               <th className="px-5 py-3 font-semibold">Metodo</th>
@@ -150,7 +150,7 @@ function PartnershipTable({ onAuthExpired }) {
           <tbody>
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
+                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
                   Nessuna Partnership pagata ancora.
                 </td>
               </tr>

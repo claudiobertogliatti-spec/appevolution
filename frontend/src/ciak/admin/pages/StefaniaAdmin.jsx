@@ -68,7 +68,7 @@ function MessageBubble({ msg, adminInitials }) {
           }`}
           style={{ marginBottom: i < lines.length - 1 ? 4 : 0 }}
         >
-          {isBullet && <span className="text-yellow-500">• </span>}
+          {isBullet && <span className="text-yellow-700">• </span>}
           {isBullet ? rendered.slice(1) : rendered}
         </p>
       );
@@ -92,7 +92,7 @@ function MessageBubble({ msg, adminInitials }) {
       <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm leading-relaxed bg-white border border-gray-200 text-slate-900">
         {renderText(text)}
         {msg.ts && (
-          <div className="text-right mt-1 text-[10px] text-slate-400">
+          <div className="text-right mt-1 text-[10px] text-slate-500">
             {new Date(msg.ts).toLocaleTimeString("it-IT", {
               hour: "2-digit",
               minute: "2-digit",
@@ -259,7 +259,7 @@ export function StefaniaAdmin({ onAuthExpired, compact = false }) {
             <button
               onClick={() => setAskClear(true)}
               aria-label="Cancella cronologia"
-              className="p-2 rounded-lg transition-all hover:bg-red-50 text-slate-400"
+              className="p-2 rounded-lg transition-all hover:bg-red-50 text-slate-500"
               title="Cancella cronologia"
             >
               <Trash2 className="w-4 h-4" />
@@ -279,7 +279,7 @@ export function StefaniaAdmin({ onAuthExpired, compact = false }) {
         {/* Quick chips */}
         {!compact && messages.length <= 2 && (
           <div className="flex flex-wrap gap-2 px-6 pb-3 flex-shrink-0 border-t border-gray-200">
-            <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="w-full pt-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Azioni rapide
             </div>
             {QUICK_CHIPS.map((chip) => {

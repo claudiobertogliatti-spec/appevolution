@@ -93,7 +93,7 @@ function SectionTitle({ icon: Icon, eyebrow, title, children }) {
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">{eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">{eyebrow}</p>
         <h2 className="text-xl font-semibold text-slate-900 mt-0.5">{title}</h2>
         {children && <p className="text-sm text-slate-500 mt-1 leading-relaxed">{children}</p>}
       </div>
@@ -118,7 +118,7 @@ export function AcqCampaignsPage() {
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-yellow-600" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Analisi KPI</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Analisi KPI</p>
             <h2 className="text-xl font-semibold text-slate-900">Performance ADS del mese</h2>
           </div>
         </div>
@@ -130,9 +130,9 @@ export function AcqCampaignsPage() {
             { k: "Clic", v: on ? ads.clicks.toLocaleString("it-IT") : "—", h: on ? `CTR ${ads.ctr}%` : "CTR —" },
           ].map((m) => (
             <div key={m.k} className="bg-slate-50 rounded-xl p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{m.k}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{m.k}</div>
               <div className="text-2xl font-semibold text-slate-900 mt-1">{m.v}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{m.h}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{m.h}</div>
             </div>
           ))}
         </div>
@@ -151,7 +151,7 @@ export function AcqCampaignsPage() {
       <div className="bg-white border border-yellow-300 rounded-xl p-6 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Acquisizione</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-yellow-700">Acquisizione</p>
             <h1 className="text-3xl font-semibold text-slate-900 mt-1">Campagne Ads</h1>
             <p className="text-sm text-slate-500 mt-2 max-w-3xl leading-relaxed">
               Qui colleghiamo traffico, creativita' e decisioni operative. Meta misura, Claude propone, il Content Studio produce, Claudio approva.
@@ -206,7 +206,7 @@ export function AcqCampaignsPage() {
             ].map((item) => (
               <div key={item} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                 <span className="text-sm text-slate-700">{item}</span>
-                <span className="text-xs font-semibold text-slate-400">da tracciare</span>
+                <span className="text-xs font-semibold text-slate-500">da tracciare</span>
               </div>
             ))}
           </div>
@@ -254,7 +254,7 @@ export function AcqCampaignsPage() {
                     Manuale
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">{item.status}</p>
+                <p className="text-xs text-slate-500 mt-2">{item.status}</p>
               </div>
             ))}
           </div>
