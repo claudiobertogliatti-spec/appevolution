@@ -175,6 +175,7 @@ async def require_client(
 
 
 async def require_admin_or_internal(
+    request: Request,
     x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
@@ -190,6 +191,17 @@ async def require_admin_or_internal(
         raise HTTPException(
             status_code=403,
             detail="Accesso riservato ad admin o sistema interno",
+        )
+    # Dependency separata da require_ciak_admin (routers/ciak_admin.py), ma un
+    # account a scope commerciale (Mariangela) deve rispettare lo stesso
+    # confine anche qui: vedi il commento su COMMERCIAL_ADMIN_TYPES in quel
+    # file per il perché (blueprint-pdf sì, consegna-blueprint/consegna-manuale/
+    # offer-decision/start-activate no — sono territorio Vendite/Delivery).
+    from routers.ciak_admin import COMMERCIAL_ADMIN_TYPES, _path_allowed_for_commercial
+    if getattr(token_data, "admin_type", None) in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
+        raise HTTPException(
+            status_code=403,
+            detail="Questo account ha accesso solo al reparto Acquisizione.",
         )
 
     return {
