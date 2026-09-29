@@ -31,8 +31,6 @@ const DISCOVERY_STATUSES = {
   converted:          { label: "Cliente",       cls: "bg-emerald-100 text-emerald-700" },
   responded_negative: { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
   rejected:           { label: "Scartato",      cls: "bg-gray-100 text-slate-500" },
-  interested:         { label: "Ha risposto",   cls: "bg-red-100 text-red-500" },
-  not_interested:     { label: "Non interes.",  cls: "bg-gray-100 text-slate-500" },
   pending:            { label: "In attesa",     cls: "bg-gray-100 text-slate-500" },
 };
 

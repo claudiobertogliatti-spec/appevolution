@@ -43,14 +43,14 @@ export const DEPARTMENT_ROOMS = {
       "Nuovi lead 7 giorni",
       "Lead qualificati",
       "Masterclass avviate",
-      "8 Domande completate",
+      "Questionari completati",
       "Ciak Start €390",
-      "Blueprint acquistati",
+      "Call prenotate",
       "Fonte migliore",
     ],
     priorities: [
       "20 nuovi contatti mirati",
-      "Recuperi Blueprint e call",
+      "Recuperi: analisi pronte senza call",
       "Contenuto Claudio con CTA Ciak",
     ],
     prompts: [
@@ -60,7 +60,7 @@ export const DEPARTMENT_ROOMS = {
       },
       {
         label: "Recuperi caldi",
-        prompt: "Carlo, trova chi ha completato le 8 Domande o ha l'analisi pronta ma non ha ancora prenotato la call.",
+        prompt: "Carlo, trova chi ha completato il questionario o ha l'analisi pronta ma non ha ancora prenotato la call.",
       },
       {
         label: "Contenuto acquisizione",
@@ -83,7 +83,6 @@ export const DEPARTMENT_ROOMS = {
       prompt: "Marco, dimmi dove stiamo perdendo partner pronti a comprare e quali proposte sono ferme.",
     },
     metrics: [
-      "Blueprint acquistati",
       "Call prenotate",
       "Call fatte",
       "Proposte inviate",

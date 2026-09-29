@@ -28,7 +28,7 @@ jest.mock("../api", () => ({
 }));
 jest.mock("../repartoMetrics", () => ({
   useRepartoMetrics: (id) =>
-    id === "acquisizione" ? { "Nuovi lead 7 giorni": "12", "Blueprint acquistati": "2" } : {},
+    id === "acquisizione" ? { "Nuovi lead 7 giorni": "12", "Call prenotate": "2" } : {},
 }));
 jest.mock("../pages/LucaChat", () => ({
   LucaChat: () => <div data-testid="luca-chat">chat</div>,
@@ -40,7 +40,7 @@ jest.mock("../components/ApprovalsQueue", () => ({
 const BY_PATH = {
   "/api/agent-hub/summary": { summary: { mrr: 0 }, health: { overall: "🟡" } },
   "/api/agent-tasks/approval-stats": { approved_today: 0, pending_count: 21, stale_count: 0 },
-  "/api/admin/ciak/masterclass-analytics": { funnel: { opt_in: 12, diagnostic_completed: 2, purchased_67: 2 } },
+  "/api/admin/ciak/masterclass-analytics": { funnel: { opt_in: 12, diagnostic_completed: 2, call_done: 2 } },
   "/api/admin/ciak/invoices/sources": { items: [] },
 };
 

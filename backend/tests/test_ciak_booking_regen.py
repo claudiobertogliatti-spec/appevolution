@@ -1,12 +1,14 @@
 """
 Unit test per:
-  1. booking._find_diagnostic_by_email → aggancia i lead del funnel GRATUITO
-     (stato report_generated / ciak_completed), non solo purchased_67+.
+  1. booking._find_diagnostic_by_email → aggancia i lead con il questionario
+     completato (ciak_completed / report_generated / stati storici €27), con
+     l'email confrontata senza maiuscole/minuscole.
   2. ciak_admin.regenerate_missing_reports → rigenera le sessioni degradate
      (report mancante / report_error) riusando /diagnostic/complete.
 
 Mongo è mockato: gira in CI senza rete.
 """
+import re
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,11 +28,15 @@ class _FindCursor:
     def sort(self, *a, **k):
         return self
 
-    def limit(self, *a, **k):
+    def __aiter__(self):
+        self._it = iter(self._docs)
         return self
 
-    async def to_list(self, length=None):
-        return self._docs
+    async def __anext__(self):
+        try:
+            return next(self._it)
+        except StopIteration:
+            raise StopAsyncIteration
 
 
 class _BookingSessions:
@@ -38,8 +44,9 @@ class _BookingSessions:
         self.doc = doc
 
     def find(self, query, *a, **k):
-        states = query["current_state"]["$in"]
-        match = self.doc.get("current_state") in states and self.doc.get("user_email") == query["user_email"]
+        cond = query["user_email"]
+        flags = re.IGNORECASE if "i" in cond.get("$options", "") else 0
+        match = re.match(cond["$regex"], self.doc.get("user_email") or "", flags)
         return _FindCursor([self.doc] if match else [])
 
 
@@ -56,6 +63,14 @@ async def test_booking_finds_lead_in_bookable_states(state, monkeypatch):
     found = await bk._find_diagnostic_by_email("lead@ciak.it")
     assert found is not None
     assert found["current_state"] == state
+
+
+@pytest.mark.asyncio
+async def test_booking_matches_email_ignoring_case(monkeypatch):
+    doc = {"user_email": "Lead@Ciak.it", "current_state": "report_generated", "session_token": "t"}
+    monkeypatch.setattr(bk, "db", _BookingDB(doc))
+    found = await bk._find_diagnostic_by_email("lead@ciak.it")
+    assert found is not None
 
 
 @pytest.mark.asyncio

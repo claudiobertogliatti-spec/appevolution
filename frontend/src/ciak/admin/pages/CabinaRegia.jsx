@@ -69,7 +69,8 @@ function funnelData({ mc = {}, inv = {}, hub = {} }) {
   const items = Array.isArray(inv.items) ? inv.items : [];
   const optin = F.opt_in || 0;
   const domande = F.diagnostic_completed || 0;
-  const blueprint = F.purchased_67 || 0;
+  // Blueprint gratuito consegnato = call fatta (lo si consegna dopo la call).
+  const blueprint = F.call_done || 0;
   const start = items.filter((s) => s.fonte === "ciak_start").length;
   const partnership = items.filter((s) => ["partnership", "upgrade"].includes(s.fonte)).length;
   // Prezzi dal SSOT pricing.js (Blueprint gratis = 0, fuori dal SSOT).
@@ -79,8 +80,8 @@ function funnelData({ mc = {}, inv = {}, hub = {} }) {
   const arpu = optin > 0 ? oneOff / optin : 0;
   const stages = [
     { label: "Lead (opt-in)", count: fmt(optin) },
-    { label: "8 Domande completate", count: fmt(domande), conv: pct(domande, optin) },
-    { label: "Blueprint (gratis)", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande) },
+    { label: "Questionari completati", count: fmt(domande), conv: pct(domande, optin) },
+    { label: "Blueprint consegnato (gratis)", count: fmt(blueprint), euro: euro(revBlue), conv: pct(blueprint, domande) },
     { label: `Ciak Start €${PRICING.start.cents / 100}`, count: fmt(start), euro: euro(revStart), conv: pct(start, blueprint) },
     { label: `Partnership €${(PRICING.partnership.cents / 100).toLocaleString("it-IT")}`, count: fmt(partnership), euro: euro(revPart), conv: pct(partnership, blueprint), hot: true },
   ];

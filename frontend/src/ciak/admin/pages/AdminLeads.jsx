@@ -1,5 +1,7 @@
 /**
- * Ciak Admin — Leads & Pipeline. Lista da GET /api/admin/ciak/leads.
+ * Ciak Admin — Lead inbound. Lista da GET /api/admin/ciak/leads: iscritti alla
+ * masterclass PIÙ chi ha compilato il questionario senza opt-in (canale
+ * Mariangela, link diretto), una riga per email, ordinati per ultima attività.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,17 +17,23 @@ const STATO_LABEL = {
   4: "Evoluzione Strategica",
 };
 
+// Stati del funnel gratuito (il backend normalizza già quelli storici €27).
 const STATE_LABEL = {
   lead_created: "Lead",
-  ciak_started: "Diagnostica avviata",
-  ciak_completed: "Diagnostica completata",
-  report_generated: "Report generato",
-  clicked_67: "Click Blueprint",
-  purchased_67: "Blueprint",
+  ciak_started: "Questionario iniziato",
+  ciak_completed: "Questionario completato",
+  report_generated: "Analisi pronta",
   call_booked: "Call prenotata",
-  call_done: "Call effettuata",
-  partner_approved: "Partner approvato",
-  partner_active: "Partner attivo",
+  call_done: "Call fatta",
+};
+
+const SOURCE_LABEL = {
+  mariangela: "Mariangela",
+  questionario_diretto: "Questionario diretto",
+  masterclass_landing: "Masterclass",
+  masterclass_gate: "Masterclass",
+  landing_hero: "Sito",
+  landing_secondary: "Sito",
 };
 
 // Le 4 tappe che contano per capire la situazione reale di un lead, a colpo
@@ -35,7 +43,7 @@ const STATE_LABEL = {
 // la tappa non è ancora avvenuta.
 const STAGES = [
   { key: "questionario_at", label: "Questionario" },
-  { key: "report_at", label: "Report/Blueprint" },
+  { key: "report_at", label: "Analisi pronta" },
   { key: "call_booked_at", label: "Call fissata" },
   { key: "call_done_at", label: "Call fatta" },
 ];
@@ -71,16 +79,12 @@ function StageTracker({ item }) {
   );
 }
 
-function StatoBadge({ stato, preliminary }) {
+function StatoBadge({ stato }) {
   if (!stato) return <span className="text-slate-300">—</span>;
   return (
     <span
-      className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-        preliminary
-          ? "bg-gray-100 text-slate-500"
-          : "bg-slate-900 text-yellow-400"
-      }`}
-      title={preliminary ? "Stato preliminare (Checkpoint)" : "Stato confermato (8 Domande)"}
+      className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-900 text-yellow-400"
+      title="Stato dal questionario"
     >
       S{stato} {STATO_LABEL[stato]}
     </span>
@@ -95,7 +99,7 @@ export function AdminLeads({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const [stato, setStato] = useState("");
-  const [onlyPurchased, setOnlyPurchased] = useState(false);
+  const [onlyCall, setOnlyCall] = useState(false);
   const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -107,7 +111,7 @@ export function AdminLeads({ onAuthExpired }) {
     apiGet("/leads", {
       q,
       stato: stato || null,
-      only_purchased: onlyPurchased || null,
+      only_call: onlyCall || null,
       limit: PAGE,
       offset,
     })
@@ -116,7 +120,7 @@ export function AdminLeads({ onAuthExpired }) {
         if (e.message === "AUTH_EXPIRED") onAuthExpired();
         else setError(e.message);
       });
-  }, [q, stato, onlyPurchased, offset, onAuthExpired]);
+  }, [q, stato, onlyCall, offset, onAuthExpired]);
 
   useEffect(() => {
     load();
@@ -172,8 +176,8 @@ export function AdminLeads({ onAuthExpired }) {
       <div className="mb-5 max-w-6xl"><AcquisizioneSubNav active="Lead" /></div>
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead inbound · dal funnel</h1>
       <p className="text-slate-500 mb-6">
-        Ogni lead dall'opt-in masterclass, arricchito con Checkpoint e questionario. I fermi
-        alla masterclass sono da svegliare con una chiamata di Mariangela verso il questionario.
+        Chi si è iscritto alla masterclass e chi ha compilato il questionario, anche senza
+        iscrizione (canale Mariangela). In alto chi si è mosso per ultimo.
       </p>
 
       {/* Filtri */}
@@ -182,7 +186,7 @@ export function AdminLeads({ onAuthExpired }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (setOffset(0), load())}
-          placeholder="Cerca per email…"
+          placeholder="Cerca per nome o email…"
           className="px-4 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900 w-64"
         />
         <select
@@ -202,13 +206,13 @@ export function AdminLeads({ onAuthExpired }) {
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
-            checked={onlyPurchased}
+            checked={onlyCall}
             onChange={(e) => {
-              setOnlyPurchased(e.target.checked);
+              setOnlyCall(e.target.checked);
               setOffset(0);
             }}
           />
-          Solo chi ha acquistato
+          Solo con call fissata o fatta
         </label>
       </div>
 
@@ -222,10 +226,9 @@ export function AdminLeads({ onAuthExpired }) {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
                   <th className="px-5 py-3 font-semibold">Lead</th>
-                  <th className="px-5 py-3 font-semibold">Source</th>
-                  <th className="px-5 py-3 font-semibold">Checkpoint</th>
-                  <th className="px-5 py-3 font-semibold">8 Domande</th>
-                  <th className="px-5 py-3 font-semibold" title="Questionario · Report/Blueprint · Call fissata · Call fatta">
+                  <th className="px-5 py-3 font-semibold">Fonte</th>
+                  <th className="px-5 py-3 font-semibold">Stato</th>
+                  <th className="px-5 py-3 font-semibold" title="Questionario · Analisi pronta · Call fissata · Call fatta">
                     Percorso
                   </th>
                   <th className="px-5 py-3 font-semibold"></th>
@@ -234,7 +237,7 @@ export function AdminLeads({ onAuthExpired }) {
               <tbody>
                 {data.items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                    <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
                       Nessun lead trovato.
                     </td>
                   </tr>
@@ -249,9 +252,11 @@ export function AdminLeads({ onAuthExpired }) {
                       <div className="font-medium text-slate-900">{l.nome || "—"}</div>
                       <div className="text-slate-500 text-xs">{l.email}</div>
                     </td>
-                    <td className="px-5 py-3 text-slate-500 text-xs">{l.source || "—"}</td>
-                    <td className="px-5 py-3">
-                      <StatoBadge stato={l.checkpoint_stato} preliminary />
+                    <td className="px-5 py-3 text-slate-500 text-xs">
+                      {SOURCE_LABEL[l.source] || l.source || "—"}
+                      {l.solo_questionario && (
+                        <div className="text-[11px] text-slate-400">senza iscrizione masterclass</div>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <StatoBadge stato={l.stato_finale} />
@@ -260,9 +265,6 @@ export function AdminLeads({ onAuthExpired }) {
                       <StageTracker item={l} />
                       <div className="mt-1 text-slate-400 text-[11px]">
                         {l.diagnostic_state ? STATE_LABEL[l.diagnostic_state] || l.diagnostic_state : "—"}
-                        {l.purchased && (
-                          <span className="ml-2 text-yellow-600 font-medium">Blueprint €27 ✓</span>
-                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
@@ -322,7 +324,7 @@ export function AdminLeads({ onAuthExpired }) {
       <ConfirmDialog
         open={!!pendingDelete}
         title={pendingDelete ? `Elimina ${pendingDelete.email}` : ""}
-        body="Verranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile."
+        body="Verranno rimossi l'iscrizione e il questionario collegati. Operazione irreversibile."
         confirmLabel="Elimina"
         cancelLabel="Annulla"
         destructive

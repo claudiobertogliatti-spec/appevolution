@@ -168,8 +168,8 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
       <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4">
         <KpiCard icon={Target} label="Ottimale" value={targetOptimal} hint={`Minimo sostenibile: ${targetMinimum} ingressi Metodo EVO.`} tone="yellow" />
         <KpiCard icon={CheckCircle2} label="Ingressi" value={target.partnerships_closed || 0} hint="Contratti pagati nel mese." tone="green" />
-        <KpiCard icon={CreditCard} label="Blueprint" value={funnel.blueprint_purchased || 0} hint="Blueprint generati nel mese." />
-        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Sessioni fissate dopo il Blueprint." tone="slate" />
+        <KpiCard icon={CreditCard} label="Questionari" value={(data.funnel_stages || {}).questionnaire_completed || 0} hint="Questionari completati nel mese." />
+        <KpiCard icon={CalendarClock} label="Call prenotate" value={funnel.call_booked || 0} hint="Call fissate dopo l'analisi gratuita." tone="slate" />
         <KpiCard icon={PhoneCall} label="Call fatte" value={funnel.call_done || 0} hint="Call concluse e pronte per proposta." tone="slate" />
         <KpiCard icon={FileSignature} label="Trattative" value={funnel.proposals_open || 0} hint="Proposte inviate o viste." tone="blue" />
       </div>
@@ -248,28 +248,13 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
         </div>
       </div>
 
-      <div className="grid xl:grid-cols-2 gap-5">
-        {/* La card "Checkpoint fatto, 8 domande mancanti" e' stata rimossa il 4/9/2026:
-            il Checkpoint e' ritirato dal funnel vivo, quella lista mostrava solo i
-            fantasmi di giugno. Il backend non espone piu' checkpoint_no_diagnostic. */}
+      <div>
         <PriorityList
-          title="8 domande completate, Blueprint non acquistato"
-          description="Hanno dato dati reali. Qui serve spingere il valore del Blueprint prima di qualsiasi investimento."
+          title="Analisi pronta, call non prenotata"
+          description="Hanno compilato il questionario e l'analisi gratuita è pronta. Sono i recuperi più vicini alla vendita: la call deve arrivare subito."
           items={priorities.diagnostic_no_purchase || []}
-          empty="Nessun lead fermo dopo le 8 domande."
-        />
-        <PriorityList
-          title="Checkout cliccato, pagamento mancante"
-          description="Sono i recuperi piu' caldi: hanno mostrato intenzione economica."
-          items={priorities.clicked_no_purchase || []}
-          empty="Nessun checkout caldo da recuperare."
+          empty="Nessuna analisi pronta senza call."
           tone="hot"
-        />
-        <PriorityList
-          title="Blueprint acquistato, call non prenotata"
-          description="Qui il rischio e' perdere slancio. La call deve arrivare subito."
-          items={priorities.purchased_no_call || []}
-          empty="Tutti gli acquirenti Blueprint hanno una call o sono gia' oltre."
         />
       </div>
 

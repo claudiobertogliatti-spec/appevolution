@@ -143,15 +143,14 @@ export function computeMetrics(deptId, d) {
         "Nuovi lead 7 giorni": fmtNum(last7Sum(mc.trend_optin_30d)),
         "Lead qualificati": fmtNum(stato34(mc.diagnostic_per_stato)),
         "Masterclass avviate": fmtNum(mc.funnel?.video_started),
-        "8 Domande completate": fmtNum(mc.funnel?.diagnostic_completed),
+        "Questionari completati": fmtNum(mc.funnel?.diagnostic_completed),
         "Ciak Start €390": ciakStart,
-        "Blueprint acquistati": fmtNum(f.blueprint_purchased),
+        "Call prenotate": fmtNum(f.call_booked),
         "Fonte migliore": bestSource(mc.sources) || "—",
       };
 
     case "vendite":
       return {
-        "Blueprint acquistati": fmtNum(f.blueprint_purchased),
         "Call prenotate": fmtNum(f.call_booked),
         "Call fatte": fmtNum(f.call_done),
         "Proposte inviate": fmtNum(f.proposals_open),

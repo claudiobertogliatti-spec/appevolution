@@ -78,7 +78,7 @@ def test_conta_tutti_gli_stadi_anche_quelli_vuoti(chiama):
     stadi = risultato["pre_acquisto"]["stadi"]
 
     assert [s["id"] for s in stadi] == [
-        "iscritto", "diagnostica", "report", "click_67",
+        "iscritto", "diagnostica", "report",
     ]
     assert risultato["pre_acquisto"]["totale"] == 6
 

@@ -1,8 +1,9 @@
 /**
  * Ciak Admin — Masterclass Analytics.
  *
- * Drill-down funnel masterclass: distribuzione 4 stati (checkpoint + diagnostic),
- * open rate email checkpoint per stato, sorgenti opt-in, trend 30gg.
+ * Drill-down del funnel gratuito: opt-in → masterclass → questionario → analisi
+ * pronta → call → Blueprint consegnato; distribuzione 4 stati del questionario,
+ * sorgenti opt-in, trend 30gg.
  *
  * Backend: GET /api/admin/ciak/masterclass-analytics
  */
@@ -80,7 +81,6 @@ export function MasterclassAnalytics({ onAuthExpired }) {
   const f = d.funnel;
   const conv = d.conversion_pct;
 
-  const checkpointTotal = Object.values(d.checkpoint_per_stato).reduce((a, b) => a + b, 0);
   const diagnosticTotal = Object.values(d.diagnostic_per_stato).reduce((a, b) => a + b, 0);
 
   // Trend max per scala asse Y semplice
@@ -92,7 +92,7 @@ export function MasterclassAnalytics({ onAuthExpired }) {
     <div className="p-10">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Masterclass Analytics</h1>
       <p className="text-slate-500 mb-8">
-        Drill-down del funnel: opt-in → checkpoint → 8 domande → Blueprint.
+        Drill-down del funnel: opt-in → questionario → analisi pronta → call → Blueprint consegnato.
       </p>
 
       {/* ① Funnel cumulativo */}
@@ -106,47 +106,26 @@ export function MasterclassAnalytics({ onAuthExpired }) {
         <FunnelStep label="Video completato" value={f.video_completed} pct={null} />
         <FunnelStep label="CTA mostrata" value={f.cta_shown} pct={null} />
         <FunnelStep label="CTA cliccata" value={f.cta_clicked} pct={null} />
-        <FunnelStep label="Checkpoint compilato" value={f.checkpoint_done} pct={conv.optin_to_checkpoint} />
-        <FunnelStep label="8 Domande avviate" value={f.diagnostic_started} pct={null} />
-        <FunnelStep label="8 Domande completate" value={f.diagnostic_completed} pct={null} />
-        <FunnelStep label="Click Blueprint" value={f.clicked_67} pct={null} />
-        <FunnelStep label="Blueprint" value={f.purchased_67} pct={conv.diagnostic_to_purchase} isLast />
+        <FunnelStep label="Questionario avviato" value={f.diagnostic_started} pct={conv.optin_to_diagnostic} />
+        <FunnelStep label="Questionario completato" value={f.diagnostic_completed} pct={null} />
+        <FunnelStep label="Analisi pronta" value={f.report_ready} pct={null} />
+        <FunnelStep label="Call prenotata" value={f.call_booked} pct={conv.diagnostic_to_call} />
+        <FunnelStep label="Blueprint consegnato" value={f.call_done} pct={conv.call_to_blueprint} isLast />
       </div>
       <p className="text-xs text-slate-400 mb-10">
-        Conversione end-to-end opt-in → acquisto: <strong className="text-slate-700">{conv.optin_to_purchase}%</strong>
+        Il questionario avviato può superare gli opt-in: il canale Mariangela arriva al
+        questionario senza iscriversi alla masterclass.
       </p>
 
-      <div className="grid lg:grid-cols-2 gap-8 mb-10">
-        {/* ② Distribuzione stati Checkpoint */}
+      <div className="mb-10 max-w-2xl">
+        {/* Distribuzione stati del questionario */}
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-            Distribuzione 4 stati — Checkpoint (pre-acquisto)
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            {checkpointTotal === 0 ? (
-              <p className="text-slate-400 text-sm">Nessun checkpoint ancora.</p>
-            ) : (
-              ["1", "2", "3", "4"].map((s) => (
-                <StatoBar
-                  key={s}
-                  stato={s}
-                  count={d.checkpoint_per_stato[s]}
-                  total={checkpointTotal}
-                  sublabel={`${checkpointTotal > 0 ? Math.round(d.checkpoint_per_stato[s] / checkpointTotal * 100) : 0}%`}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* ③ Distribuzione stati 8 Domande */}
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-            Distribuzione 4 stati — 8 Domande (post-acquisto)
+            Distribuzione 4 stati — questionario
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             {diagnosticTotal === 0 ? (
-              <p className="text-slate-400 text-sm">Nessuna 8 Domande completata ancora.</p>
+              <p className="text-slate-400 text-sm">Nessun questionario completato ancora.</p>
             ) : (
               ["1", "2", "3", "4"].map((s) => (
                 <StatoBar
@@ -160,38 +139,6 @@ export function MasterclassAnalytics({ onAuthExpired }) {
             )}
           </div>
         </div>
-      </div>
-
-      {/* ④ Email checkpoint open rate */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-        Email checkpoint — open rate per stato
-      </h2>
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-10">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-              <th className="px-5 py-3 font-semibold">Stato</th>
-              <th className="px-5 py-3 font-semibold text-right">Email inviate</th>
-              <th className="px-5 py-3 font-semibold text-right">Email aperte</th>
-              <th className="px-5 py-3 font-semibold text-right">Open rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {["1", "2", "3", "4"].map((s) => {
-              const e = d.email_per_stato[s];
-              return (
-                <tr key={s} className="border-b border-gray-100 last:border-0">
-                  <td className="px-5 py-3 text-slate-700">{STATO_LABELS[s]}</td>
-                  <td className="px-5 py-3 text-right font-medium text-slate-900">{e.sent}</td>
-                  <td className="px-5 py-3 text-right text-slate-700">{e.opened}</td>
-                  <td className="px-5 py-3 text-right font-semibold text-slate-900">
-                    {e.open_rate_pct}%
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8 mb-10">

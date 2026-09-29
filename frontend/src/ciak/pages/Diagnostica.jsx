@@ -18,7 +18,7 @@
  * Contratto backend (routers/diagnostic.py — FONTE DI VERITÀ):
  *   POST /api/diagnostic/start    {email, name, tracking} → {session_token, lead_id}
  *   POST /api/diagnostic/answer   {session_token, question_id, value} → 204
- *   POST /api/diagnostic/complete {session_token} → {report_url, stato, session_token, instradamento}
+ *   POST /api/diagnostic/complete {session_token} → {stato, session_token, instradamento}
  *
  * Le risposte sono APERTE: lo scoring pronto/non-pronto è di Carlo (services/ciak_scoring_ai.py).
  */

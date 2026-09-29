@@ -255,9 +255,8 @@ function fmtDate(raw) {
 }
 
 // ─── VENDITE ────────────────────────────────────────────────────────────────
-// Stadi post-€27 dal backend (_BLUEPRINT_COLUMNS): dal Blueprint pagato alla firma.
+// Stadi di Vendite dal backend (_BLUEPRINT_COLUMNS): dalla call prenotata alla firma.
 const VENDITE_STAGE_LABEL = {
-  acquistato: "Blueprint acquistato",
   call_prenotata: "Call prenotata",
   call_fatta: "Call fatta",
   in_trattativa: "In trattativa",
@@ -265,7 +264,6 @@ const VENDITE_STAGE_LABEL = {
 };
 // Prossima azione DERIVATA dallo stadio (nessun campo persistito).
 const VENDITE_ACTION = {
-  acquistato: "Prenota la call",
   call_prenotata: "Fai la call",
   call_fatta: "Invia la proposta",
   in_trattativa: "Sollecita la firma",

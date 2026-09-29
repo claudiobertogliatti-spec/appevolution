@@ -4,17 +4,14 @@
  * Unico brand servito su tutti gli host (consolidamento 2026-06-18).
  * Stesso monorepo, routing isolato (vedi detect host in index.js).
  *
- * Funnel 4 livelli (lockato 2026-05-12 — memory/ciak_brand_copy_framework.md):
- *  LIV 1  Cold/Social (esterno)
- *  LIV 2  Masterclass 30' gratis             → /masterclass (lead magnet + Checkpoint)
- *  LIV 3  Ciak Blueprint €27                 → /blueprint (checkout Stripe)
- *  LIV 4  Partnership Evolution PRO €2.990   → www.evolution-pro.it (esterno)
+ * Funnel gratuito (unico processo vivo dal 29/9/2026):
+ *  /blueprint (landing analisi gratuita) → /diagnostica (questionario) → popup
+ *  Cal.com per la call (il canale Mariangela ?utm_source=mariangela non lo vede).
+ *  Il report di Carlo è INTERNO: lo legge solo l'admin, mai il lead.
+ *  /masterclass resta come contenuto di fiducia/nurturing.
  *
- * Post-acquisto Ciak Blueprint:
- *  8 Domande Ciak → /diagnostica → /report/[token] (output Matteo) → CTA €27
- *
- * Canonicalizzazione 2026-07-22: /blueprint e' la route pubblica; /ciak-blueprint
- * e /analisi restano esclusivamente redirect legacy lato Vercel e React.
+ * /ciak-blueprint, /analisi, /checkpoint e le vecchie pagine di conferma del
+ * checkout €27 (ritirato) sono solo redirect verso le pagine vive.
  *
  * Brand frozen (docs/brand/ciak-brand-kit.md v1.0):
  *  slate-900 #0F172A | slate-500 #64748B | gray-200 #E5E7EB | yellow-400 #FACC15
@@ -30,7 +27,6 @@ import { Toaster } from "sonner";
 import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
 import { MasterclassLanding } from "./pages/MasterclassLanding";
-import { CiakCheckpoint } from "./pages/Checkpoint";
 import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakDispensaDemo } from "./pages/CiakDispensaDemo";
 import { CiakPartnerDashboardDemo } from "./pages/CiakPartnerDashboardDemo";
@@ -39,9 +35,7 @@ import { CiakPartnerMaterialiDemo } from "./pages/CiakPartnerMaterialiDemo";
 import { CiakPartnerTeamDemo } from "./pages/CiakPartnerTeamDemo";
 import { CiakPartnerServiziExtraDemo } from "./pages/CiakPartnerServiziExtraDemo";
 import { CiakPartnerRinnovoDemo } from "./pages/CiakPartnerRinnovoDemo";
-import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
-import { CiakReport } from "./pages/Report";
 import { CiakAnalisi } from "./pages/Analisi";
 import { CiakProposta } from "./pages/Proposta";
 import InsiderSalesPage from "./insider/InsiderSalesPage";
@@ -95,13 +89,8 @@ export default function CiakApp() {
           {/* Il viewer resta accessibile direttamente da email e dal bridge post-opt-in. */}
           <Route path="/masterclass/guarda" element={<CiakMasterclass />} />
 
-          {/* Checkpoint Strategico standalone — deep-link da email Systeme */}
-          <Route path="/checkpoint" element={<CiakCheckpoint />} />
-
-          {/* LIV 3 — Ciak Blueprint. Canonical /blueprint dal 2026-07-22 (rename da
-              /ciak-blueprint, a sua volta rename da /analisi 2026-05-12). */}
+          {/* Landing dell'analisi gratuita. */}
           <Route path="/blueprint" element={<CiakBlueprint />} />
-          <Route path="/blueprint/grazie" element={<CiakGrazie />} />
           <Route path="/dispensa-demo" element={<CiakDispensaDemo />} />
           <Route path="/partner-demo" element={<CiakPartnerDashboardDemo />} />
           <Route path="/percorso-demo" element={<CiakPartnerPercorsoDemo />} />
@@ -110,22 +99,21 @@ export default function CiakApp() {
           <Route path="/servizi-extra-demo" element={<CiakPartnerServiziExtraDemo />} />
           <Route path="/rinnovo-demo" element={<CiakPartnerRinnovoDemo />} />
 
-          {/* Redirect legacy → /blueprint. Preservano la query string per i parametri
-              Stripe (session_id success / from=cancel) finché il backend checkout non
-              emette gli URL canonici /blueprint (FASE 2 Codex). /ciak-blueprint resta
-              vivo perché il success_url/cancel_url attuali lo usano ancora. */}
+          {/* Redirect legacy: link vecchi ancora in giro (email, post, bio). La query
+              string si preserva per non perdere utm_source. */}
           <Route path="/ciak-blueprint" element={<RedirectWithSearch to="/blueprint" />} />
-          <Route path="/ciak-blueprint/grazie" element={<RedirectWithSearch to="/blueprint/grazie" />} />
+          <Route path="/ciak-blueprint/grazie" element={<RedirectWithSearch to="/blueprint" />} />
+          <Route path="/blueprint/grazie" element={<RedirectWithSearch to="/blueprint" />} />
           <Route path="/analisi" element={<RedirectWithSearch to="/blueprint" />} />
-          <Route path="/analisi/grazie" element={<RedirectWithSearch to="/blueprint/grazie" />} />
+          <Route path="/analisi/grazie" element={<RedirectWithSearch to="/blueprint" />} />
           <Route path="/analisi-strategica" element={<RedirectWithSearch to="/blueprint" />} />
+          <Route path="/checkpoint" element={<RedirectWithSearch to="/diagnostica" />} />
 
-          {/* 8 Domande Ciak — lead magnet PRE-pagamento (no token: la sessione
-              la crea /api/diagnostic/start). Vecchia route con :token mantenuta
-              come alias per link legacy già diffusi. */}
+          {/* Questionario dell'analisi gratuita (la sessione la crea
+              /api/diagnostic/start). La route con :token resta come alias per
+              link già diffusi. */}
           <Route path="/diagnostica" element={<CiakDiagnostica />} />
           <Route path="/diagnostica/:token" element={<CiakDiagnostica />} />
-          <Route path="/report/:token" element={<CiakReport />} />
           <Route path="/analisi/:token" element={<CiakAnalisi />} />
 
           {/* FASE 1 migrazione — Proposta Partnership post-call (porting da Evolution) */}

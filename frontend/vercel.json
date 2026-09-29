@@ -12,7 +12,7 @@
     },
     {
       "source": "/ciak-blueprint/grazie",
-      "destination": "/blueprint/grazie",
+      "destination": "/blueprint",
       "permanent": true
     },
     {
@@ -22,12 +22,22 @@
     },
     {
       "source": "/analisi/grazie",
-      "destination": "/blueprint/grazie",
+      "destination": "/blueprint",
       "permanent": true
     },
     {
       "source": "/analisi-strategica",
       "destination": "/blueprint",
+      "permanent": true
+    },
+    {
+      "source": "/blueprint/grazie",
+      "destination": "/blueprint",
+      "permanent": true
+    },
+    {
+      "source": "/checkpoint",
+      "destination": "/diagnostica",
       "permanent": true
     }
   ],
@@ -47,10 +57,6 @@
     {
       "source": "/blueprint",
       "destination": "/blueprint.ciak.html"
-    },
-    {
-      "source": "/blueprint/grazie",
-      "destination": "/blueprint-grazie.ciak.html"
     },
     {
       "source": "/api/(.*)",

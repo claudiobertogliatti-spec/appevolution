@@ -222,3 +222,44 @@ async def test_complete_espone_instradamento_calcolato(monkeypatch, instradament
     assert isinstance(res, CompleteResponse)
     assert res.instradamento == instradamento
     assert fake_db.diagnostic_sessions.saved["scoring"]["instradamento"] == instradamento
+
+
+async def _run_complete(doc, instradamento="start"):
+    """Esegue /complete con scoring/Matteo/Systeme finti; ritorna (db, eventi emessi)."""
+    fake_db = _FakeDB(doc)
+    diag.db = fake_db
+    emitted = []
+
+    async def _fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    with patch.object(diag, "calculate_scoring_ai",
+                      AsyncMock(return_value=_fake_scoring(instradamento))), \
+            patch.object(diag, "generate_report", AsyncMock(return_value=None)), \
+            patch.object(diag, "ciak_emit_event", _fake_emit):
+        await complete_diagnostic(CompleteRequest(session_token="tok-test"))
+        await asyncio.sleep(0)
+    return fake_db, emitted
+
+
+@pytest.mark.asyncio
+async def test_complete_nurture_non_iscrive_al_recupero_call(monkeypatch):
+    """Chi va in nurturing vede la masterclass, non il calendario: niente
+    evento ciak_completed (quello che iscrive all'email "prenota la call")."""
+    monkeypatch.setattr(diag, "db", None)
+    _db, emitted = await _run_complete(_session_doc(), instradamento="nurture")
+
+    assert emitted[-1]["event_name"] == "ciak_completed_nurture"
+    assert "instradamento_nurture" in emitted[-1]["extra_tags"]
+
+
+@pytest.mark.asyncio
+async def test_complete_rilanciato_non_rinotifica_systeme(monkeypatch):
+    """La rigenerazione dei report rilancia /complete sulla stessa sessione:
+    Systeme deve ricevere l'evento una volta sola."""
+    monkeypatch.setattr(diag, "db", None)
+    fake_db, first = await _run_complete(_session_doc())
+    assert len(first) == 1
+
+    _db, second = await _run_complete(fake_db.diagnostic_sessions.saved)
+    assert second == []

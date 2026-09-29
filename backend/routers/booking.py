@@ -7,7 +7,8 @@ Endpoint:
 Gestione eventi:
   BOOKING_CREATED       → state call_booked + email reminder programmate
   BOOKING_RESCHEDULED   → event log (state resta call_booked)
-  BOOKING_CANCELLED     → tag ciak_call_cancelled (state non cambia, gestione admin)
+  BOOKING_CANCELLED     → torna ad "analisi pronta" (il lead rientra nei recuperi)
+                          + tag ciak_call_cancelled
   MEETING_ENDED         → state call_done
 
 Configurazione Cal.com:
@@ -17,24 +18,25 @@ Configurazione Cal.com:
     Subscriber events: BOOKING_CREATED, BOOKING_RESCHEDULED,
                        BOOKING_CANCELLED, MEETING_ENDED
 
-Identificazione lead: lookup per email dell'attendee → ultima diagnostic_session
-con state purchased_67.
-
-Riferimento: memory/funnel_67_analisi.md (flow booking).
+Identificazione lead: email dell'attendee (senza distinguere maiuscole e
+minuscole) → ultima diagnostic_session con il questionario completato.
+Lo stato non retrocede mai: un BOOKING_CREATED su una call già fatta non la
+riporta a "prenotata".
 """
 import hashlib
 import hmac
 import json
 import logging
 import os
+import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, status
 
 from services.ciak_state_machine import (
     STATE_CALL_BOOKED, STATE_CALL_DONE, STATE_CIAK_COMPLETED,
-    STATE_PURCHASED_67, STATE_REPORT_GENERATED,
-    add_event, transition_to,
+    STATE_RANK, STATE_REPORT_GENERATED,
+    add_event, normalize_state, transition_to,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,32 +67,25 @@ def _verify_signature(payload: bytes, signature: Optional[str], secret: str) -> 
 
 async def _find_diagnostic_by_email(email: str) -> Optional[dict]:
     """
-    Trova la diagnostic session più recente con questa email tra gli stati in cui
-    ha senso prenotare una call.
+    Trova la diagnostic session più recente con questa email che ha almeno il
+    questionario completato (ciak_completed se il report di Carlo è fallito,
+    report_generated, oppure già a call). Gli stati storici del vecchio funnel
+    €27 valgono come "analisi pronta" (normalize_state).
 
-    Include ciak_completed / report_generated: nel funnel "analisi gratuita" il lead
-    prenota la videocall SENZA pagare (non passa da purchased_67), quindi al momento
-    del booking la sessione è in report_generated (o ciak_completed se Matteo è
-    degradato). Senza questi stati il webhook rispondeva no_matching_lead e la call
-    non veniva registrata sulla scheda del lead.
+    L'email si confronta senza maiuscole/minuscole: Cal.com e il questionario
+    la ricevono digitata a mano, anche in due modi diversi.
     """
     cursor = db.diagnostic_sessions.find(
-        {
-            "user_email": email,
-            "current_state": {
-                "$in": [
-                    STATE_CIAK_COMPLETED,
-                    STATE_REPORT_GENERATED,
-                    STATE_PURCHASED_67,
-                    STATE_CALL_BOOKED,
-                    STATE_CALL_DONE,
-                ]
-            },
-        }
-    ).sort("created_at", -1).limit(1)
+        {"user_email": {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}}
+    ).sort("created_at", -1)
+    async for doc in cursor:
+        if _rank(doc) >= STATE_RANK[STATE_CIAK_COMPLETED]:
+            return doc
+    return None
 
-    docs = await cursor.to_list(length=1)
-    return docs[0] if docs else None
+
+def _rank(doc: dict) -> int:
+    return STATE_RANK.get(normalize_state(doc.get("current_state")), -1)
 
 
 def _extract_attendee_email(body: dict) -> Optional[str]:
@@ -170,7 +165,7 @@ async def calcom_webhook(request: Request):
     booking_id = payload_data.get("uid") or payload_data.get("id")
 
     if trigger_event == "BOOKING_CREATED":
-        if diagnostic.get("current_state") != STATE_CALL_BOOKED:
+        if _rank(diagnostic) < STATE_RANK[STATE_CALL_BOOKED]:
             transition_to(
                 diagnostic,
                 STATE_CALL_BOOKED,
@@ -194,11 +189,20 @@ async def calcom_webhook(request: Request):
         add_event(diagnostic, "calcom_booking_cancelled", {
             "booking_id": booking_id,
         })
+        # Una call annullata non è una call: il lead torna tra le analisi pronte
+        # senza call (i recuperi), invece di restare "prenotato" per sempre.
+        if normalize_state(diagnostic.get("current_state")) == STATE_CALL_BOOKED:
+            fallback = (
+                STATE_REPORT_GENERATED if diagnostic.get("report") else STATE_CIAK_COMPLETED
+            )
+            transition_to(diagnostic, fallback, event_metadata={
+                "booking_id": booking_id, "reason": "booking_cancelled",
+            })
         if "ciak_call_cancelled" not in diagnostic.get("crm_tags", []):
             diagnostic.setdefault("crm_tags", []).append("ciak_call_cancelled")
 
     elif trigger_event == "MEETING_ENDED":
-        if diagnostic.get("current_state") != STATE_CALL_DONE:
+        if _rank(diagnostic) < STATE_RANK[STATE_CALL_DONE]:
             transition_to(
                 diagnostic,
                 STATE_CALL_DONE,

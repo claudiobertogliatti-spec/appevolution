@@ -1,14 +1,13 @@
 """
 Ciak — Router diagnostic.
 
-Endpoint pubblici per il flow utente Ciak (8 domande → scoring → Matteo → report).
+Endpoint pubblici per il flow utente Ciak (8 domande → scoring → report interno
+di Carlo). Il report NON si mostra al lead: lo legge solo l'admin prima della call.
 
 Endpoint:
   POST   /api/diagnostic/start          → crea lead + sessione, ritorna session_token
   POST   /api/diagnostic/answer         → salva risposta a singola domanda
   POST   /api/diagnostic/complete       → calcola score+override, invoca Matteo
-  GET    /api/diagnostic/report/{token} → legge report, emette report_viewed
-  POST   /api/diagnostic/cta-clicked    → tracciamento click CTA 67€
 
 Pattern coerente con repo (vedi routers/clienti.py):
   - db = None globale, inizializzato via set_db() chiamato da server.py
@@ -18,10 +17,8 @@ Pattern coerente con repo (vedi routers/clienti.py):
 Riferimento:
   - memory/ciak_technical_spec.md (schema, scoring, state machine)
   - memory/matteo_prompt_engine.md (prompt v1.4)
-  - memory/funnel_67_analisi.md (CTA differenziate per stato)
 """
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 from uuid import uuid4
@@ -34,7 +31,7 @@ import asyncio
 from services.ciak_matteo import MatteoServiceError, generate_report
 from services.ciak_scoring_ai import calculate_scoring_ai
 from services.ciak_state_machine import (
-    STATE_CIAK_COMPLETED, STATE_CIAK_STARTED, STATE_CLICKED_67,
+    STATE_CIAK_COMPLETED, STATE_CIAK_STARTED,
     STATE_LEAD_CREATED, STATE_REPORT_GENERATED,
     add_event, has_event, transition_to,
 )
@@ -105,20 +102,9 @@ class CompleteRequest(BaseModel):
 
 
 class CompleteResponse(BaseModel):
-    report_url: str
     stato: int
     session_token: str
     instradamento: Literal["partnership", "start", "nurture"]
-
-
-class ReportResponse(BaseModel):
-    report_markdown: str
-    stato: int
-    cta_variant: Literal["nurturing", "validate", "build", "extended"]
-
-
-class CtaClickedRequest(BaseModel):
-    session_token: str
 
 
 # ─── Validation helpers ─────────────────────────────────────────────
@@ -135,12 +121,6 @@ def _validate_open_text(value: str, max_len: int, field_name: str) -> str:
     return cleaned
 
 
-_CTA_VARIANT_BY_STATE: dict[int, Literal["nurturing", "validate", "build", "extended"]] = {
-    1: "nurturing",
-    2: "validate",
-    3: "build",
-    4: "extended",
-}
 
 
 def _build_session_doc(req: StartRequest) -> dict:
@@ -367,6 +347,13 @@ async def complete_diagnostic(payload: CompleteRequest):
         transition_to(session, STATE_REPORT_GENERATED, extra_tags=matteo_tags)
         session["report"] = report
 
+    # La notifica a Systeme parte UNA volta sola per sessione: la rigenerazione
+    # dei report (admin regenerate-reports) rilancia questa stessa funzione e
+    # senza questo segno il lead si ritroverebbe iscritto di nuovo al recupero.
+    systeme_already_notified = has_event(session, "systeme_completed_emitted")
+    if not systeme_already_notified:
+        add_event(session, "systeme_completed_emitted")
+
     # 5. Persist finale (con o senza report)
     await db.diagnostic_sessions.replace_one(
         {"session_token": payload.session_token},
@@ -385,13 +372,25 @@ async def complete_diagnostic(payload: CompleteRequest):
     # tua call" a chi la sta già prenotando a voce con Mariangela. Qui si evita SOLO
     # quel tag/quella iscrizione automatica: lo stato interno (STATE_CIAK_COMPLETED,
     # sopra) resta identico per tutti, dashboard e booking non cambiano.
+    #
+    # Stessa logica per chi lo scoring manda in nurturing: a fine questionario vede
+    # il link alla masterclass, non il calendario, quindi l'email "prenota la tua
+    # call" non gli va mandata.
     utm_source = (session.get("tracking") or {}).get("utm_source") or ""
     is_mariangela = utm_source.strip().lower() == "mariangela"
-    completed_event_name = "ciak_completed_mariangela" if is_mariangela else "ciak_completed"
+    if is_mariangela:
+        completed_event_name = "ciak_completed_mariangela"
+    elif scoring.instradamento == "nurture":
+        completed_event_name = "ciak_completed_nurture"
+    else:
+        completed_event_name = "ciak_completed"
 
     user_email = session.get("user_email")
-    if user_email:
-        completed_tags = [f"stato_{scoring.stato_finale}"]
+    if user_email and not systeme_already_notified:
+        completed_tags = [
+            f"stato_{scoring.stato_finale}",
+            f"instradamento_{scoring.instradamento}",
+        ]
         if is_mariangela:
             completed_tags.append("source_mariangela")
         if report is not None:
@@ -413,86 +412,8 @@ async def complete_diagnostic(payload: CompleteRequest):
             },
         ))
 
-    frontend_base = os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")
     return CompleteResponse(
-        report_url=f"{frontend_base}/report/{payload.session_token}",
         stato=scoring.stato_finale,
         session_token=payload.session_token,
         instradamento=scoring.instradamento,
     )
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  ENDPOINT 4 — REPORT (lettura + emit report_viewed)
-# ═══════════════════════════════════════════════════════════════════
-
-@router.get("/report/{session_token}", response_model=ReportResponse)
-async def get_report(session_token: str):
-    """
-    Recupera il report per visualizzazione frontend.
-    Emette report_viewed (idempotente: solo prima vista).
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    session = await db.diagnostic_sessions.find_one({"session_token": session_token})
-    if not session:
-        raise HTTPException(404, "session_token non trovato")
-
-    report = session.get("report")
-    if not report:
-        raise HTTPException(409, "Report non ancora generato")
-
-    if not has_event(session, "report_viewed"):
-        add_event(session, "report_viewed")
-        await db.diagnostic_sessions.update_one(
-            {"session_token": session_token},
-            {"$set": {"events": session["events"]}},
-        )
-
-    stato = session["scoring"]["stato_finale"]
-    return ReportResponse(
-        report_markdown=report["report_markdown"],
-        stato=stato,
-        cta_variant=_CTA_VARIANT_BY_STATE[stato],
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  ENDPOINT 5 — CTA CLICKED
-# ═══════════════════════════════════════════════════════════════════
-
-@router.post("/cta-clicked", status_code=status.HTTP_204_NO_CONTENT)
-async def cta_clicked(payload: CtaClickedRequest):
-    """
-    Traccia il click su CTA 67€ dal report.
-    Transizione: → clicked_67 + tag ciak_clicked_67.
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    session = await db.diagnostic_sessions.find_one(
-        {"session_token": payload.session_token}
-    )
-    if not session:
-        raise HTTPException(404, "session_token non trovato")
-
-    transition_to(session, STATE_CLICKED_67)
-
-    await db.diagnostic_sessions.replace_one(
-        {"session_token": payload.session_token},
-        session,
-    )
-
-    # Fire-and-forget Systeme.io tag emission per ciak_clicked_67.
-    # Segnala alta intent di acquisto: utile per retargeting + email "non ha completato l'acquisto".
-    user_email = session.get("user_email")
-    if user_email:
-        fire_and_forget(ciak_emit_event(
-            email=user_email,
-            event_name="ciak_clicked_67",
-            first_name=session.get("user_name"),
-            metadata={"session_token": payload.session_token},
-        ))
-
-    return None

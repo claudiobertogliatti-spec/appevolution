@@ -23,8 +23,11 @@ const STATUS_LABEL = {
   message_ready: "Messaggio pronto",
   message_sent: "Messaggio inviato",
   contacted: "Contattato",
-  interested: "Interessato",
-  not_interested: "Non interessato",
+  responded_positive: "Ha risposto",
+  qualified: "Qualificato",
+  converted: "Cliente",
+  responded_negative: "Non interessato",
+  rejected: "Scartato",
 };
 
 // Prossima azione DERIVATA dallo stato (non esiste un campo persistito).
@@ -36,8 +39,11 @@ const STATUS_ACTION = {
   message_ready: "Invia il messaggio",
   message_sent: "Attendi risposta / richiama",
   contacted: "Richiama o fai avanzare",
-  interested: "Porta a call / Blueprint",
-  not_interested: "Archivia",
+  responded_positive: "Manda il questionario dell'analisi gratuita",
+  qualified: "Fissa la call",
+  converted: "Chiuso",
+  responded_negative: "Archivia",
+  rejected: "Archivia",
 };
 
 const OWNERS = ["Mariangela", "Claudio"];

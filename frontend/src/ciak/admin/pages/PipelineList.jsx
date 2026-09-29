@@ -4,11 +4,8 @@
  * Sostituisce il kanban orizzontale: Claudio vuole le pipeline come tabella,
  * stesso stile di Pipeline Partner. Lo "stadio" del funnel diventa una colonna.
  *
- * Usata da:
- *  - Pipeline Prospect  (Acquisizione)    → endpoint /pipeline-prospect
- *  - Vendite per stadio (Ciak Blueprint / Call di vendita / Trattative OK)
- *    → endpoint /pipeline-blueprint con `lockedStages` per isolare uno o piu'
- *    stadi del funnel post-acquisto.
+ * Usata da Trattative (Vendite) → endpoint /pipeline-blueprint, con
+ * `lockedStages` per isolare uno o piu' stadi, dalla call prenotata alla firma.
  *
  * Backend: GET /api/admin/ciak/<endpoint> → { columns:[{id,label,count,items}], total }
  * Le righe sono ordinate seguendo il funnel (ordine delle colonne backend).
