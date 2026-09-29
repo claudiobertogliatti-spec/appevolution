@@ -13,6 +13,7 @@ Note:
   - Gestione errori: rate limit / API down / JSON malformato → MatteoServiceError.
   - Output: dict con report_markdown + tags structurati.
 """
+import asyncio
 import json
 import logging
 import os
@@ -172,7 +173,7 @@ def _get_client() -> anthropic.Anthropic:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise MatteoServiceError("ANTHROPIC_API_KEY non configurata")
-    return anthropic.Anthropic(api_key=api_key)
+    return anthropic.Anthropic(api_key=api_key, timeout=120.0, max_retries=1)
 
 
 async def _resolve_system_prompt() -> str:
@@ -226,7 +227,9 @@ async def generate_report(
     )
 
     try:
-        response = client.messages.create(
+        # In un thread: il client è sincrono e bloccherebbe l'unico worker.
+        response = await asyncio.to_thread(
+            client.messages.create,
             model=_MODEL,
             max_tokens=_MAX_TOKENS,
             system=[

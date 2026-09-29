@@ -1,8 +1,16 @@
 """
-Consegna post-acquisto della BOZZA analisi (Plan B).
-Orchestratore idempotente: genera (Plan A) → render PDF (estetica Canva) →
-upload Cloudinary → email transazionale con allegato. Emesso in background dal webhook Blueprint.
+Consegna del Blueprint al cliente dopo la call.
+
+Il PDF consegnato è SEMPRE il Blueprint salvato (template lockato 2 copertine +
+14 pagine, vedi services/ciak_blueprint_store.py): lo stesso documento che
+l'admin ha scaricato e mostrato in call. Nessun ripiego su altri documenti: se
+il Blueprint non è pronto o l'invio fallisce, la consegna fallisce con il motivo
+reale e l'admin lo vede — prima partiva in silenzio un "teaser" diverso.
+
+Gira DENTRO la richiesta dell'admin (niente BackgroundTask: su Cloud Run un
+lavoro dopo la risposta può restare senza CPU e morire senza lasciare traccia).
 """
+import asyncio
 import logging
 import os
 import smtplib
@@ -13,7 +21,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
-from services import ciak_analisi, ciak_pdf, ciak_pdf_blueprint
+from services import ciak_analisi, ciak_blueprint_store
 
 logger = logging.getLogger(__name__)
 
@@ -121,86 +129,76 @@ def _send_email_link(*, to: str, nome: str, subject: str, link: str) -> tuple[bo
         return False, str(e)
 
 
-async def _render_deliverable_pdf(
-    session_token: str, bozza: dict, nome: Optional[str]
-) -> tuple[bytes, str]:
-    """PDF consegnato al cliente.
-
-    Primario: il Blueprint DEFINITIVO a 13 sezioni (layout A4 Evolution,
-    `ciak_pdf_blueprint`). Se la generazione fallisce (Anthropic ko, sezione
-    mancante, sessione senza risposte...), degrada al teaser bozza: la consegna
-    non deve mai bloccarsi. Ritorna (pdf_bytes, kind) con kind in
-    {"blueprint", "teaser"}.
-    """
-    try:
-        payload = await ciak_analisi.genera_blueprint(session_token)
-        pdf = await ciak_pdf_blueprint.genera_blueprint_pdf(payload)
-        return pdf, "blueprint"
-    except Exception as e:
-        logger.warning(
-            "[CIAK_DELIVERY] blueprint 13-sez fallito per %s, uso teaser: %s",
-            session_token, e,
-        )
-        pdf = await ciak_pdf.genera_bozza_pdf(bozza, nome or "")
-        return pdf, "teaser"
+class ConsegnaFallita(Exception):
+    """Il Blueprint non è arrivato al cliente: il messaggio è il motivo reale."""
 
 
-async def processa_acquisto(
+async def _registra_esito(session_token: str, email: str, nome: Optional[str], esito: dict) -> None:
+    """Scrive l'esito sia su ciak_blueprints (scheda lead) sia su ciak_analisi,
+    dove lo leggono area cliente, controllo consegne mancate e proposta."""
+    await db.ciak_blueprints.update_one({"session_token": session_token}, {"$set": esito})
+    analisi = {"email": email, "nome": nome}
+    if esito.get("consegna_inviata_at"):
+        analisi["bozza_inviata_at"] = esito["consegna_inviata_at"]
+        analisi["bozza.pdf_url"] = esito.get("pdf_url")
+        analisi["deliverable_kind"] = "blueprint"
+    if esito.get("consegna_errore"):
+        analisi["bozza_errore"] = esito["consegna_errore"]
+    await db.ciak_analisi.update_one(
+        {"session_token": session_token},
+        {"$set": analisi, "$setOnInsert": {"session_token": session_token}},
+        upsert=True,
+    )
+
+
+async def consegna_blueprint(
     session_token: str,
     email: str,
     nome: Optional[str],
     access_link: Optional[str] = None,
 ) -> dict:
-    """
-    Background post-Blueprint: genera (idempotente) + invia bozza PDF una sola volta.
-    Non solleva: logga e ritorna lo stato (non deve mai rompere il webhook).
+    """Invia al cliente il Blueprint salvato, una volta sola.
 
-    `access_link` (magic-link all'area riservata) viene incluso nel corpo email:
-    cosi' il cliente riceve blueprint E accesso nella stessa mail. Se assente
-    (es. vecchio webhook €27) il corpo resta valido senza link d'accesso.
+    Solleva `ciak_blueprint_store.BlueprintNonPronto` se il Blueprint non è stato
+    generato, `ConsegnaFallita` se impaginazione o email falliscono. Idempotente:
+    se è già stato inviato non rimanda nulla.
     """
     if db is None:
-        logger.error("[CIAK_DELIVERY] db non configurato")
-        return {"sent": False, "error": "no_db"}
-    try:
-        await ciak_analisi.genera_e_salva(session_token)
-    except Exception as e:
-        logger.error("[CIAK_DELIVERY] generazione fallita per %s: %s", session_token, e)
-        return {"sent": False, "error": f"gen: {e}"}
+        raise ConsegnaFallita("Database non configurato")
+    doc = await ciak_blueprint_store.leggi(db, session_token)
+    if doc and doc.get("consegna_inviata_at"):
+        return {"sent": False, "skipped": "gia_inviata", "pdf_url": doc.get("pdf_url")}
+    if not email:
+        raise ConsegnaFallita("Email del cliente mancante")
 
-    doc = await db.ciak_analisi.find_one({"session_token": session_token})
-    if not doc:
-        return {"sent": False, "error": "analisi non trovata dopo generazione"}
-    if doc.get("bozza_inviata_at"):
-        return {"sent": False, "skipped": "gia_inviata"}
-
-    bozza = doc.get("bozza") or {}
-    dest = email or doc.get("email")
-    if not dest:
-        return {"sent": False, "error": "email mancante"}
-
-    try:
-        pdf_bytes, kind = await _render_deliverable_pdf(session_token, bozza, nome)
-    except Exception as e:
-        logger.error("[CIAK_DELIVERY] render PDF fallito per %s: %s", session_token, e)
-        return {"sent": False, "error": f"pdf: {e}"}
+    pdf_bytes = await ciak_blueprint_store.pdf(db, session_token)  # BlueprintNonPronto se manca
 
     pdf_url = await _upload_pdf(pdf_bytes, session_token)
-    ok, err = _send_email_attachment(
-        to=dest, subject="Il tuo Blueprint Evolution",
+    ok, err = await asyncio.to_thread(
+        _send_email_attachment,
+        to=email, subject="Il tuo Blueprint Evolution",
         body_text=_email_body(nome, pdf_url, access_link),
         pdf_bytes=pdf_bytes, pdf_filename=f"blueprint_evolution_{session_token[:8]}.pdf",
     )
-    bozza["pdf_url"] = pdf_url
-    update = {"bozza": bozza, "deliverable_kind": kind}
-    if ok:
-        update["bozza_inviata_at"] = _now_iso()
-    else:
-        logger.error("[CIAK_DELIVERY] email bozza ko per %s: %s", dest, err)
-        update["bozza_errore"] = err
+    if not ok:
+        logger.error("[CIAK_DELIVERY] email Blueprint ko per %s: %s", email, err)
+        await _registra_esito(session_token, email, nome, {"consegna_errore": err, "pdf_url": pdf_url})
+        raise ConsegnaFallita(f"Email non inviata: {err}")
+
+    await _registra_esito(session_token, email, nome, {
+        "consegna_inviata_at": _now_iso(),
+        "consegna_errore": None,
+        "pdf_url": pdf_url,
+    })
+    return {"sent": True, "pdf_url": pdf_url}
+
+
+async def completa_analisi_cliente(session_token: str) -> None:
+    """Dopo l'invio: genera l'analisi a 6 capitoli che area cliente e pagina
+    Insider leggono ancora da `ciak_analisi`. Non tocca la consegna: se fallisce
+    il cliente ha comunque il suo Blueprint; si logga e basta."""
     try:
-        await db.ciak_analisi.update_one({"session_token": session_token}, {"$set": update})
-    except Exception as e:
-        logger.error("[CIAK_DELIVERY] persistenza stato fallita per %s: %s", session_token, e)
-        return {"sent": ok, "pdf_url": pdf_url, "error": err, "persist_error": str(e)}
-    return {"sent": ok, "pdf_url": pdf_url, "error": err}
+        ciak_analisi.set_db(db)
+        await ciak_analisi.genera_e_salva(session_token)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[CIAK_DELIVERY] analisi area cliente non generata per %s: %s", session_token, exc)

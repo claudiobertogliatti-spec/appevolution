@@ -76,13 +76,13 @@ function StageChecklist({ diagnostic }) {
   );
 }
 
-// Scarica il Blueprint in PDF (template lockato) generato dal backend, senza
-// effetti collaterali (nessuna email, nessun cambio di stato). La generazione
-// richiama l'AI: puo' richiedere 1-2 minuti.
+// Scarica il Blueprint SALVATO in PDF (template lockato, 16 pagine): nessuna
+// chiamata AI, nessun effetto collaterale. È lo stesso documento che il
+// cliente riceve quando confermi di aver fatto la call.
 async function downloadBlueprintPdf(email) {
   const res = await adminFetch(
     `/api/ciak/client/admin/blueprint-pdf?email=${encodeURIComponent(email)}`,
-    { timeoutMs: 180000 }
+    { timeoutMs: 60000 }
   );
   if (!res.ok) throw new Error(await errorDetail(res));
   const blob = await res.blob();
@@ -153,6 +153,92 @@ function Section({ title, children }) {
   );
 }
 
+function formatWhen(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+const BLUEPRINT_STATO = {
+  mancante: { label: "Da generare", cls: "bg-gray-100 text-slate-600" },
+  in_generazione: { label: "In preparazione…", cls: "bg-yellow-100 text-yellow-800" },
+  pronto: { label: "Pronto", cls: "bg-slate-900 text-yellow-400" },
+  errore: { label: "Generazione fallita", cls: "bg-red-50 text-red-700" },
+};
+
+// Blueprint del lead: si genera UNA volta (Claude, 1-2 minuti) e si salva.
+// Il PDF scaricato e quello inviato dopo la call sono lo stesso documento.
+function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScarica, pdfLoading, pdfError }) {
+  const stato = blueprint?.stato || "mancante";
+  const badge = BLUEPRINT_STATO[stato] || BLUEPRINT_STATO.mancante;
+  const pronto = stato === "pronto";
+  const inCorso = stato === "in_generazione" || busy;
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-2">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Blueprint · 16 pagine</h2>
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.cls}`}>
+          {inCorso && stato !== "in_generazione" ? BLUEPRINT_STATO.in_generazione.label : badge.label}
+        </span>
+      </div>
+      <p className="text-sm text-slate-600 leading-relaxed mb-4">
+        {pronto
+          ? `Generato il ${formatWhen(blueprint.generato_at) || "—"}. Scaricalo per la call: il cliente riceverà esattamente questo documento quando confermi di aver fatto la call.`
+          : inCorso
+            ? "Carlo sta scrivendo il Blueprint (1-2 minuti). La pagina si aggiorna da sola."
+            : "Generalo prima della call: ti serve per prepararti e per mostrarlo in videocall. Non viene inviato niente al cliente."}
+      </p>
+      {stato === "errore" && blueprint?.errore && (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4 break-words">
+          Motivo: {blueprint.errore}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        {pronto ? (
+          <>
+            <button
+              type="button"
+              onClick={onScarica}
+              disabled={pdfLoading}
+              className="px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-wait"
+            >
+              {pdfLoading ? "Preparo il PDF…" : "⬇ Scarica Blueprint PDF"}
+            </button>
+            <button
+              type="button"
+              onClick={onRigenera}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition disabled:opacity-50"
+            >
+              Rigenera
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onGenera}
+            disabled={inCorso}
+            className="px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-wait"
+          >
+            {inCorso ? "In preparazione…" : stato === "errore" ? "Riprova a generare" : "Genera Blueprint"}
+          </button>
+        )}
+      </div>
+      {pdfError && <p className="text-sm text-red-700 mt-3">{pdfError}</p>}
+      {message && <p className="text-sm text-slate-600 mt-3">{message}</p>}
+      {blueprint?.consegna_inviata_at && (
+        <p className="text-sm text-emerald-700 mt-3">✓ Inviato al cliente il {formatWhen(blueprint.consegna_inviata_at)}.</p>
+      )}
+      {blueprint?.consegna_errore && !blueprint?.consegna_inviata_at && (
+        <p className="text-sm text-red-700 mt-3 break-words">Ultimo invio fallito: {blueprint.consegna_errore}</p>
+      )}
+    </div>
+  );
+}
+
 function Field({ label, value }) {
   return (
     <div className="mb-2">
@@ -176,6 +262,9 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [askDeliver, setAskDeliver] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [bpBusy, setBpBusy] = useState(false);
+  const [bpMsg, setBpMsg] = useState(null);
+  const [askRigenera, setAskRigenera] = useState(false);
   const [bookingConfirming, setBookingConfirming] = useState(false);
   const [bookingMsg, setBookingMsg] = useState(null);
 
@@ -187,6 +276,43 @@ export function AdminLeadDetail({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [email, onAuthExpired]);
+
+  // Mentre il Blueprint è in preparazione ricarica la scheda ogni 10 secondi:
+  // la generazione finisce lato server anche se la richiesta originale si è chiusa.
+  const bpStato = data?.blueprint?.stato;
+  useEffect(() => {
+    if (bpStato !== "in_generazione" && !bpBusy) return undefined;
+    const t = setInterval(() => {
+      apiGet("/lead", { email: decodeURIComponent(email) }).then(setData).catch(() => {});
+    }, 10000);
+    return () => clearInterval(t);
+  }, [bpStato, bpBusy, email]);
+
+  async function generaBlueprint(force) {
+    setAskRigenera(false);
+    setBpBusy(true);
+    setBpMsg(null);
+    setData((d) => ({ ...d, blueprint: { ...(d?.blueprint || {}), stato: "in_generazione" } }));
+    try {
+      const response = await adminFetch("/api/ciak/client/admin/blueprint/genera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, force: Boolean(force) }),
+        timeoutMs: 300000,
+      });
+      if (!response.ok) throw new Error(await errorDetail(response));
+      const stato = await response.json();
+      setData((d) => ({ ...d, blueprint: stato }));
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      // Una connessione chiusa dal proxy non ferma la generazione: si continua
+      // a leggere lo stato reale dalla scheda.
+      else setBpMsg("La richiesta si è interrotta, ma la generazione può essere ancora in corso: controllo lo stato…");
+    } finally {
+      setBpBusy(false);
+      apiGet("/lead", { email: data.email }).then(setData).catch(() => {});
+    }
+  }
 
   // Consegna Blueprint GRATUITO: l'admin conferma di aver fatto la call di consegna.
   // Innesca account cliente + analisi Carlo via email col magic-link + sblocco offerte.
@@ -204,7 +330,9 @@ export function AdminLeadDetail({ onAuthExpired }) {
       if (!response.ok) throw new Error(await errorDetail(response));
       const r = await response.json();
       setDeliverResult(r);
-      setDeliverMsg("Fatto: Blueprint in consegna. Il cliente riceve l'email con l'analisi e il link d'accesso; le offerte sono sbloccate sulla sua sales page.");
+      setDeliverMsg(r.gia_inviato
+        ? "Il Blueprint era già stato inviato: nessuna nuova email."
+        : "Fatto: il cliente ha ricevuto l'email con il Blueprint e il link d'accesso; le offerte sono sbloccate sulla sua sales page.");
       const fresh = await apiGet("/lead", { email: data.email });
       setData(fresh);
     } catch (e) {
@@ -293,6 +421,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
       </h1>
       <p className="text-slate-500 mb-8">{data.email}</p>
 
+      {diagnostics.length > 0 && (
+        <BlueprintPanel
+          blueprint={data.blueprint}
+          busy={bpBusy}
+          message={bpMsg}
+          onGenera={() => generaBlueprint(false)}
+          onRigenera={() => setAskRigenera(true)}
+          onScarica={handleDownloadPdf}
+          pdfLoading={pdfLoading}
+          pdfError={pdfError}
+        />
+      )}
+
       {/* Consegna Blueprint GRATUITO — azione chiave post-call.
           Solo finché la call NON è già stata segnata come fatta: dopo call_done
           il bottone sparisce, così non si può ri-inviare (e, sui clienti consegnati
@@ -308,9 +449,14 @@ export function AdminLeadDetail({ onAuthExpired }) {
             d'accesso, e si sbloccano le offerte <strong className="text-white">Ciak Start</strong>{" "}
             e <strong className="text-white">Partnership</strong> sulla sua sales page.
           </p>
+          {data.blueprint?.stato !== "pronto" && (
+            <p className="text-yellow-400 text-sm mb-3">
+              Prima genera il Blueprint qui sopra: si invia al cliente solo quello salvato.
+            </p>
+          )}
           <button
             onClick={() => setAskDeliver(true)}
-            disabled={delivering}
+            disabled={delivering || data.blueprint?.stato !== "pronto"}
             className="px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
           >
             {delivering ? "Invio in corso…" : "Ho fatto la call di consegna → invia il Blueprint"}
@@ -453,20 +599,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
               {d.report?.report_markdown && (
                 <details className="mt-3">
                   <summary className="text-sm text-yellow-600 cursor-pointer font-medium">
-                    Report Carlo
-                    <button
-                      type="button"
-                      disabled={pdfLoading}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDownloadPdf();
-                      }}
-                      className="ml-3 inline-flex items-center gap-1 rounded-lg border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700 hover:bg-yellow-100 disabled:opacity-60 disabled:cursor-wait"
-                    >
-                      {pdfLoading ? "Genero il PDF… (fino a 2 min)" : "⬇ Scarica Blueprint PDF"}
-                    </button>
-                    {pdfError && <span className="ml-3 text-xs text-red-600">{pdfError}</span>}
+                    Report Carlo (interno)
                   </summary>
                   <pre className="mt-2 text-xs text-slate-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-4 leading-relaxed">
                     {d.report.report_markdown}
@@ -481,12 +614,23 @@ export function AdminLeadDetail({ onAuthExpired }) {
       <ConfirmDialog
         open={askDeliver}
         title={`Invia il Blueprint — ${data.email}`}
-        body="Conferma di aver fatto la call di consegna. Il cliente riceverà l'email con l'analisi (Blueprint) e il link d'accesso, e le offerte Ciak Start e Partnership diventano acquistabili sulla sua sales page."
+        body="Conferma di aver fatto la call di consegna. Il cliente riceverà l'email con il Blueprint che hai scaricato (lo stesso documento) e il link d'accesso, e le offerte Ciak Start e Partnership diventano acquistabili sulla sua sales page."
         confirmLabel="Invia il Blueprint"
         cancelLabel="Annulla"
         busy={delivering}
         onConfirm={confirmDeliverBlueprint}
         onCancel={() => setAskDeliver(false)}
+      />
+
+      <ConfirmDialog
+        open={askRigenera}
+        title="Rigenerare il Blueprint?"
+        body="Carlo scrive una nuova versione e sostituisce quella attuale: il testo cambia rispetto al PDF che hai già scaricato. Al cliente non viene inviato niente."
+        confirmLabel="Rigenera"
+        cancelLabel="Annulla"
+        busy={bpBusy}
+        onConfirm={() => generaBlueprint(true)}
+        onCancel={() => setAskRigenera(false)}
       />
     </div>
   );
