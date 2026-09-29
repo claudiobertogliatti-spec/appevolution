@@ -733,6 +733,97 @@ async def _cascade_delete_client(client_id: str, email_norm: str) -> dict[str, i
     return deleted
 
 
+class AnnullaStartRequest(BaseModel):
+    email: str = Field(..., description="Email del cliente: deve combaciare col record (salvaguardia)")
+
+
+@router.post("/clients/{client_id}/annulla-start-non-pagato")
+async def annulla_start_non_pagato(
+    client_id: str,
+    body: AnnullaStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Toglie un Ciak Start attivato per errore dal form admin, TENENDO il cliente.
+
+    Il cliente torna al livello Blueprint: il link d'accesso che ha già ricevuto
+    resta valido e apre la sales page con le due opzioni (Ciak Start / Partnership)
+    invece del percorso Start. Caso Francesco Donati, 29/9/2026.
+
+    Toglie: incassi Start con riferimento `admin:…`, livello Start e credito, il
+    ponte partner creato dall'attivazione (partners/users/journey/deliverable Start)
+    e le email di accesso Start. Tiene: scheda cliente, token di accesso, consegna
+    del Blueprint, finestra bonus 48h.
+
+    Rifiuta (409) se c'è un pagamento vero (Stripe o riferimento reale) o una
+    Partnership attiva.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_client_accounts import ACCESS_BLUEPRINT, ACCESS_START
+
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+    email_norm = (body.email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: operazione annullata")
+    if client.get("partnership_attiva") or client.get("access_level") == "partner":
+        raise HTTPException(409, "Il cliente è già partner: non si annulla lo Start da qui.")
+    if client.get("access_level") != ACCESS_START and not client.get("start_purchased_at"):
+        raise HTTPException(409, "Questo cliente non ha Ciak Start attivo.")
+
+    finti, veri, attivato_da = _riferimenti_start_admin(client)
+    if veri:
+        raise HTTPException(
+            409,
+            "Risulta un pagamento Start reale (" + ", ".join(veri)
+            + "): non lo annullo. Verifica su Stripe prima di procedere.",
+        )
+
+    tolti: dict[str, int] = {}
+    if finti:
+        tolti["payments"] = (await db.payments.delete_many(
+            {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+        )).deleted_count
+        tolti["payment_transactions"] = (await db.payment_transactions.delete_many(
+            {"session_id": {"$in": finti}, "tipo": "ciak_start"}
+        )).deleted_count
+    # Ponte partner creato dall'attivazione Start (start_partner_bridge): senza
+    # questo il cliente resterebbe un "partner tier start" per i motori.
+    tolti["partners"] = (await db.partners.delete_one({"id": client_id})).deleted_count
+    tolti["users"] = (await db.users.delete_many(
+        {"$or": [{"id": client_id}, {"partner_id": client_id}, {"ciak_client_id": client_id}]}
+    )).deleted_count
+    tolti["partner_journey_steps"] = (
+        await db.partner_journey_steps.delete_many({"partner_id": client_id})
+    ).deleted_count
+    tolti["ciak_start_deliverables"] = (
+        await db.ciak_start_deliverables.delete_many({"partner_id": client_id})
+    ).deleted_count
+    tolti["ciak_onboarding_emails"] = (
+        await db.ciak_onboarding_emails.delete_many({"client_id": client_id, "tier": "start"})
+    ).deleted_count
+
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    now = datetime.now(timezone.utc).isoformat()
+    events = [dict(e) for e in (client.get("events") or [])]
+    events.append({"event": "ciak_start_annullato_non_pagato", "timestamp": now, "by": actor,
+                   "riferimenti": finti})
+    await db.ciak_clients.update_one(
+        {"id": client_id},
+        {
+            "$set": {"access_level": ACCESS_BLUEPRINT, "start_credit_amount": 0,
+                     "events": events, "updated_at": now},
+            "$unset": {"start_purchased_at": "", "start_payments": "", "last_checkout_session_id": ""},
+        },
+    )
+    logger.info(
+        "[CIAK_ADMIN] Start non pagato annullato per %s da %s: %s (attivato da %s)",
+        email_norm, actor, tolti, attivato_da,
+    )
+    return {"ok": True, "client_id": client_id, "tolti": tolti, "start_attivato_da": attivato_da}
+
+
 class RiportaCallFattaRequest(BaseModel):
     email: str = Field(..., description="Email del lead (quella del questionario)")
 

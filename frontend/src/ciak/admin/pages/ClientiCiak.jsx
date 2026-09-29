@@ -275,6 +275,39 @@ export function ClientiCiak({ onAuthExpired }) {
     }
   }, [decisionLoading, onAuthExpired]);
 
+  // Toglie un Ciak Start attivato per errore dal form admin (mai uno pagato
+  // davvero: il backend rifiuta). Il cliente resta, col suo link d'accesso: al
+  // prossimo accesso vede la sales page con le due opzioni.
+  const [pendingAnnulla, setPendingAnnulla] = useState(null);
+  const [annullando, setAnnullando] = useState(false);
+  const confirmAnnulla = async () => {
+    const client = pendingAnnulla;
+    if (!client || annullando) return;
+    setAnnullando(true);
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/clients/${client.id}/annulla-start-non-pagato`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: client.email }) }
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch { /* testo semplice */ }
+        throw new Error(detail ? String(detail).slice(0, 200) : `Errore ${res.status}`);
+      }
+      const r = await res.json();
+      const chi = (r.start_attivato_da || []).join(", ");
+      setPendingAnnulla(null);
+      toast.success(`Ciak Start annullato per "${client.email}".${chi ? ` Era stato attivato da: ${chi}.` : ""}`);
+      loadItems({ silent: true });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message || "Errore nell'annullamento dello Start.");
+    } finally {
+      setAnnullando(false);
+    }
+  };
+
   // Elimina a cascata il cliente Ciak (account + ponte + journey + deliverable).
   // Backend: DELETE /api/admin/ciak/clients/{id}?email= — l'email deve combaciare
   // (salvaguardia anti-errore), i record finanziari non si toccano.
@@ -483,6 +516,17 @@ export function ClientiCiak({ onAuthExpired }) {
                       ) : (
                         <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
                       )}
+                      {row.accessLevel === "cliente_start" && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingAnnulla({ id: row.id, email: row.email, name: row.name })}
+                          disabled={!row.id}
+                          title="Toglie uno Start attivato per errore (non pagato). Il cliente resta e vede la sales page."
+                          className="mt-2 mr-3 inline-flex items-center gap-1 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Annulla Start non pagato
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setPendingDelete({ id: row.id, email: row.email, name: row.name })}
@@ -501,6 +545,18 @@ export function ClientiCiak({ onAuthExpired }) {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingAnnulla}
+        title={pendingAnnulla ? `Annulla Ciak Start di ${pendingAnnulla.name || pendingAnnulla.email}` : ""}
+        body="Da usare solo se lo Start NON è stato pagato. Toglie livello Start, credito, incasso registrato dal form admin e percorso Start. Il cliente resta con il suo link d'accesso e vede la sales page con Ciak Start e Partnership. Se risulta un pagamento vero l'operazione viene rifiutata."
+        confirmLabel="Annulla Start"
+        cancelLabel="Indietro"
+        destructive
+        busy={annullando}
+        onConfirm={confirmAnnulla}
+        onCancel={() => setPendingAnnulla(null)}
+      />
 
       <ConfirmDialog
         open={!!pendingDelete}
