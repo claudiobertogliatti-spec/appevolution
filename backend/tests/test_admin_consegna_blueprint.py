@@ -176,6 +176,32 @@ def test_consegna_endpoint_richiede_auth(admin_app):
     assert resp.status_code == 401
 
 
+def test_consegna_endpoint_non_avanza_stato_se_consegna_fallisce(admin_app):
+    """Se ensure_client_for_blueprint solleva, lo stato NON deve avanzare a
+    call_done: il lead resta visibile dove sta ora invece di finire in un
+    limbo (stato avanzato ma cliente mai creato). Regressione del caso reale
+    del 29/9 (lead Francesco Donati)."""
+    client, db = admin_app
+    with patch("services.ciak_client_accounts.ensure_client_for_blueprint",
+               AsyncMock(side_effect=RuntimeError("generazione fallita"))), \
+            patch("services.ciak_analisi_delivery.set_db", MagicMock()):
+        # TestClient (raise_server_exceptions=True di default) rilancia
+        # l'eccezione invece di tradurla in 500 — in produzione un ASGI server
+        # reale risponderebbe 500 al chiamante; qui verifichiamo che propaghi
+        # senza aver scritto nulla, non lo status code HTTP.
+        with pytest.raises(RuntimeError, match="generazione fallita"):
+            client.post(
+                "/api/ciak/client/admin/consegna-blueprint",
+                json={"session_token": "tok-consegna"},
+                headers={"X-Internal-Key": "internal-secret"},
+            )
+
+    # lo stato è rimasto quello di partenza (call_booked), non è mai stato
+    # scritto call_done — nessuna scrittura di stato è avvenuta
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
+    assert not db.diagnostic_sessions.replaced
+
+
 def test_consegna_endpoint_404_se_lead_inesistente(admin_app):
     client, _db = admin_app
     resp = client.post(
@@ -212,6 +238,25 @@ def test_blueprint_pdf_restituisce_pdf_senza_effetti_collaterali(admin_app):
     assert not db.diagnostic_sessions.replaced
     invio.assert_not_awaited()
     db.ciak_clients.update_one.assert_not_awaited()
+
+
+def test_blueprint_pdf_502_riporta_il_motivo_reale_nel_body(admin_app):
+    """Il 502 non deve essere muto: il frontend (AdminLeadDetail.jsx via
+    errorDetail()) legge `detail` dal body per mostrare il motivo vero
+    all'admin invece di un generico "Errore 502". Regressione del caso reale
+    del 29/9 (lead Francesco Donati): senza questo, nessuno sa cosa e'
+    fallito davvero senza i log del backend."""
+    client, _db = admin_app
+    with patch("services.ciak_analisi.set_db", MagicMock()), \
+            patch("services.ciak_analisi.genera_blueprint",
+                  AsyncMock(side_effect=RuntimeError("sezioni mancanti: ['mercato']"))):
+        resp = client.get(
+            "/api/ciak/client/admin/blueprint-pdf",
+            params={"email": "lead@ciak.it"},
+            headers={"X-Internal-Key": "internal-secret"},
+        )
+    assert resp.status_code == 502
+    assert "sezioni mancanti" in resp.json()["detail"]
 
 
 def test_blueprint_pdf_richiede_auth(admin_app):

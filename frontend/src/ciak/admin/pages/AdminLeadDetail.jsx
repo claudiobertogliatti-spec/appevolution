@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiGet, adminFetch } from "../api";
+import { apiGet, adminFetch, errorDetail } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -84,7 +84,7 @@ async function downloadBlueprintPdf(email) {
     `/api/ciak/client/admin/blueprint-pdf?email=${encodeURIComponent(email)}`,
     { timeoutMs: 180000 }
   );
-  if (!res.ok) throw new Error(`Errore ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -201,7 +201,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.email }),
       });
-      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      if (!response.ok) throw new Error(await errorDetail(response));
       const r = await response.json();
       setDeliverResult(r);
       setDeliverMsg("Fatto: Blueprint in consegna. Il cliente riceve l'email con l'analisi e il link d'accesso; le offerte sono sbloccate sulla sua sales page.");
@@ -228,7 +228,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.email }),
       });
-      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      if (!response.ok) throw new Error(await errorDetail(response));
       setBookingMsg("Call fissata confermata.");
       const fresh = await apiGet("/lead", { email: data.email });
       setData(fresh);
@@ -265,7 +265,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
           diagnostic_session_id: latest_diagnostic?.id || latest_diagnostic?._id || null,
         }),
       });
-      if (!response.ok) throw new Error(`Errore ${response.status}`);
+      if (!response.ok) throw new Error(await errorDetail(response));
       setProposal(await response.json());
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
