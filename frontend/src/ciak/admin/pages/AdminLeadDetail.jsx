@@ -167,6 +167,7 @@ const BLUEPRINT_STATO = {
   in_generazione: { label: "In preparazione…", cls: "bg-yellow-100 text-yellow-800" },
   pronto: { label: "Pronto", cls: "bg-slate-900 text-yellow-400" },
   errore: { label: "Generazione fallita", cls: "bg-red-50 text-red-700" },
+  inviato_prima: { label: "Già inviato", cls: "bg-emerald-50 text-emerald-700" },
 };
 
 // Blueprint del lead: si genera UNA volta (Claude, 1-2 minuti) e si salva.
@@ -176,6 +177,42 @@ function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScar
   const badge = BLUEPRINT_STATO[stato] || BLUEPRINT_STATO.mancante;
   const pronto = stato === "pronto";
   const inCorso = stato === "in_generazione" || busy;
+  // Inviato con il flusso precedente (prima del Blueprint salvato): il cliente
+  // l'ha già ricevuto, qui si mostra solo il documento spedito.
+  if (stato === "inviato_prima" && !busy) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Blueprint · 16 pagine</h2>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+        </div>
+        <p className="text-sm text-slate-600 leading-relaxed mb-4">
+          Il cliente ha ricevuto il Blueprint il {formatWhen(blueprint.consegna_inviata_at) || "—"}, prima che il
+          Blueprint venisse salvato in Ciak. Qui sotto trovi il PDF che gli è stato inviato.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          {blueprint.pdf_url && (
+            <a
+              href={blueprint.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-sm font-semibold hover:bg-slate-800 transition"
+            >
+              Apri il PDF inviato
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={onGenera}
+            className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-slate-400 transition"
+          >
+            Genera una copia salvata
+          </button>
+        </div>
+        {message && <p className="text-sm text-slate-600 mt-3">{message}</p>}
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
       <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -407,6 +444,10 @@ export function AdminLeadDetail({ onAuthExpired }) {
   if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
 
   const { lead, diagnostics, latest_diagnostic, qualified_for_proposta } = data;
+  const callFatta = latest_diagnostic?.current_state === "call_done";
+  const blueprintInviato = Boolean(
+    data.blueprint?.consegna_inviata_at || data.blueprint?.stato === "inviato_prima"
+  );
 
   return (
     <div className="p-10 max-w-4xl">
@@ -434,14 +475,14 @@ export function AdminLeadDetail({ onAuthExpired }) {
         />
       )}
 
-      {/* Consegna Blueprint GRATUITO — azione chiave post-call.
-          Solo finché la call NON è già stata segnata come fatta: dopo call_done
-          il bottone sparisce, così non si può ri-inviare (e, sui clienti consegnati
-          a mano, non si sovrascrive il PDF con un'analisi Carlo su dati vuoti). */}
-      {diagnostics.length > 0 && latest_diagnostic?.current_state !== "call_done" && (
+      {/* Consegna Blueprint GRATUITO — sempre manuale, dopo la call.
+          Visibile finché NON risulta un invio registrato (non basta lo stato
+          "call fatta": un lead può essere a call_done senza aver mai ricevuto
+          l'email). Dopo l'invio resta solo il riepilogo verde. */}
+      {diagnostics.length > 0 && (!blueprintInviato || deliverResult) && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
-            Dopo la call di consegna
+            {callFatta && !blueprintInviato ? "Call fatta · Blueprint non ancora inviato" : "Dopo la call di consegna"}
           </p>
           <p className="text-slate-300 text-sm mb-4 leading-relaxed">
             Quando hai fatto la call, conferma qui: il cliente riceve l'email col{" "}
@@ -454,13 +495,19 @@ export function AdminLeadDetail({ onAuthExpired }) {
               Prima genera il Blueprint qui sopra: si invia al cliente solo quello salvato.
             </p>
           )}
-          <button
-            onClick={() => setAskDeliver(true)}
-            disabled={delivering || data.blueprint?.stato !== "pronto"}
-            className="px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
-          >
-            {delivering ? "Invio in corso…" : "Ho fatto la call di consegna → invia il Blueprint"}
-          </button>
+          {!blueprintInviato && (
+            <button
+              onClick={() => setAskDeliver(true)}
+              disabled={delivering || data.blueprint?.stato !== "pronto"}
+              className="px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
+            >
+              {delivering
+                ? "Invio in corso…"
+                : callFatta
+                  ? "Invia il Blueprint al cliente"
+                  : "Ho fatto la call di consegna → invia il Blueprint"}
+            </button>
+          )}
           {deliverMsg && <p className="text-sm text-slate-200 mt-4 leading-relaxed">{deliverMsg}</p>}
           {deliverResult?.magic_link && (
             <div className="mt-4 rounded-xl border border-slate-700 p-4">
@@ -480,11 +527,11 @@ export function AdminLeadDetail({ onAuthExpired }) {
         </div>
       )}
 
-      {/* Blueprint già consegnato: call_done. Niente bottone (evita re-invii). */}
-      {diagnostics.length > 0 && latest_diagnostic?.current_state === "call_done" && (
+      {/* Blueprint inviato: solo se l'invio è registrato davvero. */}
+      {diagnostics.length > 0 && blueprintInviato && !deliverResult && (
         <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6 text-sm text-emerald-800">
           <span className="text-base" aria-hidden="true">✓</span>
-          Blueprint consegnato: il cliente ha ricevuto la mail e ha l'accesso alla sales page. Offerte sbloccate.
+          Blueprint inviato al cliente il {formatWhen(data.blueprint?.consegna_inviata_at) || "—"} con il link d'accesso alla sales page.
         </div>
       )}
 

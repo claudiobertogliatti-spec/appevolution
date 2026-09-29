@@ -1423,6 +1423,15 @@ async def ciak_lead_detail(
     blueprint = ciak_blueprint_store.stato_pubblico(
         await ciak_blueprint_store.leggi(db, session_token) if session_token else None
     )
+    # Consegne fatte prima del Blueprint salvato (#230): non c'è un documento in
+    # ciak_blueprints, ma l'invio è registrato su ciak_analisi. Senza questo la
+    # scheda diceva "Da generare" a chi il Blueprint l'aveva già ricevuto.
+    if blueprint.get("stato") == "mancante" and (analysis or {}).get("bozza_inviata_at"):
+        blueprint = {
+            "stato": "inviato_prima",
+            "consegna_inviata_at": analysis["bozza_inviata_at"],
+            "pdf_url": ((analysis.get("bozza") or {}).get("pdf_url")),
+        }
 
     return {
         "email": email,
