@@ -19,6 +19,7 @@ const LEAD = {
   checkpoints: [],
   latest_diagnostic: null,
   qualified_for_proposta: false,
+  blueprint: { stato: "pronto", generato_at: "2026-09-29T10:00:00+00:00" },
 };
 
 beforeEach(() => {
@@ -58,4 +59,33 @@ test("a call_done il bottone di consegna sparisce e mostra 'Blueprint consegnato
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   expect(await screen.findByText(/Blueprint consegnato/i)).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Ho fatto la call di consegna/i })).toBeNull();
+});
+
+test("senza Blueprint pronto l'invio al cliente è bloccato", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  const trigger = await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
+  expect(trigger.disabled).toBe(true);
+  expect(screen.getByText(/Prima genera il Blueprint/i)).toBeTruthy();
+});
+
+test('"Genera Blueprint" chiama solo la generazione, nessun invio al cliente', async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
+  adminFetch.mockResolvedValue({ ok: true, json: async () => ({ stato: "pronto" }) });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Genera Blueprint" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/ciak/client/admin/blueprint/genera",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it", force: false }) })
+    )
+  );
+  expect(adminFetch).not.toHaveBeenCalledWith("/api/ciak/client/admin/consegna-blueprint", expect.anything());
+});
+
+test("errore di generazione: il motivo reale è visibile", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "errore", errore: "Anthropic API error: credit balance too low" } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/credit balance too low/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Riprova a generare" })).toBeTruthy();
 });

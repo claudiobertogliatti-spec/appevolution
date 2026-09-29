@@ -58,25 +58,14 @@ async def test_bozza_e_script(monkeypatch):
 @pytest.mark.asyncio
 async def test_genera_e_salva_idempotente(monkeypatch):
     from services import ciak_analisi
+    from tests._fake_mongo import FakeDb
 
-    store = {}
-
-    class FakeColl:
-        async def find_one(self, q): return store.get(q["session_token"])
-        async def replace_one(self, q, doc, upsert=False): store[q["session_token"]] = doc
-
-    class FakeDiag:
-        @staticmethod
-        async def find_one(q):
-            return {"session_token": "tok1", "user_email": "a@b.it",
-                    "responses": {"q1_competenza": "shiatsu", "q5_target": "No", "q6_problema": "dolore"},
-                    "scoring": {"stato_finale": 3}}
-
-    class FakeDB:
-        ciak_analisi = FakeColl()
-        diagnostic_sessions = FakeDiag()
-
-    ciak_analisi.set_db(FakeDB())
+    db = FakeDb(diagnostic_sessions=[{
+        "session_token": "tok1", "user_email": "a@b.it",
+        "responses": {"q1_competenza": "shiatsu", "q5_target": "No", "q6_problema": "dolore"},
+        "scoring": {"stato_finale": 3},
+    }])
+    ciak_analisi.set_db(db)
     monkeypatch.setattr(ciak_analisi, "genera_research_brief", lambda r: _async({"settore": "shiatsu"}))
     monkeypatch.setattr(ciak_analisi, "genera_analisi_definitiva", lambda r, b: _async({"capitoli": {}}))
     monkeypatch.setattr(ciak_analisi, "genera_bozza", lambda d: _async({"intro": "x"}))
@@ -84,10 +73,38 @@ async def test_genera_e_salva_idempotente(monkeypatch):
 
     res1 = await ciak_analisi.genera_e_salva("tok1")
     assert res1["stato"] == "da_validare"
-    assert store["tok1"]["analisi_definitiva"] == {"capitoli": {}}
+    assert db.ciak_analisi.docs[0]["analisi_definitiva"] == {"capitoli": {}}
     # idempotenza: seconda chiamata non rigenera
     res2 = await ciak_analisi.genera_e_salva("tok1")
     assert res2["already_exists"] is True
+
+
+@pytest.mark.asyncio
+async def test_genera_e_salva_non_cancella_l_esito_della_consegna(monkeypatch):
+    """La consegna Blueprint scrive bozza_inviata_at/pdf_url su ciak_analisi PRIMA
+    che l'analisi a 6 capitoli venga generata: la generazione non deve cancellarli
+    né scambiare quel documento per un'analisi già fatta."""
+    from services import ciak_analisi
+    from tests._fake_mongo import FakeDb
+
+    db = FakeDb(
+        diagnostic_sessions=[{"session_token": "tok2", "user_email": "a@b.it",
+                              "responses": {}, "scoring": {"stato_finale": 3}}],
+        ciak_analisi=[{"session_token": "tok2", "bozza_inviata_at": "2026-09-29T11:00:00+00:00",
+                       "bozza": {"pdf_url": "https://cdn/bp.pdf"}}],
+    )
+    ciak_analisi.set_db(db)
+    monkeypatch.setattr(ciak_analisi, "genera_research_brief", lambda r: _async({"settore": "x"}))
+    monkeypatch.setattr(ciak_analisi, "genera_analisi_definitiva", lambda r, b: _async({"capitoli": {"a": 1}}))
+    monkeypatch.setattr(ciak_analisi, "genera_bozza", lambda d: _async({"intro": "x"}))
+    monkeypatch.setattr(ciak_analisi, "genera_script_call", lambda r, d, stato: _async({"agganci": []}))
+
+    res = await ciak_analisi.genera_e_salva("tok2")
+    assert res["already_exists"] is False
+    doc = db.ciak_analisi.docs[0]
+    assert doc["bozza_inviata_at"] == "2026-09-29T11:00:00+00:00"
+    assert doc["bozza"]["pdf_url"] == "https://cdn/bp.pdf"
+    assert doc["analisi_definitiva"] == {"capitoli": {"a": 1}}
 
 
 def test_router_exists():

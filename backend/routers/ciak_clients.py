@@ -6,7 +6,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response
+import re
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
@@ -77,6 +79,29 @@ class ConsegnaBlueprintRequest(BaseModel):
     session_token: str | None = None
     email: str | None = None
     client_id: str | None = None
+
+
+class GeneraBlueprintRequest(BaseModel):
+    """Lead di cui generare il Blueprint (`session_token` > `email`).
+    `force=True` = "Rigenera": nuova versione anche se ce n'è già una pronta."""
+    session_token: str | None = None
+    email: str | None = None
+    force: bool = False
+
+
+async def _find_diagnostic(session_token: str | None, email: str | None) -> dict[str, Any] | None:
+    """Ultima diagnostic_session del lead. L'email si confronta senza
+    maiuscole/minuscole: user_email è salvata come l'ha digitata il lead."""
+    if session_token:
+        doc = await db.diagnostic_sessions.find_one({"session_token": session_token})
+        if doc:
+            return doc
+    if email:
+        pattern = {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}
+        docs = await db.diagnostic_sessions.find({"user_email": pattern}).sort("created_at", -1).limit(1).to_list(length=1)
+        if docs:
+            return docs[0]
+    return None
 
 
 def _now_iso() -> str:
@@ -539,36 +564,31 @@ async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
     return {"items": docs}
 
 
-async def _deliver_blueprint(
-    diagnostic: dict[str, Any], background_tasks: BackgroundTasks
-) -> dict[str, Any]:
+async def _deliver_blueprint(diagnostic: dict[str, Any]) -> dict[str, Any]:
     """Consegna del Blueprint GRATUITO, innescata dall'admin a fine call.
 
-    Crea/aggiorna l'account cliente + magic-link e avvia in background la
-    generazione + consegna dell'analisi Carlo (il "blueprint"). Idempotente
-    (`ensure_client_for_blueprint` fa upsert per email; `processa_acquisto` salta
-    se l'analisi e' gia' stata inviata). Il magic-link e' secondario: se fallisce,
-    l'analisi parte comunque. Ritorna un riepilogo per la UI admin.
+    1. Account cliente + magic-link (idempotente: upsert per email).
+    2. Invio del Blueprint SALVATO — lo stesso PDF scaricato per la call — con il
+       magic-link nella mail. Tutto dentro la richiesta: se qualcosa fallisce
+       l'admin vede il motivo reale (niente lavori in background che muoiono
+       in silenzio, niente documento sostitutivo).
+    3. Solo a invio riuscito parte la finestra bonus 48h: il promemoria "la guida
+       scade" non deve arrivare a chi il Blueprint non l'ha ricevuto.
     """
+    from services import ciak_analisi_delivery, ciak_blueprint_store
     from services.ciak_client_accounts import (
         create_magic_login_token,
         ensure_client_for_blueprint,
     )
 
-    client = await ensure_client_for_blueprint(db, diagnostic)
-
-    # Finestra bonus 48h (guida videocorso in omaggio con Ciak Start): ancorata
-    # alla PRIMA consegna del Blueprint e mai resettata (il filtro esclude i doc
-    # dove e' gia' valorizzata). Onesta': la scadenza e' reale, il countdown la usa.
-    if not client.get("bonus_expires_at"):
-        _bonus_expires = (
-            datetime.now(timezone.utc) + timedelta(hours=BONUS_GUIDA_WINDOW_HOURS)
-        ).isoformat()
-        await db.ciak_clients.update_one(
-            {"id": client["id"], "bonus_expires_at": {"$in": [None, ""]}},
-            {"$set": {"bonus_expires_at": _bonus_expires, "blueprint_delivered_at": _now_iso()}},
+    session_token = diagnostic.get("session_token")
+    blueprint = await ciak_blueprint_store.leggi(db, session_token)
+    if not blueprint or blueprint.get("stato") != ciak_blueprint_store.STATO_PRONTO:
+        raise ciak_blueprint_store.BlueprintNonPronto(
+            ciak_blueprint_store._motivo_non_pronto(blueprint)
         )
-        client["bonus_expires_at"] = _bonus_expires
+
+    client = await ensure_client_for_blueprint(db, diagnostic)
 
     magic_link = None
     try:
@@ -587,50 +607,56 @@ async def _deliver_blueprint(
     except Exception as exc:
         logger.error("[CONSEGNA_BLUEPRINT] magic-link fallito: %s", exc)
 
-    # Analisi Carlo (blueprint): genera + consegna in background. Idempotente e
-    # non solleva (processa_acquisto logga e ritorna lo stato).
-    from services import ciak_analisi_delivery
-
     ciak_analisi_delivery.set_db(db)
-    background_tasks.add_task(
-        ciak_analisi_delivery.processa_acquisto,
-        session_token=diagnostic.get("session_token"),
-        email=client.get("email") or diagnostic.get("user_email"),
+    esito = await ciak_analisi_delivery.consegna_blueprint(
+        session_token=session_token,
+        email=client.get("email") or (diagnostic.get("user_email") or "").strip().lower(),
         nome=diagnostic.get("user_name") or client.get("name"),
         access_link=magic_link,
     )
+
+    # Finestra bonus 48h (guida videocorso in omaggio con Ciak Start): ancorata
+    # alla PRIMA consegna riuscita e mai resettata (il filtro esclude i doc dove
+    # e' gia' valorizzata). Onesta': la scadenza e' reale, il countdown la usa.
+    if not client.get("bonus_expires_at"):
+        _bonus_expires = (
+            datetime.now(timezone.utc) + timedelta(hours=BONUS_GUIDA_WINDOW_HOURS)
+        ).isoformat()
+        await db.ciak_clients.update_one(
+            {"id": client["id"], "bonus_expires_at": {"$in": [None, ""]}},
+            {"$set": {"bonus_expires_at": _bonus_expires, "blueprint_delivered_at": _now_iso()}},
+        )
+        client["bonus_expires_at"] = _bonus_expires
+
     return {
         "client_id": client.get("id"),
         "email": client.get("email"),
         "magic_link": magic_link,
+        "blueprint_inviato": bool(esito.get("sent")),
+        "gia_inviato": esito.get("skipped") == "gia_inviata",
     }
 
 
 @router.post("/admin/consegna-blueprint")
 async def consegna_blueprint(
     body: ConsegnaBlueprintRequest,
-    background_tasks: BackgroundTasks,
     auth=Depends(require_admin_or_internal),
 ):
     """L'admin conferma di aver fatto la call di consegna.
 
-    Porta il lead a `call_done`, crea l'account cliente, invia il Blueprint
-    (analisi Carlo) via email col magic-link e sblocca le offerte (Ciak Start /
-    Partnership). Sostituisce il vecchio automatismo sul webhook Cal.com: il via
-    lo da' l'admin, non l'evento MEETING_ENDED.
+    Invia il Blueprint salvato (lo stesso mostrato in call) via email col
+    magic-link, crea l'account cliente, sblocca le offerte (Ciak Start /
+    Partnership) e solo allora porta il lead a `call_done`. Il via lo da'
+    l'admin, non l'evento MEETING_ENDED di Cal.com.
+
+    409 se il Blueprint non è ancora stato generato, 502 se l'invio fallisce:
+    in entrambi i casi lo stato del lead non cambia.
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
 
     # 1. Trova la diagnostic session del lead (session_token > email > client_id).
-    diagnostic = None
-    if body.session_token:
-        diagnostic = await db.diagnostic_sessions.find_one({"session_token": body.session_token})
-    if diagnostic is None and body.email:
-        normalized = body.email.strip().lower()
-        cursor = db.diagnostic_sessions.find({"user_email": normalized}).sort("created_at", -1).limit(1)
-        docs = await cursor.to_list(length=1)
-        diagnostic = docs[0] if docs else None
+    diagnostic = await _find_diagnostic(body.session_token, body.email)
     if diagnostic is None and body.client_id:
         client_doc = await db.ciak_clients.find_one({"id": body.client_id})
         token = (client_doc or {}).get("session_token") or (client_doc or {}).get("diagnostic_session_token")
@@ -643,14 +669,16 @@ async def consegna_blueprint(
         )
 
     # 2. Consegna Blueprint + sblocco offerte — PRIMA di toccare lo stato: se
-    # `ensure_client_for_blueprint` solleva (es. generazione fallita), il lead
-    # deve restare esattamente dove sta ora (visibile in "Report/Blueprint
-    # generato"), non finire in un limbo con lo stato già avanzato a call_done
-    # ma senza un cliente completo. Ordine invertito il 29/9 dopo un caso reale
-    # in cui l'ordine originale (stato→call_done, poi consegna) ha lasciato un
-    # lead a metà: stato avanzato, cliente creato ma incompleto (nessuna
-    # analisi), perché la generazione a valle era fallita dopo lo scritto stato.
-    summary = await _deliver_blueprint(diagnostic, background_tasks)
+    # l'invio fallisce il lead resta esattamente dove sta ora, mai "call fatta"
+    # con un Blueprint che il cliente non ha ricevuto.
+    from services import ciak_analisi_delivery, ciak_blueprint_store
+
+    try:
+        summary = await _deliver_blueprint(diagnostic)
+    except ciak_blueprint_store.BlueprintNonPronto as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ciak_analisi_delivery.ConsegnaFallita as exc:
+        raise HTTPException(status_code=502, detail=f"Blueprint non consegnato: {exc}")
 
     # 3. Solo a consegna riuscita: attesta la call completata (idempotente).
     if diagnostic.get("current_state") != STATE_CALL_DONE:
@@ -660,8 +688,67 @@ async def consegna_blueprint(
             event_metadata={"confirmed_by": auth.get("actor"), "source": "admin_consegna"},
         )
         await db.diagnostic_sessions.replace_one({"_id": diagnostic["_id"]}, diagnostic)
+        # Stesso segnale a Systeme del percorso Cal.com (MEETING_ENDED).
+        user_email = diagnostic.get("user_email")
+        if user_email:
+            from services.ciak_systeme import ciak_emit_event, fire_and_forget
+            fire_and_forget(ciak_emit_event(
+                email=user_email,
+                event_name="ciak_call_done",
+                first_name=diagnostic.get("user_name"),
+                metadata={"source": "admin_consegna", "session_token": diagnostic.get("session_token")},
+            ))
+
+    # 4. Analisi a 6 capitoli per area cliente / pagina Insider (best-effort,
+    # dopo l'invio: se fallisce il cliente ha comunque il suo Blueprint).
+    await ciak_analisi_delivery.completa_analisi_cliente(diagnostic.get("session_token"))
 
     return {"success": True, **summary}
+
+
+@router.post("/admin/blueprint/genera")
+async def blueprint_genera(
+    body: GeneraBlueprintRequest,
+    auth=Depends(require_admin_or_internal),
+):
+    """Genera (con Claude) e SALVA il Blueprint del lead. Nessun effetto sul
+    cliente: non invia email, non cambia lo stato del lead.
+
+    Dura 1-2 minuti e gira dentro questa richiesta (async: il server resta
+    libero). Se il proxy chiude prima la connessione, la generazione finisce
+    comunque e lo stato si ritrova con GET /admin/blueprint/stato.
+    Idempotente; `force=true` rigenera una nuova versione.
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = await _find_diagnostic(body.session_token, body.email)
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+    from services import ciak_blueprint_store
+
+    return await ciak_blueprint_store.genera(
+        db, diagnostic["session_token"], email=diagnostic.get("user_email"), force=body.force
+    )
+
+
+@router.get("/admin/blueprint/stato")
+async def blueprint_stato(
+    email: str | None = None,
+    session_token: str | None = None,
+    auth=Depends(require_admin_or_internal),
+):
+    """Stato del Blueprint del lead: mancante / in_generazione / pronto / errore
+    (con il motivo), più l'esito della consegna."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    diagnostic = await _find_diagnostic(session_token, email)
+    if diagnostic is None:
+        raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
+    from services import ciak_blueprint_store
+
+    return ciak_blueprint_store.stato_pubblico(
+        await ciak_blueprint_store.leggi(db, diagnostic["session_token"])
+    )
 
 
 @router.get("/admin/blueprint-pdf")
@@ -670,38 +757,27 @@ async def blueprint_pdf_preview(
     session_token: str | None = None,
     auth=Depends(require_admin_or_internal),
 ):
-    """PDF del Blueprint (template lockato 13+CTA) per uso interno dell'admin.
+    """PDF del Blueprint SALVATO (template lockato: 2 copertine + 14 pagine).
 
-    Stessa pipeline della consegna (`ciak_analisi.genera_blueprint` +
-    `ciak_pdf_blueprint.genera_blueprint_pdf`) ma SENZA effetti collaterali: non
-    invia email, non porta il lead a `call_done`, non crea l'account cliente, non
-    avvia il bonus 48h. Serve a preparare/portare il Blueprint alla call. Il testo
-    viene rigenerato ad ogni richiesta: puo' differire nella forma da quello
-    consegnato a fine call.
+    Nessuna chiamata AI e nessun effetto collaterale: impagina il contenuto
+    generato con POST /admin/blueprint/genera. È lo stesso documento che il
+    cliente riceve alla consegna. 409 se il Blueprint non è ancora pronto.
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
-    diagnostic = None
-    if session_token:
-        diagnostic = await db.diagnostic_sessions.find_one({"session_token": session_token})
-    if diagnostic is None and email:
-        cursor = db.diagnostic_sessions.find(
-            {"user_email": email.strip().lower()}
-        ).sort("created_at", -1).limit(1)
-        docs = await cursor.to_list(length=1)
-        diagnostic = docs[0] if docs else None
+    diagnostic = await _find_diagnostic(session_token, email)
     if diagnostic is None:
         raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
 
-    from services import ciak_analisi, ciak_pdf_blueprint
+    from services import ciak_blueprint_store
 
-    ciak_analisi.set_db(db)
     try:
-        payload = await ciak_analisi.genera_blueprint(diagnostic["session_token"])
-        pdf = await ciak_pdf_blueprint.genera_blueprint_pdf(payload)
+        pdf = await ciak_blueprint_store.pdf(db, diagnostic["session_token"])
+    except ciak_blueprint_store.BlueprintNonPronto as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     except Exception as exc:
-        logger.error("[BLUEPRINT_PDF] generazione fallita per %s: %s", diagnostic.get("session_token"), exc)
-        raise HTTPException(status_code=502, detail=f"Generazione Blueprint fallita: {exc}")
+        logger.error("[BLUEPRINT_PDF] impaginazione fallita per %s: %s", diagnostic.get("session_token"), exc)
+        raise HTTPException(status_code=502, detail=f"Impaginazione Blueprint fallita: {exc}")
     return Response(content=pdf, media_type="application/pdf")
 
 

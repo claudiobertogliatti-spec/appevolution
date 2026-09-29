@@ -1,15 +1,15 @@
 """
-Unit test: consegna del Blueprint GRATUITO innescata dall'admin.
+Unit test: Blueprint salvato + consegna innescata dall'admin.
 
-Nel modello gratuito il lead fa le 8 domande + la call; poi e' l'ADMIN a confermare
-di aver fatto la call di consegna (POST /api/ciak/client/admin/consegna-blueprint).
-Quella conferma — non il webhook Cal.com — crea/aggiorna l'account cliente, avvia in
-background la generazione + consegna dell'analisi Carlo (il "blueprint") col magic-link
-e porta il lead a `call_done`, sbloccando le offerte.
+Flusso (29/9/2026):
+  1. POST /admin/blueprint/genera  → Claude genera il contenuto UNA volta, salvato.
+  2. GET  /admin/blueprint-pdf     → impagina quel contenuto (template lockato),
+                                     nessuna chiamata AI, nessun effetto.
+  3. POST /admin/consegna-blueprint → invia QUEL PDF al cliente, crea l'account,
+                                     poi (solo se l'invio riesce) porta a call_done.
 
-Tutte le dipendenze (ciak_clients, magic-link, delivery) sono mockate: gira in CI.
+Mongo, Claude, impaginazione, SMTP e magic-link sono finti: gira in CI.
 """
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,259 +17,267 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import routers.ciak_clients as cc
+from tests._fake_mongo import FakeDb
 
 pytestmark = pytest.mark.unit
 
-
-class _BG:
-    """Fake BackgroundTasks: registra i task schedulati."""
-
-    def __init__(self):
-        self.tasks = []
-
-    def add_task(self, func, **kwargs):
-        self.tasks.append((func, kwargs))
+_HEADERS = {"X-Internal-Key": "internal-secret"}
+_PAYLOAD = {"meta": {"nome": "Lead Test"}, "sezioni": {"sintesi": {"title": "x"}}}
 
 
-def _fake_db():
-    db = MagicMock()
-    db.ciak_clients.update_one = AsyncMock()
+def _db(state="call_booked", blueprint=None):
+    db = FakeDb(
+        diagnostic_sessions=[{
+            "_id": "oid-1", "session_token": "tok-consegna",
+            "user_email": "Lead@Ciak.it", "user_name": "Lead Test",
+            "current_state": state, "created_at": "2026-09-29T09:00:00+00:00",
+        }],
+        ciak_blueprints=[blueprint] if blueprint else [],
+        # l'account che ensure_client_for_blueprint (finto) "crea"
+        ciak_clients=[{"id": "c1", "email": "lead@ciak.it"}],
+    )
     return db
 
 
-_DIAG = {
-    "session_token": "tok-consegna",
-    "user_email": "lead@ciak.it",
-    "user_name": "Lead Test",
-    "current_state": "call_done",
-}
-
-
-# ─── Helper _deliver_blueprint ───────────────────────────────────────
-
-@pytest.mark.asyncio
-async def test_deliver_crea_account_e_avvia_analisi(monkeypatch):
-    monkeypatch.setattr(cc, "db", _fake_db())
-    bg = _BG()
-    with patch("services.ciak_client_accounts.ensure_client_for_blueprint",
-               AsyncMock(return_value={"id": "c1", "email": "lead@ciak.it", "name": "Lead Test"})) as ensure, \
-            patch("services.ciak_client_accounts.create_magic_login_token",
-                  AsyncMock(return_value={"token": "tk", "expires_at": "2026-12-31"})), \
-            patch("services.ciak_analisi_delivery.set_db", MagicMock()):
-        summary = await cc._deliver_blueprint(dict(_DIAG), bg)
-
-    ensure.assert_awaited_once()
-    # l'analisi Carlo (processa_acquisto) e' stata schedulata per il session_token giusto
-    assert len(bg.tasks) == 1
-    func, kwargs = bg.tasks[0]
-    assert getattr(func, "__name__", "") == "processa_acquisto"
-    assert kwargs["session_token"] == "tok-consegna"
-    assert kwargs["email"] == "lead@ciak.it"
-    # il magic-link viene passato all'invio email (link d'accesso nel corpo)
-    assert "token=tk" in (kwargs.get("access_link") or "")
-    # magic-link persistito sul cliente e restituito nel riepilogo
-    cc.db.ciak_clients.update_one.assert_awaited()
-    assert summary["client_id"] == "c1"
-    assert summary["magic_link"] and "token=tk" in summary["magic_link"]
-
-
-@pytest.mark.asyncio
-async def test_deliver_avvia_analisi_anche_se_magic_link_fallisce(monkeypatch):
-    """Il magic-link e' secondario: se fallisce, l'analisi Carlo parte comunque."""
-    monkeypatch.setattr(cc, "db", _fake_db())
-    bg = _BG()
-    with patch("services.ciak_client_accounts.ensure_client_for_blueprint",
-               AsyncMock(return_value={"id": "c1", "email": "lead@ciak.it", "name": "Lead Test"})), \
-            patch("services.ciak_client_accounts.create_magic_login_token",
-                  AsyncMock(side_effect=RuntimeError("token svc down"))), \
-            patch("services.ciak_analisi_delivery.set_db", MagicMock()):
-        summary = await cc._deliver_blueprint(dict(_DIAG), bg)
-    assert len(bg.tasks) == 1
-    assert bg.tasks[0][1]["session_token"] == "tok-consegna"
-    assert summary["magic_link"] is None
-
-
-# ─── Endpoint admin /admin/consegna-blueprint ────────────────────────
-
-class _FakeDiagnostics:
-    def __init__(self, docs):
-        self.docs = docs
-        self.replaced = []
-
-    async def find_one(self, query):
-        for d in self.docs:
-            if all(d.get(k) == v for k, v in query.items()):
-                return d
-        return None
-
-    def find(self, query):
-        matches = [d for d in self.docs if all(d.get(k) == v for k, v in query.items())]
-
-        class _Cursor:
-            def sort(self, *_a, **_k):
-                return self
-
-            def limit(self, _n):
-                return self
-
-            async def to_list(self, length=None):
-                return matches
-
-        return _Cursor()
-
-    async def replace_one(self, flt, doc):
-        self.replaced.append(doc)
-        return SimpleNamespace(matched_count=1, modified_count=1)
-
-
-class _EndpointDb:
-    def __init__(self, state="call_booked"):
-        self.diagnostic_sessions = _FakeDiagnostics([
-            {"_id": "oid-1", "session_token": "tok-consegna",
-             "user_email": "lead@ciak.it", "user_name": "Lead Test",
-             "current_state": state},
-        ])
-        self.ciak_clients = MagicMock()
-        self.ciak_clients.update_one = AsyncMock()
+def _pronto(**extra):
+    return {"session_token": "tok-consegna", "stato": "pronto", "payload": _PAYLOAD,
+            "generato_at": "2026-09-29T10:00:00+00:00", **extra}
 
 
 @pytest.fixture
-def admin_app(monkeypatch):
+def app_factory(monkeypatch):
     monkeypatch.setenv("INTERNAL_API_KEY", "internal-secret")
-    db = _EndpointDb()
-    cc.set_db(db)
-    app = FastAPI()
-    app.include_router(cc.router)
-    with TestClient(app) as client:
-        yield client, db
+
+    def _make(db):
+        cc.set_db(db)
+        app = FastAPI()
+        app.include_router(cc.router)
+        return TestClient(app)
+
+    return _make
 
 
-def test_consegna_endpoint_porta_a_call_done_e_consegna(admin_app):
-    client, db = admin_app
-    with patch("services.ciak_client_accounts.ensure_client_for_blueprint",
-               AsyncMock(return_value={"id": "c1", "email": "lead@ciak.it", "name": "Lead Test"})), \
-            patch("services.ciak_client_accounts.create_magic_login_token",
-                  AsyncMock(return_value={"token": "tk", "expires_at": "2026-12-31"})), \
-            patch("services.ciak_analisi_delivery.set_db", MagicMock()), \
-            patch("services.ciak_analisi_delivery.processa_acquisto", AsyncMock()):
-        resp = client.post(
-            "/api/ciak/client/admin/consegna-blueprint",
-            json={"session_token": "tok-consegna"},
-            headers={"X-Internal-Key": "internal-secret"},
-        )
-
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["success"] is True
-    assert body["client_id"] == "c1"
-    # lo stato e' stato portato a call_done e persistito
-    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_done"
-    assert db.diagnostic_sessions.replaced
-
-
-def test_consegna_endpoint_richiede_auth(admin_app):
-    client, _db = admin_app
-    resp = client.post(
-        "/api/ciak/client/admin/consegna-blueprint",
-        json={"session_token": "tok-consegna"},
+def _account_mocks(magic_ok=True):
+    ensure = AsyncMock(return_value={"id": "c1", "email": "lead@ciak.it", "name": "Lead Test"})
+    magic = (AsyncMock(return_value={"token": "tk", "expires_at": "2026-12-31"}) if magic_ok
+             else AsyncMock(side_effect=RuntimeError("token svc down")))
+    return (
+        patch("services.ciak_client_accounts.ensure_client_for_blueprint", ensure),
+        patch("services.ciak_client_accounts.create_magic_login_token", magic),
     )
+
+
+def _delivery_mocks(email_ok=True):
+    return (
+        patch("services.ciak_pdf_blueprint.genera_blueprint_pdf", AsyncMock(return_value=b"%PDF-salvato")),
+        patch("services.ciak_analisi_delivery._upload_pdf", AsyncMock(return_value="https://cdn/bp.pdf")),
+        patch("services.ciak_analisi_delivery._send_email_attachment",
+              MagicMock(return_value=(True, None) if email_ok else (False, "SMTP 535 auth failed"))),
+        patch("services.ciak_analisi_delivery.completa_analisi_cliente", AsyncMock()),
+        patch("services.ciak_systeme.fire_and_forget", lambda coro: coro.close()),
+    )
+
+
+def _enter(stack, patches):
+    return [stack.enter_context(p) for p in patches]
+
+
+# ─── Genera ─────────────────────────────────────────────────────────
+
+def test_genera_salva_il_blueprint_e_non_tocca_il_lead(app_factory):
+    db = _db()
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock(return_value=_PAYLOAD)) as gen, \
+            patch("services.ciak_pdf_blueprint.render_blueprint_html", MagicMock(return_value="<html>")):
+        resp = client.post("/api/ciak/client/admin/blueprint/genera",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["stato"] == "pronto"
+    gen.assert_awaited_once_with("tok-consegna")
+    saved = db.ciak_blueprints.docs[0]
+    assert saved["payload"] == _PAYLOAD
+    # nessun effetto sul lead
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
+
+
+def test_genera_non_rigenera_se_gia_pronto_salvo_force(app_factory):
+    db = _db(blueprint=_pronto())
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock(return_value=_PAYLOAD)) as gen, \
+            patch("services.ciak_pdf_blueprint.render_blueprint_html", MagicMock(return_value="<html>")):
+        client.post("/api/ciak/client/admin/blueprint/genera",
+                    json={"email": "lead@ciak.it"}, headers=_HEADERS)
+        gen.assert_not_awaited()
+        client.post("/api/ciak/client/admin/blueprint/genera",
+                    json={"email": "lead@ciak.it", "force": True}, headers=_HEADERS)
+        gen.assert_awaited_once()
+
+
+def test_genera_fallita_salva_il_motivo_reale(app_factory):
+    db = _db()
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint",
+               AsyncMock(side_effect=RuntimeError("sezioni mancanti: ['mercato']"))):
+        resp = client.post("/api/ciak/client/admin/blueprint/genera",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    body = resp.json()
+    assert body["stato"] == "errore"
+    assert "sezioni mancanti" in body["errore"]
+    stato = client.get("/api/ciak/client/admin/blueprint/stato",
+                       params={"email": "lead@ciak.it"}, headers=_HEADERS).json()
+    assert stato["stato"] == "errore"
+
+
+def test_genera_richiede_auth(app_factory):
+    client = app_factory(_db())
+    resp = client.post("/api/ciak/client/admin/blueprint/genera", json={"email": "lead@ciak.it"})
     assert resp.status_code == 401
 
 
-def test_consegna_endpoint_non_avanza_stato_se_consegna_fallisce(admin_app):
-    """Se ensure_client_for_blueprint solleva, lo stato NON deve avanzare a
-    call_done: il lead resta visibile dove sta ora invece di finire in un
-    limbo (stato avanzato ma cliente mai creato). Regressione del caso reale
-    del 29/9 (lead Francesco Donati)."""
-    client, db = admin_app
-    with patch("services.ciak_client_accounts.ensure_client_for_blueprint",
-               AsyncMock(side_effect=RuntimeError("generazione fallita"))), \
-            patch("services.ciak_analisi_delivery.set_db", MagicMock()):
-        # TestClient (raise_server_exceptions=True di default) rilancia
-        # l'eccezione invece di tradurla in 500 — in produzione un ASGI server
-        # reale risponderebbe 500 al chiamante; qui verifichiamo che propaghi
-        # senza aver scritto nulla, non lo status code HTTP.
-        with pytest.raises(RuntimeError, match="generazione fallita"):
-            client.post(
-                "/api/ciak/client/admin/consegna-blueprint",
-                json={"session_token": "tok-consegna"},
-                headers={"X-Internal-Key": "internal-secret"},
-            )
+# ─── PDF ────────────────────────────────────────────────────────────
 
-    # lo stato è rimasto quello di partenza (call_booked), non è mai stato
-    # scritto call_done — nessuna scrittura di stato è avvenuta
-    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
-    assert not db.diagnostic_sessions.replaced
-
-
-def test_consegna_endpoint_404_se_lead_inesistente(admin_app):
-    client, _db = admin_app
-    resp = client.post(
-        "/api/ciak/client/admin/consegna-blueprint",
-        json={"session_token": "non-esiste"},
-        headers={"X-Internal-Key": "internal-secret"},
-    )
-    assert resp.status_code == 404
-
-
-# ─── Endpoint admin /admin/blueprint-pdf (anteprima senza effetti collaterali) ───
-
-def test_blueprint_pdf_restituisce_pdf_senza_effetti_collaterali(admin_app):
-    client, db = admin_app
-    with patch("services.ciak_analisi.set_db", MagicMock()), \
-            patch("services.ciak_analisi.genera_blueprint",
-                  AsyncMock(return_value={"meta": {}, "sezioni": {}})) as gen, \
+def test_pdf_impagina_il_blueprint_salvato_senza_chiamare_claude(app_factory):
+    db = _db(blueprint=_pronto())
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock()) as gen, \
             patch("services.ciak_pdf_blueprint.genera_blueprint_pdf",
-                  AsyncMock(return_value=b"%PDF-1.4 fake")) as render, \
-            patch("services.ciak_analisi_delivery.processa_acquisto", AsyncMock()) as invio:
-        resp = client.get(
-            "/api/ciak/client/admin/blueprint-pdf",
-            params={"email": "lead@ciak.it"},
-            headers={"X-Internal-Key": "internal-secret"},
-        )
-
+                  AsyncMock(return_value=b"%PDF-salvato")) as render:
+        resp = client.get("/api/ciak/client/admin/blueprint-pdf",
+                          params={"email": "lead@ciak.it"}, headers=_HEADERS)
     assert resp.status_code == 200
-    assert resp.headers["content-type"] == "application/pdf"
-    assert resp.content.startswith(b"%PDF")
-    gen.assert_awaited_once_with("tok-consegna")
-    render.assert_awaited_once()
-    # nessun effetto collaterale: stato invariato, nulla persistito, nessuna email
+    assert resp.content == b"%PDF-salvato"
+    gen.assert_not_awaited()
+    render.assert_awaited_once_with(_PAYLOAD)
     assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
-    assert not db.diagnostic_sessions.replaced
-    invio.assert_not_awaited()
-    db.ciak_clients.update_one.assert_not_awaited()
 
 
-def test_blueprint_pdf_502_riporta_il_motivo_reale_nel_body(admin_app):
-    """Il 502 non deve essere muto: il frontend (AdminLeadDetail.jsx via
-    errorDetail()) legge `detail` dal body per mostrare il motivo vero
-    all'admin invece di un generico "Errore 502". Regressione del caso reale
-    del 29/9 (lead Francesco Donati): senza questo, nessuno sa cosa e'
-    fallito davvero senza i log del backend."""
-    client, _db = admin_app
-    with patch("services.ciak_analisi.set_db", MagicMock()), \
-            patch("services.ciak_analisi.genera_blueprint",
-                  AsyncMock(side_effect=RuntimeError("sezioni mancanti: ['mercato']"))):
-        resp = client.get(
-            "/api/ciak/client/admin/blueprint-pdf",
-            params={"email": "lead@ciak.it"},
-            headers={"X-Internal-Key": "internal-secret"},
-        )
-    assert resp.status_code == 502
-    assert "sezioni mancanti" in resp.json()["detail"]
+def test_pdf_409_se_non_ancora_generato(app_factory):
+    client = app_factory(_db())
+    resp = client.get("/api/ciak/client/admin/blueprint-pdf",
+                      params={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 409
+    assert "Genera Blueprint" in resp.json()["detail"]
 
 
-def test_blueprint_pdf_richiede_auth(admin_app):
-    client, _db = admin_app
+def test_pdf_richiede_auth(app_factory):
+    client = app_factory(_db())
     resp = client.get("/api/ciak/client/admin/blueprint-pdf", params={"email": "lead@ciak.it"})
     assert resp.status_code == 401
 
 
-def test_blueprint_pdf_404_se_lead_inesistente(admin_app):
-    client, _db = admin_app
-    resp = client.get(
-        "/api/ciak/client/admin/blueprint-pdf",
-        params={"session_token": "non-esiste"},
-        headers={"X-Internal-Key": "internal-secret"},
-    )
+def test_pdf_404_se_lead_inesistente(app_factory):
+    client = app_factory(_db())
+    resp = client.get("/api/ciak/client/admin/blueprint-pdf",
+                      params={"session_token": "non-esiste"}, headers=_HEADERS)
+    assert resp.status_code == 404
+
+
+# ─── Consegna ───────────────────────────────────────────────────────
+
+def test_consegna_invia_il_pdf_salvato_e_porta_a_call_done(app_factory):
+    from contextlib import ExitStack
+
+    db = _db(blueprint=_pronto())
+    client = app_factory(db)
+    with ExitStack() as stack:
+        _enter(stack, _account_mocks())
+        render, _up, send, completa, _ff = _enter(stack, _delivery_mocks())
+        resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["success"] is True and body["blueprint_inviato"] is True
+    assert "token=tk" in body["magic_link"]
+    # il PDF inviato è l'impaginazione del Blueprint salvato
+    render.assert_awaited_once_with(_PAYLOAD)
+    sent = send.call_args.kwargs
+    assert sent["pdf_bytes"] == b"%PDF-salvato"
+    assert "token=tk" in sent["body_text"]
+    # esito registrato per scheda lead e per area cliente / consegne mancate
+    assert db.ciak_blueprints.docs[0]["consegna_inviata_at"]
+    analisi = db.ciak_analisi.docs[0]
+    assert analisi["bozza_inviata_at"] and analisi["deliverable_kind"] == "blueprint"
+    # stato del lead avanzato solo dopo l'invio, bonus 48h avviato
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_done"
+    assert db.ciak_clients.docs[0]["bonus_expires_at"]
+    completa.assert_awaited_once_with("tok-consegna")
+
+
+def test_consegna_409_se_blueprint_non_generato_e_nulla_cambia(app_factory):
+    from contextlib import ExitStack
+
+    db = _db()
+    client = app_factory(db)
+    with ExitStack() as stack:
+        ensure, _magic = _enter(stack, _account_mocks())
+        _render, _up, send, _c, _ff = _enter(stack, _delivery_mocks())
+        resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 409
+    ensure.assert_not_awaited()
+    send.assert_not_called()
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
+
+
+def test_consegna_502_se_email_fallisce_e_lo_stato_non_avanza(app_factory):
+    """Niente più consegna "riuscita" a vuoto: se l'email non parte l'admin vede
+    il motivo, il lead non diventa call_done, il bonus 48h non parte."""
+    from contextlib import ExitStack
+
+    db = _db(blueprint=_pronto())
+    client = app_factory(db)
+    with ExitStack() as stack:
+        _enter(stack, _account_mocks())
+        _enter(stack, _delivery_mocks(email_ok=False))
+        resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 502
+    assert "SMTP 535" in resp.json()["detail"]
+    assert db.diagnostic_sessions.docs[0]["current_state"] == "call_booked"
+    assert db.ciak_blueprints.docs[0]["consegna_errore"] == "SMTP 535 auth failed"
+    assert db.ciak_analisi.docs[0]["bozza_errore"] == "SMTP 535 auth failed"
+    assert not db.ciak_clients.docs[0].get("bonus_expires_at")  # nessun bonus avviato
+
+
+def test_consegna_non_reinvia_se_gia_inviato(app_factory):
+    from contextlib import ExitStack
+
+    db = _db(blueprint=_pronto(consegna_inviata_at="2026-09-29T11:00:00+00:00"))
+    client = app_factory(db)
+    with ExitStack() as stack:
+        _enter(stack, _account_mocks())
+        _r, _u, send, _c, _ff = _enter(stack, _delivery_mocks())
+        resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["gia_inviato"] is True
+    send.assert_not_called()
+
+
+def test_consegna_parte_anche_se_magic_link_fallisce(app_factory):
+    from contextlib import ExitStack
+
+    db = _db(blueprint=_pronto())
+    client = app_factory(db)
+    with ExitStack() as stack:
+        _enter(stack, _account_mocks(magic_ok=False))
+        _r, _u, send, _c, _ff = _enter(stack, _delivery_mocks())
+        resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["magic_link"] is None
+    send.assert_called_once()
+
+
+def test_consegna_richiede_auth(app_factory):
+    client = app_factory(_db())
+    resp = client.post("/api/ciak/client/admin/consegna-blueprint", json={"email": "lead@ciak.it"})
+    assert resp.status_code == 401
+
+
+def test_consegna_404_se_lead_inesistente(app_factory):
+    client = app_factory(_db())
+    resp = client.post("/api/ciak/client/admin/consegna-blueprint",
+                       json={"session_token": "non-esiste"}, headers=_HEADERS)
     assert resp.status_code == 404

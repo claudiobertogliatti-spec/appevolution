@@ -9,6 +9,7 @@ Genera 3 artefatti dalle 10 Domande Ciak (diagnostic_session):
 Motore: Anthropic API + web search tool (web_search_20250305).
 Riferimento spec: docs/superpowers/specs/2026-05-28-ciak-analisi-roadmap-design.md
 """
+import asyncio
 import json
 import logging
 import os
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("CIAK_ANALISI_MODEL", "claude-sonnet-4-6")
 _MAX_TOKENS = int(os.environ.get("CIAK_ANALISI_MAX_TOKENS", "4096"))
+# Tetto per singola chiamata: la ricerca web + 13 sezioni sta sotto i 2-3 minuti.
+# Senza, l'SDK aspetta fino a 10 minuti e il lead resta "in preparazione".
+_TIMEOUT_S = float(os.environ.get("CIAK_ANALISI_TIMEOUT_S", "240"))
 
 db = None
 
@@ -146,14 +150,19 @@ def _get_client() -> anthropic.Anthropic:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         raise CiakAnalisiError("ANTHROPIC_API_KEY non configurata")
-    return anthropic.Anthropic(api_key=api_key)
+    return anthropic.Anthropic(api_key=api_key, timeout=_TIMEOUT_S, max_retries=1)
 
 
 _WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
 
 
 def _call_claude_structured(system_prompt: str, user_message: str, schema: dict, tool_name: str, max_tokens: int = None) -> dict:
-    """Output strutturato garantito via Anthropic tool use. Ritorna il dict (block.input)."""
+    """Output strutturato garantito via Anthropic tool use. Ritorna il dict (block.input).
+
+    Funzione SINCRONA (client Anthropic sync): dal codice async va chiamata con
+    `await _run(...)`, mai direttamente — altrimenti blocca l'unico worker del
+    backend per tutta la durata della chiamata.
+    """
     client = _get_client()
     tool = {"name": tool_name, "description": "Restituisci il risultato strutturato secondo lo schema.", "input_schema": schema}
     try:
@@ -167,6 +176,8 @@ def _call_claude_structured(system_prompt: str, user_message: str, schema: dict,
         )
     except anthropic.APIError as e:
         raise CiakAnalisiError(f"Anthropic API error: {e}") from e
+    if getattr(response, "stop_reason", None) == "max_tokens":
+        raise CiakAnalisiError(f"Output troncato (max_tokens) per {tool_name}")
     for block in response.content:
         if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
             return block.input
@@ -190,6 +201,11 @@ def _web_search_text(system_prompt: str, user_message: str, max_tokens: int = No
     if not texts:
         raise CiakAnalisiError("Nessun testo dalla ricerca web")
     return "\n".join(texts).strip()
+
+
+async def _run(fn, *args, **kwargs):
+    """Esegue una chiamata Anthropic sincrona in un thread: il server resta libero."""
+    return await asyncio.to_thread(fn, *args, **kwargs)
 
 
 # ── JSON schemas per structured output ──────────────────────────────
@@ -262,11 +278,11 @@ async def genera_research_brief(responses: dict) -> dict:
         f"Problema che risolve: {responses.get('q6_problema')}\n"
         f"Target: {responses.get('q5_target')}"
     )
-    raw = _web_search_text(prompt, search_user)
+    raw = await _run(_web_search_text, prompt, search_user)
     struct_user = (
         "Struttura nel formato richiesto questi risultati di ricerca di mercato.\n\n" + raw
     )
-    return _call_claude_structured(prompt, struct_user, _SCHEMA_RESEARCH, "research_brief")
+    return await _run(_call_claude_structured, prompt, struct_user, _SCHEMA_RESEARCH, "research_brief")
 
 
 async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> dict:
@@ -277,7 +293,7 @@ async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> di
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
     )
-    data = _call_claude_structured(prompt, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
+    data = await _run(_call_claude_structured, prompt, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
     if "capitoli" not in data or set(data["capitoli"].keys()) != _CAPITOLI_ATTESI:
         raise CiakAnalisiError(f"Capitoli mancanti/errati: {list(data.get('capitoli', {}).keys())}")
     return data
@@ -290,7 +306,7 @@ async def genera_bozza(analisi_definitiva: dict) -> dict:
         "Genera la bozza teaser da questa analisi definitiva.\n\n"
         f"{json.dumps(analisi_definitiva, ensure_ascii=False, indent=2)}"
     )
-    return _call_claude_structured(prompt, user_message, _SCHEMA_BOZZA, "bozza_teaser")
+    return await _run(_call_claude_structured, prompt, user_message, _SCHEMA_BOZZA, "bozza_teaser")
 
 
 async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: int) -> dict:
@@ -300,7 +316,7 @@ async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: i
         f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
         f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
     )
-    return _call_claude_structured(prompt, user_message, _SCHEMA_SCRIPT, "script_call")
+    return await _run(_call_claude_structured, prompt, user_message, _SCHEMA_SCRIPT, "script_call")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -434,7 +450,7 @@ async def genera_blueprint(session_token: str) -> dict:
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF DI MERCATO:\n{json.dumps(research, ensure_ascii=False, indent=2)}"
     )
-    data = _call_claude_structured(_PROMPT_BLUEPRINT, user_message, _SCHEMA_BLUEPRINT, "blueprint", max_tokens=8000)
+    data = await _run(_call_claude_structured, _PROMPT_BLUEPRINT, user_message, _SCHEMA_BLUEPRINT, "blueprint", max_tokens=8000)
 
     sez = data.get("sezioni") or {}
     mancanti = [k for k in _SEZIONI_BLUEPRINT if k not in sez]
@@ -466,7 +482,9 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
         raise CiakAnalisiError("Database non configurato")
 
     existing = await db.ciak_analisi.find_one({"session_token": session_token})
-    if existing and not force:
+    # Il documento può esistere già solo con l'esito della consegna Blueprint
+    # (ciak_analisi_delivery): conta come "già generato" solo se c'è l'analisi.
+    if existing and existing.get("analisi_definitiva") and not force:
         return {"already_exists": True, "stato": existing.get("stato")}
 
     session = await db.diagnostic_sessions.find_one({"session_token": session_token})
@@ -489,7 +507,6 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
     script = await genera_script_call(responses, definitiva, stato)
 
     doc = {
-        "session_token": session_token,
         "email": session.get("user_email"),
         "stato": "da_validare",
         "research_data": research,
@@ -500,5 +517,14 @@ async def genera_e_salva(session_token: str, force: bool = False) -> dict:
         "generated_at": _now_iso(),
         "errori": [],
     }
-    await db.ciak_analisi.replace_one({"session_token": session_token}, doc, upsert=True)
+    # $set, non replace: i campi della consegna (bozza_inviata_at, bozza.pdf_url,
+    # bozza_errore) scritti da ciak_analisi_delivery non vanno cancellati.
+    bozza_url = ((existing or {}).get("bozza") or {}).get("pdf_url")
+    if bozza_url:
+        doc["bozza"] = {**doc["bozza"], "pdf_url": bozza_url}
+    await db.ciak_analisi.update_one(
+        {"session_token": session_token},
+        {"$set": doc, "$setOnInsert": {"session_token": session_token}},
+        upsert=True,
+    )
     return {"already_exists": False, "stato": "da_validare", "session_token": session_token}

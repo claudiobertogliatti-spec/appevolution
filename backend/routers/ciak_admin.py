@@ -76,6 +76,7 @@ _COMMERCIAL_EXACT_PATHS = {
     # Download PDF senza side-effect (non manda email, non crea account, non
     # sblocca offerte) — a differenza di consegna-blueprint nello stesso file.
     "/api/ciak/client/admin/blueprint-pdf",
+    "/api/ciak/client/admin/blueprint/stato",
 }
 # Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza
 _COMMERCIAL_PATTERN_PATHS = [
@@ -144,16 +145,13 @@ def _qualified_for_partnership_proposal(
     client: Optional[dict],
     analysis: Optional[dict],
 ) -> bool:
+    # Funnel gratuito: niente più pagamento Blueprint €27 da verificare (prima la
+    # condizione lo pretendeva e il pannello non poteva mai comparire).
     diagnostic = diagnostic or {}
     client = client or {}
     analysis = analysis or {}
-    paid = any(
-        event.get("event") == "stripe_payment_completed"
-        for event in diagnostic.get("events", [])
-    )
     return bool(
-        paid
-        and diagnostic.get("current_state") == "call_done"
+        diagnostic.get("current_state") == "call_done"
         and analysis.get("bozza_inviata_at")
         and client.get("offer_decision") == "partnership"
     )
@@ -1421,6 +1419,10 @@ async def ciak_lead_detail(
     qualified_for_proposta = _qualified_for_partnership_proposal(
         latest_diag, client, analysis
     )
+    from services import ciak_blueprint_store
+    blueprint = ciak_blueprint_store.stato_pubblico(
+        await ciak_blueprint_store.leggi(db, session_token) if session_token else None
+    )
 
     return {
         "email": email,
@@ -1428,6 +1430,7 @@ async def ciak_lead_detail(
         "diagnostics": diagnostics,
         "latest_diagnostic": latest_diag,
         "qualified_for_proposta": qualified_for_proposta,
+        "blueprint": blueprint,
     }
 
 
