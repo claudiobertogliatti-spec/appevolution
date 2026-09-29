@@ -234,3 +234,21 @@ export async function adminFetch(path, options = {}) {
   }
   return res;
 }
+
+/**
+ * Legge il messaggio d'errore reale da una risposta non-ok (`{"detail": "..."}`,
+ * lo shape di HTTPException di FastAPI). Prima di questa funzione un 502/500
+ * arrivava in UI come solo "Errore 502" — il motivo vero (es. l'eccezione della
+ * generazione AI del Blueprint) restava chiuso nel body della risposta, mai
+ * letto dal chiamante. `res.clone()` perché il body si legge una sola volta e
+ * il chiamante potrebbe già averci provato.
+ */
+export async function errorDetail(res) {
+  try {
+    const data = await res.clone().json();
+    if (data && typeof data.detail === "string" && data.detail.trim()) return data.detail;
+  } catch {
+    // body non-JSON o già consumato: usa il fallback sotto
+  }
+  return `Errore ${res.status}`;
+}

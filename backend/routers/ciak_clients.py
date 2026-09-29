@@ -630,7 +630,17 @@ async def consegna_blueprint(
             detail="Lead non trovato: fornisci session_token, email o client_id validi.",
         )
 
-    # 2. Attesta la call completata: porta a call_done (idempotente).
+    # 2. Consegna Blueprint + sblocco offerte — PRIMA di toccare lo stato: se
+    # `ensure_client_for_blueprint` solleva (es. generazione fallita), il lead
+    # deve restare esattamente dove sta ora (visibile in "Report/Blueprint
+    # generato"), non finire in un limbo con lo stato già avanzato a call_done
+    # ma senza un cliente completo. Ordine invertito il 29/9 dopo un caso reale
+    # in cui l'ordine originale (stato→call_done, poi consegna) ha lasciato un
+    # lead a metà: stato avanzato, cliente creato ma incompleto (nessuna
+    # analisi), perché la generazione a valle era fallita dopo lo scritto stato.
+    summary = await _deliver_blueprint(diagnostic, background_tasks)
+
+    # 3. Solo a consegna riuscita: attesta la call completata (idempotente).
     if diagnostic.get("current_state") != STATE_CALL_DONE:
         transition_to(
             diagnostic,
@@ -639,8 +649,6 @@ async def consegna_blueprint(
         )
         await db.diagnostic_sessions.replace_one({"_id": diagnostic["_id"]}, diagnostic)
 
-    # 3. Consegna Blueprint + sblocco offerte.
-    summary = await _deliver_blueprint(diagnostic, background_tasks)
     return {"success": True, **summary}
 
 
