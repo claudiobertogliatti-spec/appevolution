@@ -2,10 +2,9 @@
 Ciak — Admin panel router.
 
 Endpoint admin-only per il pannello di gestione Ciak (ciak.io/admin). MVP:
-  - GET  /api/admin/ciak/stats        → conteggi funnel per la dashboard
-  - GET  /api/admin/ciak/leads        → lista leads (merge ciak_leads + diagnostic + checkpoint)
+  - GET  /api/admin/ciak/leads        → lista unica lead (opt-in masterclass + solo questionario)
   - GET  /api/admin/ciak/lead         → dettaglio singolo lead (by email)
-  - GET  /api/admin/ciak/transactions → transazioni Stripe Ciak Blueprint €27
+  - GET  /api/admin/ciak/transactions → storico pagamenti del vecchio Blueprint €27 (checkout ritirato)
 
 Auth: riusa il role `admin` esistente (Claudio + Antonella). Niente nuovo role.
 Pattern auth identico a routers/admin_stefania.py (require_admin).
@@ -13,7 +12,6 @@ Pattern auth identico a routers/admin_stefania.py (require_admin).
 Collection lette (sola lettura — questo router non scrive nulla):
   - ciak_leads             (opt-in masterclass)
   - diagnostic_sessions    (8 Domande Ciak + scoring + report Matteo + state machine)
-  - ciak_checkpoint_events (Checkpoint Strategico 5 domande)
   - ciak_orphan_purchases  (acquisti Stripe senza diagnostic session collegata)
 
 Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
@@ -32,6 +30,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak", tags=["ciak-admin"])
 security = HTTPBearer(auto_error=False)
 from report_key_auth import require_admin_or_report_key
+from services.ciak_state_machine import STATE_RANK, normalize_state
 
 # Iniettato da server.py via set_db()
 db = None
@@ -65,9 +64,7 @@ _COMMERCIAL_EXACT_PATHS = {
     "/api/admin/ciak/acquisizione-command-center",
     "/api/admin/ciak/leads",
     "/api/admin/ciak/lead",
-    "/api/admin/ciak/lead/mark-purchased",
     "/api/admin/ciak/lead/mark-call-booked",
-    "/api/admin/ciak/pipeline-prospect",
     "/api/admin/ciak/funnel-metrics",
     "/api/admin/ciak/editorial/brands",
     "/api/admin/ciak/editorial/contents",
@@ -132,14 +129,6 @@ def _clean(doc: Optional[dict]) -> Optional[dict]:
 
 def _email(value: Optional[str]) -> str:
     return (value or "").strip().lower()
-
-
-def _event_ts(doc: dict, event_name: str) -> Optional[str]:
-    events = doc.get("events") or []
-    for event in reversed(events):
-        if event.get("event") == event_name:
-            return event.get("timestamp")
-    return None
 
 
 def _state_ts(doc: dict, state: str) -> Optional[str]:
@@ -370,11 +359,13 @@ def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
     return payload
 
 
-# Stati funnel "post-acquisto" (hanno pagato i €27)
-_PURCHASED_STATES = {
-    "purchased_67", "call_booked", "call_done",
-    "partner_approved", "partner_active",
-}
+def _funnel_rank(doc: Optional[dict]) -> int:
+    """Gradino raggiunto da una diagnostic_session nel funnel gratuito.
+
+    Gli stati storici del vecchio funnel €27 (clicked_67/purchased_67) si leggono
+    come "analisi pronta": vedi services.ciak_state_machine.normalize_state.
+    """
+    return STATE_RANK.get(normalize_state((doc or {}).get("current_state")), -1)
 
 
 # ─── Partners list (per la "vista admin" dell'area partner Ciak) ──────────
@@ -738,97 +729,10 @@ async def elimina_ciak_client(
     return {"ok": True, "client_id": client_id, "email": email_norm, "deleted": deleted}
 
 
-# ─── Stats ─────────────────────────────────────────────────────────────────
-
-# --- Mark EUR 27 paid (manuale) ---
-
-class MarkPurchasedRequest(BaseModel):
-    email: str = Field(..., description="Email del lead da segnare come acquirente EUR 27")
-    amount_cent: int = Field(2700, ge=0, description="Importo in centesimi (default 2700 = EUR 27)")
-    metodo: Optional[str] = Field("manuale", description="Metodo pagamento (manuale|bonifico|contanti|offline)")
-    note: Optional[str] = Field(None, description="Nota interna facoltativa sul pagamento")
-
-
-@router.post("/lead/mark-purchased")
-async def ciak_mark_lead_purchased(
-    payload: MarkPurchasedRequest,
-    admin=Depends(require_ciak_admin),
-):
-    """
-    Segna MANUALMENTE l'acquisto dell'analisi EUR 27 per un lead, senza passare
-    da Stripe. Replica l'effetto del webhook checkout.session.completed:
-    transizione diagnostic_session a purchased_67 + evento
-    stripe_payment_completed (flag manual=True). Cosi' il lead compare in
-    GET /transactions e nei conteggi acquisti_67. Serve a ricreare acquisti
-    avvenuti offline.
-
-    Idempotente: se la sessione e' gia' in uno stato post-acquisto non fa nulla.
-    Richiede una diagnostic_session esistente per l'email (il lead deve aver
-    completato almeno le 8 Domande Ciak). NON esegue alcun pagamento reale.
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-    from services.ciak_state_machine import (
-        transition_to, add_event, STATE_PURCHASED_67,
-    )
-
-    email = payload.email.strip().lower()
-    diag = await db.diagnostic_sessions.find_one(
-        {"user_email": email}, sort=[("created_at", -1)]
-    )
-    if not diag:
-        raise HTTPException(
-            404,
-            "Nessuna diagnostic session per questa email: il lead deve aver "
-            "completato le 8 Domande Ciak prima di poter segnare l'acquisto.",
-        )
-
-    admin_id = getattr(admin, "email", None) or getattr(admin, "user_id", None)
-    already = diag.get("current_state") in _PURCHASED_STATES
-
-    if not already:
-        now = datetime.now(timezone.utc)
-        manual_id = "manual-" + now.strftime("%Y%m%d%H%M%S")
-        meta = {
-            "stripe_session_id": manual_id,
-            "amount_total": payload.amount_cent,
-            "manual": True,
-            "marked_by": admin_id,
-            "metodo": payload.metodo,
-            "note": payload.note,
-        }
-        transition_to(diag, STATE_PURCHASED_67, event_metadata=meta)
-        add_event(diag, "stripe_payment_completed", meta)
-        diag["manual_purchase"] = {
-            "marked_by": admin_id,
-            "marked_at": now.isoformat(),
-            "amount_total": payload.amount_cent,
-            "metodo": payload.metodo,
-            "note": payload.note,
-        }
-        await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
-
-    return {
-        "ok": True,
-        "email": email,
-        "current_state": diag.get("current_state"),
-        "already_purchased": already,
-        "manual": True,
-        "session_token": diag.get("session_token"),
-    }
-
-
 class MarkCallBookedRequest(BaseModel):
     email: str = Field(..., description="Email del lead di cui confermare la call fissata")
     starts_at: Optional[str] = Field(None, description="Data/ora della call, se nota (ISO 8601)")
     note: Optional[str] = Field(None, description="Nota interna facoltativa (es. canale/chi ha fissato)")
-
-
-# Stati in cui la call risulta già fissata o oltre: qui la conferma manuale
-# non deve fare nulla (idempotente), mai retrocedere uno stato più avanzato.
-_CALL_ALREADY_BOOKED_OR_PAST = {
-    "call_booked", "call_done", "partner_approved", "partner_active",
-}
 
 
 @router.post("/lead/mark-call-booked")
@@ -853,7 +757,9 @@ async def ciak_mark_call_booked(
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    from services.ciak_state_machine import transition_to, add_event, STATE_CALL_BOOKED
+    from services.ciak_state_machine import (
+        transition_to, add_event, STATE_CALL_BOOKED, STATE_CIAK_COMPLETED,
+    )
 
     email = payload.email.strip().lower()
     diag = await db.diagnostic_sessions.find_one(
@@ -863,11 +769,19 @@ async def ciak_mark_call_booked(
         raise HTTPException(
             404,
             "Nessuna diagnostic session per questa email: il lead deve aver "
-            "completato le 10 Domande Ciak prima di poter confermare la call.",
+            "completato il questionario prima di poter confermare la call.",
+        )
+    # Un questionario iniziato e mai finito non ha l'analisi: la call non si fissa.
+    if _funnel_rank(diag) < STATE_RANK[STATE_CIAK_COMPLETED]:
+        raise HTTPException(
+            409,
+            "Il lead non ha ancora completato il questionario: prima serve "
+            "l'analisi, poi si conferma la call.",
         )
 
     admin_id = getattr(admin, "email", None) or getattr(admin, "user_id", None)
-    already = diag.get("current_state") in _CALL_ALREADY_BOOKED_OR_PAST
+    # Idempotente: già a call fissata o oltre non si tocca (mai retrocedere).
+    already = _funnel_rank(diag) >= STATE_RANK[STATE_CALL_BOOKED]
 
     if not already:
         now = datetime.now(timezone.utc)
@@ -915,47 +829,6 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
         user = await _canonical_user_for_client(item)
         items.append(_public_clienti_ciak_item(item, user))
     return {"items": items, "count": len(items)}
-
-
-@router.get("/stats")
-async def ciak_stats(admin=Depends(require_ciak_admin)):
-    """Conteggi rapidi per la dashboard admin (header KPI + funnel)."""
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    leads_total = await db.ciak_leads.count_documents({})
-    checkpoint_total = len(await db.ciak_checkpoint_events.distinct("email"))
-    diagnostic_total = await db.diagnostic_sessions.count_documents({})
-
-    # Funnel per current_state della diagnostic session
-    funnel = {}
-    async for row in db.diagnostic_sessions.aggregate([
-        {"$group": {"_id": "$current_state", "n": {"$sum": 1}}},
-    ]):
-        funnel[row["_id"] or "unknown"] = row["n"]
-
-    # Distribuzione Stato finale (1-4)
-    stati = {}
-    async for row in db.diagnostic_sessions.aggregate([
-        {"$match": {"scoring.stato_finale": {"$ne": None}}},
-        {"$group": {"_id": "$scoring.stato_finale", "n": {"$sum": 1}}},
-    ]):
-        stati[str(row["_id"])] = row["n"]
-
-    purchased = await db.diagnostic_sessions.count_documents(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
-    )
-    orphan_purchases = await db.ciak_orphan_purchases.count_documents({})
-
-    return {
-        "leads_total": leads_total,
-        "checkpoint_completati": checkpoint_total,
-        "diagnostiche_avviate": diagnostic_total,
-        "acquisti_67": purchased,
-        "acquisti_orfani": orphan_purchases,
-        "funnel_by_state": funnel,
-        "distribuzione_stati": stati,
-    }
 
 
 @router.get("/acquisizione-command-center")
@@ -1032,14 +905,11 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             return doc.get("user_name") or doc.get("nome") or lead_names.get(em) or em
         return lead_names.get(em) or em
 
-    blueprint_month = 0
     call_booked_month = 0
     call_done_month = 0
     questionnaire_month = 0
     report_ready_month = 0
-    clicked_no_purchase = []
     completed_no_purchase = []
-    purchased_no_call = []
     # Split commerciale del mese (la spina Vendite): tra chi ha completato il
     # questionario questo mese, quanti sono instradati a Partnership (pronti) vs
     # Ciak Start (non pronti) vs nurturing — dal verdetto dello scoring.
@@ -1061,13 +931,10 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         _created_ts = d.get("created_at")
         if _created_ts and _created_ts >= month_start and _utm_source == "mariangela":
             funnel_by_source["mariangela"]["leads"] += 1
-        state = d.get("current_state")
-        purchased_ts = _state_ts(d, "purchased_67") or _event_ts(d, "stripe_payment_completed")
+        state = normalize_state(d.get("current_state"))
         call_booked_ts = _state_ts(d, "call_booked")
         call_done_ts = _state_ts(d, "call_done")
 
-        if purchased_ts and purchased_ts >= month_start:
-            blueprint_month += 1
         if call_booked_ts and call_booked_ts >= month_start:
             call_booked_month += 1
             _bucket["call_booked"] += 1
@@ -1086,16 +953,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             report_ready_month += 1
             _bucket["report_ready"] += 1
 
-        if state == "clicked_67":
-            clicked_no_purchase.append(
-                _lead_item(
-                    em,
-                    _name(em, d),
-                    _state_ts(d, "clicked_67") or d.get("created_at"),
-                    "Ha cliccato il checkout del Blueprint ma non risulta pagamento.",
-                )
-            )
-        elif state in ("ciak_completed", "report_generated"):
+        if state in ("ciak_completed", "report_generated"):
             completed_no_purchase.append(
                 _lead_item(
                     em,
@@ -1104,20 +962,6 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
                     "Ha l'analisi gratuita pronta ma non ha ancora prenotato la call di consegna.",
                 )
             )
-        elif state == "purchased_67":
-            purchased_no_call.append(
-                _lead_item(
-                    em,
-                    _name(em, d),
-                    purchased_ts or d.get("created_at"),
-                    "Ha acquistato il Blueprint ma non ha ancora prenotato la call.",
-                )
-            )
-
-    # ⚠️ La priorita' "checkpoint fatto, 8 domande mancanti" e' stata rimossa il
-    # 4/9/2026: il Checkpoint e' ritirato dal funnel (vedi _PROSPECT_COLUMNS), quindi
-    # quella lista conteneva solo i fantasmi di giugno e mandava Luca a ricontattare
-    # persone su uno stadio che non esiste piu'.
 
     week_start = _week_start()
     proposal_month = 0
@@ -1161,7 +1005,7 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         return sorted(items, key=lambda x: x.get("updated_at") or "", reverse=True)[:limit]
 
     bottlenecks = []
-    if blueprint_month < max(target_partnerships * 3, 8):
+    if questionnaire_month < max(target_partnerships * 3, 8):
         bottlenecks.append({
             "level": "warning",
             "title": "Servono piu' analisi completate",
@@ -1265,7 +1109,6 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
             "target_label": "minimo 3, ottimale 4 ingressi Metodo EVO/mese",
         },
         "funnel": {
-            "blueprint_purchased": blueprint_month,
             "call_booked": call_booked_month,
             "call_done": call_done_month,
             "proposals_open": proposal_month,
@@ -1282,8 +1125,6 @@ async def acquisizione_command_center(admin=Depends(require_admin_or_report_key)
         "vendite_split": vendite_split,
         "priorities": {
             "diagnostic_no_purchase": _sort_limit(completed_no_purchase),
-            "clicked_no_purchase": _sort_limit(clicked_no_purchase),
-            "purchased_no_call": _sort_limit(purchased_no_call),
         },
         "bottlenecks": bottlenecks,
         "routine": {
@@ -1353,87 +1194,123 @@ async def calls_today(admin=Depends(require_admin_or_report_key)):
 
 # ─── Leads list ────────────────────────────────────────────────────────────
 
+def _email_ci(email: str) -> dict:
+    """Filtro Mongo su email esatta ma senza distinguere maiuscole/minuscole:
+    user_email in diagnostic_sessions è salvata come l'ha digitata il lead."""
+    return {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}
+
+
+def _lead_source(lead: Optional[dict], diag: Optional[dict]) -> str:
+    """Da dove arriva il lead: la fonte dell'opt-in se c'è, altrimenti il canale
+    del questionario (Mariangela o accesso diretto)."""
+    if lead and lead.get("source"):
+        return lead["source"]
+    utm = (((diag or {}).get("tracking") or {}).get("utm_source") or "").strip().lower()
+    return utm or "questionario_diretto"
+
+
+def _synthetic_lead(diag: dict) -> dict:
+    """Anagrafica ricavata dal questionario per chi non è passato dall'opt-in
+    masterclass (canale Mariangela, link diretto al questionario)."""
+    tracking = diag.get("tracking") or {}
+    return {
+        "email": (diag.get("user_email") or "").strip().lower(),
+        "nome": diag.get("user_name"),
+        "source": _lead_source(None, diag),
+        # stesse chiavi dell'opt-in (routers/ciak_leads.py), così la UI le legge uguali
+        "utm": {
+            "utm_source": tracking.get("utm_source"),
+            "utm_campaign": tracking.get("utm_campaign"),
+            "utm_medium": tracking.get("utm_medium"),
+        },
+        "sources_seen": [_lead_source(None, diag)],
+        "created_at": diag.get("created_at"),
+        "solo_questionario": True,
+    }
+
+
 @router.get("/leads")
 async def ciak_leads_list(
     admin=Depends(require_ciak_admin),
-    q: Optional[str] = Query(None, description="Ricerca per email (substring)"),
+    q: Optional[str] = Query(None, description="Ricerca per email o nome (substring)"),
     state: Optional[str] = Query(None, description="Filtra per current_state diagnostic"),
     stato: Optional[int] = Query(None, ge=1, le=4, description="Filtra per Stato finale 1-4"),
-    only_purchased: bool = Query(False, description="Solo chi ha acquistato i €27"),
+    only_call: bool = Query(False, description="Solo chi ha la call fissata o fatta"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
     """
-    Lista leads. Entità primaria = ciak_leads (opt-in masterclass), arricchita
-    in-app con la diagnostic_session e il checkpoint event per la stessa email.
+    Lista unica dei lead inbound: chi si è iscritto alla masterclass (ciak_leads)
+    PIÙ chi ha compilato il questionario senza passare dall'opt-in (canale
+    Mariangela, link diretto). Prima c'era solo ciak_leads: un lead che faceva il
+    questionario con un'altra email, o senza opt-in, spariva dalla lista.
 
-    Strategia: 1 query paginata su ciak_leads + 2 query batch ($in sulle email)
-    su diagnostic_sessions e ciak_checkpoint_events. Merge in memoria.
+    Una riga per email (minuscola), con l'ultima diagnostic_session. Ordinata per
+    ultima attività, poi filtrata e paginata in memoria (volumi da centinaia).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    lead_filter: dict = {}
-    if q:
-        lead_filter["email"] = {"$regex": q.strip().lower(), "$options": "i"}
+    needle = (q or "").strip()
+    rx = {"$regex": re.escape(needle), "$options": "i"} if needle else None
 
-    total = await db.ciak_leads.count_documents(lead_filter)
+    leads_by_email: dict = {}
+    async for doc in db.ciak_leads.find({"$or": [{"email": rx}, {"nome": rx}]} if rx else {}):
+        em = (doc.get("email") or "").strip().lower()
+        if em and em not in leads_by_email:
+            leads_by_email[em] = _clean(doc)
 
-    leads = []
-    async for doc in (
-        db.ciak_leads.find(lead_filter)
-        .sort("created_at", -1)
-        .skip(offset)
-        .limit(limit)
-    ):
-        leads.append(_clean(doc))
-
-    emails = [l["email"] for l in leads if l.get("email")]
-
-    # Batch: ultima diagnostic_session per email
     diag_by_email: dict = {}
-    if emails:
+    async for d in db.diagnostic_sessions.find(
+        {"$or": [{"user_email": rx}, {"user_name": rx}]} if rx else {}
+    ).sort("created_at", -1):
+        em = (d.get("user_email") or "").strip().lower()
+        if em and em not in diag_by_email:  # tieni la più recente
+            diag_by_email[em] = d
+
+    # Una ricerca può matchare solo uno dei due lati (es. il nome sta solo nel
+    # questionario): si recupera l'altro lato per non spezzare la riga.
+    missing_leads = [em for em in diag_by_email if em not in leads_by_email]
+    if rx and missing_leads:
+        async for doc in db.ciak_leads.find({"email": {"$in": missing_leads}}):
+            leads_by_email[(doc.get("email") or "").strip().lower()] = _clean(doc)
+    missing_diags = [em for em in leads_by_email if em not in diag_by_email]
+    if rx and missing_diags:
         async for d in db.diagnostic_sessions.find(
-            {"user_email": {"$in": emails}}
+            {"user_email": {"$in": missing_diags}}
         ).sort("created_at", -1):
-            em = d.get("user_email")
-            if em and em not in diag_by_email:  # tieni la più recente
+            em = (d.get("user_email") or "").strip().lower()
+            if em and em not in diag_by_email:
                 diag_by_email[em] = d
 
-    # Batch: ultimo checkpoint event per email
-    cp_by_email: dict = {}
-    if emails:
-        async for c in db.ciak_checkpoint_events.find(
-            {"email": {"$in": emails}}
-        ).sort("created_at", -1):
-            em = c.get("email")
-            if em and em not in cp_by_email:
-                cp_by_email[em] = c
-
     items = []
-    for lead in leads:
-        em = lead.get("email")
+    for em in set(leads_by_email) | set(diag_by_email):
+        lead = leads_by_email.get(em)
         diag = diag_by_email.get(em)
-        cp = cp_by_email.get(em)
         scoring = (diag or {}).get("scoring", {}) or {}
         report = (diag or {}).get("report", {}) or {}
+        history = (diag or {}).get("state_history") or []
+        timestamps = [
+            (lead or {}).get("created_at"),
+            (diag or {}).get("created_at"),
+            *[h.get("timestamp") for h in history],
+        ]
+        timestamps = [str(t) for t in timestamps if t]
         items.append({
             "email": em,
-            "nome": lead.get("nome"),
-            "phone": lead.get("phone") or lead.get("telefono"),
-            "source": lead.get("source"),
-            "utm": lead.get("utm", {}),
-            "created_at": lead.get("created_at"),
-            # Checkpoint (pre-acquisto)
-            "checkpoint_stato": (cp or {}).get("stato_server"),
-            "checkpoint_at": (cp or {}).get("created_at"),
-            # Diagnostic / 8 Domande (post-acquisto)
-            "diagnostic_state": (diag or {}).get("current_state"),
+            "nome": (lead or {}).get("nome") or (diag or {}).get("user_name"),
+            "phone": (lead or {}).get("phone") or (lead or {}).get("telefono"),
+            "source": _lead_source(lead, diag),
+            "utm": (lead or {}).get("utm", {}),
+            "created_at": (lead or {}).get("created_at") or (diag or {}).get("created_at"),
+            "last_activity_at": max(timestamps) if timestamps else None,
+            "solo_questionario": lead is None,
+            "diagnostic_state": normalize_state((diag or {}).get("current_state")),
             "stato_finale": scoring.get("stato_finale"),
             "score_numerico": scoring.get("score_numerico"),
+            "instradamento": scoring.get("instradamento"),
             "has_report": bool(report.get("report_markdown")),
             "session_token": (diag or {}).get("session_token"),
-            "purchased": (diag or {}).get("current_state") in _PURCHASED_STATES,
             # Le 4 tappe del percorso, con data reale da state_history — non dedotte
             # dal solo current_state (che è un singolo valore e nasconde le tappe
             # precedenti). Vedi _state_ts().
@@ -1443,19 +1320,19 @@ async def ciak_leads_list(
             "call_done_at": _state_ts(diag or {}, "call_done"),
         })
 
-    # Filtri post-merge (su campi derivati dalla diagnostic)
     if state:
         items = [i for i in items if i["diagnostic_state"] == state]
     if stato is not None:
         items = [i for i in items if i["stato_finale"] == stato]
-    if only_purchased:
-        items = [i for i in items if i["purchased"]]
+    if only_call:
+        items = [i for i in items if i["call_booked_at"] or i["call_done_at"]]
 
+    items.sort(key=lambda i: i.get("last_activity_at") or "", reverse=True)
     return {
-        "total": total,
+        "total": len(items),
         "limit": limit,
         "offset": offset,
-        "items": items,
+        "items": items[offset:offset + limit],
     }
 
 
@@ -1473,7 +1350,7 @@ async def ciak_lead_edit(body: LeadEditIn, admin=Depends(require_ciak_admin)):
     Modifica di un lead inbound: SOLO nome e telefono.
 
     ⛔ L'email NON è modificabile: è la chiave che lega ciak_leads +
-    diagnostic_sessions + checkpoint; cambiarla orfanerebbe questionario e
+    diagnostic_sessions; cambiarla orfanerebbe questionario e
     cronologia. Il nome vive in due posti (ciak_leads.nome per la lista Lead,
     diagnostic user_name per la lista Trattative) → si aggiornano entrambi. Il
     telefono si salva su ciak_leads (serve per le chiamate ai fermi-masterclass).
@@ -1512,30 +1389,27 @@ async def ciak_lead_detail(
     admin=Depends(require_ciak_admin),
 ):
     """
-    Dettaglio completo di un lead: record ciak_leads + tutte le diagnostic_sessions
-    + tutti i checkpoint events + transazioni. Vista 360° per la call e per
-    decidere se generare la Proposta Partnership.
+    Dettaglio completo di un lead: opt-in (ciak_leads) + tutte le
+    diagnostic_sessions. Vista 360° per la call e per decidere se generare la
+    Proposta Partnership. Chi non è passato dall'opt-in ha l'anagrafica ricavata
+    dal questionario (vedi _synthetic_lead).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
     email = email.strip().lower()
-    lead = _clean(await db.ciak_leads.find_one({"email": email}))
+    lead = _clean(await db.ciak_leads.find_one({"email": _email_ci(email)}))
 
     diagnostics = []
     async for d in db.diagnostic_sessions.find(
-        {"user_email": email}
+        {"user_email": _email_ci(email)}
     ).sort("created_at", -1):
         diagnostics.append(_clean(d))
 
-    checkpoints = []
-    async for c in db.ciak_checkpoint_events.find(
-        {"email": email}
-    ).sort("created_at", -1):
-        checkpoints.append(_clean(c))
-
-    if not lead and not diagnostics and not checkpoints:
+    if not lead and not diagnostics:
         raise HTTPException(404, "Lead non trovato")
+    if not lead:
+        lead = _synthetic_lead(diagnostics[0])
 
     latest_diag = diagnostics[0] if diagnostics else None
     client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
@@ -1552,7 +1426,6 @@ async def ciak_lead_detail(
         "email": email,
         "lead": lead,
         "diagnostics": diagnostics,
-        "checkpoints": checkpoints,
         "latest_diagnostic": latest_diag,
         "qualified_for_proposta": qualified_for_proposta,
     }
@@ -1896,17 +1769,14 @@ async def ciak_transactions(
 
 # ─── Pipeline kanban (da memory: ciak_technical_spec.md, state machine 10 stati) ──
 
-# Pipeline Prospect — pre-acquisto €27. Colonne in ordine di funnel.
-# ⚠️ Il "Checkpoint" (5 domande) e' stato RITIRATO dal funnel vivo con il refactor
-# del 22/7/2026 (commit a79a84de): nessuna pagina ci linka piu' e l'email che lo
-# consegnava e' stata rimossa. Tenerlo come stadio faceva leggere "iscritto ->
-# checkpoint, zero da giugno" — un gradino fantasma, non un guasto. Il funnel vivo
-# e': iscritto -> 8 Domande -> report -> click. Verificato pagina per pagina il 4/9/2026.
+# Pipeline Prospect (Acquisizione) — dal lead all'analisi pronta. Finisce dove
+# inizia Vendite: la call prenotata. Il vecchio funnel a pagamento (Checkpoint,
+# click checkout €27) non esiste più: gli stati storici si leggono con
+# normalize_state come "analisi pronta".
 _PROSPECT_COLUMNS = [
-    ("iscritto", "Iscritto masterclass"),
-    ("diagnostica", "8 Domande completate"),
-    ("report", "Report Matteo"),
-    ("click_67", "Click checkout €27"),
+    ("iscritto", "Lead"),
+    ("diagnostica", "Questionario completato"),
+    ("report", "Analisi pronta"),
 ]
 _PROSPECT_RANK = {k: i for i, (k, _) in enumerate(_PROSPECT_COLUMNS)}
 _PROSPECT_STATE_TO_STAGE = {
@@ -1914,12 +1784,10 @@ _PROSPECT_STATE_TO_STAGE = {
     "ciak_started": "iscritto",
     "ciak_completed": "diagnostica",
     "report_generated": "report",
-    "clicked_67": "click_67",
 }
 
-# Pipeline Blueprint — post-acquisto €27. Colonne in ordine di funnel.
+# Pipeline Vendite — dalla call prenotata al contratto pagato.
 _BLUEPRINT_COLUMNS = [
-    ("acquistato", "Blueprint acquistato"),
     ("call_prenotata", "Call prenotata"),
     ("call_fatta", "Call fatta"),
     ("in_trattativa", "In trattativa"),
@@ -1927,12 +1795,10 @@ _BLUEPRINT_COLUMNS = [
 ]
 _BLUEPRINT_RANK = {k: i for i, (k, _) in enumerate(_BLUEPRINT_COLUMNS)}
 _BLUEPRINT_STATE_TO_STAGE = {
-    "purchased_67": "acquistato",
     "call_booked": "call_prenotata",
     "call_done": "call_fatta",
-    "partner_approved": "contratto_pagato",
-    "partner_active": "contratto_pagato",
 }
+_CALL_STATES = ["call_booked", "call_done", "partner_approved", "partner_active"]
 
 
 def _columns_from_entries(entries: dict, columns_def: list) -> list:
@@ -1951,43 +1817,29 @@ def _columns_from_entries(entries: dict, columns_def: list) -> list:
     ]
 
 
-@router.get("/pipeline-prospect")
-async def pipeline_prospect(admin=Depends(require_ciak_admin)):
-    """
-    Pipeline Prospect — funnel PRE-acquisto €27 in formato kanban.
-    Unisce ciak_leads + ciak_checkpoint_events + diagnostic_sessions per email,
-    calcola lo stadio più avanzato. Esclude chi ha già acquistato (→ Pipeline Blueprint).
-    """
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
-
-    entries = await _build_prospect_entries()
-    columns = _columns_from_entries(entries, _PROSPECT_COLUMNS)
-    return {"columns": columns, "total": sum(c["count"] for c in columns)}
-
-
 async def _build_prospect_entries() -> dict:
     """
     Costruisce email → {email, nome, stage, updated_at, session_token} per il
-    funnel PRE-acquisto.
+    funnel prima della call.
 
-    Estratta da `pipeline_prospect` il 31/8/2026 per essere riusata da
+    Estratta dall'ex kanban `pipeline-prospect` il 31/8/2026 per essere riusata da
     `/funnel-metrics`, che espone gli stessi stadi in forma aggregata senza dati
     personali: una seconda copia di questa logica avrebbe fatto divergere i due
     endpoint al primo cambio di stadio.
     """
-    # Email che hanno già acquistato → fuori da questa pipeline
-    purchased = set()
+    # Chi ha già la call è passato a Vendite → fuori da questa pipeline.
+    with_call = set()
     async for d in db.diagnostic_sessions.find(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}, {"user_email": 1}
+        {"current_state": {"$in": _CALL_STATES}}, {"user_email": 1}
     ):
         if d.get("user_email"):
-            purchased.add(d["user_email"])
+            with_call.add(d["user_email"].strip().lower())
 
     entries: dict = {}
 
     def _bump(email, stage, nome=None, updated_at=None, token=None):
-        if not email or email in purchased:
+        email = (email or "").strip().lower()
+        if not email or email in with_call:
             return
         e = entries.get(email)
         if e is None:
@@ -2005,13 +1857,8 @@ async def _build_prospect_entries() -> dict:
 
     async for l in db.ciak_leads.find({}):
         _bump(l.get("email"), "iscritto", l.get("nome"), l.get("created_at"))
-    # Il checkpoint e' uno stadio ritirato (vedi _PROSPECT_COLUMNS): chi lo
-    # completo' resta contato come "iscritto" — il gradino piu' basso che ha
-    # davvero raggiunto — invece di sparire o di far rivivere una colonna morta.
-    async for c in db.ciak_checkpoint_events.find({}):
-        _bump(c.get("email"), "iscritto", None, c.get("created_at"))
     async for d in db.diagnostic_sessions.find({}):
-        stage = _PROSPECT_STATE_TO_STAGE.get(d.get("current_state"))
+        stage = _PROSPECT_STATE_TO_STAGE.get(normalize_state(d.get("current_state")))
         if stage:
             _bump(d.get("user_email"), stage, d.get("user_name"),
                   d.get("created_at"), d.get("session_token"))
@@ -2035,8 +1882,8 @@ def _giorni_da(iso) -> int | None:
 @router.get("/funnel-metrics")
 async def funnel_metrics(admin=Depends(require_admin_or_report_key)):
     """
-    Funnel pre-acquisto in forma AGGREGATA — solo conteggi, nessun nome e nessuna
-    email.
+    Funnel prima della call in forma AGGREGATA — solo conteggi, nessun nome e
+    nessuna email.
 
     Perché esiste (31/8/2026): il briefing di Luca leggeva due sole fonti, che
     mostrano gli stadi DOPO l'iscrizione. Risultato: leggeva "zero lead" mentre in
@@ -2082,8 +1929,8 @@ async def funnel_metrics(admin=Depends(require_admin_or_report_key)):
 @router.get("/pipeline-blueprint")
 async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     """
-    Pipeline Blueprint — journey POST-acquisto €27 in formato kanban.
-    Fonte: diagnostic_sessions (state machine) + ciak_orphan_purchases.
+    Pipeline Vendite — dalla call prenotata al contratto pagato, in formato kanban.
+    Fonte: diagnostic_sessions con la call (state machine).
     Arricchimento "in trattativa" / "contratto pagato" da `proposte` (best-effort, per email).
     I partner reali (contratto firmato / attivo) finiscono sempre in "contratto pagato",
     anche se chiusi offline senza proposta Stripe.
@@ -2120,10 +1967,10 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
             e["owner"] = owner
 
     async for d in db.diagnostic_sessions.find(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
+        {"current_state": {"$in": _CALL_STATES}}
     ):
-        stage = _BLUEPRINT_STATE_TO_STAGE.get(d.get("current_state"), "acquistato")
-        em = d.get("user_email")
+        stage = _BLUEPRINT_STATE_TO_STAGE.get(normalize_state(d.get("current_state")), "call_fatta")
+        em = (d.get("user_email") or "").strip().lower()
         _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"))
         # Arricchimento da proposta collegata
         prop = proposte_by_email.get(em) if em else None
@@ -2132,10 +1979,6 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
                 _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"), owner=prop.get("owner"))
             elif prop.get("stato") in ("inviata", "vista", "accettata", "contratto_firmato"):
                 _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"), owner=prop.get("owner"))
-
-    # Acquisti orfani — colonna "acquistato"
-    async for o in db.ciak_orphan_purchases.find({}):
-        _bump(o.get("customer_email"), "acquistato", None, o.get("created_at"))
 
     # Partner reali → "contratto pagato" anche per chiusure offline (no proposta
     # Stripe). Bump SOLO le entry già presenti nel funnel, così non si aggiungono
@@ -2228,10 +2071,10 @@ async def ciak_transactions_partnership(
 @router.get("/masterclass-analytics")
 async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
     """
-    Vista analitica del funnel masterclass:
-      - Funnel: opt-in → checkpoint → 8 domande → click €27 → acquisto
-      - Distribuzione 4 stati (checkpoint + diagnostic)
-      - Email checkpoint: sent / opened / open_rate per stato
+    Vista analitica del funnel gratuito:
+      - Funnel: opt-in → masterclass → questionario → analisi pronta → call
+        prenotata → call fatta (Blueprint consegnato)
+      - Distribuzione 4 stati del questionario
       - Sorgenti opt-in (UTM source / source)
       - Trend ultimi 30 giorni
     """
@@ -2240,32 +2083,21 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
 
     # ── Funnel cumulativo ──────────────────────────────────────────────
     opt_in = await db.ciak_leads.count_documents({})
-    checkpoint_done = await db.ciak_checkpoint_events.count_documents({})
     diagnostic_started = await db.diagnostic_sessions.count_documents({})
     diagnostic_completed = await db.diagnostic_sessions.count_documents(
         {"current_state": {"$nin": ["lead_created", "ciak_started"]}}
     )
-    clicked_67 = await db.diagnostic_sessions.count_documents(
-        {"events.event": "clicked_67"}
-    )
-    purchased = await db.diagnostic_sessions.count_documents(
-        {"current_state": {"$in": list(_PURCHASED_STATES)}}
-    )
+    report_ready = call_booked = call_done = 0
+    async for d in db.diagnostic_sessions.find({}, {"current_state": 1}):
+        rank = _funnel_rank(d)
+        report_ready += rank >= STATE_RANK["report_generated"]
+        call_booked += rank >= STATE_RANK["call_booked"]
+        call_done += rank >= STATE_RANK["call_done"]
     viewer_events = {}
     for event in ("video_started", "video_25", "video_50", "video_75", "video_completed", "cta_shown", "cta_clicked"):
         viewer_events[event] = await db.ciak_masterclass_events.count_documents({"event": event})
 
-    # ── Distribuzione 4 stati (Checkpoint pre-acquisto) ────────────────
-    checkpoint_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
-    async for row in db.ciak_checkpoint_events.aggregate([
-        {"$match": {"stato_server": {"$ne": None}}},
-        {"$group": {"_id": "$stato_server", "n": {"$sum": 1}}},
-    ]):
-        key = str(row["_id"])
-        if key in checkpoint_per_stato:
-            checkpoint_per_stato[key] = row["n"]
-
-    # ── Distribuzione 4 stati (8 Domande post-acquisto) ────────────────
+    # ── Distribuzione 4 stati del questionario ─────────────────────────
     diagnostic_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
     async for row in db.diagnostic_sessions.aggregate([
         {"$match": {"scoring.stato_finale": {"$ne": None}}},
@@ -2274,29 +2106,6 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
         key = str(row["_id"])
         if key in diagnostic_per_stato:
             diagnostic_per_stato[key] = row["n"]
-
-    # ── Email checkpoint: sent vs opened per stato ─────────────────────
-    email_per_stato = {
-        "1": {"sent": 0, "opened": 0},
-        "2": {"sent": 0, "opened": 0},
-        "3": {"sent": 0, "opened": 0},
-        "4": {"sent": 0, "opened": 0},
-    }
-    # Documento ciak_checkpoint_emails: {tracking_token, sent: bool, opened_at: null|iso, stato, ...}
-    # NB: il campo è "sent" (bool), non "sent_at". Tracking apertura: opened_at != null.
-    async for row in db.ciak_checkpoint_emails.aggregate([
-        {"$group": {
-            "_id": "$stato",
-            "sent": {"$sum": {"$cond": [{"$eq": ["$sent", True]}, 1, 0]}},
-            "opened": {"$sum": {"$cond": [{"$ifNull": ["$opened_at", False]}, 1, 0]}},
-        }},
-    ]):
-        key = str(row["_id"])
-        if key in email_per_stato:
-            email_per_stato[key] = {"sent": row["sent"], "opened": row["opened"]}
-    # open rate
-    for k, v in email_per_stato.items():
-        v["open_rate_pct"] = round((v["opened"] / v["sent"]) * 100) if v["sent"] else 0
 
     # ── Sorgenti opt-in (source + utm_source) ──────────────────────────
     sources = {}
@@ -2340,21 +2149,18 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
         "funnel": {
             "opt_in": opt_in,
             **viewer_events,
-            "checkpoint_done": checkpoint_done,
             "diagnostic_started": diagnostic_started,
             "diagnostic_completed": diagnostic_completed,
-            "clicked_67": clicked_67,
-            "purchased_67": purchased,
+            "report_ready": report_ready,
+            "call_booked": call_booked,
+            "call_done": call_done,
         },
         "conversion_pct": {
-            "optin_to_checkpoint": _pct(checkpoint_done, opt_in),
-            "checkpoint_to_diagnostic": _pct(diagnostic_started, checkpoint_done),
-            "diagnostic_to_purchase": _pct(purchased, diagnostic_completed),
-            "optin_to_purchase": _pct(purchased, opt_in),
+            "optin_to_diagnostic": _pct(diagnostic_started, opt_in),
+            "diagnostic_to_call": _pct(call_booked, diagnostic_completed),
+            "call_to_blueprint": _pct(call_done, call_booked),
         },
-        "checkpoint_per_stato": checkpoint_per_stato,
         "diagnostic_per_stato": diagnostic_per_stato,
-        "email_per_stato": email_per_stato,
         "sources": sources,
         "utm_sources": utm_sources,
         "trend_optin_30d": trend_optin,

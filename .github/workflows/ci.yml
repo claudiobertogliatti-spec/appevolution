@@ -85,9 +85,9 @@ jobs:
           tests/test_diagnostic_complete_resilient.py
           tests/test_ciak_matteo_structured.py
           tests/test_ciak_booking_regen.py
+          tests/test_acquisizione_funnel_gratuito.py
           tests/test_admin_consegna_blueprint.py
           tests/test_admin_consegna_manuale.py
-          tests/test_checkout_trigger.py
           tests/test_ciak_pdf.py
           tests/test_ciak_pdf_blueprint.py
           tests/test_ciak_blueprint_generator.py
@@ -129,7 +129,6 @@ jobs:
           tests/test_paid_offer_gate.py
           tests/test_paid_offer_legacy_routes.py
           tests/test_ciak_delivery_gaps.py
-          tests/test_blueprint_delivery_durability.py
           tests/test_launch_calendar.py
           tests/test_editorial_calendar_api.py
           tests/test_calendario_lancio.py

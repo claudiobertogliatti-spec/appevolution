@@ -58,7 +58,6 @@ import { DeliveryAudit } from "./pages/DeliveryAudit";
 import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
-import { PipelineList } from "./pages/PipelineList";
 import { TrattativePipeline } from "./pages/TrattativePipeline";
 import { AcquisizionePipelineProspect } from "./pages/AcquisizionePipelineProspect";
 import { AcquisizioneCommandCenter } from "./pages/AcquisizioneCommandCenter";
@@ -703,19 +702,8 @@ export default function CiakAdminApp() {
           path="masterclass-analytics"
           element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
         />
-        <Route
-          path="pipeline-prospect"
-          element={
-            <PipelineList
-              endpoint="/pipeline-prospect"
-              title="Pipeline Prospect"
-              subtitle="Funnel pre-call: iscritto → checkpoint → 8 Domande → report → call"
-              mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
-              onAuthExpired={handleLogout}
-              deletable
-            />
-          }
-        />
+        {/* Il kanban pre-call è confluito nella lista Lead unica. */}
+        <Route path="pipeline-prospect" element={<Navigate to="/admin/leads" replace />} />
         <Route path="acq-campagne-ads" element={<AcqCampaignsPage />} />
         <Route path="acq-calendario" element={<AcquisizioneCalendarioHub />} />
         <Route path="acquisizione-editoriale" element={<AcquisizioneEditoriale onAuthExpired={handleLogout} />} />
@@ -730,62 +718,18 @@ export default function CiakAdminApp() {
         <Route path="catalogo" element={<VenditeCatalogo />} />
         <Route path="collaudo-checkout" element={<CollaudoCheckout />} />
 
-        {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I path per stadio
-            qui sotto restano registrati per i vecchi link/deep-link. ── */}
+        {/* ── Vendite ── Trattative: vista unica a tab (audit #7). I vecchi path per
+            stadio rimandano al tab corrispondente. ── */}
         <Route path="trattative" element={<TrattativePipeline onAuthExpired={handleLogout} />} />
-        <Route
-          path="pipeline-blueprint"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Ciak Blueprint"
-              subtitle="Blueprint consegnato"
-              lockedStages={["acquistato"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        <Route path="pipeline-blueprint" element={<Navigate to="/admin/trattative" replace />} />
         <Route path="clienti-ciak" element={<ClientiCiak onAuthExpired={handleLogout} />} />
-        <Route
-          path="vendite-call"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Call di vendita"
-              subtitle="Call prenotata e call fatta"
-              lockedStages={["call_prenotata", "call_fatta"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
-        <Route
-          path="vendite-trattativa"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="In trattativa"
-              subtitle="Proposte inviate, viste, accettate o contratti firmati in attesa pagamento"
-              lockedStages={["in_trattativa"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        <Route path="vendite-call" element={<Navigate to="/admin/trattative?stadio=call" replace />} />
+        <Route path="vendite-trattativa" element={<Navigate to="/admin/trattative?stadio=trattativa" replace />} />
         <Route
           path="analisi-da-validare"
           element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
         />
-        <Route
-          path="vendite-ok"
-          element={
-            <PipelineList
-              endpoint="/pipeline-blueprint"
-              title="Trattative OK"
-              subtitle="Contratto firmato + pagato — diventa partner"
-              lockedStages={["contratto_pagato"]}
-              onAuthExpired={handleLogout}
-            />
-          }
-        />
+        <Route path="vendite-ok" element={<Navigate to="/admin/trattative?stadio=ok" replace />} />
         <Route path="vendite-ko" element={<TrattativeKoHub />} />
 
         {/* ── Delivery ── */}

@@ -1,9 +1,9 @@
 /**
  * Ciak Admin — Dettaglio lead. GET /api/admin/ciak/lead?email=...
  *
- * Vista 360°: record ciak_leads + diagnostic sessions (10 Domande + report Carlo)
- * + checkpoint events. Per i lead qualificati (call_done + Stato 3-4) mostra il
- * pannello "Genera Proposta Partnership" — il bridge verso Evolution.
+ * Vista 360°: iscrizione (o anagrafica ricavata dal questionario, per chi non è
+ * passato dall'opt-in) + questionari con report Carlo. Per i lead qualificati
+ * (call_done + Stato 3-4) mostra il pannello "Genera Proposta Partnership".
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -113,11 +113,11 @@ const QUESTIONS = [
   { id: "q8_obiettivo", text: "Perché vuoi farlo, davvero? Cosa cambierebbe nella tua vita se questo progetto funzionasse?" },
 ];
 
-// Stessi stati considerati "call già fissata o oltre" lato backend
-// (routers/ciak_admin.py::_CALL_ALREADY_BOOKED_OR_PAST) — sotto questi stati
-// il bottone "Conferma call fissata" non ha più senso mostrarlo.
-const _CALL_STAGES_BOOKED_OR_PAST = new Set([
-  "call_booked", "call_done", "partner_approved", "partner_active",
+// "Conferma call fissata" ha senso solo con l'analisi in mano e la call non
+// ancora segnata: stesse regole del backend (ciak_admin.py::ciak_mark_call_booked).
+// clicked_67/purchased_67 sono stati storici del vecchio funnel €27 = analisi pronta.
+const _CALL_CONFIRMABLE_STATES = new Set([
+  "ciak_completed", "report_generated", "clicked_67", "purchased_67",
 ]);
 
 function QuestionnaireAnswers({ responses }) {
@@ -278,7 +278,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
   if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
 
-  const { lead, diagnostics, checkpoints, latest_diagnostic, qualified_for_proposta } = data;
+  const { lead, diagnostics, latest_diagnostic, qualified_for_proposta } = data;
 
   return (
     <div className="p-10 max-w-4xl">
@@ -378,47 +378,22 @@ export function AdminLeadDetail({ onAuthExpired }) {
       <Section title="Anagrafica lead">
         <Field label="Nome" value={lead?.nome} />
         <Field label="Email" value={data.email} />
-        <Field label="Source" value={lead?.source} />
+        <Field label="Fonte" value={lead?.source} />
         <Field label="Sources viste" value={(lead?.sources_seen || []).join(", ") || "—"} />
         <Field label="UTM source" value={lead?.utm?.utm_source} />
         <Field label="UTM campaign" value={lead?.utm?.utm_campaign} />
         <Field label="Creato" value={lead?.created_at} />
       </Section>
 
-      {/* Checkpoint */}
-      <Section title={`Checkpoint Strategico (${checkpoints.length})`}>
-        {checkpoints.length === 0 ? (
-          <p className="text-slate-400 text-sm">Nessun Checkpoint completato.</p>
-        ) : (
-          checkpoints.map((c, i) => (
-            <div key={i} className="border-l-2 border-gray-200 pl-4 mb-3 last:mb-0">
-              <p className="text-sm text-slate-800">
-                Stato preliminare:{" "}
-                <strong>
-                  S{c.stato_server} — {STATO_LABEL[c.stato_server]}
-                </strong>{" "}
-                <span className="text-slate-400">(score {c.total_score}/15)</span>
-              </p>
-              {c.override_applicati?.length > 0 && (
-                <p className="text-xs text-slate-400">
-                  Override: {c.override_applicati.join(", ")}
-                </p>
-              )}
-              <p className="text-xs text-slate-400">{c.created_at}</p>
-            </div>
-          ))
-        )}
-      </Section>
-
-      {/* Diagnostiche / 8 Domande */}
-      <Section title={`10 Domande Ciak (${diagnostics.length})`}>
+      {/* Questionario + report */}
+      <Section title={`Questionario (${diagnostics.length})`}>
         {diagnostics.length === 0 ? (
           <p className="text-slate-400 text-sm">Nessuna diagnostica avviata.</p>
         ) : (
           diagnostics.map((d, i) => (
             <div key={i} className="border-l-2 border-gray-200 pl-4 mb-5 last:mb-0">
               <StageChecklist diagnostic={d} />
-              {!_CALL_STAGES_BOOKED_OR_PAST.has(d.current_state) && (
+              {_CALL_CONFIRMABLE_STATES.has(d.current_state) && (
                 <div className="mb-4 flex items-center gap-3">
                   <button
                     type="button"

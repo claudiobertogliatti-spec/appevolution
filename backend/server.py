@@ -17424,11 +17424,6 @@ from routers.ciak_analisi_public import router as ciak_analisi_public_router, se
 set_ciak_analisi_public_db(db)
 app.include_router(ciak_analisi_public_router)
 
-# Ciak Checkout Router (Stripe checkout 67€ + webhook checkout.session.completed)
-from routers.checkout import router as ciak_checkout_router, set_db as set_ciak_checkout_db
-set_ciak_checkout_db(db)
-app.include_router(ciak_checkout_router)
-
 # Ciak Booking Router (Cal.com webhook BOOKING_CREATED / MEETING_ENDED)
 from routers.booking import router as ciak_booking_router, set_db as set_ciak_booking_db
 set_ciak_booking_db(db)
@@ -17453,14 +17448,6 @@ app.include_router(ciak_social_router)
 from routers.partner_rewards import router as partner_rewards_router, set_db as set_partner_rewards_db
 set_partner_rewards_db(db)
 app.include_router(partner_rewards_router)
-
-# Ciak Checkpoint Strategico Router (5 domande post-masterclass → tag Systeme ciak_checkpoint_stato_<n>
-# + email diretta SMTP via services/ciak_checkpoint_email.py)
-from routers.checkpoint import router as ciak_checkpoint_router, set_db as set_ciak_checkpoint_db
-from services.ciak_checkpoint_email import set_db as set_ciak_checkpoint_email_db
-set_ciak_checkpoint_db(db)
-set_ciak_checkpoint_email_db(db)
-app.include_router(ciak_checkpoint_router)
 
 # Ciak Admin Router (pannello admin ciak.io/admin — leads, transazioni, stats — role admin)
 from routers.ciak_admin import router as ciak_admin_router, set_db as set_ciak_admin_db

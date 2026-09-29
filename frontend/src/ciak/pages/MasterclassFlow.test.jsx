@@ -13,11 +13,8 @@ jest.mock("../components/CiakFooter", () => ({
 }));
 
 jest.mock("./Landing", () => ({ CiakLanding: () => <div>Vetrina</div> }));
-jest.mock("./Checkpoint", () => ({ CiakCheckpoint: () => <div /> }));
 jest.mock("./CiakBlueprint", () => ({ CiakBlueprint: () => <div /> }));
-jest.mock("./Grazie", () => ({ CiakGrazie: () => <div /> }));
 jest.mock("./Diagnostica", () => ({ CiakDiagnostica: () => <div /> }));
-jest.mock("./Report", () => ({ CiakReport: () => <div /> }));
 jest.mock("./Analisi", () => ({ CiakAnalisi: () => <div /> }));
 jest.mock("./Proposta", () => ({ CiakProposta: () => <div /> }));
 jest.mock("./PartnerSetupPassword", () => ({ PartnerSetupPassword: () => <div /> }));

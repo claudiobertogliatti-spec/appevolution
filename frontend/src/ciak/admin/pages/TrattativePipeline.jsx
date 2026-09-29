@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Trattative (audit #7).
  *
- * Blueprint / Call / In trattativa / OK erano quattro voci separate sullo stesso
+ * Call / In trattativa / OK erano voci separate sullo stesso
  * endpoint /pipeline-blueprint (stesso componente PipelineList con lockedStages
  * diversi). Qui diventano TAB di un'unica pagina, con lo stadio persistito in URL
  * (?stadio=), conteggi e scheda contatto comune (PipelineList apre /admin/leads/:email).
@@ -13,10 +13,10 @@
 import { useSearchParams } from "react-router-dom";
 import { PipelineList } from "./PipelineList";
 
-// Mappa tab → stadi del funnel dopo il Blueprint (id colonne backend _BLUEPRINT_COLUMNS).
+// Mappa tab → stadi di Vendite, dalla call prenotata alla firma (id colonne
+// backend _BLUEPRINT_COLUMNS). Prima della call il lead è in Acquisizione.
 export const STADI_TRATTATIVE = [
-  { id: "tutte", label: "Tutte", subtitle: "Tutte le trattative, dal Blueprint alla firma" },
-  { id: "blueprint", label: "Blueprint", lockedStages: ["acquistato"], subtitle: "Blueprint generato — pronto per la call" },
+  { id: "tutte", label: "Tutte", subtitle: "Tutte le trattative, dalla call prenotata alla firma" },
   { id: "call", label: "Call", lockedStages: ["call_prenotata", "call_fatta"], subtitle: "Call prenotata e call fatta" },
   { id: "trattativa", label: "In trattativa", lockedStages: ["in_trattativa"], subtitle: "Proposte inviate, viste, accettate o firmate in attesa di pagamento" },
   { id: "ok", label: "OK", lockedStages: ["contratto_pagato"], subtitle: "Contratto firmato + pagato — diventa partner" },
