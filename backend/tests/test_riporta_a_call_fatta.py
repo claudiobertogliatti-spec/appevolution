@@ -108,3 +108,49 @@ async def test_senza_account_cliente_azzera_solo_l_invio(monkeypatch):
     assert out["account_eliminato"] == {}
     assert len(db.payments.docs) == 2  # senza account non si tocca nessun incasso
     assert "bozza_inviata_at" not in db.ciak_analisi.docs[0]
+
+
+# ─── Annulla Start non pagato, TENENDO il cliente (link già inviato valido) ───
+
+@pytest.mark.asyncio
+async def test_annulla_start_tiene_il_cliente_e_toglie_start_e_incasso(monkeypatch):
+    db = _db()
+    db.ciak_client_login_tokens.docs.append({"client_id": "c1", "token_hash": "h"})
+    monkeypatch.setattr(adm, "db", db)
+
+    out = await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="INFO@doonati.com"), admin=_ADMIN)
+
+    assert out["ok"] is True
+    client = db.ciak_clients.docs[0]
+    assert client["access_level"] == "cliente_blueprint"
+    assert client["start_credit_amount"] == 0
+    assert "start_purchased_at" not in client and "start_payments" not in client
+    assert client["events"][-1]["event"] == "ciak_start_annullato_non_pagato"
+    # link d'accesso già inviato: resta valido
+    assert db.ciak_client_login_tokens.docs
+    # incasso finto e ponte partner tolti, l'incasso vero di altri no
+    assert [p["session_id"] for p in db.payments.docs] == ["cs_live_altro"]
+    assert db.partners.docs == [] and db.users.docs == [] and db.partner_journey_steps.docs == []
+    # la consegna del Blueprint non si tocca
+    assert db.ciak_analisi.docs[0]["bozza_inviata_at"]
+    assert out["start_attivato_da"] == ["qualcuno@example.test (2026-09-29T07:49)"]
+
+
+@pytest.mark.asyncio
+async def test_annulla_start_rifiuta_pagamento_vero(monkeypatch):
+    db = _db(pagamento_ref="cs_live_pagato")
+    monkeypatch.setattr(adm, "db", db)
+    with pytest.raises(adm.HTTPException) as exc:
+        await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="info@doonati.com"), admin=_ADMIN)
+    assert exc.value.status_code == 409
+    assert db.ciak_clients.docs[0]["access_level"] == "cliente_start"
+
+
+@pytest.mark.asyncio
+async def test_annulla_start_rifiuta_email_diversa(monkeypatch):
+    db = _db()
+    monkeypatch.setattr(adm, "db", db)
+    with pytest.raises(adm.HTTPException) as exc:
+        await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="altro@example.test"), admin=_ADMIN)
+    assert exc.value.status_code == 400
+    assert db.ciak_clients.docs[0]["access_level"] == "cliente_start"
