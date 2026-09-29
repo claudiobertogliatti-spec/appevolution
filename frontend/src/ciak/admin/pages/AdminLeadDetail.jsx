@@ -302,6 +302,9 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const [bpBusy, setBpBusy] = useState(false);
   const [bpMsg, setBpMsg] = useState(null);
   const [askRigenera, setAskRigenera] = useState(false);
+  const [askRiporta, setAskRiporta] = useState(false);
+  const [riportando, setRiportando] = useState(false);
+  const [riportaMsg, setRiportaMsg] = useState(null);
   const [bookingConfirming, setBookingConfirming] = useState(false);
   const [bookingMsg, setBookingMsg] = useState(null);
 
@@ -324,6 +327,39 @@ export function AdminLeadDetail({ onAuthExpired }) {
     }, 10000);
     return () => clearInterval(t);
   }, [bpStato, bpBusy, email]);
+
+  // Ripristino: lead a "call appena fatta, Blueprint da inviare a mano".
+  // Toglie Start/incassi creati per errore dal form admin, elimina l'account
+  // cliente (si ricrea pulito all'invio) e azzera la registrazione dell'invio.
+  async function riportaACallFatta() {
+    setRiportando(true);
+    setRiportaMsg(null);
+    try {
+      const response = await adminFetch("/api/admin/ciak/lead/riporta-a-call-fatta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      if (!response.ok) throw new Error(await errorDetail(response));
+      const r = await response.json();
+      const tolti = (r.incassi_tolti?.payments || 0) + (r.incassi_tolti?.payment_transactions || 0);
+      const chi = (r.start_attivato_da || []).join(", ");
+      setRiportaMsg(
+        `Fatto: lead riportato a "call fatta", Blueprint da inviare. ` +
+        (tolti ? `Tolti ${tolti} record di incasso Start non pagato. ` : "") +
+        (r.account_eliminato && Object.keys(r.account_eliminato).length ? "Account cliente eliminato. " : "") +
+        (chi ? `Lo Start era stato attivato da: ${chi}.` : "")
+      );
+      const fresh = await apiGet("/lead", { email: data.email });
+      setData(fresh);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setRiportaMsg("Errore: " + e.message);
+    } finally {
+      setRiportando(false);
+      setAskRiporta(false);
+    }
+  }
 
   async function generaBlueprint(force) {
     setAskRigenera(false);
@@ -667,6 +703,38 @@ export function AdminLeadDetail({ onAuthExpired }) {
         busy={delivering}
         onConfirm={confirmDeliverBlueprint}
         onCancel={() => setAskDeliver(false)}
+      />
+
+      {callFatta && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 mt-2 mb-5">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-2">Ripristino</h2>
+          <p className="text-sm text-slate-600 leading-relaxed mb-4">
+            Se questo lead ha un Ciak Start attivato per errore o non ha mai ricevuto il Blueprint,
+            riportalo al momento subito dopo la call: nessun account cliente, nessun incasso finto,
+            Blueprint da inviare a mano.
+          </p>
+          <button
+            type="button"
+            onClick={() => setAskRiporta(true)}
+            disabled={riportando}
+            className="px-4 py-2 rounded-lg border border-red-200 bg-white text-sm font-semibold text-red-700 hover:bg-red-50 transition disabled:opacity-50"
+          >
+            {riportando ? "Ripristino in corso…" : "Riporta a: call fatta, Blueprint da inviare"}
+          </button>
+          {riportaMsg && <p className="text-sm text-slate-700 mt-3 leading-relaxed">{riportaMsg}</p>}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={askRiporta}
+        title={`Riporta ${data.email} a "call fatta"`}
+        body="Elimina l'account cliente con il suo percorso e gli accessi, toglie gli incassi Ciak Start creati dal form admin (mai quelli pagati davvero) e azzera la registrazione dell'invio del Blueprint. Il questionario, il report e l'analisi restano. Operazione irreversibile."
+        confirmLabel="Riporta a call fatta"
+        cancelLabel="Annulla"
+        destructive
+        busy={riportando}
+        onConfirm={riportaACallFatta}
+        onCancel={() => setAskRiporta(false)}
       />
 
       <ConfirmDialog

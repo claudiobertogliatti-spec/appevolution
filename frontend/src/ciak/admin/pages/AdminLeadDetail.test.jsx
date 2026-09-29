@@ -115,3 +115,32 @@ test("Blueprint inviato prima del salvataggio: mostra 'Già inviato' e il PDF sp
   expect(screen.getByRole("link", { name: "Apri il PDF inviato" }).getAttribute("href")).toBe("https://cdn.test/bp.pdf");
   expect(screen.queryByRole("button", { name: "Genera Blueprint" })).toBeNull();
 });
+
+test("ripristino a call fatta: passa dalla conferma e chiama l'endpoint dedicato", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "inviato_prima", consegna_inviata_at: "2026-09-29T14:31:19+00:00" },
+  });
+  adminFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ ok: true, incassi_tolti: { payments: 1, payment_transactions: 1 }, start_attivato_da: [], account_eliminato: { ciak_clients: 1 } }),
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Riporta a: call fatta/i }));
+  const dialog = screen.getByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Riporta a call fatta" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/admin/ciak/lead/riporta-a-call-fatta",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it" }) })
+    )
+  );
+  expect(await screen.findByText(/Tolti 2 record di incasso/)).toBeTruthy();
+});
+
+test("il ripristino non compare prima della call", async () => {
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  await screen.findByRole("button", { name: /Ho fatto la call di consegna/i });
+  expect(screen.queryByRole("button", { name: /Riporta a: call fatta/i })).toBeNull();
+});

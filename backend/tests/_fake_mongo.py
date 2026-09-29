@@ -35,6 +35,10 @@ def _unset(doc, dotted):
 
 def _match(doc, query):
     for key, cond in (query or {}).items():
+        if key == "$or":
+            if not any(_match(doc, q) for q in cond):
+                return False
+            continue
         val = _get(doc, key)
         if isinstance(cond, dict) and any(k.startswith("$") for k in cond):
             if "$regex" in cond:
@@ -73,12 +77,19 @@ class _Cursor:
             raise StopAsyncIteration
 
 
+class _Result:
+    def __init__(self, n):
+        self.deleted_count = n
+        self.modified_count = n
+        self.matched_count = n
+
+
 class FakeCollection:
     def __init__(self, docs=None):
         self.docs = [copy.deepcopy(d) for d in (docs or [])]
         self.writes = 0
 
-    async def find_one(self, query=None, projection=None):
+    async def find_one(self, query=None, projection=None, **_kwargs):
         for d in self.docs:
             if _match(d, query):
                 out = copy.deepcopy(d)
@@ -95,7 +106,7 @@ class FakeCollection:
         target = next((d for d in self.docs if _match(d, flt)), None)
         if target is None:
             if not upsert:
-                return None
+                return _Result(0)
             target = {k: v for k, v in flt.items() if not isinstance(v, dict)}
             for k, v in (update.get("$setOnInsert") or {}).items():
                 _set(target, k, v)
@@ -104,7 +115,20 @@ class FakeCollection:
             _set(target, k, copy.deepcopy(v))
         for k in (update.get("$unset") or {}):
             _unset(target, k)
-        return None
+        return _Result(1)
+
+    async def delete_one(self, flt):
+        for i, d in enumerate(self.docs):
+            if _match(d, flt):
+                del self.docs[i]
+                return _Result(1)
+        return _Result(0)
+
+    async def delete_many(self, flt):
+        keep = [d for d in self.docs if not _match(d, flt)]
+        n = len(self.docs) - len(keep)
+        self.docs = keep
+        return _Result(n)
 
     async def replace_one(self, flt, doc, upsert=False):
         self.writes += 1
