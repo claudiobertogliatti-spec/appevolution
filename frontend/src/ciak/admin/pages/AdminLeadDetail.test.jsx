@@ -51,14 +51,28 @@ test('"Ho fatto la call di consegna" consegna il Blueprint via admin/consegna-bl
   expect(await screen.findByText(/token=tk/)).toBeTruthy();
 });
 
-test("a call_done il bottone di consegna sparisce e mostra 'Blueprint consegnato'", async () => {
+test("invio registrato: il bottone sparisce e compare il riepilogo verde", async () => {
   apiGet.mockResolvedValue({
     ...LEAD,
     latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "pronto", consegna_inviata_at: "2026-09-29T14:31:19+00:00" },
   });
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
-  expect(await screen.findByText(/Blueprint consegnato/i)).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /Ho fatto la call di consegna/i })).toBeNull();
+  expect(await screen.findByText(/Blueprint inviato al cliente il/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /invia il Blueprint/i })).toBeNull();
+});
+
+test("call fatta ma Blueprint mai inviato: si può ancora inviare a mano", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "pronto" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText(/Blueprint non ancora inviato/i)).toBeTruthy();
+  const btn = screen.getByRole("button", { name: "Invia il Blueprint al cliente" });
+  expect(btn.disabled).toBe(false);
+  expect(screen.queryByText(/Blueprint inviato al cliente il/i)).toBeNull();
 });
 
 test("senza Blueprint pronto l'invio al cliente è bloccato", async () => {
@@ -88,4 +102,16 @@ test("errore di generazione: il motivo reale è visibile", async () => {
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   expect(await screen.findByText(/credit balance too low/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Riprova a generare" })).toBeTruthy();
+});
+
+test("Blueprint inviato prima del salvataggio: mostra 'Già inviato' e il PDF spedito", async () => {
+  apiGet.mockResolvedValue({
+    ...LEAD,
+    latest_diagnostic: { current_state: "call_done" },
+    blueprint: { stato: "inviato_prima", consegna_inviata_at: "2026-09-29T14:31:19+00:00", pdf_url: "https://cdn.test/bp.pdf" },
+  });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect(await screen.findByText("Già inviato")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Apri il PDF inviato" }).getAttribute("href")).toBe("https://cdn.test/bp.pdf");
+  expect(screen.queryByRole("button", { name: "Genera Blueprint" })).toBeNull();
 });
