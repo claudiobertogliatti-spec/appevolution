@@ -7,6 +7,7 @@ Regole:
   - un invio fallito solleva ConsegnaFallita con il motivo reale e lo registra;
   - una consegna già fatta non si ripete.
 """
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -35,6 +36,8 @@ def mocks(monkeypatch):
     monkeypatch.setattr(delivery, "_upload_pdf", AsyncMock(return_value="https://cdn/bp.pdf"))
     send = MagicMock(return_value=(True, None))
     monkeypatch.setattr(delivery, "_send_email_attachment", send)
+    emit = AsyncMock(return_value=True)
+    monkeypatch.setattr(delivery.ciak_systeme, "ciak_emit_event", emit)
     return render, send
 
 
@@ -140,3 +143,55 @@ def test_store_stato_pubblico_non_espone_il_contenuto():
     assert out["stato"] == "pronto"
     assert "payload" not in out
     assert store.stato_pubblico(None) == {"stato": "mancante"}
+
+
+async def _lascia_girare_i_task():
+    for _ in range(3):
+        await asyncio.sleep(0)
+
+
+@pytest.mark.asyncio
+async def test_invio_riuscito_mette_il_tag_su_systeme(monkeypatch, mocks):
+    monkeypatch.setattr(delivery, "db", _db(_pronto()))
+    await delivery.consegna_blueprint("t1", "c@x.it", "Carlo", access_link="https://ciak.io/cliente/accesso?token=abc")
+    await _lascia_girare_i_task()
+
+    emit = delivery.ciak_systeme.ciak_emit_event
+    emit.assert_awaited_once()
+    kwargs = emit.await_args.kwargs
+    assert kwargs["email"] == "c@x.it"
+    assert kwargs["event_name"] == "ciak_blueprint_email_sent"
+    assert kwargs["metadata"]["pdf_url"] == "https://cdn/bp.pdf"
+    assert kwargs["metadata"]["con_link_accesso"] is True
+    # Il magic-link è una credenziale di accesso: non finisce nell'audit Systeme.
+    assert "token=abc" not in str(kwargs)
+
+
+@pytest.mark.asyncio
+async def test_email_fallita_non_mette_il_tag(monkeypatch, mocks):
+    _render, send = mocks
+    send.return_value = (False, "SMTP non configurato")
+    monkeypatch.setattr(delivery, "db", _db(_pronto()))
+    with pytest.raises(delivery.ConsegnaFallita):
+        await delivery.consegna_blueprint("t1", "c@x.it", "Carlo")
+    await _lascia_girare_i_task()
+    delivery.ciak_systeme.ciak_emit_event.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_consegna_gia_fatta_non_rimette_il_tag(monkeypatch, mocks):
+    monkeypatch.setattr(delivery, "db", _db(_pronto(consegna_inviata_at="2026-09-29T11:00:00+00:00")))
+    await delivery.consegna_blueprint("t1", "c@x.it", "Carlo")
+    await _lascia_girare_i_task()
+    delivery.ciak_systeme.ciak_emit_event.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_systeme_giu_non_rompe_la_consegna(monkeypatch, mocks):
+    delivery.ciak_systeme.ciak_emit_event.side_effect = RuntimeError("Systeme down")
+    db = _db(_pronto())
+    monkeypatch.setattr(delivery, "db", db)
+    res = await delivery.consegna_blueprint("t1", "c@x.it", "Carlo")
+    await _lascia_girare_i_task()
+    assert res["sent"] is True
+    assert db.ciak_blueprints.docs[0]["consegna_inviata_at"]
