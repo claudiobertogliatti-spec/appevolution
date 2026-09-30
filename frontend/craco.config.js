@@ -10,7 +10,10 @@ const isDevServer = process.env.NODE_ENV !== "production";
 // Environment variable overrides
 const config = {
   enableHealthCheck: process.env.ENABLE_HEALTH_CHECK === "true",
-  enableVisualEdits: isDevServer, // Only enable during dev server
+  // Only on the dev server (craco start = NODE_ENV "development"). Not under
+  // `craco test` (NODE_ENV "test"): the babel plugin wraps every {expression} in a
+  // <span>, so tests would query a DOM that production never renders.
+  enableVisualEdits: process.env.NODE_ENV === "development",
   apiProxyTarget:
     process.env.REACT_APP_BACKEND_URL ||
     process.env.BACKEND_URL ||

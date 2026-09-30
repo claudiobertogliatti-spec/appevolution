@@ -16,7 +16,10 @@ describe("CiakLanding", () => {
 
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /metodo evo/i })).toBeInTheDocument();
+    // Dal restyle del 22/7 "Metodo EVO" e' l'etichetta della sezione e il titolo
+    // sono le tre fasi del metodo.
+    expect(screen.getByText("Metodo EVO", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /esamina\. valida\. ottimizza\./i })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /masterclass gratuita/i }))
       .toHaveLength(2);
     screen.getAllByRole("link", { name: /masterclass gratuita/i })

@@ -1,0 +1,73 @@
+{
+  "_nota": "Stati degli step di un partner reale a meta' percorso (fine luglio 2026), ridotti a step_id + status: nessun dato personale. Usato dai test di sblocco fasi con l'Opzione A (routers/partner_rewards._phase_unlocked).",
+  "steps": [
+    {
+      "step_id": "01-contratto",
+      "status": "done"
+    },
+    {
+      "step_id": "02-discovery-video",
+      "status": "done"
+    },
+    {
+      "step_id": "03-brand-kit",
+      "status": "done"
+    },
+    {
+      "step_id": "burocrazia",
+      "status": "done"
+    },
+    {
+      "step_id": "04-posizionamento",
+      "status": "done"
+    },
+    {
+      "step_id": "05-script-masterclass",
+      "status": "done"
+    },
+    {
+      "step_id": "la-tua-storia",
+      "status": "in_progress"
+    },
+    {
+      "step_id": "obiettivo",
+      "status": "pending"
+    },
+    {
+      "step_id": "06-outline-lezioni",
+      "status": "done"
+    },
+    {
+      "step_id": "09-funnel-asset",
+      "status": "skipped"
+    },
+    {
+      "step_id": "07-script-videolezioni",
+      "status": "done"
+    },
+    {
+      "step_id": "08-registra-masterclass",
+      "status": "done"
+    },
+    {
+      "step_id": "11-calendario-30gg",
+      "status": "done"
+    },
+    {
+      "step_id": "09-registra-lezioni",
+      "status": "done"
+    },
+    {
+      "step_id": "10-sistema-vendita",
+      "status": "done"
+    },
+    {
+      "step_id": "12-prezzo-webinar",
+      "status": "in_progress"
+    },
+    {
+      "step_id": "13-lancio",
+      "status": "in_progress"
+    }
+  ]
+}

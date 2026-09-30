@@ -15,7 +15,7 @@ import {
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoAssistenza from "../sereno/SerenoAssistenza";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 // 🤖 PRIMO GRUPPO: TEAM AGENTICO AI (CON CHAT SINGOLA 1-ON-1)
 export const AGENTIC_TEAM = [

@@ -1,11 +1,13 @@
 import { downloadProtectedDocument } from "./protectedDownload";
+import { authHeaders } from "../api";
 
-jest.mock("../api", () => ({
-  authHeaders: jest.fn(() => ({ Authorization: "Bearer partner-token" })),
-}));
+jest.mock("../api", () => ({ authHeaders: jest.fn() }));
 
 describe("downloadProtectedDocument", () => {
   beforeEach(() => {
+    // CRA esegue jest con resetMocks: true, che azzera le implementazioni prima di
+    // ogni test: il valore va impostato qui, non nella factory di jest.mock.
+    authHeaders.mockReturnValue({ Authorization: "Bearer partner-token" });
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       blob: jest.fn().mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
