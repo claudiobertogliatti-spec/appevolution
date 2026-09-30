@@ -21,11 +21,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
-from services import ciak_analisi, ciak_blueprint_store
+from services import ciak_analisi, ciak_blueprint_store, ciak_systeme
 
 logger = logging.getLogger(__name__)
 
 db = None
+
+# Tag Systeme applicato quando la mail col Blueprint è partita davvero (stesso
+# schema di `ciak_partnership_email_sent`). `ciak_call_done` dice che la call è
+# stata confermata, non che la mail sia arrivata: senza questo tag, in Systeme
+# non si vede chi ha già ricevuto il Blueprint.
+TAG_BLUEPRINT_EMAIL_SENT = "ciak_blueprint_email_sent"
 
 
 def set_db(database) -> None:
@@ -129,6 +135,22 @@ def _send_email_link(*, to: str, nome: str, subject: str, link: str) -> tuple[bo
         return False, str(e)
 
 
+def _segnala_a_systeme(session_token: str, email: str, nome: Optional[str],
+                       pdf_url: Optional[str], con_link_accesso: bool) -> None:
+    """Tag Systeme a invio riuscito. Non blocca e non rompe la consegna: se
+    Systeme non risponde l'email è già partita e l'esito è già registrato."""
+    ciak_systeme.fire_and_forget(ciak_systeme.ciak_emit_event(
+        email=email,
+        event_name=TAG_BLUEPRINT_EMAIL_SENT,
+        first_name=nome,
+        metadata={
+            "session_token": session_token,
+            "pdf_url": pdf_url,
+            "con_link_accesso": con_link_accesso,
+        },
+    ))
+
+
 class ConsegnaFallita(Exception):
     """Il Blueprint non è arrivato al cliente: il messaggio è il motivo reale."""
 
@@ -190,6 +212,7 @@ async def consegna_blueprint(
         "consegna_errore": None,
         "pdf_url": pdf_url,
     })
+    _segnala_a_systeme(session_token, email, nome, pdf_url, bool(access_link))
     return {"sent": True, "pdf_url": pdf_url}
 
 
