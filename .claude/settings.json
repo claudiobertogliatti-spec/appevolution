@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/check_ci_tests.py\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/gitleaks_prepush.py\"",
+            "timeout": 150,
+            "statusMessage": "Controllo segreti prima del push..."
+          }
+        ]
+      }
+    ]
+  }
+}
