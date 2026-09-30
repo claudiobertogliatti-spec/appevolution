@@ -102,3 +102,9 @@ test("403 di contabilità riservata (Antonella): errore leggibile, niente logout
   await expect(adminFetch("/api/admin/ciak/collaboratori/antonella/settlements")).rejects.toThrow("Contabilita' collaboratori riservata");
   expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
 });
+
+test("403 con il nuovo testo di permesso: errore leggibile, niente logout", async () => {
+  global.fetch.mockResolvedValue(res403("Questa funzione non è abilitata per il tuo account."));
+  await expect(adminFetch("/api/admin/ciak/partners")).rejects.toThrow("Questa funzione non è abilitata per il tuo account.");
+  expect(localStorage.getItem("ciak_admin_token")).toBe("tok-123");
+});

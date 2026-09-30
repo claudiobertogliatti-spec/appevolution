@@ -126,7 +126,7 @@ final_cors_origins = build_cors_origins(
 )
 
 # Scope dell'account commerciale (Mariangela) su TUTTO /api/*: con il suo token
-# admin, 403 fuori dall'allowlist Acquisizione, qualunque dependency abbia la
+# admin, 403 fuori dal suo perimetro (ciak_admin.py), qualunque dependency abbia la
 # route (una route che non valida il token va chiusa lì, non qui). Aggiunto
 # prima del CORS così il CORS resta lo strato esterno (Starlette: l'ultimo
 # add_middleware è il più esterno) e anche questo 403 porta i suoi header.

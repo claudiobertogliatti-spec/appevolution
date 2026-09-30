@@ -6,13 +6,16 @@
  * caso e' peggio di nessun esito — il cliente ha pagato e nessuno lo sa.
  */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+// Il nome del cliente è un <Link>: senza router in jest, un mock minimo.
+jest.mock("react-router-dom", () => ({ Link: ({ children }) => children }), { virtual: true });
 import { ClientiCiak } from "./ClientiCiak";
-import { apiGet, apiPost } from "../api";
+import { apiGet, apiPost, isCommercialAccount } from "../api";
 
 jest.mock("../api", () => ({
   apiGet: jest.fn(),
   apiPost: jest.fn(),
   adminFetch: jest.fn(),
+  isCommercialAccount: jest.fn(() => false),
 }));
 
 beforeEach(() => {
@@ -65,4 +68,21 @@ test("quando l'email non parte lo dice, invece di dare per consegnato", async ()
   expect(await screen.findByText(/non è partita/i)).toBeTruthy();
   expect(screen.getByText(/Consegne mancate/i)).toBeTruthy();
   expect(screen.queryByText(/link di accesso partita/i)).toBeNull();
+});
+
+test("account commerciale: vede i clienti, ma niente Attiva Start, scelta offerta, Annulla o Elimina", async () => {
+  isCommercialAccount.mockReturnValue(true);
+  apiGet.mockResolvedValue({
+    items: [{ id: "c1", email: "cli@x.it", name: "Cliente Uno", access_level: "cliente_start" }],
+    count: 1,
+  });
+  render(<ClientiCiak />);
+  expect(await screen.findByText("Cliente Uno")).toBeTruthy();
+  expect(screen.getByText("La decide Claudio dopo la call.")).toBeTruthy();
+  expect(screen.queryByText("Attiva Ciak Start")).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Start$/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Partnership/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Annulla Start/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Elimina cliente/ })).toBeNull();
+  isCommercialAccount.mockReturnValue(false);
 });

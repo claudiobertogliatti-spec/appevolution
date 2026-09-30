@@ -44,11 +44,8 @@ def set_db(database) -> None:
 
 # ─── Auth ──────────────────────────────────────────────────────────────────
 
-# Account "commerciale" (oggi solo Mariangela): scope volutamente ristretto al
-# reparto Acquisizione, fino a "call fissata" — la consegna del Blueprint e le
-# offerte sono di Vendite, non sue (stesso confine già dichiarato nella pagina
-# Home Acquisizione: "il reparto finisce a call prenotata, poi passa a Vendite").
-# Default-deny: un path non in questa lista risponde 403, anche chiamato
+# Account "commerciale" (oggi solo Mariangela): scope volutamente ristretto,
+# perimetro sotto (_COMMERCIAL_*). Default-deny: un path non in lista risponde 403, anche chiamato
 # direttamente (non basta nascondere il link nel menu). Il confine vero è
 # CommercialScopeMiddleware (in fondo a questa sezione), montato su tutta l'app
 # in server.py: vale per OGNI /api/*, qualunque dependency abbia la route
@@ -62,8 +59,14 @@ def set_db(database) -> None:
 COMMERCIAL_ADMIN_TYPES = {"mariangela"}
 # Testo esatto: frontend/src/ciak/admin/api.js (SCOPE_DENIED_DETAIL) lo usa per
 # distinguere questo 403 da un token scaduto e non fare logout.
-COMMERCIAL_SCOPE_DETAIL = "Questo account ha accesso solo al reparto Acquisizione."
+COMMERCIAL_SCOPE_DETAIL = "Questa funzione non è abilitata per il tuo account."
 
+# Perimetro deciso da Claudio (30/9/2026): Acquisizione tutta, Lista Fredda,
+# Vendite in sola lettura e aggiornamento. Mai eliminazioni, mai soldi
+# (Attiva/Annulla Start, scelta offerta), mai invii al cliente, mai
+# generazioni AI di Vendite, mai l'export in chiaro della Lista Fredda.
+
+# Path consentiti con qualunque metodo (tranne i divieti sotto).
 _COMMERCIAL_EXACT_PATHS = {
     "/api/admin/ciak/acquisizione-command-center",
     "/api/admin/ciak/leads",
@@ -76,42 +79,66 @@ _COMMERCIAL_EXACT_PATHS = {
     "/api/admin/ciak/editorial/contents/approve-month",
     "/api/admin/ciak/ads/overview",
     # Router diverso (ciak_clients.py, dependency require_admin_or_internal),
-    # ma stesso allowlist condiviso: vedi il commento su COMMERCIAL_ADMIN_TYPES.
-    # Download PDF senza side-effect (non manda email, non crea account, non
-    # sblocca offerte) — a differenza di consegna-blueprint nello stesso file.
+    # ma stesso allowlist condiviso. Download PDF senza side-effect (non manda
+    # email, non crea account, non sblocca offerte) — a differenza di
+    # consegna-blueprint nello stesso file.
     "/api/ciak/client/admin/blueprint-pdf",
     "/api/ciak/client/admin/blueprint/stato",
 }
 # Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza
 _COMMERCIAL_PATTERN_PATHS = [
-    re.compile(r"^/api/admin/ciak/leads/[^/]+/(contatta|avanza)$"),
-    re.compile(r"^/api/admin/ciak/editorial/brands/[^/]+$"),
+    re.compile(r"/api/admin/ciak/leads/[^/]+/(contatta|avanza)"),
+    re.compile(r"/api/admin/ciak/editorial/brands/[^/]+"),
 ]
-_COMMERCIAL_PREFIX_PATHS = ("/api/discovery/",)  # motore Pipeline Prospect, tutto suo
+_COMMERCIAL_PREFIX_PATHS = (
+    "/api/discovery/",     # motore Pipeline Prospect, tutto suo
+    "/api/lista-fredda/",  # Lista Fredda, sua dal 30/9 (divieti sotto)
+)
 
+# Vendite: consentiti SOLO con questi metodi (fullmatch sul path).
+_COMMERCIAL_METHOD_PATHS = [
+    (frozenset({"GET"}), re.compile(r"/api/admin/ciak/calls-today")),
+    (frozenset({"GET"}), re.compile(r"/api/admin/ciak/pipeline-blueprint")),
+    (frozenset({"GET"}), re.compile(r"/api/admin/ciak/clienti-ciak")),
+    (frozenset({"GET"}), re.compile(r"/api/admin/ciak/analisi/coda")),
+    # Analisi da validare: legge e corregge il testo. Non genera (AI) e non
+    # invia: /genera/{t} e /{t}/valida-invia hanno due segmenti, qui no.
+    (frozenset({"GET", "PUT"}), re.compile(r"/api/admin/ciak/analisi/(?!coda$|prompt$|genera$)[^/]+")),
+]
 
-# Metodi vietati all'account commerciale anche su path consentiti: può leggere
-# e modificare un lead inbound, non eliminarlo (le eliminazioni restano a Claudio).
-# La pulizia duplicati Discovery cancella in blocco: solo lancio manuale di Claudio.
-_COMMERCIAL_FORBIDDEN_METHODS = {
-    "/api/admin/ciak/lead": {"DELETE"},
-    "/api/discovery/worker/cleanup-duplicates": {"POST"},
-}
+# Vietati anche dentro path consentiti, controllati per primi. Oltre a questi,
+# nessun DELETE su nessun path: le eliminazioni restano a Claudio.
+_COMMERCIAL_FORBIDDEN = [
+    # Pulizia duplicati Discovery: cancella in blocco.
+    (frozenset({"POST"}), re.compile(r"/api/discovery/worker/cleanup-duplicates")),
+    # Sposta un lead Discovery in Lista Fredda cancellandolo, anche se l'email
+    # c'era già (lista_fredda.approve_from_discovery).
+    (frozenset({"POST"}), re.compile(r"/api/lista-fredda/approve-from-discovery/[^/]+")),
+    # CSV completo in chiaro (email, nomi, telefoni): solo l'audience cifrata.
+    (frozenset({"GET"}), re.compile(r"/api/lista-fredda/export")),
+]
 
 
 def _path_allowed_for_commercial(path: str, method: str = "GET") -> bool:
     # Caratteri di controllo mai ammessi: "%0A" in fondo diventa "\n" nel path,
     # le regex delle route Starlette (…$) lo accettano, ma il confronto esatto
-    # dei metodi vietati no (cleanup-duplicates%0A passava come consentito).
+    # dei divieti no (cleanup-duplicates%0A passava come consentito).
     if any(ord(c) < 0x20 or c == "\x7f" for c in path):
         return False
-    if method.upper() in _COMMERCIAL_FORBIDDEN_METHODS.get(path, set()):
+    m = method.upper()
+    if m == "HEAD":  # Starlette risponde a HEAD con la route GET
+        m = "GET"
+    if m == "DELETE":
+        return False
+    if any(m in methods and rx.fullmatch(path) for methods, rx in _COMMERCIAL_FORBIDDEN):
         return False
     if path in _COMMERCIAL_EXACT_PATHS:
         return True
     if any(path.startswith(p) for p in _COMMERCIAL_PREFIX_PATHS):
         return True
-    return any(rx.fullmatch(path) for rx in _COMMERCIAL_PATTERN_PATHS)
+    if any(rx.fullmatch(path) for rx in _COMMERCIAL_PATTERN_PATHS):
+        return True
+    return any(m in methods and rx.fullmatch(path) for methods, rx in _COMMERCIAL_METHOD_PATHS)
 
 
 def _routing_path(request) -> str:
@@ -159,6 +186,16 @@ async def resolve_admin_type(token_data) -> Optional[str]:
     value = (user or {}).get("admin_type")
     _ADMIN_TYPE_CACHE[user_id] = (value, now + _ADMIN_TYPE_CACHE_TTL)
     return value
+
+
+# Letture massive per l'account commerciale: una pagina alla volta, senza
+# scorrere oltre. Il middleware vede solo path e metodo, non la query: il tetto
+# lo applicano le route (lista_fredda.get_lista_fredda_leads, get_leads_caldi).
+COMMERCIAL_LIST_MAX = 100
+
+
+async def is_commercial_account(token_data) -> bool:
+    return (await resolve_admin_type(token_data)) in COMMERCIAL_ADMIN_TYPES
 
 
 async def enforce_commercial_scope(request: Request, token_data) -> None:
@@ -261,8 +298,8 @@ async def require_ciak_admin(
     """Identico pattern a routers/admin_stefania.py — role admin/superadmin.
 
     Più: un account con admin_type nel set COMMERCIAL_ADMIN_TYPES è comunque
-    role="admin" (stessa autenticazione), ma può toccare solo l'allowlist
-    Acquisizione sopra — 403 su tutto il resto, indipendentemente dal metodo.
+    role="admin" (stessa autenticazione), ma può toccare solo il suo perimetro
+    (_COMMERCIAL_*, per path e metodo, nessun DELETE) — 403 su tutto il resto.
     """
     from auth import decode_token
     if not credentials:

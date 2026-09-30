@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { adminFetch, apiGet, apiPost } from "../api";
+import { adminFetch, apiGet, apiPost, isCommercialAccount } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const ACCESS_LABELS = {
@@ -217,6 +217,10 @@ function AttivaStartCard({ onAuthExpired, onAttivato }) {
 }
 
 export function ClientiCiak({ onAuthExpired }) {
+  // Account commerciale (Mariangela): in Vendite vede e aggiorna, ma attivare o
+  // annullare lo Start, decidere l'offerta ed eliminare restano a Claudio
+  // (backend: 403, routers/ciak_admin.py).
+  const readOnly = isCommercialAccount();
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -402,7 +406,9 @@ export function ClientiCiak({ onAuthExpired }) {
         </div>
       ) : null}
 
-      <AttivaStartCard onAuthExpired={onAuthExpired} onAttivato={() => loadItems({ silent: true })} />
+      {!readOnly && (
+        <AttivaStartCard onAuthExpired={onAuthExpired} onAttivato={() => loadItems({ silent: true })} />
+      )}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
@@ -482,6 +488,9 @@ export function ClientiCiak({ onAuthExpired }) {
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-500">{row.updatedAt || "-"}</td>
+                    {readOnly ? (
+                    <td className="px-4 py-4 text-xs text-slate-400">La decide Claudio dopo la call.</td>
+                    ) : (
                     <td className="px-4 py-4">
                       <div className="flex min-w-[12rem] flex-wrap gap-2">
                         <button
@@ -538,6 +547,7 @@ export function ClientiCiak({ onAuthExpired }) {
                         Elimina cliente
                       </button>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

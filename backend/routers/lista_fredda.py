@@ -231,7 +231,16 @@ async def get_lista_fredda_leads(
 ):
     """
     Lista contatti lista fredda con filtri.
+
+    Account commerciale: al massimo COMMERCIAL_LIST_MAX contatti e nessuno
+    scorrimento (skip): l'elenco completo in chiaro non è suo (niente /export),
+    e senza tetto bastavano poche chiamate paginate per ricostruirlo.
     """
+    from routers.ciak_admin import COMMERCIAL_LIST_MAX, COMMERCIAL_SCOPE_DETAIL, is_commercial_account
+    if await is_commercial_account(_admin):
+        if skip > 0:
+            raise HTTPException(status_code=403, detail=COMMERCIAL_SCOPE_DETAIL)
+        limit = min(limit, COMMERCIAL_LIST_MAX)
     query = {}
     
     if stato:
@@ -256,8 +265,11 @@ async def get_lista_fredda_leads(
 async def get_leads_caldi(limit: int = Query(50, le=200), _admin=Depends(require_ciak_admin)):
     """
     Lista contatti caldi (stato = caldo) con info contatto.
-    Ordinati per ultima azione.
+    Ordinati per ultima azione. Account commerciale: al massimo COMMERCIAL_LIST_MAX.
     """
+    from routers.ciak_admin import COMMERCIAL_LIST_MAX, is_commercial_account
+    if await is_commercial_account(_admin):
+        limit = min(limit, COMMERCIAL_LIST_MAX)
     leads = await db.lista_fredda.find(
         {"stato": "caldo"},
         {"_id": 0}

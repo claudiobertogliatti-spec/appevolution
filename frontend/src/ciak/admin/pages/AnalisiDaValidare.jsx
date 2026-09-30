@@ -12,7 +12,7 @@
  *   POST /api/admin/ciak/analisi/genera/{token}?force=true → rigenera
  */
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, apiPut } from "../api";
+import { apiGet, apiPost, apiPut, isCommercialAccount } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const CAPITOLI = [
@@ -35,6 +35,9 @@ function fmtDate(iso) {
 }
 
 export function AnalisiDaValidare({ onAuthExpired }) {
+  // Account commerciale (Mariangela): legge e corregge i capitoli. Rigenerare
+  // (costo AI) e validare/inviare al cliente restano a Claudio (backend: 403).
+  const canSendOrRegenerate = !isCommercialAccount();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -308,6 +311,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
             {busy ? "…" : "Salva bozza edit"}
           </button>
 
+          {canSendOrRegenerate && (<>
           <button
             onClick={() => setPendingKind("rigenera")}
             disabled={busy}
@@ -333,6 +337,7 @@ export function AnalisiDaValidare({ onAuthExpired }) {
           >
             {busy ? "…" : "Valida e invia"}
           </button>
+          </>)}
         </div>
 
         <ConfirmDialog

@@ -127,8 +127,8 @@ const NAV = [
     agenti: ["Luca"],
     to: "/admin/direzione",
     end: true,
-    // Mariangela (account commerciale) lavora solo in Acquisizione: il backend
-    // le nega il resto (routers/ciak_admin.py, scope commerciale).
+    // Mariangela (account commerciale) lavora in Acquisizione e Vendite: il
+    // backend le nega il resto (routers/ciak_admin.py, scope commerciale).
     hideFor: ["mariangela"],
     pages: [],
   },
@@ -142,7 +142,7 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi", hideFor: ["mariangela"] },
+      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi" },
       { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
@@ -158,16 +158,17 @@ const NAV = [
     persone: ["Mariangela"],
     agenti: ["Marco", "Carlo"],
     landing: true,
-    hideFor: ["antonella", "mariangela"],
+    hideFor: ["antonella"],
     pages: [
       { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
-      { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
+      // Invii al cliente: di Claudio, non dell'account commerciale (backend: 403).
+      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call", hideFor: ["mariangela"] },
+      { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page", hideFor: ["mariangela"] },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
-      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Verifica end-to-end del pagamento in ambiente di test" },
+      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Verifica end-to-end del pagamento in ambiente di test", hideFor: ["mariangela"] },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────

@@ -515,3 +515,236 @@ async def test_flusso_analisi_chiave_assente_e_header_vuoto_resta_chiuso(monkeyp
         await fa._require_ciak_admin_or_internal_key(
             _req("/api/flusso-analisi/attiva-partnership/u1"), "", None)
     assert exc.value.status_code == 401
+
+
+# ─── 30/9/2026: perimetro deciso da Claudio ─────────────────────────────────
+# Acquisizione + Lista Fredda + Vendite in sola lettura/aggiornamento.
+# Mai eliminazioni, mai soldi, mai invii al cliente, mai generazioni AI di
+# Vendite, mai il CSV in chiaro della Lista Fredda.
+
+@pytest.mark.parametrize("method,path", [
+    # Vendite: vedere e aggiornare
+    ("GET", "/api/admin/ciak/calls-today"),
+    ("GET", "/api/admin/ciak/pipeline-blueprint"),
+    ("GET", "/api/admin/ciak/clienti-ciak"),
+    ("GET", "/api/admin/ciak/analisi/coda"),
+    ("GET", "/api/admin/ciak/analisi/tok-123"),
+    ("PUT", "/api/admin/ciak/analisi/tok-123"),
+    ("HEAD", "/api/admin/ciak/calls-today"),
+    # Lista Fredda: sua, tranne export in chiaro ed eliminazioni
+    ("GET", "/api/lista-fredda/stats"),
+    ("GET", "/api/lista-fredda/leads"),
+    ("GET", "/api/lista-fredda/leads/caldi"),
+    ("GET", "/api/lista-fredda/export-custom-audience"),
+    ("POST", "/api/lista-fredda/leads"),
+    ("PATCH", "/api/lista-fredda/leads/x@y.it"),
+    ("POST", "/api/lista-fredda/import"),
+    # Pipeline Prospect: tutto tranne eliminare
+    ("GET", "/api/discovery/leads/42"),
+    ("PATCH", "/api/discovery/leads/42"),
+])
+def test_perimetro_30_9_consentito(method, path):
+    assert _path_allowed_for_commercial(path, method) is True
+
+
+@pytest.mark.parametrize("method,path", [
+    # Nessuna eliminazione, su nessun path
+    ("DELETE", "/api/discovery/leads/42"),
+    ("DELETE", "/api/lista-fredda/leads/x@y.it"),
+    ("DELETE", "/api/admin/ciak/lead"),
+    ("DELETE", "/api/admin/ciak/clients/c1"),
+    ("DELETE", "/api/admin/ciak/editorial/brands/b1"),
+    ("POST", "/api/lista-fredda/approve-from-discovery/42"),   # cancella il lead Discovery
+    ("POST", "/api/discovery/worker/cleanup-duplicates"),
+    # Lista Fredda: niente CSV in chiaro
+    ("GET", "/api/lista-fredda/export"),
+    ("HEAD", "/api/lista-fredda/export"),
+    # Vendite: niente invii al cliente
+    ("POST", "/api/ciak/client/admin/consegna-blueprint"),
+    ("POST", "/api/admin/ciak/analisi/tok-123/valida-invia"),
+    ("POST", "/api/ciak/client/admin/consegna-manuale"),
+    ("POST", "/api/proposta/admin/genera-cliente"),
+    # Vendite: niente generazioni AI
+    ("POST", "/api/admin/ciak/analisi/genera/tok-123"),
+    ("POST", "/api/ciak/client/admin/blueprint/genera"),
+    # Vendite: niente soldi
+    ("POST", "/api/admin/ciak/start/attiva"),
+    ("POST", "/api/ciak/client/admin/offer-decision"),
+    ("POST", "/api/admin/ciak/clients/c1/annulla-start-non-pagato"),
+    ("POST", "/api/admin/ciak/lead/riporta-a-call-fatta"),
+    # Letture di Vendite solo in GET, e il prompt di Carlo non è suo
+    ("POST", "/api/admin/ciak/calls-today"),
+    ("PUT", "/api/admin/ciak/clienti-ciak"),
+    ("PUT", "/api/admin/ciak/analisi/coda"),
+    ("GET", "/api/admin/ciak/analisi/prompt/k1"),
+    ("POST", "/api/admin/ciak/analisi/prompt/k1"),
+])
+def test_perimetro_30_9_vietato(method, path):
+    assert _path_allowed_for_commercial(path, method) is False
+
+
+def test_filtro_nega_delete_e_consente_le_letture_di_vendite():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from routers.ciak_admin import CommercialScopeMiddleware
+
+    app = FastAPI()
+    app.add_middleware(CommercialScopeMiddleware)
+    app.add_api_route("/api/discovery/leads/{lead_id}", lambda lead_id: {"ok": True},
+                      methods=["GET", "PATCH", "DELETE"])
+    app.add_api_route("/api/admin/ciak/pipeline-blueprint", lambda: {"ok": True}, methods=["GET"])
+    app.add_api_route("/api/lista-fredda/export", lambda: {"ok": True}, methods=["GET"])
+    client = TestClient(app)
+    tok = _bearer(_jwt("mariangela"))
+    assert client.get("/api/discovery/leads/42", headers=tok).status_code == 200
+    assert client.patch("/api/discovery/leads/42", headers=tok).status_code == 200
+    assert client.delete("/api/discovery/leads/42", headers=tok).status_code == 403
+    assert client.get("/api/admin/ciak/pipeline-blueprint", headers=tok).status_code == 200
+    assert client.get("/api/lista-fredda/export", headers=tok).status_code == 403
+    # Claudio: nessun limite
+    full = _bearer(_jwt("claudio"))
+    assert client.delete("/api/discovery/leads/42", headers=full).status_code == 200
+    assert client.get("/api/lista-fredda/export", headers=full).status_code == 200
+
+
+def test_testo_del_403_uguale_tra_backend_e_frontend():
+    # api.js confronta il detail parola per parola: se divergono, ogni 403 di
+    # permesso diventa un logout.
+    import pathlib
+    api_js = pathlib.Path(__file__).resolve().parents[2].joinpath(
+        "frontend", "src", "ciak", "admin", "api.js").read_text(encoding="utf-8")
+    assert f'export const SCOPE_DENIED_DETAIL = "{admin_router.COMMERCIAL_SCOPE_DETAIL}";' in api_js
+
+
+# ─── Revisione 30/9: analisi inviate intoccabili, niente copia della lista ──
+
+class _AsyncCursor:
+    def __init__(self, cur):
+        self._cur = cur
+
+    def sort(self, *a, **k):
+        self._cur = self._cur.sort(*a, **k)
+        return self
+
+    def skip(self, n):
+        self._cur = self._cur.skip(n)
+        return self
+
+    def limit(self, n):
+        self._cur = self._cur.limit(n)
+        return self
+
+    async def to_list(self, length=None):
+        return list(self._cur)
+
+
+class _AsyncColl:
+    """mongomock (sincrono) con l'interfaccia async usata dai router."""
+
+    def __init__(self, coll):
+        self._c = coll
+
+    async def find_one(self, *a, **k):
+        return self._c.find_one(*a, **k)
+
+    async def update_one(self, *a, **k):
+        return self._c.update_one(*a, **k)
+
+    async def count_documents(self, *a, **k):
+        return self._c.count_documents(*a, **k)
+
+    def find(self, *a, **k):
+        return _AsyncCursor(self._c.find(*a, **k))
+
+
+def _mongo(**colls):
+    import mongomock
+    raw = mongomock.MongoClient().db
+    for name, docs in colls.items():
+        if docs:
+            raw[name].insert_many([dict(d) for d in docs])
+    return raw, SimpleNamespace(**{name: _AsyncColl(raw[name]) for name in colls})
+
+
+def _tok(admin_type):
+    return SimpleNamespace(role="admin", admin_type=admin_type, email=f"{admin_type}@example.test", user_id="u-" + admin_type)
+
+
+_CAPITOLI = {"capitoli": {"c1": "Testo originale di Carlo"}}
+
+
+@pytest.mark.asyncio
+async def test_commerciale_non_modifica_un_analisi_gia_inviata(monkeypatch):
+    import routers.ciak_analisi_admin as aa
+    raw, db = _mongo(ciak_analisi=[{"session_token": "t1", "stato": "inviata", "analisi_definitiva": _CAPITOLI}])
+    monkeypatch.setattr(aa, "db", db)
+    body = aa.DefinitivaUpdate(analisi_definitiva={"capitoli": {"c1": "Testo cambiato"}})
+    with pytest.raises(HTTPException) as exc:
+        await aa.salva_definitiva("t1", body, admin=_tok("mariangela"))
+    assert exc.value.status_code == 403
+    assert raw.ciak_analisi.find_one({"session_token": "t1"})["analisi_definitiva"] == _CAPITOLI
+
+
+@pytest.mark.asyncio
+async def test_commerciale_non_svuota_un_analisi(monkeypatch):
+    import routers.ciak_analisi_admin as aa
+    raw, db = _mongo(ciak_analisi=[{"session_token": "t1", "stato": "da_validare", "analisi_definitiva": _CAPITOLI}])
+    monkeypatch.setattr(aa, "db", db)
+    for vuota in ({}, {"capitoli": {"c1": "  "}}):
+        with pytest.raises(HTTPException) as exc:
+            await aa.salva_definitiva("t1", aa.DefinitivaUpdate(analisi_definitiva=vuota), admin=_tok("mariangela"))
+        assert exc.value.status_code == 400
+    assert raw.ciak_analisi.find_one({"session_token": "t1"})["analisi_definitiva"] == _CAPITOLI
+
+
+@pytest.mark.asyncio
+async def test_commerciale_corregge_un_analisi_da_validare_e_l_originale_resta(monkeypatch):
+    import routers.ciak_analisi_admin as aa
+    raw, db = _mongo(ciak_analisi=[{"session_token": "t1", "stato": "da_validare", "analisi_definitiva": _CAPITOLI}])
+    monkeypatch.setattr(aa, "db", db)
+    nuovo = {"capitoli": {"c1": "Testo corretto"}}
+    assert (await aa.salva_definitiva("t1", aa.DefinitivaUpdate(analisi_definitiva=nuovo),
+                                      admin=_tok("mariangela")))["success"] is True
+    doc = raw.ciak_analisi.find_one({"session_token": "t1"})
+    assert doc["analisi_definitiva"] == nuovo
+    assert doc["analisi_definitiva_history"][-1]["analisi_definitiva"] == _CAPITOLI
+
+
+@pytest.mark.asyncio
+async def test_claudio_modifica_anche_un_analisi_inviata(monkeypatch):
+    import routers.ciak_analisi_admin as aa
+    raw, db = _mongo(ciak_analisi=[{"session_token": "t1", "stato": "inviata", "analisi_definitiva": _CAPITOLI}])
+    monkeypatch.setattr(aa, "db", db)
+    nuovo = {"capitoli": {"c1": "Correzione di Claudio"}}
+    await aa.salva_definitiva("t1", aa.DefinitivaUpdate(analisi_definitiva=nuovo), admin=_tok("claudio"))
+    doc = raw.ciak_analisi.find_one({"session_token": "t1"})
+    assert doc["analisi_definitiva"] == nuovo
+    assert doc["analisi_definitiva_history"][-1]["analisi_definitiva"] == _CAPITOLI
+
+
+_FREDDI = [{"email": f"c{i}@example.test", "phone": "000", "created_at": f"2026-01-{i % 28 + 1:02d}"} for i in range(250)]
+
+
+@pytest.mark.asyncio
+async def test_lista_fredda_commerciale_una_pagina_da_100_e_niente_scorrimento(monkeypatch):
+    import routers.lista_fredda as lf
+    _raw, db = _mongo(lista_fredda=_FREDDI)
+    monkeypatch.setattr(lf, "db", db)
+    res = await lf.get_lista_fredda_leads(stato=None, tag=None, has_phone=None, limit=500, skip=0, _admin=_tok("mariangela"))
+    assert len(res["leads"]) == 100
+    with pytest.raises(HTTPException) as exc:
+        await lf.get_lista_fredda_leads(stato=None, tag=None, has_phone=None, limit=100, skip=100, _admin=_tok("mariangela"))
+    assert exc.value.status_code == 403
+    caldi = await lf.get_leads_caldi(limit=200, _admin=_tok("mariangela"))
+    assert caldi["count"] <= 100
+
+
+@pytest.mark.asyncio
+async def test_lista_fredda_claudio_senza_tetto(monkeypatch):
+    import routers.lista_fredda as lf
+    _raw, db = _mongo(lista_fredda=_FREDDI)
+    monkeypatch.setattr(lf, "db", db)
+    res = await lf.get_lista_fredda_leads(stato=None, tag=None, has_phone=None, limit=500, skip=0, _admin=_tok("claudio"))
+    assert len(res["leads"]) == 250
+    res = await lf.get_lista_fredda_leads(stato=None, tag=None, has_phone=None, limit=100, skip=200, _admin=_tok("claudio"))
+    assert len(res["leads"]) == 50

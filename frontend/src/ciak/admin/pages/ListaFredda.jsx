@@ -16,7 +16,7 @@ import {
   Eye, ArrowUpRight, CheckCircle, Snowflake, Shield, TrendingUp, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { adminFetch } from "../api";
+import { adminFetch, isCommercialAccount } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATI_COLORS = {
@@ -30,6 +30,9 @@ const STATI_COLORS = {
 };
 
 export function ListaFredda({ onAuthExpired }) {
+  // Account commerciale (Mariangela): la Lista Fredda è sua, ma niente CSV in
+  // chiaro (solo l'audience cifrata) e niente eliminazioni (backend: 403).
+  const fullAccess = !isCommercialAccount();
   const [stats, setStats] = useState(null);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -164,11 +167,13 @@ export function ListaFredda({ onAuthExpired }) {
             Aggiorna
           </button>
 
-          <button onClick={handleExportCSV} disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors">
-            <Download className="w-4 h-4" />
-            <span className="text-sm font-medium">Export CSV</span>
-          </button>
+          {fullAccess && (
+            <button onClick={handleExportCSV} disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors">
+              <Download className="w-4 h-4" />
+              <span className="text-sm font-medium">Export CSV</span>
+            </button>
+          )}
 
           <button onClick={handleExportAudience} disabled={exporting}
             className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-slate-900 rounded-lg hover:bg-yellow-300 disabled:opacity-50 transition-colors">
@@ -304,14 +309,16 @@ export function ListaFredda({ onAuthExpired }) {
                           : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setPendingDelete(lead)}
-                        title="Elimina contatto"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Elimina
-                      </button>
+                      {fullAccess && (
+                        <button
+                          onClick={() => setPendingDelete(lead)}
+                          title="Elimina contatto"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Elimina
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

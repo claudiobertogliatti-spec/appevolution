@@ -10,12 +10,12 @@ jest.mock(
 jest.mock("../api", () => ({
   apiGet: jest.fn(),
   adminFetch: jest.fn(),
-  getAdminUser: jest.fn(() => null),
-  SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
+  isCommercialAccount: jest.fn(() => false),
+  isPermissionDenied: jest.fn((m) => m === "Questa funzione non è abilitata per il tuo account."),
 }));
 
 import { AdminLeadDetail } from "./AdminLeadDetail";
-import { apiGet, adminFetch, getAdminUser } from "../api";
+import { apiGet, adminFetch, isCommercialAccount, isPermissionDenied } from "../api";
 
 const LEAD = {
   email: "mario@x.it",
@@ -30,6 +30,8 @@ const LEAD = {
 beforeEach(() => {
   jest.clearAllMocks();
   apiGet.mockResolvedValue(LEAD);
+  // CRA azzera le implementazioni dei mock prima di ogni test (resetMocks).
+  isPermissionDenied.mockImplementation((m) => m === "Questa funzione non è abilitata per il tuo account.");
 });
 
 test('"Ho fatto la call di consegna" consegna il Blueprint via admin/consegna-blueprint', async () => {
@@ -151,7 +153,7 @@ test("il ripristino non compare prima della call", async () => {
 });
 
 test("account commerciale (Mariangela): niente genera, invio, proposta o ripristino", async () => {
-  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  isCommercialAccount.mockReturnValue(true);
   apiGet.mockResolvedValue({
     ...LEAD,
     qualified_for_proposta: true,
@@ -164,25 +166,25 @@ test("account commerciale (Mariangela): niente genera, invio, proposta o riprist
   expect(screen.queryByRole("button", { name: /invia il Blueprint/i })).toBeNull();
   expect(screen.queryByRole("button", { name: /Genera Proposta Partnership/i })).toBeNull();
   expect(screen.queryByText("Ripristino")).toBeNull();
-  getAdminUser.mockReturnValue(null);
+  isCommercialAccount.mockReturnValue(false);
 });
 
 test("account commerciale con Blueprint pronto: può scaricarlo, non rigenerarlo", async () => {
-  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  isCommercialAccount.mockReturnValue(true);
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   expect(await screen.findByRole("button", { name: /Scarica Blueprint PDF/i })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Rigenera" })).toBeNull();
   // Non le si chiede di "confermare la call": l'invio non è suo.
   expect(screen.getByText(/L'invio al cliente, dopo la call, lo fa Claudio/i)).toBeTruthy();
   expect(screen.queryByText(/quando confermi di aver fatto la call/i)).toBeNull();
-  getAdminUser.mockReturnValue(null);
+  isCommercialAccount.mockReturnValue(false);
 });
 
 test("generazione negata per permesso: si legge il motivo, non 'può essere ancora in corso'", async () => {
   apiGet.mockResolvedValue({ ...LEAD, blueprint: { stato: "mancante" } });
-  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  adminFetch.mockRejectedValue(new Error("Questa funzione non è abilitata per il tuo account."));
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   fireEvent.click(await screen.findByRole("button", { name: "Genera Blueprint" }));
-  expect(await screen.findByText("Questo account ha accesso solo al reparto Acquisizione.")).toBeTruthy();
+  expect(await screen.findByText("Questa funzione non è abilitata per il tuo account.")).toBeTruthy();
   expect(screen.queryByText(/può essere ancora in corso/i)).toBeNull();
 });
