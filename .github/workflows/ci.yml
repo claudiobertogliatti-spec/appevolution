@@ -65,6 +65,13 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio mongomock
 
+      # `import server` crea cartelle sotto /app/storage (istanza globale di
+      # VideoProcessor in video_processor.py). Nel container Cloud Run /app e' la
+      # cartella dell'app ed e' scrivibile; sul runner non esiste. La prepariamo
+      # uguale, cosi' i test che importano server girano come in produzione.
+      - name: Prepara /app/storage (come nel container)
+        run: sudo mkdir -p /app/storage && sudo chown -R "$USER" /app
+
       # MONGO_URL fittizia: serve solo perche' routers/dependencies.py la richiede
       # all'import (il client Motor e' lazy, nessuna connessione reale).
       # Lista esplicita dei file unit: evita di importare gli integration test
@@ -198,6 +205,36 @@ jobs:
           tests/test_youtube_uploader_retry.py
           tests/test_partner_materiali_listing.py
           tests/test_operativo_upload_resource_type.py
+          tests/test_acquisition_policy.py
+          tests/test_celery_manager_config.py
+          tests/test_celery_tasks_db_contract.py
+          tests/test_ciak_admin_clienti_ciak.py
+          tests/test_ciak_admin_observability.py
+          tests/test_ciak_cut_engine.py
+          tests/test_ciak_edit_project.py
+          tests/test_ciak_fatturazione_offerte.py
+          tests/test_ciak_lesson_review.py
+          tests/test_ciak_lesson_standard.py
+          tests/test_ciak_mark_call_booked.py
+          tests/test_ciak_publish.py
+          tests/test_collaborator_document_storage.py
+          tests/test_collaborator_settlements.py
+          tests/test_collaborator_settlements_api.py
+          tests/test_frontend_security_headers.py
+          tests/test_journey_obiettivo.py
+          tests/test_legacy_partnership_routes.py
+          tests/test_lesson_video_router.py
+          tests/test_partner_journey_review_data.py
+          tests/test_partner_step_materials.py
+          tests/test_partner_step_materials_access.py
+          tests/test_posizionamento_inputs_endpoint.py
+          tests/test_proposta_signed_contract_effect.py
+          tests/test_video_health.py
+          tests/test_video_retry_guard.py
+          tests/test_video_watchdog_attempt_cap.py
+          tests/test_start_final_deliverables.py
+          tests/test_partner_rewards_phase_unlock.py
+          tests/test_partner_rewards_protocollo_evo.py
 
   frontend:
     name: Frontend (build smoke)
@@ -220,7 +257,7 @@ jobs:
 
       - name: Calendar review tests
         working-directory: frontend
-        run: CI=true npm test -- --runInBand Diagnostica.test.jsx CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx KpiTile.test.jsx PageHeader.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx ContractParamsModal.test.jsx AnalisiPromptEditor.test.jsx LucaChat.test.jsx VideoPipelineMonitor.test.jsx VideoReview.test.jsx ContrattoCustomModal.test.jsx PartnerDetailModal.test.jsx DepartmentQueue.test.jsx AcquisizioneQueue.test.jsx offerEmphasis.test.js InsiderSalesPage.test.js InsiderWelcome.test.js OfferSections.test.js ContractAccept.test.js ChiusuraInsider.test.jsx ListinoPrezzi.test.jsx ConsegnaManuale.test.jsx ClientiCiak.test.jsx TrattativePipeline.test.jsx
+        run: CI=true npm test -- --runInBand Diagnostica.test.jsx CalendarioEditoriale.test.jsx Step11Calendario.test.jsx metaAdLandingRedirect.test.js admin/api.test.js repartoMetrics.test.js adminPath.test.js Amministrazione.test.jsx CabinaRegia.test.jsx ConfirmDialog.test.jsx StatusPill.test.jsx KpiTile.test.jsx PageHeader.test.jsx PartnerHub.test.jsx QuarantenaPartner.test.jsx ExPartner.test.jsx AdminLeads.test.jsx ListaFredda.test.jsx LeadManager.test.jsx AdminLeadDetail.test.jsx AnalisiDaValidare.test.jsx Fatture.test.jsx PipelineList.test.jsx StefaniaAdmin.test.jsx TemplateEmail.test.jsx MatteoKBEditor.test.jsx ContractParamsModal.test.jsx AnalisiPromptEditor.test.jsx LucaChat.test.jsx VideoPipelineMonitor.test.jsx VideoReview.test.jsx ContrattoCustomModal.test.jsx PartnerDetailModal.test.jsx DepartmentQueue.test.jsx AcquisizioneQueue.test.jsx offerEmphasis.test.js InsiderSalesPage.test.js InsiderWelcome.test.js OfferSections.test.js ContractAccept.test.js ChiusuraInsider.test.jsx ListinoPrezzi.test.jsx ConsegnaManuale.test.jsx AdminHome.test.jsx AnalysisRecap.test.js BoosterEvoPage.test.js ClientiCiak.test.jsx ClientLayout.test.jsx CollaboratorSettlements.test.jsx ConsegneMancate.test.jsx ConsegneStart.test.jsx DepartmentRoom.test.jsx EvoSPage.test.js feature.test.js funnelRouting.test.js homeModel.test.js journeyModel.test.js journeyPresentation.test.js MasterclassLanding.test.jsx navigationMatch.test.js obiettivoModel.test.js PersonaHome.test.jsx simulatoreFatturato.test.js StepObiettivo.test.jsx TrattativePipeline.test.jsx MasterclassFlow.test.jsx TeamSupportoPage.test.jsx SerenoPiano.test.js SerenoJourney.test.js SerenoAssistenza.test.js PartnerNavigation.test.js PartnerFilesPage.test.js protectedDownload.test.js CiakBlueprint.test.jsx Landing.test.jsx
 
       # Allineato a vercel.json (buildCommand). DISABLE_ESLINT_PLUGIN evita i
       # conflitti eslint v9; CI=false: i warning non bloccano. Errori reali

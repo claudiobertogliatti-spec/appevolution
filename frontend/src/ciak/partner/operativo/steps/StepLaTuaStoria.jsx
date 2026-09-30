@@ -4,7 +4,7 @@ import Questionario from "../Questionario";
 import { STORIA_QUESTIONS } from "../questionari/storiaQuestions";
 import { authHeaders } from "../../api";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 /**
  * Step "La tua storia" (Esamina, Valentina).

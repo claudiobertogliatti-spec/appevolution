@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { getAgentForStep } from "./agents";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 /**
  * Drawer chat dinamico — l'agente attivo dipende dallo step corrente.

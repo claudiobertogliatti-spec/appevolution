@@ -6,13 +6,28 @@ jest.mock('../sereno/feature', () => ({ PARTNER_SERENO_ENABLED: true }));
 const { MemoryRouter } = require('react-router-dom');
 const { PartnerFilesPage } = require('./PartnerFilesPage');
 
-// Real-shape response of the authenticated materials endpoint.
-const POSIZIONAMENTO = {
-  posizionamento: {
-    materiali: [
-      { nome: 'Analisi_Mercato.pdf', url: '/api/partner-journey/analisi/p1', cartella: 'brand_kit', categoria: 'Analisi', data: 'oggi', owner: '⚙️ CIAK' },
-    ],
-  },
+// Fonte reale dei materiali (dal #150): GET /api/partner-journey/operativo/materiali/{id},
+// collezione `files`. Forma di services/partner_step_materials.normalize_file_material.
+const MATERIALI = {
+  materials: [
+    {
+      id: 'f1', type: 'pdf', title: 'Analisi_Mercato.pdf', category: 'Analisi',
+      download_url: '/api/partner-step-materials/f1/download', public_url: null,
+      created_at: '2026-09-20T10:00:00Z',
+    },
+  ],
+};
+// La cartella Drive viene ancora dal posizionamento; qui non c'e'.
+const POSIZIONAMENTO = { posizionamento: {} };
+
+const materialsRoute = (url) => {
+  if (String(url).includes('/operativo/materiali/')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(MATERIALI) });
+  }
+  if (String(url).includes('/posizionamento/')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+  }
+  return null;
 };
 
 beforeEach(() => {
@@ -29,9 +44,8 @@ afterEach(() => {
 
 test('flag-on renders the real fetched materials in the sereno skin, and download carries the auth token', async () => {
   global.fetch = jest.fn((url) => {
-    if (String(url).includes('/posizionamento/')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
-    }
+    const m = materialsRoute(url);
+    if (m) return m;
     return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
   });
 
@@ -45,7 +59,7 @@ test('flag-on renders the real fetched materials in the sereno skin, and downloa
   fireEvent.click(within(row).getByRole('button', { name: /Scarica/i }));
 
   await waitFor(() => {
-    const call = global.fetch.mock.calls.find(([u]) => String(u).includes('/analisi/p1'));
+    const call = global.fetch.mock.calls.find(([u]) => String(u).includes('/api/partner-step-materials/f1/download'));
     expect(call).toBeTruthy();
     expect(call[1].headers.Authorization).toBe('Bearer test-jwt');
   });
@@ -53,9 +67,8 @@ test('flag-on renders the real fetched materials in the sereno skin, and downloa
 
 test('partner with a signed contract AND an existing PDF shows a "Contratto firmato" entry whose download hits pdf-download', async () => {
   global.fetch = jest.fn((url) => {
-    if (String(url).includes('/posizionamento/')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
-    }
+    const m = materialsRoute(url);
+    if (m) return m;
     if (String(url).includes('/api/contract/status/')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ signed: true, signed_at: '2026-09-01T10:00:00Z' }) });
     }
@@ -82,9 +95,8 @@ test('partner with a signed contract AND an existing PDF shows a "Contratto firm
 
 test('partner with signed_at but NO real PDF (best-effort generation failed) shows NO "Contratto firmato" entry — no fake 404 download', async () => {
   global.fetch = jest.fn((url) => {
-    if (String(url).includes('/posizionamento/')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
-    }
+    const m = materialsRoute(url);
+    if (m) return m;
     if (String(url).includes('/api/contract/status/')) {
       // signed_at e' scritto PRIMA della generazione del PDF: qui il partner
       // risulta firmato ma la riga in contract_pdfs non e' mai stata creata.
