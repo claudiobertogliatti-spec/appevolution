@@ -9,16 +9,24 @@ jest.mock("../lib/metaPixel", () => ({
   trackBlueprintBridgeView: jest.fn(),
 }));
 
-const renderAt = (path) =>
-  render(
+// CiakBlueprint legge `source` e le UTM da window.location.search (non dal router):
+// in produzione, con BrowserRouter, coincidono. Qui va impostato anche l'URL del browser,
+// altrimenti MemoryRouter cambia solo la rotta e il bridge non compare mai.
+const renderAt = (path) => {
+  window.history.pushState({}, "", path);
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <CiakBlueprint />
     </MemoryRouter>
   );
+};
 
 describe("CiakBlueprint (analisi gratuita)", () => {
   beforeEach(() => {
     trackBlueprintBridgeView.mockReset();
+  });
+  afterEach(() => {
+    window.history.pushState({}, "", "/");
   });
 
   test("le CTA portano alle 10 domande (/diagnostica), niente checkout", () => {

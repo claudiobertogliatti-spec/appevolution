@@ -33,10 +33,13 @@ describe("funnel masterclass", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getAllByPlaceholderText("Il tuo nome")).toHaveLength(2);
-    expect(screen.getAllByPlaceholderText("La tua email")).toHaveLength(2);
+    // Due moduli (hero e fondo pagina), campi con etichetta vera dal restyle del 22/7.
+    expect(screen.getAllByLabelText("Il tuo nome")).toHaveLength(2);
+    expect(screen.getAllByLabelText("La tua migliore email")).toHaveLength(2);
+    expect(screen.getAllByRole("textbox")).toHaveLength(4); // solo nome + email, x2
+    expect(screen.queryByLabelText(/telefono/i)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/telefono/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Metodo EVO/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Metodo EVO/i).length).toBeGreaterThan(0);
   });
 
   test("il viewer mostra il video senza un form di acquisizione", () => {
