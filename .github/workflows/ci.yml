@@ -87,6 +87,7 @@ jobs:
           tests/test_ciak_booking_regen.py
           tests/test_acquisizione_funnel_gratuito.py
           tests/test_riporta_a_call_fatta.py
+          tests/test_commercial_admin_scope.py
           tests/test_admin_consegna_blueprint.py
           tests/test_admin_consegna_manuale.py
           tests/test_ciak_pdf.py

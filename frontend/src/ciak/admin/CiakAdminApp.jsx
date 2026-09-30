@@ -127,6 +127,9 @@ const NAV = [
     agenti: ["Luca"],
     to: "/admin/direzione",
     end: true,
+    // Mariangela (account commerciale) lavora solo in Acquisizione: il backend
+    // le nega il resto (routers/ciak_admin.py, scope commerciale).
+    hideFor: ["mariangela"],
     pages: [],
   },
   // ── ACQUISIZIONE · Luca ── dal freddo al Blueprint ─────────────────────
@@ -139,7 +142,7 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi" },
+      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi", hideFor: ["mariangela"] },
       { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
@@ -155,7 +158,7 @@ const NAV = [
     persone: ["Mariangela"],
     agenti: ["Marco", "Carlo"],
     landing: true,
-    hideFor: ["antonella"],
+    hideFor: ["antonella", "mariangela"],
     pages: [
       { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
@@ -174,6 +177,7 @@ const NAV = [
     persone: ["Antonella", "Matteo"],
     agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
+    hideFor: ["mariangela"],
     // 12 funzioni raccolte in 4 gruppi chiari (stile Poste). Nessuna rimossa.
     groups: [
       { title: "Partner", pages: [
@@ -205,7 +209,7 @@ const NAV = [
     persone: ["Stefania", "Debora"],
     agenti: ["Valentina"],
     landing: true,
-    hideFor: ["antonella"],
+    hideFor: ["antonella", "mariangela"],
     pages: [
       { to: "/admin/amministrazione", label: "Amministrazione", desc: "Obiettivo del mese, scadenze e crediti da recuperare" },
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
@@ -396,7 +400,9 @@ function AdminShell({ user, onLogout, children }) {
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
   const searchResults = globalSearch.trim()
-    ? nav.flatMap((macro) => macroPages(macro).map((page) => ({ ...page, department: macro.label })))
+    ? nav.flatMap((macro) => macroPages(macro)
+        .filter((page) => !(page.hideFor || []).includes(adminType))
+        .map((page) => ({ ...page, department: macro.label })))
         .filter((page) => `${page.label} ${page.desc || ""} ${page.department}`.toLocaleLowerCase("it-IT").includes(globalSearch.trim().toLocaleLowerCase("it-IT")))
         .slice(0, 8)
     : [];
@@ -643,6 +649,8 @@ export default function CiakAdminApp() {
   // compiti (AntonellaDashboard/AntonellaOggi). Conserva pieni poteri admin
   // nelle sezioni visibili.
   const isAntonella = user?.admin_type === "antonella";
+  // Account commerciale: la sua home è il reparto Acquisizione.
+  const isMariangela = user?.admin_type === "mariangela";
 
   return (
     <AdminShell user={user} onLogout={handleLogout}>
@@ -654,10 +662,14 @@ export default function CiakAdminApp() {
             la sua dashboard dedicata sia come home sia come Direzione. */}
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
-          : <AdminHome user={user} />} />
+          : isMariangela
+            ? <Navigate to="/admin/reparto/acquisizione" replace />
+            : <AdminHome user={user} />} />
         <Route path="direzione" element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
-          : <CabinaRegia onAuthExpired={handleLogout} />} />
+          : isMariangela
+            ? <Navigate to="/admin/reparto/acquisizione" replace />
+            : <CabinaRegia onAuthExpired={handleLogout} />} />
         {/* Sezioni dedicate alle collaboratrici (coda personale filtrata per owner). */}
         <Route path="persona/:slug" element={<PersonaHome onAuthExpired={handleLogout} />} />
 

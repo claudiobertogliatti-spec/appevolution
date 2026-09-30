@@ -125,6 +125,14 @@ final_cors_origins = build_cors_origins(
     os.environ.get("REACT_APP_BACKEND_URL", ""),
 )
 
+# Scope dell'account commerciale (Mariangela) su TUTTO /api/*: con il suo token
+# admin, 403 fuori dall'allowlist Acquisizione, qualunque dependency abbia la
+# route (una route che non valida il token va chiusa lì, non qui). Aggiunto
+# prima del CORS così il CORS resta lo strato esterno (Starlette: l'ultimo
+# add_middleware è il più esterno) e anche questo 403 porta i suoi header.
+from routers.ciak_admin import CommercialScopeMiddleware
+app.add_middleware(CommercialScopeMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=final_cors_origins,
@@ -1457,6 +1465,25 @@ class ClienteAnalisiResponse(BaseModel):
     data_registrazione: str
     token: Optional[str] = None
 
+def _analisi_67_dismessa() -> None:
+    """410 sulle vie pubbliche del vecchio flusso "Analisi Strategica €67".
+
+    Ritirato (decisione Claudio 29/9/2026, si elimina dopo l'export dei dati).
+    Erano aperte senza login: register creava utenti e metteva tag Systeme su
+    qualunque email, questionario lanciava Deep Research + LLM in background,
+    status leggeva lo stato di un utente dal solo id. Le letture output, pdf,
+    contract-text, personal-data, documents e stato controllavano solo che ci
+    fosse un header Authorization, anche finto: bastava lo user_id per leggere
+    codice fiscale, indirizzo, documenti d'identità e contratto. Nessuna pagina
+    le chiama più. Stesso trattamento degli alias in routers/flusso_analisi.py
+    (chiusi a livello di router).
+    """
+    raise HTTPException(
+        status_code=410,
+        detail="Percorso dismesso: l'analisi gratuita si fa su ciak.io",
+    )
+
+
 @api_router.post("/cliente-analisi/register")
 async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     """
@@ -1465,6 +1492,7 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     Dopo la registrazione, l'utente deve completare il pagamento separatamente.
     Se la password non è fornita, viene auto-generata e inviata via email.
     """
+    _analisi_67_dismessa()
     import bcrypt
     
     # Verifica se email già esiste
@@ -1569,6 +1597,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
     """
     Crea una sessione di checkout Stripe per il pagamento dell'Analisi Strategica (€67).
     """
+    _analisi_67_dismessa()
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
@@ -1633,6 +1662,7 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
     Verifica il pagamento e aggiorna lo stato dell'utente.
     Chiamato dopo redirect da Stripe.
     """
+    _analisi_67_dismessa()
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
@@ -1744,6 +1774,7 @@ async def get_cliente_analisi_status(user_id: str):
     """
     Ritorna lo stato corrente del cliente analisi.
     """
+    _analisi_67_dismessa()
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
@@ -1883,6 +1914,7 @@ async def _genera_output_post_quiz(user_id: str, quiz: dict, scoring: dict):
 @api_router.get("/cliente-analisi/output/{user_id}")
 async def get_analisi_output(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Restituisce analisi, scoring, script call per un utente."""
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
 
@@ -1910,6 +1942,7 @@ async def get_analisi_output(user_id: str, credentials: HTTPAuthorizationCredent
 @api_router.get("/cliente-analisi/pdf/{user_id}")
 async def download_analisi_pdf(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Download PDF analisi strategica."""
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
 
@@ -1996,6 +2029,7 @@ async def mark_call_prenotata(request: Request, credentials: HTTPAuthorizationCr
 @api_router.get("/cliente-analisi/contract-text/{user_id}")
 async def get_client_contract_text(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Restituisce il testo del contratto parametrizzato per il cliente."""
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -2179,10 +2213,11 @@ async def upload_audio_analisi(user_id: str, file: UploadFile = File(...), crede
 
 
 @api_router.get("/cliente-analisi/audio/{user_id}")
-async def get_audio_analisi(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Restituisce l'URL dell'audio analisi per il cliente."""
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Token non fornito")
+async def get_audio_analisi(user_id: str, admin=Depends(require_admin_role)):
+    """URL dell'audio analisi di un cliente: solo admin (PipelineProspect).
+
+    Prima bastava un header Authorization qualsiasi, anche non valido.
+    """
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "audio_analisi_url": 1})
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
@@ -2230,6 +2265,7 @@ async def save_personal_data(request: Request, credentials: HTTPAuthorizationCre
 @api_router.get("/cliente-analisi/personal-data/{user_id}")
 async def get_personal_data(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Restituisce i dati personali salvati dal cliente."""
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "contract_personal_data": 1})
@@ -2276,6 +2312,7 @@ async def upload_client_document(
 @api_router.get("/cliente-analisi/documents/{user_id}")
 async def get_client_documents(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Restituisce i documenti caricati dal cliente."""
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "documents": 1})
@@ -2411,6 +2448,7 @@ async def get_stato_cliente(user_id: str, credentials: HTTPAuthorizationCredenti
     dai dati presenti su DB (user + cliente + proposta).
     Aggiorna anche il campo persistito su db.users.
     """
+    _analisi_67_dismessa()
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -2542,6 +2580,7 @@ async def save_questionario_cliente(request: QuestionarioRequest):
     """
     Salva le risposte al questionario strategico del cliente.
     """
+    _analisi_67_dismessa()
     # Trova l'utente
     user = await db.users.find_one({"id": request.user_id}, {"_id": 0})
     if not user:

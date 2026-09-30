@@ -11,7 +11,14 @@ import os
 import stripe
 import asyncio
 
-router = APIRouter(prefix="/api/clienti", tags=["clienti"])
+# Vecchio flusso "Analisi Strategica €67" (ritirato). Chiuso agli estranei
+# dal 29/9/2026: registrava clienti con password in chiaro, convertiva in
+# partner "active" e lanciava l'LLM senza autenticazione. Si elimina del
+# tutto dopo l'export dei dati storici (decisione Claudio).
+from fastapi import Depends as _Depends
+from routers.ciak_admin import require_ciak_admin as _require_ciak_admin
+
+router = APIRouter(prefix="/api/clienti", tags=["clienti"], dependencies=[_Depends(_require_ciak_admin)])
 
 # Auth admin (role admin/superadmin) — riusa la dependency del router Ciak admin.
 from routers.ciak_admin import require_ciak_admin

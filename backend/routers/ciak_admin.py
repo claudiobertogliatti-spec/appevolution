@@ -19,6 +19,7 @@ memory/ciak_technical_spec.md (state machine, scoring).
 """
 import logging
 import re
+import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -48,17 +49,20 @@ def set_db(database) -> None:
 # offerte sono di Vendite, non sue (stesso confine già dichiarato nella pagina
 # Home Acquisizione: "il reparto finisce a call prenotata, poi passa a Vendite").
 # Default-deny: un path non in questa lista risponde 403, anche chiamato
-# direttamente (non basta nascondere il link nel menu). require_ciak_admin è
-# condivisa da 11 router (discovery_engine, proposta, clienti, ecc. — vedi
-# `from routers.ciak_admin import require_ciak_admin`), quindi coprirla qui
-# copre tutti loro in un colpo solo. Fa eccezione routers/ciak_clients.py,
-# che ha una propria dependency (require_admin_or_internal): lì importiamo
-# COMMERCIAL_ADMIN_TYPES e _path_allowed_for_commercial per replicare lo
-# stesso controllo — necessario perché quel file mescola un endpoint che a
-# Mariangela serve (blueprint-pdf, sola lettura) con altri che sono territorio
-# Vendite/Delivery (consegna-blueprint, consegna-manuale, offer-decision,
-# start/activate) dietro la stessa dependency.
+# direttamente (non basta nascondere il link nel menu). Il confine vero è
+# CommercialScopeMiddleware (in fondo a questa sezione), montato su tutta l'app
+# in server.py: vale per OGNI /api/*, qualunque dependency abbia la route
+# (require_admin_role di server.py, require_admin_or_report_key, le guardie
+# proprie di admin_luca, partner_journey, email_campaigns...). Agisce sulle
+# richieste con un token admin valido: una route che non valida il token è
+# aperta a chiunque, e va chiusa nella route stessa. Le dependency
+# require_ciak_admin, ciak_clients.require_admin_or_internal e
+# ciak_analisi_admin ripetono lo stesso controllo (enforce_commercial_scope):
+# secondo livello, e copertura nei test che montano un router da solo.
 COMMERCIAL_ADMIN_TYPES = {"mariangela"}
+# Testo esatto: frontend/src/ciak/admin/api.js (SCOPE_DENIED_DETAIL) lo usa per
+# distinguere questo 403 da un token scaduto e non fare logout.
+COMMERCIAL_SCOPE_DETAIL = "Questo account ha accesso solo al reparto Acquisizione."
 
 _COMMERCIAL_EXACT_PATHS = {
     "/api/admin/ciak/acquisizione-command-center",
@@ -86,12 +90,168 @@ _COMMERCIAL_PATTERN_PATHS = [
 _COMMERCIAL_PREFIX_PATHS = ("/api/discovery/",)  # motore Pipeline Prospect, tutto suo
 
 
-def _path_allowed_for_commercial(path: str) -> bool:
+# Metodi vietati all'account commerciale anche su path consentiti: può leggere
+# e modificare un lead inbound, non eliminarlo (le eliminazioni restano a Claudio).
+# La pulizia duplicati Discovery cancella in blocco: solo lancio manuale di Claudio.
+_COMMERCIAL_FORBIDDEN_METHODS = {
+    "/api/admin/ciak/lead": {"DELETE"},
+    "/api/discovery/worker/cleanup-duplicates": {"POST"},
+}
+
+
+def _path_allowed_for_commercial(path: str, method: str = "GET") -> bool:
+    # Caratteri di controllo mai ammessi: "%0A" in fondo diventa "\n" nel path,
+    # le regex delle route Starlette (…$) lo accettano, ma il confronto esatto
+    # dei metodi vietati no (cleanup-duplicates%0A passava come consentito).
+    if any(ord(c) < 0x20 or c == "\x7f" for c in path):
+        return False
+    if method.upper() in _COMMERCIAL_FORBIDDEN_METHODS.get(path, set()):
+        return False
     if path in _COMMERCIAL_EXACT_PATHS:
         return True
     if any(path.startswith(p) for p in _COMMERCIAL_PREFIX_PATHS):
         return True
-    return any(rx.match(path) for rx in _COMMERCIAL_PATTERN_PATHS)
+    return any(rx.fullmatch(path) for rx in _COMMERCIAL_PATTERN_PATHS)
+
+
+def _routing_path(request) -> str:
+    """Il path su cui lavora il router (scope["path"]), non request.url.path.
+
+    request.url si ricostruisce anche dall'header Host: un Host come
+    "host/api/admin/ciak/leads?" farebbe vedere al controllo un path consentito
+    mentre il router esegue quello vero.
+    """
+    scope = getattr(request, "scope", None)
+    if isinstance(scope, dict) and scope.get("path"):
+        return scope["path"]
+    return request.url.path
+
+
+# user_id -> (admin_type, scadenza). Un solo worker uvicorn: la cache in
+# memoria basta a non leggere users a ogni richiesta di un token senza
+# admin_type (i token emessi prima del 29/9 durano al massimo 24 ore).
+_ADMIN_TYPE_CACHE: dict = {}
+_ADMIN_TYPE_CACHE_TTL = 60.0
+
+
+async def resolve_admin_type(token_data) -> Optional[str]:
+    """admin_type dell'account: dal token se c'è, altrimenti dal database.
+
+    I token emessi prima del 29/9/2026 non contengono admin_type (vedi
+    auth.py::AuthService.login): senza questo fallback l'account commerciale
+    resterebbe senza limiti fino al prossimo login.
+    """
+    value = getattr(token_data, "admin_type", None)
+    if value:
+        return value
+    user_id = getattr(token_data, "user_id", None)
+    if not user_id or db is None:
+        return None
+    cached = _ADMIN_TYPE_CACHE.get(user_id)
+    now = time.monotonic()
+    if cached and cached[1] > now:
+        return cached[0]
+    try:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "admin_type": 1})
+    except Exception:  # noqa: BLE001 — un errore di lettura non deve aprire l'accesso
+        logger.exception("[CIAK_ADMIN] lettura admin_type fallita per %s", user_id)
+        raise HTTPException(status_code=503, detail="Verifica permessi non disponibile, riprova.")
+    value = (user or {}).get("admin_type")
+    _ADMIN_TYPE_CACHE[user_id] = (value, now + _ADMIN_TYPE_CACHE_TTL)
+    return value
+
+
+async def enforce_commercial_scope(request: Request, token_data) -> None:
+    """403 se l'account è a scope commerciale e il path/metodo è fuori allowlist.
+
+    Usata dalle dependency admin di ciak_admin, ciak_clients e
+    ciak_analisi_admin. Il confine su tutto il resto dell'app è
+    CommercialScopeMiddleware: stessa allowlist, stesso path di routing.
+    """
+    admin_type = await resolve_admin_type(token_data)
+    if admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(
+        _routing_path(request), getattr(request, "method", "GET")
+    ):
+        raise HTTPException(status_code=403, detail=COMMERCIAL_SCOPE_DETAIL)
+
+
+def _bearer_from_scope(scope) -> Optional[str]:
+    for name, value in scope.get("headers") or []:
+        if name == b"authorization":
+            raw = value.decode("latin-1").strip()
+            if raw[:7].lower() == "bearer ":
+                return raw[7:].strip() or None
+            return None
+    return None
+
+
+def _decode_admin_token_quiet(token: str):
+    """Come auth.decode_token, ma senza log d'errore: un token scaduto o di un
+    partner non è affare del filtro, ci pensa la dependency della route."""
+    from jose import JWTError, jwt
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY, TokenData
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        return None
+    if not payload.get("sub") or payload.get("role") not in ("admin", "superadmin"):
+        return None
+    return TokenData(
+        user_id=payload.get("sub"),
+        email=payload.get("email"),
+        role=payload.get("role"),
+        admin_type=payload.get("admin_type"),
+    )
+
+
+async def commercial_scope_denial(scope) -> Optional[tuple]:
+    """(status, detail) se la richiesta va negata all'account commerciale, altrimenti None.
+
+    Solo token admin validi: nessun token, token non validi o di altri ruoli
+    passano oltre e li giudica la dependency della route (401/403 come prima).
+    """
+    path = scope.get("path") or ""
+    if not path.startswith("/api/"):
+        return None
+    token = _bearer_from_scope(scope)
+    if not token:
+        return None
+    data = _decode_admin_token_quiet(token)
+    if data is None:
+        return None
+    try:
+        admin_type = await resolve_admin_type(data)
+    except HTTPException as exc:
+        return exc.status_code, exc.detail
+    if admin_type in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(
+        path, scope.get("method") or "GET"
+    ):
+        return 403, COMMERCIAL_SCOPE_DETAIL
+    return None
+
+
+class CommercialScopeMiddleware:
+    """Scope commerciale su tutta l'app, prima di qualunque route.
+
+    ASGI puro (niente BaseHTTPMiddleware: non tocca streaming e background
+    task). Legge scope["path"], lo stesso valore su cui lavora il router.
+    In server.py va aggiunto PRIMA di CORSMiddleware, così il CORS resta lo
+    strato esterno e anche questo 403 porta gli header CORS.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http":
+            denied = await commercial_scope_denial(scope)
+            if denied:
+                from starlette.responses import JSONResponse
+                status, detail = denied
+                response = JSONResponse(status_code=status, content={"detail": detail})
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
 
 
 async def require_ciak_admin(
@@ -110,11 +270,7 @@ async def require_ciak_admin(
     data = decode_token(credentials.credentials)
     if not data or data.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
-    if getattr(data, "admin_type", None) in COMMERCIAL_ADMIN_TYPES and not _path_allowed_for_commercial(request.url.path):
-        raise HTTPException(
-            status_code=403,
-            detail="Questo account ha accesso solo al reparto Acquisizione.",
-        )
+    await enforce_commercial_scope(request, data)
     return data
 
 

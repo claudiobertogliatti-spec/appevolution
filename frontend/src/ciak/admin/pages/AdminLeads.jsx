@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { apiGet, adminFetch } from "../api";
+import { apiGet, adminFetch, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
@@ -102,6 +102,9 @@ export function AdminLeads({ onAuthExpired }) {
   const [onlyCall, setOnlyCall] = useState(false);
   const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
+  // L'account commerciale non elimina lead (backend: 403, ciak_admin.py
+  // _COMMERCIAL_FORBIDDEN_METHODS): il bottone non le compare proprio.
+  const canDelete = getAdminUser()?.admin_type !== "mariangela";
   const [deleting, setDeleting] = useState(false);
   const [pendingEdit, setPendingEdit] = useState(null); // { email, nome, phone }
   const [savingEdit, setSavingEdit] = useState(false);
@@ -142,7 +145,10 @@ export function AdminLeads({ onAuthExpired }) {
       load();
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
-      else toast.error("Errore nell'eliminazione del lead.");
+      else if (err.message === SCOPE_DENIED_DETAIL) {
+        setPendingDelete(null);
+        toast.error(err.message);
+      } else toast.error("Errore nell'eliminazione del lead.");
     } finally {
       setDeleting(false);
     }
@@ -278,16 +284,18 @@ export function AdminLeads({ onAuthExpired }) {
                       >
                         Modifica
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPendingDelete(l);
-                        }}
-                        title="Elimina lead"
-                        className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
-                      >
-                        Elimina
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(l);
+                          }}
+                          title="Elimina lead"
+                          className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
+                        >
+                          Elimina
+                        </button>
+                      )}
                       <span className="text-slate-300">›</span>
                     </td>
                   </tr>

@@ -230,14 +230,17 @@ class AuthService:
         if not user:
             return None
         
-        # Create token
-        access_token = create_access_token(
-            data={
-                "sub": user["id"],
-                "email": user["email"],
-                "role": user["role"]
-            }
-        )
+        # Create token. admin_type viaggia nel token: le guardie di scope
+        # (account commerciale di Mariangela, routers/ciak_admin.py) lo leggono
+        # da qui. Fino al 29/9/2026 mancava e quelle guardie non scattavano mai.
+        payload = {
+            "sub": user["id"],
+            "email": user["email"],
+            "role": user["role"],
+        }
+        if user.get("admin_type"):
+            payload["admin_type"] = user["admin_type"]
+        access_token = create_access_token(data=payload)
         
         return Token(
             access_token=access_token,

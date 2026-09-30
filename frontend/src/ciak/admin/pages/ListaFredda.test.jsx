@@ -46,3 +46,10 @@ test("confermando l'eliminazione chiama la DELETE e conferma con un toast", asyn
   );
   await waitFor(() => expect(toast.success).toHaveBeenCalled());
 });
+
+test("accesso negato: la pagina dice il perché invece di sembrare un archivio vuoto", async () => {
+  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  render(<ListaFredda onAuthExpired={() => {}} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Questo account ha accesso solo al reparto Acquisizione.");
+  expect(screen.queryByText("Nessun contatto trovato")).toBeNull();
+});

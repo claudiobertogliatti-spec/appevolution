@@ -476,7 +476,7 @@ async def import_discovery_leads_csv(file: UploadFile = File(...), admin=Depends
 
 
 @router.post("/leads")
-async def create_lead(lead: DiscoveryLead):
+async def create_lead(lead: DiscoveryLead, admin=Depends(require_ciak_admin)):
     """Crea un nuovo lead nel database"""
     # Check duplicato
     is_duplicate = await check_duplicate(lead.source.value, lead.platform_username, lead.email)
@@ -667,7 +667,7 @@ class ImportCSVRequest(BaseModel):
 
 
 @router.post("/import/csv")
-async def import_leads_from_csv(request: ImportCSVRequest):
+async def import_leads_from_csv(request: ImportCSVRequest, admin=Depends(require_ciak_admin)):
     """
     Importa lead da contenuto CSV.
     
@@ -868,7 +868,7 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/search")
-async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks):
+async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Gaia esegue ricerca lead su piattaforma specificata.
     Restituisce risultati e avvia analisi in background.
@@ -1324,7 +1324,7 @@ class PlacesSearchRequest(BaseModel):
 
 
 @router.get("/search-places/professions")
-async def get_profession_groups():
+async def get_profession_groups(admin=Depends(require_ciak_admin)):
     """Lista categorie di professionisti offline disponibili per la ricerca"""
     return {
         "groups": {k: v["label"] for k, v in PROFESSION_GROUPS.items()},
@@ -1729,7 +1729,7 @@ def calculate_offline_professional_score(
 
 
 @router.post("/analyze-website/{lead_id}")
-async def analyze_website(lead_id: str):
+async def analyze_website(lead_id: str, admin=Depends(require_ciak_admin)):
     """
     Gaia scarica e analizza il sito web del lead.
     Sistema ibrido: Ollama (se disponibile) + Fallback automatico a Claude.
@@ -1833,7 +1833,7 @@ async def analyze_website(lead_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/score/{lead_id}")
-async def score_lead(lead_id: str):
+async def score_lead(lead_id: str, admin=Depends(require_ciak_admin)):
     """
     Calcola lo score AI del lead.
     - Lead Google Places → scoring offline professional (assenza digitale)
@@ -1966,7 +1966,7 @@ async def score_lead(lead_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/generate-outreach/{lead_id}")
-async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None):
+async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None, admin=Depends(require_ciak_admin)):
     """
     Stefania genera un messaggio di primo contatto personalizzato
     con un "regalo strategico" basato sui dati reali del lead.
@@ -2118,7 +2118,7 @@ Genera il messaggio:"""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/outreach/approve/{lead_id}")
-async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None):
+async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None, admin=Depends(require_ciak_admin)):
     """
     Antonella approva il messaggio (con possibile modifica).
     Dopo approvazione, il messaggio è pronto per l'invio.
@@ -2155,7 +2155,7 @@ async def approve_outreach(lead_id: str, request: ApproveOutreachRequest = None)
 
 
 @router.post("/outreach/send/{lead_id}")
-async def mark_outreach_sent(lead_id: str):
+async def mark_outreach_sent(lead_id: str, admin=Depends(require_ciak_admin)):
     """Segna il messaggio come inviato"""
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -2175,7 +2175,7 @@ async def mark_outreach_sent(lead_id: str):
 
 
 @router.post("/leads/{lead_id}/avvia-outreach")
-async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks):
+async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Avvia l'outreach per un lead specifico:
     1. Cambia stato a 'contacted'
@@ -2327,7 +2327,7 @@ Non menzionare Evolution PRO. Chiudi con una domanda aperta."""
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/integrations/status")
-async def get_integrations_status():
+async def get_integrations_status(admin=Depends(require_ciak_admin)):
     """
     Stato delle integrazioni per discovery su vari canali.
     STUB: Le integrazioni LinkedIn/Instagram/Facebook/Google verranno 
@@ -2372,7 +2372,7 @@ async def get_integrations_status():
 
 
 @router.post("/integrations/linkedin/search")
-async def linkedin_search_stub(query: str = "", limit: int = 10):
+async def linkedin_search_stub(query: str = "", limit: int = 10, admin=Depends(require_ciak_admin)):
     """
     STUB: Ricerca lead su LinkedIn.
     TODO: Implementare con Apify LinkedIn Scraper.
@@ -2393,7 +2393,7 @@ async def linkedin_search_stub(query: str = "", limit: int = 10):
 
 
 @router.post("/integrations/instagram/search")
-async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10):
+async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10, admin=Depends(require_ciak_admin)):
     if hashtags is None:
         hashtags = []
     """
@@ -2416,7 +2416,7 @@ async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10):
 
 
 @router.post("/integrations/facebook/search")
-async def facebook_search_stub(groups: List[str] = None, limit: int = 10):
+async def facebook_search_stub(groups: List[str] = None, limit: int = 10, admin=Depends(require_ciak_admin)):
     if groups is None:
         groups = []
     """
@@ -2439,7 +2439,7 @@ async def facebook_search_stub(groups: List[str] = None, limit: int = 10):
 
 
 @router.post("/integrations/google/search")
-async def google_search_stub(keywords: str = "", location: str = "Italia", limit: int = 10):
+async def google_search_stub(keywords: str = "", location: str = "Italia", limit: int = 10, admin=Depends(require_ciak_admin)):
     """
     STUB: Ricerca siti web professionisti via Google.
     TODO: Implementare custom scraper o Apify.
@@ -2472,7 +2472,7 @@ class AutoApproveSettings(BaseModel):
 
 
 @router.get("/settings/auto-approve")
-async def get_auto_approve_settings():
+async def get_auto_approve_settings(admin=Depends(require_ciak_admin)):
     """Recupera le impostazioni correnti di auto-approvazione"""
     settings = await db.admin_settings.find_one({"type": "auto_approve_outreach"})
     if not settings:
@@ -2490,7 +2490,7 @@ async def get_auto_approve_settings():
 
 
 @router.put("/settings/auto-approve")
-async def update_auto_approve_settings(settings: AutoApproveSettings):
+async def update_auto_approve_settings(settings: AutoApproveSettings, admin=Depends(require_ciak_admin)):
     """Aggiorna le impostazioni di auto-approvazione"""
     await db.admin_settings.update_one(
         {"type": "auto_approve_outreach"},
@@ -2507,7 +2507,7 @@ async def update_auto_approve_settings(settings: AutoApproveSettings):
 
 
 @router.post("/trigger-auto-approve")
-async def trigger_auto_approve():
+async def trigger_auto_approve(admin=Depends(require_ciak_admin)):
     """
     Forza l'esecuzione manuale del job di auto-approvazione.
     Utile per testing o per forzare l'elaborazione immediata.
@@ -2547,7 +2547,7 @@ async def check_auto_approve(lead: dict) -> bool:
 
 
 @router.post("/lead/{lead_id}/start-email-sequence")
-async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
+async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks, admin=Depends(require_ciak_admin)):
     """
     Avvia la sequenza email di vendita analisi €67 per un lead.
     
@@ -2653,7 +2653,7 @@ async def start_email_sequence(lead_id: str, background_tasks: BackgroundTasks):
 
 
 @router.post("/lead/{lead_id}/stop-email-sequence")
-async def stop_email_sequence(lead_id: str):
+async def stop_email_sequence(lead_id: str, admin=Depends(require_ciak_admin)):
     """Ferma la sequenza email per un lead (es. dopo acquisto o unsubscribe)"""
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -2673,7 +2673,7 @@ async def stop_email_sequence(lead_id: str):
 
 
 @router.post("/outreach/response/{lead_id}")
-async def mark_response(lead_id: str, request: MarkResponseRequest):
+async def mark_response(lead_id: str, request: MarkResponseRequest, admin=Depends(require_ciak_admin)):
     """
     Registra la risposta del lead.
     Se positiva, attiva integrazione Systeme.io.
@@ -2807,12 +2807,17 @@ async def inject_to_systeme(lead_id: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/worker/cleanup-duplicates")
-async def cleanup_duplicates():
+async def cleanup_duplicates(admin=Depends(require_ciak_admin)):
     """
-    Worker che pulisce i duplicati ogni 24 ore.
+    Pulizia duplicati, solo lancio manuale di un admin (il job notturno è
+    spento dal 29/9/2026, vedi scheduler.py). Cancella in blocco: niente chiave
+    report (sola lettura) e niente account commerciale (ciak_admin.py,
+    _COMMERCIAL_FORBIDDEN_METHODS).
     Logica:
     1. Raggruppa per email (se presente)
-    2. Raggruppa per username + platform
+    2. Raggruppa per username + platform, solo username non vuoti: prima un
+       username mancante finiva nel gruppo "" e i lead inseriti a mano
+       venivano cancellati tutti tranne uno
     3. Mantiene il lead con score più alto
     """
     if db is None:
@@ -2827,7 +2832,9 @@ async def cleanup_duplicates():
     try:
         # 1. Trova duplicati per email
         pipeline_email = [
-            {"$match": {"email": {"$ne": None, "$exists": True}}},
+            # Stringa vuota esclusa come None: altrimenti tutti i lead senza
+            # email finirebbero in un unico gruppo "duplicato".
+            {"$match": {"email": {"$type": "string", "$nin": [""]}}},
             {"$group": {
                 "_id": {"$toLower": "$email"},
                 "count": {"$sum": 1},
@@ -2847,6 +2854,7 @@ async def cleanup_duplicates():
         
         # 2. Trova duplicati per username + platform
         pipeline_username = [
+            {"$match": {"platform_username": {"$type": "string", "$nin": ["", None]}}},
             {"$group": {
                 "_id": {
                     "username": {"$toLower": "$platform_username"},
@@ -3123,7 +3131,7 @@ async def sync_from_systeme(body: SystemeSyncIn, admin=Depends(require_admin_or_
 
 
 @router.post("/cleanup/ai-validation")
-async def ai_cleanup_validation():
+async def ai_cleanup_validation(admin=Depends(require_ciak_admin)):
     """
     [OLLAMA] Usa Llama 3 locale per validazione AI avanzata dei lead.
     Identifica duplicati semantici, lead sospetti, e normalizza dati.
@@ -3188,7 +3196,7 @@ async def ai_cleanup_validation():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/stats/today")
-async def get_today_stats():
+async def get_today_stats(admin=Depends(require_ciak_admin)):
     """
     Statistiche per la sezione "Cassa Lead Proattiva" di Antonella.
     """
@@ -3251,7 +3259,7 @@ async def get_today_stats():
 
 
 @router.get("/stats/weekly")
-async def get_weekly_stats():
+async def get_weekly_stats(admin=Depends(require_ciak_admin)):
     """Statistiche settimanali per report"""
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     

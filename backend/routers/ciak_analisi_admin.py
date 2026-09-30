@@ -11,7 +11,7 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
@@ -32,14 +32,21 @@ def set_db(database) -> None:
     ciak_analisi_prompt_store.set_db(database)
 
 
-async def require_ciak_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Identico pattern a routers/ciak_admin.py — role admin/superadmin."""
+async def require_ciak_admin(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Identico pattern a routers/ciak_admin.py — role admin/superadmin, e lo
+    stesso scope dell'account commerciale (qui niente è nella sua allowlist:
+    generazione a pagamento, invio al cliente e prompt restano a Claudio)."""
     from auth import decode_token
+    from routers.ciak_admin import enforce_commercial_scope
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     data = decode_token(credentials.credentials)
     if not data or data.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    await enforce_commercial_scope(request, data)
     return data
 
 
