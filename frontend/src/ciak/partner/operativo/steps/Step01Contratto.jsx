@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import StepBase from "./StepBase";
 import { authHeaders } from "../../api";
 
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 async function uploadFile(file, partnerId) {
   const fd = new FormData();
