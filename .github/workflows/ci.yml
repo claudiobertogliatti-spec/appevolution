@@ -65,6 +65,13 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio mongomock
 
+      # `import server` crea cartelle sotto /app/storage (istanza globale di
+      # VideoProcessor in video_processor.py). Nel container Cloud Run /app e' la
+      # cartella dell'app ed e' scrivibile; sul runner non esiste. La prepariamo
+      # uguale, cosi' i test che importano server girano come in produzione.
+      - name: Prepara /app/storage (come nel container)
+        run: sudo mkdir -p /app/storage && sudo chown -R "$USER" /app
+
       # MONGO_URL fittizia: serve solo perche' routers/dependencies.py la richiede
       # all'import (il client Motor e' lazy, nessuna connessione reale).
       # Lista esplicita dei file unit: evita di importare gli integration test
