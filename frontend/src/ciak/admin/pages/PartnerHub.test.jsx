@@ -87,7 +87,7 @@ test("un errore nel cambio stato passa da un toast, non da un window.alert", asy
 
 // ─── T17: colonne operative + deep-link ────────────────────────────────────
 
-// Le colonne "Prossima azione / Responsabile / Blocco" non sono inventate: vengono
+// Le colonne "Prossima azione / Responsabile" non sono inventate: vengono
 // da /delivery-audit, la stessa fonte della pagina Audit Delivery.
 function mockOperational(auditItems, overrides = {}) {
   apiGet.mockImplementation((path) => {
@@ -98,7 +98,7 @@ function mockOperational(auditItems, overrides = {}) {
   });
 }
 
-test("la tabella mostra prossima azione/responsabile/blocco da delivery-audit", async () => {
+test("la tabella mostra prossima azione e responsabile da delivery-audit, senza colonne Scadenza/Blocco", async () => {
   mockOperational([
     { id: "1", next_action: "Sollecita revisione video", owner: "Antonella", blocked: true, macro_label: "Valida", current_step: "Funnel" },
   ]);
@@ -106,7 +106,10 @@ test("la tabella mostra prossima azione/responsabile/blocco da delivery-audit", 
   const riga = screen.getByText("Alfredo Vasi").closest("tr");
   expect(riga.textContent).toMatch(/Sollecita revisione video/);
   expect(riga.textContent).toMatch(/Antonella/);
-  expect(riga.textContent).toMatch(/Fermo/); // pill blocco
+  // Scadenza e Blocco non sono piu' colonne della tabella (tolte il 1/10).
+  expect(screen.queryByRole("columnheader", { name: "Scadenza" })).toBeNull();
+  expect(screen.queryByRole("columnheader", { name: "Blocco" })).toBeNull();
+  expect(riga.textContent).not.toMatch(/Fermo/);
   // Un partner assente dall'audit non inventa una prossima azione.
   const riga2 = screen.getByText("Arianna Aceto").closest("tr");
   expect(riga2.textContent).not.toMatch(/Sollecita revisione video/);

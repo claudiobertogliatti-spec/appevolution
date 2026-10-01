@@ -95,27 +95,6 @@ function contrattoLabel(p) {
   return { text: "—", cls: "text-slate-400" };
 }
 
-// Scadenza operativa del partner: SOLO da campi reali. La prossima rata del piano
-// (se esiste un piano) o la fine contratto. Non esiste una deadline per-step nel
-// journey → se manca, "—" (mai una data inventata).
-function scadenzaLabel(p) {
-  const raw = p?.piano_pagamento?.prossima_scadenza || p?.contract_end;
-  if (!raw) return null;
-  const s = String(raw).slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
-}
-
-// Blocco: derivato dai flag GIA' calcolati dal backend in /delivery-audit
-// (stessa fonte della pagina Audit Delivery), mai ricalcolato a mano qui.
-function bloccoLabel(a) {
-  if (!a) return null;
-  if (a.blocked) return { text: "Fermo", tone: "critical" };
-  if (a.incoerenza) return { text: "Incoerenza", tone: "critical" };
-  if (a.stale) return { text: "In ritardo", tone: "warning" };
-  return null;
-}
-
 /** Apre l'area del partner in vista-admin (impersonazione). */
 function openVista(p) {
   const token = getToken();
@@ -258,8 +237,6 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                 <th className="px-5 py-3 font-semibold">Passaggio</th>
                 <th className="px-5 py-3 font-semibold">Prossima azione</th>
                 <th className="px-5 py-3 font-semibold">Responsabile</th>
-                <th className="px-5 py-3 font-semibold">Scadenza</th>
-                <th className="px-5 py-3 font-semibold">Blocco</th>
                 <th className="px-5 py-3 font-semibold">Stato</th>
                 <th className="px-5 py-3 font-semibold text-right">Azioni</th>
               </tr>
@@ -269,8 +246,6 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                 const stato = p.stato || "attivo";
                 const contr = contrattoLabel(p);
                 const a = auditById?.[p.id] || null;
-                const sca = scadenzaLabel(p);
-                const blk = bloccoLabel(a);
                 const passaggio = (a && a.macro_label) || attoEvo(p.phase) || "—";
                 const passaggioSub = (a && a.current_step) || p.phase || null;
                 return (
@@ -314,16 +289,6 @@ function TableView({ partners, auditById, statoFilter, setStatoFilter, counts, o
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-700">
                       {a && a.owner ? a.owner : <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="px-5 py-3 text-xs text-slate-700">
-                      {sca || <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="px-5 py-3">
-                      {blk ? (
-                        <StatusPill tone={blk.tone} label={blk.text} />
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
                     </td>
                     <td className="px-5 py-3">
                       <select
