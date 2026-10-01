@@ -285,6 +285,7 @@ def milestone_rows(
     # Quando il cliente ha inviato le risposte alle sue domande (tappa 1): senza
     # quelle i generatori non partono, quindi il team deve saperlo a colpo d'occhio.
     risposte_at = ((steps_by_id.get("04-posizionamento") or {}).get("data") or {}).get("answers_completed_at")
+    marchio_at = ((steps_by_id.get("03-brand-kit") or {}).get("data") or {}).get("brand_completed_at")
 
     rows = []
     for milestone, scadenza in zip(MILESTONES, scadenze):
@@ -315,6 +316,7 @@ def milestone_rows(
             "nota": avanzamento["nota"],
             "pronta_at": avanzamento["pronta_at"],
             "risposte_ricevute_at": risposte_at if milestone["tappa"] == 1 else None,
+            "marchio_ricevuto_at": marchio_at if milestone["tappa"] == 1 else None,
         })
 
     return sorted(rows, key=_ordine)

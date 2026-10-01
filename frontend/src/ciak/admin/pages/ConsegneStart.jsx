@@ -155,16 +155,28 @@ function VoceTappa({ item, onSegna, inCorso }) {
             )}
           </p>
           {item.tappa === 1 && (
-            <p data-testid="risposte-cliente">
-              Risposte del cliente:{" "}
-              {item.risposte_ricevute_at ? (
-                <span className="font-medium text-emerald-700">
-                  ricevute il {new Date(item.risposte_ricevute_at).toLocaleDateString("it-IT")}: puoi generare
-                </span>
-              ) : (
-                <span className="font-medium text-amber-700">non ancora arrivate: senza non si parte</span>
-              )}
-            </p>
+            <>
+              <p data-testid="risposte-cliente">
+                Risposte del cliente:{" "}
+                {item.risposte_ricevute_at ? (
+                  <span className="font-medium text-emerald-700">
+                    ricevute il {new Date(item.risposte_ricevute_at).toLocaleDateString("it-IT")}: puoi generare
+                  </span>
+                ) : (
+                  <span className="font-medium text-amber-700">non ancora arrivate: senza non si parte</span>
+                )}
+              </p>
+              <p data-testid="marchio-cliente">
+                Marchio scelto dal cliente:{" "}
+                {item.marchio_ricevuto_at ? (
+                  <span className="font-medium text-emerald-700">
+                    inviato il {new Date(item.marchio_ricevuto_at).toLocaleDateString("it-IT")}
+                  </span>
+                ) : (
+                  <span className="font-medium text-amber-700">non ancora arrivato</span>
+                )}
+              </p>
+            </>
           )}
           {item.nota && <p className="text-slate-500 break-words">{item.nota}</p>}
         </div>

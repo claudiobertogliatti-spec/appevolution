@@ -110,8 +110,14 @@ export function StartDomandePage({ dashboard }) {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            to="/cliente/start"
+            to="/cliente/start/marchio"
             className="inline-flex min-h-[48px] items-center rounded-xl bg-yellow-400 px-6 text-base font-semibold text-slate-900 transition-colors duration-200 hover:bg-yellow-300"
+          >
+            Ora il tuo marchio
+          </Link>
+          <Link
+            to="/cliente/start"
+            className="inline-flex min-h-[48px] items-center rounded-xl border border-slate-300 bg-white px-6 text-base font-medium text-slate-700 transition-colors duration-200 hover:border-slate-500"
           >
             Torna al tuo percorso
           </Link>
