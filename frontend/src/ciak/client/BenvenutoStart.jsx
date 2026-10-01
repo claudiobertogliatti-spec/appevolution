@@ -3,24 +3,15 @@ import { START_WELCOME_VIDEOS } from "./startWelcomeVideos";
 
 /**
  * Benvenuto al primo accesso di Ciak Start (390 EUR).
- * Scritto per chi non mastica il linguaggio del marketing digitale: parole di
- * tutti i giorni, cosa hai comprato, cosa faremo insieme, una sola azione.
- * Il Metodo E.V.O. (corso, lezioni, vendita, lancio) appartiene alla Partnership
- * e qui compare solo come passo successivo, in una riga.
+ * Fa sentire il cliente a casa: accoglienza calda, il video di Claudio a tutta
+ * larghezza, sotto una breve descrizione di cosa si fa insieme e un buon motivo
+ * per iniziare subito. Parole di tutti i giorni, nessun gergo di marketing e
+ * nessuna promessa di risultato. Il Metodo E.V.O. e' della Partnership.
  */
-const COSA_RICEVI = [
-  { titolo: "Il tuo marchio", testo: "Il nome, i colori e le lettere che userai ovunque, così le persone ti riconoscono subito." },
-  { titolo: "Chi sei e cosa offri", testo: "Poche frasi chiare che spiegano chi aiuti, con quale problema e perché scegliere te." },
-  { titolo: "I tuoi profili social", testo: "Sistemiamo foto, descrizione e presentazione, così fanno una buona prima impressione." },
-  { titolo: "Una pagina web semplice", testo: "Una pagina con chi sei, cosa fai e come contattarti." },
-  { titolo: "Cosa pubblicare per 60 giorni", testo: "Un calendario con le idee per i tuoi post, giorno per giorno, e una diretta video alla fine." },
-  { titolo: "Un controllo finale", testo: "Verifichiamo insieme che sia tutto a posto per fare il passo successivo." },
-];
-
 const TAPPE = [
   { n: 1, testo: "Il tuo marchio e la frase che spiega chi sei e cosa offri" },
-  { n: 2, testo: "I tuoi profili social e la pagina web" },
-  { n: 3, testo: "Il calendario dei 60 giorni" },
+  { n: 2, testo: "I tuoi profili social e una pagina web semplice" },
+  { n: 3, testo: "Il calendario con le idee per i tuoi post dei prossimi 60 giorni" },
 ];
 
 function Photo({ src, alt, fallbackText, className }) {
@@ -53,22 +44,23 @@ export default function BenvenutoStart({ clientName, consegne = [], onStart, cta
             <div>
               <p className="text-xs font-semibold text-yellow-400 tracking-widest mb-1.5">CIAK START</p>
               <h1 className="text-2xl font-bold leading-tight">
-                {nome ? `Ciao ${nome}, ti diamo il benvenuto in Ciak` : "Ti diamo il benvenuto in Ciak"}
+                {nome ? `Ciao ${nome}, siamo felici di averti con noi` : "Siamo felici di averti con noi"}
               </h1>
               <p className="text-[15px] leading-relaxed text-slate-300 mt-2">
-                Sono Simona e ti accompagno passo dopo passo. Qui sotto trovi cosa hai
-                acquistato e cosa faremo insieme nelle prossime settimane.
+                Io sono Simona e da oggi sono al tuo fianco. Hai fatto un’ottima scelta:
+                partire da Ciak Start vuol dire mettere le basi del tuo lavoro online con
+                calma, un passo alla volta. E non da solo.
               </p>
             </div>
           </div>
         </header>
 
         {video.length > 0 && (
-          <section aria-label="Video di benvenuto" className="grid gap-5 sm:grid-cols-2">
+          <section aria-label="Video di benvenuto" className="space-y-5">
             {video.map((v) => (
-              <div key={v.src || v.embed} className="bg-white rounded-2xl border border-slate-200 p-4">
-                <p className="text-sm font-semibold mb-1">{v.titolo}</p>
-                {v.descrizione && <p className="text-sm text-slate-500 mb-3">{v.descrizione}</p>}
+              <div key={v.src || v.embed} className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4">
+                <p className="text-sm font-semibold px-1 pb-1">{v.titolo}</p>
+                {v.descrizione && <p className="text-sm text-slate-500 px-1 pb-3">{v.descrizione}</p>}
                 <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ aspectRatio: "16 / 9" }}>
                   {v.src ? (
                     <video
@@ -96,24 +88,13 @@ export default function BenvenutoStart({ clientName, consegne = [], onStart, cta
         )}
 
         <section className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h2 className="text-base font-semibold">Cosa hai acquistato</h2>
-          <p className="text-sm text-slate-600 mt-1 mb-4 leading-relaxed">
-            Ciak Start è il primo passo per far conoscere il tuo lavoro online, in modo semplice
-            e ordinato. Ti prepariamo tutto questo:
-          </p>
-          <ul className="divide-y divide-slate-100">
-            {COSA_RICEVI.map((voce) => (
-              <li key={voce.titolo} className="py-3">
-                <p className="text-sm font-semibold">{voce.titolo}</p>
-                <p className="text-sm text-slate-600 leading-relaxed">{voce.testo}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 className="text-base font-semibold">Cosa faremo insieme</h2>
-          <ol className="mt-3 space-y-3">
+          <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+            Nelle prossime settimane mettiamo in ordine il tuo lavoro online, in tre tappe.
+            Tu ci racconti chi sei e cosa fai. Al resto pensiamo noi, e ogni cosa la
+            controlliamo prima di consegnartela.
+          </p>
+          <ol className="mt-4 space-y-3">
             {TAPPE.map((t, i) => (
               <li key={t.n} className="flex gap-3">
                 <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-900 text-yellow-400 text-sm font-semibold flex items-center justify-center">
@@ -126,30 +107,26 @@ export default function BenvenutoStart({ clientName, consegne = [], onStart, cta
               </li>
             ))}
           </ol>
-          <p className="text-sm text-slate-600 mt-4 leading-relaxed">
-            Come funziona: tu rispondi ad alcune domande sul tuo lavoro. Con le tue risposte
-            prepariamo i materiali e li controlliamo noi prima di consegnarteli. Puoi fermarti
-            quando vuoi: i tuoi progressi si salvano e riprendi da dove eri arrivato.
-          </p>
         </section>
 
-        <section className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h2 className="text-base font-semibold">E dopo?</h2>
-          <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-            Se vorrai andare avanti con la Partnership (corso, lezioni video, vendita e lancio),
-            i 390 € di Ciak Start verranno già scalati dal prezzo.
+        <section className="bg-slate-900 text-white rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-yellow-400">Il momento giusto per iniziare è adesso</h2>
+          <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+            I primi passi sono quelli che contano di più. Per cominciare ci servono le tue
+            risposte: prima ce le racconti, prima il tuo lavoro prende forma. Puoi
+            fermarti quando vuoi, i tuoi progressi si salvano e riprendi da dove eri arrivato.
           </p>
-        </section>
-
-        <div className="pb-6">
+          <p className="text-sm text-slate-300 mt-3 leading-relaxed">
+            Ci siamo noi, ogni giorno, al tuo fianco.
+          </p>
           <button
             type="button"
             onClick={onStart}
-            className="w-full sm:w-auto min-h-[48px] px-8 rounded-xl bg-yellow-400 text-slate-900 text-base font-semibold hover:bg-yellow-300 active:bg-yellow-500 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            className="mt-5 w-full sm:w-auto min-h-[48px] px-8 rounded-xl bg-yellow-400 text-slate-900 text-base font-semibold hover:bg-yellow-300 active:bg-yellow-500 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
           >
             {ctaLabel}
           </button>
-        </div>
+        </section>
       </div>
     </div>
   );
