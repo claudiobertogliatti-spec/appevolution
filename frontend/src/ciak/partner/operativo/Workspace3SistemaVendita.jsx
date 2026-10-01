@@ -129,7 +129,7 @@ function ReviewCard({ item, index, okLabel, busy, onApprove, onCorrect, children
 
 const GAIA = {
   dati: "Sono Gaia. Questi dati finiscono nelle pagine del tuo funnel e nei documenti legali. Controlla che siano giusti.",
-  funnel: "Ecco le pagine del tuo funnel. Aprile e dimmi se vanno bene. Se c'è un dato sbagliato, scrivimi cosa cambiare.",
+  funnel: "Costruiamo il funnel una pagina alla volta. Ti dico a cosa serve ognuna e da cosa si compone; poi guardi la bozza e mi dici se va bene.",
   documenti: "Privacy, cookie e condizioni di vendita le scriviamo noi con i tuoi dati. Quando sono pronti li leggi qui e, se tutto torna, li approvi.",
   dominio: "Qui colleghiamo il tuo indirizzo web al funnel. Quando arriviamo a questo passaggio ti guido io, riga per riga.",
   via_libera: "Quasi fatto. Quando è tutto a posto premi il pulsante e il funnel va online.",
@@ -209,6 +209,223 @@ function DocsReader({ partnerId }) {
   );
 }
 
+function PageStrip({ items, current, stateOf, onSelect }) {
+  return (
+    <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 mb-5" aria-label="Le 4 pagine del tuo funnel">
+      {items.map((it, i) => {
+        const on = it.id === current;
+        const done = stateOf(it.id) === "approvata";
+        return (
+          <li key={it.id} className="flex items-center gap-1">
+            <button
+              onClick={() => onSelect(it.id)} aria-current={on ? "step" : undefined}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 min-h-[40px] text-[12.5px] bg-white ${on ? "border-2 border-slate-900 font-semibold" : "border border-slate-200"}`}
+            >
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: done ? "#16a34a" : ANTHRACITE, color: done ? "#fff" : BRAND_YELLOW }}>
+                {done ? "✓" : i + 1}
+              </span>
+              {it.step}
+            </button>
+            {i < items.length - 1 && <span className="text-slate-400" aria-hidden="true">→</span>}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function PartRow({ index, part, pageId, released, busy, onApprove, onEdit, onUpload }) {
+  const [open, setOpen] = useState(false);
+  const [wanted, setWanted] = useState("");
+  const [gaia, setGaia] = useState(null);
+  const [thread, setThread] = useState([]);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [mode, setMode] = useState("modifica");
+  const [photos, setPhotos] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [upErr, setUpErr] = useState(null);
+  const isLook = part.id === "aspetto";
+
+  const addPhotos = async (files) => {
+    setUpErr(null);
+    const list = Array.from(files || []).slice(0, 3 - photos.length);
+    if (!list.length) return;
+    setUploading(true);
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) { setUpErr("Puoi caricare solo foto."); continue; }
+      if (f.size > 10 * 1024 * 1024) { setUpErr("Ogni foto può pesare al massimo 10 MB."); continue; }
+      const url = await onUpload(f);
+      if (url) setPhotos((p) => [...p, { url, name: f.name }]);
+      else setUpErr("Non sono riuscita a caricare una foto. Riprova.");
+    }
+    setUploading(false);
+  };
+
+  const resetAll = () => { setGaia(null); setOpen(false); setWanted(""); setPhotos([]); setThread([]); setReply(""); };
+
+  const send = async (text, insist, note, replyText) => {
+    setSending(true);
+    const r = await onEdit(pageId, part.id, text, insist, note, photos.map((x) => x.url), mode, thread, replyText);
+    setSending(false);
+    if (!r) return;
+    if (r.verdict === "sconsiglio") {
+      setThread((t) => [...t, ...(replyText ? [{ role: "partner", text: replyText }] : [{ role: "partner", text }]),
+                        ...(r.message ? [{ role: "gaia", text: r.message }] : [])]);
+      setReply("");
+      setGaia(r);
+      return;
+    }
+    resetAll();
+  };
+
+  return (
+    <li className="rounded-lg bg-slate-50 px-3 py-2.5">
+      <div className="text-[12.5px] font-semibold text-slate-500">{index}. {part.label}</div>
+      {part.text && <div className="text-[14px] text-slate-900 mt-0.5">«{part.text}»</div>}
+      {released && part.state === "approvata" && <div className="mt-1.5 text-[12.5px] font-semibold text-green-700">✓ Approvato</div>}
+      {released && part.state === "in_modifica" && (
+        <div className="mt-1.5 text-[12.5px] font-semibold text-amber-800">● Stiamo sistemando la tua modifica</div>
+      )}
+      {released && part.state !== "in_modifica" && !open && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {part.state !== "approvata" && (
+            <button onClick={() => onApprove(pageId, part.id)} disabled={busy}
+                    className="min-h-[44px] px-5 rounded-lg text-[14px] font-semibold disabled:opacity-40"
+                    style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+              Approva
+            </button>
+          )}
+          <button onClick={() => { setMode("modifica"); setOpen(true); }} disabled={busy}
+                  className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white disabled:opacity-40">
+            Modifica
+          </button>
+          {part.add_label && (
+            <button onClick={() => { setMode("aggiungi"); setOpen(true); }} disabled={busy}
+                    className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white disabled:opacity-40">
+              {part.add_label}
+            </button>
+          )}
+        </div>
+      )}
+      {open && !gaia && (
+        <form className="mt-2" onSubmit={(e) => { e.preventDefault(); if ((wanted.trim().length >= 3 || photos.length) && !sending) send(wanted, false, null); }}>
+          <label className="block text-[13px] font-semibold text-slate-800 mb-1" htmlFor={`w-${pageId}-${part.id}`}>
+            {mode === "aggiungi" ? (part.add_label === "Aggiungi una domanda" ? "Quale domanda vuoi aggiungere?" : "Cosa vuoi aggiungere?")
+              : isLook ? "Cosa vuoi cambiare?" : "Come lo vorresti?"}
+          </label>
+          <textarea id={`w-${pageId}-${part.id}`} value={wanted} onChange={(e) => setWanted(e.target.value)} maxLength={300} rows={3}
+                    placeholder={mode === "aggiungi" ? (part.add_label === "Aggiungi una domanda" ? "Scrivi la domanda e, se vuoi, la risposta" : "Scrivi il punto che vuoi aggiungere")
+              : isLook ? "Es. sfondo più chiaro, un'altra mia foto, un altro carattere" : "Scrivi qui la versione che preferisci"}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[14px] mb-2" />
+          {isLook && (
+            <div className="mb-3">
+              <label className="inline-flex items-center min-h-[44px] px-4 rounded-lg text-[14px] text-slate-800 border border-dashed border-slate-400 bg-white cursor-pointer">
+                {uploading ? "Carico…" : photos.length ? "Aggiungi un'altra foto" : "Carica le foto che ti piacciono"}
+                <input type="file" accept="image/*" multiple className="sr-only" disabled={uploading || photos.length >= 3}
+                       onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+              </label>
+              <span className="ml-2 text-[12px] text-slate-500">Fino a 3 foto tue, massimo 10 MB l'una.</span>
+              {photos.length > 0 && (
+                <ul className="flex flex-wrap gap-2 mt-2">
+                  {photos.map((ph) => (
+                    <li key={ph.url} className="relative">
+                      <img src={ph.url} alt={ph.name} className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
+                      <button type="button" aria-label={`Togli ${ph.name}`} onClick={() => setPhotos((p) => p.filter((x) => x.url !== ph.url))}
+                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-slate-300 text-[13px] leading-none">×</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {upErr && <p className="mt-1 text-[12.5px] text-red-700">{upErr}</p>}
+            </div>
+          )}
+          <p className="text-[12px] text-slate-500 mb-2">
+            {isLook
+              ? "Gaia controlla che sia in linea con il tuo brand kit. Se qualcosa non va, te lo spiega."
+              : "Vuoi correggere un termine tecnico del tuo settore? Scrivilo qui: nella tua materia decidi tu. Sul copy, Gaia ti dice se funziona e, se no, perché."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={(wanted.trim().length < 3 && !photos.length) || sending || uploading}
+                    className="min-h-[44px] px-5 rounded-lg text-[14px] font-semibold disabled:opacity-40"
+                    style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+              {sending ? "Gaia sta guardando…" : "Invia"}
+            </button>
+            <button type="button" onClick={() => { setOpen(false); setWanted(""); }}
+                    className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-600 border border-slate-300 bg-white">
+              Annulla
+            </button>
+          </div>
+        </form>
+      )}
+      {open && gaia && (
+        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5" role="status">
+          <div className="text-[13px] font-semibold text-slate-900 mb-2">Gaia ti spiega</div>
+          <ul className="space-y-2 mb-3">
+            {thread.map((t, i) => (
+              <li key={i} className={`text-[13.5px] leading-relaxed rounded-lg px-3 py-2 ${t.role === "gaia" ? "bg-white text-slate-800" : "bg-amber-100 text-slate-900 ml-6"}`}>
+                <span className="block text-[11.5px] font-semibold text-slate-500">{t.role === "gaia" ? "Gaia" : "Tu"}</span>
+                {t.text}
+              </li>
+            ))}
+          </ul>
+          {gaia.proposal && (
+            <p className="text-[13.5px] text-slate-900 mb-3"><span className="font-semibold">La mia proposta: </span>«{gaia.proposal}»</p>
+          )}
+          {!gaia.closed && (
+            <form className="mb-3" onSubmit={(e) => { e.preventDefault(); if (reply.trim().length >= 3 && !sending) send(wanted, false, null, reply.trim()); }}>
+              <label className="block text-[13px] font-semibold text-slate-800 mb-1" htmlFor={`r-${pageId}-${part.id}`}>Rispondi a Gaia</label>
+              <textarea id={`r-${pageId}-${part.id}`} value={reply} onChange={(e) => setReply(e.target.value)} maxLength={300} rows={2}
+                        placeholder="Spiega il tuo motivo: se è valido, Gaia cambia idea"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[14px] mb-2" />
+              <button type="submit" disabled={reply.trim().length < 3 || sending}
+                      className="min-h-[44px] px-4 rounded-lg text-[14px] font-semibold disabled:opacity-40"
+                      style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+                {sending ? "Gaia sta rispondendo…" : "Rispondi"}
+              </button>
+            </form>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {gaia.proposal && (
+              <button onClick={() => send(gaia.proposal, true, thread.filter((t) => t.role === "gaia").map((t) => t.text).join(" | "))} disabled={sending}
+                      className="min-h-[44px] px-4 rounded-lg text-[14px] font-semibold disabled:opacity-40"
+                      style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+                Usa la proposta di Gaia
+              </button>
+            )}
+            <button onClick={() => send(wanted, true, thread.filter((t) => t.role === "gaia").map((t) => t.text).join(" | "))} disabled={sending}
+                    className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white disabled:opacity-40">
+              Voglio comunque la mia
+            </button>
+            <button onClick={resetAll} disabled={sending}
+                    className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-600 border border-slate-300 bg-white">
+              Lascio com'è
+            </button>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function PageInfo({ item, released, busy, onApprove, onEdit, onUpload }) {
+  return (
+    <div className="text-[13.5px] leading-relaxed text-slate-800 mt-2">
+      <p className="mb-2">{item.purpose}</p>
+      <div className="font-semibold text-slate-900 mb-1">Si compone di:</div>
+      <ol className="mb-2 space-y-2">
+        {(item.parts || []).map((x, i) => (
+          <PartRow key={x.id} index={i + 1} part={x} pageId={item.id} released={released} busy={busy}
+                   onApprove={onApprove} onEdit={onEdit} onUpload={onUpload} />
+        ))}
+      </ol>
+      <p className="mb-2"><span className="font-semibold text-slate-900">Cosa ottieni: </span>{item.gain}</p>
+      <p><span className="font-semibold text-slate-900">Cosa devi controllare: </span>{item.check}</p>
+    </div>
+  );
+}
+
 function Waiting({ title, children }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-[14px] text-slate-700 leading-relaxed">
@@ -224,6 +441,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [pageSel, setPageSel] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -274,6 +492,38 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const progress = state.progress || 0;
   const current = selected || review.current_step || (steps[0] && steps[0].id);
   const approve = (id) => act("approve", { page_id: id });
+  const approvePart = (pageId, partId) => act("part/approve", { page_id: pageId, part_id: partId });
+  const uploadPhoto = async (file) => {
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch(`${API}/api/partner-journey/operativo/upload/${partnerId}?notify=false`, {
+        method: "POST", headers: authHeaders(), body: fd,
+      });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && d.url ? d.url : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const editPart = async (pageId, partId, wanted, insist, gaiaNote, photos, mode, thread, reply) => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await fetch(`${API}/api/partner-journey/funnel-review/${partnerId}/part/edit`, {
+        method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ page_id: pageId, part_id: partId, wanted, insist: !!insist, gaia_note: gaiaNote || null, photos: photos || [], action: mode || "modifica", thread: thread || [], reply: reply || null }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Qualcosa non ha funzionato. Riprova.");
+      if (d.verdict === "inviata") setState((st) => ({ ...st, review: d, progress: d.progress }));
+      return d;
+    } catch (e) {
+      setErr(String(e.message || e));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
   const correct = (id, wrong, right) => act("correction", { page_id: id, wrong, right });
   const goLive = review.golive || {};
   const legal = review.legal || { id: "dati_legali", state: "da_controllare", data: {} };
@@ -303,7 +553,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
         <div className="flex gap-3 mb-5">
           <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0"
                style={{ background: ANTHRACITE, color: BRAND_YELLOW }} aria-hidden="true">G</div>
-          <div className="bg-slate-50 rounded-xl px-4 py-3 text-[14px] leading-relaxed text-slate-800">{current === "funnel" && !review.released ? "Sto preparando le pagine del tuo funnel. Appena sono pronte le trovi qui e le guardi insieme a me." : GAIA[current]}</div>
+          <div className="bg-slate-50 rounded-xl px-4 py-3 text-[14px] leading-relaxed text-slate-800">{current === "funnel" && !review.released ? "Costruiamo il funnel una pagina alla volta. Ti spiego a cosa serve ognuna; le bozze le sto preparando e le trovi qui appena sono pronte." : GAIA[current]}</div>
         </div>
 
         {current === "dati" && (
@@ -317,29 +567,56 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
           </ReviewCard>
         )}
 
-        {current === "funnel" && !review.released && (
-          <Waiting title="Stiamo preparando il tuo funnel">
-            Quando è pronto da guardare lo trovi qui. <strong>Per ora non devi fare nulla.</strong>
-          </Waiting>
-        )}
-        {current === "funnel" && review.released && (
-          <>
-            <div className="rounded-xl p-5 mb-5" style={{ background: ANTHRACITE }}>
-              <p className="text-[13.5px] text-slate-300 leading-relaxed mb-4">
-                Scorri le pagine come farebbe una persona che arriva da te. Poi dicci se vanno bene.
+        {current === "funnel" && (() => {
+          const seq = review.sequence || [];
+          const pageOf = (id) => (review.pages || []).find((p) => p.id === id);
+          const stateOf = (id) => (pageOf(id) ? pageOf(id).state : "da_controllare");
+          const firstOpen = seq.find((x) => stateOf(x.id) !== "approvata");
+          const activeId = pageSel || (firstOpen ? firstOpen.id : (seq[0] && seq[0].id));
+          const it = seq.find((x) => x.id === activeId);
+          if (!it) return null;
+          const page = pageOf(it.id);
+          const idx = seq.findIndex((x) => x.id === it.id);
+          return (
+            <>
+              <p className="text-[13px] text-slate-600 mb-3">
+                Il tuo funnel sono 4 pagine, una dopo l'altra: portano chi ti incontra dal primo contatto fino al corso. Le vediamo una alla volta.
               </p>
-              <a href={review.preview_url} target="_blank" rel="noreferrer"
-                 className="inline-flex items-center min-h-[48px] px-6 rounded-lg text-[15px] font-bold"
-                 style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
-                Guarda il tuo funnel ↗
-              </a>
-            </div>
-            {(review.pages || []).map((p, i) => (
-              <ReviewCard key={p.id} item={p} index={i + 1} url={p.url} okLabel="Va bene" busy={busy}
-                          onApprove={approve} onCorrect={correct} />
-            ))}
-          </>
-        )}
+              <PageStrip items={seq} current={it.id} stateOf={stateOf} onSelect={setPageSel} />
+              <div className="rounded-xl border border-slate-200 bg-white p-4 mb-3">
+                <div className="text-[16px] font-semibold text-slate-900">{it.building}</div>
+                <PageInfo item={it} released={!!review.released} busy={busy}
+                          onApprove={approvePart} onEdit={editPart} onUpload={uploadPhoto} />
+              </div>
+              {!review.released && (
+                <Waiting title="La bozza è in preparazione">
+                  Quando è pronta la apri da qui e, per ogni elemento, scegli Approva o Modifica. <strong>Per ora non devi fare nulla.</strong>
+                </Waiting>
+              )}
+              {review.released && page && (
+                <div className="rounded-xl p-4 mb-3" style={{ background: ANTHRACITE }}>
+                  <p className="text-[13.5px] text-slate-300 leading-relaxed mb-3">
+                    Guarda la bozza di questa pagina, poi per ogni elemento qui sopra scegli Approva o Modifica.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a href={page.url} target="_blank" rel="noreferrer"
+                       className="inline-flex items-center min-h-[44px] px-5 rounded-lg text-[14px] font-bold"
+                       style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+                      Guarda la bozza ↗
+                    </a>
+                    {page.state !== "approvata" && (
+                      <button onClick={async () => { const ok = await approve(page.id); if (ok) setPageSel(null); }} disabled={busy}
+                              className="min-h-[44px] px-4 rounded-lg text-[14px] text-white border border-slate-500 disabled:opacity-40">
+                        Approva tutta la pagina
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2"><Badge state={page.state} /></div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {current === "documenti" && !(review.documents && review.documents.released) && (
           <Waiting title="Li prepariamo noi">

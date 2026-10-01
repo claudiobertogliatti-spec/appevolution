@@ -21,15 +21,41 @@ from typing import Any, Dict, List, Optional
 
 from services.partner_step_materials import allowed_funnel_preview_url
 
+ASPETTO = {"id": "aspetto", "label": "L'aspetto: colori, foto e carattere"}
+
 PAGES = (
     {"id": "optin", "title": "Iscrizione alla masterclass", "path": "/",
-     "descr": "La pagina dove le persone lasciano nome ed email per guardare la masterclass."},
+     "descr": "La pagina dove le persone lasciano nome ed email per guardare la masterclass.",
+     "step": "Iscrizione",
+     "building": "Ora costruiamo la pagina di iscrizione.",
+     "purpose": "Serve a catturare il tuo pubblico: chi ti incontra lascia nome ed email e, in cambio, riceve la tua masterclass gratuita.",
+     "parts": [{"id": "titolo", "label": "Il titolo che promette il risultato"}, {"id": "problema", "label": "Il problema che risolvi"}, {"id": "presentazione", "label": "La tua presentazione"}, {"id": "faq", "label": "Le domande frequenti"}, {"id": "modulo", "label": "Il modulo con nome ed email"}, ASPETTO],
+     "gain": "I dati di chi è interessato: da quel momento sono contatti tuoi e puoi scrivere loro.",
+     "check": "Che il titolo, la presentazione e i tuoi dati siano giusti."},
     {"id": "masterclass", "title": "La masterclass", "path": "/guarda.html",
-     "descr": "Il video della masterclass e il pulsante per scoprire il tuo corso."},
+     "descr": "Il video della masterclass e il pulsante per scoprire il tuo corso.",
+     "step": "Masterclass",
+     "building": "Ora costruiamo la pagina della masterclass.",
+     "purpose": "Serve a far guardare il tuo video gratuito: è il momento in cui la persona inizia a fidarsi di te.",
+     "parts": [{"id": "titolo", "label": "Il titolo"}, {"id": "video", "label": "Il video della masterclass"}, {"id": "problema", "label": "Il problema che il tuo metodo risolve"}, {"id": "cta", "label": "Il pulsante per scoprire il corso"}, ASPETTO],
+     "gain": "Chi guarda arriva alla pagina del corso già convinto di poter contare su di te.",
+     "check": "Che il video sia quello giusto e che i testi siano corretti."},
     {"id": "offerta", "title": "L'offerta", "path": "/offerta.html",
-     "descr": "La pagina che presenta il corso, il prezzo e il pulsante per acquistare."},
+     "descr": "La pagina che presenta il corso, il prezzo e il pulsante per acquistare.",
+     "step": "Offerta",
+     "building": "Ora costruiamo la pagina dell'offerta.",
+     "purpose": "Serve a presentare il tuo corso e a far decidere: cosa c'è dentro, quanto costa e come si acquista.",
+     "parts": [{"id": "titolo", "label": "Il titolo e la promessa"}, {"id": "target", "label": "A chi è rivolto il corso"}, {"id": "metodo", "label": "Il metodo in pochi passaggi"}, {"id": "corso", "label": "Cosa c'è dentro il corso e il prezzo"}, {"id": "presentazione", "label": "La tua presentazione"}, {"id": "faq", "label": "Le domande più frequenti"}, {"id": "cta", "label": "Il pulsante per acquistare"}, ASPETTO],
+     "gain": "Chi è convinto acquista il corso.",
+     "check": "Che moduli, prezzo e cosa è incluso siano giusti."},
     {"id": "grazie", "title": "Grazie", "path": "/grazie.html",
-     "descr": "La pagina che vede chi ha appena acquistato il corso."},
+     "descr": "La pagina che vede chi ha appena acquistato il corso.",
+     "step": "Grazie",
+     "building": "Ora costruiamo la pagina di ringraziamento.",
+     "purpose": "Serve a confermare l'acquisto e a dire alla persona cosa fare adesso.",
+     "parts": [{"id": "titolo", "label": "Il messaggio di benvenuto"}, {"id": "passi", "label": "I passi per accedere al corso"}, {"id": "contatto", "label": "Il tuo contatto per i problemi"}, ASPETTO],
+     "gain": "Il cliente sa subito come iniziare e non resta nel dubbio dopo il pagamento.",
+     "check": "Che il messaggio e i passi per accedere siano giusti."},
 )
 LEGAL_ID = "dati_legali"
 LEGAL_TITLE = "I tuoi dati nelle pagine legali"
@@ -50,6 +76,19 @@ APPROVATA = "approvata"
 IN_MODIFICA = "in_modifica"
 
 WRONG_MAX = 200
+MAX_PHOTOS = 3
+# elementi a elenco: il partner può chiedere di AGGIUNGERNE uno (una domanda, un punto, un passo)
+ADDABLE = {
+    ("optin", "faq"): "Aggiungi una domanda",
+    ("optin", "problema"): "Aggiungi un punto",
+    ("offerta", "target"): "Aggiungi un punto",
+    ("offerta", "metodo"): "Aggiungi un punto",
+    ("offerta", "corso"): "Aggiungi un punto",
+    ("offerta", "faq"): "Aggiungi una domanda",
+    ("grazie", "passi"): "Aggiungi un passo",
+}
+ACTIONS = ("modifica", "aggiungi")
+PHOTO_PREFIXES = ("https://res.cloudinary.com/", "/static/operativo/")
 RIGHT_MAX = 300
 MIN_LEN = 3
 
@@ -81,11 +120,29 @@ def _entry(rec: Dict[str, Any], item_id: str) -> Dict[str, Any]:
     return (((rec.get("review") or {}).get("pages") or {}).get(item_id)) or {}
 
 
-def _open_corrections(rec: Dict[str, Any], item_id: str) -> int:
+def _open_corrections(rec: Dict[str, Any], item_id: str, part: Optional[str] = None) -> int:
     return sum(
         1 for c in ((rec.get("review") or {}).get("corrections") or [])
         if c.get("page") == item_id and c.get("status") == "aperta"
+        and (part is None or c.get("part") == part)
     )
+
+
+def _part_ids(item_id: str) -> List[str]:
+    for p in PAGES:
+        if p["id"] == item_id:
+            return [x["id"] for x in p["parts"]]
+    return []
+
+
+def part_state(rec: Dict[str, Any], item_id: str, part_id: str) -> str:
+    """Stato di un elemento della pagina (titolo, video, modulo…)."""
+    if _open_corrections(rec, item_id, part_id):
+        return IN_MODIFICA
+    entry = (((rec.get("review") or {}).get("parts") or {}).get(item_id) or {}).get(part_id) or {}
+    if entry.get("state") == APPROVATA and int(entry.get("approved_version") or 0) == _version(rec):
+        return APPROVATA
+    return DA_CONTROLLARE
 
 
 def item_state(rec: Dict[str, Any], item_id: str) -> str:
@@ -94,6 +151,9 @@ def item_state(rec: Dict[str, Any], item_id: str) -> str:
         return IN_MODIFICA
     entry = _entry(rec, item_id)
     if entry.get("state") == APPROVATA and int(entry.get("approved_version") or 0) == _version(rec):
+        return APPROVATA
+    parts = _part_ids(item_id)
+    if parts and all(part_state(rec, item_id, x) == APPROVATA for x in parts):
         return APPROVATA
     return DA_CONTROLLARE
 
@@ -151,6 +211,20 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
         for c in CONNECTIONS
     ]
     pages: List[Dict[str, Any]] = []
+    # la sequenza si spiega SEMPRE, anche prima del rilascio: il partner deve capire come è fatto il funnel
+    content = rec.get("page_content") or {}
+    sequence = []
+    for p in PAGES:
+        texts = content.get(p["id"]) or {}
+        item = {k: p[k] for k in ("id", "title", "step", "building", "purpose", "gain", "check")}
+        item["parts"] = [
+            {"id": x["id"], "label": x["label"], "text": str(texts.get(x["id"]) or ""),
+             "add_label": ADDABLE.get((p["id"], x["id"]), ""),
+             "state": part_state(rec, p["id"], x["id"]) if released else DA_CONTROLLARE,
+             "open_corrections": _open_corrections(rec, p["id"], x["id"])}
+            for x in p["parts"]
+        ]
+        sequence.append(item)
     legal: Dict[str, Any] = {"id": LEGAL_ID, "title": LEGAL_TITLE, "state": DA_CONTROLLARE,
                              "open_corrections": 0, "data": legal_data or {}}
     if released:
@@ -195,6 +269,7 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
     return {
         "released": released,
         "steps": steps,
+        "sequence": sequence,
         "current_step": next((x["id"] for x in steps if x["state"] != STEP_FATTO), steps[-1]["id"]),
         "preview_url": base if released else None,
         "version": _version(rec),
@@ -225,7 +300,27 @@ def approve_update(rec: Dict[str, Any], item_id: str, now: str) -> Dict[str, Any
     }}
 
 
-def correction_update(rec: Dict[str, Any], item_id: str, wrong: Any, right: Any, now: str) -> Dict[str, Any]:
+def approve_part_update(rec: Dict[str, Any], item_id: str, part_id: str, now: str) -> Dict[str, Any]:
+    """«Approva» su un singolo elemento. Quando sono approvati tutti, la pagina risulta approvata."""
+    if item_id not in {p["id"] for p in PAGES} or part_id not in _part_ids(item_id):
+        raise ReviewError("Elemento non riconosciuto.")
+    if not is_released(rec):
+        raise ReviewError("Il funnel non è ancora pronto da guardare.")
+    if _open_corrections(rec, item_id, part_id):
+        raise ReviewError("C'è una tua modifica ancora aperta: il team la sta sistemando.")
+    sets: Dict[str, Any] = {
+        f"review.parts.{item_id}.{part_id}": {"state": APPROVATA, "approved_version": _version(rec), "approved_at": now},
+        "updated_at": now,
+    }
+    others = [x for x in _part_ids(item_id) if x != part_id]
+    if all(part_state(rec, item_id, x) == APPROVATA for x in others) and not _open_corrections(rec, item_id):
+        sets[f"review.pages.{item_id}"] = {"state": APPROVATA, "approved_version": _version(rec), "approved_at": now}
+    return {"$set": sets}
+
+
+def correction_update(rec: Dict[str, Any], item_id: str, wrong: Any, right: Any, now: str,
+                      part: Optional[str] = None, note: Optional[str] = None,
+                      photos: Optional[List[str]] = None, action: str = "modifica") -> Dict[str, Any]:
     if item_id not in REVIEWABLE_IDS:
         raise ReviewError("Pagina non riconosciuta.")
     if item_id != LEGAL_ID and not is_released(rec):
@@ -241,10 +336,23 @@ def correction_update(rec: Dict[str, Any], item_id: str, wrong: Any, right: Any,
         "status": "aperta",
         "at": now,
     }
-    return {
-        "$push": {"review.corrections": entry},
-        "$set": {f"review.pages.{item_id}": {"state": IN_MODIFICA, "approved_version": None}, "updated_at": now},
-    }, entry
+    sets = {f"review.pages.{item_id}": {"state": IN_MODIFICA, "approved_version": None}, "updated_at": now}
+    if part:
+        if part not in _part_ids(item_id):
+            raise ReviewError("Elemento non riconosciuto.")
+        entry["part"] = part
+        sets[f"review.parts.{item_id}.{part}"] = {"state": IN_MODIFICA, "approved_version": None}
+    if action not in ACTIONS:
+        raise ReviewError("Azione non riconosciuta.")
+    if action == "aggiungi":
+        if (item_id, part or "") not in ADDABLE:
+            raise ReviewError("A questo elemento non si può aggiungere nulla.")
+        entry["action"] = "aggiungi"
+    if photos:
+        entry["photos"] = [str(u) for u in photos][:MAX_PHOTOS]
+    if note:
+        entry["note"] = _SPACES.sub(" ", _TAGS.sub("", str(note))).strip()[:500]
+    return {"$push": {"review.corrections": entry}, "$set": sets}, entry
 
 
 def new_version_update(rec: Dict[str, Any], version: Any, pages: Any, now: str) -> Dict[str, Any]:
@@ -272,8 +380,16 @@ def new_version_update(rec: Dict[str, Any], version: Any, pages: Any, now: str) 
             pages_state[pid] = {"state": DA_CONTROLLARE, "approved_version": None}
         elif entry.get("state") == APPROVATA:
             pages_state[pid] = {**entry, "approved_version": version}
+    parts_state = dict((review.get("parts") or {}))
+    for pid, entries in list(parts_state.items()):
+        if pid in touched:
+            parts_state[pid] = {}
+        else:
+            parts_state[pid] = {k: ({**v, "approved_version": version} if v.get("state") == APPROVATA else v)
+                                for k, v in (entries or {}).items()}
     return {"$set": {
         "preview_version": version,
+        "review.parts": parts_state,
         "review.pages": pages_state,
         "review.corrections": corrections,
         "updated_at": now,
@@ -287,7 +403,7 @@ def golive_update(rec: Dict[str, Any], now: str) -> Dict[str, Any]:
     return {"$set": {"golive_requested_at": now, "updated_at": now}}
 
 
-ADMIN_SETTABLE = {"preview_released", "documents_released", "team_ready", "preview_url", "preview_version"}
+ADMIN_SETTABLE = {"content", "preview_released", "documents_released", "team_ready", "preview_url", "preview_version"}
 
 
 def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> Dict[str, Any]:
@@ -299,6 +415,15 @@ def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> 
                 if cid not in known:
                     raise ReviewError(f"Collegamento sconosciuto: {cid}")
                 sets[f"connections.{cid}"] = bool(flag)
+        elif key == "content":
+            parts = {p["id"]: {x["id"] for x in p["parts"]} for p in PAGES}
+            for page_id, texts in (value or {}).items():
+                if page_id not in parts:
+                    raise ReviewError(f"Pagina sconosciuta: {page_id}")
+                for part_id, text in (texts or {}).items():
+                    if part_id not in parts[page_id]:
+                        raise ReviewError(f"Elemento sconosciuto: {page_id}.{part_id}")
+                    sets[f"page_content.{page_id}.{part_id}"] = _SPACES.sub(" ", _TAGS.sub("", str(text or ""))).strip()[:600]
         elif key in ("preview_released", "documents_released", "team_ready"):
             sets[key] = bool(value)
             if key == "documents_released" and value and not rec.get("documents_released_at"):
@@ -330,3 +455,14 @@ def legal_data_from_partner(partner: Dict[str, Any]) -> Dict[str, str]:
         "Email": b.get("email") or (partner or {}).get("email", ""),
     }
     return {k: v for k, v in data.items() if v}
+
+
+def clean_photos(photos: Any) -> List[str]:
+    """Solo foto caricate dal partner sul nostro spazio (Cloudinary o cartella operativo), massimo 3."""
+    urls = [str(u).strip() for u in (photos or []) if str(u or "").strip()]
+    if len(urls) > MAX_PHOTOS:
+        raise ReviewError(f"Puoi allegare al massimo {MAX_PHOTOS} foto.")
+    for u in urls:
+        if not u.startswith(PHOTO_PREFIXES) or ".." in u:
+            raise ReviewError("Una delle foto non è valida: caricala di nuovo.")
+    return urls
