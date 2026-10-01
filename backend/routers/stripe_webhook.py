@@ -470,6 +470,21 @@ async def process_ciak_start_payment(db, client_id: str, reference_id: str, sess
         {"id": client_id},
         {"$set": {**updates, "events": events}},
     )
+    # Systeme: il cliente Start esce dalle sequenze "non acquirente" (es. Evolution Insider).
+    # Non blocca ne' fa fallire il pagamento: l'emissione gira in background.
+    try:
+        from services.ciak_systeme import ciak_emit_event, fire_and_forget
+
+        buyer_email = (client.get("email") or "").strip().lower()
+        if buyer_email:
+            fire_and_forget(ciak_emit_event(
+                email=buyer_email,
+                event_name="ciak_start_acquistato",
+                first_name=(client.get("name") or "").strip().split(" ")[0] or None,
+                metadata={"source": "ciak_start_payment", "reference_id": reference_id},
+            ))
+    except Exception as exc:  # noqa: BLE001 - un tag mancato non deve toccare il pagamento
+        logger.warning("[START] tag Systeme non emesso: %s", exc)
     # Ponte verso i motori partner: da qui il cliente Start puo' usare brand kit e
     # posizionamento, che girano su `partner_journey_steps`. Si passa il documento
     # AGGIORNATO: quello letto sopra non ha ancora l'entitlement, e il ponte

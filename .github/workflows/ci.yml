@@ -106,6 +106,7 @@ jobs:
           tests/test_servizi_extra_catalogo.py
           tests/test_security_config.py
           tests/test_stripe_webhook_security.py
+          tests/test_start_payment_systeme_tag.py
           tests/test_systeme_webhook_secret.py
           tests/test_document_admin_auth.py
           tests/test_operations_pii_auth.py
