@@ -550,3 +550,44 @@ def test_il_pannello_dice_anche_quando_e_arrivato_il_marchio():
     assert {r["tappa"]: r["marchio_ricevuto_at"] for r in righe} == {
         1: "2026-10-02T11:00:00+00:00", 2: None, 3: None,
     }
+
+
+def test_l_email_di_attivazione_promette_gli_stessi_sessanta_giorni_del_prodotto(monkeypatch):
+    """Il cliente aveva ricevuto per iscritto 'calendario 90 giorni' mentre il
+    prodotto (e la schermata di benvenuto) sono a 60: una promessa diversa dalla
+    consegna. L'email parla anche in parole semplici, con le stesse tre date."""
+    import smtplib
+    from services import ciak_start_delivery as consegna
+
+    inviati = []
+
+    class _Smtp:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self):
+            pass
+
+        def login(self, *a):
+            pass
+
+        def send_message(self, msg):
+            inviati.append(msg)
+
+    monkeypatch.setattr(smtplib, "SMTP", _Smtp)
+    monkeypatch.setenv("SMTP_USER", "u")
+    monkeypatch.setenv("SMTP_PASSWORD", "p")
+    ok, errore = consegna._send_email("a@b.it", "Linda", "https://www.ciak.io/x", "2026-10-01T07:00:00+00:00")
+    assert ok, errore
+    parti = [p for p in inviati[0].walk() if p.get_content_type() == "text/plain"]
+    testo = parti[0].get_payload(decode=True).decode("utf-8")
+    assert "60 giorni" in testo and "90 giorni" not in testo
+    assert "brand" not in testo.lower()
+    for data in ("08/10/2026", "15/10/2026", "22/10/2026"):
+        assert data in testo

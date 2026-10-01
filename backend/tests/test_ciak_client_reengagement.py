@@ -35,7 +35,7 @@ def _patch(monkeypatch):
     monkeypatch.setattr(reeng, "create_magic_login_token", _tok)
     sent = []
     monkeypatch.setattr(reeng, "_send",
-                        lambda email, nome, subject, corpo, link: sent.append({"to": email, "subject": subject, "link": link}) or True)
+                        lambda email, nome, subject, corpo, link: sent.append({"to": email, "subject": subject, "corpo": corpo, "link": link}) or True)
     return sent
 
 
@@ -80,3 +80,19 @@ async def test_endpoint_request_access_risponde_sempre_ok(monkeypatch):
     res = await ciak_clients.request_access(ciak_clients.RequestAccessRequest(email="chiunque@x.it"))
     assert res["ok"] is True
     assert called["email"] == "chiunque@x.it"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tipo,oggetto,corpo", [
+    ("brand_kit", "Il tuo marchio e' pronto", "il tuo marchio e' pronto: lo trovi"),
+    ("social_profiles", "I testi per i tuoi profili social sono pronti", "sono pronti: li trovi"),
+    ("showcase", "La tua pagina web e' pronta", "e' pronta: la trovi"),
+    ("content_plan_90d", "Il tuo calendario dei 60 giorni e' pronto", "calendario dei 60 giorni e' pronto: lo trovi"),
+])
+async def test_l_avviso_parla_in_italiano_semplice_e_concorda(_patch, tipo, oggetto, corpo):
+    """Il cliente Start e' poco digitalizzato: niente 'brand kit', niente '90 giorni'
+    (il prodotto e' a 60), e il verbo concorda con cio' che e' pronto."""
+    assert await reeng.invia_deliverable_pronto(_Db([CLIENT]), "c1", tipo) is True
+    assert _patch[0]["subject"] == oggetto
+    assert corpo in _patch[0]["corpo"]
+    assert not any(brutto in _patch[0]["subject"].lower() for brutto in ("brand kit", "90 giorni", "deliverable"))

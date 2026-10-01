@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MaterialiStart } from "../MaterialiStart";
+import { etichettaPasso } from "../startPassi";
 import {
   ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
   Zap, Camera, ClipboardList, Bot, Mic, MessageCircle, Send,
@@ -690,7 +691,7 @@ export function StartPage({ dashboard }) {
                   step.status === "in_progress" ? "border-yellow-300 bg-yellow-50/60" : "border-slate-200"
                 }`}
               >
-                <span className="font-medium text-slate-800">{step.label || step.step_id}</span>
+                <span className="font-medium text-slate-800">{etichettaPasso(step)}</span>
                 <StatoBadge status={step.status} />
               </li>
             ))}
