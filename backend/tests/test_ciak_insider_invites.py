@@ -85,6 +85,15 @@ def test_reference_altri_stati_non_sono_mai_candidati(state):
     assert ins.reference(_session(state or "x") | {"current_state": state}, None, None) is None
 
 
+def test_primo_nome_estrae_prima_parola():
+    assert ins.primo_nome("Anna Maria Rossi") == "Anna"
+    assert ins.primo_nome("  Luca ") == "Luca"
+    assert ins.primo_nome("") is None
+    assert ins.primo_nome(None) is None
+    assert ins.primo_nome("   ") is None
+    assert ins.primo_nome("Giovanni") == "Giovanni"
+
+
 # ───────────────────────── DB finto ─────────────────────────
 from pymongo.errors import DuplicateKeyError
 
@@ -269,7 +278,7 @@ async def test_invio_applica_il_tag_registra_e_non_ripete(flag_on):
     emit = Emitter()
     first = await ins.invita_insider(db, emit=emit, now=NOW)
     assert first["inviati"] == 2 and [c["event"] for c in emit.calls] == [ins.EVENT_TAG] * 2
-    assert emit.calls[0]["first_name"] == "Anna Rossi"
+    assert emit.calls[0]["first_name"] == "Anna"
     assert {d["status"] for d in db.insider_invites.docs} == {"applied"}
     second = await ins.invita_insider(db, emit=emit, now=NOW)
     assert second["inviati"] == 0 and len(emit.calls) == 2
@@ -370,3 +379,37 @@ async def test_retry_con_emitter_fallito_poi_successo(flag_on):
     r2 = await ins.invita_insider(db, emit=emit, now=NOW)
     assert r2["riprovati"] == 1 and r2["inviati"] == 0
     assert db.insider_invites.docs[0]["attempts"] == 2 and db.insider_invites.docs[0]["status"] == "applied"
+
+
+# ───────────────────────── Fix Round 2 ─────────────────────────
+async def test_trova_candidati_exception_skip_retry_non_cancella(flag_on, monkeypatch):
+    """Se trova_candidati(escludi_invitati=False) raises, retry è saltato; failed doc resta failed."""
+    db = FakeDb(
+        sessions=_many(1),
+        invites=[
+            {"email": "p00@example.com", "status": "failed", "attempts": 1, "nome": "Anna Rossi", "path": "questionario_senza_call"},
+        ],
+    )
+    emit = Emitter()
+
+    original_trova = ins.trova_candidati
+    async def broken_trova(db, now=None, escludi_invitati=True):
+        if escludi_invitati is False:
+            raise RuntimeError("DB temporary error")
+        return await original_trova(db, now, escludi_invitati)
+
+    monkeypatch.setattr(ins, "trova_candidati", broken_trova)
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    # Retry saltato: niente emit, doc stays failed
+    assert out["riprovati"] == 0 and out["inviati"] == 0 and len(emit.calls) == 0
+    assert db.insider_invites.docs[0]["status"] == "failed" and db.insider_invites.docs[0]["attempts"] == 1
+
+
+async def test_invio_con_full_name_usa_primo_nome(flag_on):
+    """Con user_name "Anna Maria Rossi", emit riceve first_name "Anna" e doc tiene full name."""
+    db = FakeDb(sessions=[_session("report_generated", "a@example.com", days_ago=20, name="Anna Maria Rossi")])
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert out["inviati"] == 1
+    assert emit.calls[0]["first_name"] == "Anna"
+    assert db.insider_invites.docs[0]["nome"] == "Anna Maria Rossi"

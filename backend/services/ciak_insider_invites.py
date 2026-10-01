@@ -175,6 +175,14 @@ def _mask(email: str) -> str:
     return f"{local[:1]}***@{domain}"
 
 
+def primo_nome(nome: Optional[str]) -> Optional[str]:
+    """Estrae il primo nome (prima parola separata da spazi)."""
+    if not nome:
+        return None
+    first = nome.strip().split()[0] if nome.strip() else None
+    return first
+
+
 def _max_per_run(explicit: Optional[int]) -> int:
     if explicit:
         return int(explicit)
@@ -237,43 +245,44 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
     budget = _max_per_run(max_per_run)
 
     # Leggi i candidati eleggibili (senza escludere invitati) per controllare su retry
+    eleggibili = None
     try:
         eleggibili = {c["email"] for c in await trova_candidati(db, now, escludi_invitati=False)}
     except Exception as exc:  # noqa: BLE001
-        logger.error("[INSIDER] lettura eleggibili fallita: %s", exc)
-        eleggibili = set()
+        logger.warning("[INSIDER] lettura eleggibili fallita (skip retry): %s", exc)
 
     # 1. riprova chi era fallito (al massimo MAX_ATTEMPTS volte in tutto) e pending stale
-    failed = await db.insider_invites.find({"status": "failed", "attempts": {"$lt": MAX_ATTEMPTS}}).to_list(100)
-    pending = await db.insider_invites.find({"status": "pending"}).to_list(100)
+    if eleggibili is not None:
+        failed = await db.insider_invites.find({"status": "failed", "attempts": {"$lt": MAX_ATTEMPTS}}).to_list(100)
+        pending = await db.insider_invites.find({"status": "pending"}).to_list(100)
 
-    # Filtra pending stale (creato 10+ minuti fa)
-    stale_pending = []
-    for doc in pending:
-        created = parse_iso(doc.get("created_at"))
-        if created and created <= now - timedelta(minutes=PENDING_STALE_MINUTES):
-            stale_pending.append(doc)
+        # Filtra pending stale (creato 10+ minuti fa)
+        stale_pending = []
+        for doc in pending:
+            created = parse_iso(doc.get("created_at"))
+            if created and created <= now - timedelta(minutes=PENDING_STALE_MINUTES):
+                stale_pending.append(doc)
 
-    # Riprova failed e stale pending
-    for doc in failed + stale_pending:
-        if budget <= 0:
-            break
-        # Controlla se ancora eleggibile
-        if doc["email"] not in eleggibili:
+        # Riprova failed e stale pending
+        for doc in failed + stale_pending:
+            if budget <= 0:
+                break
+            # Controlla se ancora eleggibile
+            if doc["email"] not in eleggibili:
+                await db.insider_invites.update_one(
+                    {"email": doc["email"]},
+                    {"$set": {"status": "annullato"}},
+                )
+                continue
+            ok = await _emit_safe(emit, doc["email"], primo_nome(doc.get("nome")), {"path": doc.get("path"), "riprova": True})
             await db.insider_invites.update_one(
                 {"email": doc["email"]},
-                {"$set": {"status": "annullato"}},
+                {"$set": {"status": "applied" if ok else "failed", "attempts": int(doc.get("attempts", 0)) + 1,
+                          **({"applied_at": now.isoformat()} if ok else {})}},
             )
-            continue
-        ok = await _emit_safe(emit, doc["email"], doc.get("nome"), {"path": doc.get("path"), "riprova": True})
-        await db.insider_invites.update_one(
-            {"email": doc["email"]},
-            {"$set": {"status": "applied" if ok else "failed", "attempts": int(doc.get("attempts", 0)) + 1,
-                      **({"applied_at": now.isoformat()} if ok else {})}},
-        )
-        result["riprovati"] += 1
-        result["errori"] += 0 if ok else 1
-        budget -= 1
+            result["riprovati"] += 1
+            result["errori"] += 0 if ok else 1
+            budget -= 1
 
     # 2. nuovi inviti: prima si registra (email unica), poi si applica il tag
     from pymongo.errors import DuplicateKeyError
@@ -288,7 +297,7 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
             })
         except DuplicateKeyError:
             continue  # gia' invitato da un altro giro in parallelo
-        ok = await _emit_safe(emit, c["email"], c["nome"], {"path": c["path"], "riferimento": c["riferimento"]})
+        ok = await _emit_safe(emit, c["email"], primo_nome(c["nome"]), {"path": c["path"], "riferimento": c["riferimento"]})
         await db.insider_invites.update_one(
             {"email": c["email"]},
             {"$set": {"status": "applied" if ok else "failed", "attempts": 1,
