@@ -8,6 +8,7 @@ import { FolderOpen, Search, X, ChevronDown, ChevronUp, Eye, Download, Upload } 
 export default function SerenoMateriali({
   folders = [],
   files = [],
+  loading = false,
   onOpen = () => {},
   onDownload = () => {},
   telegramUrl = 'https://t.me/ciak_partner_support',
@@ -64,7 +65,7 @@ export default function SerenoMateriali({
           {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <div className="sereno-seg" role="group" aria-label="Filtra per origine">
-          <button className={owner === 'all' ? 'on' : ''} onClick={() => setOwner('all')}>Tutti ({files.length})</button>
+          <button className={owner === 'all' ? 'on' : ''} onClick={() => setOwner('all')}>Tutti {loading ? '' : `(${files.length})`}</button>
           <button className={owner === 'ciak' ? 'on' : ''} onClick={() => setOwner('ciak')}>Da Ciak</button>
           <button className={owner === 'user' ? 'on' : ''} onClick={() => setOwner('user')}>Da te</button>
         </div>
@@ -84,12 +85,12 @@ export default function SerenoMateriali({
                   {folder.subtitle && <small>{folder.subtitle}</small>}
                 </span>
               </span>
-              <span className="sereno-mat-count">{list.length} file {expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
+              <span className="sereno-mat-count">{loading && list.length === 0 ? '…' : `${list.length} file`} {expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
             </button>
 
             {expanded && (
               list.length === 0 ? (
-                <p className="sereno-mat-empty">Nessun file in questa cartella.</p>
+                <p className="sereno-mat-empty" role={loading ? 'status' : undefined}>{loading ? 'Sto caricando i tuoi materiali…' : 'Nessun file in questa cartella.'}</p>
               ) : (
                 <ul className="sereno-mat-list">
                   {list.map((file) => (

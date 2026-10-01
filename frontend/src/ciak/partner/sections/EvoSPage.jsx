@@ -458,7 +458,7 @@ export function EvoSPage({ partnerId }) {
   // Sereno skin: restyled renewal list over the real PLANS; the detail page and
   // its eligibility + EVO S checkout stay the existing flow (reached via onOpen).
   if (PARTNER_SERENO_ENABLED) {
-    return <SerenoPiano onOpen={setSelectedId} locked={locked} />;
+    return <SerenoPiano support={elig} onOpen={setSelectedId} locked={locked} />;
   }
 
   return (

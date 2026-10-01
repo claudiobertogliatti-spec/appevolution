@@ -203,6 +203,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   // "Mario Rossi" con url "#", e ogni partner vedeva i documenti di un altro
   // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
   const [files, setFiles] = useState([]);
+  const [caricamento, setCaricamento] = useState(Boolean(partnerId));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
@@ -214,6 +215,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   useEffect(() => {
     if (!partnerId) return undefined;
     let annullato = false;
+    setCaricamento(true);
     (async () => {
       const reali = [
         {
@@ -231,86 +233,103 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           url: `/api/partner-journey/piano-operativo-pdf/${partnerId}`,
         },
       ];
-      try {
-        const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
-        if (r.ok) {
-          const d = await r.json();
-          const drive = d?.posizionamento?.drive_folder_url;
-          if (drive) {
-            reali.push({
-              id: "r-drive", folderId: "brand_kit",
-              name: "Cartella Drive del progetto", category: "Documenti e materiali",
-              size: "Google Drive", date: "—", owner: "⚙️ CIAK", type: "link",
-              icon: FolderOpen, iconColor: "text-emerald-600",
-              url: drive, esterno: true,
-            });
+      const daDrive = async () => {
+        const out = [];
+        try {
+          const r = await fetch(`/api/partner-journey/posizionamento/${partnerId}`, { headers: authHeaders() });
+          if (r.ok) {
+            const d = await r.json();
+            const drive = d?.posizionamento?.drive_folder_url;
+            if (drive) {
+              out.push({
+                id: "r-drive", folderId: "brand_kit",
+                name: "Cartella Drive del progetto", category: "Documenti e materiali",
+                size: "Google Drive", date: "—", owner: "⚙️ CIAK", type: "link",
+                icon: FolderOpen, iconColor: "text-emerald-600",
+                url: drive, esterno: true,
+              });
+            }
           }
-        }
-      } catch { /* la cartella Drive semplicemente non compare */ }
-      // Fonte REALE dei materiali del partner: la collezione `files` (documenti
-      // prodotti da Ciak, caricati dal partner o dall'admin), filtrata lato
-      // server su cio' che e' visibile al partner. Prima qui si leggeva
-      // `partner_posizionamento.materiali`, un array che NESSUNO scriveva.
-      try {
-        const rm = await fetch(
-          `/api/partner-journey/operativo/materiali/${partnerId}`,
-          { headers: authHeaders() },
-        );
-        if (rm.ok) {
-          const dm = await rm.json();
-          for (const m of dm?.materials || []) {
-            const url = m.download_url || m.public_url;
-            if (!url) continue; // nessuna sorgente apribile: niente riga
-            const { icon, color } = iconForMaterialType(m.type);
-            reali.push({
-              id: m.id,
-              folderId: materialiFolderId(m.category),
-              name: m.title,
-              category: m.category || "Documento",
-              size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : m.type === "video" ? "Video" : "Documento",
-              date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
-              owner: "⚙️ CIAK",
-              type: m.type,
-              icon,
-              iconColor: color,
-              url,
-              esterno: !!m.public_url && !m.download_url,
-            });
+        } catch { /* la cartella Drive semplicemente non compare */ }
+        return out;
+      };
+      const daMateriali = async () => {
+        const out = [];
+        // Fonte REALE dei materiali del partner: la collezione `files` (documenti
+        // prodotti da Ciak, caricati dal partner o dall'admin), filtrata lato
+        // server su cio' che e' visibile al partner. Prima qui si leggeva
+        // `partner_posizionamento.materiali`, un array che NESSUNO scriveva.
+        try {
+          const rm = await fetch(
+            `/api/partner-journey/operativo/materiali/${partnerId}`,
+            { headers: authHeaders() },
+          );
+          if (rm.ok) {
+            const dm = await rm.json();
+            for (const m of dm?.materials || []) {
+              const url = m.download_url || m.public_url;
+              if (!url) continue; // nessuna sorgente apribile: niente riga
+              const { icon, color } = iconForMaterialType(m.type);
+              out.push({
+                id: m.id,
+                folderId: materialiFolderId(m.category),
+                name: m.title,
+                category: m.category || "Documento",
+                size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : m.type === "video" ? "Video" : "Documento",
+                date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
+                owner: "⚙️ CIAK",
+                type: m.type,
+                icon,
+                iconColor: color,
+                url,
+                esterno: !!m.public_url && !m.download_url,
+              });
+            }
           }
-        }
-      } catch { /* se la fonte reale non risponde, restano Libretto/Piano/contratto */ }
-      try {
-        // signed_at (letto da /api/contract/status) viene scritto PRIMA che il
-        // PDF sia generato: la generazione e' best-effort, in try/except sia in
-        // proposta.py che in contract.py. Un partner puo' quindi avere
-        // signed_at valorizzato senza che esista alcuna riga in contract_pdfs
-        // — mostrare la voce solo su signed_at produrrebe un "Contratto
-        // firmato" che scarica un vero 404. Usiamo signed_at solo per la data
-        // e mostriamo la voce SOLO se /api/contract/pdf conferma che il PDF
-        // esiste davvero (rigenera se la riga manca, fallisce se non firmato
-        // o se la generazione non riesce).
-        const rc = await fetch(`/api/contract/status/${partnerId}`, { headers: authHeaders() });
-        if (rc.ok) {
-          const dc = await rc.json();
-          if (dc?.signed) {
-            const rp = await fetch(`/api/contract/pdf/${partnerId}`, { headers: authHeaders() });
-            if (rp.ok) {
-              const dp = await rp.json();
-              if (dp?.success && dp?.pdf_url) {
-                reali.push({
-                  id: "r-contratto", folderId: "brand_kit",
-                  name: "Contratto firmato", category: "Contratto",
-                  size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
-                  owner: "👤 Tu", type: "pdf",
-                  icon: FileCheck, iconColor: "text-emerald-600",
-                  url: dp.pdf_url,
-                });
+        } catch { /* se la fonte reale non risponde, restano Libretto/Piano/contratto */ }
+        return out;
+      };
+      const daContratto = async () => {
+        const out = [];
+        try {
+          // signed_at (letto da /api/contract/status) viene scritto PRIMA che il
+          // PDF sia generato: la generazione e' best-effort, in try/except sia in
+          // proposta.py che in contract.py. Un partner puo' quindi avere
+          // signed_at valorizzato senza che esista alcuna riga in contract_pdfs
+          // — mostrare la voce solo su signed_at produrrebe un "Contratto
+          // firmato" che scarica un vero 404. Usiamo signed_at solo per la data
+          // e mostriamo la voce SOLO se /api/contract/pdf conferma che il PDF
+          // esiste davvero (rigenera se la riga manca, fallisce se non firmato
+          // o se la generazione non riesce).
+          const rc = await fetch(`/api/contract/status/${partnerId}`, { headers: authHeaders() });
+          if (rc.ok) {
+            const dc = await rc.json();
+            if (dc?.signed) {
+              const rp = await fetch(`/api/contract/pdf/${partnerId}`, { headers: authHeaders() });
+              if (rp.ok) {
+                const dp = await rp.json();
+                if (dp?.success && dp?.pdf_url) {
+                  out.push({
+                    id: "r-contratto", folderId: "brand_kit",
+                    name: "Contratto firmato", category: "Contratto",
+                    size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
+                    owner: "👤 Tu", type: "pdf",
+                    icon: FileCheck, iconColor: "text-emerald-600",
+                    url: dp.pdf_url,
+                  });
+                }
               }
             }
           }
-        }
-      } catch { /* nessun contratto in lista se il check fallisce */ }
-      if (!annullato) setFiles(reali);
+        } catch { /* nessun contratto in lista se il check fallisce */ }
+        return out;
+      };
+      // Le tre fonti sono indipendenti: in parallelo, non una dopo l'altra. I due
+      // PDF fissi compaiono subito; il resto si aggiunge appena arriva.
+      if (!annullato) setFiles([...reali]);
+      const [dDrive, dMateriali, dContratto] = await Promise.all([daDrive(), daMateriali(), daContratto()]);
+      reali.push(...dDrive, ...dMateriali, ...dContratto);
+      if (!annullato) { setFiles(reali); setCaricamento(false); }
     })();
     return () => { annullato = true; };
   }, [partnerId]);
@@ -354,6 +373,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
       <SerenoMateriali
         folders={DRIVE_FOLDERS}
         files={files}
+        loading={caricamento}
         onOpen={apriFile}
         onDownload={scaricaFile}
         telegramUrl={telegramFallbackUrl}
