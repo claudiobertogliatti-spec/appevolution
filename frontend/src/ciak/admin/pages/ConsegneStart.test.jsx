@@ -164,3 +164,51 @@ test("senza clienti Start lo dice, invece di mostrare una lista vuota ambigua", 
 
   expect(await screen.findByText("Nessun cliente Ciak Start attivo.")).toBeTruthy();
 });
+
+test("la tappa 1 si produce dal pannello: posizionamento e scheda marchio, con le risposte del cliente in vista", async () => {
+  apiGet.mockResolvedValue({
+    ...REPORT,
+    items: REPORT.items.map((r) =>
+      r.tappa === 1 ? { ...r, risposte_ricevute_at: "2026-10-02T10:00:00+00:00", marchio_ricevuto_at: null } : r
+    ),
+  });
+  apiPost.mockResolvedValue({ success: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  expect(screen.getByTestId("risposte-cliente").textContent).toMatch(/ricevute il/);
+  expect(screen.getByTestId("marchio-cliente").textContent).toMatch(/non ancora arrivato/);
+
+  fireEvent.click(screen.getByRole("button", { name: "1a · Genera posizionamento" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/posizionamento/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "1b · Genera scheda marchio" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/marchio/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "Approva marchio" }));
+  await waitFor(() =>
+    expect(apiPost).toHaveBeenCalledWith("/start/client-1/deliverable/approva", { tipo: "brand_kit" })
+  );
+});
+
+test("profili e vetrina hanno finalmente il loro pulsante Genera, e la vetrina chiede l'indirizzo online", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "2a · Genera profili social" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/profili/genera", {}));
+  fireEvent.click(screen.getByRole("button", { name: "2b · Genera sito vetrina" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/vetrina/genera", {}));
+
+  // Senza indirizzo la vetrina non si approva: nessuna chiamata.
+  window.prompt = jest.fn().mockReturnValueOnce(null);
+  apiPost.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Approva sito vetrina (online)" }));
+  expect(apiPost).not.toHaveBeenCalled();
+  window.prompt = jest.fn().mockReturnValueOnce("https://www.annarossi.it");
+  fireEvent.click(screen.getByRole("button", { name: "Approva sito vetrina (online)" }));
+  await waitFor(() =>
+    expect(apiPost).toHaveBeenCalledWith("/start/client-1/deliverable/approva", {
+      tipo: "showcase",
+      live_url: "https://www.annarossi.it",
+    })
+  );
+});

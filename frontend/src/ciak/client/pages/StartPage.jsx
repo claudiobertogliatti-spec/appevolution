@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { MaterialiStart } from "../MaterialiStart";
 import {
   ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
   Zap, Camera, ClipboardList, Bot, Mic, MessageCircle, Send,
@@ -697,48 +698,7 @@ export function StartPage({ dashboard }) {
         ) : null}
       </section>
 
-      {deliverables.length ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Materiali approvati</h2>
-          <p className="mt-1 text-sm text-slate-500">Qui compaiono soltanto gli output revisionati dal team.</p>
-          <div className="mt-4 space-y-3">
-            {deliverables.map((item) => (
-              <details key={item.type} className="rounded-lg border border-slate-200 p-4">
-                <summary className="cursor-pointer font-semibold text-slate-800">
-                  {item.type === "content_plan_90d" ? "Ciclo contenuti — 60 giorni (ripetibile)" : "Verifica finale Partnership"}
-                </summary>
-                {item.type === "content_plan_90d" ? (
-                  <div className="mt-4 space-y-5">
-                    {item.calendar?.ritmo ? (
-                      <p className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm leading-relaxed text-slate-700">
-                        {item.calendar.ritmo}
-                      </p>
-                    ) : null}
-                    {(item.calendar?.fasi || []).map((fase) => (
-                      <div key={fase.fase}>
-                        <h3 className="text-sm font-semibold text-slate-900">{fase.fase}</h3>
-                        {fase.obiettivo ? (
-                          <p className="mt-0.5 text-xs text-slate-500">{fase.obiettivo}</p>
-                        ) : null}
-                        <ul className="mt-2 space-y-2">
-                          {(fase.giorni || []).map((day) => (
-                            <li key={`${fase.fase}-${day.giorno}`} className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-                              <span className="font-semibold">Giorno {day.giorno} · {day.formato}</span> — {day.tema}
-                              <p className="mt-1 text-xs text-slate-500">{day.come_farlo} · CTA: {day.cta}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.note}</p>
-                )}
-              </details>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <MaterialiStart items={deliverables} />
 
       {lockedSteps.length ? (
         <section className="rounded-xl border border-slate-200 p-6 text-white" style={{ background: NAVY_GRADIENT }}>
