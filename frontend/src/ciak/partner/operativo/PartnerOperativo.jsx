@@ -43,6 +43,8 @@ const WORKSPACE_COMPONENTS = {
   "ws1-masterclass": Workspace1Masterclass,
   "ws2-corso": Workspace2Corso,
   "ws3-vendita": Workspace3SistemaVendita,
+  // Lo step F-13 reale apre la nuova schermata "Il tuo funnel" (funnel fuori da Systeme).
+  "10-sistema-vendita": Workspace3SistemaVendita,
 };
 
 /**
