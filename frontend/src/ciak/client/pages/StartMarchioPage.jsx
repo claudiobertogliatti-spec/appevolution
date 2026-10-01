@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { clientGet, clientPut, getClientToken } from "../api";
 
@@ -54,6 +54,8 @@ export function StartMarchioPage({ dashboard }) {
   const [invio, setInvio] = useState(false);
   const [carico, setCarico] = useState(false);
   const titoloRef = useRef(null);
+  const attesa = useRef(null);
+  const timer = useRef(null);
 
   useEffect(() => {
     let annullato = false;
@@ -63,6 +65,11 @@ export function StartMarchioPage({ dashboard }) {
         setOpzioni(dati.opzioni);
         setValori(dati.valori || {});
         setInviato(Boolean(dati.completato_at));
+        // Si riparte dalla prima scelta mancante, non dalla prima schermata.
+        const v = dati.valori || {};
+        const parole = (v.parole_chiave || []).filter((p) => (p || "").trim()).length;
+        const mancante = !v.palette_id ? 0 : !v.font_id ? 1 : !v.tono_id ? 2 : parole < 3 ? 3 : PASSI.length - 1;
+        setPasso(mancante);
       })
       .catch((e) => {
         if (!annullato) setErrore(e.message === "AUTH_EXPIRED" ? "La sessione è scaduta: riapri il link che ti abbiamo mandato." : "Non riesco a caricare questa pagina. Riprova fra poco.");
@@ -90,6 +97,29 @@ export function StartMarchioPage({ dashboard }) {
     if (titoloRef.current) titoloRef.current.focus();
   }, [passo, inviato, modifica]);
 
+  const scarica = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const daSalvare = attesa.current;
+    attesa.current = null;
+    if (daSalvare) clientPut("/start/marchio", { valori: daSalvare }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const alNascondi = () => {
+      if (document.visibilityState === "hidden") scarica();
+    };
+    document.addEventListener("visibilitychange", alNascondi);
+    window.addEventListener("pagehide", scarica);
+    return () => {
+      document.removeEventListener("visibilitychange", alNascondi);
+      window.removeEventListener("pagehide", scarica);
+      scarica();
+    };
+  }, [scarica]);
+
   async function salva(parziale) {
     setSalvataggio("Salvo...");
     try {
@@ -113,6 +143,8 @@ export function StartMarchioPage({ dashboard }) {
   async function vai(delta) {
     const corrente = PASSI[passo];
     const daSalvare = corrente === "parole" ? { parole_chiave: valori.parole_chiave || [] } : null;
+    attesa.current = null;
+    if (timer.current) clearTimeout(timer.current);
     if (daSalvare && !(await salva(daSalvare))) return;
     setPasso((p) => Math.min(Math.max(p + delta, 0), PASSI.length - 1));
   }
@@ -299,6 +331,10 @@ export function StartMarchioPage({ dashboard }) {
                   const prossime = [0, 1, 2].map((k) => parole[k] || "");
                   prossime[i] = e.target.value;
                   setValori((v) => ({ ...v, parole_chiave: prossime }));
+                  // Si salva mentre scrive, dopo un secondo di pausa.
+                  attesa.current = { parole_chiave: prossime };
+                  if (timer.current) clearTimeout(timer.current);
+                  timer.current = setTimeout(scarica, 1000);
                 }}
                 placeholder={`Parola ${i + 1}`}
                 className="w-full rounded-xl border border-slate-300 p-4 text-base text-slate-900 outline-none focus:border-slate-900 focus-visible:ring-2 focus-visible:ring-yellow-400"

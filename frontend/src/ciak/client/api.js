@@ -115,6 +115,8 @@ export async function clientPut(path, body) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body || {}),
+    // Il salvataggio parte anche se la persona chiude la scheda o cambia app.
+    keepalive: true,
   });
   if (res.status === 401) {
     clearClientSession();

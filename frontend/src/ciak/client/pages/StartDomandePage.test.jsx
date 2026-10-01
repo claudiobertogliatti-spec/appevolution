@@ -2,7 +2,7 @@
  * Le domande di Ciak Start: una alla volta, si salvano da sole, e quando sono
  * tutte inviate il team lo sa. Il cliente non resta mai senza un passo da fare.
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 jest.mock(
   "react-router-dom",
@@ -112,4 +112,50 @@ test("se il salvataggio fallisce lo dice e non cambia domanda", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Avanti" }));
   expect(await screen.findByText(/Non sono riuscito a salvare/)).toBeTruthy();
   expect(screen.getByText(START_DOMANDE[0].domanda)).toBeTruthy();
+});
+
+describe("non si perde quello che sta scrivendo", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test("dopo un secondo di pausa salva da solo, senza premere Avanti", async () => {
+    clientGet.mockResolvedValue({ answers: {}, completato_at: null });
+    render(<StartDomandePage dashboard={DASH} />);
+    await screen.findByText(START_DOMANDE[0].domanda);
+    scrivi("Donne dopo i quaranta anni");
+    expect(clientPut).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(clientPut).toHaveBeenCalledWith("/start/risposte", {
+      answers: { nicchia: "Donne dopo i quaranta anni" },
+    });
+  });
+
+  test("scrivendo di continuo salva una volta sola, con il testo piu' recente", async () => {
+    clientGet.mockResolvedValue({ answers: {}, completato_at: null });
+    render(<StartDomandePage dashboard={DASH} />);
+    await screen.findByText(START_DOMANDE[0].domanda);
+    scrivi("Donne");
+    await act(async () => { jest.advanceTimersByTime(600); });
+    scrivi("Donne dopo i quaranta");
+    await act(async () => { jest.advanceTimersByTime(600); });
+    expect(clientPut).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(clientPut).toHaveBeenCalledTimes(1);
+    expect(clientPut).toHaveBeenCalledWith("/start/risposte", { answers: { nicchia: "Donne dopo i quaranta" } });
+  });
+
+  test("se cambia app o chiude la scheda salva subito quello che ha scritto", async () => {
+    clientGet.mockResolvedValue({ answers: {}, completato_at: null });
+    render(<StartDomandePage dashboard={DASH} />);
+    await screen.findByText(START_DOMANDE[0].domanda);
+    scrivi("Donne dopo i quaranta anni");
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(clientPut).toHaveBeenCalledWith("/start/risposte", {
+      answers: { nicchia: "Donne dopo i quaranta anni" },
+    });
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  });
 });
