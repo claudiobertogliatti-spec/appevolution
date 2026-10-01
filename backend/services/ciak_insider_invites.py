@@ -23,6 +23,7 @@ BLUEPRINT_WAIT_DAYS = 7
 QUESTIONARIO_WAIT_DAYS = 14
 MAX_ATTEMPTS = 3
 DEFAULT_MAX_PER_RUN = 25
+PENDING_STALE_MINUTES = 10
 EVENT_TAG = "insider_invito"
 FLAG_ENV = "INSIDER_INVITES_ENABLED"
 MAX_PER_RUN_ENV = "INSIDER_INVITES_MAX_PER_RUN"
@@ -114,7 +115,7 @@ def _pick_proposta(items: list) -> Optional[dict]:
     return sorted(items, key=lambda p: str(p.get("creato_at") or ""))[-1]
 
 
-async def trova_candidati(db, now: Optional[datetime] = None) -> list:
+async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: bool = True) -> list:
     now = now or datetime.now(timezone.utc)
     sessions = await db.diagnostic_sessions.find({"current_state": {"$in": list(CANDIDATE_STATES)}}).to_list(5000)
     chosen = _most_advanced_per_email(sessions)
@@ -141,7 +142,9 @@ async def trova_candidati(db, now: Optional[datetime] = None) -> list:
         if email:
             proposte_by.setdefault(email, []).append(p)
     blueprints = {b.get("session_token"): b for b in await db.ciak_blueprints.find({"session_token": {"$in": tokens}}).to_list(5000)}
-    invited = {norm_email(i.get("email")) for i in await db.insider_invites.find({"email": {"$in": list(chosen)}}).to_list(5000)}
+    invited = set()
+    if escludi_invitati:
+        invited = {norm_email(i.get("email")) for i in await db.insider_invites.find({"email": {"$in": list(chosen)}}).to_list(5000)}
 
     out = []
     for email, s in chosen.items():
@@ -233,11 +236,35 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
 
     budget = _max_per_run(max_per_run)
 
-    # 1. riprova chi era fallito (al massimo MAX_ATTEMPTS volte in tutto)
+    # Leggi i candidati eleggibili (senza escludere invitati) per controllare su retry
+    try:
+        eleggibili = {c["email"] for c in await trova_candidati(db, now, escludi_invitati=False)}
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[INSIDER] lettura eleggibili fallita: %s", exc)
+        eleggibili = set()
+
+    # 1. riprova chi era fallito (al massimo MAX_ATTEMPTS volte in tutto) e pending stale
     failed = await db.insider_invites.find({"status": "failed", "attempts": {"$lt": MAX_ATTEMPTS}}).to_list(100)
-    for doc in failed:
+    pending = await db.insider_invites.find({"status": "pending"}).to_list(100)
+
+    # Filtra pending stale (creato 10+ minuti fa)
+    stale_pending = []
+    for doc in pending:
+        created = parse_iso(doc.get("created_at"))
+        if created and created <= now - timedelta(minutes=PENDING_STALE_MINUTES):
+            stale_pending.append(doc)
+
+    # Riprova failed e stale pending
+    for doc in failed + stale_pending:
         if budget <= 0:
             break
+        # Controlla se ancora eleggibile
+        if doc["email"] not in eleggibili:
+            await db.insider_invites.update_one(
+                {"email": doc["email"]},
+                {"$set": {"status": "annullato"}},
+            )
+            continue
         ok = await _emit_safe(emit, doc["email"], doc.get("nome"), {"path": doc.get("path"), "riprova": True})
         await db.insider_invites.update_one(
             {"email": doc["email"]},

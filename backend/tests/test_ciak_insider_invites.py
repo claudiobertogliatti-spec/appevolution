@@ -316,3 +316,57 @@ async def test_eccezione_del_motore_non_ferma_il_giro(flag_on):
 
 async def test_senza_db_risponde_con_errore_chiaro():
     assert (await ins.invita_insider(None))["error"] == "no_db"
+
+
+# ───────────────────────── Fix Round 1 ─────────────────────────
+async def test_pending_stale_e_riemesso_giovane_ignorato(flag_on):
+    """Una pending doc creata 30 min fa viene ri-emessa; una creata 2 min fa e ignorata."""
+    db = FakeDb(
+        sessions=[_session("report_generated", "p00@example.com", days_ago=30, token="t00"),
+                  _session("report_generated", "p01@example.com", days_ago=30, token="t01")],
+        invites=[
+            {"email": "p00@example.com", "status": "pending", "attempts": 0, "created_at": _iso(0.5), "nome": "Anna Rossi"},
+            {"email": "p01@example.com", "status": "pending", "attempts": 0, "created_at": _iso(0.004), "nome": "Bob Smith"},
+        ],
+    )
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    # Solo la stale (30 min fa) deve essere riemessa
+    assert out["riprovati"] == 1 and out["inviati"] == 0
+    assert len(emit.calls) == 1 and emit.calls[0]["email"] == "p00@example.com"
+    assert db.insider_invites.docs[0]["attempts"] == 1 and db.insider_invites.docs[0]["status"] == "applied"
+    # La giovane non e toccata
+    assert db.insider_invites.docs[1]["status"] == "pending" and db.insider_invites.docs[1]["attempts"] == 0
+
+
+async def test_retry_esclude_chi_ha_acquistato_nel_frattempo(flag_on):
+    """Una failed doc per chi ha comprato nel frattempo diventa 'annullato' senza emit."""
+    db = FakeDb(
+        sessions=_many(1),
+        clients=[{"email": "p00@example.com", "access_level": "cliente_start"}],
+        invites=[
+            {"email": "p00@example.com", "status": "failed", "attempts": 1, "nome": "Anna Rossi", "path": "questionario_senza_call"},
+        ],
+    )
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert out["riprovati"] == 0 and out["inviati"] == 0 and len(emit.calls) == 0
+    assert db.insider_invites.docs[0]["status"] == "annullato"
+
+
+async def test_retry_con_emitter_fallito_poi_successo(flag_on):
+    """Retry con False poi True: attempts=2, status=applied."""
+    db = FakeDb(
+        sessions=_many(1),
+        invites=[
+            {"email": "p00@example.com", "status": "failed", "attempts": 0, "nome": "Anna Rossi", "path": "questionario_senza_call"},
+        ],
+    )
+    emit = Emitter(results=[False, True])
+    r1 = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert r1["riprovati"] == 1 and r1["errori"] == 1
+    assert db.insider_invites.docs[0]["attempts"] == 1 and db.insider_invites.docs[0]["status"] == "failed"
+
+    r2 = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert r2["riprovati"] == 1 and r2["inviati"] == 0
+    assert db.insider_invites.docs[0]["attempts"] == 2 and db.insider_invites.docs[0]["status"] == "applied"
