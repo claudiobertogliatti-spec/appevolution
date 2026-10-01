@@ -29,6 +29,7 @@ import httpx
 
 from celery_app import celery_app
 from services.video_retry_guard import MAX_PIPELINE_ATTEMPTS, next_attempt
+from services.video_size_guard import VideoTooHeavy, check_size, free_file, link_or_copy
 try:
     from key_moments_extractor import extract_key_moments
 except ImportError:
@@ -171,6 +172,30 @@ async def download_gdrive_with_adc(file_id: str, dest_path: str) -> int:
     size = await loop.run_in_executor(None, _download_sync)
     logger.info(f"[VIDEO-PIPE] Google Drive ADC download completo: {size/1e6:.1f}MB")
     return size
+
+
+async def probe_remote_size(url: str) -> Optional[int]:
+    """Peso in byte del video SENZA scaricarlo, se il sorgente lo dichiara.
+
+    Best-effort: ritorna None se non si riesce a saperlo (link Drive, host che non
+    risponde alla HEAD, errori). Il controllo vero resta quello dopo il download.
+    """
+    try:
+        if url.startswith("gs://"):
+            from google.cloud import storage as gcs_storage
+            bucket_name, _, blob_name = url[5:].partition("/")
+            blob = gcs_storage.Client().bucket(bucket_name).blob(blob_name)
+            await asyncio.get_event_loop().run_in_executor(None, blob.reload)
+            return int(blob.size) if blob.size else None
+        if extract_gdrive_file_id(url):
+            return None
+        async with httpx.AsyncClient(follow_redirects=True, timeout=httpx.Timeout(15)) as client:
+            resp = await client.head(url)
+            length = resp.headers.get("content-length")
+            return int(length) if length and length.isdigit() else None
+    except Exception as e:
+        logger.info(f"[VIDEO-PIPE] Peso non determinabile prima del download: {e}")
+        return None
 
 
 async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
@@ -1646,8 +1671,22 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     logger.warning(f"[VIDEO-PIPE] Heartbeat loop error: {loop_err}")
         _hb_task = asyncio.create_task(_heartbeat_loop())
 
-        # 1. Download
-        size = await download_video(video_url, raw_path)
+        # 1. Download — con guardia sul peso: un file che non sta nella RAM del worker
+        # (4 GiB, /tmp incluso) va rifiutato con un messaggio chiaro, non fatto crashare.
+        try:
+            check_size(await probe_remote_size(video_url))   # prima di scaricare, se il peso è noto
+            size = await download_video(video_url, raw_path)
+            check_size(size)                                  # dopo il download, prima di ffmpeg
+        except VideoTooHeavy as heavy:
+            msg = str(heavy)
+            logger.error(f"[VIDEO-PIPE] {label} — {name}: {msg}")
+            err_key = "video_pipeline_error" if video_type == "masterclass" else "pipeline_error"
+            await set_status("error", {err_key: msg, "pipeline_heartbeat_at": None})
+            try:
+                await telegram(f"🛑 <b>Video troppo pesante</b>\n👤 {name} — {label}\n{msg}")
+            except Exception:
+                pass
+            return
         logger.info(f"[VIDEO-PIPE] Downloaded {size/1e6:.1f}MB")
 
         raw_dur = get_video_duration(raw_path)
@@ -1808,7 +1847,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     await set_status("cutting_fillers")
                     await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, all_segs, raw_dur)
                 else:
-                    shutil.copy(raw_path, final_path)
+                    link_or_copy(raw_path, final_path)
                 silence_saved = raw_dur - get_video_duration(final_path)
 
                 # Burn-in sottotitoli via FFmpeg — opt-in via VIDEO_ENHANCE_ENABLED.
@@ -1831,10 +1870,13 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         logger.warning(f"[VIDEO-PIPE] Sub burn-in error: {_se} — proseguo senza")
             except Exception as e:
                 logger.warning(f"[VIDEO-PIPE] AssemblyAI error: {e} — upload video raw")
-                shutil.copy(raw_path, final_path)
+                link_or_copy(raw_path, final_path)
         else:
             logger.info("[VIDEO-PIPE] AssemblyAI non config — upload video raw")
-            shutil.copy(raw_path, final_path)
+            link_or_copy(raw_path, final_path)
+        # Il grezzo non serve più: da qui in poi si lavora solo su final.mp4. Liberarlo
+        # dimezza il picco di RAM (/tmp è in memoria su Cloud Run).
+        free_file(raw_path, keep=final_path)
         # Lo standard videolezione richiede trascrizione word-level: senza non è
         # possibile distinguere pause morte, enfasi ed esercizi protetti. Fermare
         # con errore recuperabile invece di pubblicare il grezzo come "montato".
@@ -2360,7 +2402,9 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         filler_report = src.get("review_filler_report") or {"count": 0, "segments": [], "time_saved_s": 0}
 
         await _set("downloading")
-        await download_video(video_url, raw_path)
+        # Stessa guardia della pipeline principale: file troppo pesante = errore chiaro, non crash.
+        check_size(await probe_remote_size(video_url))
+        check_size(await download_video(video_url, raw_path))
         raw_dur = get_video_duration(raw_path)
 
         lesson_standard_report = None
@@ -2380,7 +2424,8 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
         if segs:
             await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, segs, raw_dur)
         else:
-            shutil.copy(raw_path, final_path)
+            link_or_copy(raw_path, final_path)
+        free_file(raw_path, keep=final_path)   # grezzo non più necessario: libera RAM (/tmp è in memoria)
         if is_lesson:
             await _set("rendering_lesson_standard")
             standard_path, _render_report = await apply_ciak_lesson_standard(
