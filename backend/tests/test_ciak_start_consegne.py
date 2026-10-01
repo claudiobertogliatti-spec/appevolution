@@ -515,3 +515,22 @@ def test_i_due_endpoint_sono_protetti_da_require_ciak_admin():
     for route in paths.values():
         nomi = [d.call.__name__ for d in route.dependant.dependencies]
         assert "require_ciak_admin" in nomi
+
+
+def test_il_pannello_dice_quando_il_cliente_ha_inviato_le_risposte():
+    """Senza le risposte i generatori non partono: il team deve vederlo sulla tappa 1."""
+    from services.ciak_start_milestones import milestone_rows
+
+    cliente = {
+        "id": "c1", "email": "a@b.it", "name": "A", "access_level": "cliente_start",
+        "start_purchased_at": "2026-10-01T07:00:00+00:00",
+    }
+    con = milestone_rows(cliente, [{
+        "partner_id": "c1", "step_id": "04-posizionamento",
+        "data": {"answers_completed_at": "2026-10-02T10:00:00+00:00"},
+    }])
+    assert {r["tappa"]: r["risposte_ricevute_at"] for r in con} == {
+        1: "2026-10-02T10:00:00+00:00", 2: None, 3: None,
+    }
+    senza = milestone_rows(cliente, [])
+    assert all(r["risposte_ricevute_at"] is None for r in senza)

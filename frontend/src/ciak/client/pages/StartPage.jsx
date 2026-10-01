@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
   Zap, Camera, ClipboardList, Bot, Mic, MessageCircle, Send,
@@ -269,6 +270,8 @@ export function StartPage({ dashboard }) {
   const [journeyError, setJourneyError] = useState("");
   const [journeyLoading, setJourneyLoading] = useState(false);
   const [deliverables, setDeliverables] = useState([]);
+  // Le domande di Start: finche' non le ha inviate, il lavoro non puo' partire.
+  const [domande, setDomande] = useState(null);
 
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
@@ -313,6 +316,13 @@ export function StartPage({ dashboard }) {
     return () => {
       annullato = true;
     };
+  }, [active, clientId]);
+
+  useEffect(() => {
+    if (!active) return;
+    clientGet("/start/risposte")
+      .then((dati) => setDomande({ inviate: Boolean(dati.completato_at), iniziate: Object.keys(dati.answers || {}).length > 0 }))
+      .catch(() => setDomande(null));
   }, [active, clientId]);
 
   useEffect(() => {
@@ -595,6 +605,42 @@ export function StartPage({ dashboard }) {
           Ciak Start sistema social, brand base, primo posizionamento, sito vetrina, calendario e strategia contenuti.
         </p>
       </section>
+
+      {domande ? (
+        <section
+          className={`rounded-xl border p-6 ${domande.inviate ? "border-emerald-200 bg-emerald-50" : "border-yellow-300 bg-yellow-50"}`}
+          data-testid="prossimo-passo"
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-600">Il tuo prossimo passo</p>
+          {domande.inviate ? (
+            <>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">Hai inviato le tue risposte</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Ora ci lavoriamo noi. Ti avvisiamo appena la prima tappa è pronta.
+              </p>
+              <Link to="/cliente/start/domande" className="mt-3 inline-block text-sm font-semibold text-slate-800 underline">
+                Rivedi o cambia le risposte
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                {domande.iniziate ? "Continua con le tue domande" : "Rispondi alle tue domande"}
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Sono otto domande sul tuo lavoro, una alla volta. Con le tue risposte prepariamo il tuo marchio
+                e le frasi che spiegano chi sei. Puoi fermarti quando vuoi: quello che scrivi si salva.
+              </p>
+              <Link
+                to="/cliente/start/domande"
+                className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-yellow-400 px-6 text-base font-semibold text-slate-900 transition-colors duration-200 hover:bg-yellow-300"
+              >
+                {domande.iniziate ? "Continua" : "Iniziamo"}
+              </Link>
+            </>
+          )}
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -101,3 +101,33 @@ export async function clientPost(path, body) {
   }
   return res.json();
 }
+
+/**
+ * PUT verso l'area cliente. A differenza di `clientPost`, un errore di
+ * validazione (422) NON e' una sessione scaduta: restituisce il dettaglio, cosi'
+ * la pagina puo' dire quali risposte mancano invece di buttare fuori il cliente.
+ */
+export async function clientPut(path, body) {
+  const res = await fetch(`/api/ciak/client${path}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${getClientToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body || {}),
+  });
+  if (res.status === 401) {
+    clearClientSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(
+      data?.detail?.message || (typeof data?.detail === "string" ? data.detail : `Errore ${res.status}`)
+    );
+    err.mancanti = data?.detail?.mancanti || [];
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}

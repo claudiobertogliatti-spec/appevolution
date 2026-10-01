@@ -34,7 +34,11 @@ class FakeCollection:
         for doc in self.docs:
             if all(doc.get(key) == value for key, value in query.items()):
                 for key, value in update.get("$set", {}).items():
-                    doc[key] = value
+                    target = doc
+                    *path, last = key.split(".")
+                    for part in path:
+                        target = target.setdefault(part, {})
+                    target[last] = value
                 for key in update.get("$unset", {}):
                     doc.pop(key, None)
                 return type("Result", (), {"matched_count": 1, "modified_count": 1})()
@@ -83,6 +87,9 @@ class FakeDb:
         )
         self.ciak_client_login_tokens = FakeCollection()
         self.users = FakeCollection()
+        self.partner_journey_steps = FakeCollection(
+            [{"partner_id": "client-1", "step_id": "04-posizionamento", "status": "in_progress", "data": {}}]
+        )
 
 
 class FakeCheckoutSession:
@@ -696,3 +703,76 @@ async def test_dashboard_start_consegne_sono_le_date_dell_email(fake_db):
     assert (await ciak_clients._dashboard_for_client(senza_data))["start"]["consegne"] == []
     blueprint = {"id": "c2", "email": "b@example.com", "access_level": "cliente_blueprint", "session_token": "token-1"}
     assert (await ciak_clients._dashboard_for_client(blueprint))["start"]["consegne"] == []
+
+
+# ─── Le domande di Ciak Start ──────────────────────────────────────────────
+
+def _cliente_loggato(monkeypatch, client_app, fake_db):
+    async def fake_verify_magic_login_token(db, token):
+        return fake_db.ciak_clients.docs[0]
+
+    monkeypatch.setattr(ciak_clients, "verify_magic_login_token", fake_verify_magic_login_token)
+    login = client_app.post("/api/ciak/client/auth/magic-login", json={"token": "magic-token"})
+    assert login.status_code == 200, login.text
+    token = login.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _risposte_complete():
+    from services.ciak_start_domande import DOMANDE_START_IDS
+
+    return {k: f"Risposta di prova per {k}" for k in DOMANDE_START_IDS}
+
+
+def test_start_risposte_si_salvano_a_pezzi_senza_toccare_lo_stato(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/risposte",
+        json={"answers": {"nicchia": "  Donne dopo i 40 che vogliono ripartire  ", "estranea": "x"}},
+        headers=auth,
+    )
+    assert r.status_code == 200
+    # Solo le domande Start, ripulite; nessuna chiave estranea.
+    assert r.json()["answers"] == {"nicchia": "Donne dopo i 40 che vogliono ripartire"}
+    assert r.json()["completato_at"] is None
+    step = fake_db.partner_journey_steps.docs[0]
+    assert step["status"] == "in_progress"  # la consegna resta approvata dal team
+    assert "approval_status" not in step
+
+    # Una seconda tornata aggiunge, non sovrascrive.
+    r2 = client_app.put("/api/ciak/client/start/risposte", json={"answers": {"promessa": "Ritrovare energia in tre mesi"}}, headers=auth)
+    assert set(r2.json()["answers"]) == {"nicchia", "promessa"}
+    assert client_app.get("/api/ciak/client/start/risposte", headers=auth).json()["answers"]["nicchia"].startswith("Donne")
+
+
+def test_start_risposte_non_si_inviano_se_ne_manca_qualcuna(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/risposte",
+        json={"answers": {"nicchia": "Donne dopo i 40 che vogliono ripartire"}, "completato": True},
+        headers=auth,
+    )
+    assert r.status_code == 422
+    assert "promessa" in r.json()["detail"]["mancanti"]
+    assert "answers_completed_at" not in fake_db.partner_journey_steps.docs[0]["data"]
+
+
+def test_start_risposte_inviate_segnano_il_momento_per_il_team(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/risposte",
+        json={"answers": _risposte_complete(), "completato": True},
+        headers=auth,
+    )
+    assert r.status_code == 200
+    assert r.json()["completato_at"]
+    assert fake_db.partner_journey_steps.docs[0]["data"]["answers_completed_at"] == r.json()["completato_at"]
+    assert fake_db.ciak_clients.docs[0]["events"][-1]["event"] == "start_risposte_inviate"
+
+
+def test_start_risposte_negate_a_chi_non_ha_start(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    doc = fake_db.ciak_clients.docs[0]
+    doc.update({"access_level": "cliente_blueprint", "start_credit_amount": None})
+    assert client_app.get("/api/ciak/client/start/risposte", headers=auth).status_code == 403
+    assert client_app.put("/api/ciak/client/start/risposte", json={"answers": {"nicchia": "abcdefghij"}}, headers=auth).status_code == 403

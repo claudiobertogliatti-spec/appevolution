@@ -4992,7 +4992,7 @@ async def consegne_start(
             {"partner_id": {"$in": client_ids}},
             {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
              "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
-             "updated_at": 1, "reference": 1, "note": 1},
+             "updated_at": 1, "reference": 1, "note": 1, "data.answers_completed_at": 1},
         ):
             steps_by_client.setdefault(step.get("partner_id"), []).append(step)
 
