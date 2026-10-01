@@ -239,6 +239,8 @@ function PartRow({ index, part, pageId, released, busy, onApprove, onEdit, onUpl
   const [open, setOpen] = useState(false);
   const [wanted, setWanted] = useState("");
   const [gaia, setGaia] = useState(null);
+  const [thread, setThread] = useState([]);
+  const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [mode, setMode] = useState("modifica");
   const [photos, setPhotos] = useState([]);
@@ -261,13 +263,21 @@ function PartRow({ index, part, pageId, released, busy, onApprove, onEdit, onUpl
     setUploading(false);
   };
 
-  const send = async (text, insist, note) => {
+  const resetAll = () => { setGaia(null); setOpen(false); setWanted(""); setPhotos([]); setThread([]); setReply(""); };
+
+  const send = async (text, insist, note, replyText) => {
     setSending(true);
-    const r = await onEdit(pageId, part.id, text, insist, note, photos.map((x) => x.url), mode);
+    const r = await onEdit(pageId, part.id, text, insist, note, photos.map((x) => x.url), mode, thread, replyText);
     setSending(false);
     if (!r) return;
-    if (r.verdict === "sconsiglio") { setGaia(r); return; }
-    setGaia(null); setOpen(false); setWanted(""); setPhotos([]);
+    if (r.verdict === "sconsiglio") {
+      setThread((t) => [...t, ...(replyText ? [{ role: "partner", text: replyText }] : [{ role: "partner", text }]),
+                        ...(r.message ? [{ role: "gaia", text: r.message }] : [])]);
+      setReply("");
+      setGaia(r);
+      return;
+    }
+    resetAll();
   };
 
   return (
@@ -351,24 +361,44 @@ function PartRow({ index, part, pageId, released, busy, onApprove, onEdit, onUpl
       )}
       {open && gaia && (
         <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5" role="status">
-          <div className="text-[13px] font-semibold text-slate-900 mb-1">Gaia ti spiega</div>
-          <p className="text-[13.5px] text-slate-800 leading-relaxed">{gaia.message}</p>
+          <div className="text-[13px] font-semibold text-slate-900 mb-2">Gaia ti spiega</div>
+          <ul className="space-y-2 mb-3">
+            {thread.map((t, i) => (
+              <li key={i} className={`text-[13.5px] leading-relaxed rounded-lg px-3 py-2 ${t.role === "gaia" ? "bg-white text-slate-800" : "bg-amber-100 text-slate-900 ml-6"}`}>
+                <span className="block text-[11.5px] font-semibold text-slate-500">{t.role === "gaia" ? "Gaia" : "Tu"}</span>
+                {t.text}
+              </li>
+            ))}
+          </ul>
           {gaia.proposal && (
-            <p className="text-[13.5px] text-slate-900 mt-2"><span className="font-semibold">La mia proposta: </span>«{gaia.proposal}»</p>
+            <p className="text-[13.5px] text-slate-900 mb-3"><span className="font-semibold">La mia proposta: </span>«{gaia.proposal}»</p>
           )}
-          <div className="flex flex-wrap gap-2 mt-3">
+          {!gaia.closed && (
+            <form className="mb-3" onSubmit={(e) => { e.preventDefault(); if (reply.trim().length >= 3 && !sending) send(wanted, false, null, reply.trim()); }}>
+              <label className="block text-[13px] font-semibold text-slate-800 mb-1" htmlFor={`r-${pageId}-${part.id}`}>Rispondi a Gaia</label>
+              <textarea id={`r-${pageId}-${part.id}`} value={reply} onChange={(e) => setReply(e.target.value)} maxLength={300} rows={2}
+                        placeholder="Spiega il tuo motivo: se è valido, Gaia cambia idea"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[14px] mb-2" />
+              <button type="submit" disabled={reply.trim().length < 3 || sending}
+                      className="min-h-[44px] px-4 rounded-lg text-[14px] font-semibold disabled:opacity-40"
+                      style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+                {sending ? "Gaia sta rispondendo…" : "Rispondi"}
+              </button>
+            </form>
+          )}
+          <div className="flex flex-wrap gap-2">
             {gaia.proposal && (
-              <button onClick={() => send(gaia.proposal, true, gaia.message)} disabled={sending}
+              <button onClick={() => send(gaia.proposal, true, thread.filter((t) => t.role === "gaia").map((t) => t.text).join(" | "))} disabled={sending}
                       className="min-h-[44px] px-4 rounded-lg text-[14px] font-semibold disabled:opacity-40"
                       style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
                 Usa la proposta di Gaia
               </button>
             )}
-            <button onClick={() => send(wanted, true, gaia.message)} disabled={sending}
+            <button onClick={() => send(wanted, true, thread.filter((t) => t.role === "gaia").map((t) => t.text).join(" | "))} disabled={sending}
                     className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white disabled:opacity-40">
               Voglio comunque la mia
             </button>
-            <button onClick={() => { setGaia(null); setOpen(false); setWanted(""); }} disabled={sending}
+            <button onClick={resetAll} disabled={sending}
                     className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-600 border border-slate-300 bg-white">
               Lascio com'è
             </button>
@@ -476,12 +506,12 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
       return null;
     }
   };
-  const editPart = async (pageId, partId, wanted, insist, gaiaNote, photos, mode) => {
+  const editPart = async (pageId, partId, wanted, insist, gaiaNote, photos, mode, thread, reply) => {
     setBusy(true); setErr(null);
     try {
       const r = await fetch(`${API}/api/partner-journey/funnel-review/${partnerId}/part/edit`, {
         method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ page_id: pageId, part_id: partId, wanted, insist: !!insist, gaia_note: gaiaNote || null, photos: photos || [], action: mode || "modifica" }),
+        body: JSON.stringify({ page_id: pageId, part_id: partId, wanted, insist: !!insist, gaia_note: gaiaNote || null, photos: photos || [], action: mode || "modifica", thread: thread || [], reply: reply || null }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Qualcosa non ha funzionato. Riprova.");

@@ -21,7 +21,7 @@ RELEASED = {"partner_id": "p1", "preview_url": URL, "preview_version": 1, "previ
 
 def test_a_verdict_is_accepted_only_if_complete_and_a_refusal_always_carries_an_explanation():
     assert cr.normalize({"verdict": "ok", "spiegazione": "ignorata", "proposta": "x"}) == \
-        {"verdict": "ok", "spiegazione": "", "proposta": ""}
+        {"verdict": "ok", "spiegazione": "", "proposta": "", "versione_finale": ""}
     full = cr.normalize({"verdict": "sconsiglio", "spiegazione": "Prometti un risultato garantito: non si può scrivere.",
                          "proposta": "Un percorso per ritrovare calma"})
     assert full["verdict"] == "sconsiglio" and "garantito" in full["spiegazione"] and full["proposta"]
@@ -203,3 +203,45 @@ async def test_an_addition_reaches_gaia_as_an_addition_and_the_team_as_one(env):
 def test_gaia_is_told_the_partner_is_the_expert_on_his_technical_terms():
     assert "termine tecnico" in cr._SYSTEM and "è l'esperto" in cr._SYSTEM
     assert "rispondi del COPY" in cr._SYSTEM
+
+
+def test_the_conversation_reaches_gaia_and_is_capped():
+    thread = [{"role": "partner", "text": "Voglio scrivere Chi Kung"}, {"role": "gaia", "text": "Meglio coerente col sito"}]
+    msg = cr.build_user_message("Iscrizione", "Il titolo", "Qi Gong", "Chi Kung", "Metodo Sabai", "Colori: #9988AA",
+                                thread, "Nella mia scuola si scrive così")
+    assert "Conversazione finora" in msg and "Gaia: Meglio coerente col sito" in msg
+    assert "Ultima risposta del partner: Nella mia scuola si scrive così" in msg
+    assert cr.gaia_turns(thread) == 1 and cr.MAX_GAIA_TURNS == 4
+    assert "DIALOGO" in cr._SYSTEM and "Cosa NON gestisci" in cr._SYSTEM and "prezzo" in cr._SYSTEM
+
+
+def test_an_agreement_after_the_dialogue_carries_the_final_text():
+    out = cr.normalize({"verdict": "ok", "spiegazione": "", "proposta": "", "versione_finale": "Chi Kung dolce"})
+    assert out["versione_finale"] == "Chi Kung dolce"
+    assert cr.normalize({"verdict": "sconsiglio", "spiegazione": "Motivo chiaro e lungo abbastanza.",
+                         "proposta": "", "versione_finale": "x"})["versione_finale"] == ""
+
+
+@pytest.mark.asyncio
+async def test_after_the_agreement_the_team_receives_what_gaia_and_the_partner_settled_on(env):
+    env({"verdict": "ok", "spiegazione": "", "proposta": "", "versione_finale": "Chi Kung dolce per ritrovare calma"})
+    thread = [{"role": "partner", "text": "Chi Kung"}, {"role": "gaia", "text": "Sul sito scrivi Qi Gong"}]
+    out = await route.edit_part("p1", route.PartEditBody(page_id="optin", part_id="titolo", wanted="Chi Kung",
+                                                        thread=thread, reply="Nella mia scuola si scrive così"), object())
+    assert out["verdict"] == "inviata"
+    entry = env.funnel.doc["review"]["corrections"][0]
+    assert entry["right"] == "Chi Kung dolce per ritrovare calma" and "dialogo" in entry["note"]
+
+
+@pytest.mark.asyncio
+async def test_the_dialogue_has_a_ceiling_and_then_the_partner_decides(env):
+    env({"verdict": "sconsiglio", "spiegazione": "Non cambio parere, per questo motivo concreto.", "proposta": "Altra versione"})
+    thread = [{"role": "gaia", "text": f"risposta {i}"} for i in range(4)]
+    out = await route.edit_part("p1", route.PartEditBody(page_id="optin", part_id="titolo", wanted="Titolo mio",
+                                                        thread=thread, reply="ancora una volta"), object())
+    assert out["verdict"] == "sconsiglio" and out["closed"] is True
+    assert "review" not in env.funnel.doc  # niente salvato: decide il partner
+    # all'ultimo scambio permesso Gaia risponde ancora, ma la conversazione si chiude
+    out = await route.edit_part("p1", route.PartEditBody(page_id="optin", part_id="titolo", wanted="Titolo mio",
+                                                        thread=thread[:3], reply="ancora"), object())
+    assert out["verdict"] == "sconsiglio" and out["closed"] is True and out["message"].startswith("Non cambio")

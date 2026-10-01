@@ -58,6 +58,8 @@ class PartEditBody(BaseModel):
     insist: bool = False          # il partner conferma la sua versione dopo l'avviso di Gaia
     gaia_note: Optional[str] = None  # la spiegazione che Gaia gli aveva dato
     photos: Optional[List[str]] = None  # foto caricate dal partner (solo per «L'aspetto»)
+    thread: Optional[List[Dict[str, str]]] = None  # il dialogo con Gaia finora [{role, text}]
+    reply: Optional[str] = None  # la nuova risposta del partner a Gaia
     action: str = "modifica"  # «modifica» oppure «aggiungi» (una domanda, un punto, un passo)
 
 
@@ -204,7 +206,16 @@ async def edit_part(partner_id: str, body: PartEditBody,
         _fail(e)
     current = str(((rec.get("page_content") or {}).get(body.page_id) or {}).get(body.part_id) or "")
 
+    thread = [{"role": "gaia" if (t or {}).get("role") == "gaia" else "partner", "text": str((t or {}).get("text") or "")[:700]}
+              for t in (body.thread or [])][-12:]
+    reply = (body.reply or "").strip()[:700]
+    final_text = None
     note = None
+    if reply and copy_review.gaia_turns(thread) >= copy_review.MAX_GAIA_TURNS:
+        # il dialogo ha un tetto: poi decide il partner (la sua versione, la proposta di Gaia, o lasciare com'è)
+        return {"success": True, "verdict": copy_review.SCONSIGLIO, "closed": True, "proposal": "",
+                "message": "Su questo punto abbiamo parlato abbastanza. Scegli tu: puoi usare la proposta di Gaia, "
+                           "mandare la tua versione al team oppure lasciare com'è."}
     if body.insist:
         note = f"Il partner conferma la sua versione dopo l'avviso di Gaia: {body.gaia_note or 'nessuna spiegazione registrata'}"
     else:
@@ -216,12 +227,20 @@ async def edit_part(partner_id: str, body: PartEditBody,
         if body.action == "aggiungi":
             asked = f"AGGIUNTA richiesta: {asked}"
         verdict = await copy_review.assess_edit(page["title"], part["label"], current, asked,
-                                                partner.get("corso_titolo", ""), brand)
+                                                partner.get("corso_titolo", ""), brand, thread, reply)
         if verdict["verdict"] == copy_review.SCONSIGLIO:
-            return {"success": True, "verdict": copy_review.SCONSIGLIO,
+            closed = reply and copy_review.gaia_turns(thread) + 1 >= copy_review.MAX_GAIA_TURNS
+            return {"success": True, "verdict": copy_review.SCONSIGLIO, "closed": bool(closed),
                     "message": verdict["spiegazione"], "proposal": verdict["proposta"]}
-        note = "Gaia: la modifica ha senso." if verdict["verdict"] == copy_review.OK else "Inoltrata senza valutazione di Gaia."
+        if verdict["verdict"] == copy_review.OK:
+            if reply and verdict.get("versione_finale"):
+                final_text = verdict["versione_finale"]
+            note = ("Concordata con Gaia dopo un dialogo." if reply else "Gaia: la modifica ha senso.")
+        else:
+            note = "Inoltrata senza valutazione di Gaia."
 
+    if final_text:
+        wanted = fr.clean_text(final_text, fr.RIGHT_MAX, "Come lo vorresti")
     wrong = f"{part['label']}: {current}" if current else part["label"]
     if body.action == "aggiungi":
         wrong = f"{part['label']}: aggiunta richiesta"

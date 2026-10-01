@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 _MODEL = os.environ.get("FUNNEL_COPY_REVIEW_MODEL", "claude-sonnet-4-6")
 
+MAX_GAIA_TURNS = 4  # dopo 4 risposte di Gaia decide il partner (o il team)
 OK = "ok"
 SCONSIGLIO = "sconsiglio"
 INOLTRATA = "inoltrata"
@@ -54,6 +55,13 @@ _SYSTEM = (
     "proponi la scelta più vicina dentro il brand kit.\n"
     "- Se il brand kit non contiene l'informazione che serve (per esempio nessun font registrato), NON indovinare: "
     "scegli \"ok\" e lascia che il team verifichi.\n\n"
+    "Sei in DIALOGO con il partner: se ti risponde con un motivo valido (un fatto, un termine del suo settore, "
+    "un vincolo che non conoscevi) cambia idea e passa a \"ok\", scrivendo in `versione_finale` il testo concordato. "
+    "Se non ti convince, resta sul tuo parere e spiega in modo diverso, senza ripetere la frase di prima. Non "
+    "cedere su ciò che è disonesto o vietato. Tu non modifichi mai la pagina: spieghi, proponi, e la richiesta va al team.\n\n"
+    "Cosa NON gestisci qui: prezzo, contratto, rimborsi, pagamenti, aspetti legali, nuove funzioni o pagine, strategia "
+    "del corso. Se la richiesta riguarda questo scegli \"sconsiglio\", spiega con gentilezza che da qui si cambia solo "
+    "l'aspetto e il testo delle pagine e che di quel tema si occupa il team, e lascia `proposta` vuota.\n\n"
     "Come scrivi la spiegazione (solo se sconsiglio):\n"
     "- Italiano semplice, 2 o 3 frasi, rivolto al partner con il tu. Il partner non è un tecnico né un copywriter.\n"
     "- Spiega il PERCHÉ in concreto (cosa succede a chi legge, o quale regola lo vieta), senza giudicare la persona.\n"
@@ -69,6 +77,7 @@ _SCHEMA = {
         "verdict": {"type": "string", "enum": [OK, SCONSIGLIO]},
         "spiegazione": {"type": "string", "description": "Vuota se ok. Se sconsiglio: 2-3 frasi semplici."},
         "proposta": {"type": "string", "description": "Alternativa pronta da usare, oppure vuoto."},
+        "versione_finale": {"type": "string", "description": "Solo se ok dopo un dialogo: il testo concordato da mandare al team, altrimenti vuoto."},
     },
     "required": ["verdict", "spiegazione", "proposta"],
 }
@@ -95,8 +104,25 @@ def brand_summary(kit: Dict[str, Any]) -> str:
     return "\n".join(rows) or "Brand kit non disponibile."
 
 
+def format_thread(thread: Any) -> str:
+    rows = []
+    for turn in (thread or [])[-2 * MAX_GAIA_TURNS - 2:]:
+        who = "Gaia" if (turn or {}).get("role") == "gaia" else "Partner"
+        text = _clean((turn or {}).get("text"), 700)
+        if text:
+            rows.append(f"{who}: {text}")
+    return "\n".join(rows)
+
+
+def gaia_turns(thread: Any) -> int:
+    return sum(1 for t in (thread or []) if (t or {}).get("role") == "gaia")
+
+
 def build_user_message(page_title: str, part_label: str, current_text: str, wanted: str, course: str,
-                       brand: str = "") -> str:
+                       brand: str = "", thread: Any = None, reply: str = "") -> str:
+    convo = format_thread(thread)
+    tail = (f"\nConversazione finora:\n{convo}\nUltima risposta del partner: {_clean(reply, 700)}"
+            if reply else "")
     return (
         f"Corso: {_clean(course, 120) or 'non indicato'}\n"
         f"Pagina: {_clean(page_title, 120)}\n"
@@ -104,6 +130,7 @@ def build_user_message(page_title: str, part_label: str, current_text: str, want
         f"Testo attuale: {_clean(current_text, 600) or '(non mostrato al partner)'}\n"
         f"Brand kit del partner:\n{brand or 'Brand kit non disponibile.'}\n"
         f"Modifica richiesta dal partner: {_clean(wanted, 600)}"
+        + tail
     )
 
 
@@ -134,24 +161,25 @@ def _call_claude(user: str) -> Dict[str, Any]:
 def normalize(out: Any) -> Dict[str, str]:
     """Accetta solo un esito completo e coerente; altrimenti inoltra al team senza giudizio."""
     if not isinstance(out, dict) or out.get("verdict") not in (OK, SCONSIGLIO):
-        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": ""}
+        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": "", "versione_finale": ""}
     spiegazione = _clean(out.get("spiegazione"), 700)
     if out["verdict"] == SCONSIGLIO and len(spiegazione) < 10:
         # non si boccia una richiesta senza spiegarne il motivo
-        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": ""}
+        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": "", "versione_finale": ""}
     return {
         "verdict": out["verdict"],
         "spiegazione": spiegazione if out["verdict"] == SCONSIGLIO else "",
         "proposta": _clean(out.get("proposta"), 600) if out["verdict"] == SCONSIGLIO else "",
+        "versione_finale": _clean(out.get("versione_finale"), 600) if out["verdict"] == OK else "",
     }
 
 
 async def assess_edit(page_title: str, part_label: str, current_text: str, wanted: str, course: str,
-                      brand: str = "") -> Dict[str, str]:
+                      brand: str = "", thread: Any = None, reply: str = "") -> Dict[str, str]:
     """Non solleva mai: in caso di errore la richiesta va al team senza giudizio."""
     try:
-        out = await asyncio.to_thread(_call_claude, build_user_message(page_title, part_label, current_text, wanted, course, brand))
+        out = await asyncio.to_thread(_call_claude, build_user_message(page_title, part_label, current_text, wanted, course, brand, thread, reply))
         return normalize(out)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[funnel-copy-review] valutazione non riuscita ({e}): inoltro al team")
-        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": ""}
+        return {"verdict": INOLTRATA, "spiegazione": "", "proposta": "", "versione_finale": ""}
