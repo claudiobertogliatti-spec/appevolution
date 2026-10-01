@@ -799,9 +799,11 @@ async def ciak_delete_lead(
     if db is None:
         raise HTTPException(503, "Database non configurato")
     email = email.strip().lower()
-    leads_r = await db.ciak_leads.delete_many({"email": email})
-    diag_r = await db.diagnostic_sessions.delete_many({"user_email": email})
-    chk_r = await db.ciak_checkpoint_events.delete_many({"email": email})
+    # Stesso confronto della scheda (GET /lead): l'email dei record è come l'ha
+    # digitata il lead, anche in maiuscolo.
+    leads_r = await db.ciak_leads.delete_many({"email": _email_ci(email)})
+    diag_r = await db.diagnostic_sessions.delete_many({"user_email": _email_ci(email)})
+    chk_r = await db.ciak_checkpoint_events.delete_many({"email": _email_ci(email)})
     total = leads_r.deleted_count + diag_r.deleted_count + chk_r.deleted_count
     if total == 0:
         raise HTTPException(404, "Lead non trovato")
@@ -1133,7 +1135,7 @@ async def ciak_mark_call_booked(
 
     email = payload.email.strip().lower()
     diag = await db.diagnostic_sessions.find_one(
-        {"user_email": email}, sort=[("created_at", -1)]
+        {"user_email": _email_ci(email)}, sort=[("created_at", -1)]
     )
     if not diag:
         raise HTTPException(
@@ -1739,11 +1741,11 @@ async def ciak_lead_edit(body: LeadEditIn, admin=Depends(require_ciak_admin)):
         raise HTTPException(400, "Niente da aggiornare")
 
     touched = 0
-    r1 = await db.ciak_leads.update_one({"email": email}, {"$set": set_lead})
+    r1 = await db.ciak_leads.update_one({"email": _email_ci(email)}, {"$set": set_lead})
     touched += r1.matched_count
     if body.nome is not None:
         r2 = await db.diagnostic_sessions.update_many(
-            {"user_email": email}, {"$set": {"user_name": body.nome.strip()}}
+            {"user_email": _email_ci(email)}, {"$set": {"user_name": body.nome.strip()}}
         )
         touched += r2.matched_count
     if touched == 0:
@@ -1782,7 +1784,7 @@ async def ciak_lead_detail(
         lead = _synthetic_lead(diagnostics[0])
 
     latest_diag = diagnostics[0] if diagnostics else None
-    client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
+    client = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
     session_token = (latest_diag or {}).get("session_token")
     analysis = (
         await db.ciak_analisi.find_one({"session_token": session_token}, {"_id": 0})
