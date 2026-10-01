@@ -42,6 +42,26 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
     )
 
 
+def _valore_pieno(valore: Any) -> bool:
+    if isinstance(valore, str):
+        return bool(valore.strip())
+    if isinstance(valore, (list, dict, tuple, set)):
+        return any(_valore_pieno(v) for v in (valore.values() if isinstance(valore, dict) else valore))
+    return valore is not None and valore is not False
+
+
+def ha_risposte(sessione: dict[str, Any] | None) -> bool:
+    """True se la sessione contiene almeno UNA risposta vera.
+
+    Non basta che `responses` non sia vuoto: la sessione nata riaprendo il
+    questionario ha tutte le chiavi presenti ma con valori nulli (caso Anna Maria
+    Bernard, 1/10: il Blueprint "questionario arrivato vuoto" e' stato generato e
+    inviato su una sessione cosi'). Conta il contenuto, non la forma.
+    """
+    risposte = (sessione or {}).get("responses")
+    return isinstance(risposte, dict) and any(_valore_pieno(v) for v in risposte.values())
+
+
 def pick_diagnostic_session(sessions: list[dict[str, Any]] | None) -> dict[str, Any] | None:
     """La sessione diagnostica che conta per un lead: la PIU' RECENTE CON RISPOSTE.
 
@@ -53,7 +73,7 @@ def pick_diagnostic_session(sessions: list[dict[str, Any]] | None) -> dict[str, 
     """
     ordered = [s for s in (sessions or []) if isinstance(s, dict)]
     for item in ordered:
-        if item.get("responses"):
+        if ha_risposte(item):
             return item
     return ordered[0] if ordered else None
 

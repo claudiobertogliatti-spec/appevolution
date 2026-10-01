@@ -18,6 +18,7 @@ from report_key_auth import require_admin_or_report_key
 from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
 from services.ciak_client_accounts import (
+    ha_risposte,
     pick_diagnostic_session,
     ACCESS_BLUEPRINT,
     ACCESS_PARTNER,
@@ -875,7 +876,7 @@ async def consegna_blueprint(
             detail="Lead non trovato: fornisci session_token, email o client_id validi.",
         )
 
-    if not diagnostic.get("responses"):
+    if not ha_risposte(diagnostic):
         raise HTTPException(
             status_code=409,
             detail="Il questionario di questo lead non risulta compilato: nessun Blueprint da consegnare.",
@@ -937,7 +938,7 @@ async def blueprint_genera(
     diagnostic = await _find_diagnostic(body.session_token, body.email)
     if diagnostic is None:
         raise HTTPException(status_code=404, detail="Lead non trovato: fornisci session_token o email validi.")
-    if not diagnostic.get("responses"):
+    if not ha_risposte(diagnostic):
         raise HTTPException(
             status_code=409,
             detail="Il questionario di questo lead non risulta compilato: il Blueprint non si puo' generare.",
