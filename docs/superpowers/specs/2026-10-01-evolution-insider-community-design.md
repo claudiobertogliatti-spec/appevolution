@@ -25,20 +25,23 @@ Fuori da questo progetto (avranno un proprio disegno): far crescere il blog (SEO
 
 ## Chi viene invitato
 
-Tre percorsi, una sola volta per persona:
+Il funnel gratuito ha questi stati (`services/ciak_state_machine.py`): `lead_created → ciak_started → ciak_completed → report_generated → call_booked → call_done`. Il Blueprint si consegna **dopo** la call. Non esiste uno stato di «decisione negativa».
+Tre percorsi, una sola volta per persona. Si invita quando la data di riferimento è passata:
 
-| # | Condizione | Data di riferimento |
+| # | Chi | Data di riferimento |
 |---|---|---|
-| a | Proposta scaduta senza pagamento (`db.proposte`) | `scadenza` |
-| b | Segnata come decisione negativa | data della decisione |
-| c | Blueprint consegnato da almeno 7 giorni, senza call prenotata né acquisto | `consegna_inviata_at` (`ciak_blueprints`) |
+| a | `call_done` con proposta scaduta senza pagamento (`db.proposte`) | `scadenza` della proposta |
+| b | `call_done` con Blueprint consegnato e nessuna proposta | `consegna_inviata_at` (`ciak_blueprints`) + 7 giorni |
+| c | `report_generated` che non ha prenotato la call | data dello stato `report_generated` + 14 giorni |
 
-**Esclusi sempre:** chi ha acquistato Start o Partnership, i partner attivi, chi ha un `lavorazione_manuale` in corso, chi si è già disiscritto.
+I 7 e i 14 giorni sono costanti modificabili. Il percorso c copre chi ha compilato il questionario ma non ha mai prenotato: è la popolazione più numerosa di chi non acquista.
+
+**Esclusi sempre:** `call_booked` (call in programma), chi ha acquistato (`start_purchased_at`, `access_level` in `cliente_start`/`partner`, `partnership_attiva`, proposta in `pagamento_completato` o `contratto_firmato`), email non valide, chi è già stato invitato.
 Chi è già iscritto alla newsletter di Systeme da altra fonte (masterclass, report del blog) non viene escluso: riceve lo stesso invito, perché l'iscrizione a Insider è un consenso distinto.
 
 ## Flusso
 
-1. **Controllo giornaliero (backend):** individua i candidati e applica su Systeme il tag `insider_invito` con `ciak_emit_event`. Dopo l'applicazione marca `insider_invitato`, così nessuno viene invitato due volte.
+1. **Controllo giornaliero (backend):** individua i candidati e applica su Systeme il tag `insider_invito` con `ciak_emit_event`. Ogni invito è registrato in `insider_invites` (email unica), così nessuno viene invitato due volte. Il controllo è spento finché `INSIDER_INVITES_ENABLED` non vale `1`: spento, fa solo la conta dei candidati. Ogni giro invita al massimo 25 persone.
 2. **Workflow Systeme "Evolution Insider — Invito"** (trigger: tag `insider_invito`): email d'invito → attesa 3 giorni → se non iscritto, **un** promemoria → fine. Non si insiste.
 3. **Iscrizione:** pagina Systeme con casella di consenso e link alla privacy. All'invio: tag `insider_membro`, accesso all'area membri, email di benvenuto con il primo materiale.
 4. **Newsletter settimanale** a chi ha `insider_membro`: un articolo del blog, un video, un materiale della biblioteca a rotazione. Link con UTM (`utm_source=insider`).
@@ -70,11 +73,16 @@ La misura delle visite al blog e delle visualizzazioni YouTube dipende da strume
 - **Volume:** i primi invii a un piccolo lotto, per controllare consegna e tassi prima di aprire.
 - **Brevo/SMTP:** non coinvolti. Le email di relazione partono da Systeme (policy 19/9).
 
-## Da verificare nella fase di piano (non ancora controllato)
+## Verificato nella fase di piano
 
-- Il campo reale che indica la «decisione negativa» e come si scrive.
-- Gli indicatori di acquisto da escludere (`access_level`, `partnership_attiva`, tag Systeme) e la loro coerenza.
-- Quanti contatti rientrano oggi nei tre percorsi (dimensione del primo lotto).
+- «Decisione negativa»: non esiste nel funnel Blueprint (vedi sopra). Il percorso è stato sostituito dal c.
+- Indicatori di acquisto: `ciak_clients.start_purchased_at`, `ciak_clients.access_level` (`cliente_start`, `partner`), `partnership_attiva`, `db.proposte.stato`.
+- Campi: `diagnostic_sessions.user_email` (anche in maiuscolo: va normalizzato), `current_state`, `state_history[{state, timestamp}]`; `ciak_blueprints.consegna_inviata_at`; `db.proposte.prospect_email`, `scadenza`, `stato`.
+- Schema dei lavori giornalieri: servizio + endpoint con chiave report + job dello scheduler (come il promemoria del bonus 48h).
+
+## Ancora da verificare
+
+- Quanti contatti rientrano oggi nei tre percorsi (si legge con la conta a secco, dopo il rilascio).
 - Se la pagina d'iscrizione con consenso si può costruire con gli strumenti a disposizione o va fatta da interfaccia.
 
 ## Collaudo
