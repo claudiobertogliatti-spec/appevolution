@@ -986,6 +986,16 @@ class RiportaCallFattaRequest(BaseModel):
     email: str = Field(..., description="Email del lead (quella del questionario)")
 
 
+# Riferimenti che NON sono pagamenti veri: quelli generati dal form admin e quelli
+# che si danno a mano a un collaudo (convenzione `collaudo-…`). Un riferimento
+# Stripe o di bonifico non inizia mai cosi'.
+PREFISSI_RIFERIMENTO_DI_PROVA = ("admin:", "collaudo-")
+
+
+def _riferimento_di_prova(riferimento) -> bool:
+    return str(riferimento or "").startswith(PREFISSI_RIFERIMENTO_DI_PROVA)
+
+
 def _riferimenti_start_admin(client: dict) -> tuple[list[str], list[str], list[str]]:
     """(riferimenti creati dal form admin, riferimenti di pagamenti veri, chi ha attivato).
 
@@ -1003,8 +1013,8 @@ def _riferimenti_start_admin(client: dict) -> tuple[list[str], list[str], list[s
                 chi.append(f"{ev.get('by')} ({str(ev.get('timestamp') or '')[:16]})")
     if client.get("last_checkout_session_id"):
         refs.add(client["last_checkout_session_id"])
-    finti = sorted(r for r in refs if str(r).startswith("admin:"))
-    veri = sorted(r for r in refs if not str(r).startswith("admin:"))
+    finti = sorted(r for r in refs if _riferimento_di_prova(r))
+    veri = sorted(r for r in refs if not _riferimento_di_prova(r))
     return finti, veri, chi
 
 
