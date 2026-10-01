@@ -133,6 +133,31 @@ def trigger_bonus_guida_reminder():
         logger.error(f"[SCHEDULER] Errore trigger_bonus_guida_reminder: {e}")
 
 
+def trigger_insider_invites():
+    """Ogni giorno — invita a Evolution Insider chi ha gia' interagito e non ha acquistato.
+    Il servizio e' spento finche' INSIDER_INVITES_ENABLED != "1" (spento, conta soltanto)
+    e invita al massimo 25 persone per giro. Idempotente: una sola volta per persona."""
+    try:
+        chiave = os.environ.get("LUCA_REPORT_KEY", "")
+        if not chiave:
+            logger.error("[SCHEDULER] Insider invites saltato: LUCA_REPORT_KEY non configurata")
+            return
+        r = httpx.post(
+            f"{BASE_URL}/ciak/client/insider-invites/run",
+            headers={"X-Report-Key": chiave},
+            timeout=120,
+        )
+        if r.status_code >= 400:
+            logger.error(f"[SCHEDULER] Insider invites: HTTP {r.status_code} {r.text[:200]}")
+            return
+        res = r.json()
+        logger.info(f"[SCHEDULER] Insider invites — candidati {res.get('candidati', 0)}, "
+                    f"inviati {res.get('inviati', 0)}, errori {res.get('errori', 0)}, "
+                    f"a secco {res.get('dry_run')}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_insider_invites: {e}")
+
+
 def trigger_marco_run():
     """Ogni lunedì alle 9:00 — check-in settimanale per tutti i partner F3+."""
     try:
@@ -518,6 +543,15 @@ def start_scheduler():
         trigger_bonus_guida_reminder,
         CronTrigger(minute=20),
         id="bonus_guida_reminder",
+        replace_existing=True
+    )
+
+    # EVOLUTION INSIDER — ogni giorno alle 10:30: inviti alla community per chi non ha
+    # acquistato. Spento finche' INSIDER_INVITES_ENABLED != "1".
+    scheduler.add_job(
+        trigger_insider_invites,
+        CronTrigger(hour=10, minute=30),
+        id="insider_invites",
         replace_existing=True
     )
 
