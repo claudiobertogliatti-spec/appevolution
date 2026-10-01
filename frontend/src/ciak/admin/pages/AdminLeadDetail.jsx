@@ -630,11 +630,12 @@ export function AdminLeadDetail({ onAuthExpired }) {
           </button>
           {proposal?.url && (
             <div className="mt-4 rounded-xl border border-slate-700 p-4">
-              <p className="text-sm text-slate-200 mb-2">Proposta {proposal.status}: {proposal.url}</p>
+              {/* Il link da dare al lead è la pagina post-call personalizzata sul Blueprint
+                  (/insider/:token, stesso token della proposta). */}
+              <p className="text-sm text-slate-200 mb-2">Proposta {proposal.status}: {proposal.url.replace("/proposta/", "/insider/")}</p>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => navigator.clipboard.writeText(proposal.url)} className="text-sm text-yellow-400">Copia URL</button>
-                <a href={proposal.url} target="_blank" rel="noopener noreferrer" className="text-sm text-yellow-400">Apri proposta</a>
-                {/* La pagina cliente post-call (Insider) si apre dalla sezione admin dedicata "Chiusura Insider". */}
+                <button type="button" onClick={() => navigator.clipboard.writeText(proposal.url.replace("/proposta/", "/insider/"))} className="text-sm text-yellow-400">Copia URL</button>
+                <a href={proposal.url.replace("/proposta/", "/insider/")} target="_blank" rel="noopener noreferrer" className="text-sm text-yellow-400">Apri proposta</a>
               </div>
             </div>
           )}

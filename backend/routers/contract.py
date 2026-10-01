@@ -225,19 +225,19 @@ Revolut Bank UAB è una banca europea con licenza bancaria completa rilasciata d
 Se hai partita IVA italiana, il reverse charge è una procedura standard per servizi da fornitori extra-UE: ricevi la fattura senza IVA e la integri tu nel registro IVA con la tua aliquota. Il tuo commercialista lo fa in 2 minuti, è una procedura routinaria. Se sei persona fisica senza P.IVA, l'operazione è ancora più semplice: nessun adempimento aggiuntivo per te.
 
 ▸ "Posso avere un rimborso se le cose non funzionano?"
-Il corrispettivo remunera l'avvio del progetto, le risorse operative allocate e il lavoro già avviato (Art. 5.7). Detto questo, è prevista una garanzia di rimborso entro 30 giorni se il funnel non è online per cause imputabili a Evolution PRO — come indicato nella proposta che hai accettato. Inoltre, in caso di grave inadempimento di Evolution PRO, il contratto prevede rimborso proporzionale alle attività non eseguite (Art. 7.2).
+Una volta avviata l'esecuzione della Partnership, il corrispettivo è maturato e non è rimborsabile (Art. 5.7): non esiste una garanzia "soddisfatti o rimborsati" e non devi dirlo mai. "Avviata" significa anche una sola attività, per esempio l'attivazione dell'account su Ciak.io. Unica eccezione: se Evolution PRO commette un grave inadempimento, dopo diffida e almeno 15 giorni per rimediare, hai diritto al rimborso proporzionale alla parte non eseguita, mai integrale se il lavoro era già partito (Art. 7.2). Per questo è importante leggere tutto prima di firmare.
 
 ▸ "L'esclusiva mi impedisce di vendere il mio corso?"
-No. L'esclusiva (Art. 1.4) riguarda solo il corso sviluppato insieme in questa partnership, e solo sui canali che Evolution PRO gestisce. Puoi continuare consulenze 1:1, workshop, webinar, speech e qualsiasi altro percorso formativo diverso. Puoi anche vendere il corso altrove con una semplice autorizzazione scritta, che non può essere negata se non c'è conflitto diretto.
+No. L'esclusiva (Art. 1.4) riguarda lo stesso corso sviluppato insieme, o contenuti sostanzialmente equivalenti, per tutta la durata e per 90 giorni dopo la fine. Puoi continuare consulenze 1:1, workshop, webinar, speech e qualsiasi altro percorso formativo diverso. Puoi anche vendere il corso altrove con una semplice autorizzazione scritta, che non può essere negata se non c'è conflitto diretto.
 
 ▸ "Pago €2.990 E cedo anche il 10% — non è troppo?"
-I €2.990 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni — servizi che singolarmente costerebbero 2-3x. Il 10% di royalty (Art. 5.5) dura solo 12 mesi e serve ad allineare gli incentivi: guadagniamo entrambi quando il corso vende. Dopo 12 mesi, nessuna royalty dovuta.
+I €2.990 coprono tutto il lavoro di costruzione: posizionamento, funnel, area corsi, editing, copywriting, automazioni. Il 10% di royalty (Art. 5.5) si applica per 12 mesi sul netto incassato dalle vendite e serve ad allineare gli incentivi. Se una vendita fatta nei 12 mesi è pagata a rate dal cliente, la royalty vale su tutte le sue rate (Art. 5.6). Le vendite fatte dopo i 12 mesi non pagano royalty.
 
 ▸ "Posso uscire dal contratto prima dei 12 mesi?"
 Il contratto ha durata determinata (12 mesi) senza recesso ordinario (Art. 7.1). È pensato così perché il progetto richiede investimento continuativo. Se Evolution PRO dovesse risultare inadempiente — e gli esempi sono chiari nell'Art. 2.7 — puoi risolvere il contratto con rimborso proporzionale.
 
 ━━━ TESTO CONTRATTO ━━━
-{contract_text[:10000]}"""
+{contract_text}"""
 
         # Costruisce il messaggio con la storia recente nel testo
         full_message = body.message

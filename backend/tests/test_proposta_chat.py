@@ -395,3 +395,13 @@ async def test_get_proposta_regge_senza_blueprint(wired):
     )
     out = await proposta.get_proposta(TOKEN)
     assert out["blueprint"] is None and out["bonus"]["attiva"] is False
+
+
+def test_la_chat_contratto_gia_online_non_promette_piu_rimborsi_e_legge_tutto():
+    """Claudio 1/10/2026: nessun rimborso. La vecchia chat inventava una garanzia a 30 giorni e
+    leggeva solo i primi 10.000 caratteri di un contratto lungo oltre 100.000."""
+    src = (Path(__file__).resolve().parents[1] / "routers" / "contract.py").read_text(encoding="utf-8")
+    assert "garanzia di rimborso entro 30 giorni" not in src
+    assert "2-3x" not in src
+    assert "contract_text[:10000]" not in src
+    assert "non è rimborsabile (Art. 5.7)" in src
