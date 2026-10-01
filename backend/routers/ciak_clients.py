@@ -427,6 +427,19 @@ def _public_client(client: dict[str, Any], user: dict[str, Any] | None = None) -
     return payload
 
 
+def _start_consegne(client: dict[str, Any]) -> list[str]:
+    """['gg/mm/aaaa' x3] per chi ha Ciak Start attivo, altrimenti []."""
+    from services.ciak_start_milestones import format_delivery_dates
+
+    paid_at = client.get("start_purchased_at")
+    if not paid_at or not has_start_entitlement(client):
+        return []
+    try:
+        return format_delivery_dates(paid_at)
+    except (ValueError, TypeError):
+        return []
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
@@ -455,6 +468,9 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         "analysis": _analysis_payload(analysis, client),
         "start": {
             "credit_amount_cents": partnership_price["credit_amount_cents"],
+            # Le tre date promesse nell'email di attivazione: stessa sorgente
+            # (`ciak_start_milestones`), cosi' il cliente legge ovunque le stesse.
+            "consegne": _start_consegne(client),
         },
         "pricing": {
             "blueprint": {

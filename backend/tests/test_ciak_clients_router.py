@@ -674,3 +674,25 @@ def test_partnership_checkout_requires_proposal_even_when_partnership_is_decided
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "PARTNERSHIP_PROPOSAL_REQUIRED"
     assert FakeStripeCheckout.created_requests == []
+
+
+@pytest.mark.asyncio
+async def test_dashboard_start_consegne_sono_le_date_dell_email(fake_db):
+    ciak_clients.set_db(fake_db)
+    start = {
+        "id": "client-1",
+        "email": "a@example.com",
+        "access_level": "cliente_start",
+        "session_token": "token-1",
+        "start_credit_amount": 39000,
+        "start_purchased_at": "2026-10-01T07:02:00+00:00",
+    }
+    payload = await ciak_clients._dashboard_for_client(start)
+    # 7 / 14 / 21 giorni dal pagamento: stesse date dell'email di attivazione.
+    assert payload["start"]["consegne"] == ["08/10/2026", "15/10/2026", "22/10/2026"]
+
+    # Senza Start (o senza data di pagamento) non si inventa nessuna scadenza.
+    senza_data = {k: v for k, v in start.items() if k != "start_purchased_at"}
+    assert (await ciak_clients._dashboard_for_client(senza_data))["start"]["consegne"] == []
+    blueprint = {"id": "c2", "email": "b@example.com", "access_level": "cliente_blueprint", "session_token": "token-1"}
+    assert (await ciak_clients._dashboard_for_client(blueprint))["start"]["consegne"] == []
