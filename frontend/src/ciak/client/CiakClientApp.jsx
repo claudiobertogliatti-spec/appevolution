@@ -10,6 +10,7 @@ import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
 import { StartDomandePage } from "./pages/StartDomandePage";
+import { StartMarchioPage } from "./pages/StartMarchioPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
 // Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
 // Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
@@ -199,6 +200,7 @@ function ProtectedClient() {
         <Route path="blueprint" element={<BlueprintPage dashboard={dashboard} />} />
         <Route path="start" element={<StartPage dashboard={dashboard} />} />
         <Route path="start/domande" element={<StartDomandePage dashboard={dashboard} />} />
+        <Route path="start/marchio" element={<StartMarchioPage dashboard={dashboard} />} />
         <Route path="partnership" element={<PartnershipEducationPage dashboard={dashboard} />} />
         <Route path="*" element={<Navigate to="/cliente" replace />} />
       </Routes>

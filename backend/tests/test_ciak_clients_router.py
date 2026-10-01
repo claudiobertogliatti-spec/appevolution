@@ -776,3 +776,82 @@ def test_start_risposte_negate_a_chi_non_ha_start(monkeypatch, client_app, fake_
     doc.update({"access_level": "cliente_blueprint", "start_credit_amount": None})
     assert client_app.get("/api/ciak/client/start/risposte", headers=auth).status_code == 403
     assert client_app.put("/api/ciak/client/start/risposte", json={"answers": {"nicchia": "abcdefghij"}}, headers=auth).status_code == 403
+
+
+# ─── Il marchio di Ciak Start ──────────────────────────────────────────────
+
+def _con_step_marchio(fake_db):
+    fake_db.partner_journey_steps.docs.append(
+        {"partner_id": "client-1", "step_id": "03-brand-kit", "status": "in_progress", "data": {}}
+    )
+
+
+def _marchio_completo():
+    return {
+        "palette_id": "naturale", "font_id": "classico", "tono_id": "caldo",
+        "parole_chiave": ["calma", "ascolto", "metodo"],
+    }
+
+
+def test_start_marchio_offre_le_opzioni_e_le_scelte_gia_fatte(monkeypatch, client_app, fake_db):
+    _con_step_marchio(fake_db)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.get("/api/ciak/client/start/marchio", headers=auth)
+    assert r.status_code == 200
+    corpo = r.json()
+    assert [p["id"] for p in corpo["opzioni"]["palette"]][0] == "sicuro"
+    assert {"moderno", "classico"} <= {f["id"] for f in corpo["opzioni"]["font"]}
+    assert corpo["valori"] == {} and corpo["completato_at"] is None
+
+
+def test_start_marchio_si_salva_a_pezzi_nella_forma_dei_generatori(monkeypatch, client_app, fake_db):
+    _con_step_marchio(fake_db)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/marchio",
+        json={"valori": {"palette_id": "naturale", "font_id": "classico", "evil": "x", "foto_url": "javascript:alert(1)"}},
+        headers=auth,
+    )
+    assert r.status_code == 200
+    step = next(s for s in fake_db.partner_journey_steps.docs if s["step_id"] == "03-brand-kit")
+    assert step["data"]["colore_primario"] == "#1F4D3A"  # quello che la vetrina legge
+    assert step["data"]["colors"][0] == "#1F4D3A"  # quello del brand kit partner
+    assert step["data"]["font"] == "Lora"
+    assert "evil" not in step["data"]
+    assert step["data"]["foto_url"] == ""  # indirizzo non https: scartato
+    assert step["status"] == "in_progress" and "approval_status" not in step
+    assert r.json()["valori"]["palette_id"] == "naturale"
+
+
+def test_start_marchio_non_si_invia_se_manca_una_scelta(monkeypatch, client_app, fake_db):
+    _con_step_marchio(fake_db)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/marchio",
+        json={"valori": {"palette_id": "sicuro"}, "completato": True},
+        headers=auth,
+    )
+    assert r.status_code == 422
+    assert set(r.json()["detail"]["mancanti"]) == {"font_id", "tono_id", "parole_chiave"}
+
+
+def test_start_marchio_inviato_segna_il_momento_e_logo_foto_sono_facoltativi(monkeypatch, client_app, fake_db):
+    _con_step_marchio(fake_db)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put(
+        "/api/ciak/client/start/marchio",
+        json={"valori": _marchio_completo(), "completato": True},
+        headers=auth,
+    )
+    assert r.status_code == 200 and r.json()["completato_at"]
+    step = next(s for s in fake_db.partner_journey_steps.docs if s["step_id"] == "03-brand-kit")
+    assert step["data"]["brand_completed_at"] == r.json()["completato_at"]
+    assert fake_db.ciak_clients.docs[0]["events"][-1]["event"] == "start_marchio_inviato"
+
+
+def test_start_marchio_negato_a_chi_non_ha_start(monkeypatch, client_app, fake_db):
+    _con_step_marchio(fake_db)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    fake_db.ciak_clients.docs[0].update({"access_level": "cliente_blueprint", "start_credit_amount": None})
+    assert client_app.get("/api/ciak/client/start/marchio", headers=auth).status_code == 403
+    assert client_app.put("/api/ciak/client/start/marchio", json={"valori": {"palette_id": "sicuro"}}, headers=auth).status_code == 403

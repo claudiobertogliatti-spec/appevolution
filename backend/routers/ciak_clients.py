@@ -661,6 +661,99 @@ async def salva_start_risposte(
     return {"success": True, "answers": answers, "completato_at": completato_at}
 
 
+class StartMarchioBody(BaseModel):
+    valori: dict = Field(default_factory=dict)
+    completato: bool = False
+
+
+async def _marchio_start(client_id: str) -> dict:
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": "03-brand-kit"}, {"_id": 0, "data": 1}
+    )
+    return (step or {}).get("data") or {}
+
+
+def _valori_marchio(data: dict) -> dict:
+    valori = {
+        k: data.get(k)
+        for k in ("palette_id", "font_id", "tono_id", "parole_chiave", "logo_url", "foto_url")
+        if data.get(k)
+    }
+    if data.get("palette_id") == "miei" and data.get("colors"):
+        valori["colori_miei"] = data["colors"]
+    return valori
+
+
+@router.get("/start/marchio")
+async def start_marchio(client: dict[str, Any] = Depends(require_client)):
+    """Opzioni e scelte gia' fatte per il marchio del cliente Start."""
+    from services.ciak_start_marchio import opzioni
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    data = await _marchio_start(client["id"])
+    return {
+        "opzioni": opzioni(),
+        "valori": _valori_marchio(data),
+        "completato_at": data.get("brand_completed_at"),
+    }
+
+
+@router.put("/start/marchio")
+async def salva_start_marchio(
+    body: StartMarchioBody,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Salva (anche a meta') le scelte sul marchio; con `completato` le segna inviate.
+
+    Come per le domande: scrive solo i dati, mai lo stato dello step (done =
+    "consegnata" nel pannello). Un valore non valido viene ignorato.
+    """
+    from services.ciak_start_marchio import STEP_ID, mancanti, normalizza
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+
+    nuovi = normalizza(body.valori)
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+    )
+    if not step:
+        await ensure_start_partner_bridge(db, client)
+        step = await db.partner_journey_steps.find_one(
+            {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+        )
+        if not step:
+            raise HTTPException(status_code=409, detail="Il percorso non e' ancora pronto: riprova fra poco.")
+
+    esistenti = await _marchio_start(client["id"])
+    if body.completato:
+        assenti = mancanti({**esistenti, **nuovi})
+        if assenti:
+            raise HTTPException(
+                status_code=422,
+                detail={"message": "Manca ancora qualche scelta.", "mancanti": assenti},
+            )
+
+    now = _now_iso()
+    imposta: dict[str, Any] = {f"data.{k}": v for k, v in nuovi.items()}
+    imposta["updated_at"] = now
+    if body.completato:
+        imposta["data.brand_completed_at"] = now
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"$set": imposta}
+    )
+    if body.completato:
+        events = [dict(e) for e in (client.get("events") or [])]
+        events.append({"event": "start_marchio_inviato", "timestamp": now})
+        await db.ciak_clients.update_one(
+            {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
+        )
+    data = await _marchio_start(client["id"])
+    return {"success": True, "valori": _valori_marchio(data), "completato_at": data.get("brand_completed_at")}
+
+
 async def _deliver_blueprint(diagnostic: dict[str, Any]) -> dict[str, Any]:
     """Consegna del Blueprint GRATUITO, innescata dall'admin a fine call.
 

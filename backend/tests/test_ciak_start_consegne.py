@@ -534,3 +534,19 @@ def test_il_pannello_dice_quando_il_cliente_ha_inviato_le_risposte():
     }
     senza = milestone_rows(cliente, [])
     assert all(r["risposte_ricevute_at"] is None for r in senza)
+
+
+def test_il_pannello_dice_anche_quando_e_arrivato_il_marchio():
+    from services.ciak_start_milestones import milestone_rows
+
+    cliente = {
+        "id": "c1", "email": "a@b.it", "name": "A", "access_level": "cliente_start",
+        "start_purchased_at": "2026-10-01T07:00:00+00:00",
+    }
+    righe = milestone_rows(cliente, [{
+        "partner_id": "c1", "step_id": "03-brand-kit",
+        "data": {"brand_completed_at": "2026-10-02T11:00:00+00:00"},
+    }])
+    assert {r["tappa"]: r["marchio_ricevuto_at"] for r in righe} == {
+        1: "2026-10-02T11:00:00+00:00", 2: None, 3: None,
+    }

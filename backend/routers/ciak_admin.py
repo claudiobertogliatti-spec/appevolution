@@ -4816,6 +4816,9 @@ async def genera_vetrina_start(
         "nicchia": answers.get("nicchia") or "",
         "posizionamento": statement,
         "brand_kit": (brand.get("data") or {}),
+        # La foto sta nel brand kit del cliente: senza questa riga la vetrina
+        # non la mostrava mai (il generatore la legge da `dati`, non dal kit).
+        "foto_url": (brand.get("data") or {}).get("foto_url") or "",
     }
     deliverable = await build_start_vetrina(dati)
     now = datetime.now(timezone.utc).isoformat()
@@ -4992,7 +4995,7 @@ async def consegne_start(
             {"partner_id": {"$in": client_ids}},
             {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
              "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
-             "updated_at": 1, "reference": 1, "note": 1, "data.answers_completed_at": 1},
+             "updated_at": 1, "reference": 1, "note": 1, "data.answers_completed_at": 1, "data.brand_completed_at": 1},
         ):
             steps_by_client.setdefault(step.get("partner_id"), []).append(step)
 

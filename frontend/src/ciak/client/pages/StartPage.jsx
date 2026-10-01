@@ -270,8 +270,8 @@ export function StartPage({ dashboard }) {
   const [journeyError, setJourneyError] = useState("");
   const [journeyLoading, setJourneyLoading] = useState(false);
   const [deliverables, setDeliverables] = useState([]);
-  // Le domande di Start: finche' non le ha inviate, il lavoro non puo' partire.
-  const [domande, setDomande] = useState(null);
+  // Cosa deve fare il cliente: finche' non invia domande e marchio il lavoro non parte.
+  const [compiti, setCompiti] = useState(null);
 
   const access = dashboard.client?.access_level;
   const active = access === "cliente_start" || access === "partner";
@@ -320,9 +320,14 @@ export function StartPage({ dashboard }) {
 
   useEffect(() => {
     if (!active) return;
-    clientGet("/start/risposte")
-      .then((dati) => setDomande({ inviate: Boolean(dati.completato_at), iniziate: Object.keys(dati.answers || {}).length > 0 }))
-      .catch(() => setDomande(null));
+    Promise.all([clientGet("/start/risposte"), clientGet("/start/marchio")])
+      .then(([r, m]) =>
+        setCompiti({
+          domande: { fatto: Boolean(r.completato_at), iniziato: Object.keys(r.answers || {}).length > 0 },
+          marchio: { fatto: Boolean(m.completato_at), iniziato: Object.keys(m.valori || {}).length > 0 },
+        })
+      )
+      .catch(() => setCompiti(null));
   }, [active, clientId]);
 
   useEffect(() => {
@@ -335,6 +340,13 @@ export function StartPage({ dashboard }) {
   const steps = journey?.steps || [];
   const lockedSteps = journey?.locked_steps || [];
   const completati = steps.filter((s) => s.status === "done").length;
+  const elencoCompiti = compiti
+    ? [
+        { chiave: "domande", titolo: "Le tue otto domande", a: "/cliente/start/domande", testo: "Sono otto domande sul tuo lavoro, una alla volta. Con le tue risposte prepariamo le frasi che spiegano chi sei.", ...compiti.domande },
+        { chiave: "marchio", titolo: "Il tuo marchio: colori, lettere, voce", a: "/cliente/start/marchio", testo: "Scegli i colori, le lettere e il modo di parlare del tuo marchio. Sono poche scelte, tutte con un'anteprima.", ...compiti.marchio },
+      ]
+    : [];
+  const prossimo = elencoCompiti.find((c) => !c.fatto) || null;
 
   async function handleCheckout() {
     try {
@@ -606,38 +618,41 @@ export function StartPage({ dashboard }) {
         </p>
       </section>
 
-      {domande ? (
+      {compiti ? (
         <section
-          className={`rounded-xl border p-6 ${domande.inviate ? "border-emerald-200 bg-emerald-50" : "border-yellow-300 bg-yellow-50"}`}
+          className={`rounded-xl border p-6 ${prossimo ? "border-yellow-300 bg-yellow-50" : "border-emerald-200 bg-emerald-50"}`}
           data-testid="prossimo-passo"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-600">Il tuo prossimo passo</p>
-          {domande.inviate ? (
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-600">
+            {prossimo ? "Il tuo prossimo passo" : "Hai fatto la tua parte"}
+          </p>
+          <ul className="mt-3 space-y-2">
+            {elencoCompiti.map((c) => (
+              <li key={c.chiave} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-slate-800">{c.titolo}</span>
+                <span className={c.fatto ? "font-semibold text-emerald-700" : "text-slate-500"}>
+                  {c.fatto ? "Inviato" : c.iniziato ? "Da finire" : "Da fare"}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {prossimo ? (
             <>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">Hai inviato le tue risposte</h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Ora ci lavoriamo noi. Ti avvisiamo appena la prima tappa è pronta.
-              </p>
-              <Link to="/cliente/start/domande" className="mt-3 inline-block text-sm font-semibold text-slate-800 underline">
-                Rivedi o cambia le risposte
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">{prossimo.testo} Puoi fermarti quando vuoi: quello che scrivi si salva.</p>
+              <Link
+                to={prossimo.a}
+                className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-yellow-400 px-6 text-base font-semibold text-slate-900 transition-colors duration-200 hover:bg-yellow-300"
+              >
+                {prossimo.iniziato ? "Continua" : "Iniziamo"}
               </Link>
             </>
           ) : (
-            <>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                {domande.iniziate ? "Continua con le tue domande" : "Rispondi alle tue domande"}
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Sono otto domande sul tuo lavoro, una alla volta. Con le tue risposte prepariamo il tuo marchio
-                e le frasi che spiegano chi sei. Puoi fermarti quando vuoi: quello che scrivi si salva.
-              </p>
-              <Link
-                to="/cliente/start/domande"
-                className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-yellow-400 px-6 text-base font-semibold text-slate-900 transition-colors duration-200 hover:bg-yellow-300"
-              >
-                {domande.iniziate ? "Continua" : "Iniziamo"}
-              </Link>
-            </>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              Ora ci lavoriamo noi e ti avvisiamo appena la prima tappa è pronta.{" "}
+              <Link to="/cliente/start/domande" className="font-semibold text-slate-800 underline">Rivedi le risposte</Link>
+              {" · "}
+              <Link to="/cliente/start/marchio" className="font-semibold text-slate-800 underline">Rivedi il marchio</Link>
+            </p>
           )}
         </section>
       ) : null}

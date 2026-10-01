@@ -138,3 +138,22 @@ async def test_approva_vetrina_richiede_live_url(monkeypatch):
     assert res["approval_status"] == "approved"
     d = await db.ciak_start_deliverables.find_one({"partner_id": "c1", "type": "showcase"})
     assert d["live_url"] == "https://maria.it"
+
+
+@pytest.mark.asyncio
+async def test_la_vetrina_riceve_la_foto_del_cliente(monkeypatch):
+    """La foto sta nel brand kit; il generatore la legge da `dati`. Senza questo
+    passaggio il ritratto non compariva mai nella vetrina."""
+    visti = {}
+
+    async def _vetrina(dati):
+        visti.update(dati)
+        return {"html": "<html>ok</html>", "dns_checklist": []}
+
+    monkeypatch.setattr(sfd, "build_vetrina", _vetrina)
+    step = dict(BRAND_STEP)
+    step["data"] = {**BRAND_STEP["data"], "foto_url": "https://cdn.example.com/foto.jpg"}
+    db = _Db(dict(CLIENT), [dict(POS_STEP), step])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    await ciak_admin.genera_vetrina_start("c1", admin=ADMIN)
+    assert visti["foto_url"] == "https://cdn.example.com/foto.jpg"
