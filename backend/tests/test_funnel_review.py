@@ -112,12 +112,14 @@ def test_an_approval_of_an_older_version_is_not_valid_anymore():
     assert {p["id"]: p["state"] for p in fr.review_state(rec)["pages"]}["optin"] == fr.DA_CONTROLLARE
 
 
-def test_go_live_needs_every_page_the_legal_data_and_the_team():
-    rec = _rec()
+def test_go_live_needs_every_page_the_legal_data_the_documents_and_the_team():
+    rec = _rec(documents_released=True)
     with pytest.raises(fr.ReviewError):
         fr.golive_update(rec, NOW)
     for page in ("optin", "masterclass", "offerta", "grazie", fr.LEGAL_ID):
         rec = _apply(rec, fr.approve_update(rec, page, NOW))
+    assert fr.review_state(rec)["golive"]["can_request"] is False  # mancano i documenti
+    rec = _apply(rec, fr.approve_update(rec, fr.DOCS_ID, NOW))
     state = fr.review_state(rec)
     assert state["golive"]["can_request"] is False  # il team non ha ancora finito
     assert any("collegamenti" in m for m in state["golive"]["missing"])
@@ -132,7 +134,7 @@ def test_progress_counts_pages_legal_and_connections_only_when_really_done():
     assert fr.review_state(rec)["progress"] == 0
     rec = _apply(rec, fr.approve_update(rec, "optin", NOW))
     rec["connections"] = {"dominio": True}
-    assert fr.review_state(rec)["progress"] == round(2 / 9 * 100)
+    assert fr.review_state(rec)["progress"] == round(2 / 10 * 100)
 
 
 def test_admin_can_only_set_whitelisted_fields_with_a_vercel_preview():
@@ -182,15 +184,34 @@ def test_data_can_be_confirmed_or_corrected_before_the_preview_is_released():
 
 
 def test_current_step_follows_what_the_partner_has_to_do_next():
-    rec = _rec()
+    rec = _rec(documents_released=True)
     rec = _apply(rec, fr.approve_update(rec, fr.LEGAL_ID, NOW))
     assert fr.review_state(rec)["current_step"] == "funnel"
     for page in ("optin", "masterclass", "offerta", "grazie"):
         rec = _apply(rec, fr.approve_update(rec, page, NOW))
     states = {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}
-    assert states["funnel"] == "fatto" and states["via_libera"] == "attesa"  # il team non ha finito
+    assert states["funnel"] == "fatto" and states["documenti"] == "da_fare" and states["via_libera"] == "attesa"
+    rec = _apply(rec, fr.approve_update(rec, fr.DOCS_ID, NOW))
+    states = {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}
+    assert states["documenti"] == "fatto" and states["via_libera"] == "attesa"  # il team non ha finito
     rec["team_ready"] = True
     rec["connections"] = {}
     assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["via_libera"] == "da_fare"
     rec = _apply(rec, fr.golive_update(rec, NOW))
     assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["via_libera"] == "fatto"
+
+
+def test_documents_stay_closed_until_the_team_releases_them():
+    rec = _rec()
+    state = fr.review_state(rec)
+    assert state["documents"]["released"] is False
+    assert {s["id"]: s["state"] for s in state["steps"]}["documenti"] == "attesa"
+    with pytest.raises(fr.ReviewError):
+        fr.approve_update(rec, fr.DOCS_ID, NOW)
+    with pytest.raises(fr.ReviewError):
+        fr.correction_update(rec, fr.DOCS_ID, "Il rimborso è sbagliato", "Dovrebbe essere 30 giorni", NOW)
+    rec = _apply(rec, fr.admin_set_update(rec, {"documents_released": True}, NOW))
+    assert rec["documents_released_at"] == NOW
+    assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["documenti"] == "da_fare"
+    # senza anteprima rilasciata i documenti restano chiusi anche se il flag è acceso
+    assert fr.docs_released({"documents_released": True}) is False

@@ -173,6 +173,42 @@ function Stepper({ steps, selected, onSelect }) {
   );
 }
 
+function DocsReader({ partnerId }) {
+  const [docs, setDocs] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/partner-journey/funnel-review/${partnerId}/documents`, { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d) => { if (alive) setDocs(d.documents || []); })
+      .catch(() => { if (alive) setFailed(true); });
+    return () => { alive = false; };
+  }, [partnerId]);
+  if (failed) return <p className="mt-2 text-[13px] text-red-700">Non riesco a mostrare i documenti. Riprova tra poco.</p>;
+  if (!docs) return <p className="mt-2 text-[13px] text-slate-500">Carico i documenti…</p>;
+  return (
+    <div className="mt-3 space-y-2">
+      {docs.map((d) => (
+        <div key={d.id} className="rounded-lg border border-slate-200">
+          <button
+            onClick={() => setOpenId(openId === d.id ? null : d.id)} aria-expanded={openId === d.id}
+            className="w-full min-h-[44px] flex items-center justify-between px-3.5 text-left text-[14px] font-semibold text-slate-900"
+          >
+            {d.title}<span aria-hidden="true">{openId === d.id ? "−" : "+"}</span>
+          </button>
+          {openId === d.id && (
+            <div
+              className="px-3.5 pb-4 text-[13.5px] leading-relaxed text-slate-800 [&_h1]:hidden [&_h2]:text-[14px] [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_a]:underline [&_.upd]:text-slate-500"
+              dangerouslySetInnerHTML={{ __html: d.html }}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Waiting({ title, children }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-[14px] text-slate-700 leading-relaxed">
@@ -305,11 +341,19 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
           </>
         )}
 
-        {current === "documenti" && (
+        {current === "documenti" && !(review.documents && review.documents.released) && (
           <Waiting title="Li prepariamo noi">
             Dopo che avrai guardato il funnel ti mostriamo qui privacy, cookie e condizioni di vendita.
             <strong> Per ora non devi fare nulla.</strong>
           </Waiting>
+        )}
+        {current === "documenti" && review.documents && review.documents.released && (
+          <ReviewCard item={{ id: review.documents.id, title: "Privacy, cookie e condizioni di vendita",
+                              descr: "Aprili e leggili. Il corso lo vende Evolution. I clienti hanno 14 giorni per chiedere il rimborso.",
+                              state: review.documents.state }}
+                      index="3" okLabel="Va bene" busy={busy} onApprove={approve} onCorrect={correct}>
+            <DocsReader partnerId={partnerId} />
+          </ReviewCard>
         )}
 
         {current === "dominio" && (

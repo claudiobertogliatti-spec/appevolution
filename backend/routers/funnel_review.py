@@ -21,6 +21,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from services import funnel_review as fr
+from services import legal_documents as legal_docs
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class CorrectionBody(BaseModel):
 
 class AdminSetBody(BaseModel):
     preview_released: Optional[bool] = None
+    documents_released: Optional[bool] = None
     team_ready: Optional[bool] = None
     preview_url: Optional[str] = None
     preview_version: Optional[int] = None
@@ -96,6 +98,24 @@ def _fail(e: fr.ReviewError):
 async def get_review(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     await _authorize(partner_id, credentials)
     return {"success": True, **(await _state(partner_id))}
+
+
+@router.get("/{partner_id}/documents")
+async def get_documents(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Privacy, cookie e condizioni di vendita scritte con i dati del partner, da leggere e approvare.
+    Visibili solo dopo che il team li ha rilasciati."""
+    await _authorize(partner_id, credentials)
+    rec = await _record(partner_id)
+    if not fr.docs_released(rec):
+        raise HTTPException(status_code=400, detail="I documenti non sono ancora pronti da leggere.")
+    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1, "corso_titolo": 1}) or {}
+    stamp = str(rec.get("documents_released_at") or "")[:10]
+    try:
+        updated = datetime.strptime(stamp, "%Y-%m-%d").strftime("%d/%m/%Y")
+        docs = legal_docs.render_documents(partner.get("name", ""), partner.get("corso_titolo", ""), updated)
+    except ValueError as e:  # data mancante o dato obbligatorio assente: messaggio chiaro, mai documenti con vuoti
+        raise HTTPException(status_code=400, detail=f"Documenti non generabili: {e}")
+    return {"success": True, "documents": [{"id": k, **v} for k, v in docs.items()]}
 
 
 @router.post("/{partner_id}/approve")
