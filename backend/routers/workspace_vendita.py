@@ -1,20 +1,14 @@
 """
-EVOLUTION PRO — Workspace Valida · WORKSPACE 3 "Costruiamo il Sistema di Vendita".
+EVOLUTION PRO — Workspace Valida · WORKSPACE 3 "Il tuo funnel" (step F-13, `10-sistema-vendita`).
 
-Stessa struttura a 8 componenti di WS1/WS2 (vedi workspace_valida.py / workspace_corso.py).
-Assorbe lo step 10-sistema-vendita + il prezzo (da 12). Agente: Gaia.
+Dal 1/10/2026 il funnel del partner vive FUORI da Systeme (codice su Vercel): il partner lo
+guarda in anteprima e per ogni pagina dice "Va bene" o segnala il dato sbagliato.
+Lo stato mostrato è calcolato da services/funnel_review.py; le azioni sono in
+routers/funnel_review.py. Qui resta lo stato aggregato della schermata e i generatori Gaia
+legacy (non più esposti nella schermata: i testi legali si rifanno con i dati veri del titolare).
 
-Riusa i motori esistenti (NON duplicati), chiamati direttamente dal frontend:
-  - genera funnel/blueprint: POST /api/partner-journey/funnel/generate
-  - pubblica funnel (Systeme.io via automazione): POST /api/partner-journey/funnel/publish
-
-Qui si aggiunge:
-  - stato aggregato del workspace (task AI + attivita partner + deliverable + %)
-  - generatori AI dedicati di Gaia (descrizione offerta, FAQ, privacy, cookie, termini),
-    ciascuno produce un deliverable PDF scaricabile.
-
-Fonte di verita: collezione `partner_funnel` (campi `generated`, `blueprint`,
-`blueprint_approved`, `published`; `production_kit` per i nuovi output) + `db.files`.
+Fonte di verita: collezione `partner_funnel` (campi `preview_url`, `preview_version`,
+`preview_released`, `review`, `connections`, `team_ready`).
 """
 import logging
 from datetime import datetime, timezone
@@ -43,21 +37,6 @@ def _helpers():
         from workspace_valida import _llm_generate, _save_kit_deliverable  # type: ignore
     return _llm_generate, _save_kit_deliverable
 
-
-# Task automatiche: completate quando il funnel/blueprint e stato generato.
-AI_TASKS_W3 = [
-    {"id": "subaccount", "label": "Subaccount Systeme collegato a Evolution PRO", "kind": "auto"},
-    {"id": "dominio", "label": "Dominio, DNS e SSL", "kind": "auto"},
-    {"id": "optin", "label": "Pagina di opt-in", "kind": "auto"},
-    {"id": "landing", "label": "Pagina di vendita", "kind": "auto"},
-    {"id": "email", "label": "Sequenza email", "kind": "auto"},
-    {"id": "checkout", "label": "Pagina di pagamento", "kind": "auto"},
-    {"id": "descrizione_offerta", "label": "Descrizione dell'offerta", "kind": "gen"},
-    {"id": "faq", "label": "FAQ della pagina di vendita", "kind": "gen"},
-    {"id": "privacy", "label": "Privacy Policy", "kind": "gen"},
-    {"id": "cookie", "label": "Cookie Policy", "kind": "gen"},
-    {"id": "termini", "label": "Termini e condizioni di vendita", "kind": "gen"},
-]
 
 GEN_TASKS = {
     "descrizione_offerta": {
@@ -130,62 +109,37 @@ def _funnel_text(rec: Dict[str, Any]) -> str:
 
 
 async def _build_state(partner_id: str) -> Dict[str, Any]:
+    """Stato della schermata F-13 "Il tuo funnel".
+
+    Il funnel vive fuori da Systeme (Vercel): il partner lo guarda in anteprima e per ogni
+    pagina dice "Va bene" oppure segnala il dato sbagliato. Gli stati sono VERI, letti dai
+    dati: niente attività "completata" solo perché il funnel è stato generato.
+    La logica è in services/funnel_review.py.
+    """
+    from services.funnel_review import legal_data_from_partner, review_state
+
     rec = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
-    has_funnel = _has_funnel(rec)
-    approved = bool(rec.get("blueprint_approved"))
-    published = bool(rec.get("published"))
-    kit = rec.get("production_kit") or {}
-
-    ai_tasks = []
-    for t in AI_TASKS_W3:
-        if t["kind"] == "auto":
-            status = "completata" if has_funnel else "da_iniziare"
-        else:
-            done = bool(kit.get(GEN_TASKS[t["id"]]["kit_key"]))
-            status = "completata" if done else ("da_iniziare" if has_funnel else "bloccata")
-        ai_tasks.append({"id": t["id"], "label": t["label"], "kind": t["kind"], "status": status})
-
-    partner_tasks = [
-        {"id": "revisiona", "label": "Controlla e approva il sistema di vendita",
-         "status": "completata" if (approved or published) else ("da_iniziare" if has_funnel else "bloccata")},
-        {"id": "pubblica", "label": "Pubblica il funnel online",
-         "status": "completata" if published else ("da_iniziare" if has_funnel else "bloccata")},
-    ]
-
-    cats = [g["category"] for g in GEN_TASKS.values()]
-    cursor = db.files.find(
-        {"partner_id": str(partner_id), "category": {"$in": cats}, "superseded": {"$ne": True}},
-        {"_id": 0, "file_id": 1, "original_name": 1, "category": 1, "internal_url": 1},
-    )
-    deliverables = [d async for d in cursor]
-
-    items = ai_tasks + partner_tasks
-    total = len(items)
-    done = sum(1 for i in items if i["status"] == "completata")
-    progress = round(done / total * 100) if total else 0
-
+    partner = await db.partners.find_one(
+        {"id": str(partner_id)}, {"_id": 0, "name": 1, "email": 1, "dati_burocrazia": 1}
+    ) or {}
+    review = review_state(rec, legal_data_from_partner(partner))
     return {
         "success": True,
         "workspace_id": "vendita",
         "workspace_index": 3,
         "workspace_total": 5,
-        "title": "Costruiamo il Sistema di Vendita",
+        "title": "Il tuo funnel",
         "agent": "GAIA",
-        "objective": "Avere il sistema che trasforma i visitatori in clienti: subaccount Systeme, "
-                     "dominio, legal pages, opt-in, pagina di vendita, email e pagamento, pronti e online.",
-        "intro": "Sono Gaia. Adesso costruiamo il tuo sistema di vendita: subaccount Systeme collegato "
-                 "a Evolution PRO, dominio, pagine legali, funnel, email e checkout. Tu controlli "
-                 "le decisioni importanti; alla parte tecnica pensa il team Evolution.",
-        "has_funnel": has_funnel,
-        "approved": approved,
-        "published": published,
-        "blueprint": rec.get("blueprint") if has_funnel else None,
-        "ai_tasks": ai_tasks,
-        "partner_tasks": partner_tasks,
-        "deliverables": deliverables,
-        "progress": progress,
-        "done_count": done,
-        "total_count": total,
+        "objective": "Guardare il tuo funnel e dirci se va bene: è la parte che porta le persone "
+                     "dalla masterclass all'acquisto del tuo corso.",
+        "intro": "Sono Gaia. Il tuo funnel è la strada che le persone percorrono per iscriversi, "
+                 "guardare la masterclass e acquistare il corso. Tu devi solo guardarlo e dirci "
+                 "se è tutto giusto. Alla parte tecnica pensiamo noi.",
+        "has_funnel": _has_funnel(rec),
+        "approved": bool(rec.get("blueprint_approved")),
+        "published": bool(rec.get("published")),
+        "review": review,
+        "progress": review["progress"],
     }
 
 

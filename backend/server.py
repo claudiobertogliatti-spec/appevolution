@@ -17420,6 +17420,9 @@ app.include_router(partner_step_materials_router)
 from routers.workspace_vendita import router as workspace_vendita_router, set_db as set_workspace_vendita_db
 set_workspace_vendita_db(db)
 app.include_router(workspace_vendita_router)
+from routers.funnel_review import router as funnel_review_router, set_db as set_funnel_review_db
+set_funnel_review_db(db)
+app.include_router(funnel_review_router)
 
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
 from routers.proposta import (

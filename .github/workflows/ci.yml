@@ -232,6 +232,8 @@ jobs:
           tests/test_partner_journey_review_data.py
           tests/test_partner_step_materials.py
           tests/test_partner_step_materials_access.py
+          tests/test_funnel_review.py
+          tests/test_funnel_review_api.py
           tests/test_posizionamento_inputs_endpoint.py
           tests/test_proposta_signed_contract_effect.py
           tests/test_video_health.py
