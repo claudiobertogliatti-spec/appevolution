@@ -90,6 +90,8 @@ jobs:
           tests/test_ciak_analisi_public.py
           tests/test_ciak_scoring_ai.py
           tests/test_diagnostic_complete_resilient.py
+          tests/test_ciak_mark_call_booked.py
+          tests/test_lead_stato_manuale_email_case.py
           tests/test_ciak_matteo_structured.py
           tests/test_ciak_booking_regen.py
           tests/test_acquisizione_funnel_gratuito.py
