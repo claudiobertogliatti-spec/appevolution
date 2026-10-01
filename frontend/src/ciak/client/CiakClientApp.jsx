@@ -10,10 +10,9 @@ import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
-// Il benvenuto e' lo STESSO dell'area partner operativa (voce di Simona, team,
-// Metodo E.V.O., video del fondatore): un cliente Start entra nello stesso Ciak,
-// quindi vede la stessa accoglienza, non un layout a parte.
-import Benvenuto from "../partner/operativo/Benvenuto";
+// Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
+// Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
+import BenvenutoStart from "./BenvenutoStart";
 
 // Chi ha gia' visto il benvenuto Ciak Start non lo rivede: flag per-cliente.
 // localStorage puo' mancare (finestra privata, storage bloccato): in dubbio si
@@ -169,13 +168,13 @@ function ProtectedClient() {
     && !welcomeDismissed
     && !welcomeAlreadySeen(clientId);
 
-  // Gate di benvenuto al primo accesso del cliente Start: la stessa schermata
-  // dell'area partner operativa (Simona, team, Metodo E.V.O., video). A schermo
-  // intero come per il partner, poi si prosegue sul percorso.
+  // Gate di benvenuto al primo accesso del cliente Start, a schermo intero,
+  // poi si prosegue sul percorso.
   if (showWelcome) {
     return (
-      <Benvenuto
-        partnerName={dashboard.client?.name}
+      <BenvenutoStart
+        clientName={dashboard.client?.name}
+        consegne={dashboard.start?.consegne || []}
         onStart={() => {
           markWelcomeSeen(clientId);
           setWelcomeDismissed(true);
