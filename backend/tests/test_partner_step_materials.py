@@ -1,6 +1,7 @@
 import pytest
 import services.partner_step_materials as materials
 from services.partner_step_materials import (
+    allowed_funnel_preview_url,
     allowed_public_url,
     categories_for_step,
     content_type_for_material,
@@ -237,3 +238,20 @@ def test_step_assignment_only_accepts_known_steps_and_marks_the_file_approved():
     }
     with pytest.raises(ValueError, match="step"):
         materials.step_assignment_fields("15-calendario-30gg")
+
+
+def test_funnel_preview_accepts_only_https_vercel_app_hosts():
+    # L'anteprima del funnel (F-13) è su Vercel gratuito: solo https e solo *.vercel.app.
+    assert allowed_funnel_preview_url("https://sabai-daniele-andolfi.vercel.app") == "https://sabai-daniele-andolfi.vercel.app"
+    assert allowed_funnel_preview_url("  https://x-y.vercel.app/guarda.html  ") == "https://x-y.vercel.app/guarda.html"
+    for bad in (
+        None, "", "http://x.vercel.app", "https://vercel.app", "https://evil.example/x.vercel.app",
+        "https://x.vercel.app.evil.example", "https://user:pw@x.vercel.app", "https://drive.google.com/x",
+        "javascript:alert(1)",
+    ):
+        assert allowed_funnel_preview_url(bad) is None, bad
+
+
+def test_funnel_preview_does_not_widen_the_generic_public_hosts():
+    # `allowed_public_url` (YouTube/ciak.io) NON deve ammettere vercel.app: l'eccezione è solo per F-13.
+    assert allowed_public_url("https://x.vercel.app") is None

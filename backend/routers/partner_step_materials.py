@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_public_url, categories_for_step, content_type_for_material,
+    WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
     file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
     step_archive_files, step_assignment_fields, trusted_storage_url,
 )
@@ -76,6 +76,20 @@ async def get_step_materials(partner_id: str, step_id: str,
                 "id": "youtube-playlist-pending", "type": "video", "title": "Playlist ufficiale in preparazione",
                 "preview_url": None, "download_url": None, "public_url": None,
                 "version": 1, "created_at": None, "is_current": True, "metadata": {"pending": True},
+            })
+
+    if step_id == "10-sistema-vendita":
+        funnel = await db.partner_funnel.find_one(
+            {"partner_id": str(partner_id)}, {"_id": 0, "preview_url": 1, "preview_version": 1}
+        ) or {}
+        preview = allowed_funnel_preview_url(funnel.get("preview_url"))
+        if preview:
+            materials.append({
+                "id": "funnel-preview", "type": "link", "title": "Anteprima del tuo funnel",
+                "link_label": "Apri l'anteprima",
+                "preview_url": None, "download_url": None, "public_url": preview,
+                "version": int(funnel.get("preview_version") or 1), "created_at": None,
+                "is_current": True, "metadata": {},
             })
 
     return {

@@ -3,10 +3,13 @@ import { Download, ExternalLink, FileText, Image, Loader2, RefreshCw, X } from "
 import { authHeaders } from "../api";
 import { API } from "../../../utils/api-config";
 
-const safePublicUrl = (url) => {
+const safePublicUrl = (url, type) => {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && ["youtube.com", "www.youtube.com", "youtu.be", "ciak.io", "www.ciak.io"].includes(u.hostname);
+    if (u.protocol !== "https:" || u.username || u.password) return false;
+    // L'anteprima del funnel (step F-13) vive su Vercel gratuito: ammessa solo per i materiali di tipo "link".
+    if (type === "link") return u.hostname.endsWith(".vercel.app");
+    return ["youtube.com", "www.youtube.com", "youtu.be", "ciak.io", "www.ciak.io"].includes(u.hostname);
   } catch { return false; }
 };
 
@@ -66,7 +69,7 @@ export default function StepMaterialsModal({ partnerId, step, onClose }) {
                         <div className="flex flex-wrap gap-2 mt-3">
                           {m.preview_url && <button onClick={() => fetchBlob(m)} className="px-3 py-1.5 rounded-lg bg-slate-950 text-white text-xs font-bold">Visualizza</button>}
                           {m.download_url && <button onClick={() => fetchBlob(m, true)} className="px-3 py-1.5 rounded-lg border text-xs font-bold inline-flex gap-1"><Download className="h-3.5 w-3.5" /> Scarica</button>}
-                          {m.public_url && safePublicUrl(m.public_url) && <a href={m.public_url} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold inline-flex gap-1"><ExternalLink className="h-3.5 w-3.5" /> Guarda su YouTube</a>}
+                          {m.public_url && safePublicUrl(m.public_url, m.type) && <a href={m.public_url} target="_blank" rel="noreferrer" className={`px-3 py-1.5 rounded-lg text-white text-xs font-bold inline-flex gap-1 ${m.type === "link" ? "bg-slate-950" : "bg-red-600"}`}><ExternalLink className="h-3.5 w-3.5" /> {m.link_label || "Guarda su YouTube"}</a>}
                         </div>
                         {!m.preview_url && m.download_url && <p className="mt-2 text-xs text-slate-500">Questo formato non si può mostrare nel browser: usa “Scarica” per aprirlo.</p>}
                         {m.type === "data" && <dl className="mt-3 space-y-2">{Object.entries(m.metadata || {}).map(([k, v]) => <div key={k}><dt className="text-[11px] uppercase text-slate-400">{k.replaceAll("_", " ")}</dt><dd className="text-sm break-words whitespace-pre-line">{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd></div>)}</dl>}
