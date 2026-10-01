@@ -10,6 +10,8 @@ import { authHeaders } from "../api";
  * + come dovrebbe essere). Non riscrive copy né struttura.
  *
  * Il partner non è tecnico: un'azione per volta, pulsanti grandi, frasi semplici.
+ * Percorso in 5 passaggi (dati, funnel, pagine legali, indirizzo web, via libera): si apre sul
+ * passaggio che tocca a lui e per ognuno dice cosa fa il team.
  *
  * API:
  *   stato:        GET  /api/partner-journey/workspace/{id}/vendita        → { review, ... }
@@ -125,11 +127,67 @@ function ReviewCard({ item, index, okLabel, busy, onApprove, onCorrect, children
   );
 }
 
+const GAIA = {
+  dati: "Sono Gaia. Questi dati finiscono nelle pagine del tuo funnel e nei documenti legali. Controlla che siano giusti.",
+  funnel: "Ecco le pagine del tuo funnel. Aprile e dimmi se vanno bene. Se c'è un dato sbagliato, scrivimi cosa cambiare.",
+  documenti: "Privacy, cookie e condizioni di vendita le scriviamo noi con i tuoi dati. Quando sono pronti li leggi qui e, se tutto torna, li approvi.",
+  dominio: "Qui colleghiamo il tuo indirizzo web al funnel. Quando arriviamo a questo passaggio ti guido io, riga per riga.",
+  via_libera: "Quasi fatto. Quando è tutto a posto premi il pulsante e il funnel va online.",
+};
+
+const TEAM = {
+  dati: "Il team: niente. I dati arrivano dal tuo contratto.",
+  funnel: "Il team: costruisce le pagine, le mette in anteprima e applica le tue correzioni.",
+  documenti: "Il team: scrive i documenti con i tuoi dati. Nessun testo con campi vuoti.",
+  dominio: "Il team: prepara i valori giusti e controlla da solo che il collegamento funzioni.",
+  via_libera: "Il team: collega iscrizioni, email e pagamento, poi pubblica.",
+};
+
+const STEP_TONE = {
+  fatto: { icon: "✓", cls: "text-green-700" },
+  da_fare: { icon: "●", cls: "text-slate-900" },
+  attesa: { icon: "○", cls: "text-slate-400" },
+};
+
+function Stepper({ steps, selected, onSelect }) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-5" role="tablist" aria-label="Passaggi del funnel">
+      {steps.map((st, i) => {
+        const tone = STEP_TONE[st.state] || STEP_TONE.attesa;
+        const on = st.id === selected;
+        return (
+          <button
+            key={st.id} role="tab" aria-selected={on} onClick={() => onSelect(st.id)}
+            className={`flex-1 min-w-[112px] text-left rounded-lg px-3 py-2.5 min-h-[44px] bg-white ${on ? "border-2 border-slate-900" : "border border-slate-200"}`}
+          >
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-900">
+              <span className={tone.cls} aria-hidden="true">{tone.icon}</span>{i + 1}. {st.title}
+            </span>
+            <span className="block text-[11.5px] text-slate-500 mt-0.5">
+              {st.state === "fatto" ? "fatto" : st.state === "attesa" ? "in attesa" : st.short}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Waiting({ title, children }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-[14px] text-slate-700 leading-relaxed">
+      <div className="font-semibold text-slate-900 mb-1">{title}</div>
+      {children}
+    </div>
+  );
+}
+
 export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -155,6 +213,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Qualcosa non ha funzionato. Riprova.");
       setState((s) => ({ ...s, review: d, progress: d.progress }));
+      setSelected(null);
       return true;
     } catch (e) {
       setErr(String(e.message || e));
@@ -175,10 +234,13 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   }
 
   const review = state.review || {};
+  const steps = review.steps || [];
   const progress = state.progress || 0;
+  const current = selected || review.current_step || (steps[0] && steps[0].id);
   const approve = (id) => act("approve", { page_id: id });
   const correct = (id, wrong, right) => act("correction", { page_id: id, wrong, right });
   const goLive = review.golive || {};
+  const legal = review.legal || { id: "dati_legali", state: "da_controllare", data: {} };
 
   return (
     <div className="max-w-2xl mx-auto p-4 font-[Poppins,system-ui,sans-serif]">
@@ -200,27 +262,35 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
       <div className="h-1.5 bg-slate-700"><div className="h-1.5 transition-all" style={{ width: `${progress}%`, background: BRAND_YELLOW }} /></div>
 
       <div className="bg-white border border-gray-200 border-t-0 rounded-b-xl p-5">
-        {state.intro && (
-          <div className="flex gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0"
-                 style={{ background: ANTHRACITE, color: BRAND_YELLOW }} aria-hidden="true">G</div>
-            <div className="bg-slate-50 rounded-xl px-4 py-3 text-[14px] leading-relaxed text-slate-800">{state.intro}</div>
-          </div>
+        <Stepper steps={steps} selected={current} onSelect={setSelected} />
+
+        <div className="flex gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0"
+               style={{ background: ANTHRACITE, color: BRAND_YELLOW }} aria-hidden="true">G</div>
+          <div className="bg-slate-50 rounded-xl px-4 py-3 text-[14px] leading-relaxed text-slate-800">{current === "funnel" && !review.released ? "Sto preparando le pagine del tuo funnel. Appena sono pronte le trovi qui e le guardi insieme a me." : GAIA[current]}</div>
+        </div>
+
+        {current === "dati" && (
+          <ReviewCard item={{ id: legal.id, title: "Sono giusti questi dati?", state: legal.state }}
+                      index="1" okLabel="Sì, sono giusti" busy={busy} onApprove={approve} onCorrect={correct}>
+            <dl className="mt-2 text-[13.5px] text-slate-800 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              {Object.entries(legal.data || {}).map(([k, v]) => (
+                <React.Fragment key={k}><dt className="text-slate-500">{k}</dt><dd className="break-words">{v}</dd></React.Fragment>
+              ))}
+            </dl>
+          </ReviewCard>
         )}
 
-        {!review.released && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-[14px] text-slate-700 leading-relaxed">
-            <div className="font-semibold text-slate-900 mb-1">Stiamo preparando il tuo funnel</div>
+        {current === "funnel" && !review.released && (
+          <Waiting title="Stiamo preparando il tuo funnel">
             Quando è pronto da guardare lo trovi qui. <strong>Per ora non devi fare nulla.</strong>
-          </div>
+          </Waiting>
         )}
-
-        {review.released && (
+        {current === "funnel" && review.released && (
           <>
-            <div className="rounded-xl p-5 mb-6" style={{ background: ANTHRACITE }}>
-              <div className="text-[16px] font-semibold text-white mb-1">1. Guarda il tuo funnel</div>
+            <div className="rounded-xl p-5 mb-5" style={{ background: ANTHRACITE }}>
               <p className="text-[13.5px] text-slate-300 leading-relaxed mb-4">
-                Aprilo e scorri le pagine come farebbe una persona che arriva da te. Poi torna qui e dicci se va bene.
+                Scorri le pagine come farebbe una persona che arriva da te. Poi dicci se vanno bene.
               </p>
               <a href={review.preview_url} target="_blank" rel="noreferrer"
                  className="inline-flex items-center min-h-[48px] px-6 rounded-lg text-[15px] font-bold"
@@ -228,30 +298,30 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
                 Guarda il tuo funnel ↗
               </a>
             </div>
-
-            <div className="text-[16px] font-semibold text-slate-900 mb-1">2. Dicci se le pagine vanno bene</div>
-            <p className="text-[13px] text-slate-600 mb-3">Per ogni pagina scegli una cosa sola.</p>
             {(review.pages || []).map((p, i) => (
               <ReviewCard key={p.id} item={p} index={i + 1} url={p.url} okLabel="Va bene" busy={busy}
                           onApprove={approve} onCorrect={correct} />
             ))}
+          </>
+        )}
 
-            <div className="text-[16px] font-semibold text-slate-900 mt-6 mb-1">3. Controlla i tuoi dati</div>
-            <p className="text-[13px] text-slate-600 mb-3">
-              Privacy, cookie e condizioni di vendita le prepariamo noi, usando questi dati.
-            </p>
-            <ReviewCard item={{ id: review.legal.id, title: "Sono giusti questi dati?", state: review.legal.state }}
-                        index="i" okLabel="Sì, sono giusti" busy={busy} onApprove={approve} onCorrect={correct}>
-              <dl className="mt-2 text-[13.5px] text-slate-800 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                {Object.entries(review.legal.data || {}).map(([k, v]) => (
-                  <React.Fragment key={k}><dt className="text-slate-500">{k}</dt><dd className="break-words">{v}</dd></React.Fragment>
-                ))}
-              </dl>
-            </ReviewCard>
+        {current === "documenti" && (
+          <Waiting title="Li prepariamo noi">
+            Dopo che avrai guardato il funnel ti mostriamo qui privacy, cookie e condizioni di vendita.
+            <strong> Per ora non devi fare nulla.</strong>
+          </Waiting>
+        )}
 
-            <div className="text-[16px] font-semibold text-slate-900 mt-6 mb-1">4. Ci pensiamo noi</div>
-            <p className="text-[13px] text-slate-600 mb-3">Sono parti tecniche: <strong>non devi fare nulla</strong>.</p>
-            <div className="bg-slate-50 rounded-xl px-3.5 py-1.5 mb-6">
+        {current === "dominio" && (
+          <Waiting title="Ti guidiamo noi, quando è il momento">
+            Sono 3 righe da copiare nel pannello dove hai comprato il tuo dominio. Ti diciamo noi quando farlo.
+            <strong> Per ora non devi fare nulla.</strong>
+          </Waiting>
+        )}
+
+        {current === "via_libera" && (
+          <>
+            <div className="bg-slate-50 rounded-xl px-3.5 py-1.5 mb-5">
               {(review.connections || []).map((c, i, arr) => (
                 <div key={c.id} className={`flex items-center gap-2.5 py-2 text-[14px] ${i < arr.length - 1 ? "border-b border-slate-200" : ""}`}>
                   <span className={c.done ? "text-green-600" : "text-slate-300"} aria-hidden="true">{c.done ? "✓" : "○"}</span>
@@ -260,8 +330,6 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
                 </div>
               ))}
             </div>
-
-            <div className="text-[16px] font-semibold text-slate-900 mb-2">5. Il via libera</div>
             {goLive.requested ? (
               <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-[14px] text-green-800">
                 <strong>Grazie!</strong> Abbiamo il tuo via libera. Ora mettiamo online il tuo funnel e ti avvisiamo qui.
@@ -284,6 +352,8 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
             )}
           </>
         )}
+
+        <p className="text-[12px] text-slate-500 mt-5">{TEAM[current]}</p>
 
         <div aria-live="polite">
           {err && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-[13.5px] text-red-700">{err}</div>}
