@@ -104,6 +104,31 @@ def _page_url(base: str, path: str) -> str:
     return base.rstrip("/") + path
 
 
+STEP_FATTO = "fatto"
+STEP_DA_FARE = "da_fare"
+STEP_ATTESA = "attesa"
+
+
+def build_steps(released: bool, pages: List[Dict[str, Any]], legal: Dict[str, Any],
+                golive: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """I 5 passaggi mostrati al partner. `da_fare` = tocca a lui; `attesa` = tocca al team o non è
+    ancora il momento. Documenti legali e dominio sono passaggi di guida: arrivano nelle PR dedicate."""
+    all_pages_ok = bool(pages) and all(p["state"] == APPROVATA for p in pages)
+    funnel_state = STEP_ATTESA if not released else (STEP_FATTO if all_pages_ok else STEP_DA_FARE)
+    if golive["requested"]:
+        go_state = STEP_FATTO
+    else:
+        go_state = STEP_DA_FARE if golive["can_request"] else STEP_ATTESA
+    return [
+        {"id": "dati", "title": "I tuoi dati", "short": "1 clic",
+         "state": STEP_FATTO if legal["state"] == APPROVATA else STEP_DA_FARE},
+        {"id": "funnel", "title": "Il funnel", "short": "guarda e approva", "state": funnel_state},
+        {"id": "documenti", "title": "Pagine legali", "short": "leggi e approva", "state": STEP_ATTESA},
+        {"id": "dominio", "title": "Indirizzo web", "short": "3 righe da copiare", "state": STEP_ATTESA},
+        {"id": "via_libera", "title": "Via libera", "short": "si pubblica", "state": go_state},
+    ]
+
+
 def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Stato completo mostrato al partner nella schermata F-13."""
     rec = rec or {}
@@ -124,8 +149,8 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
                 "state": item_state(rec, p["id"]),
                 "open_corrections": _open_corrections(rec, p["id"]),
             })
-        legal["state"] = item_state(rec, LEGAL_ID)
-        legal["open_corrections"] = _open_corrections(rec, LEGAL_ID)
+    legal["state"] = item_state(rec, LEGAL_ID)
+    legal["open_corrections"] = _open_corrections(rec, LEGAL_ID)
 
     pages_approved = sum(1 for p in pages if p["state"] == APPROVATA)
     legal_ok = legal["state"] == APPROVATA
@@ -144,19 +169,23 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
 
     items_total = len(PAGES) + 1 + len(connections)
     items_done = pages_approved + (1 if legal_ok else 0) + sum(1 for c in connections if c["done"])
+    golive = {
+        "requested": bool(rec.get("golive_requested_at")),
+        "can_request": released and not missing,
+        "missing": missing,
+    }
+    steps = build_steps(released, pages, legal, golive)
     return {
         "released": released,
+        "steps": steps,
+        "current_step": next((x["id"] for x in steps if x["state"] != STEP_FATTO), steps[-1]["id"]),
         "preview_url": base if released else None,
         "version": _version(rec),
         "pages": pages,
         "legal": legal,
         "connections": connections,
         "corrections_open": sum(p["open_corrections"] for p in pages) + legal["open_corrections"],
-        "golive": {
-            "requested": bool(rec.get("golive_requested_at")),
-            "can_request": released and not missing,
-            "missing": missing,
-        },
+        "golive": golive,
         "progress": round(items_done / items_total * 100) if items_total else 0,
     }
 
@@ -166,7 +195,7 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
 def approve_update(rec: Dict[str, Any], item_id: str, now: str) -> Dict[str, Any]:
     if item_id not in REVIEWABLE_IDS:
         raise ReviewError("Pagina non riconosciuta.")
-    if not is_released(rec):
+    if item_id != LEGAL_ID and not is_released(rec):
         raise ReviewError("Il funnel non è ancora pronto da guardare.")
     if _open_corrections(rec, item_id):
         raise ReviewError("C'è una tua segnalazione ancora aperta: il team la sta sistemando.")
@@ -179,7 +208,7 @@ def approve_update(rec: Dict[str, Any], item_id: str, now: str) -> Dict[str, Any
 def correction_update(rec: Dict[str, Any], item_id: str, wrong: Any, right: Any, now: str) -> Dict[str, Any]:
     if item_id not in REVIEWABLE_IDS:
         raise ReviewError("Pagina non riconosciuta.")
-    if not is_released(rec):
+    if item_id != LEGAL_ID and not is_released(rec):
         raise ReviewError("Il funnel non è ancora pronto da guardare.")
     entry = {
         "id": f"{item_id}-{int(len(((rec.get('review') or {}).get('corrections') or [])) + 1)}",

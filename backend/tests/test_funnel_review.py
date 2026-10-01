@@ -158,3 +158,39 @@ def test_legal_data_shows_only_what_goes_into_the_legal_pages():
     assert data["Titolare"] == "Daniele Andolfi" and data["Partita IVA"] == "01234567890"
     assert data["Sede"] == "Via Roma 1, 55041 Camaiore (LU)" and data["Email"] == "info@d.it"
     assert "SEGRETO" not in str(data)
+
+
+def test_steps_for_a_partner_with_nothing_released_start_from_the_data():
+    state = fr.review_state({}, {"Titolare": "X"})
+    states = {s["id"]: s["state"] for s in state["steps"]}
+    assert [s["id"] for s in state["steps"]] == ["dati", "funnel", "documenti", "dominio", "via_libera"]
+    assert states == {"dati": "da_fare", "funnel": "attesa", "documenti": "attesa",
+                      "dominio": "attesa", "via_libera": "attesa"}
+    assert state["current_step"] == "dati"
+
+
+def test_data_can_be_confirmed_or_corrected_before_the_preview_is_released():
+    rec = {}
+    rec = _apply(rec, fr.approve_update(rec, fr.LEGAL_ID, NOW))
+    state = fr.review_state(rec)
+    assert state["legal"]["state"] == fr.APPROVATA and state["current_step"] == "funnel"
+    assert {s["id"]: s["state"] for s in state["steps"]}["dati"] == "fatto"
+    with pytest.raises(fr.ReviewError):  # le pagine restano chiuse finché il team non rilascia
+        fr.approve_update({}, "optin", NOW)
+    update, entry = fr.correction_update({}, fr.LEGAL_ID, "La sede è sbagliata", "Via Roma 1, Pisa", NOW)
+    assert entry["page"] == fr.LEGAL_ID
+
+
+def test_current_step_follows_what_the_partner_has_to_do_next():
+    rec = _rec()
+    rec = _apply(rec, fr.approve_update(rec, fr.LEGAL_ID, NOW))
+    assert fr.review_state(rec)["current_step"] == "funnel"
+    for page in ("optin", "masterclass", "offerta", "grazie"):
+        rec = _apply(rec, fr.approve_update(rec, page, NOW))
+    states = {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}
+    assert states["funnel"] == "fatto" and states["via_libera"] == "attesa"  # il team non ha finito
+    rec["team_ready"] = True
+    rec["connections"] = {}
+    assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["via_libera"] == "da_fare"
+    rec = _apply(rec, fr.golive_update(rec, NOW))
+    assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["via_libera"] == "fatto"
