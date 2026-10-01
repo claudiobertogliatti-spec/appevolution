@@ -153,12 +153,35 @@ async def test_team_cannot_release_a_non_vercel_preview(env):
 
 @pytest.mark.asyncio
 async def test_go_live_is_refused_until_everything_is_approved_then_notifies(env):
-    env({**RELEASED, "team_ready": True})
+    env({**RELEASED, "team_ready": True, "documents_released": True})
     with pytest.raises(HTTPException) as exc:
         await route.golive("p1", object())
     assert exc.value.status_code == 400 and "Controlla le pagine" in exc.value.detail
-    for page in ("optin", "masterclass", "offerta", "grazie", "dati_legali"):
+    for page in ("optin", "masterclass", "offerta", "grazie", "dati_legali", "documenti_legali"):
         await route.approve("p1", route.ApproveBody(page_id=page), object())
     out = await route.golive("p1", object())
     assert out["golive"]["requested"] is True
     assert any("VIA LIBERA" in s for s in env.sent)
+
+
+@pytest.mark.asyncio
+async def test_documents_are_served_only_after_release_and_never_with_blanks(env):
+    env(RELEASED)
+    with pytest.raises(HTTPException) as exc:
+        await route.get_documents("p1", object())
+    assert exc.value.status_code == 400 and "non sono ancora pronti" in exc.value.detail
+
+    funnel = env({**RELEASED, "documents_released": True, "documents_released_at": "2026-10-02T10:00:00+00:00"})
+    route.db.partners = SimpleNamespace(find_one=lambda *a, **k: _coro({"id": "p1", "name": "Daniele Andolfi"}))
+    with pytest.raises(HTTPException) as exc:  # manca il titolo del corso: errore chiaro, niente documenti con vuoti
+        await route.get_documents("p1", object())
+    assert exc.value.status_code == 400 and "Nome del corso" in exc.value.detail
+
+    route.db.partners = SimpleNamespace(find_one=lambda *a, **k: _coro({"id": "p1", "name": "Daniele Andolfi", "corso_titolo": "Metodo Sabai"}))
+    out = await route.get_documents("p1", object())
+    assert [d["id"] for d in out["documents"]] == ["privacy", "cookie", "termini"]
+    assert "02/10/2026" in out["documents"][0]["html"] and funnel.doc["documents_released"] is True
+
+
+async def _coro(value):
+    return value
