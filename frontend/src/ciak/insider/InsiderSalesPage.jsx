@@ -13,6 +13,7 @@ import Objections from './Objections';
 import FinalCta from './FinalCta';
 import ProposalChat from './ProposalChat';
 import { formatDeadline } from './timeline';
+import { pickThankYouVideo } from './ThankYouVideo';
 
 /**
  * Pagina di chiusura post-call — /insider/:token
@@ -76,6 +77,7 @@ export default function InsiderSalesPage() {
   const blueprint = p.blueprint || null;
   const deadlineLabel = formatDeadline(p.scadenza);
   const firstName = (p.prospect_nome || '').trim().split(/\s+/)[0] || '';
+  const video = pickThankYouVideo(p.video_benvenuto_url);
 
   return (
     <div className="pc">
@@ -92,7 +94,9 @@ export default function InsiderSalesPage() {
       <PostCallHero
         name={p.prospect_nome}
         blueprint={blueprint}
-        videoUrl={p.video_benvenuto_url}
+        videoUrl={video.url}
+        captionsUrl={video.captionsUrl}
+        posterUrl={video.poster}
         pdfUrl={p.analisi_pdf_url}
         telegramUrl={p.telegram_group_url}
         onAsk={openChat}
