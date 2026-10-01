@@ -616,3 +616,63 @@ async def test_indice_non_creato_non_invia_niente(flag_on):
     emit = Emitter()
     out = await ins.invita_insider(db, emit=emit, now=NOW)
     assert out["error"] == "indice_non_creato" and emit.calls == [] and db.insider_invites.docs == []
+
+
+# ---- hardening: claim esclusivo su retrying e call_booked fail closed ----
+async def test_retrying_vecchio_senza_interferenze_si_prende_in_carico_e_applica(flag_on):
+    db = FakeDb(sessions=_many(1), invites=[
+        {"email": "p00@example.com", "status": "retrying", "attempts": 1, "nome": "Anna", "path": ins.PATH_QUESTIONARIO,
+         "claimed_at": _iso(30 / 1440)}])
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert len(emit.calls) == 1 and out["riprovati"] == 1
+    doc = db.insider_invites.docs[0]
+    assert doc["status"] == "applied" and doc["attempts"] == 2 and doc["claimed_at"] == NOW.isoformat()
+
+
+async def test_retrying_gia_ripreso_da_un_altro_giro_non_si_emette_due_volte(flag_on):
+    db = FakeDb(sessions=_many(1), invites=[
+        {"email": "p00@example.com", "status": "retrying", "attempts": 1, "nome": "Anna", "path": ins.PATH_QUESTIONARIO,
+         "claimed_at": _iso(30 / 1440)}])
+    other_claim = (NOW - timedelta(seconds=1)).isoformat()
+
+    def other_worker(coll):  # l'altro giro ripende il doc: stesso status e attempts, cambia solo claimed_at
+        coll.docs[0]["claimed_at"] = other_claim
+
+    db.insider_invites.before_update = other_worker
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert emit.calls == [] and out["riprovati"] == 0 and out["errori"] == 0
+    doc = db.insider_invites.docs[0]
+    assert doc["status"] == "retrying" and doc["attempts"] == 1 and doc["claimed_at"] == other_claim
+
+
+async def test_claim_su_failed_senza_claimed_at_corrisponde_con_none(flag_on):
+    db = FakeDb(sessions=_many(1), invites=[
+        {"email": "p00@example.com", "status": "failed", "attempts": 1, "nome": "Anna", "path": ins.PATH_QUESTIONARIO}])
+    assert "claimed_at" not in db.insider_invites.docs[0]
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert len(emit.calls) == 1 and out["riprovati"] == 1 and db.insider_invites.docs[0]["status"] == "applied"
+
+
+async def test_call_booked_al_limite_ferma_tutto(flag_on, monkeypatch):
+    monkeypatch.setattr(ins, "READ_LIMIT_SESSIONS", 2)
+    booked = [_session("call_booked", f"b{i}@example.com", days_ago=2, token=f"b{i}") for i in range(2)]
+    db = FakeDb(sessions=[_session("report_generated", "a@example.com", days_ago=30, token="t1")] + booked)
+    with pytest.raises(RuntimeError, match="sessioni call_booked"):
+        await ins.trova_candidati(db, NOW)
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert "limite di lettura raggiunto" in out["error"] and emit.calls == [] and out["inviati"] == 0
+    assert db.insider_invites.docs == []
+
+
+async def test_call_booked_sotto_il_limite_funziona_come_prima(flag_on, monkeypatch):
+    monkeypatch.setattr(ins, "READ_LIMIT_SESSIONS", 3)
+    booked = [_session("call_booked", f"b{i}@example.com", days_ago=2, token=f"b{i}") for i in range(2)]
+    db = FakeDb(sessions=[_session("report_generated", "a@example.com", days_ago=30, token="t1"),
+                          _session("report_generated", "b0@example.com", days_ago=30, token="t2")] + booked)
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert [c["email"] for c in emit.calls] == ["a@example.com"] and out["inviati"] == 1

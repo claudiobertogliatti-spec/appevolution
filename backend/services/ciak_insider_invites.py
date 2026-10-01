@@ -130,9 +130,10 @@ def _pick_proposta(items: list) -> Optional[dict]:
     return sorted(items, key=lambda p: str(p.get("creato_at") or ""))[-1]
 
 
-def _check_limit(docs: list, name: str) -> None:
-    if len(docs) >= READ_LIMIT_OTHERS:
-        raise RuntimeError(f"limite di lettura raggiunto: {name} ({READ_LIMIT_OTHERS})")
+def _check_limit(docs: list, name: str, limit: Optional[int] = None) -> None:
+    limit = READ_LIMIT_OTHERS if limit is None else limit
+    if len(docs) >= limit:
+        raise RuntimeError(f"limite di lettura raggiunto: {name} ({limit})")
 
 
 async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: bool = True) -> list:
@@ -182,8 +183,7 @@ async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: 
     booked_docs = await db.diagnostic_sessions.find(
         {"current_state": "call_booked"}, {"_id": 0, "user_email": 1}
     ).to_list(READ_LIMIT_SESSIONS)
-    if len(booked_docs) >= READ_LIMIT_SESSIONS:
-        logger.warning("[INSIDER] letto il massimo di sessioni call_booked (%s)", READ_LIMIT_SESSIONS)
+    _check_limit(booked_docs, "sessioni call_booked", READ_LIMIT_SESSIONS)
     booked = {norm_email(b.get("user_email")) for b in booked_docs}
     booked.discard("")
     blueprints = {b.get("session_token"): b for b in await db.ciak_blueprints.find({"session_token": {"$in": tokens}}).to_list(5000)}
@@ -347,7 +347,8 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
                 attempts = int(doc.get("attempts", 0))
                 # Presa in carico atomica: se un altro giro l'ha gia' presa non si emette.
                 claim = await db.insider_invites.update_one(
-                    {"email": doc["email"], "status": doc.get("status"), "attempts": doc.get("attempts", 0)},
+                    {"email": doc["email"], "status": doc.get("status"), "attempts": doc.get("attempts", 0),
+                     "claimed_at": doc.get("claimed_at")},
                     {"$set": {"status": "retrying", "claimed_at": now_iso, "last_attempt_at": now_iso}},
                 )
                 if not getattr(claim, "matched_count", 0):
