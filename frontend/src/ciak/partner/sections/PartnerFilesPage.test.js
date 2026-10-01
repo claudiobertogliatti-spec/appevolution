@@ -65,6 +65,32 @@ test('flag-on renders the real fetched materials in the sereno skin, and downloa
   });
 });
 
+test('a Word/Excel file has no "Apri" (the browser would download it) while a PDF keeps it; both keep "Scarica"', async () => {
+  const misti = {
+    materials: [
+      { id: 'f1', type: 'pdf', title: 'Analisi_Mercato.pdf', category: 'Analisi', can_preview: true,
+        download_url: '/api/partner-step-materials/f1/download', public_url: null },
+      { id: 'f2', type: 'document', title: 'Script_Masterclass.docx', category: 'Script', can_preview: false,
+        download_url: '/api/partner-step-materials/f2/download', public_url: null },
+    ],
+  };
+  global.fetch = jest.fn((url) => {
+    if (String(url).includes('/operativo/materiali/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(misti) });
+    if (String(url).includes('/posizionamento/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+    return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
+  });
+
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+
+  const pdfRow = (await screen.findByText('Analisi_Mercato.pdf')).closest('.sereno-mat-file');
+  const docxRow = (await screen.findByText('Script_Masterclass.docx')).closest('.sereno-mat-file');
+
+  expect(within(pdfRow).getByRole('button', { name: /Apri/i })).toBeTruthy();
+  expect(within(docxRow).queryByRole('button', { name: /Apri/i })).toBeNull();
+  expect(within(pdfRow).getByRole('button', { name: /Scarica/i })).toBeTruthy();
+  expect(within(docxRow).getByRole('button', { name: /Scarica/i })).toBeTruthy();
+});
+
 test('partner with a signed contract AND an existing PDF shows a "Contratto firmato" entry whose download hits pdf-download', async () => {
   global.fetch = jest.fn((url) => {
     const m = materialsRoute(url);

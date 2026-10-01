@@ -283,6 +283,9 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
                 iconColor: color,
                 url,
                 esterno: !!m.public_url && !m.download_url,
+                // Word/Excel/ODT non si mostrano nel browser: si scaricano. "Apri"
+                // compare solo per PDF/immagini/testo (il backend lo dichiara).
+                anteprima: m.can_preview !== false,
               });
             }
           }
@@ -547,12 +550,14 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
 
                             {/* TASTI AZIONE */}
                             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                              <button
-                                onClick={() => apriFile(file)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
-                              >
-                                <Eye className="h-3.5 w-3.5 text-amber-600" /> Apri
-                              </button>
+                              {file.anteprima !== false && (
+                                <button
+                                  onClick={() => apriFile(file)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1.5 transition"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-amber-600" /> Apri
+                                </button>
+                              )}
 
                               <button
                                 onClick={() => scaricaFile(file)}
