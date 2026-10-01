@@ -9,6 +9,7 @@ import {
 import { ClientHome } from "./pages/ClientHome";
 import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
+import { StartDomandePage } from "./pages/StartDomandePage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
 // Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
 // Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
@@ -178,7 +179,8 @@ function ProtectedClient() {
         onStart={() => {
           markWelcomeSeen(clientId);
           setWelcomeDismissed(true);
-          navigate("/cliente/start");
+          // Dopo il benvenuto si comincia dal lavoro vero: le domande.
+          navigate("/cliente/start/domande");
         }}
       />
     );
@@ -196,6 +198,7 @@ function ProtectedClient() {
         <Route index element={<ClientHome dashboard={dashboard} />} />
         <Route path="blueprint" element={<BlueprintPage dashboard={dashboard} />} />
         <Route path="start" element={<StartPage dashboard={dashboard} />} />
+        <Route path="start/domande" element={<StartDomandePage dashboard={dashboard} />} />
         <Route path="partnership" element={<PartnershipEducationPage dashboard={dashboard} />} />
         <Route path="*" element={<Navigate to="/cliente" replace />} />
       </Routes>

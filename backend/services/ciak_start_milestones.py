@@ -280,7 +280,11 @@ def milestone_rows(
     adesso = now or datetime.now(timezone.utc)
     oggi = adesso.date()
     scadenze = delivery_datetimes(client.get("start_purchased_at"))
-    stato_tappe = _stato_tappe(_steps_by_id(steps))
+    steps_by_id = _steps_by_id(steps)
+    stato_tappe = _stato_tappe(steps_by_id)
+    # Quando il cliente ha inviato le risposte alle sue domande (tappa 1): senza
+    # quelle i generatori non partono, quindi il team deve saperlo a colpo d'occhio.
+    risposte_at = ((steps_by_id.get("04-posizionamento") or {}).get("data") or {}).get("answers_completed_at")
 
     rows = []
     for milestone, scadenza in zip(MILESTONES, scadenze):
@@ -310,6 +314,7 @@ def milestone_rows(
             "riferimento": avanzamento["riferimento"],
             "nota": avanzamento["nota"],
             "pronta_at": avanzamento["pronta_at"],
+            "risposte_ricevute_at": risposte_at if milestone["tappa"] == 1 else None,
         })
 
     return sorted(rows, key=_ordine)

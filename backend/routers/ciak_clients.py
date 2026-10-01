@@ -576,6 +576,91 @@ async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
     return {"items": docs}
 
 
+class StartRisposteBody(BaseModel):
+    answers: dict = Field(default_factory=dict)
+    completato: bool = False
+
+
+async def _risposte_start(client_id: str) -> tuple[dict, str | None]:
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"_id": 0, "data": 1}
+    )
+    data = (step or {}).get("data") or {}
+    return data.get("answers") or {}, data.get("answers_completed_at")
+
+
+@router.get("/start/risposte")
+async def start_risposte(client: dict[str, Any] = Depends(require_client)):
+    """Le risposte che il cliente Start ha gia' dato alle sue domande."""
+    from services.ciak_start_domande import DOMANDE_START_IDS
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    answers, completato_at = await _risposte_start(client["id"])
+    return {
+        "answers": {k: answers[k] for k in DOMANDE_START_IDS if answers.get(k)},
+        "completato_at": completato_at,
+    }
+
+
+@router.put("/start/risposte")
+async def salva_start_risposte(
+    body: StartRisposteBody,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Salva (anche a meta') le risposte e, con `completato`, le segna come inviate.
+
+    Scrive SOLO le risposte nello step 04 (merge), mai lo stato dello step: chi
+    ha risposto non ha ricevuto niente, la consegna resta approvata dal team.
+    """
+    from services.ciak_start_domande import STEP_ID, mancanti, pulisci_risposte
+    from services.start_partner_bridge import ensure_start_partner_bridge
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+
+    nuove = pulisci_risposte(body.answers)
+    # Il percorso nasce con l'attivazione; se per qualunque motivo manca lo si
+    # ricostruisce (idempotente) invece di far perdere le risposte al cliente.
+    giaci, _ = await _risposte_start(client["id"])
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+    )
+    if not step:
+        await ensure_start_partner_bridge(db, client)
+        step = await db.partner_journey_steps.find_one(
+            {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
+        )
+        if not step:
+            raise HTTPException(status_code=409, detail="Il percorso non e' ancora pronto: riprova fra poco.")
+
+    tutte = {**giaci, **nuove}
+    if body.completato:
+        assenti = mancanti(tutte)
+        if assenti:
+            raise HTTPException(
+                status_code=422,
+                detail={"message": "Manca ancora qualche risposta.", "mancanti": assenti},
+            )
+
+    now = _now_iso()
+    imposta: dict[str, Any] = {f"data.answers.{k}": v for k, v in nuove.items()}
+    imposta["updated_at"] = now
+    if body.completato:
+        imposta["data.answers_completed_at"] = now
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client["id"], "step_id": STEP_ID}, {"$set": imposta}
+    )
+    if body.completato:
+        events = [dict(e) for e in (client.get("events") or [])]
+        events.append({"event": "start_risposte_inviate", "timestamp": now})
+        await db.ciak_clients.update_one(
+            {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
+        )
+    answers, completato_at = await _risposte_start(client["id"])
+    return {"success": True, "answers": answers, "completato_at": completato_at}
+
+
 async def _deliver_blueprint(diagnostic: dict[str, Any]) -> dict[str, Any]:
     """Consegna del Blueprint GRATUITO, innescata dall'admin a fine call.
 
