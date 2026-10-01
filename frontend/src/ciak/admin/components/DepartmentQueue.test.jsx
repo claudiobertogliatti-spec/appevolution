@@ -26,7 +26,10 @@ test("mostra le colonne operative e il tag persona vs agente AI", () => {
   const r1 = screen.getByTestId("coda-row-1");
   expect(r1.textContent).toMatch(/Sollecita video/);
   expect(within(r1).getByText("persona")).toBeTruthy(); // Antonella = persona
-  expect(r1.textContent).toMatch(/Fermo/); // blocco
+  // Scadenza e Blocco non sono piu' colonne della coda.
+  expect(screen.queryByRole("columnheader", { name: "Scadenza" })).toBeNull();
+  expect(screen.queryByRole("columnheader", { name: "Blocco" })).toBeNull();
+  expect(r1.textContent).not.toMatch(/Fermo|15\/09\/2026/);
   const r2 = screen.getByTestId("coda-row-2");
   expect(within(r2).getByText("agente AI")).toBeTruthy(); // Valentina = agente AI
 });
@@ -140,8 +143,6 @@ test("BackOfficeQueue: crediti da /crediti con scadenza e 'in ritardo', saldati 
   const r1 = await screen.findByTestId("coda-row-c1");
   expect(r1.textContent).toMatch(/Cliente Rosso/);
   expect(r1.textContent).toMatch(/Incassa \/ verifica rata/);
-  expect(r1.textContent).toMatch(/01\/09\/2026/);
-  expect(r1.textContent).toMatch(/In ritardo/);
   expect(r1.textContent).toMatch(/Valentina/); // owner (Responsabile) reale dal credito
   expect(screen.queryByTestId("coda-row-c2")).toBeNull(); // saldato escluso dalla coda
 });
