@@ -51,7 +51,7 @@ describe("funnel masterclass", () => {
 
     expect(screen.getByTitle("Masterclass Ciak")).toHaveAttribute(
       "src",
-      expect.stringContaining("youtube.com/embed/E2XDEdJgzcQ")
+      expect.stringContaining("youtube.com/embed/09AELyYclA8")
     );
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("funnel masterclass", () => {
 
     expect(screen.getByTitle("Masterclass Ciak")).toHaveAttribute(
       "src",
-      expect.stringContaining("youtube.com/embed/E2XDEdJgzcQ")
+      expect.stringContaining("youtube.com/embed/09AELyYclA8")
     );
     expect(screen.queryByRole("heading", { name: /Da competenza o corso fermo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();

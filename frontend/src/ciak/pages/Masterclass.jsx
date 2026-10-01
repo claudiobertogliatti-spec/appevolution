@@ -4,7 +4,7 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 const { progressMilestones, shouldEmitMasterclassEvent } = require("../lib/masterclassTracking.cjs");
 
-const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
+const MASTERCLASS_YOUTUBE_ID = "09AELyYclA8";
 const CTA_UNLOCK_SECONDS = 20 * 60;
 const FAST_CTA_SECONDS = 5;
 
