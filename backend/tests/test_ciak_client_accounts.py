@@ -283,3 +283,22 @@ def test_pick_diagnostic_session_preferisce_la_piu_recente_con_risposte():
     # Nessuna con risposte: si torna alla piu' recente, mai None se esiste qualcosa.
     assert pick_diagnostic_session([vuota_nuova, {"session_token": "x"}])["session_token"] == "new"
     assert pick_diagnostic_session([]) is None and pick_diagnostic_session(None) is None
+
+
+def test_una_sessione_con_tutte_le_chiavi_ma_valori_nulli_non_ha_risposte():
+    """Caso Anna Maria Bernard (1/10): riaprire il questionario crea una sessione con
+    le 10 chiavi presenti e tutti i valori nulli. Un dizionario non vuoto NON e' una
+    sessione compilata: il Blueprint generato li' dice 'questionario arrivato vuoto'."""
+    from services.ciak_client_accounts import ha_risposte, pick_diagnostic_session
+
+    nulla = {"session_token": "new", "responses": {f"q{i}": None for i in range(10)}}
+    vuote = {"session_token": "new2", "responses": {"q1": "", "q2": "   ", "q3": [], "q4": {}}}
+    compilata = {"session_token": "old", "responses": {"q1_competenza": "coaching", "q2": None}}
+    assert ha_risposte(nulla) is False and ha_risposte(vuote) is False
+    assert ha_risposte(compilata) is True
+    assert ha_risposte({}) is False and ha_risposte(None) is False and ha_risposte({"responses": "x"}) is False
+    assert ha_risposte({"responses": {"q1": ["a"]}}) is True
+    assert ha_risposte({"responses": {"q1": 0}}) is True
+    assert pick_diagnostic_session([nulla, vuote, compilata])["session_token"] == "old"
+    # Nessuna compilata: si torna alla piu' recente.
+    assert pick_diagnostic_session([nulla, vuote])["session_token"] == "new"

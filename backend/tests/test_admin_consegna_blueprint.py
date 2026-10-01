@@ -318,3 +318,22 @@ def test_genera_409_se_il_questionario_non_e_compilato(app_factory):
     assert resp.status_code == 409
     assert "questionario" in resp.json()["detail"].lower()
     gen.assert_not_awaited()
+
+
+def test_genera_e_consegna_non_partono_su_una_sessione_con_risposte_nulle(app_factory):
+    """Un dizionario di risposte tutte nulle e' un questionario vuoto: 409, nessun
+    Blueprint, nessuna email al cliente (era il caso Anna Maria Bernard)."""
+    db = FakeDb(
+        diagnostic_sessions=[{
+            "_id": "oid-0", "session_token": "tok-nulla", "user_email": "x@ciak.it",
+            "current_state": "ciak_started", "created_at": "2026-10-01T08:33:00+00:00",
+            "responses": {f"q{i}": None for i in range(10)},
+        }],
+        ciak_blueprints=[], ciak_clients=[],
+    )
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock(return_value=_PAYLOAD)) as gen:
+        r1 = client.post("/api/ciak/client/admin/blueprint/genera", json={"email": "x@ciak.it"}, headers=_HEADERS)
+        r2 = client.post("/api/ciak/client/admin/consegna-blueprint", json={"email": "x@ciak.it"}, headers=_HEADERS)
+    assert r1.status_code == 409 and r2.status_code == 409
+    gen.assert_not_awaited()
