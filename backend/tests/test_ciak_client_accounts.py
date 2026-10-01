@@ -254,3 +254,17 @@ async def test_verify_magic_login_token_allows_reuse_within_validity():
 
     assert [result["id"] for result in successes] == ["client-1", "client-1"]
     assert failures == []
+
+
+def test_ruolo_contatto_distingue_lead_cliente_start_e_partner():
+    from services.ciak_client_accounts import ruolo_contatto
+
+    assert ruolo_contatto(None)["tipo"] == "lead"
+    # Account creato dal Blueprint gratuito: ha ricevuto un PDF, non ha pagato.
+    assert ruolo_contatto({"access_level": "cliente_blueprint"})["tipo"] == "lead"
+    start = ruolo_contatto({"access_level": "cliente_start", "start_purchased_at": "2026-10-01T07:02:00+00:00"})
+    assert start["tipo"] == "cliente_start" and "2026-10-01" in start["dettaglio"]
+    assert ruolo_contatto({"start_credit_amount": 390})["tipo"] == "cliente_start"
+    assert ruolo_contatto({"access_level": "partner"})["tipo"] == "partner"
+    # Un partner ha la precedenza anche se ha pagato Start prima.
+    assert ruolo_contatto({"access_level": "cliente_start"}, {"id": "p1"})["tipo"] == "partner"

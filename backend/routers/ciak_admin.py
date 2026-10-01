@@ -1805,6 +1805,9 @@ async def ciak_lead_detail(
             "pdf_url": ((analysis.get("bozza") or {}).get("pdf_url")),
         }
 
+    from services.ciak_client_accounts import ruolo_contatto
+    partner_doc = await db.partners.find_one({"email": _email_ci(email)}, {"_id": 0, "id": 1})
+
     return {
         "email": email,
         "lead": lead,
@@ -1812,6 +1815,7 @@ async def ciak_lead_detail(
         "latest_diagnostic": latest_diag,
         "qualified_for_proposta": qualified_for_proposta,
         "blueprint": blueprint,
+        "ruolo": ruolo_contatto(client, partner_doc),
     }
 
 

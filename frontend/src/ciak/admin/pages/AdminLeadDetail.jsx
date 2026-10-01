@@ -284,6 +284,27 @@ function BlueprintPanel({ blueprint, busy, message, onGenera, onRigenera, onScar
   );
 }
 
+const RUOLO_STILE = {
+  lead: "bg-gray-100 text-slate-700 border-gray-200",
+  cliente_start: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  partner: "bg-slate-900 text-yellow-400 border-slate-900",
+};
+
+// Prima cosa da capire aprendo la scheda: e' un lead, un cliente che ha
+// pagato Ciak Start o un partner? Il "Cliente" vale solo per chi ha pagato.
+function RuoloBadge({ ruolo }) {
+  if (!ruolo) return null;
+  return (
+    <div
+      data-testid="ruolo-contatto"
+      className={`inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-4 py-2 mb-8 ${RUOLO_STILE[ruolo.tipo] || RUOLO_STILE.lead}`}
+    >
+      <span className="text-sm font-semibold uppercase tracking-widest">{ruolo.label}</span>
+      <span className="text-sm opacity-80">{ruolo.dettaglio}</span>
+    </div>
+  );
+}
+
 function Field({ label, value }) {
   return (
     <div className="mb-2">
@@ -510,7 +531,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">
         {lead?.nome || data.email}
       </h1>
-      <p className="text-slate-500 mb-8">{data.email}</p>
+      <p className="text-slate-500 mb-3">{data.email}</p>
+      <RuoloBadge ruolo={data.ruolo} />
 
       {diagnostics.length > 0 && (
         <BlueprintPanel
