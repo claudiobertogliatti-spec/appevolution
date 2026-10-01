@@ -42,6 +42,22 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
     )
 
 
+def pick_diagnostic_session(sessions: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """La sessione diagnostica che conta per un lead: la PIU' RECENTE CON RISPOSTE.
+
+    Chi riapre il questionario crea una sessione nuova e vuota: se si prendesse
+    ciecamente "l'ultima", Blueprint e stato "call fatta" finirebbero su una
+    sessione senza risposte mentre quella compilata resta ferma. `sessions` va
+    passata dalla piu' recente alla meno recente; se nessuna ha risposte si torna
+    alla piu' recente.
+    """
+    ordered = [s for s in (sessions or []) if isinstance(s, dict)]
+    for item in ordered:
+        if item.get("responses"):
+            return item
+    return ordered[0] if ordered else None
+
+
 def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None = None) -> dict[str, Any]:
     """Chi e' questa persona per il business: lead, cliente Start pagante o partner.
 

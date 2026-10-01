@@ -1783,7 +1783,8 @@ async def ciak_lead_detail(
     if not lead:
         lead = _synthetic_lead(diagnostics[0])
 
-    latest_diag = diagnostics[0] if diagnostics else None
+    from services.ciak_client_accounts import pick_diagnostic_session
+    latest_diag = pick_diagnostic_session(diagnostics)
     client = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
     session_token = (latest_diag or {}).get("session_token")
     analysis = (

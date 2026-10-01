@@ -268,3 +268,18 @@ def test_ruolo_contatto_distingue_lead_cliente_start_e_partner():
     assert ruolo_contatto({"access_level": "partner"})["tipo"] == "partner"
     # Un partner ha la precedenza anche se ha pagato Start prima.
     assert ruolo_contatto({"access_level": "cliente_start"}, {"id": "p1"})["tipo"] == "partner"
+
+
+def test_pick_diagnostic_session_preferisce_la_piu_recente_con_risposte():
+    from services.ciak_client_accounts import pick_diagnostic_session
+
+    vuota_nuova = {"session_token": "new", "responses": {}}
+    compilata_vecchia = {"session_token": "old", "responses": {"q1_competenza": "coaching"}}
+    # Chi riapre il questionario crea una sessione vuota: conta quella compilata.
+    assert pick_diagnostic_session([vuota_nuova, compilata_vecchia])["session_token"] == "old"
+    # Tra due compilate vince la piu' recente (lista gia' ordinata dalla piu' recente).
+    ancora_piu_nuova = {"session_token": "newer", "responses": {"q1_competenza": "x"}}
+    assert pick_diagnostic_session([ancora_piu_nuova, compilata_vecchia])["session_token"] == "newer"
+    # Nessuna con risposte: si torna alla piu' recente, mai None se esiste qualcosa.
+    assert pick_diagnostic_session([vuota_nuova, {"session_token": "x"}])["session_token"] == "new"
+    assert pick_diagnostic_session([]) is None and pick_diagnostic_session(None) is None
