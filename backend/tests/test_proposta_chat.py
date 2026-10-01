@@ -227,6 +227,36 @@ class FakeCollection:
                 d.update(update.get("$set", {}))
                 return
 
+    def find(self, query):
+        """Valuta davvero il filtro, regex case-insensitive compresa."""
+        import re
+
+        def ok(d):
+            for k, cond in query.items():
+                if isinstance(cond, dict) and "$regex" in cond:
+                    flags = re.I if "i" in cond.get("$options", "") else 0
+                    if not re.search(cond["$regex"], str(d.get(k) or ""), flags):
+                        return False
+                elif d.get(k) != cond:
+                    return False
+            return True
+
+        docs = [dict(d) for d in self.docs if ok(d)]
+
+        class _Cur:
+            def sort(self, key, direction):
+                docs.sort(key=lambda x: x.get(key) or "", reverse=direction < 0)
+                return self
+
+            def limit(self, n):
+                del docs[n:]
+                return self
+
+            async def to_list(self, length=None):
+                return docs
+
+        return _Cur()
+
 
 class FakeDb:
     def __init__(self, **cols):
@@ -385,6 +415,31 @@ async def test_get_proposta_porta_blueprint_bonus_e_percorso(wired):
     assert out["bonus"]["attiva"] is True
     assert out["blueprint"]["problema"] == "Il reddito dipende dalle ore che lavori."
     assert "cta" not in json.dumps(out["blueprint"]) and "interno" not in json.dumps(out["blueprint"])
+
+
+async def test_get_proposta_legge_il_blueprint_della_sessione_con_risposte_non_quella_vuota(wired):
+    """Caso Anna Maria Bernard (1/10): la scheda cliente punta alla sessione vuota, le
+    risposte e il Blueprint giusto stanno nell'altra. La pagina Insider non deve dire
+    al lead che il suo questionario 'e' arrivato vuoto'."""
+    vuoto = {"meta": {"progetto": "Vuoto"}, "sezioni": {"problema": {"lead": "Questionario arrivato vuoto."}}}
+    proposta.db = FakeDb(
+        proposte=[_proposta(prospect_email="amb@annamariabernard.it")],
+        ciak_clients=[{"email": "amb@annamariabernard.it", "session_token": "vuota"}],
+        diagnostic_sessions=[
+            {"session_token": "vuota", "user_email": "AMB@AnnaMariaBernard.it",
+             "created_at": "2026-10-01T08:33:00", "responses": {"q1": None, "q2": None}},
+            {"session_token": "piena", "user_email": "AMB@AnnaMariaBernard.it",
+             "created_at": "2026-09-22T10:13:00", "responses": {"q1": "coaching"},
+             "scoring": {"stato_finale": 3}},
+        ],
+        ciak_blueprints=[
+            {"session_token": "vuota", "stato": "pronto", "payload": vuoto},
+            {"session_token": "piena", "stato": "pronto", "payload": BLUEPRINT},
+        ],
+    )
+    out = await proposta.get_proposta(TOKEN)
+    assert out["blueprint"]["problema"] == "Il reddito dipende dalle ore che lavori."
+    assert "vuoto" not in json.dumps(out["blueprint"]).lower()
 
 
 async def test_get_proposta_regge_senza_blueprint(wired):

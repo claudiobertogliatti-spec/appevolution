@@ -27,6 +27,7 @@ import base64
 import binascii
 
 from services import proposta_chat
+from services.ciak_client_accounts import effective_session_token
 from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields, fire_and_forget
 from services.ciak_partnership_email import (
     send_contratto_firmato_async,
@@ -378,7 +379,7 @@ async def get_proposta(token: str):
     email = (proposta.get("prospect_email") or "").strip().lower()
     if email:
         client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
-        session_token = (client or {}).get("session_token") or (client or {}).get("diagnostic_session_token")
+        session_token = await effective_session_token(db, client)
         if session_token:
             diag = await db.diagnostic_sessions.find_one(
                 {"session_token": session_token}, {"_id": 0}
@@ -456,7 +457,7 @@ async def _chat_system_for(proposta: dict) -> list:
 
     email = (proposta.get("prospect_email") or "").strip().lower()
     client = await db.ciak_clients.find_one({"email": email}, {"_id": 0}) if email else None
-    session_token = (client or {}).get("session_token") or (client or {}).get("diagnostic_session_token")
+    session_token = await effective_session_token(db, client) if client else None
     diag = (
         await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0})
         if session_token else None

@@ -302,3 +302,83 @@ def test_una_sessione_con_tutte_le_chiavi_ma_valori_nulli_non_ha_risposte():
     assert pick_diagnostic_session([nulla, vuote, compilata])["session_token"] == "old"
     # Nessuna compilata: si torna alla piu' recente.
     assert pick_diagnostic_session([nulla, vuote])["session_token"] == "new"
+
+
+class _FindCursor:
+    def __init__(self, docs):
+        self._docs = docs
+
+    def sort(self, key, direction):
+        self._docs = sorted(self._docs, key=lambda d: d.get(key) or "", reverse=direction < 0)
+        return self
+
+    def limit(self, n):
+        self._docs = self._docs[:n]
+        return self
+
+    async def to_list(self, length=None):
+        return [dict(d) for d in self._docs]
+
+
+class _SessionsCollection(FakeCollection):
+    """Valuta davvero il filtro, regex case-insensitive compresa: un finto che
+    ignora il filtro farebbe passare un'implementazione che non trova nulla."""
+
+    def find(self, query):
+        import re
+
+        def match(doc):
+            for key, cond in query.items():
+                value = doc.get(key)
+                if isinstance(cond, dict) and "$regex" in cond:
+                    flags = re.I if "i" in cond.get("$options", "") else 0
+                    if not re.search(cond["$regex"], str(value or ""), flags):
+                        return False
+                elif value != cond:
+                    return False
+            return True
+
+        return _FindCursor([d for d in self.docs if match(d)])
+
+
+def _db_due_sessioni():
+    """Caso Anna Maria Bernard: la scheda cliente punta alla sessione VUOTA dell'1/10,
+    le risposte vere stanno nella sessione del 22/9 (email salvata con le maiuscole)."""
+    db = FakeDB()
+    db.diagnostic_sessions = _SessionsCollection([
+        {"session_token": "vuota", "user_email": "AMB@AnnaMariaBernard.it",
+         "created_at": "2026-10-01T08:33:00", "responses": {f"q{i}": None for i in range(10)}},
+        {"session_token": "piena", "user_email": "AMB@AnnaMariaBernard.it",
+         "created_at": "2026-09-22T10:13:00", "responses": {"q1": "coaching e intelligenza emotiva"}},
+    ])
+    return db
+
+
+def test_effective_session_token_legge_dalla_sessione_con_risposte_se_la_scheda_punta_alla_vuota():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = _db_due_sessioni()
+    client = {"email": "amb@annamariabernard.it", "session_token": "vuota"}
+    assert asyncio.run(effective_session_token(db, client)) == "piena"
+    # Nessuna scrittura: la scheda resta com'e'.
+    assert client["session_token"] == "vuota"
+
+
+def test_effective_session_token_non_cambia_se_la_sessione_della_scheda_e_gia_piena():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = _db_due_sessioni()
+    client = {"email": "amb@annamariabernard.it", "session_token": "piena"}
+    assert asyncio.run(effective_session_token(db, client)) == "piena"
+
+
+def test_effective_session_token_senza_alcuna_sessione_compilata_torna_al_token_salvato():
+    from services.ciak_client_accounts import effective_session_token
+
+    db = FakeDB()
+    db.diagnostic_sessions = _SessionsCollection([
+        {"session_token": "vuota", "user_email": "x@y.it", "created_at": "2026-10-01",
+         "responses": {"q1": None}},
+    ])
+    assert asyncio.run(effective_session_token(db, {"email": "x@y.it", "session_token": "vuota"})) == "vuota"
+    assert asyncio.run(effective_session_token(db, {})) is None
