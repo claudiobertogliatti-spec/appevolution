@@ -6,8 +6,11 @@ firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 
 import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File
+from fastapi.responses import StreamingResponse
 from routers.ciak_admin import require_ciak_admin
-from routers.insider_helpers import enrich_proposta_for_insider
+from routers.insider_helpers import (
+    enrich_proposta_for_insider, blueprint_public_view, recommended_path, bonus_state,
+)
 from services.paid_offer_gate import (
     paid_offer_readiness, require_paid_offer_checkout,
 )
@@ -23,6 +26,7 @@ import httpx
 import base64
 import binascii
 
+from services import proposta_chat
 from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields, fire_and_forget
 from services.ciak_partnership_email import (
     send_contratto_firmato_async,
@@ -370,6 +374,7 @@ async def get_proposta(token: str):
     # verificata sopra in questo stesso file: ogni proposta arriva qui solo
     # dopo che quella funzione ha già confermato che la catena risolve.
     sess = None
+    client = None
     email = (proposta.get("prospect_email") or "").strip().lower()
     if email:
         client = await db.ciak_clients.find_one({"email": email}, {"_id": 0})
@@ -397,11 +402,128 @@ async def get_proposta(token: str):
                 # non `stato`: normalizzato qui per rispettare l'interfaccia
                 # pura di enrich_proposta_for_insider.
                 "scoring": {"stato": scoring.get("stato_finale")},
+                # Pagina post-call sul Blueprint: solo la proiezione client-facing.
+                "blueprint": blueprint_public_view(await _blueprint_payload(session_token)),
+                "raccomandata": recommended_path(client, scoring),
             }
+    if client is not None:
+        sess = sess or {}
+        sess["bonus"] = bonus_state(client, datetime.now(timezone.utc))
+        sess.setdefault("raccomandata", recommended_path(client, None))
     proposta = enrich_proposta_for_insider(proposta, sess)
     proposta["checkout_readiness"] = paid_offer_readiness()
 
     return proposta
+
+
+async def _blueprint_payload(session_token: str):
+    """Payload del Blueprint pronto per questa sessione, o None. Non deve MAI rompere la
+    pagina: senza Blueprint la proposta si apre lo stesso (senza la parte personalizzata)."""
+    try:
+        doc = await db.ciak_blueprints.find_one(
+            {"session_token": session_token, "stato": "pronto"}, {"_id": 0, "payload": 1}
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[PROPOSTA] Blueprint non leggibile: %s", exc)
+        return None
+    return (doc or {}).get("payload")
+
+
+# ─────────────────────────────────────────────────
+# PUBBLICA: chat "Ho una domanda" (streaming, risponde in tempo reale)
+# ─────────────────────────────────────────────────
+class PropostaChatRequest(BaseModel):
+    message: str
+    history: List[dict] = []
+
+
+_chat_limiter = proposta_chat.ChatRateLimiter()
+
+
+async def _chat_system_for(proposta: dict) -> list:
+    """Costruisce il system prompt: contratto INTERO di questo lead + scheda verificata +
+    Blueprint + dati reali (scadenza, bonus). Tutto letto lato server, mai dal browser."""
+    from routers.contract import render_contract_text, _get_partner_params
+    from services.ciak_client_accounts import START_AMOUNT_CENTS
+
+    params = await _get_partner_params(proposta.get("partner_id"))
+    params.pop("personal_data", None)  # niente IBAN/PEC grezzi dentro al prompt
+    extra = proposta.get("contract_params") or {}
+    params.update({k: v for k, v in extra.items() if v is not None and k != "personal_data"})
+    contract_text = render_contract_text(params)
+    partnership_eur = int(round(float(params.get("corrispettivo") or 2990)))
+    start_eur = START_AMOUNT_CENTS // 100
+
+    email = (proposta.get("prospect_email") or "").strip().lower()
+    client = await db.ciak_clients.find_one({"email": email}, {"_id": 0}) if email else None
+    session_token = (client or {}).get("session_token") or (client or {}).get("diagnostic_session_token")
+    diag = (
+        await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0})
+        if session_token else None
+    )
+    payload = await _blueprint_payload(session_token) if session_token else None
+    bonus = bonus_state(client, datetime.now(timezone.utc))
+
+    first_name = (proposta.get("prospect_nome") or "").strip().split(" ")[0]
+    context = proposta_chat.lead_context(
+        first_name=first_name,
+        recommended=recommended_path(client, (diag or {}).get("scoring")),
+        deadline_label=proposta_chat.it_date(proposta.get("scadenza")),
+        bonus_active=bonus["attiva"],
+        bonus_deadline_label=proposta_chat.it_datetime(bonus["scade_at"]),
+        stato=proposta.get("stato"),
+    )
+    return proposta_chat.build_system_blocks(
+        first_name=first_name,
+        contract_text=contract_text,
+        brief=proposta_chat.blueprint_brief(payload),
+        facts={"start_eur": start_eur, "partnership_eur": partnership_eur,
+               "upgrade_eur": partnership_eur - start_eur},
+        context=context,
+    )
+
+
+@router.post("/{token}/chat")
+async def proposta_chat_endpoint(token: str, body: PropostaChatRequest, request: Request):
+    """Chat in tempo reale (Server-Sent Events) sulla pagina di chiusura. Pubblica come
+    la proposta: il token e' la capability. Limitata per token+IP per proteggere la spesa."""
+    proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
+    if not proposta:
+        raise HTTPException(404, "Proposta non trovata")
+    scadenza = proposta.get("scadenza", "")
+    if scadenza and proposta.get("stato") not in ["pagamento_completato", "contratto_firmato"]:
+        try:
+            scaduta = datetime.now(timezone.utc) > datetime.fromisoformat(scadenza)
+        except (ValueError, TypeError):
+            scaduta = False
+        if scaduta:
+            raise HTTPException(410, "Proposta scaduta")
+
+    message = proposta_chat.clean_message(body.message)
+    if not message:
+        raise HTTPException(422, "Scrivi la tua domanda")
+    history = proposta_chat.clean_history(body.history)
+    allowed = _chat_limiter.allow(f"{token}:{_trusted_client_ip(request)}")
+
+    async def events():
+        if not allowed:
+            yield proposta_chat.sse({"t": proposta_chat.RATE_LIMIT_REPLY})
+            yield proposta_chat.sse({"done": True})
+            return
+        try:
+            system = await _chat_system_for(proposta)
+            async for piece in proposta_chat.stream_reply(system, history, message):
+                yield proposta_chat.sse({"t": piece})
+        except Exception:  # noqa: BLE001
+            logger.exception("[PROPOSTA CHAT] errore")
+            yield proposta_chat.sse({"error": proposta_chat.UNAVAILABLE_REPLY})
+        yield proposta_chat.sse({"done": True})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 # ─────────────────────────────────────────────────
