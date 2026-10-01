@@ -13,7 +13,7 @@
 - Disegno di riferimento: `docs/superpowers/specs/2026-10-01-evolution-insider-community-design.md`.
 - Nome: **Evolution Insider**. Tag: `insider_invito`, `insider_invitato` (registro `insider_invites`), `insider_membro`.
 - Si invita **una sola volta** per persona. Mai chi ha acquistato, mai `call_booked`, mai la lista fredda da 13k (policy 19/9).
-- Il controllo è **spento** finché `INSIDER_INVITES_ENABLED` non vale `1`; spento, conta soltanto. Massimo **25 inviti per giro** (`INSIDER_INVITES_MAX_PER_RUN`).
+- Il controllo è **spento** finché `INSIDER_INVITES_ENABLED` non vale `1`; spento, conta soltanto. Tetto **giornaliero** dal registro: default **10**, massimo assoluto **25** (`INSIDER_INVITES_MAX_PER_RUN`; 0 = non invia). Solo riferimenti entro **180 giorni** (`INSIDER_INVITES_MAX_AGE_DAYS`), dai più recenti. *(Aggiornato dopo la revisione finale: il testo originale diceva «25 per giro».)*
 - Percorsi: a) proposta scaduta senza pagamento · b) Blueprint consegnato da 7 giorni, nessuna proposta · c) `report_generated` da 14 giorni senza call.
 - Le email si normalizzano in minuscolo (`diagnostic_sessions.user_email` può essere in maiuscolo).
 - Su Systeme si crea tutto **disattivato**. Nessun invio reale prima dell'approvazione delle email da parte di Claudio.
@@ -854,7 +854,8 @@ Strumenti Systeme (MCP) da caricare con ToolSearch al momento: `create_tag`, `ge
 - [ ] **Step 1: Contatto di prova.** Crea con `create_contact` un contatto con un indirizzo di Claudio (un alias `+prova`), dati sporchi inclusi (email con maiuscole). Attiva **solo** i workflow necessari al collaudo, solo per quel contatto, poi ridisattiva.
 - [ ] **Step 2: Percorso completo.** Applica `insider_invito` (`assign_contact_tag`) → arriva l'invito → iscrizione dalla pagina con consenso → arriva il benvenuto e compare `insider_membro` → arriva il primo numero → applica un tag di acquisto → esce dalla sequenza → prova la disiscrizione. Registra ogni passo con prova (email ricevuta, tag letto con `get_contact`).
 - [ ] **Step 3: Pulizia.** Rimuovi il contatto di prova (`remove_contact`) e rimetti tutto in stato non attivo, salvo i workflow che Claudio decide di accendere.
-- [ ] **Step 4: Partenza controllata.** Con l'ok di Claudio: attiva i workflow; imposta su Cloud Run `INSIDER_INVITES_ENABLED=1` e `INSIDER_INVITES_MAX_PER_RUN=10` per il primo giro; guarda consegna, aperture e disiscrizioni per una settimana prima di portare il tetto a 25. Rollback: `INSIDER_INVITES_ENABLED=` (vuoto) e disattivare i workflow.
+- [ ] **Step 3b: Prima di accendere il flag, correggi i due punti rimasti aperti dalla revisione finale** (registrati con la loro motivazione, non bloccano il merge perché con il flag spento nulla parte): (1) il «claim» delle riprove non è esclusivo per un invito già in stato `retrying`: due giri sovrapposti dopo un crash possono mandare due inviti; aggiungere `claimed_at` al filtro del claim, con un test in cui il documento viene riacquisito tra la lettura e il claim. (2) la lettura delle sessioni `call_booked` deve fermare il giro al limite (come clienti, proposte e partner), non solo avvisare. Dopo una nuova revisione mirata.
+- [ ] **Step 4: Partenza controllata.** Con l'ok di Claudio: attiva i workflow; imposta su Cloud Run `INSIDER_INVITES_ENABLED=1` (il tetto di default è già 10 al giorno); guarda consegna, aperture e disiscrizioni per una settimana prima di alzare `INSIDER_INVITES_MAX_PER_RUN` (massimo 25). Rollback: `INSIDER_INVITES_ENABLED=` (vuoto) e disattivare i workflow.
 
 ---
 

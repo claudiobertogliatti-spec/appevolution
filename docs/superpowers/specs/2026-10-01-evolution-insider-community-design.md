@@ -36,12 +36,12 @@ Tre percorsi, una sola volta per persona. Si invita quando la data di riferiment
 
 I 7 e i 14 giorni sono costanti modificabili. Il percorso c copre chi ha compilato il questionario ma non ha mai prenotato: è la popolazione più numerosa di chi non acquista.
 
-**Esclusi sempre:** `call_booked` (call in programma), chi ha acquistato (`start_purchased_at`, `access_level` in `cliente_start`/`partner`, `partnership_attiva`, proposta in `pagamento_completato` o `contratto_firmato`), email non valide, chi è già stato invitato.
+**Esclusi sempre:** chi ha **anche una sola** sessione in `call_booked`; chi ha acquistato o sta pagando (`start_purchased_at`, `access_level` in `cliente_start`/`partner`, `partnership_attiva`, proposta con `pagamento_completato` vero o in stato `pagamento_completato`, `contratto_firmato`, `pagamento_in_attesa_verifica`, `finalizzazione_in_corso`: la pagina può segnare «scaduta» una proposta già pagata, quindi non ci si fida dello stato da solo); i partner (`db.partners`); email non valide; chi è già stato invitato. Se la lettura di clienti, proposte o partner raggiunge il limite, il giro si ferma senza inviare.
 Chi è già iscritto alla newsletter di Systeme da altra fonte (masterclass, report del blog) non viene escluso: riceve lo stesso invito, perché l'iscrizione a Insider è un consenso distinto.
 
 ## Flusso
 
-1. **Controllo giornaliero (backend):** individua i candidati e applica su Systeme il tag `insider_invito` con `ciak_emit_event`. Ogni invito è registrato in `insider_invites` (email unica), così nessuno viene invitato due volte. Il controllo è spento finché `INSIDER_INVITES_ENABLED` non vale `1`: spento, fa solo la conta dei candidati. Ogni giro invita al massimo 25 persone.
+1. **Controllo giornaliero (backend):** individua i candidati e applica su Systeme il tag `insider_invito` con `ciak_emit_event`. Ogni invito è registrato in `insider_invites` (email unica), così nessuno viene invitato due volte. Il controllo è spento finché `INSIDER_INVITES_ENABLED` non vale `1`: spento, fa solo la conta dei candidati. Il tetto è **giornaliero** e si legge dal registro: di default 10 inviti al giorno, alzabile con `INSIDER_INVITES_MAX_PER_RUN` fino a un massimo assoluto di 25 (0 = non invia). Si invitano solo contatti con data di riferimento entro 180 giorni (`INSIDER_INVITES_MAX_AGE_DAYS`), **dai più recenti**.
 2. **Workflow Systeme "Evolution Insider — Invito"** (trigger: tag `insider_invito`): email d'invito → attesa 3 giorni → se non iscritto, **un** promemoria → fine. Non si insiste.
 3. **Iscrizione:** pagina Systeme con casella di consenso e link alla privacy. All'invio: tag `insider_membro`, accesso all'area membri, email di benvenuto con il primo materiale.
 4. **Newsletter settimanale** a chi ha `insider_membro`: un articolo del blog, un video, un materiale della biblioteca a rotazione. Link con UTM (`utm_source=insider`).
