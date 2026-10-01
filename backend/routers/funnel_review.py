@@ -22,6 +22,7 @@ from pydantic import BaseModel
 
 from services import funnel_review as fr
 from services import legal_documents as legal_docs
+from services import funnel_copy_review as copy_review
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,21 @@ class CorrectionBody(BaseModel):
     right: str
 
 
+class PartBody(BaseModel):
+    page_id: str
+    part_id: str
+
+
+class PartEditBody(BaseModel):
+    page_id: str
+    part_id: str
+    wanted: str
+    insist: bool = False          # il partner conferma la sua versione dopo l'avviso di Gaia
+    gaia_note: Optional[str] = None  # la spiegazione che Gaia gli aveva dato
+    photos: Optional[List[str]] = None  # foto caricate dal partner (solo per «L'aspetto»)
+    action: str = "modifica"  # «modifica» oppure «aggiungi» (una domanda, un punto, un passo)
+
+
 class AdminSetBody(BaseModel):
     preview_released: Optional[bool] = None
     documents_released: Optional[bool] = None
@@ -52,6 +68,7 @@ class AdminSetBody(BaseModel):
     preview_url: Optional[str] = None
     preview_version: Optional[int] = None
     connections: Optional[Dict[str, bool]] = None
+    content: Optional[Dict[str, Dict[str, str]]] = None
 
 
 class NewVersionBody(BaseModel):
@@ -148,6 +165,80 @@ async def correction(partner_id: str, body: CorrectionBody,
         f"❌ Sbagliato: {entry['wrong']}\n✅ Giusto: {entry['right']}"
     )
     return {"success": True, **(await _state(partner_id))}
+
+
+@router.post("/{partner_id}/part/approve")
+async def approve_part(partner_id: str, body: PartBody,
+                       credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """«Approva» su un singolo elemento della pagina (titolo, video, modulo…)."""
+    await _authorize(partner_id, credentials)
+    rec = await _record(partner_id)
+    try:
+        update = fr.approve_part_update(rec, body.page_id, body.part_id, _now())
+    except fr.ReviewError as e:
+        _fail(e)
+    await db.partner_funnel.update_one({"partner_id": str(partner_id)}, update, upsert=True)
+    return {"success": True, **(await _state(partner_id))}
+
+
+@router.post("/{partner_id}/part/edit")
+async def edit_part(partner_id: str, body: PartEditBody,
+                    credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """«Modifica» su un elemento. Gaia valuta il copy: se la richiesta non ha senso lo SPIEGA e non salva,
+    salvo che il partner insista. Se ha senso (o Gaia non è raggiungibile) va al team."""
+    await _authorize(partner_id, credentials)
+    rec = await _record(partner_id)
+    page = next((p for p in fr.PAGES if p["id"] == body.page_id), None)
+    part = next((x for x in (page or {}).get("parts", []) if x["id"] == body.part_id), None)
+    if not page or not part:
+        raise HTTPException(status_code=400, detail="Elemento non riconosciuto.")
+    if not fr.is_released(rec):
+        raise HTTPException(status_code=400, detail="Il funnel non è ancora pronto da guardare.")
+    try:
+        photos = fr.clean_photos(body.photos)
+        if photos and body.part_id != "aspetto":
+            raise fr.ReviewError("Le foto si allegano solo a «L'aspetto».")
+        wanted_raw = body.wanted if (body.wanted or "").strip() or not photos else "Uso le foto che ho caricato"
+        wanted = fr.clean_text(wanted_raw, fr.RIGHT_MAX, "Come lo vorresti")
+    except fr.ReviewError as e:
+        _fail(e)
+    current = str(((rec.get("page_content") or {}).get(body.page_id) or {}).get(body.part_id) or "")
+
+    note = None
+    if body.insist:
+        note = f"Il partner conferma la sua versione dopo l'avviso di Gaia: {body.gaia_note or 'nessuna spiegazione registrata'}"
+    else:
+        partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "corso_titolo": 1}) or {}
+        kit_step = await db.partner_journey_steps.find_one(
+            {"partner_id": str(partner_id), "step_id": "03-brand-kit"}, {"_id": 0, "data": 1}) or {}
+        brand = copy_review.brand_summary(kit_step.get("data") or {})
+        asked = f"{wanted} [il partner ha allegato {len(photos)} foto sue]" if photos else wanted
+        if body.action == "aggiungi":
+            asked = f"AGGIUNTA richiesta: {asked}"
+        verdict = await copy_review.assess_edit(page["title"], part["label"], current, asked,
+                                                partner.get("corso_titolo", ""), brand)
+        if verdict["verdict"] == copy_review.SCONSIGLIO:
+            return {"success": True, "verdict": copy_review.SCONSIGLIO,
+                    "message": verdict["spiegazione"], "proposal": verdict["proposta"]}
+        note = "Gaia: la modifica ha senso." if verdict["verdict"] == copy_review.OK else "Inoltrata senza valutazione di Gaia."
+
+    wrong = f"{part['label']}: {current}" if current else part["label"]
+    if body.action == "aggiungi":
+        wrong = f"{part['label']}: aggiunta richiesta"
+    try:
+        update, entry = fr.correction_update(rec, body.page_id, wrong[:fr.WRONG_MAX], wanted, _now(),
+                                             part=body.part_id, note=note, photos=photos, action=body.action)
+    except fr.ReviewError as e:
+        _fail(e)
+    await db.partner_funnel.update_one({"partner_id": str(partner_id)}, update, upsert=True)
+    owner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1}) or {}
+    await _notify(
+        f"✏️ FUNNEL: {'AGGIUNTA' if entry.get('action') == 'aggiungi' else 'MODIFICA'} RICHIESTA\n\n👤 {owner.get('name', partner_id)}\n"
+        f"📄 {page['title']} → {part['label']} (versione {entry['version']})\n"
+        f"✅ Vorrebbe: {entry['right']}\n🧠 {entry.get('note', '')}"
+        + ("\n🖼 Foto: " + ", ".join(entry["photos"]) if entry.get("photos") else "")
+    )
+    return {"success": True, "verdict": "inviata", **(await _state(partner_id))}
 
 
 @router.post("/{partner_id}/golive")

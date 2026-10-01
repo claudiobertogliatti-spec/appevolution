@@ -215,3 +215,94 @@ def test_documents_stay_closed_until_the_team_releases_them():
     assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["documenti"] == "da_fare"
     # senza anteprima rilasciata i documenti restano chiusi anche se il flag è acceso
     assert fr.docs_released({"documents_released": True}) is False
+
+
+def test_the_sequence_is_explained_even_before_the_preview_is_released():
+    state = fr.review_state({})
+    assert state["released"] is False and state["pages"] == []
+    assert [s["id"] for s in state["sequence"]] == ["optin", "masterclass", "offerta", "grazie"]
+    for item in state["sequence"]:
+        assert item["building"] and item["purpose"] and item["parts"] and item["gain"] and item["check"] and item["step"]
+        assert item["parts"][0]["id"] == "titolo" or item["id"] == "grazie"
+        assert "url" not in item  # nessun link finché il team non rilascia
+
+
+def test_the_team_can_load_the_real_texts_and_the_partner_sees_them_part_by_part():
+    rec = {}
+    update = fr.admin_set_update(rec, {"content": {"optin": {"titolo": "  Il Metodo <b>Sabai</b>  "}}}, NOW)
+    assert "<" not in update["$set"]["page_content.optin.titolo"] and "Metodo" in update["$set"]["page_content.optin.titolo"]
+    rec = _apply(rec, update)
+    optin = fr.review_state(rec)["sequence"][0]
+    assert optin["parts"][0]["id"] == "titolo" and optin["parts"][0]["label"] == "Il titolo che promette il risultato"
+    assert optin["parts"][1]["text"] == ""  # ciò che il team non ha caricato resta vuoto, mai inventato
+    with pytest.raises(fr.ReviewError):
+        fr.admin_set_update(rec, {"content": {"optin": {"inventato": "x"}}}, NOW)
+    with pytest.raises(fr.ReviewError):
+        fr.admin_set_update(rec, {"content": {"nessuna": {"titolo": "x"}}}, NOW)
+
+
+def test_each_part_is_approved_alone_and_the_page_follows_when_all_are_approved():
+    rec = _rec()
+    ids = [x["id"] for x in fr.PAGES[0]["parts"]]
+    for part in ids[:-1]:
+        rec = _apply(rec, fr.approve_part_update(rec, "optin", part, NOW))
+    seq = fr.review_state(rec)["sequence"][0]
+    assert [x["state"] for x in seq["parts"]] == ["approvata"] * (len(ids) - 1) + ["da_controllare"]
+    assert {p["id"]: p["state"] for p in fr.review_state(rec)["pages"]}["optin"] == fr.DA_CONTROLLARE
+    rec = _apply(rec, fr.approve_part_update(rec, "optin", ids[-1], NOW))
+    assert {p["id"]: p["state"] for p in fr.review_state(rec)["pages"]}["optin"] == fr.APPROVATA
+    with pytest.raises(fr.ReviewError):
+        fr.approve_part_update(rec, "optin", "inventato", NOW)
+    with pytest.raises(fr.ReviewError):
+        fr.approve_part_update({}, "optin", "titolo", NOW)  # anteprima non rilasciata
+
+
+def test_editing_one_part_reopens_only_that_part_and_the_page():
+    rec = _rec()
+    for part in [x["id"] for x in fr.PAGES[0]["parts"]]:
+        rec = _apply(rec, fr.approve_part_update(rec, "optin", part, NOW))
+    update, entry = fr.correction_update(rec, "optin", "Il titolo: vecchio", "Titolo nuovo chiaro", NOW,
+                                         part="titolo", note="Gaia: la modifica ha senso.")
+    rec = _apply(rec, update)
+    states = {x["id"]: x["state"] for x in fr.review_state(rec)["sequence"][0]["parts"]}
+    assert states["titolo"] == fr.IN_MODIFICA and states["problema"] == fr.APPROVATA
+    assert {p["id"]: p["state"] for p in fr.review_state(rec)["pages"]}["optin"] == fr.IN_MODIFICA
+    assert entry["part"] == "titolo" and entry["note"].startswith("Gaia")
+    with pytest.raises(fr.ReviewError):
+        fr.approve_part_update(rec, "optin", "titolo", NOW)  # prima il team chiude la modifica
+
+
+def test_a_new_version_resets_the_parts_of_touched_pages_only():
+    rec = _rec()
+    for page in fr.PAGES[:2]:
+        for part in [x["id"] for x in page["parts"]]:
+            rec = _apply(rec, fr.approve_part_update(rec, page["id"], part, NOW))
+    rec = _apply(rec, fr.new_version_update(rec, 2, ["masterclass"], NOW))
+    st = {p["id"]: p["state"] for p in fr.review_state(rec)["pages"]}
+    assert st["optin"] == fr.APPROVATA and st["masterclass"] == fr.DA_CONTROLLARE
+    assert all(x["state"] == fr.DA_CONTROLLARE for x in fr.review_state(rec)["sequence"][1]["parts"])
+
+
+def test_photos_must_be_ours_and_at_most_three():
+    ok = ["https://res.cloudinary.com/x/image/upload/a.jpg"]
+    assert fr.clean_photos(ok) == ok and fr.clean_photos(None) == []
+    with pytest.raises(fr.ReviewError):
+        fr.clean_photos(["https://evil.example/a.jpg"])
+    with pytest.raises(fr.ReviewError):
+        fr.clean_photos(ok * 4)
+    with pytest.raises(fr.ReviewError):
+        fr.clean_photos(["/static/operativo/../etc/passwd"])
+
+
+def test_the_partner_can_ask_to_add_a_faq_or_a_point_only_where_lists_exist():
+    rec = _rec()
+    seq = {x["id"]: {p["id"]: p["add_label"] for p in x["parts"]} for x in fr.review_state(rec)["sequence"]}
+    assert seq["optin"]["faq"] == "Aggiungi una domanda" and seq["offerta"]["corso"] == "Aggiungi un punto"
+    assert seq["optin"]["titolo"] == "" and seq["masterclass"]["video"] == ""
+    update, entry = fr.correction_update(rec, "optin", "Le domande frequenti: aggiunta richiesta",
+                                         "Posso farlo anche se ho dolori alla schiena?", NOW, part="faq", action="aggiungi")
+    assert entry["action"] == "aggiungi"
+    with pytest.raises(fr.ReviewError):
+        fr.correction_update(rec, "optin", "Il titolo: aggiunta richiesta", "Altro titolo qui", NOW, part="titolo", action="aggiungi")
+    with pytest.raises(fr.ReviewError):
+        fr.correction_update(rec, "optin", "Il titolo: x", "Altro titolo qui", NOW, part="titolo", action="cancella")
