@@ -24,15 +24,16 @@ beforeEach(() => {
   });
 });
 
-test("la coda mostra i lead outbound con passaggio, responsabile e scadenza reali", async () => {
+test("la coda mostra i lead outbound con passaggio e responsabile reali", async () => {
   render(<AcquisizioneQueue />);
   const r1 = await screen.findByTestId("coda-row-l1");
   expect(r1.textContent).toMatch(/Mario Verdi/);
   expect(r1.textContent).toMatch(/Contattato/); // passaggio ← status
   expect(r1.textContent).toMatch(/Richiama o fai avanzare/); // prossima azione derivata
   expect(r1.textContent).toMatch(/Mariangela/); // owner reale
-  expect(r1.textContent).toMatch(/20\/09\/2026/); // next_followup
-  // Un lead senza owner/scadenza non inventa nulla.
+  // Scadenza non e' piu' una colonna della coda.
+  expect(r1.textContent).not.toMatch(/20\/09\/2026/);
+  // Un lead senza owner non inventa nulla.
   const r2 = screen.getByTestId("coda-row-l2");
   expect(r2.textContent).toMatch(/Valutato/);
 });

@@ -12,7 +12,6 @@
  * Nulla e' ricalcolato o inventato: dove un dato manca, "—".
  */
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
 import { apiGet } from "../api";
 import { attoEvo } from "../evo";
 
@@ -37,13 +36,6 @@ function isOggi(scadenza) {
   const dd = String(oggi.getDate()).padStart(2, "0");
   const mm = String(oggi.getMonth() + 1).padStart(2, "0");
   return scadenza === `${dd}/${mm}/${oggi.getFullYear()}`;
-}
-
-function bloccoLabel(row) {
-  if (row.blocked) return { text: "Fermo", cls: "bg-red-100 text-red-700" };
-  if (row.incoerenza) return { text: "Incoerenza", cls: "bg-red-100 text-red-700" };
-  if (row.stale) return { text: "In ritardo", cls: "bg-amber-100 text-amber-700" };
-  return null;
 }
 
 const FILTERS = [
@@ -119,13 +111,10 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
                 <th className="px-4 py-3 font-semibold">Passaggio</th>
                 <th className="px-4 py-3 font-semibold">Prossima azione</th>
                 <th className="px-4 py-3 font-semibold">Responsabile</th>
-                <th className="px-4 py-3 font-semibold">Scadenza</th>
-                <th className="px-4 py-3 font-semibold">Blocco</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
-                const blk = bloccoLabel(r);
                 const ai = isAgenteAI(r.owner);
                 // Riga apribile solo se c'e' un callback E la riga ha una destinazione
                 // (openable !== false): evita link verso un record inesistente.
@@ -158,16 +147,6 @@ export function DepartmentQueue({ items, onOpenPartner, firstColLabel = "Partner
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">{r.scadenza || <span className="text-slate-400">—</span>}</td>
-                    <td className="px-4 py-3">
-                      {blk ? (
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${blk.cls}`}>
-                          <AlertTriangle className="w-3.5 h-3.5" aria-hidden />{blk.text}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                   </tr>
