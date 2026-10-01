@@ -154,3 +154,26 @@ async def test_annulla_start_rifiuta_email_diversa(monkeypatch):
         await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="altro@example.test"), admin=_ADMIN)
     assert exc.value.status_code == 400
     assert db.ciak_clients.docs[0]["access_level"] == "cliente_start"
+
+
+@pytest.mark.asyncio
+async def test_un_collaudo_con_riferimento_collaudo_si_annulla_e_toglie_il_suo_incasso(monkeypatch):
+    """Un collaudo dà a mano un riferimento `collaudo-…` (non `admin:…`): non è un
+    pagamento vero. Prima veniva rifiutato come 'reale' e, eliminando il cliente,
+    l'incasso di prova restava per sempre nei registri."""
+    db = _db(pagamento_ref="collaudo-20261001-b")
+    monkeypatch.setattr(adm, "db", db)
+    out = await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="info@doonati.com"), admin=_ADMIN)
+    assert out["ok"] is True
+    assert "collaudo-20261001-b" not in [p["session_id"] for p in db.payments.docs]
+    assert db.ciak_clients.docs[0]["access_level"] == "cliente_blueprint"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("vero", ["cs_live_x", "plink_1UJbFSKjIoAIM4LDkJjNYyLS", "pi_3ABC", "bonifico-12345", "collaudo"])
+async def test_i_riferimenti_veri_restano_intoccabili(monkeypatch, vero):
+    db = _db(pagamento_ref=vero)
+    monkeypatch.setattr(adm, "db", db)
+    with pytest.raises(adm.HTTPException) as exc:
+        await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="info@doonati.com"), admin=_ADMIN)
+    assert exc.value.status_code == 409
