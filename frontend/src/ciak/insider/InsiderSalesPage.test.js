@@ -132,32 +132,42 @@ describe('senza Blueprint', () => {
 });
 
 describe('video di ringraziamento', () => {
-  test('con un URL vero compare subito dopo il titolo, senza avvio automatico', async () => {
-    mockProposta({ blueprint: BLUEPRINT, video_benvenuto_url: 'https://cdn.example.com/grazie.mp4' });
+  test('senza video proprio compare quello predefinito di Claudio, subito dopo il titolo, senza avvio automatico', async () => {
+    mockProposta({ blueprint: BLUEPRINT });
     const { container } = render(<InsiderSalesPage />);
     const box = await screen.findByTestId('thank-you-video');
     const video = container.querySelector('video');
-    expect(video).toBeTruthy();
+    expect(video.querySelector('source').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.mp4');
+    expect(video.getAttribute('poster')).toBe('/video/ciak-post-call-ringraziamento.jpg');
+    expect(video.querySelector('track').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.it.vtt');
     expect(video.hasAttribute('autoplay')).toBe(false);
     expect(video.hasAttribute('controls')).toBe(true);
     const title = screen.getByRole('heading', { level: 1 });
     expect(title.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/arriva a breve/i)).toBeNull();
   });
 
-  test('un embed (es. YouTube) viene reso come iframe', async () => {
+  test('il video proprio della proposta (file) ha la precedenza', async () => {
+    mockProposta({ video_benvenuto_url: 'https://cdn.example.com/grazie.mp4' });
+    const { container } = render(<InsiderSalesPage />);
+    await screen.findByTestId('thank-you-video');
+    expect(container.querySelector('video source').getAttribute('src')).toBe('https://cdn.example.com/grazie.mp4');
+  });
+
+  test('un embed proprio (es. YouTube) viene reso come iframe', async () => {
     mockProposta({ video_benvenuto_url: 'https://www.youtube.com/embed/abc' });
     const { container } = render(<InsiderSalesPage />);
     await screen.findByTestId('thank-you-video');
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://www.youtube.com/embed/abc');
+    expect(container.querySelector('video')).toBeNull();
   });
 
-  test.each([undefined, null, '', 'javascript:alert(1)', 'ftp://x/y.mp4'])('senza URL valido (%s) NIENTE video e NIENTE segnaposto', async (video_benvenuto_url) => {
+  test.each([undefined, null, '', 'javascript:alert(1)', 'ftp://x/y.mp4', '//evil.example/x.mp4'])('URL proprio non valido (%s) → si usa il predefinito, mai un URL pericoloso', async (video_benvenuto_url) => {
     mockProposta({ video_benvenuto_url });
     const { container } = render(<InsiderSalesPage />);
-    await screen.findByText(/in call abbiamo trovato il punto/i);
-    expect(screen.queryByTestId('thank-you-video')).toBeNull();
-    expect(container.querySelector('video, iframe')).toBeNull();
-    expect(screen.queryByText(/arriva a breve/i)).toBeNull();
+    await screen.findByTestId('thank-you-video');
+    expect(container.querySelector('video source').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.mp4');
+    expect(container.querySelector('iframe')).toBeNull();
   });
 });
 
