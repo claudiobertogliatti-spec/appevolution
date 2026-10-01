@@ -18,6 +18,7 @@ from report_key_auth import require_admin_or_report_key
 from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
 from services.ciak_client_accounts import (
+    effective_session_token,
     ha_risposte,
     pick_diagnostic_session,
     ACCESS_BLUEPRINT,
@@ -293,7 +294,7 @@ def _has_explicit_offer_flag(client: dict[str, Any], flags: tuple[str, ...]) -> 
 
 
 async def _blueprint_context(client: dict[str, Any]) -> dict[str, Any]:
-    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    session_token = await effective_session_token(db, client) if db is not None else None
     if not session_token or db is None:
         return {"session": {}, "analysis": {}}
     session = await db.diagnostic_sessions.find_one({"session_token": session_token}, {"_id": 0}) or {}
@@ -445,7 +446,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
 
-    session_token = client.get("session_token") or client.get("diagnostic_session_token")
+    session_token = await effective_session_token(db, client)
     analysis = None
     session = None
     if session_token:

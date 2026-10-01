@@ -78,6 +78,45 @@ def pick_diagnostic_session(sessions: list[dict[str, Any]] | None) -> dict[str, 
     return ordered[0] if ordered else None
 
 
+async def effective_session_token(db, client: dict[str, Any] | None) -> str | None:
+    """Il token della sessione da cui leggere Blueprint e analisi di un cliente.
+
+    Di norma e' quello salvato nella scheda. Ma se la scheda punta a una sessione
+    SENZA risposte (chi riapre il questionario ne crea una vuota, caso Anna Maria
+    Bernard 1/10) mentre il lead ne ha un'altra compilata, si legge da quella:
+    altrimenti pagina Insider e area cliente raccontano al cliente che il suo
+    questionario "e' arrivato vuoto". Nessuna scrittura: e' solo lettura.
+    """
+    client = client or {}
+    stored = client.get("session_token") or client.get("diagnostic_session_token")
+    if stored:
+        current = await db.diagnostic_sessions.find_one({"session_token": stored})
+        if ha_risposte(current):
+            return stored
+    email = (client.get("email") or "").strip()
+    if not email:
+        return stored
+    import logging
+    import re
+
+    try:
+        pattern = {"$regex": f"^{re.escape(email)}$", "$options": "i"}
+        docs = (
+            await db.diagnostic_sessions.find({"user_email": pattern})
+            .sort("created_at", -1)
+            .limit(20)
+            .to_list(length=20)
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Pagina cliente/Insider: una lettura in piu' non deve mai romperla.
+        logging.getLogger(__name__).warning("[CLIENT] sessioni del lead non leggibili: %s", exc)
+        return stored
+    best = pick_diagnostic_session(docs)
+    if best and ha_risposte(best) and best.get("session_token"):
+        return best["session_token"]
+    return stored
+
+
 def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None = None) -> dict[str, Any]:
     """Chi e' questa persona per il business: lead, cliente Start pagante o partner.
 
