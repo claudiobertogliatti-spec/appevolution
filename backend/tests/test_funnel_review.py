@@ -215,3 +215,14 @@ def test_documents_stay_closed_until_the_team_releases_them():
     assert {s["id"]: s["state"] for s in fr.review_state(rec)["steps"]}["documenti"] == "da_fare"
     # senza anteprima rilasciata i documenti restano chiusi anche se il flag è acceso
     assert fr.docs_released({"documents_released": True}) is False
+
+
+def test_an_approved_item_can_still_be_corrected_and_loses_its_approval():
+    rec = _rec()
+    rec = _apply(rec, fr.approve_update(rec, fr.LEGAL_ID, NOW))
+    assert fr.review_state(rec)["legal"]["state"] == fr.APPROVATA
+    update, entry = fr.correction_update(rec, fr.LEGAL_ID, "La sede è sbagliata", "Via Roma 1, Pisa", NOW)
+    rec = _apply(rec, update)
+    state = fr.review_state(rec)
+    assert state["legal"]["state"] == fr.IN_MODIFICA and state["corrections_open"] == 1
+    assert {s["id"]: s["state"] for s in state["steps"]}["dati"] == "da_fare"
