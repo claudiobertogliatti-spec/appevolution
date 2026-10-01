@@ -178,36 +178,183 @@ def _duration(path: str) -> float:
     return float(result.stdout.strip())
 
 
+_VIDEO_EXT_RE = re.compile(r"\.(mp4|mov|m4v|mkv|webm|avi|mpe?g)$", re.IGNORECASE)
+_LABEL_RE = re.compile(r"^\s*(modulo|capitolo)\s*(\d+)\s*[-–:·,]?\s*lezione\s*(\d+)\s*[-–:·,]?\s*", re.IGNORECASE)
+COVER_SIZE = (1920, 1080)
+COVER_MARGIN_X = 126
+TITLE_SIZES = (76, 68, 60, 52, 46)
+TITLE_MAX_LINES = 3
+VOICE_GAIN_MIN_DB, VOICE_GAIN_MAX_DB = -6.0, 18.0
+
+
+def clean_title(raw: str) -> str:
+    """Titolo da mostrare in copertina: senza estensione, senza etichetta modulo/lezione, spazi puliti."""
+    text = _VIDEO_EXT_RE.sub("", str(raw or "").strip()).replace("_", " ")
+    text = _LABEL_RE.sub("", text)
+    return re.sub(r"\s+", " ", text).strip(" -–:·")
+
+
+def lesson_label(raw: str) -> str:
+    """'Modulo 1 · Lezione 1' se il nome del file lo dichiara, altrimenti vuoto (mai inventato).
+
+    Usa la parola del partner (Modulo/Capitolo), come da ricetta: la voce narrante e il
+    parlato del partner non devono contraddirsi.
+    """
+    m = _LABEL_RE.match(_VIDEO_EXT_RE.sub("", str(raw or "")).replace("_", " "))
+    return f"{m.group(1).capitalize()} {int(m.group(2))} · Lezione {int(m.group(3))}" if m else ""
+
+
+def cover_names(brand: dict) -> str:
+    """'PROGETTO • PARTNER' senza ripetere lo stesso nome due volte."""
+    seen, out = set(), []
+    for name in (brand.get("name"), brand.get("partner_name")):
+        name = str(name or "").strip()
+        if name and name.casefold() not in seen:
+            seen.add(name.casefold())
+            out.append(name.upper())
+    return "  •  ".join(out)
+
+
+def wrap_text(text: str, measure, max_width: float) -> list[str]:
+    """A capo goloso: `measure(str) -> larghezza`. Una parola più larga del limite resta da sola."""
+    lines, current = [], ""
+    for word in str(text or "").split():
+        candidate = f"{current} {word}".strip()
+        if current and measure(candidate) > max_width:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines
+
+
+def fit_title(text: str, font_factory, max_width: float, sizes=TITLE_SIZES, max_lines: int = TITLE_MAX_LINES):
+    """Sceglie la dimensione più grande per cui il titolo sta in `max_lines` righe dentro `max_width`.
+
+    `font_factory(size)` -> font con `getlength`. Se nemmeno la più piccola basta, taglia con '…'
+    sull'ultima riga: meglio un titolo accorciato che uscire dal fotogramma.
+    """
+    font = None
+    for size in sizes:
+        font = font_factory(size)
+        lines = wrap_text(text, font.getlength, max_width)
+        if len(lines) <= max_lines and all(font.getlength(line) <= max_width for line in lines):
+            return font, size, lines
+    lines = wrap_text(text, font.getlength, max_width)[:max_lines]
+    last = lines[-1] if lines else ""
+    while last and font.getlength(last + "…") > max_width:
+        last = last[:-1].rstrip()
+    if lines:
+        lines[-1] = last + "…"
+    return font, sizes[-1], lines
+
+
+def voice_gain_db(voice_lufs, body_lufs) -> float:
+    """Guadagno FISSO da applicare alla voce per pareggiarla al girato (ricetta §5: `volume=<n>dB`)."""
+    if voice_lufs is None or body_lufs is None:
+        return 0.0
+    return round(max(VOICE_GAIN_MIN_DB, min(VOICE_GAIN_MAX_DB, body_lufs - voice_lufs)), 2)
+
+
+def measure_lufs(path: str):
+    """Loudness integrata (LUFS) di un file via ffmpeg/ebur128; None se non misurabile."""
+    try:
+        r = subprocess.run(["ffmpeg", "-nostats", "-hide_banner", "-i", str(path), "-vn",
+                            "-af", "ebur128=framelog=quiet", "-f", "null", "-"],
+                           capture_output=True, text=True, timeout=600)
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    found = re.findall(r"^\s+I:\s+(-?\d+(?:\.\d+)?)\s+LUFS", r.stderr or "", re.MULTILINE)
+    return float(found[-1]) if found else None
+
+
+def _cover_font_path():
+    return next((p for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/arial.ttf")
+                 if Path(p).exists()), None)
+
+
+def load_logo(url):
+    """Logo del partner da storage fidato (Cloudinary/GCS); None se assente o non scaricabile."""
+    if not url:
+        return None
+    try:
+        from services.partner_step_materials import trusted_storage_url
+        if not trusted_storage_url(url):
+            logger.info("[LESSON-STANDARD] logo ignorato: host non fidato")
+            return None
+        import io
+        import urllib.request
+        from PIL import Image
+        with urllib.request.urlopen(url, timeout=10) as resp:       # noqa: S310 (host verificato sopra)
+            data = resp.read(5_000_001)
+        if len(data) > 5_000_000:
+            return None
+        return Image.open(io.BytesIO(data)).convert("RGBA")
+    except Exception as exc:
+        logger.warning(f"[LESSON-STANDARD] logo non caricato: {exc}")
+        return None
+
+
+def draw_cover(brand: dict, title: str, label: str = "", logo=None):
+    """Copertina 1920x1080: nome (una volta), etichetta, titolo a capo, sottotitolo, logo se c'è."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    font_path = _cover_font_path()
+    if not font_path:
+        raise RuntimeError("Font di sistema non disponibile per la copertina")
+    w, h = COVER_SIZE
+    max_w = w - 2 * COVER_MARGIN_X
+    image = Image.new("RGB", COVER_SIZE, brand["background"])
+    draw = ImageDraw.Draw(image)
+    f_small, f_sub = ImageFont.truetype(font_path, 32), ImageFont.truetype(font_path, 38)
+    draw.rectangle((0, 0, 36, h), fill=brand["primary"])
+    draw.rectangle((COVER_MARGIN_X, 184, COVER_MARGIN_X + 120, 192), fill=brand["primary"])
+    names = cover_names(brand)
+    if names:
+        draw.text((COVER_MARGIN_X, 225), names, font=f_small, fill=brand["text"])
+    y = 300
+    if label:
+        draw.text((COVER_MARGIN_X, y), label.upper(), font=ImageFont.truetype(font_path, 40), fill=brand["primary"])
+        y += 70
+    font, size, lines = fit_title(str(title or "").upper(), lambda s_: ImageFont.truetype(font_path, s_), max_w)
+    for line in lines:
+        draw.text((COVER_MARGIN_X, y), line, font=font, fill=brand["text"])
+        y += int(size * 1.18)
+    draw.text((COVER_MARGIN_X + 4, y + 30), "Una videolezione del tuo percorso", font=f_sub, fill=brand["text"])
+    draw.line((COVER_MARGIN_X, 740, w - COVER_MARGIN_X, 740), fill=brand["primary"], width=2)
+    if logo is not None:
+        ratio = min(420 / logo.width, 120 / logo.height)
+        resized = logo.resize((max(1, int(logo.width * ratio)), max(1, int(logo.height * ratio))))
+        image.paste(resized, (w - COVER_MARGIN_X - resized.width, 150), resized)
+    return image
+
+
 async def render_standard_lesson(*, body_path: str, output_path: str, tmp_dir: Path,
                                  title: str, intro_text: str, brand: dict) -> dict:
     """Anteponi copertina Andrew e finalizza audio con picco -1,5 dB.
 
     Richiede ffmpeg, Pillow ed edge-tts. Il body non riceve musica, overlay o sottotitoli.
+    La voce narrante viene pareggiata al girato in LUFS con un guadagno fisso (ricetta §5).
     """
-    from PIL import Image, ImageDraw, ImageFont
     import edge_tts
 
     tmp_dir.mkdir(parents=True, exist_ok=True)
     cover_png, voice_mp3 = tmp_dir / "lesson-cover.png", tmp_dir / "lesson-intro.mp3"
     cover_mp4, joined = tmp_dir / "lesson-cover.mp4", tmp_dir / "lesson-joined.mp4"
-    image = Image.new("RGB", (1920, 1080), brand["background"])
-    draw = ImageDraw.Draw(image)
-    font_path = next((p for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/arial.ttf") if Path(p).exists()), None)
-    if not font_path:
-        raise RuntimeError("Font di sistema non disponibile per la copertina")
-    f_small, f_title, f_sub = ImageFont.truetype(font_path, 32), ImageFont.truetype(font_path, 76), ImageFont.truetype(font_path, 38)
-    draw.rectangle((0, 0, 36, 1080), fill=brand["primary"])
-    draw.rectangle((126, 184, 246, 192), fill=brand["primary"])
-    draw.text((126, 225), f"{brand['name'].upper()}  •  {brand['partner_name'].upper()}".strip(" •"), font=f_small, fill=brand["text"])
-    draw.text((126, 340), title.upper(), font=f_title, fill=brand["text"])
-    draw.text((130, 480), "Una videolezione del tuo percorso", font=f_sub, fill=brand["text"])
-    draw.line((126, 740, 1794, 740), fill=brand["primary"], width=2)
-    image.save(cover_png)
+    label, shown_title = lesson_label(title), clean_title(title)
+    loop = asyncio.get_running_loop()
+    logo = await loop.run_in_executor(None, load_logo, brand.get("logo"))
+    draw_cover(brand, shown_title or label or "Videolezione", label, logo).save(cover_png)
 
     await edge_tts.Communicate(intro_text, VOICE, rate=VOICE_RATE).save(str(voice_mp3))
     cover_duration = max(10.0, min(20.0, _duration(str(voice_mp3)) + 1.3))
+    voice_lufs = await loop.run_in_executor(None, measure_lufs, str(voice_mp3))
+    body_lufs = await loop.run_in_executor(None, measure_lufs, body_path)
+    gain = voice_gain_db(voice_lufs, body_lufs)
     _run(["ffmpeg", "-y", "-loop", "1", "-i", str(cover_png), "-i", str(voice_mp3),
-          "-filter_complex", "[1:a]adelay=650|650,volume=0dB,apad[a]", "-map", "0:v", "-map", "[a]",
+          "-filter_complex", f"[1:a]adelay=650|650,volume={gain}dB,apad[a]", "-map", "0:v", "-map", "[a]",
           "-t", f"{cover_duration:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
           "-pix_fmt", "yuv420p", "-r", "25", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2",
           "-movflags", "+faststart", str(cover_mp4)])
@@ -231,4 +378,6 @@ async def render_standard_lesson(*, body_path: str, output_path: str, tmp_dir: P
           "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2", "-avoid_negative_ts", "make_zero",
           "-movflags", "+faststart", output_path])
     return {"standard_version": STANDARD_VERSION, "intro_duration_s": round(cover_duration, 2),
-            "brand_source": brand.get("brand_source"), "voice": VOICE}
+            "brand_source": brand.get("brand_source"), "voice": VOICE, "label": label,
+            "voice_gain_db": gain, "voice_lufs": voice_lufs, "body_lufs": body_lufs,
+            "logo_drawn": logo is not None}
