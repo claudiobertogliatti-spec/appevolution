@@ -120,3 +120,68 @@ async def test_link_rejects_unknown_step_and_missing_file(monkeypatch):
     with pytest.raises(HTTPException) as missing:
         await route.assign_material_to_step("nope", {"step_id": "11-calendario-30gg"}, object())
     assert missing.value.status_code == 404
+
+
+class _Cursor:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def sort(self, *args, **kwargs):
+        return self
+
+    async def to_list(self, length=None):
+        return list(self.rows)
+
+
+class _OneDoc:
+    def __init__(self, doc):
+        self.doc = doc
+
+    async def find_one(self, query, projection=None):
+        return dict(self.doc) if self.doc is not None else None
+
+
+class _NoFiles:
+    def find(self, query, projection=None):
+        return _Cursor([])
+
+
+def _db_for_step(step_id, preview_url):
+    return SimpleNamespace(
+        files=_NoFiles(),
+        partner_journey_steps=_OneDoc({"partner_id": "p1", "step_id": step_id, "status": "in_progress", "label": "F-13", "data": {}}),
+        partners=_OneDoc({"id": "p1"}),
+        partner_funnel=_OneDoc({"partner_id": "p1", "preview_url": preview_url, "preview_version": 2}),
+    )
+
+
+@pytest.mark.asyncio
+async def test_f13_shows_the_funnel_preview_link_only_for_vercel_app(monkeypatch):
+    async def authorize(partner_id, credentials):
+        return SimpleNamespace(role="partner")
+
+    monkeypatch.setattr(route, "_authorize", authorize)
+
+    route.db = _db_for_step("10-sistema-vendita", "https://sabai-daniele-andolfi.vercel.app")
+    out = await route.get_step_materials("p1", "10-sistema-vendita", object())
+    link = [m for m in out["materials"] if m["id"] == "funnel-preview"]
+    assert len(link) == 1
+    assert link[0]["type"] == "link" and link[0]["version"] == 2
+    assert link[0]["public_url"] == "https://sabai-daniele-andolfi.vercel.app"
+    assert link[0]["link_label"] == "Apri l'anteprima"
+
+    # un host non ammesso non compare mai, nemmeno se l'admin lo scrive per errore
+    route.db = _db_for_step("10-sistema-vendita", "https://evil.example/x")
+    out = await route.get_step_materials("p1", "10-sistema-vendita", object())
+    assert not [m for m in out["materials"] if m["id"] == "funnel-preview"]
+
+
+@pytest.mark.asyncio
+async def test_funnel_preview_link_never_appears_in_other_steps(monkeypatch):
+    async def authorize(partner_id, credentials):
+        return SimpleNamespace(role="partner")
+
+    monkeypatch.setattr(route, "_authorize", authorize)
+    route.db = _db_for_step("12-prezzo-webinar", "https://sabai-daniele-andolfi.vercel.app")
+    out = await route.get_step_materials("p1", "12-prezzo-webinar", object())
+    assert not [m for m in out["materials"] if m["id"] == "funnel-preview"]

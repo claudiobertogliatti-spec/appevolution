@@ -60,6 +60,23 @@ def allowed_public_url(url: Optional[str]) -> Optional[str]:
     return None
 
 
+def allowed_funnel_preview_url(url: Optional[str]) -> Optional[str]:
+    """Link all'anteprima del funnel del partner (Vercel gratuito) mostrato nello step F-13.
+
+    Più stretto di `allowed_public_url`: solo https e solo host `*.vercel.app`, senza
+    credenziali nell'URL. Lo imposta l'admin su `partner_funnel.preview_url`.
+    """
+    if not url:
+        return None
+    parsed = urlparse(str(url).strip())
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or parsed.username or parsed.password:
+        return None
+    if not host.endswith(".vercel.app") or host == ".vercel.app":
+        return None
+    return str(url).strip()
+
+
 def trusted_storage_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return None
