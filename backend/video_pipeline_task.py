@@ -30,6 +30,7 @@ import httpx
 from celery_app import celery_app
 from services.video_retry_guard import MAX_PIPELINE_ATTEMPTS, next_attempt
 from services.video_size_guard import VideoTooHeavy, check_size, free_file, link_or_copy
+from services.transcription_fallback import transcribe_with_fallback
 try:
     from key_moments_extractor import extract_key_moments
 except ImportError:
@@ -1539,6 +1540,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     DB_NAME = os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))
     OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
     ASSEMBLYAI_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "")
+    # Riserva gratuita: se AssemblyAI fallisce (saldo, chiave, limite) si prova Groq.
+    GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
     SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
     SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
     ANTHROPIC_KEY = os.environ.get("EMERGENT_LLM_KEY", "") or os.environ.get("ANTHROPIC_API_KEY", "").strip()
@@ -1702,10 +1705,11 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         transcript = ""
         words = []
         silence_saved = 0.0
-        if ASSEMBLYAI_KEY and audio_ok:
+        if (ASSEMBLYAI_KEY or GROQ_KEY) and audio_ok:
             await set_status("transcribing")
             try:
-                aai = await assemblyai_transcribe(audio_path, ASSEMBLYAI_KEY)
+                aai = await transcribe_with_fallback(
+                    audio_path, ASSEMBLYAI_KEY, GROQ_KEY, assemblyai_transcribe, log=logger.warning)
                 transcript = aai["transcript"]
                 words = aai["words"]
                 filler_segs = aai["filler_segments"]
@@ -1872,7 +1876,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 logger.warning(f"[VIDEO-PIPE] AssemblyAI error: {e} — upload video raw")
                 link_or_copy(raw_path, final_path)
         else:
-            logger.info("[VIDEO-PIPE] AssemblyAI non config — upload video raw")
+            logger.info("[VIDEO-PIPE] Nessun provider di trascrizione configurato — upload video raw")
             link_or_copy(raw_path, final_path)
         # Il grezzo non serve più: da qui in poi si lavora solo su final.mp4. Liberarlo
         # dimezza il picco di RAM (/tmp è in memoria su Cloud Run).
