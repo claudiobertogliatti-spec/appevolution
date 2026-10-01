@@ -6540,7 +6540,10 @@ async def get_partner_all_documents(partner_id: str):
 
 
 @api_router.get("/partner-documents/{partner_id}")
-async def get_partner_documents(partner_id: str):
+async def get_partner_documents(
+    partner_id: str,
+    _admin=Depends(require_admin_role),
+):
     """Get all documents for a partner (positioning + scripts)"""
     # Get positioning data
     positioning = await db.partner_positioning.find_one(
@@ -6568,7 +6571,7 @@ async def get_partner_documents(partner_id: str):
     }
 
 @api_router.get("/partner-documents/all/summary")
-async def get_all_partner_documents_summary():
+async def get_all_partner_documents_summary(_admin=Depends(require_admin_role)):
     """Get summary of all partner documents for Admin dashboard"""
     # Get all partners
     partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
