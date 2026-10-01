@@ -151,6 +151,8 @@ def trigger_insider_invites():
             logger.error(f"[SCHEDULER] Insider invites: HTTP {r.status_code} {r.text[:200]}")
             return
         res = r.json()
+        if res.get("error"):
+            logger.error(f"[SCHEDULER] Insider invites: errore del servizio: {res['error']}")
         logger.info(f"[SCHEDULER] Insider invites — candidati {res.get('candidati', 0)}, "
                     f"inviati {res.get('inviati', 0)}, errori {res.get('errori', 0)}, "
                     f"a secco {res.get('dry_run')}")

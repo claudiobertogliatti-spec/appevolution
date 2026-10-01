@@ -54,6 +54,10 @@ def test_has_bought_riconosce_ogni_indicatore():
     assert ins.has_bought({"partnership_attiva": True}, None)
     assert ins.has_bought({}, {"stato": "pagamento_completato"})
     assert ins.has_bought({}, {"stato": "contratto_firmato"})
+    assert ins.has_bought({}, {"stato": "pagamento_in_attesa_verifica"})
+    assert ins.has_bought({}, {"stato": "finalizzazione_in_corso"})
+    assert ins.has_bought({}, {"stato": "scaduta", "pagamento_completato": True})
+    assert not ins.has_bought({}, {"stato": "accettata"})
     assert not ins.has_bought({"access_level": "lead"}, {"stato": "vista"})
     assert not ins.has_bought(None, None)
 
@@ -92,6 +96,7 @@ def test_primo_nome_estrae_prima_parola():
     assert ins.primo_nome(None) is None
     assert ins.primo_nome("   ") is None
     assert ins.primo_nome("Giovanni") == "Giovanni"
+    assert ins.primo_nome(123) is None
 
 
 # ───────────────────────── DB finto ─────────────────────────
@@ -109,6 +114,10 @@ def _match(doc, query):
                     return False
                 if op == "$lt" and not (actual is not None and actual < operand):
                     return False
+                if op == "$gte" and not (actual is not None and actual >= operand):
+                    return False
+                if op == "$ne" and actual == operand:
+                    return False
         elif actual != cond:
             return False
     return True
@@ -122,35 +131,52 @@ class _Cursor:
         return [dict(d) for d in self.docs[:n]]
 
 
+class _UpdateResult:
+    def __init__(self, matched_count):
+        self.matched_count = matched_count
+
+
 class FakeCollection:
     def __init__(self, docs=None, unique=None):
         self.docs = [dict(d) for d in (docs or [])]
         self.unique = unique
+        self.fail_insert = None
+        self.fail_index = None
+        self.before_update = None  # hook: simula un altro giro che cambia il doc prima del claim
 
     def find(self, query=None, projection=None):
         return _Cursor([d for d in self.docs if _match(d, query or {})])
 
     async def insert_one(self, doc):
+        if self.fail_insert:
+            raise self.fail_insert
         if self.unique and any(d.get(self.unique) == doc.get(self.unique) for d in self.docs):
             raise DuplicateKeyError("duplicato")
         self.docs.append(dict(doc))
 
     async def update_one(self, query, update):
+        if self.before_update:
+            hook, self.before_update = self.before_update, None
+            hook(self)
         for d in self.docs:
             if _match(d, query):
                 d.update(update.get("$set", {}))
-                return
+                return _UpdateResult(1)
+        return _UpdateResult(0)
 
     async def create_index(self, *args, **kwargs):
+        if self.fail_index:
+            raise self.fail_index
         return "ok"
 
 
 class FakeDb:
-    def __init__(self, sessions=(), clients=(), proposte=(), blueprints=(), invites=()):
+    def __init__(self, sessions=(), clients=(), proposte=(), blueprints=(), invites=(), partners=()):
         self.diagnostic_sessions = FakeCollection(sessions)
         self.ciak_clients = FakeCollection(clients)
         self.proposte = FakeCollection(proposte)
         self.ciak_blueprints = FakeCollection(blueprints)
+        self.partners = FakeCollection(partners)
         self.insider_invites = FakeCollection(invites, unique="email")
 
 
@@ -235,14 +261,14 @@ async def test_acquisto_registrato_con_email_maiuscola_esclude_comunque():
     assert await ins.trova_candidati(db, NOW) == []
 
 
-async def test_email_non_valida_scartata_e_ordine_dal_piu_vecchio():
+async def test_email_non_valida_scartata_e_ordine_dal_piu_recente():
     db = FakeDb(sessions=[
         _session("report_generated", "nuovo@example.com", days_ago=16, token="t1"),
         _session("report_generated", "vecchio@example.com", days_ago=60, token="t2"),
         _session("report_generated", "rotta", days_ago=60, token="t3"),
     ])
     out = await ins.trova_candidati(db, NOW)
-    assert [c["email"] for c in out] == ["vecchio@example.com", "nuovo@example.com"]
+    assert [c["email"] for c in out] == ["nuovo@example.com", "vecchio@example.com"]
 
 
 async def test_gia_invitato_non_e_piu_candidato():
@@ -284,13 +310,17 @@ async def test_invio_applica_il_tag_registra_e_non_ripete(flag_on):
     assert second["inviati"] == 0 and len(emit.calls) == 2
 
 
-async def test_tetto_per_giro_e_il_resto_al_giro_dopo(flag_on):
-    db = FakeDb(sessions=_many(30))
+async def test_tetto_per_giro_e_il_resto_al_giorno_dopo(flag_on, monkeypatch):
+    monkeypatch.delenv(ins.MAX_PER_RUN_ENV, raising=False)
+    db = FakeDb(sessions=_many(25))
     emit = Emitter()
     first = await ins.invita_insider(db, emit=emit, now=NOW)
-    assert first["inviati"] == ins.DEFAULT_MAX_PER_RUN == 25
-    second = await ins.invita_insider(db, emit=emit, now=NOW)
-    assert second["inviati"] == 5 and len({c["email"] for c in emit.calls}) == 30
+    assert first["inviati"] == ins.DEFAULT_MAX_PER_RUN == 10
+    # stesso giorno UTC: il tetto e' giornaliero, niente di nuovo
+    same_day = await ins.invita_insider(db, emit=emit, now=NOW + timedelta(hours=2))
+    assert same_day["inviati"] == 0 and same_day["motivo"] == "tetto_giornaliero_raggiunto"
+    second = await ins.invita_insider(db, emit=emit, now=NOW + timedelta(days=1))
+    assert second["inviati"] == 10 and len({c["email"] for c in emit.calls}) == 20
 
 
 async def test_il_tetto_si_puo_abbassare_con_la_variabile(flag_on, monkeypatch):
@@ -413,3 +443,176 @@ async def test_invio_con_full_name_usa_primo_nome(flag_on):
     assert out["inviati"] == 1
     assert emit.calls[0]["first_name"] == "Anna"
     assert db.insider_invites.docs[0]["nome"] == "Anna Maria Rossi"
+
+
+# ───────────────────────── Final fix wave ─────────────────────────
+@pytest.mark.parametrize("proposta", [
+    {"stato": "pagamento_in_attesa_verifica"},
+    {"stato": "finalizzazione_in_corso"},
+    {"stato": "scaduta", "pagamento_completato": True},  # `stato` sovrascritto all'apertura oltre la scadenza
+])
+async def test_proposta_in_pagamento_o_pagata_esclude(proposta):
+    db = FakeDb(sessions=[_session("call_done", "a@example.com", days_ago=12)],
+                proposte=[{"prospect_email": "a@example.com", "scadenza": _iso(1), **proposta}])
+    assert await ins.trova_candidati(db, NOW) == []
+
+
+async def test_proposta_pagata_vince_su_quella_piu_recente():
+    db = FakeDb(sessions=[_session("call_done", "a@example.com", days_ago=12)],
+                proposte=[{"prospect_email": "a@example.com", "scadenza": _iso(1), "stato": "scaduta",
+                           "pagamento_completato": True, "creato_at": _iso(20)},
+                          {"prospect_email": "a@example.com", "scadenza": _iso(1), "stato": "scaduta", "creato_at": _iso(5)}])
+    assert await ins.trova_candidati(db, NOW) == []
+
+
+async def test_chi_e_partner_e_escluso_anche_con_maiuscole():
+    db = FakeDb(sessions=[_session("report_generated", "anna@example.com", days_ago=30)],
+                partners=[{"email": "ANNA@Example.com"}])
+    assert await ins.trova_candidati(db, NOW) == []
+
+
+async def test_seconda_sessione_call_booked_esclude_la_persona():
+    db = FakeDb(sessions=[_session("report_generated", "a@example.com", days_ago=30, token="t1"),
+                          _session("call_booked", "A@example.com", days_ago=2, token="t2")])
+    assert await ins.trova_candidati(db, NOW) == []
+
+
+async def test_riferimento_troppo_vecchio_escluso_e_ordine_recente_prima():
+    # riferimento = report + 14 giorni: 214 giorni fa -> 200 giorni di eta', 184 -> 170 giorni
+    db = FakeDb(sessions=[
+        _session("report_generated", "vecchio@example.com", days_ago=214, token="t1"),
+        _session("report_generated", "ok170@example.com", days_ago=184, token="t2"),
+        _session("report_generated", "ok20@example.com", days_ago=34, token="t3"),
+    ])
+    out = await ins.trova_candidati(db, NOW)
+    assert [c["email"] for c in out] == ["ok20@example.com", "ok170@example.com"]
+
+
+async def test_eta_massima_configurabile_con_la_variabile(monkeypatch):
+    db = FakeDb(sessions=[_session("report_generated", "a@example.com", days_ago=60)])
+    monkeypatch.setenv(ins.MAX_AGE_DAYS_ENV, "30")
+    assert await ins.trova_candidati(db, NOW) == []
+    monkeypatch.setenv(ins.MAX_AGE_DAYS_ENV, "testo")  # non valido -> default 180
+    assert len(await ins.trova_candidati(db, NOW)) == 1
+
+
+@pytest.mark.parametrize("collection", ["clients", "proposte", "partners"])
+async def test_lettura_al_limite_ferma_tutto(flag_on, monkeypatch, collection):
+    monkeypatch.setattr(ins, "READ_LIMIT_OTHERS", 2)
+    fill = {"clients": [{"email": "x1@example.com"}, {"email": "x2@example.com"}],
+            "proposte": [{"prospect_email": "x1@example.com"}, {"prospect_email": "x2@example.com"}],
+            "partners": [{"email": "x1@example.com"}, {"email": "x2@example.com"}]}
+    db = FakeDb(sessions=_many(2), **{collection: fill[collection]})
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert "limite di lettura raggiunto" in out["error"] and emit.calls == [] and out["inviati"] == 0
+
+
+async def test_lettura_sessioni_al_limite_avvisa_ma_non_ferma(monkeypatch, caplog):
+    monkeypatch.setattr(ins, "READ_LIMIT_SESSIONS", 2)
+    db = FakeDb(sessions=_many(2))
+    with caplog.at_level("WARNING"):
+        out = await ins.trova_candidati(db, NOW)
+    assert len(out) == 2 and "massimo di sessioni" in caplog.text
+
+
+# ---- tetto giornaliero ----
+async def test_il_tetto_e_giornaliero_non_per_giro(flag_on):
+    db = FakeDb(sessions=_many(10))
+    emit = Emitter()
+    a = await ins.invita_insider(db, emit=emit, now=NOW, max_per_run=3)
+    b = await ins.invita_insider(db, emit=emit, now=NOW, max_per_run=3)
+    assert a["inviati"] == 3 and b["inviati"] == 0 and b["motivo"] == "tetto_giornaliero_raggiunto"
+    assert len(emit.calls) == 3
+    c = await ins.invita_insider(db, emit=emit, now=NOW + timedelta(days=1), max_per_run=3)
+    assert c["inviati"] == 3 and len(emit.calls) == 6
+    assert all(d["last_attempt_at"] for d in db.insider_invites.docs)
+
+
+async def test_annullato_non_conta_nel_tetto_giornaliero(flag_on):
+    db = FakeDb(sessions=_many(5), invites=[
+        {"email": "gone@example.com", "status": "annullato", "attempts": 1, "last_attempt_at": NOW.isoformat()}])
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW, max_per_run=2)
+    assert out["inviati"] == 2
+
+
+# ---- retry atomico ----
+async def test_claim_non_riuscito_non_emette(flag_on):
+    db = FakeDb(sessions=_many(1), invites=[
+        {"email": "p00@example.com", "status": "failed", "attempts": 1, "nome": "Anna Rossi", "path": ins.PATH_QUESTIONARIO}])
+
+    def other_worker(coll):  # un altro giro ha gia' cambiato il doc tra lettura e claim
+        coll.docs[0]["attempts"] = 2
+
+    db.insider_invites.before_update = other_worker
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert emit.calls == [] and out["riprovati"] == 0 and out["errori"] == 0
+    assert db.insider_invites.docs[0]["status"] == "failed"
+
+
+async def test_retrying_giovane_si_lascia_stare_e_vecchio_si_riprova(flag_on):
+    db = FakeDb(
+        sessions=[_session("report_generated", "p00@example.com", days_ago=30, token="t0"),
+                  _session("report_generated", "p01@example.com", days_ago=30, token="t1")],
+        invites=[
+            {"email": "p00@example.com", "status": "retrying", "attempts": 1, "nome": "A", "claimed_at": _iso(0.001)},
+            {"email": "p01@example.com", "status": "retrying", "attempts": 1, "nome": "B", "claimed_at": _iso(0.5)},
+        ])
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert [c["email"] for c in emit.calls] == ["p01@example.com"] and out["riprovati"] == 1
+    assert db.insider_invites.docs[0]["status"] == "retrying"
+    assert db.insider_invites.docs[1]["status"] == "applied" and db.insider_invites.docs[1]["attempts"] == 2
+
+
+async def test_il_retry_registra_il_tentativo_di_oggi(flag_on):
+    db = FakeDb(sessions=_many(1), invites=[
+        {"email": "p00@example.com", "status": "failed", "attempts": 1, "nome": "Anna", "last_attempt_at": _iso(5)}])
+    await ins.invita_insider(db, emit=Emitter(), now=NOW)
+    assert db.insider_invites.docs[0]["last_attempt_at"] == NOW.isoformat()
+
+
+# ---- tetto: valori ----
+async def test_tetto_zero_da_variabile_non_invia_niente(flag_on, monkeypatch):
+    monkeypatch.setenv(ins.MAX_PER_RUN_ENV, "0")
+    emit = Emitter()
+    out = await ins.invita_insider(FakeDb(sessions=_many(3)), emit=emit, now=NOW)
+    assert out["inviati"] == 0 and emit.calls == [] and out["motivo"] == "tetto_zero"
+
+
+async def test_tetto_zero_esplicito_non_invia_niente(flag_on):
+    emit = Emitter()
+    out = await ins.invita_insider(FakeDb(sessions=_many(3)), emit=emit, now=NOW, max_per_run=0)
+    assert out["inviati"] == 0 and emit.calls == []
+
+
+@pytest.mark.parametrize("raw,expected", [("500", 25), ("-3", 0), ("testo", 10), ("7", 7)])
+def test_max_per_run_limitato(monkeypatch, raw, expected):
+    monkeypatch.setenv(ins.MAX_PER_RUN_ENV, raw)
+    assert ins._max_per_run(None) == expected
+
+
+async def test_tetto_500_da_variabile_e_limitato_a_25(flag_on, monkeypatch):
+    monkeypatch.setenv(ins.MAX_PER_RUN_ENV, "500")
+    emit = Emitter()
+    out = await ins.invita_insider(FakeDb(sessions=_many(40)), emit=emit, now=NOW)
+    assert out["inviati"] == ins.HARD_MAX_PER_RUN == 25
+
+
+# ---- errori non silenziosi / fail closed ----
+async def test_errore_inatteso_del_db_non_solleva_e_viene_riportato(flag_on):
+    db = FakeDb(sessions=_many(3))
+    db.insider_invites.fail_insert = RuntimeError("mongo giu")
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert out["error"] == "mongo giu" and out["inviati"] == 0 and emit.calls == []
+
+
+async def test_indice_non_creato_non_invia_niente(flag_on):
+    db = FakeDb(sessions=_many(3))
+    db.insider_invites.fail_index = RuntimeError("nope")
+    emit = Emitter()
+    out = await ins.invita_insider(db, emit=emit, now=NOW)
+    assert out["error"] == "indice_non_creato" and emit.calls == [] and db.insider_invites.docs == []

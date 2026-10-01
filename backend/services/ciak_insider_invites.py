@@ -22,13 +22,21 @@ PATH_QUESTIONARIO = "questionario_senza_call"
 BLUEPRINT_WAIT_DAYS = 7
 QUESTIONARIO_WAIT_DAYS = 14
 MAX_ATTEMPTS = 3
-DEFAULT_MAX_PER_RUN = 25
+DEFAULT_MAX_PER_RUN = 10
+HARD_MAX_PER_RUN = 25
+DEFAULT_MAX_AGE_DAYS = 180
+READ_LIMIT_SESSIONS = 5000
+READ_LIMIT_OTHERS = 20000
 PENDING_STALE_MINUTES = 10
 EVENT_TAG = "insider_invito"
 FLAG_ENV = "INSIDER_INVITES_ENABLED"
 MAX_PER_RUN_ENV = "INSIDER_INVITES_MAX_PER_RUN"
+MAX_AGE_DAYS_ENV = "INSIDER_INVITES_MAX_AGE_DAYS"
 
-PAID_PROPOSTA_STATES = {"pagamento_completato", "contratto_firmato"}
+# Stati di una proposta che indicano un pagamento avvenuto o in corso (bonifico caricato,
+# finalizzazione). `accettata` NON c'e': accettare non e' pagare.
+PAID_PROPOSTA_STATES = {"pagamento_completato", "contratto_firmato",
+                        "pagamento_in_attesa_verifica", "finalizzazione_in_corso"}
 BOUGHT_ACCESS_LEVELS = {"cliente_start", "partner"}
 CANDIDATE_STATES = ("report_generated", "call_done")
 
@@ -60,13 +68,20 @@ def state_time(session: dict, state: str) -> Optional[datetime]:
     return found
 
 
+def proposta_pagata(p: Optional[dict]) -> bool:
+    """Pagata o in corso di pagamento. `pagamento_completato: True` vale anche se `stato`
+    e' stato poi sovrascritto (es. `scaduta` all'apertura oltre la scadenza)."""
+    p = p or {}
+    return p.get("pagamento_completato") is True or p.get("stato") in PAID_PROPOSTA_STATES
+
+
 def has_bought(client: Optional[dict], proposta: Optional[dict]) -> bool:
     c = client or {}
     if c.get("start_purchased_at") or c.get("partnership_attiva") is True:
         return True
     if c.get("access_level") in BOUGHT_ACCESS_LEVELS:
         return True
-    return bool(proposta and proposta.get("stato") in PAID_PROPOSTA_STATES)
+    return bool(proposta and proposta_pagata(proposta))
 
 
 def reference(session: dict, proposta: Optional[dict], blueprint: Optional[dict]) -> Optional[tuple]:
@@ -110,14 +125,27 @@ def _pick_proposta(items: list) -> Optional[dict]:
     if not items:
         return None
     for p in items:
-        if p.get("stato") in PAID_PROPOSTA_STATES:
+        if proposta_pagata(p):
             return p
     return sorted(items, key=lambda p: str(p.get("creato_at") or ""))[-1]
 
 
+def _check_limit(docs: list, name: str) -> None:
+    if len(docs) >= READ_LIMIT_OTHERS:
+        raise RuntimeError(f"limite di lettura raggiunto: {name} ({READ_LIMIT_OTHERS})")
+
+
 async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: bool = True) -> list:
     now = now or datetime.now(timezone.utc)
-    sessions = await db.diagnostic_sessions.find({"current_state": {"$in": list(CANDIDATE_STATES)}}).to_list(5000)
+    try:
+        max_age_days = int(os.environ.get(MAX_AGE_DAYS_ENV, DEFAULT_MAX_AGE_DAYS))
+    except (ValueError, TypeError):
+        max_age_days = DEFAULT_MAX_AGE_DAYS
+    oldest = now - timedelta(days=max_age_days)
+
+    sessions = await db.diagnostic_sessions.find({"current_state": {"$in": list(CANDIDATE_STATES)}}).to_list(READ_LIMIT_SESSIONS)
+    if len(sessions) >= READ_LIMIT_SESSIONS:
+        logger.warning("[INSIDER] letto il massimo di sessioni (%s): l'elenco potrebbe essere parziale", READ_LIMIT_SESSIONS)
     chosen = _most_advanced_per_email(sessions)
     if not chosen:
         return []
@@ -127,20 +155,37 @@ async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: 
     # Clienti e proposte si leggono per intero (poche centinaia di documenti, con proiezione) e
     # si confrontano in Python con l'email normalizzata: un filtro `$in` non coprirebbe ogni
     # combinazione di maiuscole e un acquirente potrebbe ricevere l'invito per errore.
+    # Se una lettura arriva al limite l'elenco potrebbe essere troncato: si ferma tutto (nessun invio).
     clients: dict = {}
-    for c in await db.ciak_clients.find(
+    client_docs = await db.ciak_clients.find(
         {}, {"_id": 0, "email": 1, "start_purchased_at": 1, "access_level": 1, "partnership_attiva": 1}
-    ).to_list(20000):
+    ).to_list(READ_LIMIT_OTHERS)
+    _check_limit(client_docs, "ciak_clients")
+    for c in client_docs:
         email = norm_email(c.get("email"))
         if email:
             clients[email] = c
     proposte_by: dict = {}
-    for p in await db.proposte.find(
-        {}, {"_id": 0, "prospect_email": 1, "scadenza": 1, "stato": 1, "creato_at": 1}
-    ).to_list(20000):
+    proposta_docs = await db.proposte.find(
+        {}, {"_id": 0, "prospect_email": 1, "scadenza": 1, "stato": 1, "creato_at": 1, "pagamento_completato": 1}
+    ).to_list(READ_LIMIT_OTHERS)
+    _check_limit(proposta_docs, "proposte")
+    for p in proposta_docs:
         email = norm_email(p.get("prospect_email"))
         if email:
             proposte_by.setdefault(email, []).append(p)
+    partner_docs = await db.partners.find({}, {"_id": 0, "email": 1}).to_list(READ_LIMIT_OTHERS)
+    _check_limit(partner_docs, "partners")
+    partners = {norm_email(p.get("email")) for p in partner_docs}
+    partners.discard("")
+    # Una seconda sessione in `call_booked` (call prenotata) esclude la persona su ogni percorso.
+    booked_docs = await db.diagnostic_sessions.find(
+        {"current_state": "call_booked"}, {"_id": 0, "user_email": 1}
+    ).to_list(READ_LIMIT_SESSIONS)
+    if len(booked_docs) >= READ_LIMIT_SESSIONS:
+        logger.warning("[INSIDER] letto il massimo di sessioni call_booked (%s)", READ_LIMIT_SESSIONS)
+    booked = {norm_email(b.get("user_email")) for b in booked_docs}
+    booked.discard("")
     blueprints = {b.get("session_token"): b for b in await db.ciak_blueprints.find({"session_token": {"$in": tokens}}).to_list(5000)}
     invited = set()
     if escludi_invitati:
@@ -148,7 +193,7 @@ async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: 
 
     out = []
     for email, s in chosen.items():
-        if email in invited:
+        if email in invited or email in partners or email in booked:
             continue
         proposta = _pick_proposta(proposte_by.get(email, []))
         if has_bought(clients.get(email), proposta):
@@ -157,7 +202,7 @@ async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: 
         if not ref:
             continue
         path, when = ref
-        if when > now:
+        if when > now or when < oldest:
             continue
         out.append({
             "email": email,
@@ -166,7 +211,7 @@ async def trova_candidati(db, now: Optional[datetime] = None, escludi_invitati: 
             "riferimento": when.isoformat(),
             "session_token": s.get("session_token"),
         })
-    out.sort(key=lambda c: c["riferimento"])
+    out.sort(key=lambda c: c["riferimento"], reverse=True)  # i piu' recenti per primi
     return out
 
 
@@ -177,20 +222,23 @@ def _mask(email: str) -> str:
 
 def primo_nome(nome: Optional[str]) -> Optional[str]:
     """Estrae il primo nome (prima parola separata da spazi)."""
-    if not nome:
+    if not isinstance(nome, str) or not nome:
         return None
     first = nome.strip().split()[0] if nome.strip() else None
     return first
 
 
 def _max_per_run(explicit: Optional[int]) -> int:
-    if explicit:
-        return int(explicit)
-    try:
-        value = int(os.environ.get(MAX_PER_RUN_ENV, DEFAULT_MAX_PER_RUN))
-    except ValueError:
-        value = DEFAULT_MAX_PER_RUN
-    return max(1, value)
+    """Tetto per giro: esplicito, altrimenti variabile d'ambiente, altrimenti il default.
+    Limitato a [0, HARD_MAX_PER_RUN]; 0 = non inviare niente."""
+    if explicit is not None:
+        value = int(explicit)
+    else:
+        try:
+            value = int(os.environ.get(MAX_PER_RUN_ENV, DEFAULT_MAX_PER_RUN))
+        except (ValueError, TypeError):
+            value = DEFAULT_MAX_PER_RUN
+    return min(max(value, 0), HARD_MAX_PER_RUN)
 
 
 async def _default_emit(email, event_name, first_name=None, metadata=None, extra_tags=None) -> bool:
@@ -237,12 +285,29 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
         return result
 
     emit = emit or _default_emit
+    now_iso = now.isoformat()
     try:
         await db.insider_invites.create_index("email", unique=True)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("[INSIDER] indice non creato: %s", exc)
+    except Exception as exc:  # noqa: BLE001 - senza indice unico "una volta sola" non e' garantito
+        logger.error("[INSIDER] indice non creato, nessun invio: %s", exc)
+        result["error"] = "indice_non_creato"
+        return result
 
-    budget = _max_per_run(max_per_run)
+    # Tetto GIORNALIERO, calcolato dal registro: piu' giri nello stesso giorno UTC non lo superano.
+    cap = _max_per_run(max_per_run)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    try:
+        used = len(await db.insider_invites.find(
+            {"last_attempt_at": {"$gte": day_start}, "status": {"$ne": "annullato"}}, {"_id": 1}
+        ).to_list(10000))
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[INSIDER] conteggio inviti del giorno fallito, nessun invio: %s", exc)
+        result["error"] = str(exc)
+        return result
+    budget = max(cap - used, 0)
+    if budget <= 0:
+        result["motivo"] = "tetto_zero" if cap == 0 else "tetto_giornaliero_raggiunto"
+        return result
 
     # Leggi i candidati eleggibili (senza escludere invitati) per controllare su retry
     eleggibili = None
@@ -251,60 +316,80 @@ async def invita_insider(db, emit=None, now: Optional[datetime] = None,
     except Exception as exc:  # noqa: BLE001
         logger.warning("[INSIDER] lettura eleggibili fallita (skip retry): %s", exc)
 
-    # 1. riprova chi era fallito (al massimo MAX_ATTEMPTS volte in tutto) e pending stale
+    stale_cutoff = now - timedelta(minutes=PENDING_STALE_MINUTES)
+
+    # 1. riprova chi era fallito (al massimo MAX_ATTEMPTS volte in tutto), pending e retrying vecchi
     if eleggibili is not None:
-        failed = await db.insider_invites.find({"status": "failed", "attempts": {"$lt": MAX_ATTEMPTS}}).to_list(100)
-        pending = await db.insider_invites.find({"status": "pending"}).to_list(100)
+        try:
+            failed = await db.insider_invites.find({"status": "failed", "attempts": {"$lt": MAX_ATTEMPTS}}).to_list(100)
+            pending = await db.insider_invites.find({"status": "pending"}).to_list(100)
+            retrying = await db.insider_invites.find({"status": "retrying"}).to_list(100)
 
-        # Filtra pending stale (creato 10+ minuti fa)
-        stale_pending = []
-        for doc in pending:
-            created = parse_iso(doc.get("created_at"))
-            if created and created <= now - timedelta(minutes=PENDING_STALE_MINUTES):
-                stale_pending.append(doc)
+            stale = []
+            for doc in pending:
+                created = parse_iso(doc.get("created_at"))
+                if created and created <= stale_cutoff:
+                    stale.append(doc)
+            for doc in retrying:
+                claimed = parse_iso(doc.get("claimed_at"))
+                if claimed and claimed <= stale_cutoff:
+                    stale.append(doc)
 
-        # Riprova failed e stale pending
-        for doc in failed + stale_pending:
-            if budget <= 0:
-                break
-            # Controlla se ancora eleggibile
-            if doc["email"] not in eleggibili:
+            for doc in failed + stale:
+                if budget <= 0:
+                    break
+                if doc["email"] not in eleggibili:
+                    await db.insider_invites.update_one(
+                        {"email": doc["email"]},
+                        {"$set": {"status": "annullato"}},
+                    )
+                    continue
+                attempts = int(doc.get("attempts", 0))
+                # Presa in carico atomica: se un altro giro l'ha gia' presa non si emette.
+                claim = await db.insider_invites.update_one(
+                    {"email": doc["email"], "status": doc.get("status"), "attempts": doc.get("attempts", 0)},
+                    {"$set": {"status": "retrying", "claimed_at": now_iso, "last_attempt_at": now_iso}},
+                )
+                if not getattr(claim, "matched_count", 0):
+                    continue
+                ok = await _emit_safe(emit, doc["email"], primo_nome(doc.get("nome")), {"path": doc.get("path"), "riprova": True})
                 await db.insider_invites.update_one(
                     {"email": doc["email"]},
-                    {"$set": {"status": "annullato"}},
+                    {"$set": {"status": "applied" if ok else "failed", "attempts": attempts + 1,
+                              **({"applied_at": now_iso} if ok else {})}},
                 )
-                continue
-            ok = await _emit_safe(emit, doc["email"], primo_nome(doc.get("nome")), {"path": doc.get("path"), "riprova": True})
-            await db.insider_invites.update_one(
-                {"email": doc["email"]},
-                {"$set": {"status": "applied" if ok else "failed", "attempts": int(doc.get("attempts", 0)) + 1,
-                          **({"applied_at": now.isoformat()} if ok else {})}},
-            )
-            result["riprovati"] += 1
-            result["errori"] += 0 if ok else 1
-            budget -= 1
+                result["riprovati"] += 1
+                result["errori"] += 0 if ok else 1
+                budget -= 1
+        except Exception as exc:  # noqa: BLE001 - al primo errore inatteso si ferma la fase
+            logger.error("[INSIDER] errore nella fase di riprova: %s", exc)
+            result["error"] = str(exc)
 
     # 2. nuovi inviti: prima si registra (email unica), poi si applica il tag
     from pymongo.errors import DuplicateKeyError
 
-    for c in candidati:
-        if budget <= 0:
-            break
-        try:
-            await db.insider_invites.insert_one({
-                "email": c["email"], "nome": c["nome"], "path": c["path"], "riferimento": c["riferimento"],
-                "status": "pending", "attempts": 0, "created_at": now.isoformat(),
-            })
-        except DuplicateKeyError:
-            continue  # gia' invitato da un altro giro in parallelo
-        ok = await _emit_safe(emit, c["email"], primo_nome(c["nome"]), {"path": c["path"], "riferimento": c["riferimento"]})
-        await db.insider_invites.update_one(
-            {"email": c["email"]},
-            {"$set": {"status": "applied" if ok else "failed", "attempts": 1,
-                      **({"applied_at": now.isoformat()} if ok else {})}},
-        )
-        result["inviati" if ok else "errori"] += 1
-        budget -= 1
+    try:
+        for c in candidati:
+            if budget <= 0:
+                break
+            try:
+                await db.insider_invites.insert_one({
+                    "email": c["email"], "nome": c["nome"], "path": c["path"], "riferimento": c["riferimento"],
+                    "status": "pending", "attempts": 0, "created_at": now_iso, "last_attempt_at": now_iso,
+                })
+            except DuplicateKeyError:
+                continue  # gia' invitato da un altro giro in parallelo
+            ok = await _emit_safe(emit, c["email"], primo_nome(c["nome"]), {"path": c["path"], "riferimento": c["riferimento"]})
+            await db.insider_invites.update_one(
+                {"email": c["email"]},
+                {"$set": {"status": "applied" if ok else "failed", "attempts": 1,
+                          **({"applied_at": now_iso} if ok else {})}},
+            )
+            result["inviati" if ok else "errori"] += 1
+            budget -= 1
+    except Exception as exc:  # noqa: BLE001 - un errore di DB che si ripete: ci si ferma al primo
+        logger.error("[INSIDER] errore nella fase dei nuovi inviti: %s", exc)
+        result["error"] = str(exc)
 
     logger.info("[INSIDER] giro: %s", {k: v for k, v in result.items() if k != "esempi"})
     return result
