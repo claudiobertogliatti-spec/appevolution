@@ -31,6 +31,7 @@ def _db(state="call_booked", blueprint=None):
             "_id": "oid-1", "session_token": "tok-consegna",
             "user_email": "Lead@Ciak.it", "user_name": "Lead Test",
             "current_state": state, "created_at": "2026-09-29T09:00:00+00:00",
+            "responses": {"q1_competenza": "coaching"},
         }],
         ciak_blueprints=[blueprint] if blueprint else [],
         # l'account che ensure_client_for_blueprint (finto) "crea"
@@ -281,3 +282,39 @@ def test_consegna_404_se_lead_inesistente(app_factory):
     resp = client.post("/api/ciak/client/admin/consegna-blueprint",
                        json={"session_token": "non-esiste"}, headers=_HEADERS)
     assert resp.status_code == 404
+
+
+# ─── Sessione giusta: quella con le risposte ────────────────────────
+
+def test_genera_usa_la_sessione_compilata_non_quella_vuota_piu_recente(app_factory):
+    """Chi riapre il questionario crea una sessione nuova e vuota: il Blueprint
+    non deve essere generato (e il lead portato a call_done) su quella."""
+    db = _db()
+    db.diagnostic_sessions.docs.insert(0, {
+        "_id": "oid-0", "session_token": "tok-vuota", "user_email": "Lead@Ciak.it",
+        "current_state": "ciak_started", "created_at": "2026-10-01T08:33:00+00:00",
+    })
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock(return_value=_PAYLOAD)) as gen, \
+            patch("services.ciak_pdf_blueprint.render_blueprint_html", MagicMock(return_value="<html>")):
+        resp = client.post("/api/ciak/client/admin/blueprint/genera",
+                           json={"email": "lead@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 200
+    gen.assert_awaited_once_with("tok-consegna")  # la compilata, non "tok-vuota"
+
+
+def test_genera_409_se_il_questionario_non_e_compilato(app_factory):
+    db = FakeDb(
+        diagnostic_sessions=[{
+            "_id": "oid-0", "session_token": "tok-vuota", "user_email": "x@ciak.it",
+            "current_state": "ciak_started", "created_at": "2026-10-01T08:33:00+00:00",
+        }],
+        ciak_blueprints=[], ciak_clients=[],
+    )
+    client = app_factory(db)
+    with patch("services.ciak_analisi.genera_blueprint", AsyncMock(return_value=_PAYLOAD)) as gen:
+        resp = client.post("/api/ciak/client/admin/blueprint/genera",
+                           json={"email": "x@ciak.it"}, headers=_HEADERS)
+    assert resp.status_code == 409
+    assert "questionario" in resp.json()["detail"].lower()
+    gen.assert_not_awaited()

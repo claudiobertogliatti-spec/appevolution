@@ -448,6 +448,9 @@ export function AdminLeadDetail({ onAuthExpired }) {
       else setDeliverMsg("Errore consegna: " + e.message);
     } finally {
       setDelivering(false);
+      // Se la richiesta e' stata interrotta dal proxy la consegna puo' essere
+      // andata a buon fine comunque: si rilegge lo stato vero dal server.
+      apiGet("/lead", { email: data.email }).then(setData).catch(() => {});
     }
   }
 
