@@ -101,6 +101,13 @@ export function CiakProposta() {
       if (res.status === 410) { setError("scaduta"); setLoading(false); return; }
       if (!res.ok) throw new Error("Errore caricamento");
       const data = await res.json();
+      // Vecchi link: chi non ha ancora iniziato (né accettato, né firmato, né pagato) e non
+      // rientra da Stripe vede la pagina post-call personalizzata sul Blueprint. Il flusso
+      // di firma/pagamento/documenti resta qui: Stripe rientra su /proposta/:token.
+      if (!data.pagamento_completato && !data.contratto_firmato_at && !data.accettato_at && !searchParams.get("pagamento")) {
+        window.location.replace(`/insider/${encodeURIComponent(token)}`);
+        return;
+      }
       setProposta(data);
       if (data.pagamento_completato) setStep("conferma");
       else if (data.contratto_firmato_at) setStep("pagamento");

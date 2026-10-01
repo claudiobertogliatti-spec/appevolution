@@ -3,6 +3,7 @@ import './insider.css';
 import { offerData } from './offerData';
 import ContractAccept from './ContractAccept';
 import { clientPost } from '../client/api';
+import { formatDeadlineWithTime } from './timeline';
 
 /**
  * OfferSections — copy di vendita post-call APPROVATO da Claudio (9/9).
@@ -25,7 +26,7 @@ import { clientPost } from '../client/api';
  *  - I gate legale/fiscale sui pagamenti restano lato backend (paid_offer_gate):
  *    se chiusi, `checkoutReadiness` disabilita le CTA e mostra il messaggio.
  */
-export default function OfferSections({ token, partnerId, name, checkoutReadiness }) {
+export default function OfferSections({ token, partnerId, name, checkoutReadiness, raccomandata, bonus, onAsk }) {
   const [startLoading, setStartLoading] = useState(false);
   const [startError, setStartError] = useState('');
   const startBusy = useRef(false);
@@ -109,45 +110,73 @@ export default function OfferSections({ token, partnerId, name, checkoutReadines
     }
   }
 
+  // Pagina post-call (percorso noto dal Blueprint): la card consigliata va per prima.
+  // Senza `raccomandata` resta il modello storico approvato (Start → turbo → Partnership).
+  const postCall = raccomandata === 'partnership' || raccomandata === 'start';
+  const partnershipFirst = raccomandata === 'partnership';
+  const bonusLabel = bonus && bonus.attiva ? formatDeadlineWithTime(bonus.scade_at) : null;
+
+  const startCard = (
+    <OfferCard
+      kind="start"
+      offer={partnershipFirst ? { ...offerData.start, name: 'Oggi non è il momento giusto? Ciak Start' } : offerData.start}
+      isHero={false}
+      badge={postCall && !partnershipFirst ? 'Consigliato per te' : ''}
+      gift={bonusLabel ? `Guida in omaggio «Come creare un videocorso che vende davvero», se parti entro ${bonusLabel}.` : ''}
+      onSelect={handleSelectStart}
+      ctaLabel={startLoading ? 'Apro il checkout…' : offerData.start.cta}
+      ctaDisabled={!startEnabled || startLoading}
+      errorMessage={startError || (!startEnabled ? closedMessage : '')}
+    />
+  );
+
+  const partnershipCard = (
+    <OfferCard
+      kind="partnership"
+      offer={offerData.partnership}
+      isHero
+      badge={postCall && partnershipFirst ? 'Consigliato per te' : ''}
+      onSelect={handleSelectPartnership}
+      ctaLabel={partnershipStep === 'accepting' ? 'Un attimo…' : offerData.partnership.cta}
+      ctaDisabled={!partnershipEnabled || partnershipStep !== 'idle'}
+      errorMessage={!partnershipEnabled ? closedMessage : partnershipStep === 'idle' ? partnershipError : ''}
+      note={offerData.partnership.payNote}
+      onAsk={onAsk}
+    >
+      {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
+        <div className="insider-offer__contract-gate">
+          <ContractAccept
+            partnerId={partnerId}
+            onConfirm={handleConfirmContract}
+            disabled={!partnershipEnabled || partnershipStep === 'processing'}
+          />
+          {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
+        </div>
+      ) : null}
+    </OfferCard>
+  );
+
   return (
-    <div className="insider-offer-sections">
-      <p className="insider-offer-bridge">
-        <strong>{firstName ? `Bene ${firstName}` : 'Bene'}</strong>, ora finalmente il tuo Progetto ha
-        una direzione chiara! Hai visto cosa funziona e dove, invece, si nasconde il collo di bottiglia.
-      </p>
+    <div className={`insider-offer-sections${partnershipFirst ? ' insider-offer-sections--grid' : ''}`} id="offerta">
+      {!postCall ? (
+        <p className="insider-offer-bridge">
+          <strong>{firstName ? `Bene ${firstName}` : 'Bene'}</strong>, ora finalmente il tuo Progetto ha
+          una direzione chiara! Hai visto cosa funziona e dove, invece, si nasconde il collo di bottiglia.
+        </p>
+      ) : null}
 
-      <OfferCard
-        kind="start"
-        offer={offerData.start}
-        isHero={false}
-        onSelect={handleSelectStart}
-        ctaLabel={startLoading ? 'Apro il checkout…' : offerData.start.cta}
-        ctaDisabled={!startEnabled || startLoading}
-        errorMessage={startError || (!startEnabled ? closedMessage : '')}
-      />
-
-      <div className="insider-turbo"><span>Se vuoi mettere il turbo al tuo Progetto</span></div>
-
-      <OfferCard
-        kind="partnership"
-        offer={offerData.partnership}
-        isHero
-        onSelect={handleSelectPartnership}
-        ctaLabel={partnershipStep === 'accepting' ? 'Un attimo…' : offerData.partnership.cta}
-        ctaDisabled={!partnershipEnabled || partnershipStep !== 'idle'}
-        errorMessage={!partnershipEnabled ? closedMessage : partnershipStep === 'idle' ? partnershipError : ''}
-      >
-        {partnershipStep === 'contract' || partnershipStep === 'processing' ? (
-          <div className="insider-offer__contract-gate">
-            <ContractAccept
-              partnerId={partnerId}
-              onConfirm={handleConfirmContract}
-              disabled={!partnershipEnabled || partnershipStep === 'processing'}
-            />
-            {partnershipError ? <p role="alert" className="insider-offer__error">{partnershipError}</p> : null}
-          </div>
-        ) : null}
-      </OfferCard>
+      {partnershipFirst ? (
+        <>
+          {partnershipCard}
+          {startCard}
+        </>
+      ) : (
+        <>
+          {startCard}
+          <div className="insider-turbo"><span>Se vuoi mettere il turbo al tuo Progetto</span></div>
+          {partnershipCard}
+        </>
+      )}
     </div>
   );
 }
@@ -157,13 +186,14 @@ async function responseError(response) {
   return data?.detail?.message || (typeof data?.detail === 'string' ? data.detail : `Errore ${response.status}`);
 }
 
-function OfferCard({ kind, offer, isHero, onSelect, ctaLabel, ctaDisabled, errorMessage, children }) {
+function OfferCard({ kind, offer, isHero, onSelect, ctaLabel, ctaDisabled, errorMessage, children, badge, gift, note, onAsk }) {
   const bodyParagraphs = Array.isArray(offer.body) ? offer.body : (offer.body ? [offer.body] : []);
   return (
     <section
       className={`insider-offer${isHero ? ' insider-offer--hero' : ''}`}
       data-offer={kind}
     >
+      {badge ? <span className="insider-offer__badge">{badge}</span> : null}
       <h2 className="insider-offer__name">{offer.name}</h2>
       <p className="insider-offer__price">
         {offer.price}
@@ -173,6 +203,7 @@ function OfferCard({ kind, offer, isHero, onSelect, ctaLabel, ctaDisabled, error
         <p key={index} className="insider-offer__body">{paragraph}</p>
       ))}
       {offer.creditCopy ? <p className="insider-offer__credit">{offer.creditCopy}</p> : null}
+      {gift ? <p className="insider-offer__gift">{gift}</p> : null}
       <ul className="insider-offer__services">
         {offer.servizi.map((voce) => (
           <li key={voce}>{voce}</li>
@@ -182,6 +213,8 @@ function OfferCard({ kind, offer, isHero, onSelect, ctaLabel, ctaDisabled, error
         {ctaLabel}
       </button>
       {errorMessage ? <p role="alert" className="insider-offer__error">{errorMessage}</p> : null}
+      {note ? <p className="insider-offer__note">{note}</p> : null}
+      {onAsk ? <button type="button" className="insider-offer__ask" onClick={onAsk}>Ho una domanda su questa offerta</button> : null}
       {children}
     </section>
   );

@@ -51,6 +51,10 @@ export const offerData = {
       + 'Non lo fai da solo: ti accompagna il team.',
     ],
     cta: 'Entra in Partnership',
+    payNote:
+      'Prima leggi il contratto, poi accetti, poi paghi. Al pagamento puoi scegliere carta o Klarna (Klarna solo se disponibile per l\'importo). '
+      + 'Se ti servono rate direttamente con noi, il contratto prevede fino a 3 rate mensili, con approvazione scritta del team. '
+      + 'Il team ti contatta entro 24 ore.',
     servizi: [
       'Analisi strategica iniziale e definizione del posizionamento del progetto',
       "Supporto alla strutturazione dei contenuti formativi e dell'offerta commerciale",
