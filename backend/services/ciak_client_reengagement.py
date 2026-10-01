@@ -18,15 +18,17 @@ from services.ciak_client_accounts import create_magic_login_token
 
 logger = logging.getLogger(__name__)
 
-# Etichette leggibili per i deliverable Start (per l'email di richiamo).
-_LABELS = {
-    "social_profiles": "profili social",
-    "showcase": "sito vetrina",
-    "content_plan_90d": "piano contenuti (90 giorni)",
-    "partnership_readiness": "revisione finale",
-    "brand_kit": "brand kit",
-    "positioning": "posizionamento",
+# Come si dice, in parole semplici, che un materiale Start e' pronto:
+# (soggetto con articolo, verbo concordato). Niente "brand kit" o "deliverable".
+_FRASI = {
+    "positioning": ("Il tuo posizionamento", "e' pronto"),
+    "brand_kit": ("Il tuo marchio", "e' pronto"),
+    "social_profiles": ("I testi per i tuoi profili social", "sono pronti"),
+    "showcase": ("La tua pagina web", "e' pronta"),
+    "content_plan_90d": ("Il tuo calendario dei 60 giorni", "e' pronto"),
+    "partnership_readiness": ("Il tuo controllo finale", "e' pronto"),
 }
+_FRASE_GENERICA = ("Un tuo nuovo materiale", "e' pronto")
 
 
 def _base_url() -> str:
@@ -110,13 +112,15 @@ async def invia_deliverable_pronto(db, client_id: str, tipo: str) -> bool:
     if not client or not (client.get("email") or "").strip():
         return False
     email = client["email"].strip().lower()
-    label = _LABELS.get(tipo, "materiale")
+    soggetto, verbo = _FRASI.get(tipo, _FRASE_GENERICA)
     link = await _magic_link(db, client_id, email)
     if not link:
         return False
+    # Il pronome si accorda con il soggetto: "lo trovi", "la trovi", "li trovi".
+    pronome = {"sono pronti": "li", "e' pronta": "la"}.get(verbo, "lo")
     return await asyncio.to_thread(
         _send, email, client.get("name"),
-        f"Il tuo {label} e' pronto",
-        f"Ciao {{primo}}, il tuo {label} e' pronto ed e' gia' nella tua area Ciak.",
+        f"{soggetto} {verbo}",
+        f"Ciao {{primo}}, {soggetto[0].lower()}{soggetto[1:]} {verbo}: {pronome} trovi nella tua area Ciak.",
         link,
     )

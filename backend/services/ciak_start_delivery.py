@@ -90,9 +90,9 @@ Accedi alla tua area da qui:
 {access_url}
 
 Le tre tappe previste sono:
-1. Posizionamento e brand entro il {d1}.
-2. Profili social e sito vetrina entro il {d2}.
-3. Strategia contenuti e calendario 90 giorni entro il {d3}.
+1. Il tuo marchio e la frase che spiega chi sei e cosa offri, entro il {d1}.
+2. I tuoi profili social e una pagina web semplice, entro il {d2}.
+3. Il calendario con le idee per i tuoi post dei prossimi 60 giorni, entro il {d3}.
 
 I 390 euro saranno scalati interamente se passerai alla Partnership.
 {bonus_line}
