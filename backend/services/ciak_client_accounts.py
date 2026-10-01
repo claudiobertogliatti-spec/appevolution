@@ -42,6 +42,26 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
     )
 
 
+def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Chi e' questa persona per il business: lead, cliente Start pagante o partner.
+
+    Unica fonte per la scheda admin. Un account `cliente_blueprint` (ha solo
+    ricevuto il Blueprint gratuito) resta un LEAD: non ha pagato niente.
+    Priorita': partner > cliente Start > lead.
+    """
+    client = client or {}
+    if partner or client.get("access_level") == ACCESS_PARTNER:
+        return {"tipo": "partner", "label": "Partner", "dettaglio": "Ha firmato la Partnership."}
+    if has_start_entitlement(client):
+        when = client.get("start_purchased_at")
+        return {
+            "tipo": "cliente_start",
+            "label": "Cliente Ciak Start",
+            "dettaglio": "Ha pagato Ciak Start (390 €)." + (f" Attivo dal {str(when)[:10]}." if when else ""),
+        }
+    return {"tipo": "lead", "label": "Lead", "dettaglio": "Non ha ancora pagato nessuna offerta."}
+
+
 def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
     stored_credit = client.get("start_credit_amount")
     if has_start_entitlement(client):

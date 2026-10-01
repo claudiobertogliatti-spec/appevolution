@@ -186,3 +186,16 @@ test("generazione negata per permesso: si legge il motivo, non 'può essere anco
   expect(await screen.findByText("Questo account ha accesso solo al reparto Acquisizione.")).toBeTruthy();
   expect(screen.queryByText(/può essere ancora in corso/i)).toBeNull();
 });
+
+test("la scheda dice subito se e' un lead, un cliente Start o un partner", async () => {
+  apiGet.mockResolvedValue({ ...LEAD, ruolo: { tipo: "cliente_start", label: "Cliente Ciak Start", dettaglio: "Ha pagato Ciak Start (390 €)." } });
+  const { unmount } = render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  const badge = await screen.findByTestId("ruolo-contatto");
+  expect(badge.textContent).toMatch(/Cliente Ciak Start/);
+  expect(badge.textContent).toMatch(/Ha pagato/);
+  unmount();
+
+  apiGet.mockResolvedValue({ ...LEAD, ruolo: { tipo: "lead", label: "Lead", dettaglio: "Non ha ancora pagato nessuna offerta." } });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  expect((await screen.findByTestId("ruolo-contatto")).textContent).toMatch(/^Lead/);
+});
