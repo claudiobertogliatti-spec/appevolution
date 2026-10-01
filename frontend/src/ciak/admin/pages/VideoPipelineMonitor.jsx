@@ -8,13 +8,14 @@
  *   Salute worker : GET  /api/celery/status
  *   Lista job     : GET  /api/admin/video-review        → { videos: [...] }
  *   Riavvio job   : POST /api/admin/partner/{id}/retrigger-video?video_type=...&lesson_id=...
+ *   Elimina job   : DELETE /api/admin/video-review/{id} (nasconde la riga, non cancella video né materiali)
  *
  * Tutte le chiamate passano per adminFetch (token admin Ciak).
  */
 import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw, Server, Database, Activity, Clock, Scissors,
-  AlertTriangle, CheckCircle, Loader2, RotateCcw, ExternalLink,
+  AlertTriangle, CheckCircle, Loader2, RotateCcw, ExternalLink, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch } from "../api";
@@ -97,6 +98,7 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
   const [acting, setActing] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [pendingRetrigger, setPendingRetrigger] = useState(null);
+  const [pendingHide, setPendingHide] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -144,6 +146,33 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
     } catch (e) {
       if (String(e.message).includes("AUTH_EXPIRED")) { onAuthExpired && onAuthExpired(); return; }
       toast.error("Riavvio fallito: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const confirmHide = async () => {
+    const row = pendingHide;
+    if (!row) return;
+    setPendingHide(null);
+    const key = row.partner_id + (row.lesson_id || "");
+    setActing(key);
+    try {
+      const r = await adminFetch(`/api/admin/video-review/${row.partner_id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: row.type, lesson_id: row.lesson_id }),
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => "");
+        throw new Error(`HTTP ${r.status} ${t.slice(0, 160)}`);
+      }
+      setVideos((prev) => prev.filter((v) => !(
+        v.type === row.type && v.partner_id === row.partner_id && (v.lesson_id || "") === (row.lesson_id || "")
+      )));
+    } catch (e) {
+      if (String(e.message).includes("AUTH_EXPIRED")) { onAuthExpired && onAuthExpired(); return; }
+      toast.error("Eliminazione fallita: " + e.message);
     } finally {
       setActing(null);
     }
@@ -264,14 +293,22 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
                     ) : <span style={{ color: C.dim }}>—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {canRetrigger ? (
-                      <button onClick={() => setPendingRetrigger(row)} disabled={acting === key}
+                    <div className="inline-flex items-center justify-end gap-2">
+                      {canRetrigger && (
+                        <button onClick={() => setPendingRetrigger(row)} disabled={acting === key}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+                          style={{ background: acting === key ? "#F3F4F6" : C.yellow, color: C.text }}>
+                          {acting === key ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                          Riavvia
+                        </button>
+                      )}
+                      <button onClick={() => setPendingHide(row)} disabled={acting === key}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
-                        style={{ background: acting === key ? "#F3F4F6" : C.yellow, color: C.text }}>
-                        {acting === key ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                        Riavvia
+                        style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.red }}>
+                        <Trash2 size={12} />
+                        Elimina
                       </button>
-                    ) : <span style={{ color: C.dim }}>—</span>}
+                    </div>
                   </td>
                 </tr>
               );
@@ -296,6 +333,25 @@ export default function VideoPipelineMonitor({ onAuthExpired }) {
         cancelLabel="Annulla"
         onConfirm={confirmRetrigger}
         onCancel={() => setPendingRetrigger(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingHide}
+        title="Elimina dalla Pipeline Video"
+        body={
+          pendingHide
+            ? `Toglie ${
+                pendingHide.type === "videocorso"
+                  ? `la lezione ${pendingHide.lesson_id} di ${pendingHide.partner_name}`
+                  : `la masterclass di ${pendingHide.partner_name}`
+              } da questa lista. Video, trascrizioni e materiali non vengono cancellati.`
+            : ""
+        }
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        destructive
+        onConfirm={confirmHide}
+        onCancel={() => setPendingHide(null)}
       />
     </div>
   );

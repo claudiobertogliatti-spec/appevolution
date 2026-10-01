@@ -13,7 +13,7 @@ const ROW = { partner_id: "p1", partner_name: "ACME", type: "masterclass", statu
 beforeEach(() => {
   jest.clearAllMocks();
   adminFetch.mockImplementation((url, opts) => {
-    if (opts?.method === "POST") return Promise.resolve({ ok: true });
+    if (opts?.method === "POST" || opts?.method === "DELETE") return Promise.resolve({ ok: true });
     if (String(url).includes("/api/celery/status")) return Promise.resolve({ json: async () => ({}) });
     return Promise.resolve({ ok: true, json: async () => ({ videos: [ROW] }) });
   });
@@ -44,4 +44,31 @@ test("confermando chiama il retrigger-video del job", async () => {
       { method: "POST" }
     )
   );
+});
+
+test("Elimina apre una conferma in pagina, poi chiama DELETE con type/lesson_id e toglie la riga", async () => {
+  const LESSON = { partner_id: "p2", partner_name: "BETA", type: "videocorso", lesson_id: "m1_l2", status: "da_revisionare" };
+  adminFetch.mockImplementation((url, opts) => {
+    if (opts?.method === "DELETE") return Promise.resolve({ ok: true });
+    if (String(url).includes("/api/celery/status")) return Promise.resolve({ json: async () => ({}) });
+    return Promise.resolve({ ok: true, json: async () => ({ videos: [ROW, LESSON] }) });
+  });
+  const spy = jest.spyOn(window, "confirm");
+  render(<VideoPipelineMonitor onAuthExpired={() => {}} />);
+  await screen.findByText("BETA");
+  fireEvent.click(screen.getAllByRole("button", { name: "Elimina" })[1]);
+  expect(spy).not.toHaveBeenCalled();
+  const dialog = screen.getByRole("dialog");
+  expect(dialog.textContent).toMatch(/lezione m1_l2 di BETA/i);
+  expect(adminFetch).not.toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ method: "DELETE" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Elimina" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/admin/video-review/p2",
+      expect.objectContaining({ method: "DELETE", body: JSON.stringify({ type: "videocorso", lesson_id: "m1_l2" }) })
+    )
+  );
+  await waitFor(() => expect(screen.queryByText("BETA")).toBeNull());
+  expect(screen.getByText("ACME")).toBeTruthy();
+  spy.mockRestore();
 });
