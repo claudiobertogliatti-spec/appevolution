@@ -37,7 +37,7 @@ function Photo({ src, alt, fallbackText, className }) {
 
 export default function BenvenutoStart({ clientName, consegne = [], onStart, ctaLabel = "Iniziamo" }) {
   const nome = (clientName || "").trim().split(/\s+/)[0] || "";
-  const video = START_WELCOME_VIDEOS.filter((v) => v && v.embed);
+  const video = START_WELCOME_VIDEOS.filter((v) => v && (v.src || v.embed));
 
   return (
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
@@ -66,18 +66,29 @@ export default function BenvenutoStart({ clientName, consegne = [], onStart, cta
         {video.length > 0 && (
           <section aria-label="Video di benvenuto" className="grid gap-5 sm:grid-cols-2">
             {video.map((v) => (
-              <div key={v.embed} className="bg-white rounded-2xl border border-slate-200 p-4">
+              <div key={v.src || v.embed} className="bg-white rounded-2xl border border-slate-200 p-4">
                 <p className="text-sm font-semibold mb-1">{v.titolo}</p>
                 {v.descrizione && <p className="text-sm text-slate-500 mb-3">{v.descrizione}</p>}
                 <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ aspectRatio: "16 / 9" }}>
-                  <iframe
-                    src={v.embed}
-                    title={v.titolo}
-                    className="absolute inset-0 w-full h-full"
-                    frameBorder="0"
-                    allow="encrypted-media; fullscreen"
-                    allowFullScreen
-                  />
+                  {v.src ? (
+                    <video
+                      src={v.src}
+                      title={v.titolo}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  ) : (
+                    <iframe
+                      src={v.embed}
+                      title={v.titolo}
+                      className="absolute inset-0 w-full h-full"
+                      frameBorder="0"
+                      allow="encrypted-media; fullscreen"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
               </div>
             ))}

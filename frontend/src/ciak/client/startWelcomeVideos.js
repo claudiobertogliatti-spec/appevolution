@@ -1,5 +1,12 @@
-// Video del benvenuto Ciak Start. Ogni voce: { titolo, descrizione, embed }.
-// Una voce compare nella schermata solo se ha un `embed` reale: niente riquadri
-// vuoti. I due video dedicati a Start (diversi dal video del Metodo E.V.O.,
-// che e' della Partnership) vanno inseriti qui quando sono pronti.
-export const START_WELCOME_VIDEOS = [];
+// Video del benvenuto Ciak Start. Ogni voce: { titolo, descrizione, src | embed }.
+// `src` = file mp4 nel repo (si riproduce nel browser, nessun blocco di terze
+// parti: un incorporamento HeyGen risultava "bloccato" sul telefono di una
+// cliente). `embed` resta per un eventuale iframe. Una voce compare solo se ha
+// `src` o `embed` reali: niente riquadri vuoti.
+export const START_WELCOME_VIDEOS = [
+  {
+    titolo: "Benvenuto in Ciak Start",
+    descrizione: "Claudio ti spiega cosa hai acquistato.",
+    src: "/video/ciak-start-benvenuto-1.mp4",
+  },
+];

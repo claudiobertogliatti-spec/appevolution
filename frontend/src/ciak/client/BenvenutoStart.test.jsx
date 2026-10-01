@@ -32,8 +32,12 @@ test("non porta il Metodo E.V.O. della Partnership, ne' parla di accademia o fun
   expect(testo).toMatch(/390/);
 });
 
-test("senza date non inventa scadenze e senza video non mostra riquadri vuoti", () => {
+test("senza date non inventa scadenze; il video 1 e' un mp4 riprodotto dal sito, non un iframe", () => {
   const { container } = render(<BenvenutoStart clientName="Linda" consegne={[]} onStart={() => {}} />);
   expect(container.textContent).not.toMatch(/Entro il/);
   expect(container.querySelector("iframe")).toBeNull();
+  const video = container.querySelector("video");
+  expect(video).not.toBeNull();
+  expect(video.getAttribute("src")).toBe("/video/ciak-start-benvenuto-1.mp4");
+  expect(video.hasAttribute("controls")).toBe(true);
 });
