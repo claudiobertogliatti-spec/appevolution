@@ -17,9 +17,22 @@ test('shows the real EVO S renewal prices, not invented ones', () => {
   expect(screen.getByText(/797 € \/ mese/)).toBeTruthy();
 });
 
-test('without a verified current plan, the status is honestly "Da collegare"', () => {
+test('without a contract date there is no placeholder, only an honest message', () => {
   renderPiano();
-  expect(screen.getAllByText(/Da collegare/).length).toBeGreaterThanOrEqual(2);
+  expect(screen.queryByText(/Da collegare/)).toBeNull();
+  expect(screen.getByText(/te la conferma il team/)).toBeTruthy();
+});
+
+test('with a real contract date, shows start and end of the first 12 months', () => {
+  renderPiano({ support: { contract_date: '2026-03-10', unlock_date: '2027-03-10', eligible: false } });
+  expect(screen.getByText(/10 marzo 2026/)).toBeTruthy();
+  expect(screen.getByText(/10 marzo 2027/)).toBeTruthy();
+  expect(screen.queryByText(/Da collegare/)).toBeNull();
+});
+
+test('once the 12 months are done, says the renewal can be chosen', () => {
+  renderPiano({ support: { contract_date: '2025-01-05', unlock_date: '2026-01-05', eligible: true } });
+  expect(screen.getByText(/primi 12 mesi sono completati/)).toBeTruthy();
 });
 
 test('a provided plan is shown instead of the placeholder', () => {
