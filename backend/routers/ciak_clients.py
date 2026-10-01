@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 import re
@@ -1321,3 +1321,16 @@ async def bonus_reminder_run(_auth=Depends(require_admin_or_report_key)):
     from services.ciak_bonus_reminder import invia_promemoria_bonus
 
     return await invia_promemoria_bonus(db)
+
+
+@router.post("/insider-invites/run")
+async def insider_invites_run(dry_run: Optional[bool] = None, _auth=Depends(require_admin_or_report_key)):
+    """Innescato ogni giorno dallo scheduler (X-Report-Key): invita a Evolution Insider chi ha
+    gia' interagito e non ha acquistato. Spento finche' INSIDER_INVITES_ENABLED != "1": spento,
+    conta soltanto. `?dry_run=true` conta senza inviare, anche a flag acceso. Vedi
+    services/ciak_insider_invites e docs/superpowers/specs/2026-10-01-evolution-insider-community-design.md."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database non configurato")
+    from services.ciak_insider_invites import invita_insider
+
+    return await invita_insider(db, dry_run=dry_run)
