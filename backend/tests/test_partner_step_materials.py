@@ -33,6 +33,36 @@ def test_file_urls_are_always_internal_and_video_has_no_download():
     assert video["download_url"] is None
 
 
+@pytest.mark.parametrize("name", [
+    "Script_Masterclass.docx", "Calendario_Lancio.xlsx", "Articolo.odt", "Slide.pptx", "dati.csv",
+])
+def test_office_files_are_download_only_never_offered_as_preview(name):
+    # Il browser NON mostra Word/Excel/ODT: li scarica. "Visualizza"/"Apri" per questi
+    # file era il bug "clicco e si scarica": niente preview_url, resta solo il download.
+    item = normalize_file_material({"file_id": "d1", "original_name": name})
+    assert item["can_preview"] is False
+    assert item["preview_url"] is None
+    assert item["download_url"] == "/api/partner-step-materials/d1/download"
+
+
+@pytest.mark.parametrize("name", ["Brand.pdf", "logo.png", "foto.JPG", "nota.txt"])
+def test_pdf_images_and_text_keep_the_preview(name):
+    item = normalize_file_material({"file_id": "p1", "original_name": name})
+    assert item["can_preview"] is True
+    assert item["preview_url"] == "/api/partner-step-materials/p1/preview"
+
+
+def test_preview_is_decided_by_mime_when_the_name_has_no_extension():
+    # I record storici hanno titoli senza estensione ("Contratto firmato"): conta il MIME.
+    pdf = normalize_file_material({"file_id": "p2", "original_name": "Contratto firmato", "content_type": "application/pdf"})
+    docx = normalize_file_material({
+        "file_id": "w2", "original_name": "Documento posizionamento",
+        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    })
+    assert pdf["can_preview"] is True
+    assert docx["can_preview"] is False and docx["preview_url"] is None
+
+
 def test_pdf_proxy_uses_pdf_mime_when_storage_returns_octet_stream():
     doc = {"original_name": "Brand_Kit.pdf"}
 

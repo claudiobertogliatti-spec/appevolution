@@ -78,6 +78,20 @@ def material_type(doc: Dict[str, Any]) -> str:
     return "document"
 
 
+def can_preview(doc: Dict[str, Any]) -> bool:
+    """True solo per i formati che il browser sa MOSTRARE (PDF, immagini, testo).
+
+    Word, Excel, ODT, ecc. non si renderizzano in un iframe o in una nuova
+    scheda: il browser li scarica. Offrire "Visualizza"/"Apri" per quei file
+    era il bug "clicco e si scarica": per loro resta solo "Scarica".
+    """
+    if material_type(doc) in {"pdf", "image"}:
+        return True
+    name = str(doc.get("original_name") or doc.get("filename") or "").lower()
+    mime = str(doc.get("content_type") or doc.get("mime_type") or "").split(";", 1)[0].strip().lower()
+    return PurePosixPath(name).suffix == ".txt" or mime == "text/plain"
+
+
 def content_type_for_material(doc: Dict[str, Any], upstream_content_type: Optional[str] = None) -> str:
     """Restituisce un MIME visualizzabile anche per i record storici incompleti.
 
@@ -114,10 +128,12 @@ def normalize_file_material(doc: Dict[str, Any]) -> Dict[str, Any]:
     # restano su `public_url`. I non-video hanno sempre le url (la lista esclude
     # comunque i non apribili).
     served = kind != "video" or bool(trusted_storage_url(doc.get("internal_url")))
+    previewable = can_preview(doc) or kind == "video"
     return {
         "id": file_id, "type": kind,
         "title": doc.get("original_name") or doc.get("filename") or doc.get("category") or "Materiale",
-        "preview_url": f"{base}/preview" if served else None,
+        "can_preview": previewable,
+        "preview_url": f"{base}/preview" if served and previewable else None,
         "download_url": f"{base}/download" if served else None,
         "public_url": allowed_public_url(doc.get("public_url")),
         "version": int(doc.get("version") or 1),

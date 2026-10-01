@@ -100,7 +100,7 @@ export default function SerenoMateriali({
                         <small>{[file.owner, file.category, file.size, file.date].filter(Boolean).join(' · ')}</small>
                       </div>
                       <div className="sereno-mat-fileactions">
-                        <button className="sereno-secondary" onClick={() => onOpen(file)}><Eye aria-hidden="true" />Apri</button>
+                        {file.anteprima !== false && <button className="sereno-secondary" onClick={() => onOpen(file)}><Eye aria-hidden="true" />Apri</button>}
                         <button className="sereno-primary" onClick={() => onDownload(file)}><Download aria-hidden="true" />Scarica</button>
                       </div>
                     </li>
