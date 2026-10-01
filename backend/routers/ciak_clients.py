@@ -571,9 +571,24 @@ async def start_deliverables(client: dict[str, Any] = Depends(require_client)):
         raise HTTPException(status_code=403, detail="Ciak Start non attivo")
     docs = await db.ciak_start_deliverables.find(
         {"partner_id": client["id"], "approval_status": "approved"},
-        {"_id": 0, "generated_by": 0, "approved_by": 0},
+        # html della vetrina e checklist DNS sono del team: il cliente vede il link.
+        {"_id": 0, "generated_by": 0, "approved_by": 0, "html": 0, "dns_checklist": 0},
     ).sort("approved_at", 1).to_list(20)
     return {"items": docs}
+
+
+async def _avvisa_team_start(client: dict[str, Any], cosa: str) -> None:
+    """Avvisa il team (alert in-app + Telegram) che il cliente Start ha inviato qualcosa.
+
+    Senza questo il team scopre le risposte solo aprendo il pannello. Accessorio:
+    non deve mai far fallire il salvataggio del cliente.
+    """
+    try:
+        from routers.partner_journey import _notify_admin_partner_activity
+
+        await _notify_admin_partner_activity(client["id"], f"ha inviato {cosa} (Ciak Start)")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[START] avviso al team non inviato per %s: %s", client.get("id"), exc)
 
 
 class StartRisposteBody(BaseModel):
@@ -657,6 +672,7 @@ async def salva_start_risposte(
         await db.ciak_clients.update_one(
             {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
         )
+        await _avvisa_team_start(client, "le sue risposte")
     answers, completato_at = await _risposte_start(client["id"])
     return {"success": True, "answers": answers, "completato_at": completato_at}
 
@@ -750,6 +766,7 @@ async def salva_start_marchio(
         await db.ciak_clients.update_one(
             {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
         )
+        await _avvisa_team_start(client, "le scelte sul marchio")
     data = await _marchio_start(client["id"])
     return {"success": True, "valori": _valori_marchio(data), "completato_at": data.get("brand_completed_at")}
 

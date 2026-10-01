@@ -855,3 +855,60 @@ def test_start_marchio_negato_a_chi_non_ha_start(monkeypatch, client_app, fake_d
     fake_db.ciak_clients.docs[0].update({"access_level": "cliente_blueprint", "start_credit_amount": None})
     assert client_app.get("/api/ciak/client/start/marchio", headers=auth).status_code == 403
     assert client_app.put("/api/ciak/client/start/marchio", json={"valori": {"palette_id": "sicuro"}}, headers=auth).status_code == 403
+
+
+# ─── Avviso al team e materiali approvati ───────────────────────────────────
+
+def test_il_team_riceve_un_avviso_quando_il_cliente_invia_le_risposte(monkeypatch, client_app, fake_db):
+    import types as _types
+
+    chiamate = []
+
+    async def _notifica(partner_id, msg, **kw):
+        chiamate.append((partner_id, msg))
+
+    modulo = _types.ModuleType("routers.partner_journey")
+    modulo._notify_admin_partner_activity = _notifica
+    monkeypatch.setitem(sys.modules, "routers.partner_journey", modulo)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    # Una sola risposta parziale NON avvisa nessuno.
+    client_app.put("/api/ciak/client/start/risposte", json={"answers": {"nicchia": "Donne dopo i quaranta"}}, headers=auth)
+    assert chiamate == []
+    client_app.put("/api/ciak/client/start/risposte", json={"answers": _risposte_complete(), "completato": True}, headers=auth)
+    assert chiamate == [("client-1", "ha inviato le sue risposte (Ciak Start)")]
+
+
+def test_se_l_avviso_al_team_si_rompe_il_cliente_non_se_ne_accorge(monkeypatch, client_app, fake_db):
+    import types as _types
+
+    async def _rotta(partner_id, msg, **kw):
+        raise RuntimeError("telegram giu'")
+
+    modulo = _types.ModuleType("routers.partner_journey")
+    modulo._notify_admin_partner_activity = _rotta
+    monkeypatch.setitem(sys.modules, "routers.partner_journey", modulo)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    r = client_app.put("/api/ciak/client/start/risposte", json={"answers": _risposte_complete(), "completato": True}, headers=auth)
+    assert r.status_code == 200 and r.json()["completato_at"]
+
+
+def test_i_materiali_approvati_non_portano_html_ne_istruzioni_dns_del_team(monkeypatch, client_app, fake_db):
+    visti = {}
+
+    class _Cursore:
+        def sort(self, *a, **k):
+            return self
+
+        async def to_list(self, n):
+            return []
+
+    class _Coll:
+        def find(self, query, projection=None):
+            visti["query"], visti["projection"] = query, projection
+            return _Cursore()
+
+    fake_db.ciak_start_deliverables = _Coll()
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    assert client_app.get("/api/ciak/client/start/deliverables", headers=auth).status_code == 200
+    assert visti["query"] == {"partner_id": "client-1", "approval_status": "approved"}
+    assert visti["projection"]["html"] == 0 and visti["projection"]["dns_checklist"] == 0

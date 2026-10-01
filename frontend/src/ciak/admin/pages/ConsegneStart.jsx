@@ -301,11 +301,26 @@ export function ConsegneStart({ onAuthExpired }) {
     const chiave = `${client.client_id}-${azione}`;
     setInCorso(chiave);
     setEsito(null);
+    let liveUrl = null;
+    if (azione === "approva_vetrina") {
+      // La vetrina si approva solo quando e' online: serve il suo indirizzo.
+      liveUrl = window.prompt("Indirizzo della pagina online (https://...)");
+      if (!liveUrl) {
+        setInCorso(null);
+        return;
+      }
+    }
     const routes = {
+      genera_posizionamento: [`/start/${client.client_id}/posizionamento/genera`, null],
+      approva_posizionamento: [`/start/${client.client_id}/deliverable/approva`, { tipo: "positioning" }],
+      genera_marchio: [`/start/${client.client_id}/marchio/genera`, null],
+      approva_marchio: [`/start/${client.client_id}/deliverable/approva`, { tipo: "brand_kit" }],
+      genera_profili: [`/start/${client.client_id}/profili/genera`, null],
+      genera_vetrina: [`/start/${client.client_id}/vetrina/genera`, null],
       genera_calendario: [`/start/${client.client_id}/calendario-90/genera`, null],
       approva_calendario: [`/start/${client.client_id}/deliverable/approva`, { tipo: "content_plan_90d" }],
       approva_profili: [`/start/${client.client_id}/deliverable/approva`, { tipo: "social_profiles" }],
-      approva_vetrina: [`/start/${client.client_id}/deliverable/approva`, { tipo: "showcase" }],
+      approva_vetrina: [`/start/${client.client_id}/deliverable/approva`, { tipo: "showcase", live_url: liveUrl }],
       genera_readiness: [`/start/${client.client_id}/readiness/genera`, null],
       approva_readiness: [`/start/${client.client_id}/deliverable/approva`, { tipo: "partnership_readiness" }],
     };
@@ -389,9 +404,15 @@ export function ConsegneStart({ onAuthExpired }) {
                 <p className="text-sm font-semibold text-slate-900">{client.nome || client.email}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[
+                    ["genera_posizionamento", "1a · Genera posizionamento"],
+                    ["approva_posizionamento", "Approva posizionamento"],
+                    ["genera_marchio", "1b · Genera scheda marchio"],
+                    ["approva_marchio", "Approva marchio"],
+                    ["genera_profili", "2a · Genera profili social"],
                     ["approva_profili", "Approva profili sistemati"],
-                    ["approva_vetrina", "Approva sito vetrina"],
-                    ["genera_calendario", "Genera ciclo contenuti 60 giorni"],
+                    ["genera_vetrina", "2b · Genera sito vetrina"],
+                    ["approva_vetrina", "Approva sito vetrina (online)"],
+                    ["genera_calendario", "3 · Genera ciclo contenuti 60 giorni"],
                     ["approva_calendario", "Approva calendario"],
                     ["genera_readiness", "Genera verifica readiness"],
                     ["approva_readiness", "Approva report readiness"],

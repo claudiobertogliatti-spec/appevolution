@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { clientGet, clientPut } from "../api";
 import { START_DOMANDE, MIN_CARATTERI } from "../startDomande";
@@ -18,6 +18,10 @@ export function StartDomandePage({ dashboard }) {
   const [errore, setErrore] = useState("");
   const [invio, setInvio] = useState(false);
   const campoRef = useRef(null);
+  // Salvataggio mentre scrive: dopo un secondo di pausa, e subito se la persona
+  // cambia app o chiude la scheda. Cosi' non si perde l'ultima frase.
+  const attesa = useRef(null);
+  const timer = useRef(null);
 
   useEffect(() => {
     let annullato = false;
@@ -49,14 +53,43 @@ export function StartDomandePage({ dashboard }) {
     if (campoRef.current) campoRef.current.focus();
   }, [indice, caricamento, inviate, modifica]);
 
+  const scarica = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const daSalvare = attesa.current;
+    attesa.current = null;
+    if (daSalvare) {
+      clientPut("/start/risposte", { answers: { [daSalvare.id]: daSalvare.valore } }).catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const alNascondi = () => {
+      if (document.visibilityState === "hidden") scarica();
+    };
+    document.addEventListener("visibilitychange", alNascondi);
+    window.addEventListener("pagehide", scarica);
+    return () => {
+      document.removeEventListener("visibilitychange", alNascondi);
+      window.removeEventListener("pagehide", scarica);
+      scarica();
+    };
+  }, [scarica]);
+
   const domanda = START_DOMANDE[indice];
   const testo = risposte[domanda?.id] || "";
   const utile = testo.trim().length >= MIN_CARATTERI;
   const ultima = indice === START_DOMANDE.length - 1;
 
-  async function salva(id) {
-    const valore = risposte[id];
+  async function salva(id, daValore) {
+    const valore = daValore !== undefined ? daValore : risposte[id];
     if (valore === undefined) return true;
+    if (attesa.current && attesa.current.id === id) {
+      attesa.current = null;
+      if (timer.current) clearTimeout(timer.current);
+    }
     setSalvataggio("Salvo...");
     try {
       await clientPut("/start/risposte", { answers: { [id]: valore } });
@@ -75,6 +108,7 @@ export function StartDomandePage({ dashboard }) {
   }
 
   async function invia() {
+    scarica();
     setInvio(true);
     setErrore("");
     try {
@@ -162,7 +196,16 @@ export function StartDomandePage({ dashboard }) {
         id="risposta"
         ref={campoRef}
         value={testo}
-        onChange={(e) => setRisposte((r) => ({ ...r, [domanda.id]: e.target.value }))}
+        onChange={(e) => {
+          const valore = e.target.value;
+          setRisposte((r) => ({ ...r, [domanda.id]: valore }));
+          attesa.current = { id: domanda.id, valore };
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(() => {
+            timer.current = null;
+            if (attesa.current) salva(attesa.current.id, attesa.current.valore);
+          }, 1000);
+        }}
         onBlur={() => salva(domanda.id)}
         rows={6}
         maxLength={2000}

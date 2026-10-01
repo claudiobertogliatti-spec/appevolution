@@ -4749,6 +4749,75 @@ async def _posizionamento_struct(client_id: str) -> tuple[dict, dict]:
     return answers, statement
 
 
+@router.post("/start/{client_id}/posizionamento/genera")
+async def genera_posizionamento_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Bozza del posizionamento del cliente Start (tappa 1), da approvare.
+
+    Scrive il deliverable e SEGNA lo step 04 come pronto, ma non ne riscrive
+    `data`: li' stanno le risposte del cliente.
+    """
+    from services.start_tappa1 import build_start_positioning
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    answers, statement = await _posizionamento_struct(client_id)
+    deliverable = build_start_positioning(statement, answers)
+    return await _salva_bozza_tappa1(client_id, "positioning", "04-posizionamento", deliverable, admin)
+
+
+@router.post("/start/{client_id}/marchio/genera")
+async def genera_marchio_start(
+    client_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Scheda del marchio scelto dal cliente Start (tappa 1), da approvare."""
+    from services.ciak_start_marchio import mancanti
+    from services.start_tappa1 import build_start_brand
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    brand = (await _start_step(client_id, "03-brand-kit")).get("data") or {}
+    if mancanti(brand):
+        raise HTTPException(409, "Il cliente non ha ancora scelto il suo marchio: nessuna scheda da generare")
+    deliverable = build_start_brand(brand)
+    return await _salva_bozza_tappa1(client_id, "brand_kit", "03-brand-kit", deliverable, admin)
+
+
+async def _salva_bozza_tappa1(client_id: str, tipo: str, step_id: str, deliverable: dict, admin) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or "admin"
+    payload = {
+        **deliverable,
+        "partner_id": client_id,
+        "generated_at": now,
+        "generated_by": actor,
+        "approval_status": "pending_review",
+    }
+    await db.ciak_start_deliverables.update_one(
+        {"partner_id": client_id, "type": tipo},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    # Solo i campi di stato: `data` dello step contiene le risposte del cliente.
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": step_id},
+        {"$set": {
+            "status": "in_progress",
+            "approval_status": "pending_review",
+            "ready_at": now,
+            "updated_at": now,
+            "data.generated_at": now,
+        }},
+        upsert=True,
+    )
+    return {"success": True, "deliverable": payload}
+
+
 @router.post("/start/{client_id}/profili/genera")
 async def genera_profili_start(
     client_id: str,
@@ -4906,6 +4975,8 @@ async def approva_deliverable_start(
         raise HTTPException(503, "Database non configurato")
     await _cliente_start_o_errore(client_id)
     mapping = {
+        "positioning": "04-posizionamento",
+        "brand_kit": "03-brand-kit",
         "content_plan_90d": "start-contenuti-90",
         "partnership_readiness": "start-readiness",
         "social_profiles": "start-profili",
@@ -4930,6 +5001,9 @@ async def approva_deliverable_start(
         live_url = (body.live_url or existing.get("live_url") or "").strip()
         if not live_url:
             raise HTTPException(409, "Serve la live_url della vetrina pubblicata per approvarla")
+        if not live_url.startswith("https://") or " " in live_url:
+            # Il cliente vede questo indirizzo come un link: solo https.
+            raise HTTPException(422, "L'indirizzo della vetrina deve iniziare con https://")
     now = datetime.now(timezone.utc).isoformat()
     actor = getattr(admin, "email", None) or "admin"
     approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}

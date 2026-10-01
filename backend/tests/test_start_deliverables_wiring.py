@@ -157,3 +157,101 @@ async def test_la_vetrina_riceve_la_foto_del_cliente(monkeypatch):
     monkeypatch.setattr(ciak_admin, "db", db)
     await ciak_admin.genera_vetrina_start("c1", admin=ADMIN)
     assert visti["foto_url"] == "https://cdn.example.com/foto.jpg"
+
+
+# ─── Tappa 1: posizionamento e marchio come materiali del cliente ───────────
+
+from services.ciak_start_marchio import normalizza  # noqa: E402
+
+MARCHIO_SCELTO = normalizza({
+    "palette_id": "naturale", "font_id": "classico", "tono_id": "caldo",
+    "parole_chiave": ["calma", "ascolto", "metodo"],
+    "logo_url": "https://cdn.example.com/logo.png",
+})
+BRAND_CLIENTE = {
+    "partner_id": "c1", "step_id": "03-brand-kit",
+    "data": {**MARCHIO_SCELTO, "brand_completed_at": "2026-10-02T11:00:00+00:00"},
+}
+
+
+def _db_tappa1():
+    return _Db(dict(CLIENT), [dict(POS_STEP), dict(BRAND_CLIENTE)])
+
+
+@pytest.mark.asyncio
+async def test_genera_posizionamento_non_cancella_le_risposte_del_cliente(monkeypatch):
+    db = _db_tappa1()
+    monkeypatch.setattr(ciak_admin, "db", db)
+    res = await ciak_admin.genera_posizionamento_start("c1", admin=ADMIN)
+    assert res["deliverable"]["type"] == "positioning"
+    assert res["deliverable"]["elementi"]["brand"] == "Metodo Sabai"
+    d = await db.ciak_start_deliverables.find_one({"partner_id": "c1", "type": "positioning"})
+    assert d["approval_status"] == "pending_review"
+    step = await db.partner_journey_steps.find_one({"partner_id": "c1", "step_id": "04-posizionamento"})
+    # Lo step e' pronto da approvare E le risposte sono ancora li'.
+    assert step["approval_status"] == "pending_review"
+    assert step["data"]["answers"]["metodo_nome"] == "Metodo Sabai"
+
+
+@pytest.mark.asyncio
+async def test_genera_marchio_da_la_scheda_e_conserva_le_scelte(monkeypatch):
+    db = _db_tappa1()
+    monkeypatch.setattr(ciak_admin, "db", db)
+    res = await ciak_admin.genera_marchio_start("c1", admin=ADMIN)
+    d = res["deliverable"]
+    assert d["type"] == "brand_kit"
+    assert d["palette"]["colori"][0] == "#1F4D3A" and d["font"]["famiglia"] == "Lora"
+    assert d["logo_url"] == "https://cdn.example.com/logo.png"
+    step = await db.partner_journey_steps.find_one({"partner_id": "c1", "step_id": "03-brand-kit"})
+    assert step["data"]["palette_id"] == "naturale"  # la scelta del cliente non si perde
+    assert step["approval_status"] == "pending_review"
+
+
+@pytest.mark.asyncio
+async def test_genera_marchio_409_se_il_cliente_non_ha_scelto(monkeypatch):
+    from fastapi import HTTPException
+
+    db = _db()  # BRAND_STEP vecchio stile: nessuna scelta del cliente
+    monkeypatch.setattr(ciak_admin, "db", db)
+    with pytest.raises(HTTPException) as e:
+        await ciak_admin.genera_marchio_start("c1", admin=ADMIN)
+    assert e.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_approvando_la_tappa_1_la_readiness_la_riconosce(monkeypatch):
+    db = _db_tappa1()
+    monkeypatch.setattr(ciak_admin, "db", db)
+    await ciak_admin.genera_posizionamento_start("c1", admin=ADMIN)
+    await ciak_admin.genera_marchio_start("c1", admin=ADMIN)
+    for tipo in ("positioning", "brand_kit"):
+        body = ciak_admin.ApprovaStartDeliverableRequest(tipo=tipo)
+        res = await ciak_admin.approva_deliverable_start("c1", body, admin=ADMIN)
+        assert res["approval_status"] == "approved"
+    for step_id in ("04-posizionamento", "03-brand-kit"):
+        step = await db.partner_journey_steps.find_one({"partner_id": "c1", "step_id": step_id})
+        assert step["status"] == "done" and step["approval_status"] == "approved"
+    # Le risposte del cliente sono ancora nello step dopo l'approvazione.
+    pos = await db.partner_journey_steps.find_one({"partner_id": "c1", "step_id": "04-posizionamento"})
+    assert pos["data"]["answers"]["nicchia"] == "massaggio thai"
+
+    res = await ciak_admin.genera_readiness_start("c1", admin=ADMIN)
+    checks = res["deliverable"]["checks"]
+    assert checks["brand_kit"] is True and checks["positioning"] is True
+
+
+@pytest.mark.asyncio
+async def test_la_vetrina_si_approva_solo_con_un_indirizzo_https(monkeypatch):
+    from fastapi import HTTPException
+
+    db = _db()
+    monkeypatch.setattr(ciak_admin, "db", db)
+    await ciak_admin.genera_vetrina_start("c1", admin=ADMIN)
+    for brutto in ("javascript:alert(1)", "http://example.com", "https://a.com/x y"):
+        body = ciak_admin.ApprovaStartDeliverableRequest(tipo="showcase", live_url=brutto)
+        with pytest.raises(HTTPException) as e:
+            await ciak_admin.approva_deliverable_start("c1", body, admin=ADMIN)
+        assert e.value.status_code == 422
+    ok = ciak_admin.ApprovaStartDeliverableRequest(tipo="showcase", live_url="https://www.esempio.it")
+    res = await ciak_admin.approva_deliverable_start("c1", ok, admin=ADMIN)
+    assert res["approval_status"] == "approved"

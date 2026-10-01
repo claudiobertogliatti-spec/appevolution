@@ -2,7 +2,7 @@
  * Il marchio di Ciak Start: scelte semplici fra opzioni pronte, un passo alla
  * volta. Logo e foto sono facoltativi. Niente codici colore da scrivere.
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 jest.mock(
   "react-router-dom",
@@ -56,8 +56,7 @@ test("si sceglie fra colori pronti, senza scrivere codici, e Avanti si sblocca s
 test("le lettere si vedono con il nome del cliente e la scelta si salva", async () => {
   clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: { palette_id: "sicuro" }, completato_at: null });
   render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Quali colori ti somigliano di più?");
-  fireEvent.click(avanti());
+  // La palette c'e' gia': si riprende dalle lettere.
   expect(await screen.findByText("Quali lettere vuoi usare per il tuo nome?")).toBeTruthy();
   expect(screen.getAllByText("Linda Pavia").length).toBe(2);
   fireEvent.click(screen.getAllByRole("radio")[1]);
@@ -71,8 +70,8 @@ test("giro completo: logo e foto sono facoltativi e alla fine invia", async () =
     completato_at: null,
   });
   render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Quali colori ti somigliano di più?");
-  for (let i = 0; i < 4; i += 1) fireEvent.click(avanti()); // colori, lettere, voce, parole
+  expect(await screen.findByText("Una tua foto")).toBeTruthy(); // ha scelto tutto: riparte dall'ultima
+  fireEvent.click(screen.getByRole("button", { name: "Indietro" }));
   expect(await screen.findByText("Hai già un logo?")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Non ce l'ho, avanti" }));
   expect(await screen.findByText("Una tua foto")).toBeTruthy();
@@ -88,8 +87,6 @@ test("servono tre parole per andare avanti", async () => {
     completato_at: null,
   });
   render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Quali colori ti somigliano di più?");
-  for (let i = 0; i < 3; i += 1) fireEvent.click(avanti());
   await screen.findByText("Tre parole che descrivono il tuo lavoro");
   expect(avanti().disabled).toBe(true);
   fireEvent.change(screen.getByLabelText("Parola 3"), { target: { value: "metodo" } });
@@ -104,8 +101,8 @@ test("carica il logo e lo salva come indirizzo, senza dire nulla al team per ogn
   });
   global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://cdn.example.com/logo.png" }) });
   const { container } = render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Quali colori ti somigliano di più?");
-  for (let i = 0; i < 4; i += 1) fireEvent.click(avanti());
+  await screen.findByText("Una tua foto");
+  fireEvent.click(screen.getByRole("button", { name: "Indietro" }));
   await screen.findByText("Hai già un logo?");
   const file = new File(["x"], "logo.png", { type: "image/png" });
   fireEvent.change(container.querySelector("input[type=file]"), { target: { files: [file] } });
@@ -124,10 +121,6 @@ test("se il server dice che manca una scelta, riapre quel passo", async () => {
     return { success: true, valori: body.valori || {} };
   });
   render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Quali colori ti somigliano di più?");
-  for (let i = 0; i < 4; i += 1) fireEvent.click(avanti());
-  await screen.findByText("Hai già un logo?");
-  fireEvent.click(avanti());
   await screen.findByText("Una tua foto");
   fireEvent.click(screen.getByRole("button", { name: "Invia le mie scelte" }));
   expect(await screen.findByText("Quali lettere vuoi usare per il tuo nome?")).toBeTruthy();
@@ -140,4 +133,42 @@ test("chi ha già inviato vede il ringraziamento e può cambiare", async () => {
   expect(await screen.findByTestId("marchio-inviato")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Voglio cambiare qualcosa" }));
   expect(await screen.findByText("Quali colori ti somigliano di più?")).toBeTruthy();
+});
+
+test("riprende dalla prima scelta mancante, non dalla prima schermata", async () => {
+  clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: { palette_id: "sicuro", font_id: "moderno" }, completato_at: null });
+  render(<StartMarchioPage dashboard={DASH} />);
+  expect(await screen.findByText("Come vuoi parlare alle persone?")).toBeTruthy();
+});
+
+test("se ha scelto tutto ma non ha inviato riparte dall'ultima schermata", async () => {
+  clientGet.mockResolvedValue({
+    opzioni: OPZIONI,
+    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto", "metodo"] },
+    completato_at: null,
+  });
+  render(<StartMarchioPage dashboard={DASH} />);
+  expect(await screen.findByText("Una tua foto")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Invia le mie scelte" })).toBeTruthy();
+});
+
+describe("le tre parole si salvano mentre scrive", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test("dopo un secondo di pausa, senza premere Avanti", async () => {
+    clientGet.mockResolvedValue({
+      opzioni: OPZIONI,
+      valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo" },
+      completato_at: null,
+    });
+    render(<StartMarchioPage dashboard={DASH} />);
+    await screen.findByText("Tre parole che descrivono il tuo lavoro");
+    fireEvent.change(screen.getByLabelText("Parola 1"), { target: { value: "calma" } });
+    expect(clientPut).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { parole_chiave: ["calma", "", ""] } });
+  });
 });
