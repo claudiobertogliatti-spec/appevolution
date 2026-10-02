@@ -77,7 +77,11 @@ export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraf
   const canComplete = REQUIRED.every((k) => String(data[k] || "").trim());
   // Passo già completato: i dati restano modificabili (cambio indirizzo, IBAN, PEC…).
   // Il backend accetta di nuovo il salvataggio e aggiorna scheda partner e dati del contratto.
-  const isDone = step?.status === "done";
+  // Solo se i dati ci sono davvero: un passo segnato "fatto" dalla migrazione, senza dati,
+  // deve restare un form da compilare (non "già salvato").
+  // Si guarda ai dati salvati (step.data), non a quelli in modifica: svuotare un campo
+  // mentre si corregge non deve far cambiare la schermata sotto le mani.
+  const isDone = step?.status === "done" && REQUIRED.every((k) => String(step?.data?.[k] || "").trim());
 
   return (
     <StepBase
