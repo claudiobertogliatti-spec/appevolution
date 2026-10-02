@@ -442,6 +442,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const [err, setErr] = useState(null);
   const [selected, setSelected] = useState(null);
   const [pageSel, setPageSel] = useState(null);
+  const [flash, setFlash] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -468,7 +469,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
       if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Qualcosa non ha funzionato. Riprova.");
       setState((s) => ({ ...s, review: d, progress: d.progress }));
       setSelected(null);
-      return true;
+      return d;
     } catch (e) {
       setErr(String(e.message || e));
       return false;
@@ -491,8 +492,32 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
   const steps = review.steps || [];
   const progress = state.progress || 0;
   const current = selected || review.current_step || (steps[0] && steps[0].id);
-  const approve = (id) => act("approve", { page_id: id });
-  const approvePart = (pageId, partId) => act("part/approve", { page_id: pageId, part_id: partId });
+  // «Approva» salva la scelta nel tuo funnel e Gaia prosegue: porta alla pagina (o al passo) successivo.
+  const proceed = (d, pageId) => {
+    const seq = d.sequence || [];
+    const stateOf = (id) => ((d.pages || []).find((p) => p.id === id) || {}).state;
+    const page = seq.find((x) => x.id === pageId);
+    setPageSel(null);
+    if (page && stateOf(pageId) === "approvata") {
+      const next = seq.find((x) => stateOf(x.id) !== "approvata");
+      setFlash(next
+        ? `Fatto: «${page.title}» approvata, l'ho memorizzato. Passiamo a «${next.title}».`
+        : "Fatto: ho memorizzato tutte le pagine approvate. Passiamo al passo successivo.");
+    } else {
+      setFlash("Fatto: l'ho memorizzato.");
+    }
+    if (typeof window !== "undefined" && window.scrollTo) window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const approve = async (id) => {
+    const d = await act("approve", { page_id: id });
+    if (d) proceed(d, id);
+    return d;
+  };
+  const approvePart = async (pageId, partId) => {
+    const d = await act("part/approve", { page_id: pageId, part_id: partId });
+    if (d) proceed(d, pageId);
+    return d;
+  };
   const uploadPhoto = async (file) => {
     try {
       const fd = new FormData();
@@ -548,7 +573,12 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
       <div className="h-1.5 bg-slate-700"><div className="h-1.5 transition-all" style={{ width: `${progress}%`, background: BRAND_YELLOW }} /></div>
 
       <div className="bg-white border border-gray-200 border-t-0 rounded-b-xl p-5">
-        <Stepper steps={steps} selected={current} onSelect={setSelected} />
+        <Stepper steps={steps} selected={current} onSelect={(id) => { setFlash(null); setSelected(id); }} />
+        {flash && (
+          <div role="status" className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-[13.5px] text-green-800">
+            <strong>✓</strong> {flash}
+          </div>
+        )}
 
         <div className="flex gap-3 mb-5">
           <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0"
@@ -605,7 +635,7 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
                       Guarda la bozza ↗
                     </a>
                     {page.state !== "approvata" && (
-                      <button onClick={async () => { const ok = await approve(page.id); if (ok) setPageSel(null); }} disabled={busy}
+                      <button onClick={() => approve(page.id)} disabled={busy}
                               className="min-h-[44px] px-4 rounded-lg text-[14px] text-white border border-slate-500 disabled:opacity-40">
                         Approva tutta la pagina
                       </button>
