@@ -1819,7 +1819,7 @@ async def ciak_lead_detail(
         }
 
     from services.ciak_client_accounts import ruolo_contatto
-    partner_doc = await db.partners.find_one({"email": _email_ci(email)}, {"_id": 0, "id": 1})
+    partner_doc = await db.partners.find_one({"email": _email_ci(email)}, {"_id": 0, "id": 1, "tier": 1})
 
     return {
         "email": email,

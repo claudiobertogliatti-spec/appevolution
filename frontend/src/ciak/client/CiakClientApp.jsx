@@ -15,28 +15,7 @@ import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
 // Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
 // Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
 import BenvenutoStart from "./BenvenutoStart";
-
-// Chi ha gia' visto il benvenuto Ciak Start non lo rivede: flag per-cliente.
-// localStorage puo' mancare (finestra privata, storage bloccato): in dubbio si
-// considera "gia' visto", perche' ripresentarlo a ogni visita infastidisce piu'
-// che ometterlo una volta.
-function welcomeAlreadySeen(clientId) {
-  if (!clientId) return true;
-  try {
-    return localStorage.getItem(`ciak_welcome_start_seen_${clientId}`) === "1";
-  } catch {
-    return true;
-  }
-}
-
-function markWelcomeSeen(clientId) {
-  if (!clientId) return;
-  try {
-    localStorage.setItem(`ciak_welcome_start_seen_${clientId}`, "1");
-  } catch {
-    // Storage non disponibile: pazienza, si ripresentera' al prossimo caricamento.
-  }
-}
+import { markWelcomeSeen, welcomeAlreadySeen } from "./welcomeStart";
 
 function AccessPage() {
   const [params] = useSearchParams();
