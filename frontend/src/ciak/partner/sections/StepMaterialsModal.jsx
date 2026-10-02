@@ -78,7 +78,7 @@ export default function StepMaterialsModal({ partnerId, step, onClose }) {
                     ))}
                   </div>
                   <div className="min-h-[360px] rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
-                    {!preview ? <p className="text-sm text-slate-500 px-6 text-center">Seleziona “Visualizza” per consultare il materiale senza uscire da Ciak.</p> : preview.material.type === "image" ? <img src={preview.objectUrl} alt={preview.material.title} className="max-w-full max-h-[65vh] object-contain" /> : <iframe title={preview.material.title} src={preview.objectUrl} className="w-full h-[65vh] bg-white" />}
+                    {!preview ? <p className="text-sm text-slate-500 px-6 text-center">{data.materials.some((m) => m.preview_url) ? "Seleziona “Visualizza” per consultare il materiale senza uscire da Ciak." : "Questi file non si possono mostrare nel browser: usa “Scarica” per aprirli."}</p> : preview.material.type === "image" ? <img src={preview.objectUrl} alt={preview.material.title} className="max-w-full max-h-[65vh] object-contain" /> : <iframe title={preview.material.title} src={preview.objectUrl} className="w-full h-[65vh] bg-white" />}
                   </div>
                 </div>
               )}
