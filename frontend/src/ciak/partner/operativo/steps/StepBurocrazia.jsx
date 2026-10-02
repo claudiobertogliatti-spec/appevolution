@@ -4,17 +4,8 @@ import { authHeaders } from "../../api";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
-async function uploadFile(file, partnerId) {
-  const fd = new FormData();
-  fd.append("file", file);
-  const r = await fetch(`${API}/api/partner-journey/operativo/upload/${partnerId}`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: fd,
-  });
-  if (!r.ok) throw new Error(`Upload fallito: ${r.status}`);
-  return (await r.json()).url;
-}
+// Contratto firmato e distinta si caricano UNA volta sola, nel passo F-2 (Step01Contratto):
+// qui si chiedono solo i dati. Chiederli di nuovo bloccava chi aveva già F-2 completato.
 
 // Sezioni del form dati. type: text | checkbox.
 const SECTIONS = [
@@ -55,8 +46,6 @@ const REQUIRED = ["nome", "email", "indirizzo", "codice_fiscale", "iban"];
 
 export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraft }) {
   const [data, setData] = useState(step?.data || {});
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
 
   // Pre-popola dai dati profilo già noti (contatti) se lo step è vuoto.
   useEffect(() => {
@@ -85,33 +74,30 @@ export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraf
   const setField = (k, v) => setData((prev) => ({ ...prev, [k]: v }));
   const persist = () => onSaveDraft(data);
 
-  const handleDoc = async (kind, file) => {
-    if (!file) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const url = await uploadFile(file, partnerId);
-      const next = { ...data, [kind === "contract" ? "contract_url" : "receipt_url"]: url };
-      setData(next);
-      onSaveDraft(next);
-    } catch (e) {
-      setErr(String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const canComplete = REQUIRED.every((k) => String(data[k] || "").trim()) && !!data.contract_url && !!data.receipt_url && !busy;
+  const canComplete = REQUIRED.every((k) => String(data[k] || "").trim());
+  // Passo già completato: i dati restano modificabili (cambio indirizzo, IBAN, PEC…).
+  // Il backend accetta di nuovo il salvataggio e aggiorna scheda partner e dati del contratto.
+  const isDone = step?.status === "done";
 
   return (
     <StepBase
       step={step}
       title="I tuoi dati"
+      ctaLabel={isDone ? "Salva le modifiche" : undefined}
       ctaDisabled={!canComplete}
       onCta={() => onComplete(data)}
-      secondaryNote="Servono per la fattura e per intestare correttamente il tuo progetto. Si inseriscono una volta sola e li conserviamo noi."
+      secondaryNote={
+        isDone
+          ? "Se qualcosa cambia, correggilo qui e salva: aggiorniamo noi fatture e documenti."
+          : "Servono per la fattura e per intestare correttamente il tuo progetto. Si inseriscono una volta sola e li conserviamo noi."
+      }
     >
       <div className="space-y-6">
+        {isDone && (
+          <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+            I tuoi dati sono già salvati. Puoi modificarli in qualsiasi momento.
+          </p>
+        )}
         {SECTIONS.map((sec) => (
           <div key={sec.title}>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
@@ -153,44 +139,12 @@ export default function StepBurocrazia({ step, partnerId, onComplete, onSaveDraf
           </div>
         ))}
 
-        {/* Contratto e distinta */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-            Contratto e distinta
-          </p>
-          <p className="text-xs text-slate-500 mb-2 leading-relaxed">
-            La firma del contratto e il pagamento li hai già fatti prima di entrare. Qui carichi il
-            <strong className="text-slate-700"> contratto firmato</strong> e la
-            <strong className="text-slate-700"> distinta del pagamento</strong>: li conserviamo noi.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DocSlot label="Contratto firmato" url={data.contract_url} accept="application/pdf" onPick={(f) => handleDoc("contract", f)} />
-            <DocSlot label="Distinta di pagamento" url={data.receipt_url} accept="application/pdf,image/*" onPick={(f) => handleDoc("receipt", f)} />
-          </div>
-          {busy && <p className="text-xs text-slate-500 mt-2">Caricamento in corso…</p>}
-          {err && <p className="text-red-600 text-sm mt-2">{err}</p>}
-        </div>
-
         {!canComplete && (
           <p className="text-xs text-slate-400">
-            Per procedere completa i campi con <span className="text-yellow-600">*</span> e carica il contratto firmato e la distinta.
+            Per procedere completa i campi con <span className="text-yellow-600">*</span>.
           </p>
         )}
       </div>
     </StepBase>
-  );
-}
-
-function DocSlot({ label, url, accept, onPick }) {
-  return (
-    <label className={`block border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition ${url ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"}`}>
-      <input type="file" accept={accept} className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
-      <div className="text-sm font-medium text-slate-900">{url ? `✓ ${label}` : label}</div>
-      {url ? (
-        <a className="text-xs text-green-700 underline mt-1 inline-block" href={url} target="_blank" rel="noreferrer">apri caricato</a>
-      ) : (
-        <div className="text-xs text-slate-500 mt-1">⬆ Clicca o trascina</div>
-      )}
-    </label>
   );
 }
