@@ -382,3 +382,23 @@ def test_effective_session_token_senza_alcuna_sessione_compilata_torna_al_token_
     ])
     assert asyncio.run(effective_session_token(db, {"email": "x@y.it", "session_token": "vuota"})) == "vuota"
     assert asyncio.run(effective_session_token(db, {})) is None
+
+
+def test_il_ponte_start_non_e_una_partnership_firmata():
+    """Caso Linda Pavia (2/10): la scheda diceva 'Partner - ha firmato la Partnership'
+    a una cliente che ha comprato Ciak Start. Ogni cliente Start ha un record
+    `partners` di livello 'start' (il ponte dei motori del percorso)."""
+    from services.ciak_client_accounts import ruolo_contatto
+
+    start = {"access_level": "cliente_start", "start_purchased_at": "2026-10-01T07:02:00+00:00"}
+    ponte = {"id": "c1", "tier": "start"}
+    assert ruolo_contatto(start, ponte)["tipo"] == "cliente_start"
+    # Livello scritto in modo diverso o sconosciuto: mai piu' di Start.
+    assert ruolo_contatto(start, {"id": "c1", "tier": " START "})["tipo"] == "cliente_start"
+    assert ruolo_contatto(start, {"id": "c1", "tier": "boh"})["tipo"] == "cliente_start"
+    # Salito a Partnership: ora si'.
+    assert ruolo_contatto(start, {"id": "c1", "tier": "partnership"})["tipo"] == "partner"
+    # I partner storici non hanno il campo `tier`: valgono Partnership.
+    assert ruolo_contatto({}, {"id": "p-storico"})["tipo"] == "partner"
+    # Un lead col ponte start (non ancora pagato) non e' partner ne' cliente.
+    assert ruolo_contatto({"access_level": "cliente_blueprint"}, {"id": "c1", "tier": "start"})["tipo"] == "lead"

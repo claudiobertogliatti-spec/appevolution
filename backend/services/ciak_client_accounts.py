@@ -124,8 +124,14 @@ def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None
     ricevuto il Blueprint gratuito) resta un LEAD: non ha pagato niente.
     Priorita': partner > cliente Start > lead.
     """
+    from models.start_journey import is_start_tier
+
     client = client or {}
-    if partner or client.get("access_level") == ACCESS_PARTNER:
+    # Ogni cliente Start ha un record `partners` di livello "start" (il ponte che
+    # fa girare i motori del percorso): NON e' una Partnership firmata. Un record
+    # senza livello e' un partner storico e vale Partnership.
+    partner_vero = bool(partner) and not is_start_tier(partner.get("tier"))
+    if partner_vero or client.get("access_level") == ACCESS_PARTNER:
         return {"tipo": "partner", "label": "Partner", "dettaglio": "Ha firmato la Partnership."}
     if has_start_entitlement(client):
         when = client.get("start_purchased_at")
