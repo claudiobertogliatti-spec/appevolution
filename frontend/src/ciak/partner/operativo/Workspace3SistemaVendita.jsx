@@ -115,6 +115,14 @@ function ReviewCard({ item, index, okLabel, busy, onApprove, onCorrect, children
               </button>
             </div>
           )}
+          {item.state === "approvata" && !open && (
+            <div className="mt-3">
+              <button onClick={() => setOpen(true)} disabled={busy}
+                      className="min-h-[44px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white disabled:opacity-40">
+                Ho visto un errore: voglio correggere
+              </button>
+            </div>
+          )}
           {open && (
             <CorrectionForm
               busy={busy} onCancel={() => setOpen(false)}
