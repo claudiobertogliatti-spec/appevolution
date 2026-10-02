@@ -912,3 +912,94 @@ def test_i_materiali_approvati_non_portano_html_ne_istruzioni_dns_del_team(monke
     assert client_app.get("/api/ciak/client/start/deliverables", headers=auth).status_code == 200
     assert visti["query"] == {"partner_id": "client-1", "approval_status": "approved"}
     assert visti["projection"]["html"] == 0 and visti["projection"]["dns_checklist"] == 0
+
+
+# ─── Pagina Blueprint del cliente: solo un breve riassunto + il PDF ──────────
+
+def _client_dash():
+    return {
+        "id": "client-1",
+        "email": "a@example.com",
+        "access_level": "cliente_blueprint",
+        "session_token": "token-1",
+        "blueprint_score": 42,
+    }
+
+
+def _blueprint_doc(**extra):
+    doc = {
+        "session_token": "token-1",
+        "stato": "pronto",
+        "pdf_url": "https://cdn.example/bp.pdf",
+        "consegna_inviata_at": "2026-10-01T10:00:00+00:00",
+        "payload": {
+            "meta": {"progetto": "Read Me Academy"},
+            "sezioni": {
+                "sintesi": {"lead": "Una competenza reale, un business ancora da costruire."},
+                "problema": {"lead": "Senza di te in aula non succede nulla."},
+                "roadmap": {"steps": [{"h": "Fase 1", "p": "interna"}]},
+            },
+        },
+    }
+    doc.update(extra)
+    return doc
+
+
+@pytest.mark.asyncio
+async def test_dashboard_espone_riassunto_blueprint_e_pdf_consegnato(fake_db):
+    fake_db.ciak_blueprints = FakeCollection([_blueprint_doc()])
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+
+    bp = payload["blueprint"]
+    assert bp["progetto"] == "Read Me Academy"
+    assert bp["sintesi"].startswith("Una competenza reale")
+    assert bp["problema"] == "Senza di te in aula non succede nulla."
+    assert bp["pdf_url"] == "https://cdn.example/bp.pdf"
+    # solo il riassunto: niente roadmap, niente punteggio, niente payload grezzo
+    assert set(bp) == {"progetto", "sintesi", "problema", "pdf_url"}
+
+
+@pytest.mark.asyncio
+async def test_pdf_non_esposto_se_il_blueprint_non_e_stato_consegnato(fake_db):
+    doc = _blueprint_doc()
+    doc.pop("consegna_inviata_at")
+    fake_db.ciak_blueprints = FakeCollection([doc])
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+
+    assert payload["blueprint"]["sintesi"]
+    assert payload["blueprint"]["pdf_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_blueprint_non_pronto_o_assente_non_inventa_nulla(fake_db):
+    ciak_clients.set_db(fake_db)
+    fake_db.ciak_blueprints = FakeCollection([_blueprint_doc(stato="in_generazione")])
+    assert (await ciak_clients._dashboard_for_client(_client_dash()))["blueprint"] is None
+
+    fake_db.ciak_blueprints = FakeCollection([_blueprint_doc(session_token="altro-token")])
+    assert (await ciak_clients._dashboard_for_client(_client_dash()))["blueprint"] is None
+
+
+@pytest.mark.asyncio
+async def test_dashboard_regge_se_la_lettura_del_blueprint_fallisce(fake_db):
+    class Rotta:
+        async def find_one(self, *a, **k):
+            raise RuntimeError("db giu'")
+
+    fake_db.ciak_blueprints = Rotta()
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+    assert payload["blueprint"] is None
+    assert payload["client"]["email"] == "a@example.com"
+
+
+def test_la_sales_chat_dell_area_cliente_non_commenta_i_numeri_del_simulatore():
+    """Il prompt e' costruito dentro la route: controlliamo che la regola ci sia ancora."""
+    import inspect
+
+    src = inspect.getsource(ciak_clients.sales_chat)
+    assert "Simulatore Corsi" in src
+    assert "NON commentare, interpretare o validare i suoi numeri" in src
+    assert "non stimare mai vendite, incassi o tempi di rientro" in src

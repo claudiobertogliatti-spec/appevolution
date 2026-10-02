@@ -112,6 +112,7 @@ def test_consegna_manuale_invia_email_col_pdf_giusto(admin_app):
         assert kwargs["pdf_bytes"].startswith(b"%PDF")
         # il corpo email contiene il link alla sales page (magic-link)
         assert "token=mtok" in kwargs["body_text"]
+        assert "Simulatore Corsi" in kwargs["body_text"]
     finally:
         for p in reversed(ps):
             p.stop()

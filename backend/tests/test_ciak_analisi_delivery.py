@@ -101,6 +101,14 @@ def test_email_body_senza_access_link_non_mette_riga_vuota():
     assert "https://cdn/x.pdf" in body
 
 
+def test_email_body_cita_il_simulatore_solo_se_c_e_il_link_alla_pagina():
+    """La riga sul Simulatore Corsi ha senso solo se l'email porta alla pagina che lo contiene."""
+    con_link = delivery._email_body("Maria", None, "https://ciak.io/insider/tok")
+    assert "Nella pagina trovi anche il Simulatore Corsi per fare i tuoi conti." in con_link
+    senza_link = delivery._email_body("Maria", "https://cdn/x.pdf", None)
+    assert "Simulatore" not in senza_link
+
+
 # ─── Store: una sola generazione, stato leggibile ──────────────────
 
 @pytest.mark.asyncio

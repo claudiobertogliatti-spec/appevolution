@@ -1,18 +1,73 @@
 import { useState } from "react";
-import { ArrowRight, LockKeyhole, PlayCircle } from "lucide-react";
+import { ArrowRight, LockKeyhole } from "lucide-react";
 import { clientPost } from "../api";
 import { PRICING } from "../../pricing";
+import { offerData } from "../../insider/offerData";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
-const lessons = [
-  { title: "Cosa succede dentro la Partnership", note: "Panoramica del percorso e delle fasi." },
-  { title: "Cosa costruiamo insieme", note: "Struttura, materiali e priorita' operative." },
-  { title: "Cosa validi tu", note: "Decisioni, feedback e ritmo delle revisioni." },
-  { title: "Perche' il sistema resta tuo", note: "Ordine, proprieta' e continuita' del lavoro." },
-  { title: "Perche' esiste il 10% per 12 mesi", note: "Allineamento sugli obiettivi e crescita nel tempo." },
+// Contenuti presi dal contratto e dall'offerta approvata (offerData): niente promesse, niente
+// numeri inventati. Dove serve un articolo c'e' la sua sintesi in parole semplici.
+const capire = [
+  {
+    titolo: "Cosa succede dentro la Partnership",
+    punti: [
+      "Un percorso di 12 mesi basato sulla collaborazione attiva di entrambi: non è un servizio chiavi in mano.",
+      "Si lavora in tre fasi, il Metodo EVO: Esamina, Valida, Ottimizza.",
+      "L'accademia online si costruisce insieme in circa 3-4 settimane, come indicato nella tua proposta.",
+      "Dopo il lancio il supporto è strategico e di consulenza, non operativo continuativo.",
+    ],
+  },
+  {
+    titolo: "Cosa costruiamo noi",
+    punti: offerData.partnership.servizi,
+  },
+  {
+    titolo: "Cosa fai tu",
+    punti: [
+      "Ci dai i materiali che servono, partecipi agli incontri e approvi o commenti nei tempi concordati.",
+      "I contenuti che consegni sono tuoi e leciti.",
+      "Nel lancio fai un minimo di attività commerciale: pubblichi i contenuti del piano, rispondi ai contatti, partecipi alle attività di lancio.",
+      "Se resti inattivo per oltre 30 giorni consecutivi il progetto può essere sospeso, e il corrispettivo resta dovuto.",
+    ],
+  },
+  {
+    titolo: "Cosa non è incluso",
+    punti: [
+      "Gestione continuativa dei social e delle campagne pubblicitarie.",
+      "Chiusura delle vendite al posto tuo e assistenza ai tuoi clienti.",
+      "Produzione video e foto professionale, e contenuti oltre il programma.",
+      "La pubblicità a pagamento non è obbligatoria e i costi sono a tuo carico. I servizi extra si chiedono a parte, con preventivo.",
+    ],
+  },
+  {
+    titolo: "A chi resta cosa",
+    punti: [
+      "Sono tuoi il corso, i materiali formativi e i contenuti originali.",
+      "Restano di Evolution PRO il Metodo EVO, la piattaforma Ciak.io, i funnel, le automazioni, i template e gli agenti AI.",
+      "A fine contratto puoi continuare a vendere il corso con strumenti tuoi, o chiedere il trasferimento di dati e asset tecnicamente trasferibili. Migrazione e supporto tecnico dopo il contratto sono a preventivo.",
+      "Dopo la fine cessa l'accesso a Ciak.io, agli agenti AI, ai workflow e ai template.",
+    ],
+  },
+  {
+    titolo: "Il 10% per 12 mesi",
+    punti: [
+      "È il 10% dell'importo netto che incassi dalle vendite del tuo corso, per 12 mesi dalla firma. Poi finisce.",
+      "\"Netto\" vuol dire i soldi davvero accreditati, tolti rimborsi, storni e commissioni di pagamento.",
+      "Una parte del nostro compenso dipende dalle tue vendite: per questo abbiamo interesse che tu venda.",
+    ],
+  },
+  {
+    titolo: "Da sapere prima di decidere",
+    punti: [
+      "Nessun guadagno è garantito: ci impegniamo sul lavoro, non sul risultato.",
+      "Una volta avviata l'esecuzione il corrispettivo non è rimborsabile, e non c'è un recesso ordinario.",
+      "Per tutta la durata e per 90 giorni dopo non vendi per conto tuo lo stesso corso o contenuti equivalenti. Consulenze, workshop, formazione dal vivo e percorsi diversi restano liberi.",
+      "Il contratto lo leggi per intero prima di firmare, e puoi farlo leggere al tuo consulente.",
+    ],
+  },
 ];
 
 export function PartnershipEducationPage({ dashboard }) {
@@ -62,37 +117,47 @@ export function PartnershipEducationPage({ dashboard }) {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        {lessons.map((lesson, idx) => (
-          <div key={lesson.title} className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-semibold text-yellow-600">Lezione {idx + 1}</p>
-            <div className="mt-2 flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-slate-900">{lesson.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">{lesson.note}</p>
-              </div>
-              <PlayCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-            </div>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Video guida in preparazione</p>
+      <section className="grid gap-3 md:grid-cols-2" aria-label="Cosa comporta la Partnership">
+        {capire.map((blocco) => (
+          <div key={blocco.titolo} className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="text-base font-semibold text-slate-900">{blocco.titolo}</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+              {blocco.punti.map((punto) => (
+                <li key={punto} className="flex gap-2">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
+                  <span>{punto}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </section>
 
       <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-6">
-        <h2 className="text-lg font-semibold text-slate-900">Credito Start garantito</h2>
+        <h2 className="text-lg font-semibold text-slate-900">
+          {creditAmount > 0 ? "Credito Start garantito" : "Il prezzo"}
+        </h2>
         <div className="mt-4 space-y-2 text-sm text-slate-700">
           <div className="flex items-center justify-between gap-4">
-            <span>Partnership completa</span>
+            <span>Partnership completa, una tantum</span>
             <strong>{euro(fullAmount)}</strong>
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <span>Credito Ciak Start</span>
-            <strong>-{euro(creditAmount)}</strong>
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t border-yellow-200 pt-3 text-base text-slate-900">
-            <span>Totale upgrade</span>
-            <strong>{euro(dueAmount)}</strong>
-          </div>
+          {creditAmount > 0 ? (
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <span>Credito Ciak Start</span>
+                <strong>-{euro(creditAmount)}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t border-yellow-200 pt-3 text-base text-slate-900">
+                <span>Totale upgrade</span>
+                <strong>{euro(dueAmount)}</strong>
+              </div>
+            </>
+          ) : (
+            <p className="text-slate-600">
+              Se parti da Ciak Start, i {euro(PRICING.start.cents)} si scalano interi dalla Partnership.
+            </p>
+          )}
         </div>
         {!isPartner && canUpgrade ? (
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -105,7 +170,9 @@ export function PartnershipEducationPage({ dashboard }) {
               {loading ? "Apro il checkout..." : "Attiva la Partnership"}
               <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="text-sm text-slate-600">Per i clienti Start l'upgrade resta a {euro(dueAmount)}.</p>
+            {creditAmount > 0 ? (
+              <p className="text-sm text-slate-600">Per i clienti Start l'upgrade resta a {euro(dueAmount)}.</p>
+            ) : null}
           </div>
         ) : null}
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
