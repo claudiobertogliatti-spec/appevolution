@@ -12,6 +12,7 @@
  */
 import { useSearchParams } from "react-router-dom";
 import { PipelineList } from "./PipelineList";
+import { isCommercialAccount } from "../api";
 
 // Mappa tab → stadi di Vendite, dalla call prenotata alla firma (id colonne
 // backend _BLUEPRINT_COLUMNS). Prima della call il lead è in Acquisizione.
@@ -54,7 +55,8 @@ export function TrattativePipeline({ onAuthExpired }) {
         title="Trattative"
         subtitle={active.subtitle}
         lockedStages={active.lockedStages}
-        deletable
+        // L'account commerciale non elimina lead (backend: nessun DELETE).
+        deletable={!isCommercialAccount()}
         editable
         onAuthExpired={onAuthExpired}
       />

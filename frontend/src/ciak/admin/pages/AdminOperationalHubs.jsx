@@ -79,7 +79,7 @@ function OperationalHub({ eyebrow, title, subtitle, icon, cards }) {
 
 export function AcquisizioneCalendarioHub() {
   // Account commerciale (Mariangela): niente card verso funzioni che il
-  // backend le nega (routers/ciak_admin.py, allowlist Acquisizione).
+  // backend le nega (routers/ciak_admin.py, perimetro commerciale).
   const adminType = getAdminUser()?.admin_type;
   return (
     <OperationalHub
@@ -89,7 +89,7 @@ export function AcquisizioneCalendarioHub() {
       icon={CalendarDays}
       cards={[
         { to: "/admin/acq-campagne-ads", title: "Campagne Ads", desc: "Creativita, hook e traffico paid.", icon: Megaphone },
-        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users, hideFor: ["mariangela"] },
+        { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users },
         { to: "/admin/lead-manager", title: "New Lead", desc: "Inserimento e lavorazione nuovi contatti.", icon: ClipboardCheck },
         { to: "/admin/pipeline", title: "Acquisizione Evolution", desc: "Blueprint, call, recuperi e checkpoint del progetto pilota madre.", icon: TrendingUp },
         { to: "/admin/template-email", title: "Template Email", desc: "Copy email modificabile senza deploy.", icon: FileText, hideFor: ["mariangela"] },

@@ -7,7 +7,7 @@ import { LeadManager } from "./LeadManager";
 import { adminFetch } from "../api";
 import { toast } from "sonner";
 
-jest.mock("../api", () => ({ adminFetch: jest.fn() }));
+jest.mock("../api", () => ({ adminFetch: jest.fn(), isCommercialAccount: jest.fn(() => false) }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 const LEADS = [

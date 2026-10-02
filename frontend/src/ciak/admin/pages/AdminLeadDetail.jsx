@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiGet, adminFetch, errorDetail, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
+import { apiGet, adminFetch, errorDetail, isCommercialAccount, isPermissionDenied } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -316,10 +316,10 @@ function Field({ label, value }) {
 
 export function AdminLeadDetail({ onAuthExpired }) {
   const { email } = useParams();
-  // Account commerciale (Mariangela): il reparto Acquisizione finisce a "call
-  // fissata". Generare/inviare il Blueprint, la proposta e il ripristino sono
-  // di Claudio (backend: 403, routers/ciak_admin.py): qui non compaiono.
-  const isCommercial = getAdminUser()?.admin_type === "mariangela";
+  // Account commerciale (Mariangela): vede e aggiorna, ma generare/inviare il
+  // Blueprint, la proposta e il ripristino sono di Claudio (backend: 403,
+  // routers/ciak_admin.py): qui non compaiono.
+  const isCommercial = isCommercialAccount();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -412,7 +412,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
       // Permesso negato (account commerciale): non è una connessione chiusa.
-      else if (e.message === SCOPE_DENIED_DETAIL) setBpMsg(e.message);
+      else if (isPermissionDenied(e.message)) setBpMsg(e.message);
       // Una connessione chiusa dal proxy non ferma la generazione: si continua
       // a leggere lo stato reale dalla scheda.
       else setBpMsg("La richiesta si è interrotta, ma la generazione può essere ancora in corso: controllo lo stato…");

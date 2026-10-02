@@ -2812,7 +2812,7 @@ async def cleanup_duplicates(admin=Depends(require_ciak_admin)):
     Pulizia duplicati, solo lancio manuale di un admin (il job notturno è
     spento dal 29/9/2026, vedi scheduler.py). Cancella in blocco: niente chiave
     report (sola lettura) e niente account commerciale (ciak_admin.py,
-    _COMMERCIAL_FORBIDDEN_METHODS).
+    _COMMERCIAL_FORBIDDEN).
     Logica:
     1. Raggruppa per email (se presente)
     2. Raggruppa per username + platform, solo username non vuoti: prima un

@@ -12,7 +12,7 @@ import {
   Flame, ExternalLink, UserPlus, MapPin, Check, Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { adminFetch } from "../api";
+import { adminFetch, isCommercialAccount } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // ─────────────────────────────────────────────────────────────
@@ -884,6 +884,8 @@ function SystemeSyncModal({ onClose, onImported, onAuthExpired }) {
 const PER_PAGE = 50;
 
 export function LeadManager({ onAuthExpired, embedded = false }) {
+  // L'account commerciale non elimina lead (backend: nessun DELETE).
+  const canDelete = !isCommercialAccount();
   // Solo Discovery Leads: lo switch alla Lista Fredda è stato rimosso
   // (la Lista Fredda ha la sua pagina dedicata /admin/lista-fredda).
   const activeTab = "discovery";
@@ -1218,13 +1220,15 @@ export function LeadManager({ onAuthExpired, embedded = false }) {
                           : <Check className="w-3.5 h-3.5" />}
                         Approva
                       </button>
-                      <button onClick={() => setPendingDelete(lead)} disabled={deletingId === lead.id}
-                        aria-label={`Elimina ${lead.display_name || lead.email}`}
-                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
-                        {deletingId === lead.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
-                          : <Trash2 className="w-3.5 h-3.5 text-red-500" />}
-                      </button>
+                      {canDelete && (
+                        <button onClick={() => setPendingDelete(lead)} disabled={deletingId === lead.id}
+                          aria-label={`Elimina ${lead.display_name || lead.email}`}
+                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                          {deletingId === lead.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                            : <Trash2 className="w-3.5 h-3.5 text-red-500" />}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

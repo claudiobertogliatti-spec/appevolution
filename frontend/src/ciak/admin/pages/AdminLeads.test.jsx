@@ -8,13 +8,13 @@ jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn(), Link: ({ ch
 jest.mock("../api", () => ({
   apiGet: jest.fn(),
   adminFetch: jest.fn(),
-  getAdminUser: jest.fn(() => null),
-  SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
+  isCommercialAccount: jest.fn(() => false),
+  isPermissionDenied: jest.fn((m) => m === "Questa funzione non è abilitata per il tuo account."),
 }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 import { AdminLeads } from "./AdminLeads";
-import { apiGet, adminFetch, getAdminUser } from "../api";
+import { apiGet, adminFetch, isCommercialAccount, isPermissionDenied } from "../api";
 import { toast } from "sonner";
 
 const LEADS = [{ email: "mario@x.it" }];
@@ -22,6 +22,8 @@ const LEADS = [{ email: "mario@x.it" }];
 beforeEach(() => {
   jest.clearAllMocks();
   apiGet.mockResolvedValue({ items: LEADS, total: 1 });
+  // CRA azzera le implementazioni dei mock prima di ogni test (resetMocks).
+  isPermissionDenied.mockImplementation((m) => m === "Questa funzione non è abilitata per il tuo account.");
 });
 
 test("eliminare un lead apre una conferma in pagina, non un window.confirm", async () => {
@@ -52,19 +54,19 @@ test("confermando l'eliminazione chiama la DELETE per email e conferma con un to
 });
 
 test("account commerciale (Mariangela): il bottone Elimina non compare", async () => {
-  getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+  isCommercialAccount.mockReturnValue(true);
   render(<AdminLeads onAuthExpired={() => {}} />);
   await screen.findByText("mario@x.it");
   expect(screen.queryByRole("button", { name: "Elimina" })).toBeNull();
-  getAdminUser.mockReturnValue(null);
+  isCommercialAccount.mockReturnValue(false);
 });
 
 test("eliminazione negata dal backend per permesso: il toast dice il perché", async () => {
-  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  adminFetch.mockRejectedValue(new Error("Questa funzione non è abilitata per il tuo account."));
   render(<AdminLeads onAuthExpired={() => {}} />);
   await screen.findByText("mario@x.it");
   fireEvent.click(screen.getByRole("button", { name: "Elimina" }));
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Elimina" }));
-  await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Questo account ha accesso solo al reparto Acquisizione."));
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Questa funzione non è abilitata per il tuo account."));
   expect(screen.queryByRole("dialog")).toBeNull();
 });

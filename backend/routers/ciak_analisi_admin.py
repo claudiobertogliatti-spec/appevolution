@@ -37,8 +37,9 @@ async def require_ciak_admin(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Identico pattern a routers/ciak_admin.py — role admin/superadmin, e lo
-    stesso scope dell'account commerciale (qui niente è nella sua allowlist:
-    generazione a pagamento, invio al cliente e prompt restano a Claudio)."""
+    stesso scope dell'account commerciale: può leggere la coda e correggere il
+    testo di un'analisi ancora da validare (salva_definitiva); generazione a
+    pagamento, invio al cliente e prompt restano a Claudio."""
     from auth import decode_token
     from routers.ciak_admin import enforce_commercial_scope
     if not credentials:
@@ -135,16 +136,46 @@ async def activate_prompt(key: str, version_id: str, admin=Depends(require_ciak_
 @router.put("/{session_token}")
 async def salva_definitiva(session_token: str, body: DefinitivaUpdate,
                            admin=Depends(require_ciak_admin)):
-    """Salva gli edit di Claudio sui 6 capitoli (e opzionalmente lo script call)."""
+    """Salva gli edit sui 6 capitoli (e opzionalmente lo script call).
+
+    La versione precedente va in analisi_definitiva_history (ultime 10): il
+    testo AI costa una rigenerazione, un salvataggio non deve poterlo perdere.
+    Account commerciale (Mariangela): solo analisi ancora "da_validare" e mai
+    con i capitoli vuoti. Un'analisi inviata è già sulla pagina del cliente:
+    cambiarla sarebbe un invio senza il "Valida e invia" di Claudio.
+    """
+    from routers.ciak_admin import COMMERCIAL_SCOPE_DETAIL, is_commercial_account
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    update = {"analisi_definitiva": body.analisi_definitiva,
-              "edited_at": datetime.now(timezone.utc).isoformat()}
+    commerciale = await is_commercial_account(admin)
+    if commerciale:
+        capitoli = (body.analisi_definitiva or {}).get("capitoli")
+        if not body.analisi_definitiva or (isinstance(capitoli, dict) and not any(
+                str(v or "").strip() for v in capitoli.values())):
+            raise HTTPException(400, "Analisi vuota: non la salvo.")
+    prev = await db.ciak_analisi.find_one(
+        {"session_token": session_token}, {"_id": 0, "analisi_definitiva": 1, "stato": 1})
+    if not prev:
+        raise HTTPException(404, "Analisi non trovata")
+    if commerciale and prev.get("stato") != "da_validare":
+        raise HTTPException(403, COMMERCIAL_SCOPE_DETAIL)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update = {"analisi_definitiva": body.analisi_definitiva, "edited_at": now_iso}
     if body.script_call is not None:
         update["script_call"] = body.script_call
-    res = await db.ciak_analisi.update_one({"session_token": session_token}, {"$set": update})
+    filtro = {"session_token": session_token}
+    if commerciale:
+        filtro["stato"] = "da_validare"  # atomico: se Claudio l'ha appena inviata, non passa
+    res = await db.ciak_analisi.update_one(filtro, {
+        "$set": update,
+        "$push": {"analisi_definitiva_history": {"$each": [{
+            "at": now_iso,
+            "by": getattr(admin, "email", None),
+            "analisi_definitiva": prev.get("analisi_definitiva"),
+        }], "$slice": -10}},
+    })
     if res.matched_count == 0:
-        raise HTTPException(404, "Analisi non trovata")
+        raise HTTPException(409, "L'analisi è cambiata nel frattempo: ricarica la pagina.")
     return {"success": True}
 
 

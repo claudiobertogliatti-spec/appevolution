@@ -92,15 +92,28 @@ export async function login(email, password) {
 // Testo del 403 che il backend dà a un account a scope ridotto (Mariangela)
 // su una funzione fuori dal suo reparto: NON è una sessione scaduta, quindi
 // si mostra il messaggio invece di fare logout (routers/ciak_admin.py).
-export const SCOPE_DENIED_DETAIL = "Questo account ha accesso solo al reparto Acquisizione.";
+export const SCOPE_DENIED_DETAIL = "Questa funzione non è abilitata per il tuo account.";
 
 // Altri 403 di permesso (token valido, funzione non concessa a quell'account):
 // da quando il token porta admin_type scattano davvero, e non devono sloggare.
 // backend/routers/collaborator_settlements.py::require_billing_admin (Antonella).
+// Il vecchio testo di scope resta finché il backend nuovo non è in linea
+// (Vercel pubblica il frontend prima del backend).
 const PERMISSION_DENIED_DETAILS = new Set([
   SCOPE_DENIED_DETAIL,
+  "Questo account ha accesso solo al reparto Acquisizione.",
   "Contabilita' collaboratori riservata",
 ]);
+
+/** true se l'errore è un permesso negato (non un guasto né una sessione scaduta). */
+export function isPermissionDenied(message) {
+  return PERMISSION_DENIED_DETAILS.has(message);
+}
+
+/** true per l'account commerciale (Mariangela): perimetro ridotto, niente eliminazioni. */
+export function isCommercialAccount() {
+  return getAdminUser()?.admin_type === "mariangela";
+}
 
 /**
  * 401, o 403 da token scaduto/non valido → logout ("AUTH_EXPIRED").

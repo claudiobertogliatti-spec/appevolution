@@ -21,7 +21,7 @@ import {
   CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play,
   X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube, Trash2, Filter, SlidersHorizontal
 } from "lucide-react";
-import { adminFetch } from "../api";
+import { adminFetch, isCommercialAccount } from "../api";
 import { toast } from "sonner";
 
 // Agent emoji and color mapping - UPDATED: 6 agents only
@@ -48,6 +48,8 @@ const AGENT_DESCRIPTIONS = {
 const AGENT_ORDER = ["STEFANIA", "VALENTINA", "ANDREA", "MARCO", "GAIA", "MAIN"];
 
 export function AgentDashboard({ onAuthExpired }) {
+  // L'account commerciale non elimina lead (backend: nessun DELETE).
+  const canDelete = !isCommercialAccount();
   const [agents, setAgents] = useState([]);
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -502,15 +504,17 @@ export function AgentDashboard({ onAuthExpired }) {
                                 </>
                               )}
                             </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteLead(lead); }}
-                              className="p-1.5 rounded-lg transition-all hover:bg-red-100"
-                              style={{ color: '#EF4444' }}
-                              title="Elimina lead"
-                              data-testid={`delete-btn-${lead.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteLead(lead); }}
+                                className="p-1.5 rounded-lg transition-all hover:bg-red-100"
+                                style={{ color: '#EF4444' }}
+                                title="Elimina lead"
+                                data-testid={`delete-btn-${lead.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -975,15 +979,17 @@ export function AgentDashboard({ onAuthExpired }) {
                     </>
                   )}
                 </button>
-                <button
-                  onClick={() => { setConfirmDeleteLead(selectedLead); setSelectedLead(null); }}
-                  className="px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-2"
-                  style={{ background: '#FEE2E2', color: '#DC2626' }}
-                  data-testid="delete-lead-from-modal"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Elimina
-                </button>
+                {canDelete && (
+                  <button
+                    onClick={() => { setConfirmDeleteLead(selectedLead); setSelectedLead(null); }}
+                    className="px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-2"
+                    style={{ background: '#FEE2E2', color: '#DC2626' }}
+                    data-testid="delete-lead-from-modal"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Elimina
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedLead(null)}
                   className="px-6 py-3 rounded-xl font-bold text-sm"

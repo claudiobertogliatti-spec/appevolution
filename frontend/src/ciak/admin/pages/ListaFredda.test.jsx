@@ -4,10 +4,10 @@
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ListaFredda } from "./ListaFredda";
-import { adminFetch } from "../api";
+import { adminFetch, isCommercialAccount } from "../api";
 import { toast } from "sonner";
 
-jest.mock("../api", () => ({ adminFetch: jest.fn() }));
+jest.mock("../api", () => ({ adminFetch: jest.fn(), isCommercialAccount: jest.fn(() => false) }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 const LEADS = [{ email: "fred@x.it" }];
@@ -48,8 +48,18 @@ test("confermando l'eliminazione chiama la DELETE e conferma con un toast", asyn
 });
 
 test("accesso negato: la pagina dice il perché invece di sembrare un archivio vuoto", async () => {
-  adminFetch.mockRejectedValue(new Error("Questo account ha accesso solo al reparto Acquisizione."));
+  adminFetch.mockRejectedValue(new Error("Questa funzione non è abilitata per il tuo account."));
   render(<ListaFredda onAuthExpired={() => {}} />);
-  expect(await screen.findByRole("alert")).toHaveTextContent("Questo account ha accesso solo al reparto Acquisizione.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Questa funzione non è abilitata per il tuo account.");
   expect(screen.queryByText("Nessun contatto trovato")).toBeNull();
+});
+
+test("account commerciale: niente CSV in chiaro né Elimina, resta l'audience cifrata", async () => {
+  isCommercialAccount.mockReturnValue(true);
+  render(<ListaFredda onAuthExpired={() => {}} />);
+  await screen.findByText("fred@x.it");
+  expect(screen.queryByText("Export CSV")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Elimina" })).toBeNull();
+  expect(screen.getByText("Esporta custom audience")).toBeTruthy();
+  isCommercialAccount.mockReturnValue(false);
 });

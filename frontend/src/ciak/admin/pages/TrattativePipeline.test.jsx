@@ -11,11 +11,11 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => jest.fn(),
   useSearchParams: () => [mockParams, mockSetParams],
 }), { virtual: true });
-jest.mock("../api", () => ({ apiGet: jest.fn(), adminFetch: jest.fn() }));
+jest.mock("../api", () => ({ apiGet: jest.fn(), adminFetch: jest.fn(), isCommercialAccount: jest.fn(() => false) }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 
 import { TrattativePipeline, STADI_TRATTATIVE } from "./TrattativePipeline";
-import { apiGet } from "../api";
+import { apiGet, isCommercialAccount } from "../api";
 
 // /pipeline-blueprint: due contatti in due stadi diversi.
 const DATA = {
@@ -67,4 +67,17 @@ test("il mapping tab→stadi copre Call/In trattativa/OK senza inventare stadi",
   expect(byId.call).toEqual(["call_prenotata", "call_fatta"]);
   expect(byId.trattativa).toEqual(["in_trattativa"]);
   expect(byId.ok).toEqual(["contratto_pagato"]);
+});
+
+test("Elimina: c'è per l'admin pieno, non per l'account commerciale", async () => {
+  const { unmount } = render(<TrattativePipeline />);
+  await screen.findByText("Bianchi Blue");
+  expect(screen.getAllByRole("button", { name: /Elimina/ }).length).toBeGreaterThan(0);
+  unmount();
+
+  isCommercialAccount.mockReturnValue(true);
+  render(<TrattativePipeline />);
+  await screen.findByText("Bianchi Blue");
+  expect(screen.queryAllByRole("button", { name: /Elimina/ })).toHaveLength(0);
+  isCommercialAccount.mockReturnValue(false);
 });

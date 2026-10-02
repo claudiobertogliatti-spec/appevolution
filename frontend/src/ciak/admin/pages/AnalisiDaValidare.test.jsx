@@ -5,9 +5,9 @@
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AnalisiDaValidare } from "./AnalisiDaValidare";
-import { apiGet, apiPost, apiPut } from "../api";
+import { apiGet, apiPost, apiPut, isCommercialAccount } from "../api";
 
-jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn(), apiPut: jest.fn() }));
+jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn(), apiPut: jest.fn(), isCommercialAccount: jest.fn(() => false) }));
 
 const CODA = {
   items: [{ session_token: "tok1", email: "cli@x.it", analisi_definitiva: { capitoli: {} } }],
@@ -46,4 +46,15 @@ test("confermando chiama valida-invia per il token dell'analisi", async () => {
   await waitFor(() =>
     expect(apiPost).toHaveBeenCalledWith("/analisi/tok1/valida-invia", {})
   );
+});
+
+test("account commerciale: corregge e salva, ma non rigenera né invia al cliente", async () => {
+  isCommercialAccount.mockReturnValue(true);
+  render(<AnalisiDaValidare />);
+  const row = await screen.findByText("cli@x.it");
+  fireEvent.click(row.closest("button"));
+  expect(await screen.findByRole("button", { name: "Salva bozza edit" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Rigenera" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Valida e invia" })).toBeNull();
+  isCommercialAccount.mockReturnValue(false);
 });
