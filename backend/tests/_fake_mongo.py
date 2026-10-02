@@ -89,6 +89,10 @@ class FakeCollection:
         self.docs = [copy.deepcopy(d) for d in (docs or [])]
         self.writes = 0
 
+    async def insert_one(self, doc):
+        self.docs.append(dict(doc))
+        return type("Result", (), {"inserted_id": doc.get("id")})()
+
     async def find_one(self, query=None, projection=None, **_kwargs):
         for d in self.docs:
             if _match(d, query):

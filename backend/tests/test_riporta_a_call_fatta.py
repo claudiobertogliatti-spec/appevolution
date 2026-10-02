@@ -6,6 +6,7 @@ form admin aveva creato account, percorso Start e un incasso finto da €390.
 L'azione riporta il lead a "call appena fatta, Blueprint da inviare a mano".
 Mongo finto: gira in CI.
 """
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -177,3 +178,54 @@ async def test_i_riferimenti_veri_restano_intoccabili(monkeypatch, vero):
     with pytest.raises(adm.HTTPException) as exc:
         await adm.annulla_start_non_pagato("c1", adm.AnnullaStartRequest(email="info@doonati.com"), admin=_ADMIN)
     assert exc.value.status_code == 409
+
+
+# ─── Link d'accesso da mandare a mano (nessuna mail) ──────────────────────────
+
+@pytest.mark.asyncio
+async def test_link_accesso_si_genera_senza_inviare_nulla_e_funziona(monkeypatch):
+    from services.ciak_client_accounts import verify_magic_login_token
+
+    db = _db()
+    monkeypatch.setattr(adm, "db", db)
+    monkeypatch.setenv("CIAK_BASE_URL", "https://www.ciak.io")
+    out = await adm.link_accesso_cliente("c1", adm.LinkAccessoRequest(email=" INFO@doonati.com "), admin=_ADMIN)
+
+    assert out["ok"] is True
+    assert out["link"].startswith("https://www.ciak.io/cliente/accesso?token=")
+    token = out["link"].split("token=")[1]
+    # Nel database c'e' solo l'impronta del token, mai il token.
+    assert [t for t in db.ciak_client_login_tokens.docs if t.get("token_hash") == token] == []
+    # Il link apre davvero il cliente giusto.
+    cliente = await verify_magic_login_token(db, token)
+    assert cliente["id"] == "c1"
+    # 30 giorni, come i link delle mail.
+    scade = datetime.fromisoformat(out["scade_il"].replace("Z", "+00:00"))
+    assert 29 <= (scade - datetime.now(timezone.utc)).days <= 30
+
+
+@pytest.mark.asyncio
+async def test_link_accesso_lascia_il_cliente_com_e_e_traccia_solo_chi_e_quando(monkeypatch):
+    db = _db()
+    prima = {k: v for k, v in db.ciak_clients.docs[0].items() if k != "events"}
+    monkeypatch.setattr(adm, "db", db)
+    out = await adm.link_accesso_cliente("c1", adm.LinkAccessoRequest(email="info@doonati.com"), admin=_ADMIN)
+    cliente = db.ciak_clients.docs[0]
+    assert {k: v for k, v in cliente.items() if k != "events"} == prima  # nessun dato toccato
+    ultimo = cliente["events"][-1]
+    assert ultimo["event"] == "link_accesso_generato_da_admin" and ultimo["by"] == "claudio@example.test"
+    # Il link non finisce mai negli eventi.
+    assert out["link"].split("token=")[1] not in str(cliente["events"])
+
+
+@pytest.mark.asyncio
+async def test_link_accesso_rifiuta_email_diversa_e_cliente_inesistente(monkeypatch):
+    db = _db()
+    monkeypatch.setattr(adm, "db", db)
+    with pytest.raises(adm.HTTPException) as e1:
+        await adm.link_accesso_cliente("c1", adm.LinkAccessoRequest(email="altro@example.test"), admin=_ADMIN)
+    assert e1.value.status_code == 400
+    with pytest.raises(adm.HTTPException) as e2:
+        await adm.link_accesso_cliente("nessuno", adm.LinkAccessoRequest(email="info@doonati.com"), admin=_ADMIN)
+    assert e2.value.status_code == 404
+    assert db.ciak_client_login_tokens.docs == []  # nessun token creato in nessuno dei due casi
