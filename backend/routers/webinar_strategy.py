@@ -5,7 +5,7 @@ Endpoint partner:
 
 Legge le risposte del Posizionamento (step 04-posizionamento) e l'outline del corso
 (step 06-outline-lezioni) e li trasforma nello script del webinar live + nel prezzo
-con promo a scadenza. Il salvataggio dello step avviene col normale flusso
+con la promo decisa dal team. Il salvataggio dello step avviene col normale flusso
 complete_operativo_step lato frontend (onComplete) — qui generiamo solo.
 
 La generazione non blocca mai: il servizio ricade su uno scheletro deterministico.
@@ -21,11 +21,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
 from services.webinar_strategy import build_webinar_strategy
-from services.webinar_deck import (
-    build_webinar_deck,
-    export_deck_to_gamma,
-    poll_gamma_generation,
-)
+from services import offer_price
+from services.webinar_deck import build_webinar_deck
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +43,21 @@ class GenerateBody(BaseModel):
     partner_id: str
 
 
-class ExportDeckBody(BaseModel):
-    partner_id: str
-    deck: dict | None = None
-
-
 async def _step_data(partner_id: str, step_id: str) -> dict:
     step = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": step_id},
         {"_id": 0, "data": 1},
     )
     return (step or {}).get("data") or {}
+
+
+async def _real_offer(partner_id: str) -> dict:
+    """Il prezzo viene dall'offerta decisa dal team (hub del partner), mai dall'AI."""
+    hub = await db.partner_hub.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    try:
+        return offer_price.parse_offer(hub.get("offerPrice"), hub.get("offerIncludes"))
+    except offer_price.OfferPriceMissing as e:
+        raise HTTPException(400, str(e))
 
 
 @router.post("/generate")
@@ -81,7 +82,8 @@ async def generate_webinar(
             "Completa prima il Posizionamento: il webinar parte da lì.",
         )
     outline = (await _step_data(body.partner_id, OUTLINE_STEP_ID)).get("outline")
-    strategia = await build_webinar_strategy(answers, outline)
+    offer = await _real_offer(body.partner_id)
+    strategia = await build_webinar_strategy(answers, outline, offer)
     return strategia
 
 
@@ -104,32 +106,6 @@ async def generate_deck(
         )
     outline = (await _step_data(body.partner_id, OUTLINE_STEP_ID)).get("outline")
     strategia = (await _step_data(body.partner_id, WEBINAR_STEP_ID)).get("strategia")
-    deck = await build_webinar_deck(answers, outline, strategia)
+    offer = await _real_offer(body.partner_id)
+    deck = await build_webinar_deck(answers, outline, strategia, offer)
     return deck
-
-
-@router.post("/deck/export")
-async def export_deck(
-    body: ExportDeckBody,
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """Esporta il deck su Gamma (servizio EXTRA). Se non c'è GAMMA_API_KEY ritorna
-    il markdown pronto da incollare in Gamma. Il deck può arrivare dal client
-    (modifiche del partner) o, se assente, viene rigenerato."""
-    from routers.partner_journey import require_partner_or_admin_for_partner
-    await require_partner_or_admin_for_partner(body.partner_id, credentials)
-
-    deck = body.deck
-    if not isinstance(deck, dict) or not (deck.get("slides")):
-        pos = await _step_data(body.partner_id, POSIZIONAMENTO_STEP_ID)
-        answers = pos.get("answers") or {}
-        outline = (await _step_data(body.partner_id, OUTLINE_STEP_ID)).get("outline")
-        strategia = (await _step_data(body.partner_id, WEBINAR_STEP_ID)).get("strategia")
-        deck = await build_webinar_deck(answers, outline, strategia)
-    return await export_deck_to_gamma(deck)
-
-
-@router.get("/deck/export/{generation_id}")
-async def export_deck_status(generation_id: str) -> dict:
-    """Stato di una generazione Gamma: pending|completed|failed|unknown (+ gamma_url)."""
-    return await poll_gamma_generation(generation_id)
