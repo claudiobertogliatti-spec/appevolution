@@ -306,3 +306,14 @@ def test_the_partner_can_ask_to_add_a_faq_or_a_point_only_where_lists_exist():
         fr.correction_update(rec, "optin", "Il titolo: aggiunta richiesta", "Altro titolo qui", NOW, part="titolo", action="aggiungi")
     with pytest.raises(fr.ReviewError):
         fr.correction_update(rec, "optin", "Il titolo: x", "Altro titolo qui", NOW, part="titolo", action="cancella")
+
+
+def test_an_approved_item_can_still_be_corrected_and_loses_its_approval():
+    rec = _rec()
+    rec = _apply(rec, fr.approve_update(rec, fr.LEGAL_ID, NOW))
+    assert fr.review_state(rec)["legal"]["state"] == fr.APPROVATA
+    update, entry = fr.correction_update(rec, fr.LEGAL_ID, "La sede è sbagliata", "Via Roma 1, Pisa", NOW)
+    rec = _apply(rec, update)
+    state = fr.review_state(rec)
+    assert state["legal"]["state"] == fr.IN_MODIFICA and state["corrections_open"] == 1
+    assert {s["id"]: s["state"] for s in state["steps"]}["dati"] == "da_fare"
