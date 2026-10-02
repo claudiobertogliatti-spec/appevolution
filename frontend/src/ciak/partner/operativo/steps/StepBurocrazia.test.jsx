@@ -49,6 +49,14 @@ test('a passo completato, svuotare un campo obbligatorio blocca il salvataggio',
   expect(screen.getByRole('button', { name: 'Salva le modifiche' }).disabled).toBe(true);
 });
 
+test('un passo segnato "fatto" ma senza dati resta un form da compilare, non "già salvato"', () => {
+  render(<StepBurocrazia step={{ ...step({}), status: 'done' }} partnerId="p1" onComplete={() => {}} onSaveDraft={() => {}} />);
+  expect(screen.queryByText(/già salvati/i)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Salva le modifiche' })).toBeNull();
+  expect(cta().disabled).toBe(true);
+  expect(screen.getByText(/completa i campi con/i)).toBeTruthy();
+});
+
 test('il passo non chiede più di caricare contratto e distinta', () => {
   const { container } = render(<StepBurocrazia step={step(DATI)} partnerId="p1" onComplete={() => {}} onSaveDraft={() => {}} />);
   expect(container.querySelector('input[type="file"]')).toBeNull();
