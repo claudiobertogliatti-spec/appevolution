@@ -19,6 +19,7 @@ Dati su `partner_funnel`:
 import re
 from typing import Any, Dict, List, Optional
 
+from services import domain_check
 from services.partner_step_materials import allowed_funnel_preview_url
 
 ASPETTO = {"id": "aspetto", "label": "L'aspetto: colori, foto e carattere"}
@@ -177,9 +178,15 @@ STEP_ATTESA = "attesa"
 
 
 def build_steps(released: bool, pages: List[Dict[str, Any]], legal: Dict[str, Any],
-                golive: Dict[str, Any], docs: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+                golive: Dict[str, Any], docs: Optional[Dict[str, Any]] = None,
+                domain: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """I 5 passaggi mostrati al partner. `da_fare` = tocca a lui; `attesa` = tocca al team o non è
     ancora il momento. Documenti legali e dominio sono passaggi di guida: arrivano nelle PR dedicate."""
+    domain = domain or {"configured": False, "done": False}
+    if domain["done"]:
+        domain_state = STEP_FATTO
+    else:
+        domain_state = STEP_DA_FARE if domain["configured"] else STEP_ATTESA
     docs = docs or {"released": False, "state": DA_CONTROLLARE}
     if not docs["released"]:
         docs_state = STEP_ATTESA
@@ -196,7 +203,7 @@ def build_steps(released: bool, pages: List[Dict[str, Any]], legal: Dict[str, An
          "state": STEP_FATTO if legal["state"] == APPROVATA else STEP_DA_FARE},
         {"id": "funnel", "title": "Il funnel", "short": "guarda e approva", "state": funnel_state},
         {"id": "documenti", "title": "Pagine legali", "short": "leggi e approva", "state": docs_state},
-        {"id": "dominio", "title": "Indirizzo web", "short": "3 righe da copiare", "state": STEP_ATTESA},
+        {"id": "dominio", "title": "Indirizzo web", "short": "righe da copiare", "state": domain_state},
         {"id": "via_libera", "title": "Via libera", "short": "si pubblica", "state": go_state},
     ]
 
@@ -241,6 +248,16 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
     docs = {"id": DOCS_ID, "title": DOCS_TITLE, "released": docs_released(rec),
             "state": item_state(rec, DOCS_ID), "open_corrections": _open_corrections(rec, DOCS_ID)}
 
+    records = ((rec.get("domain") or {}).get("records")) or []
+    verified = ((rec.get("domain") or {}).get("verified")) or {}
+    domain = {
+        "configured": bool(records),
+        "records": [{**r, "verified": bool(verified.get(r["id"]))} for r in records],
+        "all_verified": bool(records) and all(verified.get(r["id"]) for r in records),
+        "help_requested": bool((rec.get("domain") or {}).get("help_requested_at")),
+    }
+    domain["done"] = domain["all_verified"] or bool((rec.get("connections") or {}).get("dominio"))
+
     pages_approved = sum(1 for p in pages if p["state"] == APPROVATA)
     legal_ok = legal["state"] == APPROVATA
     team_ready = bool(rec.get("team_ready"))
@@ -265,7 +282,7 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
         "can_request": released and not missing,
         "missing": missing,
     }
-    steps = build_steps(released, pages, legal, golive, docs)
+    steps = build_steps(released, pages, legal, golive, docs, domain)
     return {
         "released": released,
         "steps": steps,
@@ -276,6 +293,7 @@ def review_state(rec: Dict[str, Any], legal_data: Optional[Dict[str, Any]] = Non
         "pages": pages,
         "legal": legal,
         "documents": docs,
+        "domain": domain,
         "connections": connections,
         "corrections_open": sum(p["open_corrections"] for p in pages) + legal["open_corrections"] + docs["open_corrections"],
         "golive": golive,
@@ -403,7 +421,7 @@ def golive_update(rec: Dict[str, Any], now: str) -> Dict[str, Any]:
     return {"$set": {"golive_requested_at": now, "updated_at": now}}
 
 
-ADMIN_SETTABLE = {"content", "preview_released", "documents_released", "team_ready", "preview_url", "preview_version"}
+ADMIN_SETTABLE = {"content", "domain_records", "preview_released", "documents_released", "team_ready", "preview_url", "preview_version"}
 
 
 def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> Dict[str, Any]:
@@ -415,6 +433,12 @@ def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> 
                 if cid not in known:
                     raise ReviewError(f"Collegamento sconosciuto: {cid}")
                 sets[f"connections.{cid}"] = bool(flag)
+        elif key == "domain_records":
+            try:
+                sets["domain.records"] = domain_check.validate_records(value)
+            except domain_check.DomainError as e:
+                raise ReviewError(str(e))
+            sets["domain.verified"] = {}
         elif key == "content":
             parts = {p["id"]: {x["id"] for x in p["parts"]} for p in PAGES}
             for page_id, texts in (value or {}).items():
@@ -466,3 +490,13 @@ def clean_photos(photos: Any) -> List[str]:
         if not u.startswith(PHOTO_PREFIXES) or ".." in u:
             raise ReviewError("Una delle foto non è valida: caricala di nuovo.")
     return urls
+
+
+def domain_verified_update(rec: Dict[str, Any], results: List[Dict[str, Any]], now: str) -> Dict[str, Any]:
+    """Salva l'esito del controllo DNS. Quando tutte le righe sono visibili, il collegamento risulta fatto."""
+    sets: Dict[str, Any] = {"updated_at": now}
+    for r in results:
+        sets[f"domain.verified.{r['id']}"] = r["status"] == domain_check.OK
+    if results and all(r["status"] == domain_check.OK for r in results):
+        sets["connections.dominio"] = True
+    return {"$set": sets}

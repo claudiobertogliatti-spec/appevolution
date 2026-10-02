@@ -12,6 +12,7 @@ Azioni del team (solo admin):
 
 La logica sta in services/funnel_review.py (pura e testata).
 """
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -23,6 +24,7 @@ from pydantic import BaseModel
 from services import funnel_review as fr
 from services import legal_documents as legal_docs
 from services import funnel_copy_review as copy_review
+from services import domain_check
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ class AdminSetBody(BaseModel):
     preview_version: Optional[int] = None
     connections: Optional[Dict[str, bool]] = None
     content: Optional[Dict[str, Dict[str, str]]] = None
+    domain_records: Optional[List[Dict[str, str]]] = None
 
 
 class NewVersionBody(BaseModel):
@@ -258,6 +261,37 @@ async def edit_part(partner_id: str, body: PartEditBody,
         + ("\n🖼 Foto: " + ", ".join(entry["photos"]) if entry.get("photos") else "")
     )
     return {"success": True, "verdict": "inviata", **(await _state(partner_id))}
+
+
+@router.get("/{partner_id}/domain/check")
+async def domain_check_route(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Controlla sui DNS pubblici che le righe del dominio siano visibili. Solo lettura."""
+    await _authorize(partner_id, credentials)
+    rec = await _record(partner_id)
+    records = ((rec.get("domain") or {}).get("records")) or []
+    if not records:
+        raise HTTPException(status_code=400, detail="Il team non ha ancora preparato le righe del tuo dominio.")
+    results = await asyncio.to_thread(domain_check.check_records, records)
+    was_done = bool((rec.get("connections") or {}).get("dominio"))
+    update = fr.domain_verified_update(rec, results, _now())
+    await db.partner_funnel.update_one({"partner_id": str(partner_id)}, update, upsert=True)
+    if update["$set"].get("connections.dominio") and not was_done:
+        owner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1}) or {}
+        await _notify(f"🌐 DOMINIO COLLEGATO\n\n👤 {owner.get('name', partner_id)}\nTutte le righe DNS sono visibili.")
+    return {"success": True, "results": [{k: r[k] for k in ("id", "status", "found")} for r in results],
+            **(await _state(partner_id))}
+
+
+@router.post("/{partner_id}/domain/help")
+async def domain_help(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """«Preferisco che ci pensiate voi»: avvisa il team, che lo contatta per farlo insieme."""
+    await _authorize(partner_id, credentials)
+    await db.partner_funnel.update_one({"partner_id": str(partner_id)},
+                                       {"$set": {"domain.help_requested_at": _now(), "updated_at": _now()}}, upsert=True)
+    owner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1}) or {}
+    await _notify(f"🆘 DOMINIO: IL PARTNER VUOLE AIUTO\n\n👤 {owner.get('name', partner_id)}\n"
+                  "Preferisce che lo facciamo insieme: contattalo per una breve chiamata. Mai chiedere password in chat.")
+    return {"success": True, **(await _state(partner_id))}
 
 
 @router.post("/{partner_id}/golive")

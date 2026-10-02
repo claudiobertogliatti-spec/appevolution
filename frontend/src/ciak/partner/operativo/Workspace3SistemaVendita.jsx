@@ -131,7 +131,7 @@ const GAIA = {
   dati: "Sono Gaia. Questi dati finiscono nelle pagine del tuo funnel e nei documenti legali. Controlla che siano giusti.",
   funnel: "Costruiamo il funnel una pagina alla volta. Ti dico a cosa serve ognuna e da cosa si compone; poi guardi la bozza e mi dici se va bene.",
   documenti: "Privacy, cookie e condizioni di vendita le scriviamo noi con i tuoi dati. Quando sono pronti li leggi qui e, se tutto torna, li approvi.",
-  dominio: "Qui colleghiamo il tuo indirizzo web al funnel. Quando arriviamo a questo passaggio ti guido io, riga per riga.",
+  dominio: "Qui colleghiamo il tuo indirizzo web al funnel. Ti guido io, riga per riga: copi, incolli e poi premi Controlla.",
   via_libera: "Quasi fatto. Quando è tutto a posto premi il pulsante e il funnel va online.",
 };
 
@@ -426,6 +426,138 @@ function PageInfo({ item, released, busy, onApprove, onEdit, onUpload }) {
   );
 }
 
+function CopyField({ label, value }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (e) {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      <div className="w-16 text-[12px] text-slate-500 flex-shrink-0">{label}</div>
+      <code className="flex-1 min-w-0 break-all rounded bg-white border border-slate-200 px-2 py-1.5 text-[13px] text-slate-900">{value}</code>
+      <button type="button" onClick={copy} aria-label={`Copia ${label}`}
+              className="min-h-[44px] px-3 rounded-lg text-[13px] text-slate-700 border border-slate-300 bg-white flex-shrink-0">
+        {copied ? "Copiato ✓" : "Copia"}
+      </button>
+    </div>
+  );
+}
+
+const DNS_STATUS = {
+  ok: { text: "Collegato", cls: "text-green-700", icon: "✓" },
+  assente: { text: "Non ancora visibile", cls: "text-slate-500", icon: "○" },
+  diverso: { text: "C'è un valore diverso", cls: "text-amber-800", icon: "!" },
+  errore: { text: "Non riesco a controllare, riprova", cls: "text-slate-500", icon: "○" },
+};
+
+function DomainPanel({ partnerId, domain, onState }) {
+  const [results, setResults] = useState({});
+  const [checking, setChecking] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const check = useCallback(async () => {
+    setChecking(true); setMsg(null);
+    try {
+      const r = await fetch(`${API}/api/partner-journey/funnel-review/${partnerId}/domain/check`, { headers: authHeaders() });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Non riesco a controllare. Riprova tra poco.");
+      const map = {};
+      (d.results || []).forEach((x) => { map[x.id] = x; });
+      setResults(map);
+      onState(d);
+    } catch (e) {
+      setMsg(String(e.message || e));
+    } finally {
+      setChecking(false);
+    }
+  }, [partnerId, onState]);
+
+  useEffect(() => { if (domain && domain.configured && !domain.all_verified) check(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const help = async () => {
+    setMsg(null);
+    try {
+      const r = await fetch(`${API}/api/partner-journey/funnel-review/${partnerId}/domain/help`, { method: "POST", headers: authHeaders() });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error("Non sono riuscita ad avvisare il team. Riprova.");
+      onState(d);
+    } catch (e) {
+      setMsg(String(e.message || e));
+    }
+  };
+
+  if (domain.all_verified) {
+    return (
+      <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-[14px] text-green-800">
+        <strong>Il tuo indirizzo web è collegato.</strong> Non devi fare altro: ci pensiamo noi.
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-4 text-[13.5px] leading-relaxed text-slate-800">
+        <div className="font-semibold text-slate-900 mb-1">Come si fa, in 4 mosse</div>
+        <ol className="list-decimal pl-5 space-y-0.5">
+          <li>Entra nel sito dove hai comprato il tuo dominio.</li>
+          <li>Cerca la voce «DNS» o «Zona DNS».</li>
+          <li>Aggiungi una riga per ognuna qui sotto: tipo, nome e valore, copiandoli con il pulsante.</li>
+          <li>Torna qui e premi «Controlla». Può servire anche qualche ora prima che si veda.</li>
+        </ol>
+      </div>
+      {(domain.records || []).map((r, i) => {
+        const found = results[r.id];
+        const st = DNS_STATUS[found ? found.status : (r.verified ? "ok" : "assente")];
+        return (
+          <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
+                   style={{ background: ANTHRACITE, color: BRAND_YELLOW }} aria-hidden="true">{i + 1}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold text-slate-900">{r.label}</div>
+                {r.purpose && <p className="text-[13px] text-slate-600 mt-0.5">{r.purpose}</p>}
+                <div className="mt-2">
+                  <CopyField label="Tipo" value={r.type} />
+                  <CopyField label="Nome" value={r.name} />
+                  <CopyField label="Valore" value={r.value} />
+                </div>
+                <div className={`mt-2 text-[13px] font-semibold ${st.cls}`}>
+                  <span aria-hidden="true">{st.icon}</span> {st.text}
+                  {found && found.status === "diverso" && found.found && (
+                    <span className="block font-normal text-[12.5px] mt-0.5">Adesso c'è scritto: {found.found}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap gap-2 mt-2">
+        <button onClick={check} disabled={checking}
+                className="min-h-[48px] px-6 rounded-lg text-[15px] font-bold disabled:opacity-40"
+                style={{ background: BRAND_YELLOW, color: ANTHRACITE }}>
+          {checking ? "Controllo…" : "Controlla"}
+        </button>
+        {!domain.help_requested && (
+          <button onClick={help}
+                  className="min-h-[48px] px-4 rounded-lg text-[14px] text-slate-700 border border-slate-300 bg-white">
+            Preferisco che ci pensiate voi
+          </button>
+        )}
+      </div>
+      {domain.help_requested && (
+        <p className="mt-3 text-[13.5px] text-slate-700">Ho avvisato il team: ti contatta per farlo insieme. <strong>Non mandare mai password in chat.</strong></p>
+      )}
+      {msg && <p className="mt-3 text-[13px] text-red-700">{msg}</p>}
+    </>
+  );
+}
+
 function Waiting({ title, children }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-[14px] text-slate-700 leading-relaxed">
@@ -663,11 +795,15 @@ export default function Workspace3SistemaVendita({ partnerId, onBack }) {
           </ReviewCard>
         )}
 
-        {current === "dominio" && (
+        {current === "dominio" && !(review.domain && review.domain.configured) && (
           <Waiting title="Ti guidiamo noi, quando è il momento">
-            Sono 3 righe da copiare nel pannello dove hai comprato il tuo dominio. Ti diciamo noi quando farlo.
+            Sono poche righe da copiare nel pannello dove hai comprato il tuo dominio. Ti diciamo noi quando farlo.
             <strong> Per ora non devi fare nulla.</strong>
           </Waiting>
+        )}
+        {current === "dominio" && review.domain && review.domain.configured && (
+          <DomainPanel partnerId={partnerId} domain={review.domain}
+                       onState={(d) => setState((st) => ({ ...st, review: d, progress: d.progress }))} />
         )}
 
         {current === "via_libera" && (
