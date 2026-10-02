@@ -891,6 +891,51 @@ async def _cascade_delete_client(client_id: str, email_norm: str) -> dict[str, i
     return deleted
 
 
+class LinkAccessoRequest(BaseModel):
+    email: str = Field(..., description="Email del cliente: deve combaciare col record (salvaguardia)")
+
+
+@router.post("/clients/{client_id}/link-accesso")
+async def link_accesso_cliente(
+    client_id: str,
+    body: LinkAccessoRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Un link d'accesso nuovo, da mandare a mano. NON invia nessuna email.
+
+    Serve quando la mail del sistema non arriva (verso hotmail il mittente dei
+    servizi transazionali finisce spesso in spam): l'admin copia il link e lo manda
+    lui, dalla sua posta o da WhatsApp. Stesso link di quello delle mail: vale 30
+    giorni ed e' riutilizzabile. Non tocca niente del cliente, ne' i link gia'
+    emessi (restano validi).
+    """
+    import os
+
+    from services.ciak_client_accounts import create_magic_login_token
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente Ciak non trovato")
+    email_norm = (body.email or "").strip().lower()
+    if email_norm != (client.get("email") or "").strip().lower():
+        raise HTTPException(400, "L'email non combacia col cliente: nessun link creato")
+
+    login = await create_magic_login_token(db, client_id, email_norm)
+    base = (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD") or "https://www.ciak.io").rstrip("/")
+    link = f"{base}/cliente/accesso?token={login['token']}"
+
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    events = [dict(e) for e in (client.get("events") or [])]
+    # Nell'evento NON finisce il link: solo chi e quando.
+    events.append({"event": "link_accesso_generato_da_admin", "timestamp": now, "by": actor})
+    await db.ciak_clients.update_one({"id": client_id}, {"$set": {"events": events}})
+    logger.info("[CIAK_ADMIN] Link d'accesso generato per %s da %s", email_norm, actor)
+    return {"ok": True, "link": link, "scade_il": login["expires_at"]}
+
+
 class AnnullaStartRequest(BaseModel):
     email: str = Field(..., description="Email del cliente: deve combaciare col record (salvaguardia)")
 

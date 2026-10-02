@@ -278,6 +278,45 @@ export function ClientiCiak({ onAuthExpired }) {
   // Toglie un Ciak Start attivato per errore dal form admin (mai uno pagato
   // davvero: il backend rifiuta). Il cliente resta, col suo link d'accesso: al
   // prossimo accesso vede la sales page con le due opzioni.
+  // Link d'accesso da mandare a mano: NON invia nessuna mail (verso hotmail i
+  // messaggi del sistema finiscono spesso in spam). Si genera, si copia, si manda.
+  const [linkAccesso, setLinkAccesso] = useState(null);
+  const [linkCreando, setLinkCreando] = useState(null);
+  const [linkCopiato, setLinkCopiato] = useState(false);
+  const creaLinkAccesso = async (client) => {
+    if (!client?.id || linkCreando) return;
+    setLinkCreando(client.id);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/clients/${client.id}/link-accesso`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: client.email }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch { /* testo semplice */ }
+        throw new Error(detail ? String(detail).slice(0, 200) : `Errore ${res.status}`);
+      }
+      const r = await res.json();
+      setLinkCopiato(false);
+      setLinkAccesso({ ...client, link: r.link, scadeIl: r.scade_il });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else toast.error(e.message || "Non sono riuscito a creare il link.");
+    } finally {
+      setLinkCreando(null);
+    }
+  };
+  const copiaLinkAccesso = async () => {
+    try {
+      await navigator.clipboard.writeText(linkAccesso.link);
+      setLinkCopiato(true);
+    } catch {
+      toast.error("Non riesco a copiare da solo: selezionalo e copialo a mano.");
+    }
+  };
+
   const [pendingAnnulla, setPendingAnnulla] = useState(null);
   const [annullando, setAnnullando] = useState(false);
   const confirmAnnulla = async () => {
@@ -516,6 +555,15 @@ export function ClientiCiak({ onAuthExpired }) {
                       ) : (
                         <p className="mt-2 text-xs text-slate-400">Abilita il checkout corretto in area cliente.</p>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => creaLinkAccesso({ id: row.id, email: row.email, name: row.name })}
+                        disabled={!row.id || linkCreando === row.id}
+                        title="Crea un link d'accesso nuovo da mandare tu. Non invia nessuna mail."
+                        className="mt-2 mr-3 inline-flex items-center gap-1 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {linkCreando === row.id ? "Creo il link..." : "Link di accesso"}
+                      </button>
                       {row.accessLevel === "cliente_start" && (
                         <button
                           type="button"
@@ -545,6 +593,55 @@ export function ClientiCiak({ onAuthExpired }) {
           </table>
         </div>
       </div>
+
+      {linkAccesso && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4"
+          role="presentation"
+          onClick={() => setLinkAccesso(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="link-accesso-titolo"
+            className="w-full max-w-lg rounded-xl bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="link-accesso-titolo" className="text-lg font-semibold text-slate-900">
+              Link di accesso per {linkAccesso.name || linkAccesso.email}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Nessuna mail è partita. Copia il link e mandalo tu. Vale 30 giorni
+              {linkAccesso.scadeIl ? ` (fino al ${new Date(linkAccesso.scadeIl).toLocaleDateString("it-IT")})` : ""} e
+              si può usare più volte. I link già inviati restano validi.
+            </p>
+            <label htmlFor="link-accesso-testo" className="sr-only">Link di accesso</label>
+            <input
+              id="link-accesso-testo"
+              readOnly
+              value={linkAccesso.link}
+              onFocus={(e) => e.target.select()}
+              className="mt-4 w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-xs text-slate-800"
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setLinkAccesso(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-500"
+              >
+                Chiudi
+              </button>
+              <button
+                type="button"
+                onClick={copiaLinkAccesso}
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800"
+              >
+                {linkCopiato ? "Copiato" : "Copia il link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!pendingAnnulla}
