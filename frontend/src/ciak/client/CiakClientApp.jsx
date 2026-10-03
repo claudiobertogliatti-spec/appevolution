@@ -7,7 +7,6 @@ import {
   clientGet, getClientToken, getClientUser, magicLogin, requestAccess,
 } from "./api";
 import { ClientHome } from "./pages/ClientHome";
-import { BlueprintPage } from "./pages/BlueprintPage";
 import { StartPage } from "./pages/StartPage";
 import { StartDomandePage } from "./pages/StartDomandePage";
 import { StartMarchioPage } from "./pages/StartMarchioPage";
@@ -177,7 +176,8 @@ function ProtectedClient() {
       ) : null}
       <Routes>
         <Route index element={<ClientHome dashboard={dashboard} />} />
-        <Route path="blueprint" element={<BlueprintPage dashboard={dashboard} />} />
+        {/* Il Blueprint vive nella Home, personalizzata: il vecchio indirizzo rimanda li'. */}
+        <Route path="blueprint" element={<Navigate to="/cliente" replace />} />
         <Route path="start" element={<StartPage dashboard={dashboard} />} />
         <Route path="start/domande" element={<StartDomandePage dashboard={dashboard} />} />
         <Route path="start/marchio" element={<StartMarchioPage dashboard={dashboard} />} />

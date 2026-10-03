@@ -17,7 +17,8 @@ from auth import decode_token
 from report_key_auth import require_admin_or_report_key
 from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
-from routers.insider_helpers import blueprint_public_view
+from routers.insider_helpers import blueprint_public_view, recommended_path
+from services.paid_offer_gate import paid_offer_readiness
 from services.ciak_client_accounts import (
     effective_session_token,
     ha_risposte,
@@ -444,19 +445,18 @@ def _start_consegne(client: dict[str, Any]) -> list[str]:
 
 
 async def _blueprint_summary(session_token: str | None) -> dict[str, Any] | None:
-    """Riassunto breve del Blueprint per la pagina cliente. Il documento completo e' il PDF.
+    """Blueprint del cliente per la Home: la proiezione client-facing (la stessa della pagina
+    di chiusura) piu' il link al PDF GIA' consegnato. Niente punteggio e niente testi interni.
 
-    Solo il necessario: progetto, sintesi, nodo principale e link al PDF GIA' consegnato.
-    Niente punteggio, niente roadmap, niente testi interni. Se il Blueprint non e' pronto,
-    o se la lettura fallisce, ritorna None: la pagina lo dice con onesta' invece di inventare.
-    """
+    Se il Blueprint non e' pronto, o se la lettura fallisce, ritorna None: la pagina lo dice con
+    onesta' invece di inventare."""
     if not session_token or db is None:
         return None
     from services import ciak_blueprint_store
 
     try:
         doc = await db.ciak_blueprints.find_one({"session_token": session_token}, {"_id": 0})
-    except Exception as exc:  # il riassunto e' accessorio: non deve rompere la dashboard
+    except Exception as exc:  # il Blueprint e' accessorio: non deve rompere la dashboard
         logger.warning("[CLIENT_DASHBOARD] lettura Blueprint fallita: %s", exc)
         return None
     if not doc or doc.get("stato") != ciak_blueprint_store.STATO_PRONTO:
@@ -465,11 +465,37 @@ async def _blueprint_summary(session_token: str | None) -> dict[str, Any] | None
     if not view:
         return None
     consegnato = bool(doc.get("consegna_inviata_at"))
+    return {**view, "pdf_url": doc.get("pdf_url") if consegnato else None}
+
+
+async def _proposta_summary(email: str | None) -> dict[str, Any] | None:
+    """La proposta Partnership del cliente, se esiste: serve alla pagina Partnership per
+    contratto e pagamento. `scaduta` e' vera se la scadenza e' passata senza firma ne' pagamento."""
+    normalized = (email or "").strip().lower()
+    if not normalized or db is None:
+        return None
+    try:
+        doc = await db.proposte.find_one({"prospect_email": normalized, "stato": {"$nin": ["scaduta"]}}, {"_id": 0})
+        if not doc:
+            scaduta = await db.proposte.find_one({"prospect_email": normalized}, {"_id": 0})
+            return {"scaduta": True} if scaduta else None
+    except Exception as exc:
+        logger.warning("[CLIENT_DASHBOARD] lettura proposta fallita: %s", exc)
+        return None
+    scaduta = False
+    if doc.get("stato") not in ("pagamento_completato", "contratto_firmato"):
+        try:
+            scaduta = datetime.now(timezone.utc) > datetime.fromisoformat(doc.get("scadenza") or "")
+        except (ValueError, TypeError):
+            scaduta = False
+    if scaduta:
+        return {"scaduta": True}
     return {
-        "progetto": (view.get("meta") or {}).get("progetto") or None,
-        "sintesi": view.get("sintesi") or None,
-        "problema": view.get("problema") or None,
-        "pdf_url": doc.get("pdf_url") if consegnato else None,
+        "token": doc.get("token"),
+        "partner_id": doc.get("partner_id"),
+        "stato": doc.get("stato"),
+        "scadenza": doc.get("scadenza"),
+        "scaduta": False,
     }
 
 
@@ -500,6 +526,9 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         },
         "analysis": _analysis_payload(analysis, client),
         "blueprint": await _blueprint_summary(session_token),
+        "proposta": await _proposta_summary(effective_client.get("email") or client.get("email")),
+        "raccomandata": recommended_path(effective_client, None),
+        "checkout_readiness": paid_offer_readiness(),
         "start": {
             "credit_amount_cents": partnership_price["credit_amount_cents"],
             # Le tre date promesse nell'email di attivazione: stessa sorgente
@@ -1251,6 +1280,20 @@ async def partnership_checkout(client: dict[str, Any] = Depends(require_client))
         "code": "PARTNERSHIP_PROPOSAL_REQUIRED",
         "message": "Per la Partnership apri il link alla proposta ricevuto dal team e completa l'accettazione del contratto.",
     })
+
+
+@router.post("/partnership/proposta")
+async def partnership_proposta(client: dict[str, Any] = Depends(require_client)):
+    """Il cliente apre contratto e pagamento della Partnership dalla sua area.
+
+    Ritorna la sua proposta attiva; se non ce n'e' mai stata una la crea (serve la call fatta).
+    Se ne esisteva una scaduta NON ne crea un'altra: la scadenza e' reale (410)."""
+    from routers import proposta as proposta_router
+
+    risultato = await proposta_router.proposta_per_cliente(
+        client.get("email"), {"id": client.get("id"), "email": client.get("email")}
+    )
+    return risultato
 
 
 class SalesChatRequest(BaseModel):

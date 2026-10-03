@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, LockKeyhole, PlayCircle } from "lucide-react";
-import { clientPost } from "../api";
+import { Link } from "react-router-dom";
+import { LockKeyhole, PlayCircle } from "lucide-react";
+import "../../insider/postcall.css";
+import ProposalChat from "../../insider/ProposalChat";
 import { PRICING } from "../../pricing";
+import { SalesChat } from "../SalesChat";
+import { PartnershipCheckout } from "../PartnershipCheckout";
 import { lessonVideos } from "./lessonVideos";
 
 function euro(cents) {
@@ -70,102 +74,109 @@ export function LessonCard({ lesson, index }) {
 }
 
 export function PartnershipEducationPage({ dashboard }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const access = dashboard.client?.access_level;
   const isPartner = dashboard.partner_area?.status === "attiva";
-  const recommended = dashboard.diagnostic?.recommended_offer;
-  const canUpgrade = isPartner || access === "cliente_start" || recommended === "partnership";
+  const callDone = dashboard.diagnostic?.state === "call_done";
   const pricing = dashboard.pricing?.partnership || {};
   const fullAmount = pricing.full_amount_cents ?? PRICING.partnership.cents;
-  const creditAmount = pricing.credit_amount_cents ?? PRICING.start.cents;
-  const dueAmount = pricing.due_amount_cents ?? PRICING.upgradeFromStart.cents;
+  const creditAmount = pricing.credit_amount_cents ?? 0;
+  const dueAmount = pricing.due_amount_cents ?? fullAmount - creditAmount;
+  // Contratto e pagamento si aprono dopo la call (o per chi ha gia' Start): prima non c'e' niente da firmare.
+  const canBuy = !isPartner && (callDone || access === "cliente_start");
 
-  async function handleCheckout() {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await clientPost("/partnership/checkout");
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-        return;
-      }
-      throw new Error("Checkout non disponibile");
-    } catch (e) {
-      setError(e.message || "Errore avvio checkout");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [proposta, setProposta] = useState(dashboard.proposta || null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const token = proposta?.token;
+  const offer = dashboard.offer || {};
+  const bonusAttiva = !!offer.bonus_guida_attiva && !!offer.bonus_expires_at;
 
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Verso la Partnership</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Partnership Evolution PRO</p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {isPartner ? "Partnership attiva" : "Capisci prima cosa succede dopo"}
+          {isPartner ? "Partnership attiva" : "Capisci cosa succede dopo, poi decidi"}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
           {isPartner
-            ? "La tua Partnership e' attiva. L'area partner dedicata resta il punto operativo principale."
-            : "Questa sezione ti accompagna nel capire il percorso completo. L'area partner si apre solo dopo l'attivazione della Partnership."}
+            ? "La tua Partnership è attiva. L'area partner dedicata resta il punto operativo principale."
+            : "Cinque video brevi per capire il percorso completo prima di decidere: cosa succede, cosa costruiamo, cosa decidi tu, cosa è tuo e come funziona il 10%."}
         </p>
-        <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-          <p>{isPartner ? "Area partner gia' attiva." : "Area partner disponibile solo dopo attivazione."}</p>
-        </div>
+        {!isPartner ? (
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+            <p>L'area partner si apre dopo l'attivazione della Partnership.</p>
+          </div>
+        ) : null}
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
+      <section className="grid gap-3 md:grid-cols-2" aria-label="Le cinque lezioni">
         {lessons.map((lesson, idx) => (
           <LessonCard key={lesson.title} lesson={lesson} index={idx} />
         ))}
       </section>
 
-      <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-6">
-        <h2 className="text-lg font-semibold text-slate-900">
-          {creditAmount > 0 ? "Credito Start garantito" : "Il prezzo"}
-        </h2>
-        <div className="mt-4 space-y-2 text-sm text-slate-700">
-          <div className="flex items-center justify-between gap-4">
-            <span>Partnership completa, una tantum</span>
-            <strong>{euro(fullAmount)}</strong>
-          </div>
-          {creditAmount > 0 ? (
-            <>
-              <div className="flex items-center justify-between gap-4">
-                <span>Credito Ciak Start</span>
-                <strong>-{euro(creditAmount)}</strong>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-t border-yellow-200 pt-3 text-base text-slate-900">
-                <span>Totale upgrade</span>
-                <strong>{euro(dueAmount)}</strong>
-              </div>
-            </>
-          ) : (
-            <p className="text-slate-600">
-              Se parti da Ciak Start, i {euro(PRICING.start.cents)} si scalano interi dalla Partnership.
-            </p>
-          )}
-        </div>
-        {!isPartner && canUpgrade ? (
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-            >
-              {loading ? "Apro il checkout..." : "Attiva la Partnership"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
+      {!isPartner ? (
+        <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-6" aria-labelledby="partnership-prezzo">
+          <h2 id="partnership-prezzo" className="text-lg font-semibold text-slate-900">
+            {creditAmount > 0 ? "Credito Start garantito" : "Il prezzo"}
+          </h2>
+          <div className="mt-4 space-y-2 text-sm text-slate-700">
+            <div className="flex items-center justify-between gap-4">
+              <span>Partnership completa, una tantum</span>
+              <strong>{euro(fullAmount)}</strong>
+            </div>
             {creditAmount > 0 ? (
-              <p className="text-sm text-slate-600">Per i clienti Start l'upgrade resta a {euro(dueAmount)}.</p>
-            ) : null}
+              <>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Credito Ciak Start</span>
+                  <strong>-{euro(creditAmount)}</strong>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-yellow-200 pt-3 text-base text-slate-900">
+                  <span>Totale upgrade</span>
+                  <strong>{euro(dueAmount)}</strong>
+                </div>
+              </>
+            ) : (
+              <p className="text-slate-600">
+                Se parti da Ciak Start, i {euro(PRICING.start.cents)} si scalano interi dalla Partnership.
+              </p>
+            )}
+            <div className="flex items-start justify-between gap-4 border-t border-yellow-200 pt-3 text-slate-900">
+              <span>In più, per 12 mesi dalla firma</span>
+              <strong className="text-right">10% dell'importo netto incassato dalle vendite del tuo corso</strong>
+            </div>
           </div>
-        ) : null}
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-      </section>
+          <p className="mt-4 text-xs leading-relaxed text-slate-600">
+            Nessun guadagno è garantito: ci impegniamo sul lavoro e sul metodo, i risultati dipendono anche da mercato, contenuti e
+            impegno. Per fare due conti con i tuoi numeri usa il{" "}
+            <Link to="/cliente/simulatore" className="font-semibold text-blue-700 underline underline-offset-2">
+              Simulatore Corsi
+            </Link>
+            .
+          </p>
+        </section>
+      ) : null}
+
+      {canBuy ? (
+        <PartnershipCheckout proposta={proposta} checkoutReadiness={dashboard.checkout_readiness} onProposta={setProposta} />
+      ) : null}
+
+      {!isPartner ? (
+        token ? (
+          <div className="pc pc-embed">
+            <ProposalChat
+              token={token}
+              name={dashboard.client?.name}
+              open={chatOpen}
+              onOpen={() => setChatOpen(true)}
+              onClose={() => setChatOpen(false)}
+            />
+          </div>
+        ) : (
+          <SalesChat bonusAttiva={bonusAttiva} recPartnership />
+        )
+      ) : null}
     </div>
   );
 }

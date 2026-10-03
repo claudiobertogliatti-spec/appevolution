@@ -21,9 +21,23 @@ class FakeCollection:
     def __init__(self, docs=None):
         self.docs = [dict(doc) for doc in (docs or [])]
 
+    @staticmethod
+    def _match(doc, query):
+        """Valuta anche gli operatori `$nin` e `$in`, come fa MongoDB: un finto db che li
+        ignora fa passare test su filtri che in produzione danno un altro risultato."""
+        for key, value in query.items():
+            if isinstance(value, dict) and ("$nin" in value or "$in" in value):
+                if "$nin" in value and doc.get(key) in value["$nin"]:
+                    return False
+                if "$in" in value and doc.get(key) not in value["$in"]:
+                    return False
+            elif doc.get(key) != value:
+                return False
+        return True
+
     async def find_one(self, query, projection=None):
         for doc in self.docs:
-            if all(doc.get(key) == value for key, value in query.items()):
+            if self._match(doc, query):
                 data = dict(doc)
                 if projection and projection.get("_id") == 0:
                     data.pop("_id", None)
@@ -952,12 +966,17 @@ async def test_dashboard_espone_riassunto_blueprint_e_pdf_consegnato(fake_db):
     payload = await ciak_clients._dashboard_for_client(_client_dash())
 
     bp = payload["blueprint"]
-    assert bp["progetto"] == "Read Me Academy"
+    assert bp["meta"]["progetto"] == "Read Me Academy"
     assert bp["sintesi"].startswith("Una competenza reale")
     assert bp["problema"] == "Senza di te in aula non succede nulla."
     assert bp["pdf_url"] == "https://cdn.example/bp.pdf"
-    # solo il riassunto: niente roadmap, niente punteggio, niente payload grezzo
-    assert set(bp) == {"progetto", "sintesi", "problema", "pdf_url"}
+    # la Home e' personalizzata sul Blueprint: tutta la proiezione client-facing, ma niente
+    # punteggio ne' payload grezzo
+    assert set(bp) == {
+        "meta", "sintesi", "potenziale", "problema", "forza", "limiti", "manca", "rischio", "roadmap", "pdf_url",
+    }
+    assert "payload" not in bp and "score" not in bp
+    assert bp["roadmap"] == [{"h": "Fase 1", "p": "interna"}]
 
 
 @pytest.mark.asyncio
@@ -1003,3 +1022,93 @@ def test_la_sales_chat_dell_area_cliente_non_commenta_i_numeri_del_simulatore():
     assert "Simulatore Corsi" in src
     assert "NON commentare, interpretare o validare i suoi numeri" in src
     assert "non stimare mai vendite, incassi o tempi di rientro" in src
+
+
+# ─── Home e pagina Partnership: proposta, percorso consigliato, prontezza checkout ──────────
+
+def _proposta_doc(**extra):
+    doc = {
+        "token": "tok-prop",
+        "partner_id": "client-1",
+        "prospect_email": "a@example.com",
+        "stato": "inviata",
+        "scadenza": "2999-01-01T00:00:00+00:00",
+    }
+    doc.update(extra)
+    return doc
+
+
+@pytest.mark.asyncio
+async def test_dashboard_espone_la_proposta_attiva_per_contratto_e_pagamento(fake_db):
+    fake_db.proposte = FakeCollection([_proposta_doc()])
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+
+    assert payload["proposta"] == {
+        "token": "tok-prop", "partner_id": "client-1", "stato": "inviata",
+        "scadenza": "2999-01-01T00:00:00+00:00", "scaduta": False,
+    }
+    assert "checkout_readiness" in payload and isinstance(payload["checkout_readiness"], dict)
+
+
+@pytest.mark.asyncio
+async def test_senza_proposta_il_dashboard_dice_none_non_inventa_un_token(fake_db):
+    fake_db.proposte = FakeCollection([])
+    ciak_clients.set_db(fake_db)
+    assert (await ciak_clients._dashboard_for_client(_client_dash()))["proposta"] is None
+
+
+@pytest.mark.asyncio
+async def test_proposta_scaduta_viene_dichiarata_scaduta_senza_token(fake_db):
+    fake_db.proposte = FakeCollection([_proposta_doc(scadenza="2020-01-01T00:00:00+00:00")])
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+    assert payload["proposta"] == {"scaduta": True}
+
+    # anche una proposta gia' marcata 'scaduta' non lascia uscire il token
+    fake_db.proposte = FakeCollection([_proposta_doc(stato="scaduta")])
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+    assert payload["proposta"] == {"scaduta": True}
+
+
+@pytest.mark.asyncio
+async def test_proposta_firmata_non_viene_trattata_come_scaduta_anche_a_data_passata(fake_db):
+    fake_db.proposte = FakeCollection([_proposta_doc(stato="contratto_firmato", scadenza="2020-01-01T00:00:00+00:00")])
+    ciak_clients.set_db(fake_db)
+    payload = await ciak_clients._dashboard_for_client(_client_dash())
+    assert payload["proposta"]["scaduta"] is False
+    assert payload["proposta"]["token"] == "tok-prop"
+
+
+@pytest.mark.asyncio
+async def test_il_dashboard_espone_il_percorso_consigliato(fake_db):
+    ciak_clients.set_db(fake_db)
+    cliente = _client_dash()
+    cliente["recommended_offer"] = "partnership"
+    assert (await ciak_clients._dashboard_for_client(cliente))["raccomandata"] == "partnership"
+    cliente["recommended_offer"] = "ciak_start"
+    assert (await ciak_clients._dashboard_for_client(cliente))["raccomandata"] == "start"
+
+
+def test_il_cliente_ottiene_la_sua_proposta_dalla_sua_area(monkeypatch, client_app, fake_db):
+    chiamate = []
+
+    async def finta(email, generated_by):
+        chiamate.append((email, generated_by))
+        return {"token": "tok-nuovo", "partner_id": "client-1", "scadenza": "2999-01-01T00:00:00+00:00",
+                "stato": "inviata", "creata": True}
+
+    stub = types.ModuleType("routers.proposta")
+    stub.proposta_per_cliente = finta
+    monkeypatch.setitem(sys.modules, "routers.proposta", stub)
+
+    token = ciak_clients._create_client_jwt(fake_db.ciak_clients.docs[0])
+    response = client_app.post("/api/ciak/client/partnership/proposta", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    assert response.json()["token"] == "tok-nuovo"
+    assert chiamate == [("a@example.com", {"id": "client-1", "email": "a@example.com"})]
+
+
+def test_la_proposta_dell_area_cliente_richiede_il_login(client_app):
+    assert client_app.post("/api/ciak/client/partnership/proposta").status_code in (401, 403)

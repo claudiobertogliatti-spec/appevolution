@@ -4,9 +4,11 @@ import { MaterialiStart } from "../MaterialiStart";
 import { etichettaPasso } from "../startPassi";
 import {
   ArrowRight, Check, LockKeyhole, Loader2, Gift, Wallet, Timer, ShieldCheck,
-  Zap, Camera, ClipboardList, Bot, Mic, MessageCircle, Send,
+  Zap, Camera, ClipboardList, Bot, Mic,
 } from "lucide-react";
 import { clientGet, clientPost, journeyGet } from "../api";
+import { SalesChat } from "../SalesChat";
+import { StartSalesVideo } from "../StartSalesVideo";
 import { PRICING } from "../../pricing";
 
 function euro(cents) {
@@ -112,159 +114,6 @@ const REASSURANCE = [
   { Icon: ShieldCheck, t: "Onestà", d: "Ti diamo il metodo, non promesse di guadagno. I risultati dipendono dal mercato e dal tuo impegno." },
 ];
 
-// Assistente di supporto della sales page: risponde ai dubbi sul passo
-// successivo (Start vs Partnership, prezzi, credito, Klarna, bonus). Backend
-// `POST /api/ciak/client/sales-chat` (Haiku) — legge il recommended_offer reale
-// e NON promette guadagni. Stesso pattern del ContractChat della Proposta.
-function SalesChat({ bonusAttiva, recPartnership }) {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const endRef = useRef(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
-
-  const send = async (textOverride) => {
-    const text = (textOverride ?? input).trim();
-    if (!text || loading) return;
-    setInput("");
-    setMessages((m) => [...m, { role: "user", content: text }]);
-    setLoading(true);
-    try {
-      const data = await clientPost("/sales-chat", {
-        message: text,
-        conversation_history: messages.slice(-6),
-        bonus_attiva: !!bonusAttiva,
-      });
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: data.reply || "Non sono riuscito a rispondere. Scrivi a assistenza@evolution-pro.it" },
-      ]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "Errore di connessione. Riprova tra qualche secondo o scrivi a assistenza@evolution-pro.it" },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const faq = recPartnership
-    ? [
-        "Perché mi consigliate la Partnership?",
-        "Posso comunque partire da Ciak Start?",
-        "Quanto costa la Partnership?",
-        "Posso pagare a rate?",
-      ]
-    : [
-        "Start o Partnership: cosa mi conviene?",
-        "I 390€ li perdo se poi passo alla Partnership?",
-        "Cosa c'è di preciso in Ciak Start?",
-        "Posso pagare a rate?",
-      ];
-
-  if (!open) {
-    return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <span className="pointer-events-none absolute inset-0 rounded-full bg-yellow-400 opacity-50 animate-ping" />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="relative flex items-center gap-3 rounded-full bg-yellow-400 py-3 pl-3 pr-5 text-slate-900 shadow-2xl ring-2 ring-yellow-500/40 transition-transform hover:scale-105"
-          aria-label="Apri l'assistente: fai una domanda sull'offerta"
-        >
-          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-yellow-400">
-            <MessageCircle className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-yellow-400 bg-red-500" />
-          </span>
-          <span className="flex flex-col items-start text-left leading-tight">
-            <span className="text-sm font-bold">Una domanda?</span>
-            <span className="text-[11px] font-semibold text-slate-800">Ti rispondo io</span>
-          </span>
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex w-80 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:w-96" style={{ maxHeight: "70vh" }}>
-      <div className="flex items-center justify-between bg-slate-900 px-4 py-3 text-white">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-yellow-400" />
-          <span className="text-sm font-semibold">Assistente Evolution PRO</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-xl leading-none text-white/70 hover:text-white"
-          aria-label="Chiudi"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="min-h-[240px] flex-1 space-y-2 overflow-y-auto bg-gray-50 p-3">
-        {messages.length === 0 && (
-          <div className="py-2">
-            <p className="mb-3 text-center text-xs text-slate-500">Domande frequenti — clicca per la risposta:</p>
-            <div className="flex flex-col gap-1.5">
-              {faq.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => send(q)}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-xs text-slate-700 transition hover:border-yellow-400"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.role === "user" ? "bg-yellow-400 text-slate-900" : "border border-gray-200 bg-white text-slate-800"}`}>
-              {m.content}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-slate-500">
-              <Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Sto pensando…
-            </div>
-          </div>
-        )}
-        <div ref={endRef} />
-      </div>
-
-      <div className="flex gap-2 border-t border-gray-200 p-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Scrivi una domanda…"
-          className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-yellow-400 focus:outline-none"
-          disabled={loading}
-        />
-        <button
-          type="button"
-          onClick={() => send()}
-          disabled={!input.trim() || loading}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400 text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Invia"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function StartPage({ dashboard }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -283,19 +132,12 @@ export function StartPage({ dashboard }) {
   const callDone = dashboard.diagnostic?.state === "call_done";
   const showStartOffer = active || callDone;
   const startPrice = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
-  const partnershipPrice = dashboard.pricing?.partnership?.amount_cents ?? PRICING.partnership.cents;
-  const upgradePrice = dashboard.pricing?.partnership?.upgrade_from_start_cents ?? (partnershipPrice - startPrice);
   const clientId = dashboard.client?.id;
   const primo = (dashboard.client?.name || "").trim().split(" ")[0] || "";
-  // Instradamento dal Blueprint: se l'analisi consiglia la Partnership, la sales
-  // page mette la Partnership come percorso consigliato (coerente con la CTA del
-  // Blueprint). Altrimenti resta Ciak Start come primo passo.
-  const recPartnership = dashboard.diagnostic?.recommended_offer === "partnership";
 
   // Finestra bonus 48h (guida videocorso in omaggio): countdown REALE dal backend.
   const offer = dashboard.offer || {};
   const bonusAttiva = !!offer.bonus_guida_attiva && !!offer.bonus_expires_at;
-  const guidaValore = offer.guida_valore_cents || 4900;
 
   // Il percorso e' la journey vera, non `start_progress`.
   useEffect(() => {
@@ -376,26 +218,19 @@ export function StartPage({ dashboard }) {
           <div className="relative z-10 p-7 sm:p-9">
             {primo ? <p className="text-sm font-semibold text-slate-300">Ciao {primo},</p> : null}
             <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300">
-              <span className="h-0.5 w-6 bg-yellow-400" /> Il tuo Blueprint è pronto
+              <span className="h-0.5 w-6 bg-yellow-400" /> Ciak Start
             </p>
             <h1 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Hai la mappa.<br />Ora costruiamo <span className="text-yellow-400">il percorso.</span>
+              Le fondamenta,<br />fatte <span className="text-yellow-400">bene.</span>
             </h1>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-200">
-              Nella call abbiamo visto dove sei e dove puoi arrivare. Il passo successivo è trasformare
-              quell'analisi in qualcosa di concreto — con metodo, senza doverlo capire da solo.
-            </p>
+              Prima si sceglie la direzione, poi si investe. Ciak Start mette in ordine posizionamento, brand, presenza online
+              e contenuti: il minimo perché tutto il resto poggi su basi solide, e non sul rumore.</p>
           </div>
         </section>
 
-        {/* PERCORSO CONSIGLIATO dalla tua analisi (instradamento del Blueprint) */}
-        {recPartnership ? (
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl px-5 py-4 text-center text-white" style={{ background: NAVY_GRADIENT }}>
-            <span className="inline-flex items-center gap-2 text-sm font-bold">
-              <span className="h-0.5 w-6 bg-yellow-400" /> Dalla tua analisi, il percorso consigliato per te è la <span className="text-yellow-400">Partnership Evolution PRO</span>
-            </span>
-          </div>
-        ) : bonusAttiva ? (
+        {/* BONUS 48h: solo se la finestra e' davvero aperta */}
+        {bonusAttiva ? (
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-yellow-400 px-5 py-4 text-center text-slate-900">
             <span className="inline-flex items-center gap-2 text-sm font-bold">
               <Gift className="h-4 w-4" /> Guida in omaggio attivando Ciak Start — l'offerta scade tra
@@ -404,13 +239,12 @@ export function StartPage({ dashboard }) {
           </div>
         ) : null}
 
-        {/* DUE TIER */}
-        <div className="grid gap-5 lg:grid-cols-2">
-          {/* START */}
-          <section className={`relative flex flex-col rounded-2xl bg-white p-7 shadow-[0_18px_50px_rgba(16,19,38,0.10)] ${recPartnership ? "border border-slate-200" : "border-2 border-yellow-400"}`} style={{ order: recPartnership ? 2 : 1 }}>
-            <span className="absolute -top-3 left-6 rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-slate-900 shadow">
-              {recPartnership ? "Se preferisci partire leggero" : "Consigliato per iniziare"}
-            </span>
+        {/* VIDEO: perché partire da Start (compare solo se c'è un video vero) */}
+        <StartSalesVideo />
+
+        {/* OFFERTA: solo Ciak Start. La Partnership ha la sua pagina. */}
+        <section className="relative mx-auto flex w-full max-w-3xl flex-col rounded-2xl border-2 border-yellow-400 bg-white p-7 shadow-[0_18px_50px_rgba(16,19,38,0.10)]" data-offer="start">
+            <span className="absolute -top-3 left-6 rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-slate-900 shadow">Il primo passo</span>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Ciak Start</p>
             <h2 className="mt-2 text-2xl font-extrabold text-slate-900">Le fondamenta, fatte bene</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
@@ -434,7 +268,7 @@ export function StartPage({ dashboard }) {
                 </span>
                 <p className="text-[13px] leading-snug text-slate-700">
                   <b className="font-extrabold">In omaggio: la guida "Come creare un videocorso che vende"</b>{" "}
-                  (40 pagine). <span className="text-slate-500">Valore {euro(guidaValore)} — inclusa solo se attivi entro 48h.</span>
+                  (40 pagine). <span className="text-slate-500">Inclusa solo se attivi entro 48h.</span>
                 </p>
               </div>
             ) : null}
@@ -454,38 +288,6 @@ export function StartPage({ dashboard }) {
             </div>
             {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
           </section>
-
-          {/* PARTNERSHIP TURBO */}
-          <section className={`relative flex flex-col rounded-2xl p-7 text-white ${recPartnership ? "border-2 border-yellow-400" : "border border-transparent"}`} style={{ background: NAVY_GRADIENT, order: recPartnership ? 1 : 2 }}>
-            <span className={`absolute -top-3 left-6 rounded-full px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide shadow ${recPartnership ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-yellow-400"}`}>
-              {recPartnership ? "Consigliato per te" : "Il turbo"}
-            </span>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-300">Partnership Evolution PRO</p>
-            <h2 className="mt-2 text-2xl font-extrabold text-white">Il sistema completo, con noi</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              Tutto il metodo costruito insieme, dall'inizio al lancio: non solo le fondamenta, ma l'accademia che vende.
-            </p>
-            <div className="mt-5 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold tracking-tight text-white">{euro(partnershipPrice)}</span>
-              <span className="text-sm font-semibold text-slate-300">tutto incluso</span>
-            </div>
-            <ul className="mt-6 flex flex-col gap-3">
-              <FeatItem dark>Tutto ciò che c'è in Ciak Start</FeatItem>
-              <FeatItem dark>Masterclass e videocorso costruiti con te</FeatItem>
-              <FeatItem dark>Sistema di vendita completo (funnel + email)</FeatItem>
-              <FeatItem dark>Lancio guidato e accompagnamento</FeatItem>
-              <FeatItem dark>Revisione continua del percorso</FeatItem>
-            </ul>
-            <div className="mt-6 border-t border-white/10 pt-6">
-              <span className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-white/25 px-6 text-[15px] font-bold text-white/90">
-                Ne parliamo insieme &nbsp;→
-              </span>
-              <p className="mt-3 text-center text-xs leading-relaxed text-slate-300">
-                Hai già Ciak Start? L'upgrade è di {euro(upgradePrice)}: il credito dei {euro(startPrice)} è già scalato.
-              </p>
-            </div>
-          </section>
-        </div>
 
         {/* BONUS SPOTLIGHT — copertina guida */}
         {bonusAttiva ? (
@@ -525,7 +327,7 @@ export function StartPage({ dashboard }) {
               <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-dashed border-yellow-500 bg-slate-50 px-4 py-3">
                 <span className="text-xs font-bold uppercase tracking-wide text-emerald-600">Incluso gratis</span>
                 <span className="text-sm text-slate-500">
-                  Valore <b className="text-slate-900 line-through">{euro(guidaValore)}</b> — solo entro 48h dalla call
+                  Inclusa solo se attivi entro 48h dalla call
                 </span>
               </div>
             </div>
@@ -582,13 +384,14 @@ export function StartPage({ dashboard }) {
             ))}
           </div>
           <p className="mt-6 text-center text-xs leading-relaxed text-slate-400">
-            Ciak Start {euro(startPrice)} · Partnership {euro(partnershipPrice)} (upgrade da Start {euro(upgradePrice)}, credito incluso).
-            Nessun risultato economico è garantito: il metodo è lo strumento, i risultati dipendono dal mercato e dal tuo impegno.
+            Ciak Start {euro(startPrice)}, una tantum. Se poi passi alla <Link to="/cliente/partnership" className="font-semibold underline">Partnership</Link>,
+            i {euro(startPrice)} si scalano interi. Nessun risultato economico è garantito: il metodo è lo strumento,
+            i risultati dipendono dal mercato e dal tuo impegno.
           </p>
         </section>
 
         {/* Assistente: scioglie i dubbi prima della decisione, senza uscire dalla pagina */}
-        <SalesChat bonusAttiva={bonusAttiva} recPartnership={recPartnership} />
+        <SalesChat bonusAttiva={bonusAttiva} recPartnership={false} />
       </div>
     );
   }

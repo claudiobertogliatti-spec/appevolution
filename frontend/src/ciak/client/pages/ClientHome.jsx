@@ -2,6 +2,16 @@ import {
   ArrowRight, CalendarDays, CheckCircle2, LockKeyhole, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import "../../insider/postcall.css";
+import PostCallHero from "../../insider/PostCallHero";
+import BlueprintDiagnosis from "../../insider/BlueprintDiagnosis";
+import DecisionTimeline from "../../insider/DecisionTimeline";
+import CostOfWaiting from "../../insider/CostOfWaiting";
+import RoadmapSteps from "../../insider/RoadmapSteps";
+import { formatDeadline } from "../../insider/timeline";
+import { pickThankYouVideo } from "../../insider/ThankYouVideo";
+import { HomePaths } from "../HomePaths";
+import { SalesChat } from "../SalesChat";
 
 function nextAction(dashboard) {
   const access = dashboard.client?.access_level;
@@ -49,7 +59,7 @@ function statusLabel(state) {
   return "Da prenotare";
 }
 
-export function ClientHome({ dashboard }) {
+function HomeStato({ dashboard }) {
   const action = nextAction(dashboard);
   const diagnostic = dashboard.diagnostic || {};
   const analysis = dashboard.analysis || {};
@@ -111,4 +121,51 @@ export function ClientHome({ dashboard }) {
       </div>
     </div>
   );
+}
+
+/**
+ * Home persuasiva, per chi ha fatto la call e non ha ancora un percorso attivo.
+ *
+ * E' personalizzata sul Blueprint di questa persona (le sue parole: nodo principale, diagnosi, costo del
+ * restare fermi, tappe). Senza Blueprint pronto le sezioni personali NON compaiono: mai testo generico
+ * spacciato per personale. Da qui si sceglie fra Start e Partnership; ognuno ha la sua pagina.
+ */
+function HomePostCall({ dashboard }) {
+  const blueprint = dashboard.blueprint || null;
+  const name = dashboard.client?.name || "";
+  const proposta = dashboard.proposta;
+  const deadlineLabel = proposta?.token ? formatDeadline(proposta.scadenza) : null;
+  const video = pickThankYouVideo(null);
+  const offer = dashboard.offer || {};
+  const bonusAttiva = !!offer.bonus_guida_attiva && !!offer.bonus_expires_at;
+  const recPartnership = dashboard.raccomandata === "partnership";
+
+  return (
+    <>
+      <div className="pc pc-embed">
+        <PostCallHero
+          name={name}
+          blueprint={blueprint}
+          videoUrl={video.url}
+          captionsUrl={video.captionsUrl}
+          posterUrl={video.poster}
+          pdfUrl={blueprint?.pdf_url || null}
+          note="Puoi fermarti e fare domande in qualsiasi momento: l'assistente è in basso a destra."
+        />
+        {blueprint ? <BlueprintDiagnosis blueprint={blueprint} /> : null}
+        <DecisionTimeline deadlineLabel={deadlineLabel} />
+        {blueprint ? <CostOfWaiting blueprint={blueprint} /> : null}
+        {blueprint ? <RoadmapSteps steps={blueprint.roadmap} /> : null}
+        <HomePaths dashboard={dashboard} />
+      </div>
+      <SalesChat bonusAttiva={bonusAttiva} recPartnership={recPartnership} />
+    </>
+  );
+}
+
+export function ClientHome({ dashboard }) {
+  const access = dashboard.client?.access_level;
+  const attivo = access === "cliente_start" || access === "partner" || dashboard.partner_area?.status === "attiva";
+  if (!attivo && dashboard.diagnostic?.state === "call_done") return <HomePostCall dashboard={dashboard} />;
+  return <HomeStato dashboard={dashboard} />;
 }

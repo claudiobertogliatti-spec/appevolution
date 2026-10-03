@@ -69,7 +69,7 @@ export default function ThankYouVideo({ url, captionsUrl, poster }) {
     <div className="pc-thanks" data-testid="thank-you-video">
       <div className="pc-video">{player}</div>
       <p className="pc-thanks__note">
-        È un breve video per ringraziarti. Se preferisci non guardarlo, puoi andare avanti: tutto quello che serve è scritto qui sotto.
+        Un minuto da parte di Claudio: cosa trovi in questa pagina e come decidere con calma.
       </p>
     </div>
   );

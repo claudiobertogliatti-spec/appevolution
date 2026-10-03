@@ -1,12 +1,11 @@
 import { NavLink } from "react-router-dom";
 import {
-  BookOpen, Calculator, Home, LogOut, PlayCircle, Sparkles,
+  Calculator, Home, LogOut, PlayCircle, Sparkles,
 } from "lucide-react";
 import { clearClientSession } from "./api";
 
 const nav = [
   { to: "/cliente", end: true, label: "Home", icon: Home },
-  { to: "/cliente/blueprint", label: "Blueprint", icon: BookOpen },
   { to: "/cliente/start", label: "Ciak Start", icon: Sparkles },
   { to: "/cliente/partnership", label: "Partnership", icon: PlayCircle },
   { to: "/cliente/simulatore", label: "Simulatore", icon: Calculator },
