@@ -14,7 +14,12 @@ test("il menu ha il Simulatore al posto del Supporto, che non e' piu' una voce",
 
 test("restano le voci del percorso", () => {
   renderLayout();
-  ["Home", "Blueprint", "Ciak Start", "Partnership"].forEach((nome) => {
+  ["Home", "Ciak Start", "Partnership", "Simulatore"].forEach((nome) => {
     expect(screen.getByRole("link", { name: new RegExp(nome, "i") })).toBeInTheDocument();
   });
+});
+
+test("il Blueprint non e' piu' una voce di menu: vive nella Home personalizzata", () => {
+  renderLayout();
+  expect(screen.queryByRole("link", { name: /^blueprint$/i })).toBeNull();
 });

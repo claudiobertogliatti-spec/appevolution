@@ -8,7 +8,7 @@ import ThankYouVideo from './ThankYouVideo';
  *
  * Nessun dato inventato: ogni frase tra virgolette arriva dal Blueprint del lead.
  */
-export default function PostCallHero({ name, blueprint, videoUrl, captionsUrl, posterUrl, pdfUrl, telegramUrl, onAsk }) {
+export default function PostCallHero({ name, blueprint, videoUrl, captionsUrl, posterUrl, pdfUrl, telegramUrl, onAsk, note }) {
   const firstName = (name || '').trim().split(/\s+/)[0] || '';
   const problema = blueprint?.problema || '';
   const progetto = [blueprint?.meta?.progetto, blueprint?.meta?.accent_progetto].filter(Boolean);
@@ -41,7 +41,7 @@ export default function PostCallHero({ name, blueprint, videoUrl, captionsUrl, p
             ) : null}
           </div>
           <p className="pc-hero__small">
-            Tre passaggi: conferma, contratto, pagamento. Puoi fermarti e fare domande in qualsiasi momento.{' '}
+            {note || 'Tre passaggi: conferma, contratto, pagamento. Puoi fermarti e fare domande in qualsiasi momento.'}{' '}
             {onAsk ? (
               <button type="button" className="pc-linkbtn" onClick={onAsk}>Fai una domanda</button>
             ) : null}

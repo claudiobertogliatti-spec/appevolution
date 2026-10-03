@@ -1,5 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { LessonCard, PartnershipEducationPage } from "./PartnershipEducationPage";
+
+const render = (ui) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 const base = {
   client: { access_level: "cliente_blueprint" },
@@ -70,4 +73,30 @@ test("con Start attivo mostra il credito e il totale dell'upgrade", () => {
   expect(screen.getByRole("heading", { name: "Credito Start garantito" })).toBeInTheDocument();
   expect(screen.getByText("Totale upgrade")).toBeInTheDocument();
   expect(screen.getAllByText(/2\.600€/).length).toBeGreaterThan(0);
+});
+
+test("il prezzo dice anche il 10% per 12 mesi e rimanda al Simulatore", () => {
+  render(<PartnershipEducationPage dashboard={base} />);
+  expect(document.body.textContent).toMatch(/10% dell'importo netto incassato dalle vendite del tuo corso/);
+  expect(document.body.textContent).toMatch(/per 12 mesi dalla firma/);
+  expect(screen.getByRole("link", { name: "Simulatore Corsi" }).getAttribute("href")).toBe("/cliente/simulatore");
+  expect(document.body.textContent).toMatch(/Nessun guadagno è garantito/);
+  expect(document.body.textContent).not.toMatch(/tutto incluso/i);
+});
+
+test("dopo la call compare contratto e pagamento; prima della call no", () => {
+  const dopo = { ...base, diagnostic: { state: "call_done" }, checkout_readiness: { partnership: { enabled: true } } };
+  const { unmount } = render(<PartnershipEducationPage dashboard={dopo} />);
+  expect(screen.getByTestId("partnership-checkout")).toBeTruthy();
+  unmount();
+  render(<PartnershipEducationPage dashboard={{ ...base, diagnostic: { state: "call_booked" } }} />);
+  expect(screen.queryByTestId("partnership-checkout")).toBeNull();
+});
+
+test("chi ha gia' la Partnership non vede ne' prezzo ne' contratto, ma ritrova le lezioni", () => {
+  render(<PartnershipEducationPage dashboard={{ ...base, partner_area: { status: "attiva" } }} />);
+  expect(screen.getByRole("heading", { name: "Partnership attiva" })).toBeTruthy();
+  expect(screen.queryByTestId("partnership-checkout")).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Il prezzo" })).toBeNull();
+  expect(screen.getAllByText(/^Lezione \d$/)).toHaveLength(5);
 });

@@ -240,3 +240,9 @@
   .pc-mbar span b { color: var(--yellow); }
   .pc-mbar .pc-btn { min-height: 46px; padding: 0 16px; font-size: 14px; }
 }
+
+/* Le sezioni della pagina di chiusura dentro l'area cliente (/cliente): niente altezza minima, angoli arrotondati
+ * sui blocchi scuri (non sono piu' a tutta larghezza) e nessuna barra propria. */
+.pc-embed { min-height: 0; background: transparent; display: grid; gap: 20px; }
+.pc-embed .pc-hero, .pc-embed .pc-dark { border-radius: 20px; }
+.pc-embed .pc-section { padding-block: 40px; }
