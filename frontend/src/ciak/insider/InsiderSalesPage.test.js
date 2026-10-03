@@ -136,7 +136,7 @@ describe('video di ringraziamento', () => {
     mockProposta({ blueprint: BLUEPRINT });
     const { container } = render(<InsiderSalesPage />);
     const box = await screen.findByTestId('thank-you-video');
-    const video = container.querySelector('video');
+    const video = box.querySelector('video');
     expect(video.querySelector('source').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.mp4');
     expect(video.getAttribute('poster')).toBe('/video/ciak-post-call-ringraziamento.jpg');
     expect(video.querySelector('track').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.it.vtt');
@@ -151,7 +151,7 @@ describe('video di ringraziamento', () => {
     mockProposta({ video_benvenuto_url: 'https://cdn.example.com/grazie.mp4' });
     const { container } = render(<InsiderSalesPage />);
     await screen.findByTestId('thank-you-video');
-    expect(container.querySelector('video source').getAttribute('src')).toBe('https://cdn.example.com/grazie.mp4');
+    expect(screen.getByTestId('thank-you-video').querySelector('video source').getAttribute('src')).toBe('https://cdn.example.com/grazie.mp4');
   });
 
   test('un embed proprio (es. YouTube) viene reso come iframe', async () => {
@@ -159,14 +159,14 @@ describe('video di ringraziamento', () => {
     const { container } = render(<InsiderSalesPage />);
     await screen.findByTestId('thank-you-video');
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://www.youtube.com/embed/abc');
-    expect(container.querySelector('video')).toBeNull();
+    expect(screen.getByTestId('thank-you-video').querySelector('video')).toBeNull();
   });
 
   test.each([undefined, null, '', 'javascript:alert(1)', 'ftp://x/y.mp4', '//evil.example/x.mp4'])('URL proprio non valido (%s) → si usa il predefinito, mai un URL pericoloso', async (video_benvenuto_url) => {
     mockProposta({ video_benvenuto_url });
     const { container } = render(<InsiderSalesPage />);
     await screen.findByTestId('thank-you-video');
-    expect(container.querySelector('video source').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.mp4');
+    expect(screen.getByTestId('thank-you-video').querySelector('video source').getAttribute('src')).toBe('/video/ciak-post-call-ringraziamento.mp4');
     expect(container.querySelector('iframe')).toBeNull();
   });
 });
@@ -193,4 +193,54 @@ test('"Ho una domanda" apre la chat', async () => {
   expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getAllByRole('button', { name: /ho una domanda/i })[0]);
   expect(await screen.findByRole('dialog')).toBeTruthy();
+});
+
+describe('pagina unica: video della Partnership e Simulatore Corsi', () => {
+  beforeEach(() => mockProposta({ blueprint: BLUEPRINT, raccomandata: 'partnership' }));
+
+  test('le cinque lezioni video stanno nella pagina, con video, locandina e sottotitoli', async () => {
+    render(<InsiderSalesPage />);
+    expect(await screen.findByText(/Capisci cosa succede dopo, in cinque video/i)).toBeTruthy();
+    expect(screen.getAllByText(/^Lezione \d$/)).toHaveLength(5);
+    const lezioni = document.querySelectorAll('#lezioni video');
+    expect(lezioni).toHaveLength(5);
+    lezioni.forEach((v, i) => {
+      expect(v.getAttribute('poster')).toBe(`/video/partnership-lezione-${i + 1}.jpg`);
+      expect(v.querySelector('track').getAttribute('src')).toBe(`/video/partnership-lezione-${i + 1}.it.vtt`);
+    });
+  });
+
+  test('il Simulatore Corsi c\'e\' e dice subito che sono ipotesi, non una promessa', async () => {
+    render(<InsiderSalesPage />);
+    expect(await screen.findByText('Fai i tuoi conti')).toBeTruthy();
+    const nota = within(document.querySelector('#simulatore')).getByRole('note');
+    expect(nota.textContent).toMatch(/ipotesi, non una promessa/i);
+    expect(nota.textContent).toMatch(/nessun guadagno è garantito/i);
+    const scenari = within(document.querySelector('#simulatore')).getAllByRole('radio').map((r) => r.value);
+    expect(scenari).toEqual(['prudente', 'ambizioso', 'custom']);
+  });
+
+  test('lezioni e simulatore stanno PRIMA dell\'offerta, cosi\' si capisce prima di decidere', async () => {
+    render(<InsiderSalesPage />);
+    await screen.findByText('Fai i tuoi conti');
+    const lezioni = document.querySelector('#lezioni');
+    const sim = document.querySelector('#simulatore');
+    const offerta = document.querySelector('.pc-offer');
+    expect(lezioni.compareDocumentPosition(sim) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sim.compareDocumentPosition(offerta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test('compaiono anche senza Blueprint (non dipendono dai dati personali)', async () => {
+    mockProposta({ blueprint: null, raccomandata: null });
+    render(<InsiderSalesPage />);
+    expect(await screen.findByText('Fai i tuoi conti')).toBeTruthy();
+    expect(document.querySelectorAll('#lezioni video')).toHaveLength(5);
+  });
+
+  test('un solo titolo di primo livello: il simulatore lo mette come h2', async () => {
+    render(<InsiderSalesPage />);
+    await screen.findByText('Fai i tuoi conti');
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Fai i tuoi conti' })).toBeTruthy();
+  });
 });

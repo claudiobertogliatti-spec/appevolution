@@ -19,8 +19,9 @@
   min-height: 100vh;
 }
 .pc *, .pc *::before, .pc *::after { box-sizing: border-box; }
-.pc h1, .pc h2, .pc h3, .pc p, .pc ul, .pc ol { margin: 0; }
-.pc ul, .pc ol { padding: 0; list-style: none; }
+/* :where() azzera la specificita': i margini delle utility Tailwind dentro la pagina (es. il simulatore) non vengono annullati. */
+:where(.pc) :where(h1, h2, h3, p, ul, ol) { margin: 0; }
+:where(.pc) :where(ul, ol) { padding: 0; list-style: none; }
 .pc :focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 .pc-wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
 .pc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

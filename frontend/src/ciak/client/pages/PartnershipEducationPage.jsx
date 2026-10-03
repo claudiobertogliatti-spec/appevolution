@@ -8,7 +8,7 @@ function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
-const lessons = [
+export const lessons = [
   { title: "Cosa succede dentro la Partnership", note: "Panoramica del percorso e delle fasi.", ...lessonVideos[1] },
   { title: "Cosa costruiamo insieme", note: "Struttura, materiali e priorita' operative.", ...lessonVideos[2] },
   { title: "Cosa validi tu", note: "Decisioni, feedback e ritmo delle revisioni.", ...lessonVideos[3] },

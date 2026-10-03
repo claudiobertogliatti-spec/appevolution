@@ -12,6 +12,21 @@ import {
  * e' stato misurato su un lancio reale, e la pagina lo dice sempre (riquadro in cima + nota
  * sotto i risultati). Si apre sullo scenario Prudente; non esiste uno scenario "centrale".
  */
+// Due toni: l'area cliente (blu) e la pagina di chiusura /insider (navy e giallo, brand Ciak).
+// Le classi sono scritte per intero perche' Tailwind le trova solo cosi'.
+const TONI = {
+  client: {
+    kicker: "text-blue-600",
+    accent: "accent-blue-600",
+    active: "peer-checked:bg-blue-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue-600 peer-focus-visible:ring-offset-2",
+  },
+  insider: {
+    kicker: "text-amber-700",
+    accent: "accent-slate-900",
+    active: "peer-checked:bg-slate-900 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-400 peer-focus-visible:ring-offset-2",
+  },
+};
+
 const nf = new Intl.NumberFormat("it-IT", { useGrouping: "always", maximumFractionDigits: 0 });
 const eur = (n) => `${n < 0 ? "−" : ""}${nf.format(Math.round(Math.abs(n)))} €`;
 const nf1 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
@@ -35,7 +50,7 @@ const CAMPI_SECONDO = [
   { k: "relSecondo", label: "Acquisti del secondo corso rispetto al primo", min: 10, max: 100, step: 5, unit: "%", hint: "Se il secondo pubblico ha meno budget, compra meno del primo." },
 ];
 
-function Campo({ campo, valore, onChange }) {
+function Campo({ campo, valore, onChange, tone }) {
   const id = `sim-${campo.k}`;
   // Il numero si puo' digitare liberamente (es. "1" prima di "197"): si applica quando e' dentro la fascia, e si corregge all'uscita.
   const [testo, setTesto] = useState(null);
@@ -75,7 +90,7 @@ function Campo({ campo, valore, onChange }) {
         step={campo.step}
         value={valore}
         onChange={(e) => { setTesto(null); onChange(campo.k, e.target.value); }}
-        className="h-7 w-full accent-blue-600"
+        className={`h-7 w-full ${tone.accent}`}
       />
       {campo.hint ? <p className="text-xs leading-snug text-slate-500">{campo.hint}</p> : null}
     </div>
@@ -139,7 +154,10 @@ function Grafico({ r, onHover }) {
   );
 }
 
-export function SimulatorePage() {
+export function SimulatorePage({ tone = "client" }) {
+  const t = TONI[tone] || TONI.client;
+  // Dentro la pagina di chiusura il titolo di primo livello e' gia' suo: qui diventa un h2.
+  const Titolo = tone === "insider" ? "h2" : "h1";
   const [scenario, setScenario] = useState("prudente");
   const [inp, setInp] = useState(INPUT_INIZIALI);
   const [ip, setIp] = useState({ ...SCENARI.prudente });
@@ -160,17 +178,17 @@ export function SimulatorePage() {
     setScenario("custom");
   };
   const campo = (c, store, fn) => (
-    <Campo key={c.k} campo={c} valore={store[c.k]} onChange={(k, v) => fn(k, limita(v, c.min, c.max))} />
+    <Campo key={c.k} campo={c} valore={store[c.k]} onChange={(k, v) => fn(k, limita(v, c.min, c.max))} tone={t} />
   );
   const mostra = mese === null ? null : { i: mese, inc: r.incassi[mese], cum: r.cumulato[mese] };
 
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600">
+        <p className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-widest ${t.kicker}`}>
           <Calculator className="h-4 w-4" aria-hidden="true" /> Simulatore Corsi
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Fai i tuoi conti</h1>
+        <Titolo className="mt-2 text-2xl font-semibold text-slate-900">Fai i tuoi conti</Titolo>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
           Cambia le ipotesi e guarda quanto potrebbe vendere il tuo corso, quando, e quanto resta dopo i costi.
         </p>
@@ -195,7 +213,7 @@ export function SimulatorePage() {
                     onChange={() => scegli(v)}
                     className="peer absolute inset-0 cursor-pointer opacity-0"
                   />
-                  <span className="block rounded-md px-2 py-2 text-center text-sm font-medium text-slate-600 peer-checked:bg-blue-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue-600 peer-focus-visible:ring-offset-2">
+                  <span className={`block rounded-md px-2 py-2 text-center text-sm font-medium text-slate-600 ${t.active}`}>
                     {l}
                   </span>
                 </label>
@@ -216,7 +234,7 @@ export function SimulatorePage() {
                 type="checkbox"
                 checked={inp.secondo}
                 onChange={(e) => setInp((s) => ({ ...s, secondo: e.target.checked }))}
-                className="mt-1 h-4 w-4 accent-blue-600"
+                className={`mt-1 h-4 w-4 ${t.accent}`}
               />
               <span>
                 <strong className="font-medium">Ho un secondo corso</strong>
@@ -338,6 +356,7 @@ export function SimulatorePage() {
               campo={{ k: "obiettivo", label: "Incasso alla prima live", min: 500, max: 20000, step: 500, unit: "€" }}
               valore={obiettivo}
               onChange={(_, v) => setObiettivo(limita(v, 500, 20000))}
+              tone={t}
             />
             {inversa ? (
               <div className="grid gap-3 sm:grid-cols-3">

@@ -8,6 +8,8 @@ import AnalysisRecap from './AnalysisRecap';
 import DecisionTimeline from './DecisionTimeline';
 import CostOfWaiting from './CostOfWaiting';
 import RoadmapSteps from './RoadmapSteps';
+import PartnershipLessons from './PartnershipLessons';
+import CourseSimulator from './CourseSimulator';
 import OfferSections from './OfferSections';
 import Objections from './Objections';
 import FinalCta from './FinalCta';
@@ -108,6 +110,8 @@ export default function InsiderSalesPage() {
       <DecisionTimeline deadlineLabel={deadlineLabel} />
       {blueprint ? <CostOfWaiting blueprint={blueprint} /> : null}
       {blueprint ? <RoadmapSteps steps={blueprint.roadmap} /> : null}
+      <PartnershipLessons />
+      <CourseSimulator />
 
       <section className="pc-section pc-offer">
         <div className="pc-wrap">
