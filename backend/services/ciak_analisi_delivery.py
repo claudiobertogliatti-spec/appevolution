@@ -94,7 +94,8 @@ def _email_body(nome: str, pdf_url: Optional[str], access_link: Optional[str] = 
         accesso = (
             "Per proseguire, entra nella tua area riservata da qui (il link e' "
             f"personale):\n{access_link}\n\n"
-            "Da li' scegli come muoverti: Ciak Start oppure la Partnership completa."
+            "Da li' scegli come muoverti: Ciak Start oppure la Partnership completa.\n\n"
+            "Nella pagina trovi anche il Simulatore Corsi per fare i tuoi conti."
         )
     else:
         accesso = (

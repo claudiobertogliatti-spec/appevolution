@@ -84,6 +84,17 @@ def test_nessuna_garanzia_di_rimborso_inventata():
     assert "mai dire" in full or "non dire" in full
 
 
+def test_la_chat_non_commenta_i_numeri_del_simulatore():
+    blocks = pc.build_system_blocks(
+        first_name="Marta", contract_text="x", brief="b",
+        facts={"start_eur": 390, "partnership_eur": 2990, "upgrade_eur": 2600}, context="c",
+    )
+    stable = blocks[0]["text"]
+    assert "SIMULATORE CORSI" in stable
+    assert "NON commentare, interpretare, validare o confrontare i suoi numeri" in stable
+    assert "non stimare mai vendite, incassi o tempi di rientro" in stable
+
+
 def test_prezzi_del_prompt_vengono_dai_parametri():
     blocks = pc.build_system_blocks(
         first_name="", contract_text="x", brief="b",

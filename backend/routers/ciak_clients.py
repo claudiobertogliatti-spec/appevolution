@@ -17,6 +17,7 @@ from auth import decode_token
 from report_key_auth import require_admin_or_report_key
 from services.ciak_state_machine import STATE_CALL_DONE, transition_to
 from services.paid_offer_gate import require_paid_offer_checkout
+from routers.insider_helpers import blueprint_public_view
 from services.ciak_client_accounts import (
     effective_session_token,
     ha_risposte,
@@ -442,6 +443,36 @@ def _start_consegne(client: dict[str, Any]) -> list[str]:
         return []
 
 
+async def _blueprint_summary(session_token: str | None) -> dict[str, Any] | None:
+    """Riassunto breve del Blueprint per la pagina cliente. Il documento completo e' il PDF.
+
+    Solo il necessario: progetto, sintesi, nodo principale e link al PDF GIA' consegnato.
+    Niente punteggio, niente roadmap, niente testi interni. Se il Blueprint non e' pronto,
+    o se la lettura fallisce, ritorna None: la pagina lo dice con onesta' invece di inventare.
+    """
+    if not session_token or db is None:
+        return None
+    from services import ciak_blueprint_store
+
+    try:
+        doc = await db.ciak_blueprints.find_one({"session_token": session_token}, {"_id": 0})
+    except Exception as exc:  # il riassunto e' accessorio: non deve rompere la dashboard
+        logger.warning("[CLIENT_DASHBOARD] lettura Blueprint fallita: %s", exc)
+        return None
+    if not doc or doc.get("stato") != ciak_blueprint_store.STATO_PRONTO:
+        return None
+    view = blueprint_public_view(doc.get("payload"))
+    if not view:
+        return None
+    consegnato = bool(doc.get("consegna_inviata_at"))
+    return {
+        "progetto": (view.get("meta") or {}).get("progetto") or None,
+        "sintesi": view.get("sintesi") or None,
+        "problema": view.get("problema") or None,
+        "pdf_url": doc.get("pdf_url") if consegnato else None,
+    }
+
+
 async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
     if db is None:
         raise HTTPException(status_code=503, detail="Database non configurato")
@@ -468,6 +499,7 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
             "offer_decision": client.get("offer_decision"),
         },
         "analysis": _analysis_payload(analysis, client),
+        "blueprint": await _blueprint_summary(session_token),
         "start": {
             "credit_amount_cents": partnership_price["credit_amount_cents"],
             # Le tre date promesse nell'email di attivazione: stessa sorgente
@@ -1011,6 +1043,7 @@ def _consegna_manuale_email_body(nome: str, sales_link: str, pdf_url: str | None
         f"{scarica}\n"
         "Da qui accedi alla tua area riservata e scegli come proseguire — Ciak Start "
         f"oppure la Partnership completa:\n{sales_link}\n\n"
+        "Nella pagina trovi anche il Simulatore Corsi per fare i tuoi conti.\n\n"
         "A presto,\nClaudio\nEvolution PRO"
     )
 
@@ -1270,6 +1303,7 @@ TONO: caldo, diretto, concreto. Niente gergo. Massimo 120 parole. Dai del tu. Ch
 
 ⛔ ONESTÀ (regola assoluta, ha la precedenza su tutto):
 - MAI promettere guadagni, fatturato, numero di clienti o percentuali di successo. Il metodo è lo strumento; i risultati dipendono dal mercato e dall'impegno della persona.
+- Il Simulatore Corsi (voce "Simulatore" dell'area cliente) è uno strumento di ipotesi che la persona modifica da sola. NON commentare, interpretare o validare i suoi numeri e non stimare mai vendite, incassi o tempi di rientro: di' che sono ipotesi, che nessun risultato è garantito, e che per ragionarci sul suo caso risponde il team.
 - MAI inventare recensioni, testimonianze o dati.
 - Usa SOLO i prezzi e i fatti qui sotto. Se non sai qualcosa: "Per questo ti risponde il team — scrivi a assistenza@evolution-pro.it".
 - Rispondi solo a domande su offerta, prezzi, modalità, cosa è incluso, come si procede. Per il resto rimanda ad assistenza.

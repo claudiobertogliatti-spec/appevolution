@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
-  BookOpen, Home, LifeBuoy, LogOut, PlayCircle, Sparkles,
+  BookOpen, Calculator, Home, LogOut, PlayCircle, Sparkles,
 } from "lucide-react";
 import { clearClientSession } from "./api";
 
@@ -9,6 +9,7 @@ const nav = [
   { to: "/cliente/blueprint", label: "Blueprint", icon: BookOpen },
   { to: "/cliente/start", label: "Ciak Start", icon: Sparkles },
   { to: "/cliente/partnership", label: "Partnership", icon: PlayCircle },
+  { to: "/cliente/simulatore", label: "Simulatore", icon: Calculator },
 ];
 
 function navClass({ isActive }) {
@@ -51,13 +52,6 @@ export function ClientLayout({ client, children }) {
               <span className="whitespace-nowrap">{item.label}</span>
             </NavLink>
           ))}
-          <a
-            href="mailto:assistenza@evolution-pro.it"
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-blue-50"
-          >
-            <LifeBuoy className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">Supporto</span>
-          </a>
         </nav>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
