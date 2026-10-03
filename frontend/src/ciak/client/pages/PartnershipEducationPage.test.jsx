@@ -18,23 +18,40 @@ test("la sequenza e' quella delle cinque lezioni video, nello stesso ordine", ()
     "Perche' esiste il 10% per 12 mesi",
   ];
   titoli.forEach((t) => expect(screen.getByText(t)).toBeInTheDocument());
-  screen.getAllByText(/^Lezione \d$/).forEach((el, i) => expect(el).toHaveTextContent(`Lezione ${i + 1}`));
-  expect(screen.getAllByText(/^Lezione \d$/)).toHaveLength(5);
+  const etichette = screen.getAllByText(/^Lezione \d$/);
+  expect(etichette).toHaveLength(5);
+  etichette.forEach((el, i) => expect(el).toHaveTextContent(`Lezione ${i + 1}`));
 });
 
-test("senza video pronto ogni lezione dice 'in preparazione', senza lettore", () => {
+test("ogni lezione ha il suo video, la sua locandina e i suoi sottotitoli in italiano", () => {
   render(<PartnershipEducationPage dashboard={base} />);
-  expect(screen.getAllByText(/Video guida in preparazione/i)).toHaveLength(5);
+  const video = document.querySelectorAll("video");
+  expect(video).toHaveLength(5);
+  video.forEach((v, i) => {
+    const n = i + 1;
+    expect(v).toHaveAttribute("controls");
+    expect(v).toHaveAttribute("poster", `/video/partnership-lezione-${n}.jpg`);
+    expect(v.querySelector("source")).toHaveAttribute("src", `/video/partnership-lezione-${n}.mp4`);
+    const track = v.querySelector("track");
+    expect(track).toHaveAttribute("src", `/video/partnership-lezione-${n}.it.vtt`);
+    expect(track).toHaveAttribute("srclang", "it");
+    expect(track).toHaveAttribute("kind", "captions");
+  });
+  expect(screen.queryByText(/in preparazione/i)).toBeNull();
+});
+
+test("una lezione senza video lo dice con onesta' e non mostra un lettore vuoto", () => {
+  render(<LessonCard index={2} lesson={{ title: "Cosa validi tu", note: "Decisioni.", videoUrl: null }} />);
+  expect(screen.getByText(/Video guida in preparazione/i)).toBeInTheDocument();
   expect(document.querySelector("video")).toBeNull();
 });
 
-test("quando una lezione ha il suo video mostra il lettore al posto della scritta", () => {
-  render(<LessonCard index={0} lesson={{ title: "Cosa succede dentro la Partnership", note: "Panoramica.", videoUrl: "https://cdn.example/lezione-1.mp4" }} />);
-  const video = document.querySelector("video");
-  expect(video).not.toBeNull();
-  expect(video).toHaveAttribute("src", "https://cdn.example/lezione-1.mp4");
-  expect(video).toHaveAttribute("controls");
-  expect(screen.queryByText(/in preparazione/i)).toBeNull();
+test("senza sottotitoli il video resta riproducibile, senza traccia vuota", () => {
+  render(<LessonCard index={0} lesson={{ title: "T", note: "N", videoUrl: "/video/x.mp4", posterUrl: "/video/x.jpg" }} />);
+  const v = document.querySelector("video");
+  expect(v).not.toBeNull();
+  expect(v.querySelector("track")).toBeNull();
+  expect(v.querySelector("source")).toHaveAttribute("src", "/video/x.mp4");
 });
 
 test("senza Start non mostra un credito a zero: mostra il prezzo pieno", () => {

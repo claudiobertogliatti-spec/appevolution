@@ -2,22 +2,58 @@ import { useState } from "react";
 import { ArrowRight, LockKeyhole, PlayCircle } from "lucide-react";
 import { clientPost } from "../api";
 import { PRICING } from "../../pricing";
+import { lessonVideos } from "./lessonVideos";
 
 function euro(cents) {
   return `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)}€`;
 }
 
 const lessons = [
-  { title: "Cosa succede dentro la Partnership", note: "Panoramica del percorso e delle fasi.", videoUrl: null },
-  { title: "Cosa costruiamo insieme", note: "Struttura, materiali e priorita' operative.", videoUrl: null },
-  { title: "Cosa validi tu", note: "Decisioni, feedback e ritmo delle revisioni.", videoUrl: null },
-  { title: "Perche' il sistema resta tuo", note: "Ordine, proprieta' e continuita' del lavoro.", videoUrl: null },
-  { title: "Perche' esiste il 10% per 12 mesi", note: "Allineamento sugli obiettivi e crescita nel tempo.", videoUrl: null },
+  { title: "Cosa succede dentro la Partnership", note: "Panoramica del percorso e delle fasi.", ...lessonVideos[1] },
+  { title: "Cosa costruiamo insieme", note: "Struttura, materiali e priorita' operative.", ...lessonVideos[2] },
+  { title: "Cosa validi tu", note: "Decisioni, feedback e ritmo delle revisioni.", ...lessonVideos[3] },
+  { title: "Perche' il sistema resta tuo", note: "Ordine, proprieta' e continuita' del lavoro.", ...lessonVideos[4] },
+  { title: "Perche' esiste il 10% per 12 mesi", note: "Allineamento sugli obiettivi e crescita nel tempo.", ...lessonVideos[5] },
 ];
-// Quando il video di una lezione e' pronto basta mettere il suo indirizzo in `videoUrl`:
-// la scheda mostra il lettore al posto di "Video guida in preparazione".
+// Una lezione senza `videoUrl` mostra "Video guida in preparazione" al posto del lettore.
 
 export function LessonCard({ lesson, index }) {
+  // Niente espressioni `{...}` come figlie di <video>: in sviluppo un plugin di editing visivo le
+  // avvolge in <span> e il <track> finirebbe fuori dal video. Tre alberi JSX letterali.
+  let player;
+  if (!lesson.videoUrl) {
+    player = <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Video guida in preparazione</p>;
+  } else if (lesson.captionsUrl) {
+    player = (
+      <video
+        className="mt-3 aspect-video w-full rounded-lg bg-slate-900"
+        controls
+        playsInline
+        preload="metadata"
+        poster={lesson.posterUrl || undefined}
+        aria-label={lesson.title}
+      >
+        <source src={lesson.videoUrl} type="video/mp4" />
+        <track kind="captions" srcLang="it" label="Italiano" src={lesson.captionsUrl} default />
+        Il tuo browser non riesce a riprodurre il video.
+      </video>
+    );
+  } else {
+    player = (
+      <video
+        className="mt-3 aspect-video w-full rounded-lg bg-slate-900"
+        controls
+        playsInline
+        preload="metadata"
+        poster={lesson.posterUrl || undefined}
+        aria-label={lesson.title}
+      >
+        <source src={lesson.videoUrl} type="video/mp4" />
+        Il tuo browser non riesce a riprodurre il video.
+      </video>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="text-xs font-semibold text-yellow-600">Lezione {index + 1}</p>
@@ -28,17 +64,7 @@ export function LessonCard({ lesson, index }) {
         </div>
         <PlayCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
       </div>
-      {lesson.videoUrl ? (
-        <video
-          className="mt-3 aspect-video w-full rounded-lg bg-slate-900"
-          src={lesson.videoUrl}
-          controls
-          preload="metadata"
-          aria-label={lesson.title}
-        />
-      ) : (
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Video guida in preparazione</p>
-      )}
+      {player}
     </div>
   );
 }
