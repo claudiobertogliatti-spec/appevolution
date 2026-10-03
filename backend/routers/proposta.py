@@ -312,25 +312,95 @@ async def genera_proposta(
     )
 
 
+async def ensure_proposta_for_email(
+    email: str,
+    generated_by,
+    *,
+    owner: Optional[str] = None,
+    diagnostic_session_id: Optional[str] = None,
+) -> dict:
+    """Crea (o ritrova) la proposta Partnership di un cliente Blueprint dopo la call.
+
+    Usata sia dall'admin (`/admin/genera-cliente`) sia dall'area cliente: stessi controlli,
+    stessa identita' canonica, stessi campi salvati."""
+    await require_partnership_proposal_eligibility(email)
+    identity = await resolve_canonical_client_identity(email)
+    result = await _genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), generated_by)
+    set_fields = {
+        "ciak_client_id": identity.get("client_id"),
+        "user_id": identity.get("user_id"),
+        "diagnostic_session_id": diagnostic_session_id,
+        "identity_email": identity["email"],
+    }
+    # owner solo se fornito: non azzerarlo rigenerando su una proposta esistente.
+    if owner:
+        set_fields["owner"] = owner
+    await db.proposte.update_one({"token": result["token"]}, {"$set": set_fields})
+    return {
+        **result,
+        "status": "esistente" if result.get("message") == "Proposta esistente" else "generata",
+        "partner_id": identity["canonical_id"],
+    }
+
+
+def _proposta_scaduta(proposta: dict, now: Optional[datetime] = None) -> bool:
+    """Scaduta = stato 'scaduta', oppure data passata senza firma ne' pagamento (stessa regola di GET /{token})."""
+    if proposta.get("stato") == "scaduta":
+        return True
+    if proposta.get("stato") in ("pagamento_completato", "contratto_firmato"):
+        return False
+    try:
+        scad = datetime.fromisoformat(proposta.get("scadenza") or "")
+    except (ValueError, TypeError):
+        return False
+    return (now or datetime.now(timezone.utc)) > scad
+
+
+async def proposta_per_cliente(email: str, generated_by) -> dict:
+    """Per l'area cliente: la proposta attiva del cliente, oppure una nuova se non ce n'e' MAI stata una.
+
+    Se ne esisteva una ed e' scaduta NON se ne crea un'altra: la scadenza e' reale e il team
+    decide se riaprirla (lo dice anche la pagina). Sempre 'ensure': mai due proposte attive."""
+    normalized = (email or "").strip().lower()
+    if not normalized:
+        raise HTTPException(422, "Email cliente mancante")
+    attiva = await db.proposte.find_one(
+        {"prospect_email": normalized, "stato": {"$nin": ["scaduta"]}}, {"_id": 0}
+    )
+    if attiva and not _proposta_scaduta(attiva):
+        return {
+            "token": attiva["token"],
+            "partner_id": attiva.get("partner_id"),
+            "scadenza": attiva.get("scadenza"),
+            "stato": attiva.get("stato"),
+            "creata": False,
+        }
+    if attiva or await db.proposte.find_one({"prospect_email": normalized}, {"_id": 0}):
+        raise HTTPException(410, "La proposta è scaduta. Scrivici e la riapriamo.")
+    creata = await ensure_proposta_for_email(normalized, generated_by)
+    nuova = await db.proposte.find_one({"token": creata["token"]}, {"_id": 0}) or {}
+    return {
+        "token": creata["token"],
+        "partner_id": creata.get("partner_id") or nuova.get("partner_id"),
+        "scadenza": nuova.get("scadenza"),
+        "stato": nuova.get("stato"),
+        "creata": creata.get("status") == "generata",
+    }
+
+
 @router.post("/admin/genera-cliente")
 async def genera_proposta_cliente(
     payload: GeneraPropostaClienteRequest,
     admin=Depends(require_ciak_admin),
 ):
-    await require_partnership_proposal_eligibility(payload.email)
-    identity = await resolve_canonical_client_identity(payload.email)
-    result = await _genera_proposta(identity["canonical_id"], GeneraPropostaRequest(), admin)
-    set_fields = {
-        "ciak_client_id": identity.get("client_id"),
-        "user_id": identity.get("user_id"),
-        "diagnostic_session_id": payload.diagnostic_session_id,
-        "identity_email": identity["email"],
-    }
-    # owner solo se fornito: non azzerarlo rigenerando su una proposta esistente.
-    if payload.owner:
-        set_fields["owner"] = payload.owner
-    await db.proposte.update_one({"token": result["token"]}, {"$set": set_fields})
-    return {**result, "status": "esistente" if result.get("message") == "Proposta esistente" else "generata"}
+    result = await ensure_proposta_for_email(
+        payload.email,
+        admin,
+        owner=payload.owner,
+        diagnostic_session_id=payload.diagnostic_session_id,
+    )
+    result.pop("partner_id", None)  # la risposta dell'admin resta quella di prima
+    return result
 
 
 # ─────────────────────────────────────────────────
