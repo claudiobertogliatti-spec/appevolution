@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { PartnershipEducationPage } from "./PartnershipEducationPage";
+import { LessonCard, PartnershipEducationPage } from "./PartnershipEducationPage";
 
 const base = {
   client: { access_level: "cliente_blueprint" },
@@ -8,22 +8,33 @@ const base = {
   pricing: { partnership: { full_amount_cents: 299000, credit_amount_cents: 0, due_amount_cents: 299000 } },
 };
 
-test("non ci sono piu' segnaposto: ogni blocco ha contenuto vero", () => {
+test("la sequenza e' quella delle cinque lezioni video, nello stesso ordine", () => {
   render(<PartnershipEducationPage dashboard={base} />);
-  expect(screen.queryByText(/in preparazione/i)).toBeNull();
-  [
-    "Cosa succede dentro la Partnership", "Cosa costruiamo noi", "Cosa fai tu", "Cosa non è incluso",
-    "A chi resta cosa", "Il 10% per 12 mesi", "Da sapere prima di decidere",
-  ].forEach((t) => expect(screen.getByRole("heading", { name: t })).toBeInTheDocument());
+  const titoli = [
+    "Cosa succede dentro la Partnership",
+    "Cosa costruiamo insieme",
+    "Cosa validi tu",
+    "Perche' il sistema resta tuo",
+    "Perche' esiste il 10% per 12 mesi",
+  ];
+  titoli.forEach((t) => expect(screen.getByText(t)).toBeInTheDocument());
+  screen.getAllByText(/^Lezione \d$/).forEach((el, i) => expect(el).toHaveTextContent(`Lezione ${i + 1}`));
+  expect(screen.getAllByText(/^Lezione \d$/)).toHaveLength(5);
 });
 
-test("non dice che e' tutto tuo al 100% e non promette guadagni", () => {
+test("senza video pronto ogni lezione dice 'in preparazione', senza lettore", () => {
   render(<PartnershipEducationPage dashboard={base} />);
-  const testo = document.body.textContent;
-  expect(testo).not.toMatch(/al 100\s?%/);
-  expect(testo).toMatch(/Nessun guadagno è garantito/);
-  expect(testo).toMatch(/Restano di Evolution PRO il Metodo EVO/);
-  expect(testo).toMatch(/non è rimborsabile/);
+  expect(screen.getAllByText(/Video guida in preparazione/i)).toHaveLength(5);
+  expect(document.querySelector("video")).toBeNull();
+});
+
+test("quando una lezione ha il suo video mostra il lettore al posto della scritta", () => {
+  render(<LessonCard index={0} lesson={{ title: "Cosa succede dentro la Partnership", note: "Panoramica.", videoUrl: "https://cdn.example/lezione-1.mp4" }} />);
+  const video = document.querySelector("video");
+  expect(video).not.toBeNull();
+  expect(video).toHaveAttribute("src", "https://cdn.example/lezione-1.mp4");
+  expect(video).toHaveAttribute("controls");
+  expect(screen.queryByText(/in preparazione/i)).toBeNull();
 });
 
 test("senza Start non mostra un credito a zero: mostra il prezzo pieno", () => {
