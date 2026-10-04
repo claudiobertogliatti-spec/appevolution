@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { hasMaterialOutput } from '../operativo/journeyPresentation';
+import { STEP_COPY } from '../operativo/JourneyMap';
 import { journeyModel, stepPresentation } from './journeyModel';
 
 export default function SerenoJourney({ state, loading, error, onRetry, onMaterials, stepHref }) {
@@ -13,8 +14,9 @@ export default function SerenoJourney({ state, loading, error, onRetry, onMateri
         <summary>{phase.label}<small>{phase.description} · {phase.steps.filter(s => s.status === 'done').length}/{phase.steps.length} completati</small></summary>
         <ol className="sereno-journey-list">{phase.steps.map(step => {
           const status = stepPresentation(step, state?.current_step?.step_id);
-          return <li className="sereno-row" key={step.step_id}><div><span className={`sereno-badge sereno-badge-${status.kind}`}>{status.label}</span><h2>{step.label || 'Passaggio del progetto'}</h2>{step.code && <small>{step.code}</small>}</div><div>
+          return <li className="sereno-row" key={step.step_id}><div><span className={`sereno-badge sereno-badge-${status.kind}`}>{status.label}</span><h2>{step.label || 'Passaggio del progetto'}</h2>{STEP_COPY[step.step_id]?.desc && ['action', 'started', 'pending'].includes(status.kind) && <small>{STEP_COPY[step.step_id].desc}</small>}</div><div>
             {status.kind === 'action' && <Link className="sereno-primary" to={stepHref ? stepHref(step) : `/partner?step=${encodeURIComponent(step.step_id)}`}>Apri il passaggio →</Link>}
+            {status.kind === 'started' && <Link className="sereno-secondary" to={stepHref ? stepHref(step) : `/partner?step=${encodeURIComponent(step.step_id)}`}>Apri →</Link>}
             {status.kind === 'complete' && hasMaterialOutput(step) && <button className="sereno-secondary" onClick={() => onMaterials(step)}>Consulta materiali</button>}
             {['blocked','unknown'].includes(status.kind) && <Link className="sereno-secondary" to="/partner/team">Chiedi aiuto</Link>}
             {status.kind === 'waiting' && <small>Puoi chiedere un aggiornamento in Assistenza.</small>}

@@ -19,7 +19,11 @@ export function stepPresentation(step, currentId) {
   if (step.approval_status === 'pending_review') return { label: 'In revisione al team', kind: 'waiting' };
   if (step.status === 'done') return { label: 'Completato', kind: 'complete' };
   if (step.status === 'skipped') return { label: 'Non richiesto', kind: 'skipped' };
-  if (step.status === 'in_progress' || (step.status === 'pending' && step.step_id === currentId)) return { label: 'Il tuo prossimo passo', kind: 'action' };
+  // Only the step the server picked as the current one is "il tuo prossimo passo".
+  // Several steps can be `in_progress` in the data (opened by the team, left open):
+  // marking all of them as "next" gave the partner seven starting points.
+  if ((step.status === 'in_progress' || step.status === 'pending') && step.step_id === currentId) return { label: 'Il tuo prossimo passo', kind: 'action' };
+  if (step.status === 'in_progress') return { label: 'Già avviato', kind: 'started' };
   if (step.status === 'pending') return { label: 'Previsto dopo', kind: 'pending' };
   return { label: 'Stato da verificare', kind: 'unknown' };
 }

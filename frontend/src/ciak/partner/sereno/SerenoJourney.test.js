@@ -21,3 +21,16 @@ test('failed refresh hides stale actions and provides retry', () => {
   expect(onRetry).toHaveBeenCalledTimes(1);
   expect(screen.queryByText(/passaggi completati/)).toBeNull();
 });
+
+test('with many steps in progress only ONE says "Il tuo prossimo passo", no internal codes are shown, and what is coming is explained', () => {
+  const mk = (id, extra = {}) => ({ step_id: id, label: id, status: 'in_progress', macro_phase: 'valida', code: 'F-12', ...extra });
+  const current = mk('12-prezzo-webinar');
+  const others = [mk('13-lancio'), mk('11-calendario-30gg')];
+  const later = mk('10-sistema-vendita', { status: 'pending' });
+  render(<MemoryRouter><SerenoJourney state={{ current_step: current, steps: [current, ...others, later] }} /></MemoryRouter>);
+  expect(screen.getAllByText('Il tuo prossimo passo')).toHaveLength(1);
+  expect(screen.getAllByText('Già avviato')).toHaveLength(2);
+  expect(screen.queryByText('F-12')).toBeNull(); // technical code hidden
+  expect(screen.getByText('Subaccount Systeme, dominio, legal pages, funnel e checkout.')).toBeTruthy(); // what comes later
+  expect(screen.getAllByRole('link', { name: 'Apri →' })).toHaveLength(2);
+});
