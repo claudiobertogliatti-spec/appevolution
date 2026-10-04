@@ -80,6 +80,23 @@ def test_elenco_clausole_dal_testo_vero_del_contratto():
     assert not any("letto integralmente" in c for c in elenco)  # non pesca i punti di 15.4
 
 
+def test_i_titoli_dell_elenco_3_3_e_10_6_coincidono_con_quelli_degli_articoli():
+    """Per una clausola da approvare 'specificamente' chi legge deve ritrovare lo stesso titolo
+    nel testo (decisione di Claudio, 4/10/2026): prima l'elenco diceva altro."""
+    from routers.contract import CONTRACT_TEXT, clausole_approvazione_specifica
+    elenco = clausole_approvazione_specifica()
+    righe = {r.strip() for r in CONTRACT_TEXT.splitlines()}
+    for voce, titolo_articolo in [
+        ("Articolo 3.3 (Ritardi o mancata collaborazione del Partner)", "3.3 Ritardi o mancata collaborazione del Partner"),
+        ("Articolo 10.6 (Responsabilità delle Parti)", "10.6 Responsabilità delle Parti"),
+    ]:
+        assert voce in elenco
+        assert titolo_articolo in righe
+    testo = " ".join(elenco)
+    assert "Sospensione e risoluzione per inattività" not in testo
+    assert "trattamento dati" not in testo
+
+
 def test_elenco_clausole_vuoto_se_la_sezione_non_c_e():
     from routers.contract import clausole_approvazione_specifica
     assert clausole_approvazione_specifica("ARTICOLO 1\n• non pertinente") == []
@@ -284,6 +301,15 @@ def test_pdf_con_flag_non_si_dichiara_firma_digitale_e_porta_torino_e_le_clausol
     assert "Account Demo" not in text
     assert "Firma digitale tramite" not in text
     assert "D.Lgs." not in text                                 # niente claim da firma digitale per un flag
+
+
+def test_pdf_senza_snapshot_delle_clausole_legge_l_elenco_dal_contratto_non_una_copia(monkeypatch):
+    """Contratti firmati prima dello snapshot: il PDF stampa l'Art. 15.5, con i titoli veri."""
+    cd = build_contract_acceptance(_flags(approvazione_specifica_clausole=True), "192.0.2.7", "2026-10-04T10:00:00+00:00")
+    assert "clausole_approvate" not in cd
+    text = _pdf_text(monkeypatch, cd)
+    assert "Ritardi o mancata" in text                 # titolo vero della 3.3
+    assert "Sospensione per inattivit" not in text     # la vecchia copia non c'e' piu'
 
 
 def test_pdf_con_firma_disegnata_resta_come_prima(monkeypatch):
