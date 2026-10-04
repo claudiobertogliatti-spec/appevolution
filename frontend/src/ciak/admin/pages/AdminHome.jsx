@@ -15,6 +15,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BarChart3, CreditCard, LayoutDashboard, Megaphone, Users, AlertTriangle } from "lucide-react";
 import { useRepartoMetrics } from "../repartoMetrics";
+import { OggiBlocks } from "../components/OggiBlocks";
 
 // Primo intero da un valore tipo "3", "2 · €480" → numero; "Nessuna"/"—"/null → null.
 function numFrom(v) {
@@ -31,7 +32,7 @@ const metric = (obj, label) => stateOf(obj) === "loading"
   ? null
   : stateOf(obj) === "error" ? "Dato non disponibile" : (obj[label] ?? "—");
 
-export function AdminHome({ user }) {
+export function AdminHome({ user, onAuthExpired }) {
   const nome = (user?.name || "").trim().split(/\s+/)[0] || "Claudio";
   const acq = useRepartoMetrics("acquisizione");
   const ven = useRepartoMetrics("vendite");
@@ -52,13 +53,13 @@ export function AdminHome({ user }) {
   ];
 
   // Striscia "richiede attenzione": solo voci realmente > 0, dalle stesse fonti.
+  // I partner fermi NON stanno piu' qui: li conta il blocco "Oggi" (che esclude gli
+  // account di prova), e due numeri diversi sulla stessa pagina confondono.
   const attnReady = isLoaded(del) && isLoaded(bo);
   const attnAvailable = hasSource(del, "da") && hasSource(bo, "cred");
   const attn = [];
   const approv = numFrom(metric(del, "Output da approvare"));
   if (approv) attn.push({ tone: "danger", to: "/admin/reparto/delivery", label: "Output da approvare", n: approv });
-  const fermi = numFrom(metric(del, "Fermi oltre soglia"));
-  if (fermi) attn.push({ tone: "danger", to: "/admin/reparto/delivery", label: "Partner fermi", n: fermi });
   const ritardo = metric(bo, "In ritardo");
   const ritN = numFrom(ritardo);
   if (ritN) attn.push({ tone: "warn", to: "/admin/reparto/back-office", label: "Rate in ritardo", n: ritN });
@@ -72,10 +73,10 @@ export function AdminHome({ user }) {
     <div className="p-10 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-slate-900">Ciao {nome}</h1>
-        <p className="text-slate-500 mt-2">La regia del tuo business, in ordine. Scegli un reparto.</p>
+        <p className="text-slate-500 mt-2">Cosa fare oggi, in ordine. I reparti sono qui sotto, per leggere i numeri.</p>
       </div>
 
-      {/* Richiede attenzione */}
+      {/* Richiede attenzione (soldi e approvazioni) */}
       <div className="mb-8" aria-label="Richiede la tua attenzione">
         {!attnReady ? (
           <p className="text-sm text-slate-400">Controllo cosa richiede attenzione…</p>
@@ -101,6 +102,10 @@ export function AdminHome({ user }) {
         )}
       </div>
 
+      {/* Oggi: call, trattative, partner, urgenze di delivery (liste di persone) */}
+      <OggiBlocks onAuthExpired={onAuthExpired} />
+
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Numeri per reparto</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {tiles.map(({ id, label, to, Icon, desc, sl, sv }) => (
           <Link

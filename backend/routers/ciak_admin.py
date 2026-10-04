@@ -296,6 +296,26 @@ def _state_ts(doc: dict, state: str) -> Optional[str]:
     return None
 
 
+def _call_starts_at(doc: dict) -> Optional[str]:
+    """Data/ora della call dall'ultima prenotazione Cal.com (creata o spostata).
+
+    Il webhook salva `starts_at` / `new_starts_at` negli eventi (booking.py). Se la
+    prenotazione e' stata annullata dopo, la call non c'e' piu' → None. Le call
+    segnate a mano non hanno una data: anche qui None, non un valore inventato.
+    """
+    starts = None
+    for ev in doc.get("events") or []:
+        name = ev.get("event")
+        meta = ev.get("metadata") or {}
+        if name == "calcom_booking_created":
+            starts = meta.get("starts_at") or starts
+        elif name == "calcom_booking_rescheduled":
+            starts = meta.get("new_starts_at") or starts
+        elif name == "calcom_booking_cancelled":
+            starts = None
+    return starts
+
+
 def _qualified_for_partnership_proposal(
     diagnostic: Optional[dict],
     client: Optional[dict],
@@ -2393,18 +2413,24 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
 
     entries: dict = {}
 
-    def _bump(email, stage, nome=None, updated_at=None, token=None, owner=None):
+    def _bump(email, stage, nome=None, updated_at=None, token=None, owner=None, since=None):
         if not email:
             return
         e = entries.get(email)
         if e is None:
+            # `updated_at` e' la data di CREAZIONE della sessione (resta com'e', la
+            # usa PipelineList). `stage_since` e' invece il momento in cui il
+            # contatto e' entrato nello stadio attuale: serve per dire "da quanti
+            # giorni aspetta". `call_starts_at` = data/ora della call, se nota.
             entries[email] = {"email": email, "nome": nome, "stage": stage,
                               "updated_at": updated_at, "session_token": token,
-                              "owner": owner}
+                              "owner": owner, "stage_since": since,
+                              "call_starts_at": None}
             return
         if _BLUEPRINT_RANK.get(stage, -1) > _BLUEPRINT_RANK.get(e["stage"], -1):
             e["stage"] = stage
             e["updated_at"] = updated_at or e["updated_at"]
+            e["stage_since"] = since or updated_at or e.get("stage_since")
             if token:
                 e["session_token"] = token
         if nome and not e.get("nome"):
@@ -2417,7 +2443,10 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     ):
         stage = _BLUEPRINT_STATE_TO_STAGE.get(normalize_state(d.get("current_state")), "call_fatta")
         em = (d.get("user_email") or "").strip().lower()
-        _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"))
+        _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"),
+              since=_state_ts(d, normalize_state(d.get("current_state"))) or d.get("created_at"))
+        if em in entries:
+            entries[em]["call_starts_at"] = _call_starts_at(d) or entries[em].get("call_starts_at")
         # Arricchimento da proposta collegata
         prop = proposte_by_email.get(em) if em else None
         if prop:
@@ -3916,6 +3945,9 @@ async def delivery_audit(admin=Depends(require_ciak_admin)):
         items.append({
             "id": pid,
             "name": p.get("name") or hub.get("name"),
+            # Serve alla home "Oggi" per riconoscere chi e' gia' partner (e non
+            # contarlo anche tra le trattative) e per escludere gli account di prova.
+            "email": (p.get("email") or hub.get("email") or "").strip().lower() or None,
             "phase": phase_legacy,
             "macro_phase": macro,
             "macro_label": MACRO_LABEL.get(macro, macro),
