@@ -74,7 +74,7 @@ test("l'ordine e': prima le decisioni (coda OK), poi la cassa, poi i reparti", a
   expect(precede(cassa, reparti)).toBe(true);
 });
 
-test("i reparti sono 4 (casi-studio non e' un reparto) e mostrano persone + agenti", async () => {
+test("i reparti sono 4 (casi-studio non e' un reparto) e mostrano solo gli agenti AI", async () => {
   renderHome();
   await screen.findByTestId("cassa-breve");
   expect(screen.queryByTestId("reparto-casi-studio")).toBeNull();
@@ -82,8 +82,12 @@ test("i reparti sono 4 (casi-studio non e' un reparto) e mostrano persone + agen
     expect(screen.getByTestId(`reparto-${id}`)).toBeTruthy()
   );
   const acq = screen.getByTestId("reparto-acquisizione");
-  expect(acq.textContent).toMatch(/Mariangela/);
   expect(acq.textContent).toMatch(/Agenti: Carlo, Andrea/);
+  // i responsabili sono gli agenti: nessun nome di persona nelle card dei reparti
+  ["acquisizione", "vendite", "delivery", "back-office"].forEach((id) => {
+    const t = screen.getByTestId(`reparto-${id}`).textContent;
+    ["Mariangela", "Antonella", "Matteo", "Stefania", "Debora"].forEach((n) => expect(t).not.toMatch(n));
+  });
 });
 
 test("la cassa a breve porta all'Amministrazione con i numeri veri", async () => {
