@@ -1,7 +1,72 @@
+import re
+
+# Luogo di accettazione FISSO: coincide col foro esclusivo dell'Art. 14.4 del contratto
+# (indicazione dell'avvocato). Il cliente non lo sceglie e non lo puo' modificare.
+LUOGO_ACCETTAZIONE = "Torino"
+
+_CF_RE = re.compile(r"^([A-Z0-9]{16}|\d{11})$")
+_PIVA_RE = re.compile(r"^\d{11}$")
+_CAP_RE = re.compile(r"^\d{5}$")
+_PROV_RE = re.compile(r"^[A-Z]{2}$")
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+_DATI_OBBLIGATORI = {
+    "nome": "il nome", "cognome": "il cognome", "codice_fiscale": "il codice fiscale",
+    "indirizzo": "l'indirizzo", "cap": "il CAP", "citta": "la città",
+    "provincia": "la provincia", "email": "l'email",
+}
+_DATI_FACOLTATIVI = ("pec", "nome_azienda", "partita_iva")
+
+
+def validate_dati_contratto(body: dict) -> dict:
+    """Pura: valida e normalizza i dati anagrafici del Partner per il contratto.
+
+    Solleva ValueError con un messaggio gia' leggibile dal cliente. Ritorna SOLO i campi
+    noti (mai IBAN o altro): e' quello che finisce in `contract_partner_data`.
+    """
+    if not isinstance(body, dict):
+        raise ValueError("Dati non validi")
+    out = {}
+    for key in (*_DATI_OBBLIGATORI, *_DATI_FACOLTATIVI):
+        value = body.get(key, "")
+        if value is None:
+            value = ""
+        if not isinstance(value, str):
+            raise ValueError("Dati non validi")
+        value = " ".join(value.split())
+        if len(value) > 120:
+            raise ValueError("Uno dei campi è troppo lungo")
+        out[key] = value
+    for key, label in _DATI_OBBLIGATORI.items():
+        if not out[key]:
+            raise ValueError(f"Inserisci {label}")
+    out["codice_fiscale"] = out["codice_fiscale"].replace(" ", "").upper()
+    if not _CF_RE.match(out["codice_fiscale"]):
+        raise ValueError("Controlla il codice fiscale: sono 16 caratteri (11 cifre per una società)")
+    if not _CAP_RE.match(out["cap"]):
+        raise ValueError("Il CAP deve avere 5 cifre")
+    out["provincia"] = out["provincia"].upper()
+    if not _PROV_RE.match(out["provincia"]):
+        raise ValueError("La provincia va indicata con la sigla di 2 lettere, per esempio TO")
+    if not _EMAIL_RE.match(out["email"]):
+        raise ValueError("Controlla l'indirizzo email")
+    if out["pec"] and not _EMAIL_RE.match(out["pec"]):
+        raise ValueError("Controlla l'indirizzo PEC")
+    piva = out["partita_iva"].replace(" ", "").upper()
+    if piva.startswith("IT"):
+        piva = piva[2:]
+    if piva and not _PIVA_RE.match(piva):
+        raise ValueError("La partita IVA deve avere 11 cifre")
+    out["partita_iva"] = piva
+    return out
+
+
 def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
     """Pura: valida consenso (checkbox o firma) e costruisce contract_data. Solleva ValueError se invalido."""
     if not isinstance(body, dict):
         raise ValueError("accettazione non valida")
+    specifica = body.get("approvazione_specifica_clausole", False)
+    if type(specifica) is not bool:
+        raise ValueError("l'approvazione specifica delle clausole deve essere un booleano")
     declaration = body.get("dichiarazione_imprenditoriale", False)
     if type(declaration) is not bool:
         raise ValueError("la dichiarazione imprenditoriale deve essere un booleano")
@@ -21,6 +86,11 @@ def build_contract_acceptance(body: dict, ip: str, now_iso: str) -> dict:
         "metodo": "signature" if sig else "checkbox",
         "ip_address": ip,
         "clausole_vessatorie_approved": True,
+        # Doppia sottoscrizione (artt. 1341-1342 c.c.): oltre all'accettazione del contratto,
+        # un SECONDO consenso distinto per le clausole dell'Art. 15.5. Qui il solo flag del
+        # client; l'elenco approvato (snapshot) lo aggiunge l'endpoint dal testo del contratto.
+        "approvazione_specifica_clausole": specifica,
+        "luogo_accettazione": LUOGO_ACCETTAZIONE,
         # Opzione A' (B2B senza P.IVA obbligatoria): dichiarazione di finalita'
         # imprenditoriale + P.IVA facoltativa. Campi OPZIONALI in input: la
         # Proposta.jsx legacy non li manda e non deve rompersi.

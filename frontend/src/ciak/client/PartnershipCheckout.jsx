@@ -10,7 +10,8 @@ import { clientPost } from "./api";
  * Contratto e pagamento della Partnership, dentro la pagina Partnership dell'area cliente.
  *
  * Stesso flusso gia' in produzione sulla pagina di chiusura (ora ritirata), con le stesse chiamate e gli stessi gate:
- *   proposta del cliente -> /accetta -> contratto leggibile + due checkbox -> /firma-contratto -> /pagamento-stripe -> Stripe.
+ *   proposta del cliente -> /accetta -> contratto in 4 passi (leggi, dati personali -> /dati-contratto, approva le clausole, paga)
+ *   -> /firma-contratto (doppia sottoscrizione: accettazione + approvazione specifica) -> /pagamento-stripe -> Stripe.
  * La proposta la ottiene il cliente da qui (`POST /api/ciak/client/partnership/proposta`): se ne esiste gia' una attiva
  * si riusa; se ne esisteva una scaduta NON se ne crea un'altra (la scadenza e' reale, la riapre il team).
  *
@@ -66,7 +67,19 @@ export function PartnershipCheckout({ proposta, checkoutReadiness, onProposta })
     }
   }
 
-  async function handleConfirm({ piva } = {}) {
+  // Passo 2 del contratto: i dati anagrafici vanno al server PRIMA dei consensi, legati alla proposta.
+  async function handleDati(dati) {
+    if (!enabled || !prop?.token) throw new Error("Proposta non disponibile");
+    const res = await fetch(`/api/proposta/${prop.token}/dati-contratto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dati),
+    });
+    if (!res.ok) throw new Error(await responseError(res));
+  }
+
+  // Doppia sottoscrizione: ogni consenso arriva dalla scelta reale del cliente nel contratto, mai da un `true` fisso.
+  async function handleConfirm({ consenso_contratto, approvazione_specifica_clausole, dichiarazione_imprenditoriale, piva } = {}) {
     if (!enabled || busy.current || !prop?.token) return;
     busy.current = true;
     setError("");
@@ -76,9 +89,10 @@ export function PartnershipCheckout({ proposta, checkoutReadiness, onProposta })
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clausole_vessatorie_approved: true,
-          consenso_checkbox: true,
-          dichiarazione_imprenditoriale: true,
+          consenso_checkbox: consenso_contratto === true,
+          clausole_vessatorie_approved: approvazione_specifica_clausole === true,
+          approvazione_specifica_clausole: approvazione_specifica_clausole === true,
+          dichiarazione_imprenditoriale: dichiarazione_imprenditoriale === true,
           piva: piva || "",
         }),
       });
@@ -126,7 +140,12 @@ export function PartnershipCheckout({ proposta, checkoutReadiness, onProposta })
 
           {step === "contract" || step === "processing" ? (
             <div className="mt-5">
-              <ContractAccept partnerId={prop?.partner_id} onConfirm={handleConfirm} disabled={!enabled || step === "processing"} />
+              <ContractAccept
+                partnerId={prop?.partner_id}
+                onDati={handleDati}
+                onConfirm={handleConfirm}
+                disabled={!enabled || step === "processing"}
+              />
             </div>
           ) : (
             <div className="mt-5">

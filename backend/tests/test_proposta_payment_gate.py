@@ -144,11 +144,12 @@ async def test_live_proposal_with_consent_is_still_blocked_before_any_stripe_cal
 @pytest.mark.asyncio
 async def test_legacy_signature_can_collect_explicit_declaration_without_rewriting_signature(monkeypatch):
     from unittest.mock import AsyncMock
-    db = GateDb(_proposta_doc(contract_acceptance=None))
+    db = GateDb(_proposta_doc(contract_acceptance=None, dati_contratto_at=_iso(-1)))
     monkeypatch.setattr(proposta, "db", db)
     monkeypatch.setattr(proposta, "_trusted_client_ip", lambda request: "192.0.2.1")
     request = SimpleNamespace(json=AsyncMock(return_value={
         "consenso_checkbox": True, "clausole_vessatorie_approved": True,
+        "approvazione_specifica_clausole": True,
         "dichiarazione_imprenditoriale": True, "piva": "",
     }))
     result = await proposta.firma_contratto_proposta("tok-gate", request, None)

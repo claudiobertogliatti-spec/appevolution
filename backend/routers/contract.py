@@ -161,6 +161,28 @@ def render_contract_text(params: dict) -> str:
     return text
 
 
+def clausole_approvazione_specifica(text: Optional[str] = None) -> List[str]:
+    """Elenco delle clausole dell'Art. 15.5 (approvazione specifica, artt. 1341-1342 c.c.).
+
+    Si legge dal testo del contratto, non da una lista duplicata: cio' che il cliente vede e
+    approva, cio' che il PDF stampa e lo snapshot salvato sono sempre la stessa cosa.
+    """
+    righe = (text if text is not None else CONTRACT_TEXT).splitlines()
+    out: List[str] = []
+    dentro = False
+    for riga in righe:
+        s = riga.strip()
+        if not dentro:
+            if s.startswith("15.5") and "Approvazione specifica" in s:
+                dentro = True
+            continue
+        if s.startswith("15.6") or s.startswith("ARTICOLO"):
+            break
+        if s.startswith("•"):
+            out.append(s.lstrip("• ").rstrip(";.").strip())
+    return out
+
+
 @router.get("/partner-data/{partner_id}")
 async def get_partner_data(partner_id: str):
     """Recupera i dati personali salvati del partner per il contratto."""
@@ -1709,6 +1731,12 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
     try:
         params = await _get_partner_params(partner.get("id", ""))
         rendered_text = render_contract_text(params)
+        # Chi firma: se il Partner ha inserito i suoi dati, nome e cognome veri; altrimenti il nome dell'account.
+        _pd = params.get("personal_data") or {}
+        firmatario = (f"{_pd['nome']} {_pd['cognome']}" if _pd.get("nome") and _pd.get("cognome")
+                      else partner.get('name', 'N/A'))
+        # Il metodo e' dichiarato com'e': un flag NON e' una firma disegnata ne' digitale.
+        _con_flag = contract_data.get('metodo') != 'signature'
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
@@ -1813,8 +1841,8 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             ['Versione contratto:', contract_data.get('version', 'v1.0')],
             ['Data firma:', data_firma_fmt],
             ['Luogo:', 'Torino'],
-            ['Partner:', partner.get('name', 'N/A')],
-            ['Email:', partner.get('email', 'N/A')],
+            ['Partner:', firmatario],
+            ['Email:', _pd.get('email') or partner.get('email', 'N/A')],
             ['IP Address:', contract_data.get('ip_address', 'N/D')],
         ]
         t = Table(info_data, colWidths=[4*cm, 12*cm])
@@ -1861,13 +1889,16 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
                 return Paragraph("[Firma digitale applicata]", style_testo)
 
         # --- 1) Firma per accettazione integrale del contratto ---
-        story.append(Paragraph("1) Firma del Partner per accettazione integrale del contratto", style_articolo))
+        story.append(Paragraph(
+            "1) Accettazione integrale del contratto" if _con_flag
+            else "1) Firma del Partner per accettazione integrale del contratto", style_articolo))
         firma_info = [
-            ["Firmato da:", partner.get('name', 'N/A')],
+            ["Firmato da:" if not _con_flag else "Accettato da:", firmatario],
             ["Data e ora firma:", data_firma_fmt],
-            ["Luogo:", "Torino"],
+            ["Luogo:", contract_data.get('luogo_accettazione') or "Torino"],
             ["Indirizzo IP:", contract_data.get('ip_address', 'N/D')],
-            ["Metodo:", "Firma digitale tramite piattaforma Evolution PRO"],
+            ["Metodo:", "Accettazione elettronica (flag) tramite piattaforma Evolution PRO" if _con_flag
+             else "Firma digitale tramite piattaforma Evolution PRO"],
         ]
         t_firma = Table(firma_info, colWidths=[4*cm, 12*cm])
         t_firma.setStyle(TableStyle([
@@ -1879,9 +1910,14 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         ]))
         story.append(t_firma)
         story.append(Spacer(1, 0.2*cm))
-        story.append(_sig_image())
-        story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("_______________________________  (Il Partner)", style_testo))
+        if _con_flag:
+            story.append(Paragraph(
+                f"Il Partner ha dichiarato di aver letto e accettato il contratto spuntando l'apposito flag il {data_firma_fmt}.",
+                style_testo))
+        else:
+            story.append(_sig_image())
+            story.append(Spacer(1, 0.2*cm))
+            story.append(Paragraph("_______________________________  (Il Partner)", style_testo))
         story.append(Spacer(1, 0.5*cm))
 
         # --- 2) Approvazione specifica delle clausole vessatorie ---
@@ -1903,20 +1939,30 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             "Art. 14.3 (Mediazione)",
             "Art. 14.4 (Foro esclusivo Torino)",
         ]
-        for _c in _clausole_vex:
+        # Snapshot di cio' che il Partner ha visto e approvato; la lista fissa resta solo per i
+        # contratti firmati prima che lo snapshot venisse registrato.
+        for _c in (contract_data.get('clausole_approvate') or _clausole_vex):
             story.append(Paragraph("•  " + _c, style_bullet))
         story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("Luogo e data: Torino, " + data_firma_fmt, style_testo))
+        story.append(Paragraph(
+            f"Luogo e data: {contract_data.get('luogo_accettazione') or 'Torino'}, " + data_firma_fmt, style_testo))
         story.append(Spacer(1, 0.2*cm))
-        story.append(_sig_image())
-        story.append(Spacer(1, 0.2*cm))
-        story.append(Paragraph("_______________________________  (Il Partner - per specifica approvazione)", style_testo))
+        if _con_flag:
+            story.append(Paragraph(
+                "Il Partner ha approvato specificamente le clausole sopra elencate con un secondo flag, "
+                "distinto da quello di accettazione del contratto.", style_testo))
+        else:
+            story.append(_sig_image())
+            story.append(Spacer(1, 0.2*cm))
+            story.append(Paragraph("_______________________________  (Il Partner - per specifica approvazione)", style_testo))
 
         # FOOTER legale
         story.append(Spacer(1, 0.4*cm))
         story.append(Paragraph(
             "Documento generato automaticamente dalla piattaforma Evolution PRO. "
-            "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD).",
+            + ("L'accettazione elettronica è registrata dalla piattaforma con data, ora e indirizzo IP."
+               if _con_flag else
+               "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD)."),
             style_footer))
 
         doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer,

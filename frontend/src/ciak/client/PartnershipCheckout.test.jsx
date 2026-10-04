@@ -28,12 +28,34 @@ function rispondi(mappa) {
 const ok = (json) => ({ ok: true, status: 200, json: () => Promise.resolve(json) });
 const ko = (status, json = {}) => ({ ok: false, status, json: () => Promise.resolve(json) });
 
+const CONTRATTO = [
+  "Contratto pronto",
+  "15.5 Approvazione specifica delle clausole",
+  "• Articolo 1.4 (Esclusiva);",
+  "• Articolo 14.4 (Foro competente esclusivo di Torino).",
+  "15.6 Chiusura del Contratto",
+].join("\n");
+
+const DATI = {
+  Nome: "Mario", Cognome: "Bianchi", "Codice fiscale": "BNCMRA80A01L219X",
+  "Indirizzo di residenza o sede": "Via Roma 1", CAP: "10100", Città: "Torino", Provincia: "TO", Email: "mario@example.com",
+};
+
+// I quattro passi del contratto: leggi (flag) -> dati -> approva le clausole (flag) -> paga.
+async function passoDati() {
+  await screen.findByText(/Contratto pronto/);
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: /avanti: i tuoi dati/i }));
+  Object.entries(DATI).forEach(([label, value]) => fireEvent.change(screen.getByLabelText(label), { target: { value } }));
+  fireEvent.click(screen.getByRole("button", { name: /avanti: le clausole/i }));
+}
+
 async function accettaContratto() {
-  const [condizioni, dichiarazione] = await screen.findAllByRole("checkbox");
-  await screen.findByText("Contratto pronto");
-  fireEvent.click(condizioni);
-  fireEvent.click(dichiarazione);
-  fireEvent.click(screen.getByRole("button", { name: /paga|procedi/i }));
+  await passoDati();
+  await screen.findByRole("heading", { name: /passo 3 di 4/i });
+  screen.getAllByRole("checkbox").forEach((box) => fireEvent.click(box));
+  fireEvent.click(screen.getByRole("button", { name: /avanti: il pagamento/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /paga e conferma/i }));
 }
 
 test.each([undefined, {}, { partnership: { enabled: false } }])(
@@ -49,10 +71,11 @@ test.each([undefined, {}, { partnership: { enabled: false } }])(
   },
 );
 
-test("con una proposta gia' attiva: accetta, contratto, firma, pagamento, Stripe", async () => {
+test("con una proposta gia' attiva: accetta, contratto, dati, firma doppia, pagamento, Stripe", async () => {
   rispondi({
-    "/api/contract/text/p1": ok({ contract_text: "Contratto pronto" }),
+    "/api/contract/text/p1": ok({ contract_text: CONTRATTO }),
     "/api/proposta/t/accetta": ok({ success: true }),
+    "/api/proposta/t/dati-contratto": ok({ success: true }),
     "/api/proposta/t/firma-contratto": ok({ success: true }),
     "/api/proposta/t/pagamento-stripe": ok({ success: true, checkout_url: "https://stripe.test/partnership" }),
   });
@@ -62,18 +85,25 @@ test("con una proposta gia' attiva: accetta, contratto, firma, pagamento, Stripe
   await waitFor(() => expect(global.fetch).toHaveBeenCalledWith("/api/proposta/t/accetta", expect.objectContaining({ method: "POST" })));
   await accettaContratto();
 
+  // i dati anagrafici vanno al server PRIMA della firma, normalizzati come scritti dal cliente
+  const dati = global.fetch.mock.calls.find(([url]) => url === "/api/proposta/t/dati-contratto");
+  expect(JSON.parse(dati[1].body)).toEqual(expect.objectContaining({ nome: "Mario", cognome: "Bianchi", provincia: "TO" }));
   await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
     "/api/proposta/t/firma-contratto",
     expect.objectContaining({
       method: "POST",
       body: JSON.stringify({
-        clausole_vessatorie_approved: true,
         consenso_checkbox: true,
+        clausole_vessatorie_approved: true,
+        approvazione_specifica_clausole: true,
         dichiarazione_imprenditoriale: true,
         piva: "",
       }),
     }),
   ));
+  const ordine = global.fetch.mock.calls.map(([url]) => url.replace("/api/proposta/t/", ""));
+  expect(ordine.indexOf("dati-contratto")).toBeLessThan(ordine.indexOf("firma-contratto"));
+  expect(ordine.indexOf("firma-contratto")).toBeLessThan(ordine.indexOf("pagamento-stripe"));
   await waitFor(() => expect(global.fetch).toHaveBeenCalledWith("/api/proposta/t/pagamento-stripe", expect.objectContaining({ method: "POST" })));
   await waitFor(() => expect(window.location.href).toBe("https://stripe.test/partnership"));
   // la proposta esistente non viene ricreata
@@ -84,14 +114,14 @@ test("senza proposta: prima la ottiene dalla sua area, poi accetta con il token 
   rispondi({
     "/api/ciak/client/partnership/proposta": ok({ token: "nuovo", partner_id: "p9", scadenza: "2999-10-10T10:00:00+00:00", stato: "inviata", creata: true }),
     "/api/proposta/nuovo/accetta": ok({ success: true }),
-    "/api/contract/text/p9": ok({ contract_text: "Contratto pronto" }),
+    "/api/contract/text/p9": ok({ contract_text: CONTRATTO }),
   });
   const onProposta = jest.fn();
   render(<PartnershipCheckout proposta={null} checkoutReadiness={aperto} onProposta={onProposta} />);
   expect(screen.getByText(/si apre la tua proposta, con una scadenza reale/i)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /entra in partnership/i }));
 
-  await screen.findByText("Contratto pronto");
+  await screen.findByText(/Contratto pronto/);
   expect(global.fetch).toHaveBeenNthCalledWith(1, "/api/ciak/client/partnership/proposta", expect.objectContaining({ method: "POST" }));
   expect(global.fetch).toHaveBeenCalledWith("/api/proposta/nuovo/accetta", expect.objectContaining({ method: "POST" }));
   expect(onProposta).toHaveBeenCalledWith(expect.objectContaining({ token: "nuovo" }));
@@ -125,21 +155,39 @@ test("sessione scaduta: invita a riaprire il link dell'email", async () => {
   expect((await screen.findByRole("alert")).textContent).toMatch(/riapri il link ricevuto via email/i);
 });
 
-test("errore alla firma: niente pagamento, niente finto successo, si resta sul contratto", async () => {
+test("errore alla firma: niente pagamento, niente finto successo, non si riparte da capo", async () => {
   rispondi({
-    "/api/contract/text/p1": ok({ contract_text: "Contratto pronto" }),
+    "/api/contract/text/p1": ok({ contract_text: CONTRATTO }),
     "/api/proposta/t/accetta": ok({ success: true }),
-    "/api/proposta/t/firma-contratto": ko(422),
+    "/api/proposta/t/dati-contratto": ok({ success: true }),
+    "/api/proposta/t/firma-contratto": ko(422, { detail: "Approva specificamente le clausole elencate nell'Art. 15.5" }),
   });
   render(<PartnershipCheckout proposta={proposta} checkoutReadiness={aperto} />);
   fireEvent.click(screen.getByRole("button", { name: /entra in partnership/i }));
   await accettaContratto();
 
-  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect((await screen.findByRole("alert")).textContent).toMatch(/Approva specificamente le clausole/);
   expect(global.fetch).not.toHaveBeenCalledWith("/api/proposta/t/pagamento-stripe", expect.anything());
   expect(window.location.href).toBe("");
-  // il contratto resta li': non si riparte da capo
-  expect(screen.getByText("Contratto pronto")).toBeTruthy();
+  // i dati e i consensi restano: si e' ancora all'ultimo passo, con il bottone di nuovo attivo
+  expect(screen.getByRole("heading", { name: /passo 4 di 4/i })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /paga e conferma/i }).disabled).toBe(false);
+});
+
+test("dati rifiutati dal server: si resta al passo dei dati, nessuna firma e nessun pagamento", async () => {
+  rispondi({
+    "/api/contract/text/p1": ok({ contract_text: CONTRATTO }),
+    "/api/proposta/t/accetta": ok({ success: true }),
+    "/api/proposta/t/dati-contratto": ko(422, { detail: "Controlla il codice fiscale: sono 16 caratteri (11 cifre per una società)" }),
+  });
+  render(<PartnershipCheckout proposta={proposta} checkoutReadiness={aperto} />);
+  fireEvent.click(screen.getByRole("button", { name: /entra in partnership/i }));
+  await passoDati();
+
+  expect((await screen.findByText(/Controlla il codice fiscale/)).getAttribute("role")).toBe("alert");
+  expect(screen.getByRole("heading", { name: /passo 2 di 4/i })).toBeTruthy();
+  expect(global.fetch).not.toHaveBeenCalledWith("/api/proposta/t/firma-contratto", expect.anything());
+  expect(global.fetch).not.toHaveBeenCalledWith("/api/proposta/t/pagamento-stripe", expect.anything());
 });
 
 test("pagamento gia' completato: nessun bottone, nessun contratto", () => {
