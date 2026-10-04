@@ -664,7 +664,7 @@ export default function CiakAdminApp() {
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : isMariangela
             ? <Navigate to="/admin/reparto/acquisizione" replace />
-            : <AdminHome user={user} />} />
+            : <AdminHome user={user} onAuthExpired={handleLogout} />} />
         <Route path="direzione" element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : isMariangela

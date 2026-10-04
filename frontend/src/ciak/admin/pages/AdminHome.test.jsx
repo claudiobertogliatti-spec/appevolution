@@ -3,6 +3,8 @@ jest.mock("react-router-dom", () => ({
   Link: ({ to, children, ...p }) => <a href={to} {...p}>{children}</a>,
 }), { virtual: true });
 jest.mock("../repartoMetrics", () => ({ useRepartoMetrics: jest.fn() }));
+// I blocchi "Oggi" hanno il loro test (OggiBlocks.test.jsx): qui basta sapere che ci sono.
+jest.mock("../components/OggiBlocks", () => ({ OggiBlocks: () => <div data-testid="oggi-blocks" /> }));
 
 import { AdminHome } from "./AdminHome";
 import { useRepartoMetrics } from "../repartoMetrics";
@@ -36,8 +38,25 @@ test("la striscia attenzione elenca solo le voci reali > 0", () => {
   render(<AdminHome user={{ name: "Claudio" }} />);
   const region = screen.getByLabelText("Richiede la tua attenzione");
   expect(within(region).getByText("Output da approvare")).toBeTruthy();
-  expect(within(region).getByText("Partner fermi")).toBeTruthy();
   expect(within(region).getByText("Rate in ritardo")).toBeTruthy();
+});
+
+test("i partner fermi li conta solo il blocco Oggi: la striscia non li ripete", () => {
+  // "Fermi oltre soglia" = 1 nelle metriche di reparto (che includono gli account di
+  // prova): se comparisse anche qui, la pagina mostrerebbe due numeri diversi.
+  useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
+  render(<AdminHome user={{ name: "Claudio" }} />);
+  const region = screen.getByLabelText("Richiede la tua attenzione");
+  expect(within(region).queryByText("Partner fermi")).toBeNull();
+});
+
+test("la home apre con i blocchi Oggi, prima dei numeri per reparto", () => {
+  useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
+  render(<AdminHome user={{ name: "Claudio" }} />);
+  const oggi = screen.getByTestId("oggi-blocks");
+  const reparti = screen.getByText("Numeri per reparto");
+  // 4 = DOCUMENT_POSITION_FOLLOWING: "Numeri per reparto" viene dopo Oggi
+  expect(oggi.compareDocumentPosition(reparti) & 4).toBeTruthy();
 });
 
 test("in caricamento non inventa numeri né urgenze", () => {
