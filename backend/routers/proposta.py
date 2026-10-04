@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from routers.ciak_admin import require_ciak_admin
 from routers.insider_helpers import (
     enrich_proposta_for_insider, blueprint_public_view, recommended_path, bonus_state,
+    validate_dati_contratto,
 )
 from services.paid_offer_gate import (
     paid_offer_readiness, require_paid_offer_checkout,
@@ -618,6 +619,46 @@ async def accetta_proposta(token: str):
 
 
 # ─────────────────────────────────────────────────
+# PUBBLICA: dati anagrafici del Partner per il contratto
+# ─────────────────────────────────────────────────
+@router.post("/{token}/dati-contratto")
+async def salva_dati_contratto(token: str, request: Request):
+    """Salva i dati personali del Partner che compaiono nel contratto e nel PDF.
+
+    Legato al token della proposta (la sua capability), NON all'endpoint aperto
+    `/api/contract/partner-data/{partner_id}`: chi non ha il link non puo' scrivere.
+    Si salvano in `contract_partner_data`, la stessa fonte che `render_contract_text`
+    e `generate_contract_pdf` gia' leggono.
+    """
+    proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
+    if not proposta:
+        raise HTTPException(404, "Proposta non trovata")
+    if proposta.get("pagamento_completato"):
+        raise HTTPException(409, "Pagamento già completato: i dati del contratto non si modificano più")
+    if proposta.get("stato") not in ("accettata", "contratto_firmato") and not proposta.get("accettato_at"):
+        raise HTTPException(409, "La proposta deve essere accettata prima")
+    scadenza = proposta.get("scadenza")
+    if scadenza and datetime.now(timezone.utc) > datetime.fromisoformat(scadenza):
+        raise HTTPException(410, "Proposta scaduta")
+    partner_id = proposta.get("partner_id")
+    if not partner_id:
+        raise HTTPException(409, "Proposta non collegata a un account")
+    body = await request.json()
+    try:
+        dati = validate_dati_contratto(body)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    now = datetime.now(timezone.utc).isoformat()
+    await db.contract_partner_data.update_one(
+        {"partner_id": partner_id},
+        {"$set": {**dati, "partner_id": partner_id, "saved_at": now}},
+        upsert=True,
+    )
+    await db.proposte.update_one({"token": token}, {"$set": {"dati_contratto_at": now}})
+    return {"success": True}
+
+
+# ─────────────────────────────────────────────────
 # PUBBLICA: Registra firma contratto dalla proposta
 # ─────────────────────────────────────────────────
 @router.post("/{token}/firma-contratto")
@@ -660,14 +701,27 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
     # signatures remain readable/recordable, but cannot bypass the checkout gate.
     if contract_data["metodo"] == "checkbox" and not contract_data["dichiarazione_imprenditoriale"]:
         raise HTTPException(422, "Conferma la dichiarazione di finalità imprenditoriale")
+    if contract_data["metodo"] == "checkbox":
+        # Doppia sottoscrizione (artt. 1341-1342 c.c.): il secondo consenso, sulle clausole
+        # dell'Art. 15.5, deve essere un atto distinto del cliente. Mai dedotto dal primo.
+        if not contract_data["approvazione_specifica_clausole"]:
+            raise HTTPException(422, "Approva specificamente le clausole elencate nell'Art. 15.5")
+        if not proposta.get("dati_contratto_at"):
+            raise HTTPException(422, "Inserisci i tuoi dati prima di accettare il contratto")
+        from routers.contract import clausole_approvazione_specifica
+        contract_data["clausole_approvate"] = clausole_approvazione_specifica()
+        contract_data["approvazione_specifica_at"] = contract_data["signed_at"]
     if proposta.get("contratto_firmato_at"):
         # Re-collect missing consent for this proposal, preserving the original
         # signature/date and any already issued documents. Never infer consent.
         previous = proposta.get("contract_acceptance")
         previous = previous if isinstance(previous, dict) else {}
-        if (not proposta.get("pagamento_completato")
-                and previous.get("dichiarazione_imprenditoriale") is not True
-                and contract_data["dichiarazione_imprenditoriale"] is True):
+        manca_dichiarazione = (previous.get("dichiarazione_imprenditoriale") is not True
+                               and contract_data["dichiarazione_imprenditoriale"] is True)
+        manca_specifica = (contract_data["metodo"] == "checkbox"
+                           and previous.get("approvazione_specifica_clausole") is not True
+                           and contract_data["approvazione_specifica_clausole"] is True)
+        if not proposta.get("pagamento_completato") and (manca_dichiarazione or manca_specifica):
             await db.proposte.update_one({"token": token}, {"$set": {
                 "contract_acceptance": contract_data,
             }})
@@ -679,6 +733,10 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
                         "contract.piva": contract_data["piva"],
                         "contract.business_declaration_signed_at": contract_data["signed_at"],
                         "contract.business_declaration_ip": contract_data["ip_address"],
+                        "contract.approvazione_specifica_clausole": contract_data["approvazione_specifica_clausole"],
+                        "contract.clausole_approvate": contract_data.get("clausole_approvate", []),
+                        "contract.approvazione_specifica_at": contract_data.get("approvazione_specifica_at"),
+                        "contract.luogo_accettazione": contract_data["luogo_accettazione"],
                     }})
         return {"success": True, "already_signed": True, "signed_at": proposta["contratto_firmato_at"], "pdf_url": proposta.get("contratto_pdf_url")}
 
@@ -739,6 +797,13 @@ async def pagamento_stripe(token: str, request: Request):
         raise HTTPException(409, detail={
             "code": "BUSINESS_DECLARATION_REQUIRED",
             "message": "Apri la pagina Insider e conferma la dichiarazione di finalità imprenditoriale prima del pagamento.",
+        })
+    # Chi ha accettato con il flag deve aver dato ANCHE l'approvazione specifica delle clausole.
+    # Le accettazioni registrate prima di questa regola non l'hanno: devono ripassare dal contratto.
+    if acceptance.get("metodo") == "checkbox" and acceptance.get("approvazione_specifica_clausole") is not True:
+        raise HTTPException(409, detail={
+            "code": "SPECIFIC_APPROVAL_REQUIRED",
+            "message": "Prima del pagamento approva specificamente le clausole indicate nel contratto.",
         })
     stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:

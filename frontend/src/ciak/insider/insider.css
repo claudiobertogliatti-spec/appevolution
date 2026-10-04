@@ -331,37 +331,6 @@
   flex-shrink: 0;
 }
 
-/* P.IVA — campo facoltativo, non fa parte del gate (Opzione A'). */
-.insider-contract-accept__piva-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 16px;
-}
-
-.insider-contract-accept__piva-field label {
-  font-family: Poppins, system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748B;
-}
-
-.insider-contract-accept__piva-field input {
-  font-family: Poppins, system-ui, sans-serif;
-  font-size: 14px;
-  color: #0F172A;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  padding: 10px 12px;
-  transition: border-color 0.15s ease;
-}
-
-.insider-contract-accept__piva-field input:focus {
-  outline: none;
-  border-color: #0F172A;
-}
-
 /* Dichiarazione di finalità imprenditoriale (Opzione A') — secondo checkbox,
    separato e indipendente da quello delle condizioni contrattuali. */
 .insider-contract-accept__declaration {
@@ -399,6 +368,242 @@
   cursor: not-allowed;
   opacity: 0.5;
   transform: none;
+}
+
+/* Contratto in 4 passi (stesso brand: Poppins, #0F172A, #FACC15, bordi #E5E7EB, nessuna decorazione). */
+.insider-contract-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.insider-contract-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #64748B;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.insider-contract-step__n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.insider-contract-step--current {
+  color: #0F172A;
+  border: 2px solid #FACC15;
+  padding: 11px 13px;
+}
+
+.insider-contract-step--done {
+  color: #0F172A;
+}
+
+.insider-contract-step--done .insider-contract-step__n {
+  color: #FFFFFF;
+  background: #0F172A;
+  border-color: #0F172A;
+}
+
+.insider-contract-accept__step-title {
+  margin: 0 0 12px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.insider-contract-accept__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+}
+
+.insider-contract-accept__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.insider-contract-accept__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.insider-contract-accept__field--wide {
+  grid-column: 1 / -1;
+}
+
+.insider-contract-accept__field label {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.insider-contract-accept__field input {
+  width: 100%;
+  min-height: 46px;
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 15px;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease;
+}
+
+.insider-contract-accept__field input:focus {
+  outline: 2px solid #FACC15;
+  outline-offset: 1px;
+  border-color: #0F172A;
+}
+
+.insider-contract-accept__field input[aria-invalid='true'] {
+  border-color: #DC2626;
+}
+
+.insider-contract-accept__hint {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.insider-contract-accept__error {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #B91C1C;
+}
+
+.insider-contract-accept__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.insider-contract-accept__actions .insider-contract-accept__cta {
+  margin-top: 0;
+}
+
+.insider-contract-accept__back {
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+
+.insider-contract-accept__back:hover:not(:disabled) {
+  border-color: #0F172A;
+}
+
+.insider-contract-clauses {
+  margin: 0 0 18px;
+  padding: 16px 16px 16px 38px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: #F8FAFC;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.insider-contract-clauses li + li {
+  margin-top: 6px;
+}
+
+.insider-contract-accept__place {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.insider-contract-accept__recap {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 16px;
+  background: #F8FAFC;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.insider-contract-accept__recap div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.insider-contract-accept__recap dt {
+  min-width: 120px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.insider-contract-accept__recap dd {
+  margin: 0;
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.insider-contract-accept__done {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.insider-contract-accept__done li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .insider-contract-steps {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .insider-contract-accept__form {
+    grid-template-columns: 1fr;
+  }
+
+  .insider-contract-accept__actions .insider-contract-accept__cta,
+  .insider-contract-accept__actions .insider-contract-accept__back {
+    flex: 1 1 100%;
+    min-height: 48px;
+  }
 }
 
 /* Copy vendita post-call (APPROVATO Claudio 9/9) — ponte, sublabel prezzo,
