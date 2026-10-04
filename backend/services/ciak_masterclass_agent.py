@@ -109,3 +109,14 @@ async def run_masterclass_agent(*, source: str, output: str, tmp_dir: Path, word
         "needs_partner_rerecord": ["gancio 0-12 s", "esempio", "invito finale (CTA)"],
     })
     return report
+
+
+def agent_enabled_for(partner_id: str, env: Optional[dict] = None) -> bool:
+    """Interruttore dell'agente: `MASTERCLASS_AGENT_ENABLED=true` = tutti i partner;
+    `MASTERCLASS_AGENT_PARTNERS=id1,id2` = solo quei partner (per il collaudo, senza toccare gli altri)."""
+    import os
+    env = os.environ if env is None else env
+    if str(env.get("MASTERCLASS_AGENT_ENABLED", "")).strip().lower() == "true":
+        return True
+    allowed = {p.strip() for p in str(env.get("MASTERCLASS_AGENT_PARTNERS", "")).split(",") if p.strip()}
+    return bool(partner_id) and partner_id in allowed

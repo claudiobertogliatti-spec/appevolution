@@ -1579,7 +1579,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     VIDEO_REVIEW_ENABLED = os.environ.get("VIDEO_REVIEW_ENABLED", "false").strip().lower() == "true"
     # Agente di montaggio masterclass (ciak-masterclass-v1): monta da solo tagli, schede, sigle e volume.
     # Default OFF. Se attivo sostituisce checkpoint di testo, taglio standard ed enhance per le masterclass.
-    MASTERCLASS_AGENT_ENABLED = os.environ.get("MASTERCLASS_AGENT_ENABLED", "false").strip().lower() == "true"
+    # MASTERCLASS_AGENT_PARTNERS=id1,id2 lo accende solo per quei partner (collaudo).
+    from services.ciak_masterclass_agent import agent_enabled_for
+    MASTERCLASS_AGENT_ENABLED = agent_enabled_for(partner_id)
 
     mongo = AsyncIOMotorClient(
         MONGO_URL,

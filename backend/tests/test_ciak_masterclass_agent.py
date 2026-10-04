@@ -82,3 +82,11 @@ def test_missing_transcript_stops_instead_of_publishing_raw(fake_media, tmp_path
         asyncio.run(agent.run_masterclass_agent(
             source="in.mp4", output=str(tmp_path / "o.mp4"), tmp_dir=tmp_path, words=[], brand={"colors": []}))
     assert "render" not in fake_media
+
+
+def test_agent_switch_all_none_or_only_listed_partners():
+    off, on = {}, {"MASTERCLASS_AGENT_ENABLED": "true"}
+    assert agent.agent_enabled_for("p1", off) is False and agent.agent_enabled_for("p1", on) is True
+    only = {"MASTERCLASS_AGENT_PARTNERS": " p1 , p2 "}
+    assert agent.agent_enabled_for("p1", only) and agent.agent_enabled_for("p2", only)
+    assert not agent.agent_enabled_for("p3", only) and not agent.agent_enabled_for("", {"MASTERCLASS_AGENT_PARTNERS": ","})
