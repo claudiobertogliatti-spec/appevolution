@@ -24,3 +24,16 @@ test('a done pointer does not hide earlier incomplete work', () => {
   expect(homeModel({ steps: [{ ...step, step_id: 'earlier' }, done], current_step: done }).kind).toBe('unknown');
   expect(homeModel(state(done)).kind).toBe('complete');
 });
+
+test('progress counts unique steps like the Percorso page, and the description is the step description written for the partner', () => {
+  const a = { step_id: 'la-tua-storia', label: 'Storia', status: 'done' };
+  const b = { step_id: '12-prezzo-webinar', label: 'Prezzo + webinar', status: 'in_progress' };
+  const model = homeModel({ steps: [a, a, b, { step_id: 'x', status: 'skipped' }], current_step: b });
+  expect(model.progress).toEqual({ done: 1, total: 3 });
+  expect(model.description).toBe('Quanto vendi e come lo presenti.');
+});
+
+test('a step with no written description falls back to the generic sentence, never to an invented one', () => {
+  const s = { step_id: 'step-senza-testo', label: 'Qualcosa', status: 'pending' };
+  expect(homeModel(state(s)).description).toMatch(/Apri questo passaggio/);
+});

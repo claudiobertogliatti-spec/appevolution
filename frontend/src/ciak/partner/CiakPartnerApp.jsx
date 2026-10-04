@@ -346,8 +346,8 @@ function MobileBottomNav() {
 
 // ─── Shell ────────────────────────────────────────────────
 
-function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
-  if (PARTNER_SERENO_ENABLED) return <SerenoShell {...{ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout }}>{children}</SerenoShell>;
+function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, partnerId, children }) {
+  if (PARTNER_SERENO_ENABLED) return <SerenoShell {...{ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, partnerId }}>{children}</SerenoShell>;
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <div className="hidden lg:block">
@@ -477,6 +477,7 @@ export default function CiakPartnerApp() {
       onChangePartner={changePartner}
       onBackToAdmin={backToAdmin}
       onLogout={handleLogout}
+      partnerId={partnerId}
     >
       {/* NOTA: CiakPartnerApp è montato sotto `/partner/*` in CiakApp, quindi
           i path di queste Route sono RELATIVI a /partner (niente prefisso). */}
