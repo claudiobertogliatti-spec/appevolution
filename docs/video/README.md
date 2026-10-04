@@ -6,7 +6,7 @@ l'errore da evitare.
 
 | Ricetta | Obiettivo | Regola discriminante | Destinazione |
 |---|---|---|---|
-| [masterclass-cut](recipe-masterclass-cut.md) | Vendere il videocorso | Taglia tutto ciò che non fa avanzare verso la vendita | Pagina *masterclass* del funnel |
+| [masterclass-cut](recipe-masterclass-cut.md) | Vendere il videocorso | Taglia ciò che ripete o rallenta, riscrive gancio e CTA, mostra i punti chiave in schede; non accelera (v2, misurata sulla masterclass Evolution; QC: `scripts/video/qc_masterclass.py`) | Pagina *masterclass* del funnel |
 | [lezione-cut](recipe-lezione-cut.md) | Insegnare / trasformare | Taglia solo ciò che non insegna; preserva le spiegazioni | Videocorso (area cliente) |
 
 ## Come sono operative

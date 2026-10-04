@@ -1,81 +1,132 @@
-# Ricetta di montaggio — MASTERCLASS (taglio che VENDE)
+# Regola di montaggio — MASTERCLASS (v2, misurata)
 
-> **Regola discriminante:** taglia tutto ciò che **non fa avanzare verso la vendita
-> del videocorso**. Ritmo e desiderio prima della completezza. Se una frase non
-> gancia, non prova o non spinge all'azione, si taglia.
+> **Regola discriminante:** la masterclass vende. Si taglia ciò che **ripete, rimanda o
+> rallenta**, si **riscrive** l'apertura e la chiusura, si **mostrano** a schermo i punti
+> chiave. Non si accelera, non si mette musica, non si imprimono sottotitoli.
 
-**Obiettivo:** trasformare il girato grezzo in un video che tiene incollato e fa
-**desiderare il videocorso**.
-**Metrica nord:** retention (specie i primi 30s) → click sulla CTA finale.
-**Durata target:** 20–35 min (masterclass Ciak = ~30 min). Denso, zero riempitivi.
-**Destinazione:** pagina *masterclass* del funnel → CTA verso pagina vendita videocorso.
+**Origine:** questa versione NON è teorica. Deriva da due misure sulla masterclass Evolution
+(la nostra, usata come riferimento): la versione finale con le schede a schermo
+(26:44, 720p/1080p25) e la versione di maggio da cui è partita (30:50). Il confronto delle
+trascrizioni parola per parola mostra **cosa è stato tolto e cosa è stato aggiunto**; le misure
+audio/video danno i numeri. Sostituisce la v1 (generica): le differenze sono in §10.
+
+**Destinazione:** pagina *masterclass* del funnel → CTA verso il passo successivo del partner.
 
 ---
 
-## 1. Pre-flight
-1. Importa il grezzo, **trascrivi** (timestamp per frase).
-2. Marca sulla trascrizione: **gancio candidato**, **momenti di prova** (numeri, casi,
-   risultati), **spiegazione del meccanismo**, **offerta/CTA**, e le **zone morte**
-   (divagazioni, ripetizioni, "ehm", false partenze).
+## 1. Che cos'è il montaggio di riferimento
+Una **sola inquadratura fissa** (stile podcast, nessun b-roll), a velocità naturale, con:
+1. **tagli mirati** (non jump cut a raffica);
+2. **gancio e chiusura riscritti** — circa il 12% delle parole della versione finale non
+   esisteva nel grezzo (apertura sul problema, un esempio, la CTA finale);
+3. **schede a schermo intero** nel brand (non overlay sul volto) che mostrano i punti chiave.
 
-## 2. Struttura obbligatoria (riordina il girato su questa spina)
-1. **Gancio (0–15s)** — la promessa/curiosità più forte. Se nel grezzo è sepolta,
-   **portala all'inizio**. Niente intro-logo lunghe, niente "ciao a tutti oggi vi parlo di…".
-2. **Problema + agitazione** — perché lo status quo non funziona, cosa costa non agire.
-3. **Meccanismo / soluzione** — il "come" ad alto livello (il *cosa* completo è nel videocorso).
-4. **Prova** — risultati, casi, numeri, dimostrazione. Costruisce credibilità.
-5. **Offerta** — presenta il videocorso come il passo successivo naturale.
-6. **CTA finale** — una sola azione chiara + card a schermo con link/istruzione.
+Non ci sono: sigla/logo d'apertura, musica rilevata nel parlato, sottotitoli impressi,
+accelerazione della voce.
 
-## 2-bis. Sigla INTRO + OUTRO brandizzate (STANDARD partner — Claudio 17/7)
-Definito dal pilota Daniele Andolfi / Metodo Sabai. Vale per tutti i partner.
-- **INTRO (≤8–10s):** sigla con il **logo del partner ben visibile** + **musica in linea
-  col partner** (wellness → natura/calma; business → più energica). **SOLO musica**: la
-  **voce parte quando appare il volto**, mai sopra la sigla.
-- **OUTRO finale:** sigla di chiusura brandizzata (logo + musica) dopo l'ultima CTA.
-- **Corpo velocizzato ~1,2×** (speed-up uniforme del parlato) per dinamismo — è ciò che
-  dà ritmo alla masterclass. `setpts=PTS/1.22` + `atempo=1.22` (preserva il pitch).
-- Il corpo si ricostruisce dal **grezzo PULITO** (senza sottotitoli), tenendo intro/outro
-  del montaggio brandizzato.
+## 2. Numeri di riferimento (misurati)
 
-## 3. Taglio (aggressivo)
-- Via **tutti** i filler (ehm/allora/diciamo), false partenze, ripetizioni, tempi morti.
-- **Jump cut** serrati: nessuna pausa "che respira" se non serve enfasi.
-- Taglia ogni tangente che non serve alla spina §2. Nel dubbio: **taglia**.
-- Mantieni il ritmo alto: se un blocco rallenta e non aggiunge prova/desiderio, accorcia.
+| Metrica | Riferimento Evolution | Regola per i partner |
+|---|---|---|
+| Durata | 26:44 (da 30:50: **−13%**) | 24–30 min; −10/−15% sul grezzo se il ritmo è lento |
+| Parole conservate | **84%** del grezzo (3.581 su 4.243) | non scendere sotto ~80%: si taglia, non si riassume |
+| Ritmo del parlato | **152 parole/min** (141–167 ogni minuto) | 135–165 dopo il montaggio, **mai accelerato** |
+| Pausa più lunga | **1,1 s** (maggio: 1,4 s); **0** pause ≥1,5 s | nessuna pausa >**1,3 s** (stessa soglia delle lezioni) |
+| Pause ≥0,5 s | ~6,6 al minuto | si lasciano: sono respiro |
+| Volume | **−17,4 LUFS**, LRA 2,9 LU | −17,5 ±1 LUFS, LRA ≤3,5 LU |
+| Schede a schermo intero | **34** = 31% del tempo, durata media 14,8 s (3–45 s) | 25–35% del tempo |
+| Distanza tra schede | in media 33 s di volto; **max 175 s** senza scheda | una scheda ogni 25–45 s; mai >3 min |
+| Prima scheda | entro i primi 5 s | entro 5 s |
+| Ultima scheda | ~45 s finali ("cosa fare adesso", 3 azioni) | 30–45 s, max 3 azioni |
 
-## 4. Grafica & testo a schermo
-- **Overlay di enfasi** su claim/numeri chiave (compaiono mentre vengono detti).
-- **Pattern interrupt** ogni 30–60s (zoom, cambio inquadratura, card testo) per non far mollare.
-- **NIENTE sottotitoli impressi** (decisione Claudio 17/7): la masterclass va **pulita**,
-  senza sub burned. Il corpo si prende dal grezzo SENZA sottotitoli. (Le CC di YouTube si
-  possono lasciare attivabili lato player con `cc_load_policy=0` = spente di default.)
-- **Card CTA finale** brandizzata (colore del partner) con l'azione: "Accedi al videocorso".
+## 3. Struttura e proporzioni (sulla durata finale)
+| Blocco | Riferimento Evolution | % |
+|---|---|---|
+| Gancio sul problema ("se hai clienti, hai competenza, ma il fatturato non si muove…") | 0:00–0:12 | 0–2% |
+| Credibilità + promessa del percorso | fino a ~1:00 | →4% |
+| Inquadramento del problema | 1:00–4:00 | →15% |
+| Corpo: i punti/errori, uno alla volta, ognuno con la sua scheda "n di N" | 4:00–24:00 | 15–90% |
+| Riepilogo (livelli/fasi) | 24:00–26:00 | 90–97% |
+| CTA finale | 26:00–26:44 | 97–100% |
 
-## 5. Audio & resa
-- **Studio sound** / denoise; livella la voce.
-- Correzione **eye-contact** se disponibile (autorevolezza).
-- Musica di sottofondo bassa solo se aiuta il ritmo (mai coprire la voce).
+La promessa ("alla fine scoprirai…") arriva **prima** di 1 minuto; l'offerta/CTA solo alla fine.
 
-## 6. Prompt operativo (da dare a video-use / Descript agent)
-> "Monta questo grezzo come **masterclass di vendita**. Trascrivi. Porta all'inizio il
-> gancio più forte (primi 15s). Rimuovi tutti i filler, false partenze, ripetizioni e
-> tempi morti con jump cut serrati. Riordina i contenuti sulla spina: gancio → problema →
-> meccanismo → prova → offerta → CTA. Sigla intro brandizzata (logo partner + musica in linea, voce solo col volto) + outro finale; corpo velocizzato ~1,2x; NIENTE sottotitoli impressi; overlay di testo sui
-> numeri/claim chiave, un pattern interrupt ogni ~45s, studio sound. Chiudi con una card
-> CTA brandizzata (colore {BRAND}) 'Accedi al videocorso'. Priorità: retention e desiderio,
-> non completezza. Durata target 25–30 min."
+## 4. Cosa si taglia (osservato nel confronto maggio → finale)
+Tagliati **25 blocchi** da ≥8 parole (≈3 min 12 s) e **78 micro-tagli** (173 parole):
+- **riepiloghi che ripetono ciò che è appena stato detto** ("una confusione che genera sia il primo errore, sia il secondo…");
+- **rimandi interni ridondanti** (annunciare due volte "parleremo dei cinque errori");
+- **presentazione di sito/prodotto prima del valore** (spostata dopo, o tolta dall'apertura);
+- **esempi doppi**: se un caso basta, si tiene quello più concreto;
+- **connettivi ripetuti e false partenze** (micro-tagli: "e", "di", "che" ridetti).
 
-## 7. QC gate (tutte devono passare prima della pubblicazione)
-- [ ] Nei primi 15s c'è una promessa/curiosità forte (non un'intro).
-- [ ] Zero filler/tempi morti percepibili nei primi 3 min.
-- [ ] Ogni blocco fa avanzare verso l'offerta (nessuna tangente).
-- [ ] C'è almeno un momento di prova (numero/caso/risultato).
-- [ ] Sottotitoli presenti e sincronizzati.
-- [ ] CTA finale chiara, una sola, con card brandizzata.
-- [ ] Audio pulito, voce livellata.
-- **Gate umano:** Claudio/Antonella approvano prima del publish.
+**Non si taglia:** numeri, esempi che provano, la definizione del problema, le transizioni
+che introducono un nuovo punto.
 
-## 8. Output
-File montato → caricato nella **pagina masterclass** del funnel del partner.
-Nome asset: `masterclass_{partner}_v{n}`.
+## 5. Ciò che va riscritto/riregistrato (non estratto dal grezzo)
+1. **Gancio 0–12 s**: problema + chi si riconosce + "in questo video ti spiego perché".
+2. **Un esempio/storia** di cliente nel blocco del problema.
+3. **CTA finale**: una azione primaria ("fallo adesso, è gratuito"), poi le 3 azioni a scheda.
+Il partner le registra a parte (pickup) o le legge da un testo preparato dal team; si
+montano al posto dei passaggi originali.
+
+## 6. Schede a schermo
+- Tipi usati: **checklist "se ti riconosci"**, **citazione chiave**, **numero/dato grande**,
+  **marcatore di tappa** ("ERRORE 4 DI 5", "LIVELLO 4 DI 4"), **riepilogo**, **cosa fare adesso**.
+- Fondo scuro uniforme con accenti nel colore del brand; testo grande, poche parole.
+  Per i partner: **palette e font del brand kit del partner**, mai quelli di Evolution/Ciak.
+- Mai una scheda che **contraddice** il discorso in quel punto (esempio dalla nostra:
+  nella sezione "non comprare piattaforme prima di avere una direzione" non compare lo
+  schermo del prodotto).
+- Esempi di prodotto solo etichettati **ESEMPIO** se sono dati demo.
+
+## 7. Audio
+Voce livellata a −17,5 LUFS (±1), LRA ≤3,5; denoise leggero; nessuna musica sulla voce.
+Pausa massima 1,3 s.
+
+## 8. Eccezione: masterclass con pratica guidata
+Se nel parlato c'è un esercizio (respirazione, meditazione, sequenza da ripetere), i silenzi
+**dentro** l'esercizio **non si tagliano mai** e non si accelera: vale la protezione esercizi di
+`recipe-lezione-cut.md` (§3) e `scripts/video/analizza.py` (cue di apertura, finestra protetta).
+La soglia di 1,3 s vale solo fuori dall'esercizio.
+
+## 9. Chi fa cosa
+| Fase | Chi | Strumento |
+|---|---|---|
+| Trascrizione con timestamp, elenco pause >1,3 s e riempitivi, loudness | **automatico** | `scripts/video/qc_masterclass.py`, `analizza.py` |
+| Gancio, esempio, CTA (testo e pickup) | **team + partner** | §5 |
+| Tagli dei blocchi ripetuti (§4) | **montatore** su proposta della trascrizione | Descript / video-use |
+| Schede a schermo | **montatore/design** | brand kit del partner |
+| Livellamento audio e render | automatico/montatore | ffmpeg |
+| **Approvazione** | **Claudio / Antonella** | gate umano (§11) |
+
+## 10. Differenze rispetto alla v1 — da confermare con Claudio
+| Punto | v1 | Riferimento Evolution (v2) | Stato |
+|---|---|---|---|
+| Velocità del corpo | **1,22×** (pilota Daniele 17/7) | **1,0×** (152 parole/min) | ⏳ decidere |
+| Sigla intro/outro con logo e musica | sì | **nessuna** (parte dal gancio) | ⏳ decidere |
+| Taglio | "aggressivo", jump cut serrati | mirato (−13%), inquadratura unica | ✅ v2 |
+| Sottotitoli | "niente impressi" ma il QC li chiedeva | **nessun sottotitolo impresso** | ✅ v2 (coerente con 17/7) |
+| Overlay sul volto | overlay di enfasi | **schede a schermo intero**, niente sul volto | ✅ v2 |
+| Durata | 20–35 min | 24–30 min | ✅ v2 |
+| Musica | di sottofondo bassa | **non verificata** nel riferimento | ⏳ da ascoltare |
+
+## 11. QC gate (misurabile + umano)
+Eseguire `python scripts/video/qc_masterclass.py <video.mp4>`: stampa durata, LUFS/LRA, pause
+(>1,3 s, ≥1,5 s, massima) e il verdetto per ciascuna soglia di §2. Poi:
+- [ ] primi 12 s: il gancio è sul problema, non un saluto;
+- [ ] promessa entro 60 s;
+- [ ] nessuna pausa >1,3 s fuori dagli esercizi; 0 pause ≥1,5 s;
+- [ ] volume −17,5 ±1 LUFS;
+- [ ] schede: 25–35% del tempo, una ogni 25–45 s, prima entro 5 s, CTA finale 30–45 s;
+- [ ] velocità naturale (nessun speed-up) e **nessun sottotitolo impresso**;
+- [ ] palette e font = brand kit del partner;
+- [ ] se c'è una pratica guidata: i suoi silenzi sono intatti;
+- [ ] **Gate umano:** Claudio/Antonella approvano prima della pubblicazione.
+
+## 12. Procedura per un partner
+1. Scaricare il grezzo e misurarlo (`qc_masterclass.py`) → registrare la baseline.
+2. Trascrivere; segnare pause >1,3 s, riempitivi, blocchi ripetuti (§4), eventuale pratica guidata (§8).
+3. Preparare gancio/esempio/CTA (§5); far registrare i pickup.
+4. Montare: tagli §4, pause ≤1,3 s, inserire pickup, schede §6, loudness §7.
+5. Rieseguire `qc_masterclass.py`; compilare il QC gate; approvazione umana.
+6. Pubblicare: nome asset `masterclass_{partner}_v{n}`; caricare nella pagina masterclass del funnel.
