@@ -52,7 +52,7 @@ export const offerData = {
     ],
     cta: 'Entra in Partnership',
     payNote:
-      'Ci vogliono pochi minuti, in quattro passi: leggi il contratto, inserisci i tuoi dati, approvi le clausole e poi paghi. '
+      'Ci vogliono pochi minuti. '
       + 'Se preferisci rateizzare direttamente con noi, scrivici prima: il contratto prevede fino a 3 rate mensili, da approvare per iscritto dal team. '
       + 'Il team ti contatta entro 24 ore.',
     servizi: [

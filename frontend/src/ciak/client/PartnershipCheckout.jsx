@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import "../insider/insider.css";
-import ContractAccept from "../insider/ContractAccept";
+import ContractAccept, { PassiContratto } from "../insider/ContractAccept";
 import { offerData } from "../insider/offerData";
 import { formatDeadlineWithTime } from "../insider/timeline";
 import { clientPost } from "./api";
@@ -131,6 +131,12 @@ export function PartnershipCheckout({ proposta, checkoutReadiness, onProposta })
         </p>
       ) : (
         <>
+          {/* Anteprima dei passi PRIMA di iniziare: dentro il percorso li mostra gia' ContractAccept. */}
+          {step === "contract" || step === "processing" ? null : (
+            <div className="mt-5">
+              <PassiContratto />
+            </div>
+          )}
           <p className="mt-4 text-xs leading-relaxed text-slate-500">
             {scadenza
               ? `La tua proposta è aperta fino a ${scadenza}.`

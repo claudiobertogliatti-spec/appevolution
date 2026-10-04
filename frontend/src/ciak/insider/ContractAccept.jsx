@@ -24,6 +24,30 @@ export const LUOGO_ACCETTAZIONE = 'Torino';
 
 const STEPS = ['Leggi il contratto', 'Inserisci i tuoi dati', 'Approva le clausole', 'Passa al pagamento'];
 
+/**
+ * I quattro passi in ordine, come "finestre" numerate. `corrente` = indice del passo in corso
+ * (0-3): i precedenti risultano fatti. Con -1 (anteprima sulla scheda, prima di iniziare)
+ * nessuno e' evidenziato. Stesso elemento sulla scheda e dentro il percorso.
+ */
+export function PassiContratto({ corrente = -1 }) {
+  return (
+    <ol className="insider-contract-steps" aria-label="I passi per entrare in Partnership">
+      {STEPS.map((titolo, i) => (
+        <li
+          key={titolo}
+          className={`insider-contract-step${i === corrente ? ' insider-contract-step--current' : ''}${i < corrente ? ' insider-contract-step--done' : ''}`}
+          aria-current={i === corrente ? 'step' : undefined}
+        >
+          <span className="insider-contract-step__n" aria-hidden="true">
+            {i < corrente ? <Check size={14} strokeWidth={3} /> : i + 1}
+          </span>
+          <span>{titolo}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 const EMPTY_DATI = {
   nome: '', cognome: '', codice_fiscale: '', indirizzo: '', cap: '', citta: '', provincia: '',
   email: '', pec: '', nome_azienda: '', partita_iva: '',
@@ -167,20 +191,7 @@ export default function ContractAccept({ partnerId, onDati, onConfirm, disabled 
 
   return (
     <div className="insider-contract-accept">
-      <ol className="insider-contract-steps" aria-label="I passi per entrare in Partnership">
-        {STEPS.map((titolo, i) => (
-          <li
-            key={titolo}
-            className={`insider-contract-step${i === step ? ' insider-contract-step--current' : ''}${i < step ? ' insider-contract-step--done' : ''}`}
-            aria-current={i === step ? 'step' : undefined}
-          >
-            <span className="insider-contract-step__n" aria-hidden="true">
-              {i < step ? <Check size={14} strokeWidth={3} /> : i + 1}
-            </span>
-            <span>{titolo}</span>
-          </li>
-        ))}
-      </ol>
+      <PassiContratto corrente={step} />
 
       {step === 0 && (
         <section aria-labelledby="ca-passo-1">

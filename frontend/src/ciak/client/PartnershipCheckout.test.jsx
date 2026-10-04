@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { PartnershipCheckout } from "./PartnershipCheckout";
 
 const aperto = { partnership: { enabled: true } };
@@ -188,6 +188,39 @@ test("dati rifiutati dal server: si resta al passo dei dati, nessuna firma e nes
   expect(screen.getByRole("heading", { name: /passo 2 di 4/i })).toBeTruthy();
   expect(global.fetch).not.toHaveBeenCalledWith("/api/proposta/t/firma-contratto", expect.anything());
   expect(global.fetch).not.toHaveBeenCalledWith("/api/proposta/t/pagamento-stripe", expect.anything());
+});
+
+test("prima di iniziare la scheda mostra i quattro passi in ordine, senza nessuno evidenziato", () => {
+  global.fetch = jest.fn();
+  render(<PartnershipCheckout proposta={proposta} checkoutReadiness={aperto} />);
+  const passi = within(screen.getByRole("list", { name: /i passi per entrare/i })).getAllByRole("listitem");
+  expect(passi.map((p) => p.textContent)).toEqual([
+    "1Leggi il contratto", "2Inserisci i tuoi dati", "3Approva le clausole", "4Passa al pagamento",
+  ]);
+  expect(passi.every((p) => p.getAttribute("aria-current") === null)).toBe(true);
+  // i passi stanno SOPRA il pulsante che apre il percorso
+  const bottone = screen.getByRole("button", { name: /entra in partnership/i });
+  expect(passi[0].compareDocumentPosition(bottone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test("dentro il percorso i passi non si duplicano e il primo e' quello in corso", async () => {
+  rispondi({
+    "/api/contract/text/p1": ok({ contract_text: CONTRATTO }),
+    "/api/proposta/t/accetta": ok({ success: true }),
+  });
+  render(<PartnershipCheckout proposta={proposta} checkoutReadiness={aperto} />);
+  fireEvent.click(screen.getByRole("button", { name: /entra in partnership/i }));
+  await screen.findByText(/Contratto pronto/);
+  const liste = screen.getAllByRole("list", { name: /i passi per entrare/i });
+  expect(liste).toHaveLength(1);
+  expect(within(liste[0]).getAllByRole("listitem")[0].getAttribute("aria-current")).toBe("step");
+});
+
+test("proposta scaduta: nessun elenco di passi da seguire", () => {
+  global.fetch = jest.fn();
+  render(<PartnershipCheckout proposta={{ scaduta: true }} checkoutReadiness={aperto} />);
+  expect(screen.queryByRole("list", { name: /i passi per entrare/i })).toBeNull();
 });
 
 test("pagamento gia' completato: nessun bottone, nessun contratto", () => {
