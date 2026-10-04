@@ -86,11 +86,9 @@ export function DepartmentRoomIntro({ room, onAuthExpired, metricValues = {}, sh
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Reparto admin</p>
             <h1 className="text-3xl font-semibold leading-tight text-slate-900">{room.label}</h1>
-            {(room.persone?.length || room.agenti?.length) ? (
+            {room.agenti?.length ? (
               <p className="mt-2 text-sm text-slate-500">
-                {room.persone?.length ? <span className="font-semibold text-slate-700">{room.persone.join(", ")}</span> : null}
-                {room.persone?.length && room.agenti?.length ? " · " : null}
-                {room.agenti?.length ? <>Agenti: <span className="font-semibold text-slate-700">{room.agenti.join(", ")}</span></> : null}
+                Agenti: <span className="font-semibold text-slate-700">{room.agenti.join(", ")}</span>
               </p>
             ) : (
               <p className="mt-2 text-sm text-slate-500">

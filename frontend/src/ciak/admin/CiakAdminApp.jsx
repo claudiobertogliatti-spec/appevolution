@@ -123,7 +123,6 @@ const NAV = [
   {
     id: "dashboard",
     label: "Direzione",
-    persone: ["Claudio"],
     agenti: ["Luca"],
     to: "/admin/direzione",
     end: true,
@@ -136,7 +135,6 @@ const NAV = [
   {
     id: "acquisizione",
     label: "Acquisizione",
-    persone: ["Mariangela"],
     agenti: ["Carlo", "Andrea"],
     landing: true,
     hideFor: ["antonella"],
@@ -155,7 +153,6 @@ const NAV = [
   {
     id: "vendite",
     label: "Vendite",
-    persone: ["Mariangela"],
     agenti: ["Marco", "Carlo"],
     landing: true,
     hideFor: ["antonella", "mariangela"],
@@ -174,7 +171,6 @@ const NAV = [
   {
     id: "delivery",
     label: "Delivery",
-    persone: ["Antonella", "Matteo"],
     agenti: ["Simona", "Valentina", "Andrea", "Marco"],
     landing: true,
     hideFor: ["mariangela"],
@@ -206,7 +202,6 @@ const NAV = [
   {
     id: "back-office",
     label: "Back office",
-    persone: ["Stefania", "Debora"],
     agenti: ["Valentina"],
     landing: true,
     hideFor: ["antonella", "mariangela"],
@@ -330,17 +325,12 @@ function LoginScreen({ onLogin }) {
 
 // ─── Sidebar a macro-voci (click → pagina-reparto, niente flyout) ────────
 
-// Persone (solo nome) + riga "Agenti: X, Y" per reparto (deciso 9/9). Pelle invariata.
+// Responsabili del reparto = solo gli agenti AI ("Agenti: X, Y"). Le persone non
+// compaiono: il lavoro lo fa Claudio, e i nomi di facciata confondevano (4/10).
 function MacroRoster({ macro, cls }) {
-  const persone = macro.persone || [];
   const agenti = macro.agenti || [];
-  if (!persone.length && !agenti.length) return null;
-  return (
-    <>
-      {persone.length > 0 && <span className={cls}>{persone.join(", ")}</span>}
-      {agenti.length > 0 && <span className={cls}>Agenti: {agenti.join(", ")}</span>}
-    </>
-  );
+  if (!agenti.length) return null;
+  return <span className={cls}>Agenti: {agenti.join(", ")}</span>;
 }
 
 function MacroItem({ macro, currentPath }) {
