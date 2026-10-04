@@ -70,7 +70,7 @@ export function AdminHome({ user, onAuthExpired }) {
   };
 
   return (
-    <div className="p-10 max-w-5xl mx-auto">
+    <div className="p-5 sm:p-10 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-slate-900">Ciao {nome}</h1>
         <p className="text-slate-500 mt-2">Cosa fare oggi, in ordine. I reparti sono qui sotto, per leggere i numeri.</p>

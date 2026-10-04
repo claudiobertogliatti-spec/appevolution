@@ -109,14 +109,14 @@ function Sub({ title, count, children, empty, more }) {
 }
 
 function Riga({ to, nome, meta, pill }) {
-  const name = <span className="font-semibold text-slate-900 truncate">{nome}</span>;
+  const name = <span className="block font-semibold text-slate-900 truncate">{nome}</span>;
   return (
     <li className="flex items-center justify-between gap-3 py-2.5">
       <div className="min-w-0">
-        {to ? <Link to={to} className="hover:underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">{name}</Link> : name}
+        {to ? <Link to={to} className="block hover:underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">{name}</Link> : name}
         {meta && <p className="text-xs text-slate-500 truncate">{meta}</p>}
       </div>
-      {pill}
+      <span className="flex-shrink-0">{pill}</span>
     </li>
   );
 }
