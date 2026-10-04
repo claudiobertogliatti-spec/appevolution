@@ -1261,13 +1261,13 @@ Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile italiano
 • Articolo 1.4 (Esclusiva);
 • Articolo 2.6 (Recesso di Evolution PRO);
 • Articolo 2.7 (Risoluzione per inadempimento);
-• Articolo 3.3 (Sospensione e risoluzione per inattività);
+• Articolo 3.3 (Ritardi o mancata collaborazione del Partner);
 • Articolo 5.3 (Decadenza del beneficio della dilazione);
 • Articolo 5.5 e 5.6 (Royalty e Revenue Share);
 • Articolo 5.7 (Natura non rimborsabile del corrispettivo);
 • Articolo 6.5 (Penale per violazione della riservatezza);
 • Articolo 7.6 (Limitazioni di responsabilità);
-• Articolo 10.6 (Limitazione di responsabilità in materia di trattamento dati);
+• Articolo 10.6 (Responsabilità delle Parti);
 • Articolo 12 (Tutela del brand, know-how e asset proprietari);
 • Articolo 12.5 (Penale);
 • Articolo 14.3 (Mediazione preventiva);
@@ -1924,24 +1924,10 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         story.append(Paragraph("2) Approvazione specifica delle clausole ai sensi degli artt. 1341 e 1342 c.c.", style_articolo))
         story.append(Paragraph("Il Partner dichiara di aver letto, compreso e approvato specificamente le seguenti clausole:", style_testo))
         style_bullet = ParagraphStyle('BulletVex', parent=style_testo, leftIndent=16, spaceAfter=2)
-        _clausole_vex = [
-            "Art. 1.4 (Esclusiva)",
-            "Art. 2.6 (Recesso Evolution PRO)",
-            "Art. 2.7 (Risoluzione per inadempimento)",
-            "Art. 3.3 (Sospensione per inattività)",
-            "Art. 5.3 (Decadenza beneficio della dilazione)",
-            "Art. 5.5 e 5.6 (Royalty e Revenue Share)",
-            "Art. 5.7 (Corrispettivo non rimborsabile)",
-            "Art. 6.5 (Penale riservatezza)",
-            "Art. 7.6 (Limitazione di responsabilità)",
-            "Art. 10.6 (Limitazione responsabilità dati)",
-            "Art. 12 e 12.5 (Tutela asset e penali)",
-            "Art. 14.3 (Mediazione)",
-            "Art. 14.4 (Foro esclusivo Torino)",
-        ]
-        # Snapshot di cio' che il Partner ha visto e approvato; la lista fissa resta solo per i
-        # contratti firmati prima che lo snapshot venisse registrato.
-        for _c in (contract_data.get('clausole_approvate') or _clausole_vex):
+        # Snapshot di cio' che il Partner ha visto e approvato. Per i contratti firmati prima che lo
+        # snapshot venisse registrato si legge l'Art. 15.5 del testo: una sola fonte, mai una copia
+        # della lista con titoli diversi da quelli del contratto.
+        for _c in (contract_data.get('clausole_approvate') or clausole_approvazione_specifica()):
             story.append(Paragraph("•  " + _c, style_bullet))
         story.append(Spacer(1, 0.2*cm))
         story.append(Paragraph(
