@@ -525,6 +525,7 @@
 }
 
 .insider-contract-clauses {
+  list-style: decimal; /* il reset di Tailwind toglie i numeri: qui servono, sono clausole da leggere una per una */
   margin: 0 0 18px;
   padding: 16px 16px 16px 38px;
   font-size: 14px;
