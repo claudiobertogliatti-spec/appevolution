@@ -432,12 +432,17 @@ async def get_proposta(token: str):
         except (ValueError, TypeError):
             pass
 
-    # Primo accesso → aggiorna visto_at
+    # Primo accesso → registra visto_at. Lo stato passa a "vista" SOLO se la proposta e' ancora
+    # "inviata": su una gia' accettata, firmata o pagata il primo GET non deve riportarla indietro
+    # (una firmata che torna "vista" perde la protezione dalla scadenza, vedi `_proposta_scaduta`).
     if not proposta.get("visto_at"):
         now = datetime.now(timezone.utc).isoformat()
-        await db.proposte.update_one({"token": token}, {"$set": {"visto_at": now, "stato": "vista"}})
+        update = {"visto_at": now}
+        if proposta.get("stato") == "inviata":
+            update["stato"] = "vista"
+            proposta["stato"] = "vista"
+        await db.proposte.update_one({"token": token}, {"$set": update})
         proposta["visto_at"] = now
-        proposta["stato"] = "vista"
         await _notify_telegram(f"Proposta aperta da {proposta.get('prospect_nome', '?')}")
 
     # Arricchisce con analisi + scoring del lead (Insider closing page).
