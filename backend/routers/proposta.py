@@ -1244,6 +1244,40 @@ async def _fetch_pdf_bytes_for_email(pdf_url: Optional[str]) -> Optional[bytes]:
     return None
 
 
+async def _pdf_bytes_from_db(partner_id: str) -> Optional[bytes]:
+    """Il PDF del contratto cosi' come l'ha memorizzato `generate_contract_pdf` (`contract_pdfs`).
+
+    E' la fonte giusta per l'allegato: il `pdf_url` che quella funzione restituisce e'
+    `/api/contract/pdf-download/{id}`, un indirizzo servito dall'API, che
+    `_fetch_pdf_bytes_for_email` (solo http o file su disco) non sa leggere."""
+    try:
+        doc = await db.contract_pdfs.find_one({"partner_id": str(partner_id)}, {"_id": 0, "pdf_base64": 1})
+        if doc and doc.get("pdf_base64"):
+            return base64.b64decode(doc["pdf_base64"])
+    except Exception as e:
+        logger.warning(f"[PROPOSTA] PDF contratto dal database non leggibile: {e}")
+    return None
+
+
+async def _contract_data_firmato(token: str, partner_id: str, partner: dict) -> Optional[dict]:
+    """Il contratto firmato di questo partner, dalla prima fonte che lo ha.
+
+    `firma_contratto_proposta` lo scrive su `partners` e `users` con un update SENZA upsert: per un
+    cliente Ciak il documento `partners` nasce solo al pagamento (con upsert, senza `contract`), quindi
+    la lettura da `partners` da sola fallisce proprio nel caso normale. Ordine: partner, utente,
+    registro dell'accettazione sulla proposta (la fonte che la firma salva sempre)."""
+    contratto = partner.get("contract")
+    if isinstance(contratto, dict) and contratto:
+        return contratto
+    user = await db.users.find_one({"id": partner_id}, {"_id": 0, "contract": 1}) or {}
+    contratto = user.get("contract")
+    if isinstance(contratto, dict) and contratto:
+        return contratto
+    prop = await db.proposte.find_one({"token": token}, {"_id": 0, "contract_acceptance": 1}) or {}
+    contratto = prop.get("contract_acceptance")
+    return contratto if isinstance(contratto, dict) and contratto else None
+
+
 async def _finalize_signed_contract_effect(
     token: str, partner_id: str, email: str, nome: str, pdf_state: dict
 ) -> None:
@@ -1275,11 +1309,19 @@ async def _finalize_signed_contract_effect(
             409, "Partner mancante: impossibile generare il contratto firmato"
         )
 
-    contract_data = partner.get("contract")
+    contract_data = await _contract_data_firmato(token, partner_id, partner)
     if not contract_data:
         raise HTTPException(
             409, "Dati contratto mancanti: impossibile generare il PDF firmato"
         )
+    if not partner.get("contract"):
+        # Da `partners` leggono `/api/contract/status` e "I miei materiali": senza questa copia il
+        # contratto firmato non comparirebbe nell'account anche col PDF gia' generato.
+        await db.partners.update_one({"id": partner_id}, {"$set": {
+            "contract": contract_data, "contract_signed": True,
+            "contract_signed_at": contract_data.get("signed_at"),
+        }})
+        partner = {**partner, "contract": contract_data}
 
     pdf_url = await generate_contract_pdf(partner, contract_data)
     if pdf_url:
@@ -1291,7 +1333,7 @@ async def _finalize_signed_contract_effect(
     # send_contract_email: Telegram admin + tag Systeme contratto_firmato
     await send_contract_email(partner, pdf_url)
 
-    pdf_bytes_for_email = await _fetch_pdf_bytes_for_email(pdf_url)
+    pdf_bytes_for_email = await _pdf_bytes_from_db(partner_id) or await _fetch_pdf_bytes_for_email(pdf_url)
     cliente_nome = (nome or "").split()[0] if nome else ""
     if email:
         await send_contratto_firmato_async(
