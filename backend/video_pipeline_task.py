@@ -1481,6 +1481,31 @@ async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
     return output_path, report
 
 
+async def apply_ciak_masterclass_standard(db, *, partner: dict, partner_id: str, source_path: str,
+                                          words: list, output_path: str, tmp_dir: Path) -> dict:
+    """Monta la masterclass con lo standard ciak-masterclass-v1. Solleva se non riesce."""
+    from services.ciak_masterclass_agent import masterclass_brand, run_masterclass_agent
+
+    hub = await db.partner_hub.find_one({"partner_id": partner_id}) or {}
+    step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": "03-brand-kit"}
+    ) or {}
+    brand = masterclass_brand(partner, hub, step)
+
+    async def _llm(prompt: str):
+        from services.ciak_llm import LlmChat, UserMessage
+        chat = LlmChat(session_id=f"mc-agent-{partner_id}-{uuid.uuid4().hex[:6]}",
+                       system_message="Sei un montatore video professionista di masterclass in italiano.")
+        return await chat.send_message(UserMessage(text=prompt))
+
+    return await run_masterclass_agent(
+        source=source_path, output=output_path, tmp_dir=tmp_dir, words=words, brand=brand, llm=_llm,
+        height=int(os.environ.get("MASTERCLASS_AGENT_HEIGHT", "720")),
+        preset=os.environ.get("MASTERCLASS_AGENT_PRESET", "veryfast"),
+        crf=int(os.environ.get("MASTERCLASS_AGENT_CRF", "23")),
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════
 # CELERY TASK
 # ═══════════════════════════════════════════════════════════════════
@@ -1552,6 +1577,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     # Checkpoint revisione testo (stile Descript): se True la pipeline si ferma a
     # "da_revisionare" dopo la trascrizione, invece di tagliare e pubblicare al volo.
     VIDEO_REVIEW_ENABLED = os.environ.get("VIDEO_REVIEW_ENABLED", "false").strip().lower() == "true"
+    # Agente di montaggio masterclass (ciak-masterclass-v1): monta da solo tagli, schede, sigle e volume.
+    # Default OFF. Se attivo sostituisce checkpoint di testo, taglio standard ed enhance per le masterclass.
+    MASTERCLASS_AGENT_ENABLED = os.environ.get("MASTERCLASS_AGENT_ENABLED", "false").strip().lower() == "true"
 
     mongo = AsyncIOMotorClient(
         MONGO_URL,
@@ -1702,6 +1730,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         filler_report = {"count": 0, "segments": [], "time_saved_s": 0}
         smart_edit_report = {"count": 0, "segments": [], "time_saved_s": 0}
         lesson_standard_report = None
+        masterclass_standard_report = None
+        _agent_done = False
         transcript = ""
         words = []
         silence_saved = 0.0
@@ -1743,6 +1773,26 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         "[LESSON-STANDARD] %s tagli approvati, %s respinti, %s zone protette",
                         len(_policy["cuts"]), len(_policy["rejected"]), len(_policy["protected_ranges"]),
                     )
+                # ── AGENTE MASTERCLASS (ciak-masterclass-v1) ────────────────
+                # Monta il video intero dal girato. Se fallisce NON si pubblica il grezzo: errore
+                # recuperabile, grezzo preservato. Il video montato passa poi dalla revisione umana.
+                if MASTERCLASS_AGENT_ENABLED and video_type == "masterclass":
+                    await set_status("rendering_masterclass_standard")
+                    try:
+                        masterclass_standard_report = await apply_ciak_masterclass_standard(
+                            db, partner=partner or {}, partner_id=partner_id, source_path=raw_path,
+                            words=words, output_path=final_path, tmp_dir=tmp_dir)
+                    except Exception as _mc_err:
+                        logger.error(f"[MASTERCLASS-AGENT] montaggio fallito: {_mc_err}", exc_info=True)
+                        await set_status("error_masterclass_standard", {
+                            "video_pipeline_error": f"Montaggio standard non riuscito: {str(_mc_err)[:300]}",
+                            "pipeline_heartbeat_at": None,
+                        })
+                        await telegram(f"⚠️ <b>Masterclass non montata</b>\n👤 {name} — {label}\n"
+                                       f"{str(_mc_err)[:200]}\nIl grezzo è preservato: ritentare la pipeline.")
+                        return
+                    _agent_done = True
+                    logger.info(f"[MASTERCLASS-AGENT] render completato: {masterclass_standard_report}")
                 # ── CHECKPOINT REVISIONE TESTO (stile Descript) ─────────────
                 # Se attivo, NON taglia: salva trascrizione + parole + tagli proposti
                 # e si ferma a "da_revisionare" per la revisione umana sul testo.
@@ -1750,7 +1800,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 # Le videolezioni vengono montate automaticamente con lo standard Ciak
                 # e revisionate sul risultato finale. Il checkpoint preventivo resta
                 # solo per le masterclass, che seguono una grammatica commerciale diversa.
-                if VIDEO_REVIEW_ENABLED and video_type == "masterclass":
+                if VIDEO_REVIEW_ENABLED and video_type == "masterclass" and not _agent_done:
                     try:
                         from services.ciak_cut_engine import build_prompt, assemble_cuts
                         # Normalizza words a secondi se AssemblyAI le dà in ms
@@ -1847,7 +1897,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     except Exception:
                         pass
                     return
-                if all_segs:
+                if _agent_done:
+                    pass        # già montato dall'agente: niente taglio standard
+                elif all_segs:
                     await set_status("cutting_fillers")
                     await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, all_segs, raw_dur)
                 else:
@@ -1856,7 +1908,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
                 # Burn-in sottotitoli via FFmpeg — opt-in via VIDEO_ENHANCE_ENABLED.
                 # Default disabilitato per scelta del partner: editing manuale a valle.
-                if VIDEO_ENHANCE_ENABLED:
+                if VIDEO_ENHANCE_ENABLED and not _agent_done:
                     try:
                         remapped_words = remap_words_after_cuts(words, all_segs)
                         if remapped_words:
@@ -1987,7 +2039,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         youtube_source_path = final_path
         # Lo standard videolezione ha già applicato l'unica copertina ammessa.
         # Remotion (intro/outro/highlight) resta esclusivamente masterclass.
-        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and transcript and words:
+        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and transcript and words and not _agent_done:
             await set_status("rendering")
             niche = (partner.get("niche") or partner.get("partner_niche") or "") if partner else ""
 
@@ -2039,7 +2091,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
         # 5c. Shotstack ENHANCE (solo masterclass): intro DALL-E + body music+zoom+overlay + outro CTA
         # Opt-in via VIDEO_ENHANCE_ENABLED. Stesso motivo del 5b: editing manuale a valle.
-        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and SHOTSTACK_KEY:
+        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and SHOTSTACK_KEY and not _agent_done:
             try:
                 from google.cloud import storage as _gcs
                 _gcs_client = _gcs.Client()
@@ -2197,6 +2249,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 "audio_delay_ms": audio_delay_ms,
                 "audio_delay_applied": audio_delay_applied,
                 "lesson_standard_report": lesson_standard_report,
+                "masterclass_standard_report": masterclass_standard_report,
                 "video_approved": False,
                 "video_pipeline_error": "YouTube upload fallito: credenziali OAuth da rinnovare",
                 "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
@@ -2255,6 +2308,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             "audio_delay_ms": audio_delay_ms,
             "audio_delay_applied": audio_delay_applied,
             "lesson_standard_report": lesson_standard_report,
+            "masterclass_standard_report": masterclass_standard_report,
             "video_approved": False,
             "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
         }
