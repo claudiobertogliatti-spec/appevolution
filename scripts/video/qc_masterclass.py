@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 """QC MASTERCLASS — misura un video e lo confronta con la regola in docs/video/recipe-masterclass-cut.md §2.
 
-Uso:  python scripts/video/qc_masterclass.py <video.mp4> [--vtt sottotitoli.it.vtt]
+Uso:  python scripts/video/qc_masterclass.py <video.mp4> [--vtt sottotitoli.it.vtt] [--pratica 8:20-13:45,17:00-26:30]
+
+--pratica: finestre di pratica guidata (m:ss-m:ss, separate da virgola). Le pause dentro quelle finestre
+sono volute (ricetta §8): non contano per il verdetto e il ritmo del parlato non viene valutato.
 
 Misura (solo ffmpeg/ffprobe, nessun servizio esterno): durata, volume (LUFS/LRA), pause.
 Con --vtt (sottotitoli automatici YouTube con timing per parola) misura anche il ritmo del parlato.
@@ -44,9 +47,22 @@ def loudness(mp4):
 
 
 def pause(mp4):
+    """Ritorna [(inizio_s, durata_s)]."""
     r = run(['ffmpeg', '-nostats', '-i', mp4, '-vn', '-af',
              f'silencedetect=noise={SILENZIO_DB}:d={SILENZIO_MIN_S}', '-f', 'null', '-'])
-    return [float(x) for x in re.findall(r'silence_duration: ([\d.]+)', r.stderr)]
+    return [(float(e) - float(d), float(d))
+            for e, d in re.findall(r'silence_end: ([\d.]+) \| silence_duration: ([\d.]+)', r.stderr)]
+
+
+def finestre(testo):
+    """'8:20-13:45,17:00-26:30' -> [(500, 825), (1020, 1590)]"""
+    def sec(x):
+        m, s = x.strip().split(':'); return int(m) * 60 + int(s)
+    out = []
+    for blocco in (testo or '').split(','):
+        if blocco.strip():
+            a, b = blocco.split('-'); out.append((sec(a), sec(b)))
+    return out
 
 
 def ritmo_vtt(path):
@@ -86,10 +102,13 @@ def main():
         print(__doc__); sys.exit(2)
     mp4 = args[0]
     vtt = args[args.index('--vtt') + 1] if '--vtt' in args else None
+    pratica = finestre(args[args.index('--pratica') + 1]) if '--pratica' in args else []
     d = durata_s(mp4)
     minuti = d / 60.0
     lufs, lra = loudness(mp4)
-    p = pause(mp4)
+    tutte = pause(mp4)
+    in_pratica = [x for x in tutte if any(a <= x[0] <= b for a, b in pratica)]
+    p = [dur for ini, dur in tutte if not any(a <= ini <= b for a, b in pratica)]
     tot = sum(p)
     p05 = sum(1 for x in p if x >= 0.5)
     p13 = sum(1 for x in p if x > SOGLIE['pausa_max_s'])
@@ -111,7 +130,11 @@ def main():
     riga('Pause > 1,3 s', f'{p13}', p13 == 0, f'({p13 / minuti:.1f} al minuto)')
     riga('Pause >= 1,5 s', f'{p15}', p15 <= SOGLIE['pause_1_5_max'], '(regola: nessuna)')
     print(f'  [info] pause >= 0,5 s: {p05} ({p05 / minuti:.1f}/min, riferimento ~6,6) | tempo in pausa: {100 * tot / d:.1f}%')
-    if vtt:
+    if pratica:
+        print(f'  [info] pratica guidata: {len(in_pratica)} pause nelle finestre indicate (escluse dal verdetto), la piu lunga {max((x[1] for x in in_pratica), default=0):.1f} s')
+    if vtt and pratica:
+        print('  [info] ritmo del parlato non valutato: ci sono pratiche guidate (silenzi voluti)')
+    elif vtt:
         r = ritmo_vtt(vtt)
         if r:
             wpm, mn, mx = r

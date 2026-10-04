@@ -21,14 +21,18 @@ Una **sola inquadratura fissa** (stile podcast, nessun b-roll), a velocità natu
    esisteva nel grezzo (apertura sul problema, un esempio, la CTA finale);
 3. **schede a schermo intero** nel brand (non overlay sul volto) che mostrano i punti chiave.
 
-Non ci sono: sigla/logo d'apertura, musica rilevata nel parlato, sottotitoli impressi,
-accelerazione della voce.
+**Sigla d'apertura e di chiusura: solo per le masterclass dei PARTNER** (decisione di Claudio,
+4/10/2026) — la nostra, Evolution, non le ha. Sigla breve (≤8–10 s) con il **logo del partner**;
+la voce parte quando appare il volto, mai sopra la sigla; la chiusura ripete la sigla dopo la CTA.
+
+Non ci sono, per nessuno: sottotitoli impressi, accelerazione della voce, musica di
+sottofondo (decisione di Claudio, 4/10: "tutto il resto non serve").
 
 ## 2. Numeri di riferimento (misurati)
 
 | Metrica | Riferimento Evolution | Regola per i partner |
 |---|---|---|
-| Durata | 26:44 (da 30:50: **−13%**) | 24–30 min; −10/−15% sul grezzo se il ritmo è lento |
+| Durata | 26:44 (da 30:50: **−13%**) | 24–30 min (sigle di partner incluse, ~16 s); −10/−15% sul grezzo se il ritmo è lento |
 | Parole conservate | **84%** del grezzo (3.581 su 4.243) | non scendere sotto ~80%: si taglia, non si riassume |
 | Ritmo del parlato | **152 parole/min** (141–167 ogni minuto) | 135–165 dopo il montaggio, **mai accelerato** |
 | Pausa più lunga | **1,1 s** (maggio: 1,4 s); **0** pause ≥1,5 s | nessuna pausa >**1,3 s** (stessa soglia delle lezioni) |
@@ -99,16 +103,16 @@ La soglia di 1,3 s vale solo fuori dall'esercizio.
 | Livellamento audio e render | automatico/montatore | ffmpeg |
 | **Approvazione** | **Claudio / Antonella** | gate umano (§11) |
 
-## 10. Differenze rispetto alla v1 — da confermare con Claudio
+## 10. Differenze rispetto alla v1 — decisioni di Claudio (4/10/2026)
 | Punto | v1 | Riferimento Evolution (v2) | Stato |
 |---|---|---|---|
-| Velocità del corpo | **1,22×** (pilota Daniele 17/7) | **1,0×** (152 parole/min) | ⏳ decidere |
-| Sigla intro/outro con logo e musica | sì | **nessuna** (parte dal gancio) | ⏳ decidere |
+| Velocità del corpo | **1,22×** (pilota Daniele 17/7) | **1,0×** (152 parole/min) | ✅ **nessun speed-up** (deciso) |
+| Sigla intro/outro con logo | sì | Evolution: nessuna; **partner: sì** | ✅ **solo per i partner** (deciso) |
 | Taglio | "aggressivo", jump cut serrati | mirato (−13%), inquadratura unica | ✅ v2 |
 | Sottotitoli | "niente impressi" ma il QC li chiedeva | **nessun sottotitolo impresso** | ✅ v2 (coerente con 17/7) |
 | Overlay sul volto | overlay di enfasi | **schede a schermo intero**, niente sul volto | ✅ v2 |
 | Durata | 20–35 min | 24–30 min | ✅ v2 |
-| Musica | di sottofondo bassa | **non verificata** nel riferimento | ⏳ da ascoltare |
+| Musica di sottofondo | bassa | non verificata nel riferimento | ✅ **non serve** (deciso). Musica *dentro* la sigla: ⏳ da confermare (default: nessuna) |
 
 ## 11. QC gate (misurabile + umano)
 Eseguire `python scripts/video/qc_masterclass.py <video.mp4>`: stampa durata, LUFS/LRA, pause
@@ -118,7 +122,8 @@ Eseguire `python scripts/video/qc_masterclass.py <video.mp4>`: stampa durata, LU
 - [ ] nessuna pausa >1,3 s fuori dagli esercizi; 0 pause ≥1,5 s;
 - [ ] volume −17,5 ±1 LUFS;
 - [ ] schede: 25–35% del tempo, una ogni 25–45 s, prima entro 5 s, CTA finale 30–45 s;
-- [ ] velocità naturale (nessun speed-up) e **nessun sottotitolo impresso**;
+- [ ] **sigla di apertura e di chiusura** col logo del partner (≤10 s ciascuna; voce solo col volto);
+- [ ] velocità naturale (nessun speed-up), **nessuna musica di sottofondo**, **nessun sottotitolo impresso**;
 - [ ] palette e font = brand kit del partner;
 - [ ] se c'è una pratica guidata: i suoi silenzi sono intatti;
 - [ ] **Gate umano:** Claudio/Antonella approvano prima della pubblicazione.
@@ -127,6 +132,6 @@ Eseguire `python scripts/video/qc_masterclass.py <video.mp4>`: stampa durata, LU
 1. Scaricare il grezzo e misurarlo (`qc_masterclass.py`) → registrare la baseline.
 2. Trascrivere; segnare pause >1,3 s, riempitivi, blocchi ripetuti (§4), eventuale pratica guidata (§8).
 3. Preparare gancio/esempio/CTA (§5); far registrare i pickup.
-4. Montare: tagli §4, pause ≤1,3 s, inserire pickup, schede §6, loudness §7.
+4. Montare: tagli §4, pause ≤1,3 s, inserire pickup, schede §6, loudness §7, **sigla di apertura e chiusura del partner**.
 5. Rieseguire `qc_masterclass.py`; compilare il QC gate; approvazione umana.
 6. Pubblicare: nome asset `masterclass_{partner}_v{n}`; caricare nella pagina masterclass del funnel.
