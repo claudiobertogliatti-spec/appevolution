@@ -138,6 +138,7 @@ jobs:
           tests/test_proposta_payment_gate.py
           tests/test_proposta_finalization_race.py
           tests/test_insider_helpers.py
+          tests/test_contratto_dopo_il_pagamento.py
           tests/test_proposta_stato_vista.py
           tests/test_contratto_doppia_firma.py
           tests/test_proposta_chat.py
