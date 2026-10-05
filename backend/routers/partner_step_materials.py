@@ -1,11 +1,13 @@
 """Archivio autenticato dei materiali prodotti in ciascuno step partner."""
 
+from datetime import datetime
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
+    MIGRATION_VISIBILITIES, WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
     file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
     step_archive_files, step_assignment_fields, trusted_storage_url,
 )
@@ -150,6 +152,49 @@ async def assign_material_to_step(file_id: str, body: dict,
         raise HTTPException(400, str(exc)) from exc
     await db.files.update_one({**key, "partner_id": doc.get("partner_id")}, {"$set": fields})
     return {"success": True, "file_id": file_id, **fields}
+
+
+@router.patch("/api/partner-step-materials/{file_id}/visibility")
+async def set_material_visibility(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: cambia la visibilita' di un file per il partner SENZA cancellarlo.
+
+    Serve, per esempio, quando un file di un altro cliente e' finito nell'area di
+    un partner: `foreign_owner` lo toglie dalla sua lista e dal suo download
+    (l'admin lo vede ancora). Reversibile: `partner_visible` lo rimostra.
+
+    `partner_id` e' obbligatorio: lo stesso `file_id` puo' esistere su piu' record
+    (collisione di hash sul contenuto, storica) e senza il partner si rischierebbe
+    di nascondere il file di un altro. Se restano piu' record con la stessa chiave
+    serve anche `original_name` (409 altrimenti, mai una scelta a caso).
+    """
+    body = body or {}
+    partner_id = str(body.get("partner_id") or "").strip()
+    if not partner_id:
+        raise HTTPException(400, "partner_id obbligatorio")
+    visibility = str(body.get("visibility") or "")
+    if visibility not in MIGRATION_VISIBILITIES:
+        raise HTTPException(400, f"visibility non valida: usa una tra {sorted(MIGRATION_VISIBILITIES)}")
+    token_data = await _authorize(partner_id, credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+
+    key = {"file_id": file_id, "partner_id": partner_id}
+    original_name = body.get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    matches = await db.files.count_documents(key)
+    if matches == 0:
+        raise HTTPException(404, "Materiale non trovato")
+    if matches > 1:
+        raise HTTPException(409, "Piu' record con questo file_id: indica anche original_name")
+
+    fields = {"visibility": visibility, "visibility_updated_at": datetime.utcnow().isoformat()}
+    reason = str(body.get("reason") or "").strip()[:200]
+    if reason:
+        fields["visibility_reason"] = reason
+    await db.files.update_one(key, {"$set": fields})
+    return {"success": True, "file_id": file_id, "partner_id": partner_id, "visibility": visibility}
 
 
 async def _serve(file_id: str, disposition: str, credentials):
