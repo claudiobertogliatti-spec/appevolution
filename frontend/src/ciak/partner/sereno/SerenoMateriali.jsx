@@ -25,8 +25,43 @@ function Hi({ text, q }) {
   return <>{text.slice(0, i)}<mark>{text.slice(i, i + q.length)}</mark>{text.slice(i + q.length)}</>;
 }
 
-function Actions({ file, onOpen, onDownload, className = 'sereno-mat-fileactions' }) {
+/** Solo supervisione admin: "Rimuovi" nasconde il file a tutti (si ripristina), con conferma in due passi. */
+function RemoveControl({ file, onRemove }) {
+  const [step, setStep] = useState('idle');   // idle | confirm | busy | error
   const label = cleanFileName(file.name);
+  const run = async () => {
+    setStep('busy');
+    try {
+      await onRemove(file);
+    } catch {
+      setStep('error');
+    }
+  };
+  if (step === 'confirm' || step === 'busy' || step === 'error') {
+    return (
+      <span role="group" aria-label={`Conferma la rimozione di ${label}`} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+        {step === 'error' && <span role="alert" style={{ color: '#B91C1C', fontSize: 12 }}>Non riuscito</span>}
+        <button className="sereno-secondary" disabled={step === 'busy'} onClick={run}
+          style={{ color: '#B91C1C' }} aria-label={`Conferma rimozione di ${label}`}>
+          {step === 'busy' ? 'Rimuovo…' : 'Conferma rimozione'}
+        </button>
+        <button className="sereno-secondary" disabled={step === 'busy'} onClick={() => setStep('idle')}>Annulla</button>
+      </span>
+    );
+  }
+  return (
+    <button className="sereno-secondary" onClick={() => setStep('confirm')} aria-label={`Rimuovi ${label}`}
+      style={{ color: '#B91C1C' }}>
+      Rimuovi
+    </button>
+  );
+}
+
+function Actions({ file, onOpen, onDownload, onRemove = null, className = 'sereno-mat-fileactions' }) {
+  const label = cleanFileName(file.name);
+  const remove = onRemove && !file.esterno && !String(file.id || '').startsWith('r-')
+    ? <RemoveControl file={file} onRemove={onRemove} />
+    : null;
   if (file.esterno) {
     return (
       <div className={className}>
@@ -42,6 +77,7 @@ function Actions({ file, onOpen, onDownload, className = 'sereno-mat-fileactions
         <button className="sereno-secondary" onClick={() => onOpen(file)} aria-label={`Apri ${label}`}><Eye aria-hidden="true" />Apri</button>
       )}
       <button className="sereno-primary" onClick={() => onDownload(file)} aria-label={`Scarica ${label}`}><Download aria-hidden="true" />Scarica</button>
+      {remove}
     </div>
   );
 }
@@ -58,6 +94,7 @@ export default function SerenoMateriali({
   uploadDisabledReason = '',
   uploadWarning = '',
   uploadNotifiesTeam = true,
+  onRemove = null,
 }) {
   const [search, setSearch] = useState('');
   const [view, setView] = useState('home'); // 'home' = the folder tiles, otherwise a folder id
@@ -120,7 +157,7 @@ export default function SerenoMateriali({
             </div>
           )}
         </div>
-        <Actions file={file} onOpen={onOpen} onDownload={onDownload} />
+        <Actions file={file} onOpen={onOpen} onDownload={onDownload} onRemove={onRemove} />
       </li>
     );
   };
@@ -207,7 +244,7 @@ export default function SerenoMateriali({
                 <span className="tag">{isMine(file) ? 'Caricato da te' : 'Nuovo da Ciak'}</span>
                 <h3>{cleanFileName(file.name)}</h3>
                 <small>{metaOf(file)}</small>
-                <Actions file={file} onOpen={onOpen} onDownload={onDownload} className="sereno-nov-actions" />
+                <Actions file={file} onOpen={onOpen} onDownload={onDownload} onRemove={onRemove} className="sereno-nov-actions" />
               </article>
             ))}
           </div>

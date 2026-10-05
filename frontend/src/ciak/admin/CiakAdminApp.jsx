@@ -104,7 +104,6 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 import { Fatture } from "./pages/Fatture";
 import { Amministrazione } from "./pages/Amministrazione";
 import { Collaboratori } from "./pages/Collaboratori";
-import { ChiusuraInsider } from "./pages/ChiusuraInsider";
 import { ConsegnaManuale } from "./pages/ConsegnaManuale";
 import { ListinoPrezzi } from "./pages/ListinoPrezzi";
 import { CollaudoCheckout } from "./pages/CollaudoCheckout";
@@ -156,7 +155,7 @@ const NAV = [
     ],
   },
   // ── VENDITE · Marco ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
-  //    Chiusura Insider e Listino entrano qui; Collaudo checkout resta route
+  //    Listino entra qui; Collaudo checkout resta route
   //    tecnica via URL, fuori dal lavoro quotidiano — audit #1 + strategia).
   //    Responsabile = Marco (accountability/follow-up); Gaia resta al Supporto Tecnico. ──
   {
@@ -168,7 +167,6 @@ const NAV = [
     pages: [
       { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/chiusura-insider", label: "Chiusura Insider", desc: "Genera e invia il link Insider al lead subito dopo la call" },
       { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
@@ -749,7 +747,8 @@ export default function CiakAdminApp() {
         <Route path="acquisizione-prospect" element={<Navigate to="/admin/pipeline" replace />} />
 
         {/* ── Acquisizione e vendita (cockpit di chiusura) ── */}
-        <Route path="chiusura-insider" element={<ChiusuraInsider onAuthExpired={handleLogout} />} />
+        {/* Pagina tolta: la chiusura post-call vive nell'area cliente (che crea da sola la proposta). */}
+        <Route path="chiusura-insider" element={<Navigate to="/admin/trattative" replace />} />
         <Route path="consegna-manuale" element={<ConsegnaManuale onAuthExpired={handleLogout} />} />
         <Route path="listino-prezzi" element={<ListinoPrezzi />} />
         <Route path="catalogo" element={<VenditeCatalogo />} />
