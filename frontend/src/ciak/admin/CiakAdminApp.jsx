@@ -25,7 +25,7 @@
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { matchesAdminPath, filterDepartmentPages } from "./navigationMatch";
 import { Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -43,6 +43,7 @@ import {
   X,
 } from "lucide-react";
 import { useDrawer } from "./components/useDrawer";
+import { CercaPalette } from "./components/CercaPalette";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
 import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
@@ -386,21 +387,34 @@ function MacroItem({ macro, currentPath }) {
 
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
-  const [globalSearch, setGlobalSearch] = useState("");
+  const navigate = useNavigate();
   // Sotto i 1024px il menu e' un cassetto che si apre dal pulsante in alto.
   const drawer = useDrawer(pathname);
+  // Finestra di ricerca ⌘K (persone + pagine): vale a ogni larghezza.
+  const cerca = useDrawer(pathname, { closeOnDesktop: false });
+  const apriCerca = () => { drawer.setOpen(false); cerca.setOpen(true); };
+  const setCercaOpen = cerca.setOpen;
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === "k") {
+        e.preventDefault();
+        setCercaOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [setCercaOpen]);
+  const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform || "");
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
   // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
-  const searchResults = globalSearch.trim()
-    ? nav.flatMap((macro) => macroPages(macro)
-        .filter((page) => !(page.hideFor || []).includes(adminType))
-        .map((page) => ({ ...page, department: macro.label })))
-        .filter((page) => `${page.label} ${page.desc || ""} ${page.department}`.toLocaleLowerCase("it-IT").includes(globalSearch.trim().toLocaleLowerCase("it-IT")))
-        .slice(0, 8)
-    : [];
+  // Pagine cercabili: SOLO quelle del ruolo (un account con accesso limitato non
+  // trova nemmeno le pagine che non sono sue).
+  const pagineCercabili = nav.flatMap((macro) => macroPages(macro)
+    .filter((page) => !(page.hideFor || []).includes(adminType))
+    .map((page) => ({ ...page, department: macro.label })));
   // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
   // sotto-pagina di una sezione con landing).
   const back = sectionLandingFor(pathname);
@@ -442,27 +456,16 @@ function AdminShell({ user, onLogout, children }) {
           >
             <LayoutDashboard className="w-4 h-4" aria-hidden /> Home
           </NavLink>
-          <div className="relative py-2">
-            <Search className="absolute left-3 top-5 w-4 h-4 text-slate-400" aria-hidden />
-            <input
-              type="search"
-              value={globalSearch}
-              onChange={(event) => setGlobalSearch(event.target.value)}
-              placeholder="Cerca una funzione"
-              aria-label="Cerca in tutto l'admin"
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-            {globalSearch.trim() && (
-              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-1" role="list" aria-label="Risultati ricerca admin">
-                {searchResults.length ? searchResults.map((page) => (
-                  <Link key={page.to} to={page.to} onClick={() => setGlobalSearch("")} className="block rounded-md px-3 py-2 hover:bg-slate-50">
-                    <span className="block text-sm font-semibold text-slate-900">{page.label}</span>
-                    <span className="block text-[11px] text-slate-500">{page.department}</span>
-                  </Link>
-                )) : <p className="px-3 py-2 text-xs text-slate-500">Nessuna funzione trovata.</p>}
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            ref={cerca.triggerRef}
+            onClick={apriCerca}
+            className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-[13px] text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            <Search className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden />
+            <span className="flex-1 truncate">Cerca persone o pagine</span>
+            <kbd className="hidden lg:inline rounded border border-slate-200 px-1.5 text-[11px] font-semibold text-slate-500">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+          </button>
           <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             Reparti
           </p>
@@ -506,6 +509,14 @@ function AdminShell({ user, onLogout, children }) {
         <Link to="/admin" aria-label="Vai alla Home admin">
           <img src="/ciak/logo.webp" alt="Ciak.io" className="h-7 w-auto object-contain" />
         </Link>
+        <button
+          type="button"
+          onClick={apriCerca}
+          aria-label="Cerca persone o pagine"
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+        >
+          <Search className="h-5 w-5" aria-hidden />
+        </button>
       </div>
       <main className="flex-1 min-w-0 overflow-auto">
         {back && (
@@ -521,6 +532,14 @@ function AdminShell({ user, onLogout, children }) {
         {children}
       </main>
       </div>
+      <CercaPalette
+        open={cerca.open}
+        onClose={cerca.close}
+        panelRef={cerca.panelRef}
+        pages={pagineCercabili}
+        onSelect={(to) => navigate(to)}
+        onAuthExpired={onLogout}
+      />
     </div>
   );
 }

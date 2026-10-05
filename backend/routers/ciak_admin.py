@@ -69,6 +69,7 @@ _COMMERCIAL_EXACT_PATHS = {
     "/api/admin/ciak/leads",
     "/api/admin/ciak/lead",
     "/api/admin/ciak/lead/mark-call-booked",
+    "/api/admin/ciak/cerca",  # ricerca per persona: per lei SOLO tra i lead (vedi ciak_cerca_persone)
     "/api/admin/ciak/funnel-metrics",
     "/api/admin/ciak/editorial/brands",
     "/api/admin/ciak/editorial/contents",
@@ -1781,6 +1782,116 @@ async def ciak_leads_list(
         "offset": offset,
         "items": items[offset:offset + limit],
     }
+
+
+# ─── Ricerca per persona (sola lettura) ─────────────────────────────────────
+
+_CERCA_MIN = 2           # sotto i 2 caratteri non si cerca: troppi risultati inutili
+_CERCA_PER_FONTE = 8     # tetto per collezione
+_CERCA_MAX = 12          # tetto sulla risposta
+
+
+@router.get("/cerca")
+async def ciak_cerca_persone(
+    q: str = Query(..., max_length=80, description="Nome o email, anche parziali"),
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Ricerca unica per persona: lead, clienti Ciak Start e partner in un solo elenco,
+    una riga per email, col ruolo calcolato dalla stessa funzione della scheda lead
+    (`ruolo_contatto`). Sola lettura.
+
+    ⛔ Account commerciale (Mariangela): il suo accesso e' ai soli lead inbound, quindi
+    qui cerca SOLO tra i lead (ciak_leads + questionari) e non vede nemmeno se la
+    persona e' cliente o partner: niente righe ne' etichette oltre a quelle che gia'
+    leggerebbe da /leads.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    term = (q or "").strip()
+    if len(term) < _CERCA_MIN:
+        return {"q": term, "items": []}
+    rx = {"$regex": re.escape(term), "$options": "i"}
+    commerciale = (await resolve_admin_type(admin)) in COMMERCIAL_ADMIN_TYPES
+
+    people: dict = {}
+
+    def _riga(email):
+        em = _email(email)
+        if not em:
+            return None
+        return people.setdefault(em, {
+            "email": em, "nome": None, "stato": None, "ha_scheda": False,
+            "client": None, "partner": None,
+        })
+
+    async for lead in db.ciak_leads.find(
+        {"$or": [{"nome": rx}, {"email": rx}]}, {"_id": 0, "email": 1, "nome": 1}
+    ).limit(_CERCA_PER_FONTE):
+        r = _riga(lead.get("email"))
+        if r is not None:
+            r["nome"] = r["nome"] or lead.get("nome")
+            r["ha_scheda"] = True
+
+    async for diag in db.diagnostic_sessions.find(
+        {"$or": [{"user_name": rx}, {"user_email": rx}]},
+        {"_id": 0, "user_email": 1, "user_name": 1, "current_state": 1},
+    ).limit(_CERCA_PER_FONTE):
+        r = _riga(diag.get("user_email"))
+        if r is not None:
+            r["nome"] = r["nome"] or diag.get("user_name")
+            r["stato"] = normalize_state(diag.get("current_state"))
+            r["ha_scheda"] = True
+
+    if not commerciale:
+        async for client in db.ciak_clients.find(
+            {"$or": [{"name": rx}, {"email": rx}]}
+        ).limit(_CERCA_PER_FONTE):
+            r = _riga(client.get("email"))
+            if r is not None:
+                r["nome"] = r["nome"] or client.get("name")
+                r["client"] = client
+        async for partner in db.partners.find(
+            {"$or": [{"name": rx}, {"email": rx}]}
+        ).limit(_CERCA_PER_FONTE):
+            r = _riga(partner.get("email"))
+            if r is not None:
+                r["nome"] = r["nome"] or partner.get("name")
+                r["partner"] = partner
+
+    if not commerciale:
+        # Chi e' gia' presente come lead puo' essere cliente/partner anche se la
+        # ricerca non l'ha trovato tra i clienti (nome diverso): si completa per email.
+        mancanti = [em for em, r in people.items() if r["client"] is None and r["partner"] is None]
+        for em in mancanti:
+            people[em]["client"] = await db.ciak_clients.find_one({"email": _email_ci(em)})
+            people[em]["partner"] = await db.partners.find_one({"email": _email_ci(em)})
+
+    from services.ciak_client_accounts import ruolo_contatto
+
+    items = []
+    for em, r in people.items():
+        if commerciale:
+            tipo, label = "lead", "Lead"
+        else:
+            ruolo = ruolo_contatto(r["client"], r["partner"])
+            tipo, label = ruolo["tipo"], ruolo["label"]
+        items.append({
+            "email": em,
+            "nome": r["nome"] or em,
+            "tipo": tipo,
+            "label": label,
+            "stato": r["stato"],
+            "ha_scheda": r["ha_scheda"],
+            "partner_id": (r["partner"] or {}).get("id") if r["partner"] else None,
+        })
+
+    low = term.lower()
+    items.sort(key=lambda i: (
+        0 if (i["nome"] or "").lower().startswith(low) or i["email"].startswith(low) else 1,
+        (i["nome"] or "").lower(),
+    ))
+    return {"q": term, "items": items[:_CERCA_MAX]}
 
 
 # ─── Lead edit ─────────────────────────────────────────────────────────────
