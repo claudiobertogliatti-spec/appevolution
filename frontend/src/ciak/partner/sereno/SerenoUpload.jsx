@@ -6,7 +6,7 @@ import { MAX_UPLOAD_MB, validateUpload } from './materialiModel';
 // only when the server confirmed; on any failure the file stays on the partner's
 // device, the sentence says so, and Telegram is offered as a fallback — never as
 // the normal route.
-export default function SerenoUpload({ upload, onUploaded = () => {}, disabledReason = '', warning = '', telegramUrl }) {
+export default function SerenoUpload({ upload, onUploaded = () => {}, disabledReason = '', warning = '', notifiesTeam = true, telegramUrl }) {
   const inputRef = useRef(null);
   const nextId = useRef(1);
   const [over, setOver] = useState(false);
@@ -22,7 +22,9 @@ export default function SerenoUpload({ upload, onUploaded = () => {}, disabledRe
         status: 'done', progress: 100,
         message: res.fallback
           ? 'Il team lo ha ricevuto e lo sta archiviando: potrebbe comparire qui tra poco.'
-          : 'Il team è stato avvisato. Lo trovi qui sotto, nella cartella giusta.',
+          : notifiesTeam
+            ? 'Il team è stato avvisato. Lo trovi qui sotto, nella cartella giusta.'
+            : 'Il file è stato aggiunto all’area del partner. Lo trovi qui sotto, nella cartella giusta.',
       });
       onUploaded(file);
     } else {

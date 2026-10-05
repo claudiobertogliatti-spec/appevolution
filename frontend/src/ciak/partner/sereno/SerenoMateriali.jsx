@@ -50,6 +50,7 @@ export default function SerenoMateriali({
   onUploaded = () => {},
   uploadDisabledReason = '',
   uploadWarning = '',
+  uploadNotifiesTeam = true,
 }) {
   const [search, setSearch] = useState('');
   const [folderFilter, setFolderFilter] = useState('all');
@@ -89,6 +90,7 @@ export default function SerenoMateriali({
           onUploaded={onUploaded}
           disabledReason={uploadDisabledReason}
           warning={uploadWarning}
+          notifiesTeam={uploadNotifiesTeam}
           telegramUrl={telegramUrl}
         />
       )}

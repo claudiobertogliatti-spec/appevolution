@@ -374,6 +374,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress, undefined, { notify: !isAdminUser(getPartnerUser()) })}
         onUploaded={() => setRicarica((n) => n + 1)}
         uploadDisabledReason={!partnerId ? "Il caricamento sarà disponibile appena il tuo profilo è pronto." : ""}
+        uploadNotifiesTeam={!isAdminUser(getPartnerUser())}
         uploadWarning={
           partnerId && isAdminUser(getPartnerUser())
             ? "Vista supervisione: il file viene aggiunto all'area di questo partner e lui lo vedrà. Il team non riceve l'avviso di nuovo caricamento."

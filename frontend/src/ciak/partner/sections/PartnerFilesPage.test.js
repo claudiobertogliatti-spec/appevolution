@@ -215,5 +215,7 @@ test("an admin in supervision can upload on the partner's behalf: warned, and wi
   fireEvent.change(screen.getByTestId('sereno-file-input'), { target: { files: [new File(['abc'], 'Prova.pdf', { type: 'application/pdf' })] } });
   expect(await screen.findByText('✓ Ricevuto')).toBeTruthy();
   expect(sent[0].url).toBe('/api/partner-journey/operativo/upload/p1?notify=false');
+  expect(screen.queryByText(/Il team è stato avvisato/)).toBeNull(); // notify=false: it must not claim the team was told
+  expect(screen.getByText(/aggiunto all’area del partner/)).toBeTruthy();
   delete global.XMLHttpRequest;
 });
