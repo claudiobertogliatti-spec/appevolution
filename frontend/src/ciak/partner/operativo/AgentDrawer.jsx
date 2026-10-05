@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { getAgentForStep } from "./agents";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
+const TELEGRAM_SUPPORT_URL = "https://t.me/ciak_partner_support";
 
 /**
  * Drawer chat dinamico — l'agente attivo dipende dallo step corrente.
@@ -13,6 +14,9 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // Testo dell'ultimo messaggio non partito: non si perde mai e non diventa una
+  // risposta finta dell'assistente.
+  const [failedText, setFailedText] = useState(null);
   const bottomRef = useRef(null);
 
   // Re-init quando l'agente cambia (passi tra step con agenti diversi)
@@ -29,11 +33,13 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const userMsg = { role: "user", content: input.trim() };
-    setMessages((m) => [...m, userMsg]);
+  const send = async (retryText) => {
+    const text = (typeof retryText === "string" ? retryText : input).trim();
+    if (!text || sending) return;
+    const userMsg = { role: "user", content: text };
+    if (typeof retryText !== "string") setMessages((m) => [...m, userMsg]);
     setInput("");
+    setFailedText(null);
     setSending(true);
     try {
       const r = await fetch(`${API}/api/stefania/chat`, {
@@ -51,7 +57,7 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
       const reply = data.reply || "Non sono riuscita a rispondere, riprova tra un attimo.";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", content: `Errore: ${String(e)}` }]);
+      setFailedText(userMsg.content);
     } finally {
       setSending(false);
     }
@@ -103,6 +109,15 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
               </span>
             </div>
           )}
+          {failedText && (
+            <div role="alert" className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm text-slate-900">
+              <strong>Messaggio non inviato.</strong> Il tuo testo è al sicuro: riprova, oppure scrivi al team su Telegram.
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => send(failedText)} disabled={sending} className="bg-yellow-400 text-slate-900 font-semibold px-4 py-2 rounded-md text-sm">Riprova</button>
+                <a href={TELEGRAM_SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="border border-slate-300 bg-white text-slate-900 font-medium px-4 py-2 rounded-md text-sm">Scrivi al team su Telegram</a>
+              </div>
+            </div>
+          )}
           <div ref={bottomRef}></div>
         </div>
 
@@ -117,7 +132,7 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
             className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={sending || !input.trim()}
             className="bg-yellow-400 text-slate-900 font-semibold px-4 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -1,3 +1,5 @@
+import { STEP_COPY } from '../operativo/JourneyMap';
+
 export const PHASE_COPY = {
   esamina: ['Esamina', 'Definiamo il tuo progetto'],
   valida: ['Valida', 'Prepariamo corso e lancio'],
@@ -13,7 +15,10 @@ export function homeModel(state) {
     description: 'Il percorso non indica ancora un’attività corrente. Contatta il team per sapere come proseguire.',
     badge: 'Da verificare', step: null,
   };
-  const base = { step: current, title: current.label || 'Il tuo prossimo passaggio' };
+  // Same count as the Percorso page: unique steps, done ones.
+  const unique = [...new Map(steps.filter(s => s && s.step_id).map(s => [s.step_id, s])).values()];
+  const progress = { done: unique.filter(s => s.status === 'done').length, total: unique.length };
+  const base = { step: current, progress, title: current.label || 'Il tuo prossimo passaggio' };
   if (current.status === 'blocked') return { ...base, kind: 'blocked', badge: 'Serve una verifica',
     description: 'Questo passaggio è bloccato. Chiedi aiuto al team prima di proseguire.' };
   if (current.approval_status === 'pending_review') return { ...base, kind: 'waiting', badge: 'In revisione al team', title: 'Ora è il turno del team.',
@@ -23,7 +28,8 @@ export function homeModel(state) {
     description: 'Ritrova i tuoi materiali e confrontati con il team sulle prossime attività.' };
   if (current.status === 'pending' || current.status === 'in_progress') return {
     ...base, kind: 'action', badge: 'Il tuo prossimo passo',
-    description: 'Apri questo passaggio: trovi le istruzioni e le attività previste per il tuo progetto.' };
+    // What the step is, in the words already written for the partner; never what the team delivered.
+    description: (STEP_COPY[current.step_id] && STEP_COPY[current.step_id].desc) || 'Apri questo passaggio: trovi le istruzioni e le attività previste per il tuo progetto.' };
   return { ...base, kind: 'unknown', badge: 'Da verificare',
     description: 'Il team deve verificare il prossimo passaggio. I materiali già consegnati restano disponibili.' };
 }
