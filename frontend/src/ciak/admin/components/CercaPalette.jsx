@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { apiGet } from "../api";
+import { pulisciNome } from "../oggiModel";
 import { CERCA_MIN, filtraPagine, hrefPersona, muovi, statoLabel, TIPO_TONE } from "../cercaModel";
 import { StatusPill } from "./ui/StatusPill";
 
@@ -166,7 +167,7 @@ export function CercaPalette({ open, onClose, panelRef, pages = [], onSelect, on
                     className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 ${sel ? "bg-slate-100" : ""}`}
                   >
                     <div className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-slate-900">{p.nome}</span>
+                      <span className="block truncate text-sm font-semibold text-slate-900">{pulisciNome(p.nome)}</span>
                       <span className="block truncate text-xs text-slate-500">
                         {p.email}{st ? ` · ${st}` : ""}
                       </span>

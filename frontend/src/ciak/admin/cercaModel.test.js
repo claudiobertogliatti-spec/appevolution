@@ -1,4 +1,4 @@
-import { CERCA_MIN, filtraPagine, hrefPersona, muovi, statoLabel, TIPO_TONE } from "./cercaModel";
+import { CERCA_MIN, PAGINE_MIN, filtraPagine, hrefPersona, muovi, statoLabel, TIPO_TONE } from "./cercaModel";
 
 describe("hrefPersona", () => {
   test("lead e cliente Start aprono la scheda con l'email codificata", () => {
@@ -54,7 +54,9 @@ describe("filtraPagine", () => {
 
   test("sotto la lunghezza minima non restituisce niente", () => {
     expect(CERCA_MIN).toBe(2);
+    expect(PAGINE_MIN).toBe(3);
     expect(filtraPagine(pagine, "t")).toEqual([]);
+    expect(filtraPagine(pagine, "fa")).toEqual([]); // 2 lettere: troppo rumore per le pagine
     expect(filtraPagine(pagine, "  ")).toEqual([]);
   });
 

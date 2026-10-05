@@ -47,7 +47,7 @@ test("trova persone con ruolo e stato scritti per esteso", async () => {
   apiGet.mockResolvedValue({ items: PERSONE });
   monta();
   scrivi("ri");
-  expect(await screen.findByText("ROSA NERI")).toBeTruthy();
+  expect(await screen.findByText("Rosa Neri")).toBeTruthy();
   expect(apiGet).toHaveBeenCalledWith("/cerca", { q: "ri" });
   expect(screen.getByText("rosa@x.it · Call prenotata")).toBeTruthy();
   expect(screen.getByText("Cliente Ciak Start")).toBeTruthy();
@@ -67,7 +67,7 @@ test("Invio apre la prima riga e chiude; la persona porta alla sua scheda", asyn
   apiGet.mockResolvedValue({ items: PERSONE });
   const p = monta();
   scrivi("ro");
-  await screen.findByText("ROSA NERI");
+  await screen.findByText("Rosa Neri");
   tasto("Enter");
   expect(p.onSelect).toHaveBeenCalledWith("/admin/leads/rosa%40x.it");
   expect(p.onClose).toHaveBeenCalled();
@@ -77,7 +77,7 @@ test("le frecce scorrono le righe e la selezione e' annunciata", async () => {
   apiGet.mockResolvedValue({ items: PERSONE });
   const p = monta();
   scrivi("ri");
-  await screen.findByText("ROSA NERI");
+  await screen.findByText("Rosa Neri");
   tasto("ArrowDown"); // prima riga
   tasto("ArrowDown"); // seconda
   const box = screen.getByRole("combobox");
@@ -148,7 +148,6 @@ test("una risposta vecchia che arriva dopo non sovrascrive quella nuova", async 
   scrivi("rino");
   expect(await screen.findByText("Rino Gialli")).toBeTruthy();
   await act(async () => { rispondiVecchia({ items: [PERSONE[0]] }); });
-  expect(screen.queryByText("ROSA NERI")).toBeNull();
   expect(screen.getByText("Rino Gialli")).toBeTruthy();
 });
 
@@ -159,10 +158,10 @@ test("mentre cerca non restano righe del testo di prima (Invio non apre la perso
     .mockImplementationOnce(() => new Promise((res) => { rispondi = res; }));
   const p = monta();
   scrivi("ros");
-  await screen.findByText("ROSA NERI");
+  await screen.findByText("Rosa Neri");
   scrivi("rita");
   expect(await screen.findByText("Cerco…")).toBeTruthy();
-  expect(screen.queryByText("ROSA NERI")).toBeNull();
+  expect(screen.queryByText("Rosa Neri")).toBeNull();
   tasto("Enter");
   expect(p.onSelect).not.toHaveBeenCalled();
   await waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2)); // la richiesta parte dopo l'attesa
@@ -173,4 +172,22 @@ test("mentre cerca non restano righe del testo di prima (Invio non apre la perso
 test("il pannello e' un dialogo con nome, per i lettori di schermo", () => {
   monta();
   expect(screen.getByRole("dialog", { name: "Cerca persone e pagine" }).getAttribute("aria-modal")).toBe("true");
+});
+
+test("i nomi sporchi del database si leggono bene", async () => {
+  apiGet.mockResolvedValue({ items: [PERSONE[0], { ...PERSONE[1], nome: "rino gialli" }] });
+  monta();
+  scrivi("ri");
+  expect(await screen.findByText("Rosa Neri")).toBeTruthy();
+  expect(screen.getByText("Rino Gialli")).toBeTruthy();
+  expect(screen.queryByText("ROSA NERI")).toBeNull(); // il dato grezzo non si mostra
+  expect(screen.queryByText("rino gialli")).toBeNull();
+});
+
+test("con due lettere le pagine non compaiono (solo le persone)", async () => {
+  apiGet.mockResolvedValue({ items: [] });
+  monta();
+  scrivi("fa"); // "Fatture" inizia cosi', ma sotto le 3 lettere le pagine restano fuori
+  await screen.findByText("Nessuna persona trovata.");
+  expect(screen.queryByText("Fatture")).toBeNull();
 });

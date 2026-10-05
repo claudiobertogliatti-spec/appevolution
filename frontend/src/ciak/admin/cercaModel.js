@@ -6,8 +6,10 @@
  * scrive il suo stato, quali pagine del menu corrispondono al testo.
  */
 
-/** Sotto questa lunghezza non si cerca (come il backend). */
+/** Sotto questa lunghezza non si cercano persone (come il backend). */
 export const CERCA_MIN = 2;
+/** Le pagine invece da 3 lettere: con 2 quasi ogni pagina contiene quelle lettere. */
+export const PAGINE_MIN = 3;
 
 // Stati del funnel gratuito, scritti per chi legge (stessi testi di Lead).
 const STATO_LABEL = {
@@ -44,7 +46,7 @@ const norm = (s) => String(s || "").toLocaleLowerCase("it-IT");
  */
 export function filtraPagine(pagine, testo, max = 5) {
   const q = norm(testo).trim();
-  if (q.length < CERCA_MIN) return [];
+  if (q.length < PAGINE_MIN) return [];
   const trovate = (pagine || [])
     .map((p) => {
       const titolo = norm(p.label).includes(q);

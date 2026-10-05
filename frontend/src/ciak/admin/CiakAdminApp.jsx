@@ -460,7 +460,7 @@ function AdminShell({ user, onLogout, children }) {
             type="button"
             ref={cerca.triggerRef}
             onClick={apriCerca}
-            className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+            className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-[13px] text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
           >
             <Search className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden />
             <span className="flex-1 truncate">Cerca persone o pagine</span>
