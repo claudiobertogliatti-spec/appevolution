@@ -8,6 +8,10 @@
  *
  * Dati: GET  /api/partner-journey/masterclass/review-data/{partnerId}
  * Approva: POST /api/partner-journey/masterclass/review-approve
+ *
+ * Lezioni (videocorso): come Descript, oltre a togliere le proposte si possono AGGIUNGERE tagli sul testo:
+ * clic su una parola, Maiusc+clic su un'altra, "Taglia selezione"; clic su una parola barrata per rimetterla.
+ * I tagli aggiunti partono con `custom_cuts` in /videocorso/review-approve.
  */
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -24,6 +28,7 @@ const TYPE_META = {
   filler: { label: "Intercalare", icon: Scissors, color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
   silence: { label: "Pausa lunga", icon: Volume2, color: "text-sky-600", bg: "bg-sky-50 border-sky-200" },
   smart: { label: "Ripetizione", icon: Repeat, color: "text-rose-600", bg: "bg-rose-50 border-rose-200" },
+  manual: { label: "Taglio tuo", icon: Scissors, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
 };
 
 export function MasterclassReview({ onAuthExpired }) {
@@ -33,6 +38,9 @@ export function MasterclassReview({ onAuthExpired }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [disabled, setDisabled] = useState(() => new Set()); // id dei tagli ANNULLATI
+  const [manual, setManual] = useState([]);                    // tagli aggiunti a mano sul testo (solo lezioni)
+  const [anchor, setAnchor] = useState(null);                  // prima parola selezionata
+  const [sel, setSel] = useState(null);                        // {a, b}: intervallo di parole selezionato
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +64,10 @@ export function MasterclassReview({ onAuthExpired }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const segs = useMemo(() => (data?.cut_segments || []).slice().sort((a, b) => (a.start || 0) - (b.start || 0)), [data]);
+  const segs = useMemo(
+    () => [...(data?.cut_segments || []), ...manual].sort((a, b) => (a.start || 0) - (b.start || 0)),
+    [data, manual]
+  );
 
   // Normalizza i tempi delle parole a secondi (AssemblyAI a volte è in ms).
   const words = useMemo(() => {
@@ -71,10 +82,38 @@ export function MasterclassReview({ onAuthExpired }) {
 
   const activeSegs = useMemo(() => segs.filter((s) => !disabled.has(s.id)), [segs, disabled]);
 
-  const isWordCut = useCallback(
-    (w) => activeSegs.some((s) => w.start >= (s.start || 0) - 0.05 && w.end <= (s.end || 0) + 0.05),
+  const coveringSeg = useCallback(
+    (w) => activeSegs.find((s) => w.start >= (s.start || 0) - 0.05 && w.end <= (s.end || 0) + 0.05),
     [activeSegs]
   );
+  const isWordCut = useCallback((w) => Boolean(coveringSeg(w)), [coveringSeg]);
+
+  // Solo lezioni: clic = seleziona; Maiusc+clic = estende; clic su parola barrata = rimette il passaggio.
+  const onWordClick = (i, e) => {
+    if (!isLesson) return;
+    const w = words[i];
+    const covering = coveringSeg(w);
+    if (covering) {
+      if (covering.type === "manual") setManual((prev) => prev.filter((m) => m.id !== covering.id));
+      else toggle(covering.id);
+      return;
+    }
+    if (e?.shiftKey && anchor !== null) {
+      setSel({ a: Math.min(anchor, i), b: Math.max(anchor, i) });
+    } else {
+      setAnchor(i);
+      setSel({ a: i, b: i });
+    }
+  };
+  const selectedS = sel ? Math.max(0, words[sel.b].end - words[sel.a].start) : 0;
+  const addManualCut = () => {
+    if (!sel) return;
+    const start = words[sel.a].start, end = words[sel.b].end;
+    setManual((prev) => [...prev, { id: `m${Date.now()}${prev.length}`, start, end, type: "manual",
+      reason: "taglio manuale", word: "", enabled: true }]);
+    setSel(null);
+    setAnchor(null);
+  };
 
   const toggle = (id) => {
     setDisabled((prev) => {
@@ -84,7 +123,7 @@ export function MasterclassReview({ onAuthExpired }) {
     });
   };
 
-  const keptCount = segs.length - disabled.size;
+  const keptCount = segs.filter((s) => !disabled.has(s.id)).length;
   const savedS = activeSegs.reduce((t, s) => t + ((s.end || 0) - (s.start || 0)), 0);
 
   const approve = async () => {
@@ -95,7 +134,10 @@ export function MasterclassReview({ onAuthExpired }) {
         ? `/api/partner-journey/videocorso/review-approve`
         : `/api/partner-journey/masterclass/review-approve`;
       const body = isLesson
-        ? { partner_id: partnerId, lesson_id: lessonId, disabled_cut_ids: Array.from(disabled) }
+        ? {
+            partner_id: partnerId, lesson_id: lessonId, disabled_cut_ids: Array.from(disabled),
+            custom_cuts: manual.map((m) => ({ start_s: m.start, end_s: m.end })),
+          }
         : { partner_id: partnerId, disabled_cut_ids: Array.from(disabled) };
       const res = await adminFetch(approveUrl, {
         method: "POST",
@@ -164,7 +206,7 @@ export function MasterclassReview({ onAuthExpired }) {
             Revisione del taglio{isLesson ? ` — Lezione ${lessonId}` : ""}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Leggi la trascrizione confrontandola con lo script. I tagli proposti sono <span className="line-through text-slate-400">barrati</span>. Togli un taglio se mozza una frase, poi approva.
+            Leggi la trascrizione confrontandola con lo script. I tagli proposti sono <span className="line-through text-slate-400">barrati</span>. Togli un taglio se mozza una frase, poi approva.{isLesson && " Per tagliare altro: clic su una parola, Maiusc+clic su un'altra, poi «Taglia selezione»; clic su una parola barrata per rimetterla."}
           </p>
         </div>
         <div className="text-right">
@@ -200,14 +242,37 @@ export function MasterclassReview({ onAuthExpired }) {
         <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <h2 className="font-semibold text-slate-800">Trascrizione del registrato</h2>
+            {isLesson && sel && (
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-xs text-slate-500">{fmt(words[sel.a].start)} → {fmt(words[sel.b].end)} ({Math.round(selectedS * 10) / 10} s)</span>
+                <button type="button" onClick={addManualCut}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:opacity-90">Taglia selezione</button>
+                <button type="button" onClick={() => { setSel(null); setAnchor(null); }}
+                  className="text-xs font-semibold px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-800">Annulla</button>
+              </div>
+            )}
           </div>
           <div className="p-5 text-sm leading-7 text-slate-800 max-h-[60vh] overflow-y-auto">
             {words.length ? (
               words.map((w, i) => {
                 const cut = isWordCut(w);
+                const picked = sel && i >= sel.a && i <= sel.b;
+                if (!isLesson) {
+                  return (
+                    <span key={i} className={cut ? "line-through text-slate-300" : "text-slate-800"}>
+                      {w.text}{" "}
+                    </span>
+                  );
+                }
                 return (
-                  <span key={i} className={cut ? "line-through text-slate-300" : "text-slate-800"}>
-                    {w.text}{" "}
+                  <span key={i}>
+                    <span
+                      role="button" tabIndex={0}
+                      title={cut ? "Clic per rimettere questo passaggio" : "Clic per selezionare"}
+                      onClick={(e) => onWordClick(i, e)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onWordClick(i, e); } }}
+                      className={`cursor-pointer rounded-sm hover:bg-amber-100 ${cut ? "line-through text-slate-300" : "text-slate-800"} ${picked ? "bg-amber-200" : ""}`}
+                    >{w.text}</span>{" "}
                   </span>
                 );
               })
@@ -252,10 +317,10 @@ export function MasterclassReview({ onAuthExpired }) {
                     </span>
                   )}
                   <button
-                    onClick={() => toggle(s.id)}
+                    onClick={() => (s.type === "manual" ? setManual((prev) => prev.filter((m) => m.id !== s.id)) : toggle(s.id))}
                     className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${off ? "bg-white text-slate-600 border-slate-200 hover:bg-slate-50" : "bg-slate-900 text-white border-slate-900 hover:opacity-90"}`}
                   >
-                    {off ? "Tieni la parte" : "Taglia"}
+                    {s.type === "manual" ? "Rimuovi" : off ? "Tieni la parte" : "Taglia"}
                   </button>
                 </li>
               );
