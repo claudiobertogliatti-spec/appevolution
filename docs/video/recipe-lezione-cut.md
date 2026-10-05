@@ -132,3 +132,20 @@ le lezioni dello stesso partner per coerenza di corso.
 Il render riuscito entra in `ready_for_review`. La decisione del partner è legata a
 `output_version`; ogni nuovo montaggio azzera il consenso precedente. Una richiesta di modifica
 salva nota, autore, data e versione e porta la lezione in `revision_requested`.
+
+## Aggiornamento 5/10/2026 — ripetizioni, pause e filo del discorso (decisione di Claudio)
+
+Feedback sulla lezione 2 di Andrea: "non stai lavorando bene sulle ripetizioni, sulle pause e sul filo del discorso".
+Misurato: su 417 s si toglievano ~8 s (solo intercalari e pause); restavano ~23 balbettii ("di di", "se se", "a a a")
+e frasi ripetute ("vorrei migliorare questo, vorrei migliorare questo"). Il vecchio controllo scartava ogni taglio >2,5 s,
+quindi riprese e tagli di struttura non passavano mai.
+
+Regole ora in vigore (`services/ciak_lesson_cut_plan.py`, stessi rilevatori del montaggio masterclass):
+- **Balbettii e riprese ripetute**: si tiene l'ultima copia (taglio esatto sui confini di parola).
+- **Pause**: nessuna oltre **1,0 s** (prima 1,3 s) fuori dagli esercizi, con respiro di 0,35 s per lato; le pause che si
+  sommano ai lati di un taglio si accorciano. Misura sull'audio reale (silencedetect), non solo sui vuoti fra parole.
+- **Filo del discorso (AI)**: l'AI propone tagli di ripetizioni di contenuto, false partenze e digressioni; i validatori
+  li accettano solo se fuori dagli esercizi, <=60 s ciascuno, <=15% in totale. Il rapporto della lezione elenca i tagli AI.
+- **Esercizi guidati**: zone protette, nessun taglio.
+- Micro-dissolvenze audio di 8 ms sulle giunzioni.
+

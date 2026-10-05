@@ -125,12 +125,12 @@ def practice_ranges(words: list, silences: list, duration_s: float = 0) -> list[
 
 # ───────────────────────────── tagli ─────────────────────────────
 
-def silence_cuts(silences: list, protected: Iterable[dict]) -> list[dict]:
-    """Pause oltre 1,3 s FUORI dalle pratiche: si tiene un respiro di 0,35 s per lato."""
+def silence_cuts(silences: list, protected: Iterable[dict], max_s: float = PAUSE_MAX_S) -> list[dict]:
+    """Pause oltre `max_s` (default 1,3 s) FUORI dalle pratiche: si tiene un respiro di 0,35 s per lato."""
     cuts = []
     for s in silences or []:
         a, b = float(s["start"]), float(s["end"])
-        if b - a <= PAUSE_MAX_S:
+        if b - a <= max_s:
             continue
         seg = {"start": round(a + BREATH_PER_SIDE_S, 3), "end": round(b - BREATH_PER_SIDE_S, 3),
                "type": "silence", "reason": "pausa oltre 1,3 s fuori dalla pratica", "word": ""}
@@ -139,7 +139,8 @@ def silence_cuts(silences: list, protected: Iterable[dict]) -> list[dict]:
     return cuts
 
 
-def adjacent_pause_cuts(silences: list, cuts: list, protected: Iterable[dict], tol: float = 0.15) -> list[dict]:
+def adjacent_pause_cuts(silences: list, cuts: list, protected: Iterable[dict], tol: float = 0.15,
+                        max_s: float = PAUSE_MAX_S) -> list[dict]:
     """Togliendo un intercalare o una ripresa tra due pause, le pause si sommano: se la somma supera 1,3 s
     si accorciano entrambe (resta un respiro di 0,35 s per lato)."""
     out = []
@@ -151,7 +152,7 @@ def adjacent_pause_cuts(silences: list, cuts: list, protected: Iterable[dict], t
         if not before or not after:
             continue
         lb, la = float(before["end"]) - float(before["start"]), float(after["end"]) - float(after["start"])
-        if lb + la <= PAUSE_MAX_S:
+        if lb + la <= max_s:
             continue
         for seg in ({"start": round(float(before["start"]) + BREATH_PER_SIDE_S, 3), "end": round(float(before["end"]), 3)},
                     {"start": round(float(after["start"]), 3), "end": round(float(after["end"]) - BREATH_PER_SIDE_S, 3)}):
