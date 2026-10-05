@@ -153,7 +153,7 @@ def brand_profile(partner: dict | None, hub: dict | None, step: dict | None) -> 
     """Risoluzione partner-first. Mai fallback ai colori Ciak."""
     partner, hub, step = partner or {}, hub or {}, step or {}
     data = step.get("data", step) if isinstance(step, dict) else {}
-    colors = data.get("colori") or []
+    colors = data.get("colors") or data.get("colori") or []     # lo step 03-brand-kit salva `colors`
     return {
         "name": hub.get("projectName") or data.get("nome_progetto") or partner.get("name") or "Videocorso",
         "partner_name": partner.get("name") or hub.get("name") or "",

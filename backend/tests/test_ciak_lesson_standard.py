@@ -78,3 +78,9 @@ def test_intro_fallback_is_short_and_italian():
     text = ls.intro_fallback("l'arte dell'ascolto")
     assert text.startswith("In questa lezione")
     assert "l'arte dell'ascolto" in text
+
+
+def test_brand_profile_reads_colors_saved_by_the_brand_kit_step():
+    step = {"data": {"colors": ["#000041", "#35B3CB"], "logo_url": "https://res.cloudinary.com/x/l.png"}}
+    b = ls.brand_profile({"name": "Andrea Fredi"}, {}, step)
+    assert b["primary"].lower() == "#000041" and b["brand_source"] == "partner"

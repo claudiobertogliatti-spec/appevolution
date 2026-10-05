@@ -90,3 +90,11 @@ def test_agent_switch_all_none_or_only_listed_partners():
     only = {"MASTERCLASS_AGENT_PARTNERS": " p1 , p2 "}
     assert agent.agent_enabled_for("p1", only) and agent.agent_enabled_for("p2", only)
     assert not agent.agent_enabled_for("p3", only) and not agent.agent_enabled_for("", {"MASTERCLASS_AGENT_PARTNERS": ","})
+
+
+def test_brand_reads_the_keys_the_brand_kit_step_really_saves():
+    step = {"data": {"colors": ["#000041", "#35B3CB", "#F67563"], "parole_evitare": ["terapia", "sforzo"],
+                     "logo_url": "https://res.cloudinary.com/x/logo.png"}}
+    b = agent.masterclass_brand({"name": "Andrea Fredi"}, {}, step)
+    assert b["colors"] == ["#000041", "#35B3CB", "#F67563"] and b["banned"] == ["terapia", "sforzo"]
+    assert b["logo_url"].endswith("logo.png")

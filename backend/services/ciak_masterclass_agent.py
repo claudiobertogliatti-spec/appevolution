@@ -29,10 +29,13 @@ def masterclass_brand(partner: Optional[dict], hub: Optional[dict], step: Option
     partner, hub, step = partner or {}, hub or {}, step or {}
     data = step.get("data", step) if isinstance(step, dict) else {}
     colors = []
-    for c in [hub.get("primaryColor"), hub.get("bgColor"), *(data.get("colori") or [])]:
+    for c in [hub.get("primaryColor"), hub.get("bgColor"), *(data.get("colors") or data.get("colori") or [])]:
         if isinstance(c, str) and c.strip().startswith("#") and c.strip() not in colors:
             colors.append(c.strip())
-    banned = [str(b).strip() for b in (data.get("parole_vietate") or []) if str(b).strip()]
+    raw_banned = data.get("parole_evitare") or data.get("parole_vietate") or []
+    if isinstance(raw_banned, str):
+        raw_banned = raw_banned.split(",")
+    banned = [str(b).strip() for b in raw_banned if str(b).strip()]
     return {
         "name": hub.get("projectName") or data.get("nome_progetto") or partner.get("name") or "",
         "colors": colors,
