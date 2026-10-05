@@ -53,13 +53,19 @@ test('a failed send keeps the text, never shows a technical error, and Retry wor
   await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
 });
 
-test('in supervision view the chat is switched off: nothing can be sent as the partner', () => {
-  global.fetch = jest.fn();
+test('in supervision view the admin can write, with a visible warning naming the partner', async () => {
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ reply: 'Risposta di prova.' }) });
   open({ supervision: true });
-  expect(screen.getByText(/Vista supervisione/)).toBeTruthy();
-  expect(screen.getByLabelText('La tua domanda').disabled).toBe(true);
-  expect(screen.getByRole('button', { name: 'Invia' }).disabled).toBe(true);
-  expect(global.fetch).not.toHaveBeenCalled();
+  expect(screen.getByRole('note').textContent).toMatch(/stai scrivendo come Giulia Bianchi/);
+  expect(screen.getByRole('note').textContent).toMatch(/storico/);
+  write('Prova dal pannello admin');
+  expect(await screen.findByText('Risposta di prova.')).toBeTruthy();
+  expect(global.fetch).toHaveBeenCalledTimes(1);
+});
+
+test('outside supervision there is no such warning', () => {
+  open();
+  expect(screen.queryByRole('note')).toBeNull();
 });
 
 test('Escape closes the sheet and the button comes back', () => {

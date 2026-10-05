@@ -61,3 +61,9 @@ test('a local-storage fallback is passed on so the page can be honest about it',
   const x = fakeXhr((r) => { r.status = 200; r.responseText = JSON.stringify({ success: true, fallback: 'local' }); r.onload(); });
   expect(await uploadPartnerFile('p1', file(), () => {}, () => x)).toEqual({ ok: true, fallback: 'local' });
 });
+
+test('notify:false (admin uploading for the partner) adds ?notify=false so the team is not told "il partner ha caricato"', async () => {
+  const x = fakeXhr((r) => { r.status = 200; r.responseText = JSON.stringify({ success: true }); r.onload(); });
+  await uploadPartnerFile('p1', file(), () => {}, () => x, { notify: false });
+  expect(x.url).toBe('/api/partner-journey/operativo/upload/p1?notify=false');
+});

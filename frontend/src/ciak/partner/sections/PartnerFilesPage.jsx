@@ -371,14 +371,13 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         onOpen={apriFile}
         onDownload={scaricaFile}
         telegramUrl={telegramFallbackUrl}
-        upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress)}
+        upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress, undefined, { notify: !isAdminUser(getPartnerUser()) })}
         onUploaded={() => setRicarica((n) => n + 1)}
-        uploadDisabledReason={
-          !partnerId
-            ? "Il caricamento sarà disponibile appena il tuo profilo è pronto."
-            : isAdminUser(getPartnerUser())
-              ? "Vista supervisione: il caricamento è disattivato, così non si aggiungono file al posto del partner."
-              : ""
+        uploadDisabledReason={!partnerId ? "Il caricamento sarà disponibile appena il tuo profilo è pronto." : ""}
+        uploadWarning={
+          partnerId && isAdminUser(getPartnerUser())
+            ? "Vista supervisione: il file viene aggiunto all'area di questo partner e lui lo vedrà. Il team non riceve l'avviso di nuovo caricamento."
+            : ""
         }
       />
     );

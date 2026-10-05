@@ -6,7 +6,7 @@ import { MAX_UPLOAD_MB, validateUpload } from './materialiModel';
 // only when the server confirmed; on any failure the file stays on the partner's
 // device, the sentence says so, and Telegram is offered as a fallback — never as
 // the normal route.
-export default function SerenoUpload({ upload, onUploaded = () => {}, disabledReason = '', telegramUrl }) {
+export default function SerenoUpload({ upload, onUploaded = () => {}, disabledReason = '', warning = '', telegramUrl }) {
   const inputRef = useRef(null);
   const nextId = useRef(1);
   const [over, setOver] = useState(false);
@@ -59,6 +59,7 @@ export default function SerenoUpload({ upload, onUploaded = () => {}, disabledRe
       ) : (
         <>
           <p>Caricalo qui: arriva direttamente al team e lo ritrovi in questa pagina, nella cartella giusta.</p>
+          {warning && <p className="sereno-up-warn" role="note">{warning}</p>}
           <div
             className={`sereno-drop${over ? ' over' : ''}`}
             onDragOver={(e) => { e.preventDefault(); setOver(true); }}

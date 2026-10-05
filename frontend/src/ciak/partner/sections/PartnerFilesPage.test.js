@@ -199,10 +199,21 @@ test('uploading a file posts to the real endpoint with the token, then the list 
   delete global.XMLHttpRequest;
 });
 
-test('an admin viewing a partner cannot upload on their behalf', async () => {
+test("an admin in supervision can upload on the partner's behalf: warned, and without the 'il partner ha caricato' alert", async () => {
   localStorage.setItem('ciak_partner_user', JSON.stringify({ name: 'Admin', role: 'admin' }));
   global.fetch = jest.fn((url) => materialsRoute(url) || Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }));
+  const sent = [];
+  global.XMLHttpRequest = function FakeXhr() {
+    const x = this;
+    x.headers = {}; x.upload = {};
+    x.open = (m, u) => { x.method = m; x.url = u; };
+    x.setRequestHeader = (k, v) => { x.headers[k] = v; };
+    x.send = () => { sent.push(x); setTimeout(() => { x.status = 200; x.responseText = JSON.stringify({ success: true }); x.onload(); }, 0); };
+  };
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
-  expect(await screen.findByText(/Vista supervisione/)).toBeTruthy();
-  expect(screen.queryByTestId('sereno-file-input')).toBeNull();
+  expect(await screen.findByText(/Vista supervisione: il file viene aggiunto all'area di questo partner/)).toBeTruthy();
+  fireEvent.change(screen.getByTestId('sereno-file-input'), { target: { files: [new File(['abc'], 'Prova.pdf', { type: 'application/pdf' })] } });
+  expect(await screen.findByText('✓ Ricevuto')).toBeTruthy();
+  expect(sent[0].url).toBe('/api/partner-journey/operativo/upload/p1?notify=false');
+  delete global.XMLHttpRequest;
 });
