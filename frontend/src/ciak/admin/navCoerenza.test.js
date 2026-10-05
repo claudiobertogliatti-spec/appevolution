@@ -109,3 +109,21 @@ test("le dashboard di Antonella chiamano le pagine Delivery con il nome del menu
     expect.arrayContaining(["Calendario partner", "Campagne partner"])
   );
 });
+
+test("Acquisizione: una sola voce 'Contatti' (ex New Lead + Acquisizione Evolution), Lista Fredda fuori dal menu", () => {
+  const acq = PAGINE.filter((p) => p.macro === "acquisizione").map((p) => p.label);
+  expect(acq).toContain("Contatti");
+  expect(acq).toContain("Lead in arrivo");
+  ["New Lead", "Acquisizione Evolution", "Lead inbound", "Lista Fredda"].forEach((vecchia) =>
+    expect(acq).not.toContain(vecchia)
+  );
+  // nessuna voce del menu punta alla pagina vecchia (era lo stesso strumento di /admin/pipeline)
+  expect(PAGINE.map((p) => p.to)).not.toContain("/admin/lead-manager");
+});
+
+test("i vecchi link restano vivi: /lead-manager reindirizza a Contatti conservando ?apri=, Lista Fredda resta raggiungibile", () => {
+  expect(sorgente).toMatch(/path="lead-manager" element=\{<RedirectKeepSearch to="\/admin\/pipeline" \/>\}/);
+  expect(sorgente).toMatch(/path="lista-fredda" element=\{<ListaFredda/);
+  // le scorciatoie "Importa lista / Ricerca automatica" aprono direttamente Contatti
+  expect(sorgente).not.toMatch(/navigate\("\/admin\/lead-manager/);
+});

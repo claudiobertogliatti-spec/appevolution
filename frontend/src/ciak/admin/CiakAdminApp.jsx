@@ -10,7 +10,7 @@
  * Ogni sotto-pagina mostra in cima un tasto "← Torna a [Sezione]" che riporta
  * alla home della sezione (la pagina-reparto con le macro-finestre).
  *  - Dashboard    (Luca)      → Oggi · Cabina di Regia
- *  - Acquisizione (Luca)      → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
+ *  - Acquisizione (Luca)      → Contatti · Lead in arrivo · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Marco)     → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio                            [link diretto, 1 pagina]
@@ -55,7 +55,6 @@ import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
 import { AdminTransactions } from "./pages/AdminTransactions";
-import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { ClientiCiak } from "./pages/ClientiCiak";
@@ -127,6 +126,12 @@ import {
 //  /admin/listino-prezzi (sostituito dal Catalogo) · /admin/collaudo-checkout (runbook
 //  del collaudo pagamenti). Le voci con lo stesso nome in due reparti sono vietate:
 //  Acquisizione = contenuti e campagne di Ciak, Delivery = quelli dei partner.
+/** Redirect che conserva la query (?apri=importa ...) dei vecchi link. */
+function RedirectKeepSearch({ to }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
+
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
@@ -148,10 +153,8 @@ const NAV = [
     landing: true,
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
-      { to: "/admin/leads", label: "Lead inbound", desc: "Chi si e' iscritto o ha fatto il questionario: stato, tappe e scheda completa" },
-      { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi", hideFor: ["mariangela"] },
-      { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
+      { to: "/admin/pipeline", label: "Contatti", desc: "Chi contattare oggi: ricerca, nuovo lead, importa, \"Da Systeme\" e scheda di lavorazione" },
+      { to: "/admin/leads", label: "Lead in arrivo", desc: "Chi si e' iscritto o ha fatto il questionario: stato, tappe e scheda completa" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
       { to: "/admin/acquisizione-editoriale", label: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare" },
@@ -554,11 +557,11 @@ function RepartoLanding({ macro, onAuthExpired }) {
       {macro.id === "acquisizione" && (
         <div className="mb-8">
           <div className="flex flex-wrap gap-2.5 mb-4">
-            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=importa")}
+            <button type="button" onClick={() => navigate("/admin/pipeline?apri=importa")}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
               Importa lista
             </button>
-            <button type="button" onClick={() => navigate("/admin/lead-manager?apri=ricerca")}
+            <button type="button" onClick={() => navigate("/admin/pipeline?apri=ricerca")}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
               Ricerca automatica
             </button>
@@ -725,7 +728,8 @@ export default function CiakAdminApp() {
           : <SimulatoreFatturato />} />
 
         {/* ── Acquisizione ── */}
-        <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
+        {/* "New Lead" e "Acquisizione Evolution" erano lo stesso strumento: ora una voce sola, "Contatti". */}
+        <Route path="lead-manager" element={<RedirectKeepSearch to="/admin/pipeline" />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
         {/* Pipeline Prospect = pagina unica acquisizione: ingresso (ricerca/inserimento)
             + gestione (recuperi con owner AI/team, funnel, lista con "Contatta" via Brevo).

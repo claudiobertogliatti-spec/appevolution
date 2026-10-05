@@ -90,8 +90,7 @@ export function AcquisizioneCalendarioHub() {
       cards={[
         { to: "/admin/acq-campagne-ads", title: "Campagne Ads", desc: "Creativita, hook e traffico paid.", icon: Megaphone },
         { to: "/admin/lista-fredda", title: "Lista Fredda", desc: "Archivio congelato: custom audience Meta, analisi segmenti e studio mercato.", icon: Users, hideFor: ["mariangela"] },
-        { to: "/admin/lead-manager", title: "New Lead", desc: "Inserimento e lavorazione nuovi contatti.", icon: ClipboardCheck },
-        { to: "/admin/pipeline", title: "Acquisizione Evolution", desc: "Blueprint, call, recuperi e checkpoint del progetto pilota madre.", icon: TrendingUp },
+        { to: "/admin/pipeline", title: "Contatti", desc: "Ricerca, inserimento e lavorazione dei contatti, fino alla call.", icon: ClipboardCheck },
         { to: "/admin/template-email", title: "Template Email", desc: "Copy email modificabile senza deploy.", icon: FileText, hideFor: ["mariangela"] },
       ].filter((card) => !(card.hideFor || []).includes(adminType))}
     />
