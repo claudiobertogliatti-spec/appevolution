@@ -64,9 +64,12 @@ const BY_CATEGORY = {
 const BY_NAME = [
   [/contratto|distinta|proforma|identit|codice[ _-]?fiscale|(^|[^a-z])(ci|cf)([^a-z]|$)|fronte|retro/i, 'documenti'],
   [/reel|copertina|instagram|tiktok/i, 'social'],
-  [/posizionament|brand ?kit|logo|foto|colori|analisi/i, 'brand_kit'],
-  [/script|outline|scaletta|copione|masterclass|lezion|videocorso|corso/i, 'scripts'],
+  [/posizionament|brand ?kit|logo|foto|colori|analisi|storia/i, 'brand_kit'],
+  // A script/outline word decides before "social" or "corso" do: "Script chiusura" is a script.
+  [/script|outline|scaletta|copione|masterclass|lezion/i, 'scripts'],
+  // Calendars and pre-launch material mention "corso"/"videocorso" but are social content.
   [/calendario|social|caption|\bseo\b|prompt|pre[- ]?lancio|editoriale|contenut/i, 'social'],
+  [/videocorso|corso/i, 'scripts'],
   [/funnel|stripe|dominio|subaccount|privacy|cookie|termini|checkout|faq|offerta|descrizione/i, 'funnel'],
   [/workbook|certificat|libretto|piano|attestat/i, 'master_pdf'],
 ];
