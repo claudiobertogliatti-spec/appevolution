@@ -82,6 +82,19 @@ test('sales and legal pages categories go to "vendita"; outline categories to "c
   expect(folderForMaterial({ category: 'brand-kit', name: 'Qualunque.pdf' })).toBe('brand_kit');
 });
 
+test('calendars and pre-launch material that mention "corso" go to social; scripts and the course itself stay with the course (names seen on a real partner)', () => {
+  expect(place("Fase Pre Lancio Corso Social: E' importante avere i canali social attivi")).toBe('social');
+  expect(place('Fase_Pre_Lancio_Corso_Social.docx')).toBe('social');
+  expect(place('Calendario_Lancio_Videocorso_TAP.xlsx')).toBe('social');
+  expect(place('La tua storia - Andrea Fredi.pdf')).toBe('brand_kit');
+  expect(place('Template_Videocorso_Andrea_Fredi.xlsx')).toBe('scripts');
+  expect(place('Sequenza_Base_TAI_Script.pdf')).toBe('scripts');
+  expect(place('Script_Chiusura_Andrea_Fredi.docx')).toBe('scripts');
+  expect(place('Template_Script_Masterclass_Andrea_Fredi.docx')).toBe('scripts');
+  expect(place('Outline corso - Andrea Fredi.pdf')).toBe('scripts');
+  expect(place('Videocorso - Il pilota automatico.mp4', 'video', 'video')).toBe('scripts');
+});
+
 test('typeGroup sorts files for the type chips: PDF, Immagine, Video, everything else together', () => {
   expect(typeGroup({ type: 'pdf' })).toBe('PDF');
   expect(typeGroup({ type: 'image' })).toBe('Immagine');
