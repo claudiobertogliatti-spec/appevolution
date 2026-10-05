@@ -76,6 +76,9 @@ GEN_TASKS = {
     },
 }
 
+# Generatori che citano il prezzo: leggono l'offerta dall'hub e non possono scrivere altri importi.
+PRICE_TASKS = {"descrizione_offerta", "faq", "termini"}
+
 _VOICE_TAIL = (" Scrivi in italiano semplice e diretto, frasi brevi, niente registro guru o "
                "parole vuote. Parla a una persona poco digitalizzata.")
 
@@ -179,9 +182,27 @@ async def generate_vendita_task(
     system = cfg["prompt"] + _VOICE_TAIL
     user_text = "SISTEMA DI VENDITA:\n\n" + _funnel_text(rec)
 
+    # I testi che parlano di prezzo usano SOLO quello dell'offerta (hub), mai cifre scritte dall'AI.
+    offer = None
+    if task_id in PRICE_TASKS:
+        from services import offer_price
+        hub = await db.partner_hub.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+        try:
+            offer = offer_price.parse_offer(hub.get("offerPrice"), hub.get("offerIncludes"))
+        except offer_price.OfferPriceMissing as e:
+            raise HTTPException(400, str(e))
+
     try:
-        body = await llm_generate(system, user_text)
+        if offer:
+            from services.vendita_price_guard import generate_checked
+            body = await generate_checked(llm_generate, system, user_text, offer)
+        else:
+            body = await llm_generate(system, user_text)
     except Exception as e:
+        from services.vendita_price_guard import PriceGuardError
+        if isinstance(e, PriceGuardError):
+            logger.error(f"[WS3] {task_id} per {partner_id}: {e}")
+            raise HTTPException(502, "Il testo generato conteneva importi non dell'offerta: non è stato salvato. Riprova.")
         logger.error(f"[WS3] generazione {task_id} fallita per {partner_id}: {e}")
         raise HTTPException(500, "Errore nella generazione. Riprova tra poco.")
 
