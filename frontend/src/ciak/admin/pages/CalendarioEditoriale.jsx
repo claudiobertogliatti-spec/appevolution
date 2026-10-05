@@ -808,7 +808,7 @@ export function CalendarioEditoriale({ onAuthExpired }) {
     <div className="p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 text-yellow-500" /> Calendario Editoriale
+          <CalendarDays className="w-6 h-6 text-yellow-500" /> Calendario partner
         </h1>
         <p className="text-slate-500 mt-1">
           Oversight dei deliverable contenuti di ogni partner: calendario di lancio, calendario di regime

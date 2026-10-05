@@ -188,7 +188,7 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-            <Target className="w-6 h-6 text-yellow-500" /> Campagne Ads
+            <Target className="w-6 h-6 text-yellow-500" /> Campagne partner
           </h1>
           <p className="text-slate-500 mt-1">
             Meta Ads per i partner in fase Ottimizza — tier Growth e Scale di Evolution One.
