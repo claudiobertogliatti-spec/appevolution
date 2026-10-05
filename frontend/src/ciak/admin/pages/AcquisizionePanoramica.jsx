@@ -14,7 +14,6 @@ import {
   ArrowRight, CalendarClock, Flame, Gauge, PhoneCall, Target, Users, AlertTriangle,
 } from "lucide-react";
 import { apiGet } from "../api";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 function pct(num, den) {
   if (!den) return 0;
@@ -77,8 +76,8 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
     [data]
   );
 
-  if (error) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><AcquisizioneSubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (error) return <div className="p-8"><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
+  if (!data) return <div className="p-8"><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -94,7 +93,6 @@ export function AcquisizionePanoramica({ onAuthExpired }) {
 
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <AcquisizioneSubNav active="Home" />
 
       {/* HERO + north-star */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">

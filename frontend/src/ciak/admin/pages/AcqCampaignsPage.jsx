@@ -24,7 +24,6 @@ import {
   Video,
 } from "lucide-react";
 import { KpiTile as MetricCard } from "../components/ui/KpiTile";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const APPS = [
   {
@@ -112,7 +111,6 @@ export function AcqCampaignsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <AcquisizioneSubNav active="ADS" />
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6">
         <div className="flex items-center gap-2">

@@ -19,7 +19,6 @@ import {
   ArrowRight, Gauge, Handshake, AlertTriangle, TrendingUp, Route, PhoneCall,
 } from "lucide-react";
 import { apiGet } from "../api";
-import { VenditeSubNav } from "../components/VenditeSubNav";
 
 function pct(num, den) {
   if (!den) return 0;
@@ -91,8 +90,8 @@ export function VenditePanoramica({ onAuthExpired }) {
     apiGet("/calls-today").then(setCalls).catch(() => {});
   }, [onAuthExpired]);
 
-  if (error) return <div className="p-8"><VenditeSubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><VenditeSubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (error) return <div className="p-8"><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
+  if (!data) return <div className="p-8"><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
 
   const target = data.target || {};
   const funnel = data.funnel || {};
@@ -105,7 +104,6 @@ export function VenditePanoramica({ onAuthExpired }) {
 
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <VenditeSubNav active="Home" />
 
       {/* HERO + north-star */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
