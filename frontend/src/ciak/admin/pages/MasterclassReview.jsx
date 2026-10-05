@@ -13,7 +13,7 @@
  * clic su una parola, Maiusc+clic su un'altra, "Taglia selezione"; clic su una parola barrata per rimetterla.
  * I tagli aggiunti partono con `custom_cuts` in /videocorso/review-approve.
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2, ArrowLeft, Scissors, Check, AlertTriangle, Volume2, Repeat, FileText } from "lucide-react";
 import { adminFetch } from "../api";
@@ -23,6 +23,26 @@ const fmt = (s) => {
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 };
+
+/** Indice della parola che si sta pronunciando al tempo `t` (ultima con start <= t), -1 se prima della prima o oltre la fine. */
+export function wordIndexAt(words, t) {
+  if (!words?.length || t < words[0].start) return -1;
+  let lo = 0, hi = words.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (words[mid].start <= t) lo = mid; else hi = mid - 1;
+  }
+  return t > words[lo].end + 1.5 ? -1 : lo;
+}
+
+/** Se `t` cade dentro un taglio attivo, il tempo in cui il video deve saltare (fine del taglio, anche a catena). */
+export function skipCuts(t, cuts) {
+  let out = t;
+  for (const c of [...(cuts || [])].sort((a, b) => (a.start || 0) - (b.start || 0))) {
+    if (out >= (c.start || 0) && out < (c.end || 0)) out = c.end;
+  }
+  return out;
+}
 
 const TYPE_META = {
   filler: { label: "Intercalare", icon: Scissors, color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
@@ -44,6 +64,12 @@ export function MasterclassReview({ onAuthExpired }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");                // anteprima del grezzo (solo lezioni)
+  const [videoNote, setVideoNote] = useState("");
+  const [skipOn, setSkipOn] = useState(true);                  // saltare i tagli attivi durante la riproduzione
+  const [now, setNow] = useState(-1);                          // parola in corso
+  const videoRef = useRef(null);
+  const lastIdx = useRef(-1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +89,26 @@ export function MasterclassReview({ onAuthExpired }) {
   }, [partnerId, lessonId, isLesson, onAuthExpired]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!isLesson || data?.pipeline_status !== "da_revisionare") return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await adminFetch("/api/partner-journey/videocorso/review-video-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partner_id: partnerId, lesson_id: lessonId }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const d = await res.json();
+        if (!cancelled && d?.url) setVideoUrl(d.url);
+      } catch (e) {
+        if (!cancelled) setVideoNote("Anteprima video non disponibile: la revisione funziona comunque sul testo.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isLesson, data?.pipeline_status, partnerId, lessonId]);
 
   const segs = useMemo(
     () => [...(data?.cut_segments || []), ...manual].sort((a, b) => (a.start || 0) - (b.start || 0)),
@@ -88,10 +134,47 @@ export function MasterclassReview({ onAuthExpired }) {
   );
   const isWordCut = useCallback((w) => Boolean(coveringSeg(w)), [coveringSeg]);
 
+  // Mentre il video gira: evidenzia la parola in corso e, se richiesto, salta i tagli attivi (anteprima del risultato).
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !videoUrl) return undefined;
+    let raf = 0;
+    const tick = () => {
+      const t = v.currentTime;
+      if (skipOn) {
+        const nt = skipCuts(t, activeSegs);
+        if (nt !== t) v.currentTime = nt;
+      }
+      const idx = wordIndexAt(words, v.currentTime);
+      if (idx !== lastIdx.current) { lastIdx.current = idx; setNow(idx); }
+      if (!v.paused && !v.ended) raf = requestAnimationFrame(tick);
+    };
+    const start = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
+    v.addEventListener("play", start);
+    v.addEventListener("seeked", tick);
+    v.addEventListener("timeupdate", tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      v.removeEventListener("play", start);
+      v.removeEventListener("seeked", tick);
+      v.removeEventListener("timeupdate", tick);
+    };
+  }, [videoUrl, skipOn, activeSegs, words]);
+
+  useEffect(() => {
+    if (now < 0 || !videoRef.current || videoRef.current.paused) return;
+    document.getElementById(`w-${now}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [now]);
+
+  const seekTo = (sec) => {
+    if (videoRef.current) videoRef.current.currentTime = Math.max(0, sec - 0.2);
+  };
+
   // Solo lezioni: clic = seleziona; Maiusc+clic = estende; clic su parola barrata = rimette il passaggio.
   const onWordClick = (i, e) => {
     if (!isLesson) return;
     const w = words[i];
+    seekTo(w.start);
     const covering = coveringSeg(w);
     if (covering) {
       if (covering.type === "manual") setManual((prev) => prev.filter((m) => m.id !== covering.id));
@@ -226,6 +309,23 @@ export function MasterclassReview({ onAuthExpired }) {
         </div>
       )}
 
+      {isLesson && (videoUrl || videoNote) && (
+        <div className="sticky top-2 z-10 mb-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          {videoUrl ? (
+            <>
+              <video ref={videoRef} src={videoUrl} controls preload="metadata" data-testid="review-video"
+                className="w-full max-h-[38vh] rounded-xl bg-black" />
+              <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                <input type="checkbox" checked={skipOn} onChange={(e) => setSkipOn(e.target.checked)} />
+                Salta i tagli mentre riproduci (anteprima del risultato). Clic su una parola = il video parte da lì.
+              </label>
+            </>
+          ) : (
+            <div className="text-xs text-slate-500">{videoNote}</div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Script del team — riferimento */}
         <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
@@ -267,11 +367,12 @@ export function MasterclassReview({ onAuthExpired }) {
                 return (
                   <span key={i}>
                     <span
+                      id={`w-${i}`}
                       role="button" tabIndex={0}
                       title={cut ? "Clic per rimettere questo passaggio" : "Clic per selezionare"}
                       onClick={(e) => onWordClick(i, e)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onWordClick(i, e); } }}
-                      className={`cursor-pointer rounded-sm hover:bg-amber-100 ${cut ? "line-through text-slate-300" : "text-slate-800"} ${picked ? "bg-amber-200" : ""}`}
+                      className={`cursor-pointer rounded-sm hover:bg-amber-100 ${cut ? "line-through text-slate-300" : "text-slate-800"} ${picked ? "bg-amber-200" : ""} ${i === now ? "underline decoration-emerald-500 decoration-2" : ""}`}
                     >{w.text}</span>{" "}
                   </span>
                 );
