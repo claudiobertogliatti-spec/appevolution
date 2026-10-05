@@ -37,9 +37,12 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  Menu,
   Search,
   Users,
+  X,
 } from "lucide-react";
+import { useDrawer } from "./components/useDrawer";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
 import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
@@ -384,6 +387,8 @@ function MacroItem({ macro, currentPath }) {
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
   const [globalSearch, setGlobalSearch] = useState("");
+  // Sotto i 1024px il menu e' un cassetto che si apre dal pulsante in alto.
+  const drawer = useDrawer(pathname);
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
   // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
@@ -401,9 +406,26 @@ function AdminShell({ user, onLogout, children }) {
   const back = sectionLandingFor(pathname);
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
-      <aside className="w-72 flex-shrink-0 min-h-screen bg-gray-100 p-3">
+      {/* Sfondo scuro piatto (niente blur) dietro il cassetto, solo sotto lg. */}
+      {drawer.open && (
+        <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={drawer.close} aria-hidden="true" />
+      )}
+      <aside
+        id="admin-menu"
+        ref={drawer.panelRef}
+        aria-label="Menu admin"
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-gray-100 p-3 transition-[transform,visibility] duration-200 motion-reduce:transition-none lg:static lg:z-auto lg:max-w-none lg:min-h-screen lg:flex-shrink-0 lg:translate-x-0 lg:visible ${drawer.open ? "translate-x-0 visible" : "-translate-x-full invisible"}`}
+      >
         <div className="h-full bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
-        <div className="px-5 py-5 border-b border-slate-100">
+        <div className="relative px-5 py-5 border-b border-slate-100">
+          <button
+            type="button"
+            onClick={drawer.close}
+            aria-label="Chiudi il menu"
+            className="lg:hidden absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
           <Link to="/admin" aria-label="Vai alla Home admin">
             <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
           </Link>
@@ -467,9 +489,27 @@ function AdminShell({ user, onLogout, children }) {
         </div>
         </div>
       </aside>
+      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Barra in alto, solo sotto lg: il pulsante che apre il menu (touch target 44px). */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2">
+        <button
+          type="button"
+          ref={drawer.triggerRef}
+          onClick={() => drawer.setOpen(true)}
+          aria-label="Apri il menu"
+          aria-expanded={drawer.open}
+          aria-controls="admin-menu"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+        >
+          <Menu className="h-5 w-5" aria-hidden />
+        </button>
+        <Link to="/admin" aria-label="Vai alla Home admin">
+          <img src="/ciak/logo.webp" alt="Ciak.io" className="h-7 w-auto object-contain" />
+        </Link>
+      </div>
       <main className="flex-1 min-w-0 overflow-auto">
         {back && (
-          <div className="px-8 pt-6">
+          <div className="px-4 sm:px-8 pt-6">
             <Link
               to={back.to}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-colors"
@@ -480,6 +520,7 @@ function AdminShell({ user, onLogout, children }) {
         )}
         {children}
       </main>
+      </div>
     </div>
   );
 }
