@@ -83,9 +83,9 @@ _COMMERCIAL_EXACT_PATHS = {
     "/api/ciak/client/admin/blueprint-pdf",
     "/api/ciak/client/admin/blueprint/stato",
 }
-# Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza
+# Path con id dinamico: /api/admin/ciak/leads/{lead_id}/contatta|avanza|tocco
 _COMMERCIAL_PATTERN_PATHS = [
-    re.compile(r"^/api/admin/ciak/leads/[^/]+/(contatta|avanza)$"),
+    re.compile(r"^/api/admin/ciak/leads/[^/]+/(contatta|avanza|tocco)$"),
     re.compile(r"^/api/admin/ciak/editorial/brands/[^/]+$"),
 ]
 _COMMERCIAL_PREFIX_PATHS = ("/api/discovery/",)  # motore Pipeline Prospect, tutto suo
@@ -6286,6 +6286,80 @@ async def contatta_lead(lead_id: str, body: ContattaLeadIn, admin=Depends(requir
             },
         )
     return {"ok": ok, "systeme": systeme_ok, "error": err}
+
+
+# Contatto fatto A MANO su un canale che l'app non governa (LinkedIn, Instagram/Facebook,
+# WhatsApp): chi scrive copia il testo dallo Script e lo incolla; qui si registra solo
+# cosa e' partito, da chi e quando. Nessun invio, nessun evento Systeme.
+TOCCHI_CANALI = {"linkedin", "social", "whatsapp"}
+TOCCHI_MESSAGGI = {
+    "profilo_trovato": "Profilo trovato",
+    "risveglio_ex": "Risveglio: ex cliente con analisi",
+    "risveglio_setter": "Risveglio: interessato in passato",
+    "risveglio_rete": "Risveglio: rete e rubrica",
+    "breve": "Messaggio breve",
+    "seguito": "Messaggio di seguito",
+}
+TOCCHI_MITTENTI = {"Mariangela", "Claudio"}
+TOCCHI_SEGUITO_GIORNI = 5  # il messaggio di seguito si manda dopo ~5 giorni se non risponde
+# Chi e' ancora all'ingresso passa a "contacted"; chi e' gia' piu' avanti non torna indietro.
+_TOCCHI_STATI_INGRESSO = {None, "", "discovered", "pending", "scored", "message_ready"}
+
+
+class ToccoLeadIn(BaseModel):
+    channel: str
+    message: str
+    sender: Optional[str] = None  # default: chi e' collegato
+
+
+@router.post("/leads/{lead_id}/tocco")
+async def registra_tocco_lead(lead_id: str, body: ToccoLeadIn, admin=Depends(require_ciak_admin)):
+    """Registra un contatto manuale (LinkedIn / Instagram-Facebook / WhatsApp) sul lead.
+
+    Aggiunge una riga a `touches`, aggiorna `last_contacted_at` e, se il lead era
+    all'ingresso, lo porta a `contacted`. Dopo un risveglio fissa `next_followup` a
+    ~5 giorni (promemoria del messaggio di seguito); dopo il seguito lo toglie.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    channel = (body.channel or "").strip().lower()
+    message = (body.message or "").strip()
+    if channel not in TOCCHI_CANALI:
+        raise HTTPException(400, "Canale non valido.")
+    if message not in TOCCHI_MESSAGGI:
+        raise HTTPException(400, "Messaggio non valido.")
+    sender = (body.sender or "").strip()
+    if not sender:
+        sender = "Mariangela" if getattr(admin, "admin_type", None) == "mariangela" else "Claudio"
+    if sender not in TOCCHI_MITTENTI:
+        raise HTTPException(400, "Mittente non valido.")
+
+    lead = await db.discovery_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead non trovato")
+
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    touch = {
+        "channel": channel, "via": "manuale", "message": message,
+        "label": TOCCHI_MESSAGGI[message], "by": sender, "at": now, "systeme": False,
+    }
+    sets = {"updated_at": now}
+    if message != "profilo_trovato":
+        sets["last_contacted_at"] = now
+        if lead.get("status") in _TOCCHI_STATI_INGRESSO:
+            sets["status"] = "contacted"
+    if message in ("risveglio_ex", "risveglio_setter", "risveglio_rete", "breve"):
+        sets["next_followup"] = (now_dt + timedelta(days=TOCCHI_SEGUITO_GIORNI)).date().isoformat()
+    elif message == "seguito":
+        sets["next_followup"] = None
+    await db.discovery_leads.update_one({"id": lead_id}, {"$push": {"touches": touch}, "$set": sets})
+    return {
+        "ok": True, "touch": touch,
+        "status": sets.get("status", lead.get("status")),
+        "next_followup": sets.get("next_followup", lead.get("next_followup")),
+        "last_contacted_at": sets.get("last_contacted_at", lead.get("last_contacted_at")),
+    }
 
 
 @router.post("/leads/{lead_id}/avanza")

@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { adminFetch } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { LeadScriptPanel } from "../components/LeadScriptPanel";
 
 // ─────────────────────────────────────────────────────────────
 // COSTANTI
@@ -779,6 +780,9 @@ function LeadWorkspaceModal({ lead, onClose, onChanged, onAuthExpired }) {
               </div>
             )}
           </div>
+
+          {/* Script nella scheda: scegli il testo, copia, segna come inviato (non invia nulla). */}
+          <LeadScriptPanel lead={lead} onChanged={(l) => { setStatus(l.status || status); onChanged(l); }} onAuthExpired={onAuthExpired} />
 
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-slate-400">Note di lavorazione</div>
