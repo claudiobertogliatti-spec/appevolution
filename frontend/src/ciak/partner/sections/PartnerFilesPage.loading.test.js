@@ -33,7 +33,7 @@ test('the independent sources start together, not one after the other', async ()
 test('while sources are pending the partner sees a loading message and the fixed PDFs, never "0 file"', async () => {
   deferredFetch();
   renderPage();
-  expect(await screen.findByText('Piano_Operativo_Strategico_EVO.pdf')).toBeTruthy();
+  expect(await screen.findByText('Piano Operativo Strategico EVO')).toBeTruthy();
   expect(screen.getAllByText('Sto caricando i tuoi materiali…').length).toBeGreaterThan(0);
   expect(screen.queryByText(/Nessun file in questa cartella/)).toBeNull();
 });
@@ -49,6 +49,6 @@ test('when everything has answered the loading message goes away and real files 
       materials: [{ id: 'm1', type: 'pdf', title: 'Brand_Kit.pdf', category: 'brand_kit', download_url: '/x' }],
     });
   });
-  expect(await screen.findByText('Brand_Kit.pdf')).toBeTruthy();
+  expect((await screen.findAllByText('Brand Kit')).length).toBeGreaterThan(0);
   await waitFor(() => expect(screen.queryByText('Sto caricando i tuoi materiali…')).toBeNull());
 });

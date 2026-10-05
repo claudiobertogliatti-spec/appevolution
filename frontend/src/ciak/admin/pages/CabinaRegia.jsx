@@ -37,13 +37,13 @@ const OBIETTIVO_ID = "10k-settembre";
 // stessa fonte della pagina-reparto, cosi' i numeri non si contraddicono.
 const REPARTI = [
   { id: "acquisizione", nome: "Acquisizione", mandato: "Dal freddo al Blueprint", icon: Megaphone, to: "/admin/reparto/acquisizione",
-    persone: ["Mariangela"], agenti: ["Carlo", "Andrea"] },
+    agenti: ["Carlo", "Andrea"] },
   { id: "vendite", nome: "Vendite", mandato: "Dal Blueprint alla firma", icon: BarChart3, to: "/admin/reparto/vendite",
-    persone: ["Mariangela"], agenti: ["Gaia", "Carlo"] },
+    agenti: ["Gaia", "Carlo"] },
   { id: "delivery", nome: "Delivery", mandato: "Dalla firma al live", icon: Users, to: "/admin/reparto/delivery",
-    persone: ["Antonella", "Matteo"], agenti: ["Simona", "Valentina", "Andrea", "Marco"] },
+    agenti: ["Simona", "Valentina", "Andrea", "Marco"] },
   { id: "back-office", nome: "Back office", mandato: "Soldi, contratti, ordine", icon: CreditCard, to: "/admin/reparto/back-office",
-    persone: ["Stefania", "Debora"], agenti: ["Valentina"] },
+    agenti: ["Valentina"] },
 ];
 
 async function getJSON(path) {
@@ -205,14 +205,9 @@ function RepartoCard({ r, onOpen }) {
             <p className="text-xs text-slate-500 truncate">{r.mandato}</p>
           </div>
         </div>
-        {(r.persone?.length || r.agenti?.length) ? (
+        {r.agenti?.length > 0 ? (
           <div className="text-right leading-tight flex-shrink-0 max-w-[48%]">
-            {r.persone?.length > 0 && (
-              <div className="text-xs font-semibold text-slate-700 truncate">{r.persone.join(", ")}</div>
-            )}
-            {r.agenti?.length > 0 && (
-              <div className="text-[11px] text-slate-500 truncate">Agenti: {r.agenti.join(", ")}</div>
-            )}
+            <div className="text-xs font-semibold text-slate-700 truncate">Agenti: {r.agenti.join(", ")}</div>
           </div>
         ) : null}
       </div>
