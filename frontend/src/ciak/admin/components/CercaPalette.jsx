@@ -12,7 +12,7 @@
  * Non nasconde niente dietro un'animazione e non usa il blur.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { apiGet } from "../api";
 import { pulisciNome } from "../oggiModel";
 import { CERCA_MIN, filtraPagine, hrefPersona, muovi, statoLabel, TIPO_TONE } from "../cercaModel";
@@ -100,6 +100,10 @@ export function CercaPalette({ open, onClose, panelRef, pages = [], onSelect, on
     } else if (e.key === "Enter") {
       e.preventDefault();
       apri(opzioni[attivo >= 0 ? attivo : 0]);
+    } else if (e.key === "Escape") {
+      // Chiude dal campo stesso: non dipende da nessun altro ascoltatore.
+      e.preventDefault();
+      onClose?.();
     }
   };
 
@@ -133,7 +137,15 @@ export function CercaPalette({ open, onClose, panelRef, pages = [], onSelect, on
             placeholder="Cerca una persona o una pagina"
             className="h-14 w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
           />
-          <kbd className="hidden sm:inline rounded border border-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">Esc</kbd>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi la ricerca"
+            className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-500 hover:border-slate-900 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 sm:h-8 sm:w-auto sm:px-2"
+          >
+            <X className="h-4 w-4 sm:hidden" aria-hidden />
+            <span className="hidden sm:inline" aria-hidden>Esc</span>
+          </button>
         </div>
 
         <div id="cerca-lista" role="listbox" aria-label="Risultati" className="max-h-[60vh] overflow-y-auto p-2">
