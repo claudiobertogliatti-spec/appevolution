@@ -84,3 +84,15 @@ test('a warning (admin supervision) is shown without removing the picker', () =>
   expect(screen.getByRole('note').textContent).toMatch(/Vista supervisione/);
   expect(screen.getByRole('button', { name: /Scegli un file/ })).toBeTruthy();
 });
+
+test('the success message says the team was told only when it really was', async () => {
+  const upload = jest.fn().mockResolvedValue({ ok: true });
+  const { unmount } = render(<SerenoUpload upload={upload} />);
+  pick(pdf());
+  expect(await screen.findByText(/Il team è stato avvisato/)).toBeTruthy();
+  unmount();
+  render(<SerenoUpload upload={upload} notifiesTeam={false} />);
+  pick(pdf());
+  expect(await screen.findByText(/aggiunto all’area del partner/)).toBeTruthy();
+  expect(screen.queryByText(/Il team è stato avvisato/)).toBeNull();
+});
