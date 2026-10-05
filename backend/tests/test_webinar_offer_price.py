@@ -118,3 +118,50 @@ def test_chat_block_without_a_usable_price_says_so_instead_of_guessing():
         block = op.chat_block("", bad)
         assert "NON ANCORA DEFINITO" in block and "non scrivere nessun importo" in block
     assert "nessuno sconto" in op.chat_block("X", "247€")
+
+
+# ── Generatori Gaia della pagina di vendita: nessun importo fuori offerta (caso «sessione a 80€») ──
+
+import services.vendita_price_guard as vg
+
+OFFER = op.parse_offer("147€ (listino 247€)", "12 moduli")
+
+
+def test_the_saving_between_list_and_promo_is_the_only_extra_amount_allowed():
+    assert op.foreign_in_text("Oggi 147€ invece di 247€. Risparmi 100€.", OFFER) == []
+    assert op.foreign_in_text("Una sessione costa facilmente 80€.", OFFER) == [80]
+    assert "risparmio: 100€" in op.saving_note(OFFER)
+    assert "100" not in op.saving_note(op.parse_offer("247€"))
+
+
+def _llm(answers):
+    calls = []
+
+    async def llm(system, user):
+        calls.append((system, user))
+        return answers[min(len(calls) - 1, len(answers) - 1)]
+
+    llm.calls = calls
+    return llm
+
+
+def test_guard_passes_the_real_price_to_the_model_and_accepts_a_clean_text():
+    llm = _llm(["Oggi 147€ invece di 247€."])
+    body = asyncio.run(vg.generate_checked(llm, "Sei Gaia.", "SISTEMA", OFFER))
+    assert body == "Oggi 147€ invece di 247€." and len(llm.calls) == 1
+    assert "listino 247€" in llm.calls[0][0] and "promo del webinar 147€" in llm.calls[0][0]
+    assert "non citare cifre di mercato" in llm.calls[0][0]
+
+
+def test_guard_retries_once_naming_the_forbidden_amount():
+    llm = _llm(["Una sessione costa 80€. Oggi 147€.", "Oggi 147€ invece di 247€."])
+    body = asyncio.run(vg.generate_checked(llm, "Sei Gaia.", "SISTEMA", OFFER))
+    assert body == "Oggi 147€ invece di 247€." and len(llm.calls) == 2
+    assert "80€" in llm.calls[1][1]
+
+
+def test_guard_refuses_a_text_that_still_has_foreign_amounts_after_the_retry():
+    llm = _llm(["costa 80€", "costa ancora 80€ e 150€"])
+    with pytest.raises(vg.PriceGuardError) as e:
+        asyncio.run(vg.generate_checked(llm, "Sei Gaia.", "SISTEMA", OFFER))
+    assert e.value.amounts == [80, 150] and len(llm.calls) == 2

@@ -72,6 +72,22 @@ def foreign_amounts(obj: Any, allowed: Set[int]) -> List[int]:
     return found
 
 
+def foreign_in_text(text: Any, offer: Dict[str, Any]) -> List[int]:
+    """Importi del testo che non sono né listino né promo né il risparmio fra i due (247 − 147 = 100)."""
+    allowed = set(offer["allowed"])
+    if offer.get("promo"):
+        allowed.add(offer["listino"] - offer["promo"])
+    return foreign_amounts(text, allowed)
+
+
+def saving_note(offer: Dict[str, Any]) -> str:
+    """Il solo calcolo ammesso e il divieto di confronti con altri prezzi (cifre di mercato inventate)."""
+    note = " Non confrontare il prezzo con altri servizi e non citare cifre di mercato."
+    if offer.get("promo"):
+        note = f" L'unica altra cifra ammessa è il risparmio: {fmt(offer['listino'] - offer['promo'])}." + note
+    return note
+
+
 def prompt_block(offer: Dict[str, Any]) -> str:
     """Cosa dire all'AI sul prezzo: è un dato, non una proposta."""
     rows = [f"PREZZO REALE DEL CORSO (dato dal team, NON modificarlo e NON proporne altri): listino {fmt(offer['listino'])}"]
