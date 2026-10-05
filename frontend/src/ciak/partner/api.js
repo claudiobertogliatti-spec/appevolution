@@ -60,7 +60,7 @@ export async function login(email, password) {
     if (!res.ok) {
       return {
         ok: false,
-        error: res.status === 401 ? "Email o password non corretti" : "Errore di accesso",
+        error: res.status === 401 ? "Email o password non corretti" : "Non siamo riusciti ad accedere. Riprova tra poco.",
       };
     }
     const data = await res.json();
@@ -77,7 +77,7 @@ export async function login(email, password) {
     setSession(data.access_token, u);
     return { ok: true, user: u };
   } catch {
-    return { ok: false, error: "Errore di rete" };
+    return { ok: false, error: "Non riusciamo a collegarci. Controlla la connessione e riprova." };
   }
 }
 
@@ -104,7 +104,7 @@ export async function requestPasswordReset(email) {
     }
     return { ok: true };
   } catch {
-    return { ok: false, error: "Errore di rete. Riprova." };
+    return { ok: false, error: "Non riusciamo a collegarci. Controlla la connessione e riprova." };
   }
 }
 
