@@ -191,3 +191,29 @@ test("con due lettere le pagine non compaiono (solo le persone)", async () => {
   await screen.findByText("Nessuna persona trovata.");
   expect(screen.queryByText("Fatture")).toBeNull();
 });
+
+test("il pulsante Esc e' un vero pulsante e chiude la finestra", () => {
+  const p = monta();
+  const chiudi = screen.getByRole("button", { name: "Chiudi la ricerca" });
+  fireEvent.click(chiudi);
+  expect(p.onClose).toHaveBeenCalledTimes(1);
+  expect(p.onSelect).not.toHaveBeenCalled();
+});
+
+test("Esc dal campo di ricerca chiude, anche senza altri ascoltatori", () => {
+  const p = monta();
+  tasto("Escape");
+  expect(p.onClose).toHaveBeenCalledTimes(1);
+  expect(p.onSelect).not.toHaveBeenCalled();
+});
+
+test("Esc chiude anche con dei risultati e una riga selezionata", async () => {
+  apiGet.mockResolvedValue({ items: PERSONE });
+  const p = monta();
+  scrivi("ri");
+  await screen.findByText("Rosa Neri");
+  tasto("ArrowDown");
+  tasto("Escape");
+  expect(p.onClose).toHaveBeenCalledTimes(1);
+  expect(p.onSelect).not.toHaveBeenCalled(); // chiudere non apre mai una persona
+});
