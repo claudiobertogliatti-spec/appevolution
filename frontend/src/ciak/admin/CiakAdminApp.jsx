@@ -123,6 +123,10 @@ import {
 // Riferimento"). `landing: true` → il click sulla sezione apre la pagina-reparto
 // con grandi card cliccabili (nessun menu a tendina). hideFor nasconde la macro
 // alla vista Antonella. Ogni pagina ha un `desc` breve usato nelle card.
+// Fuori dal menu ma ancora raggiungibili da URL (route tecniche, non lavoro quotidiano):
+//  /admin/listino-prezzi (sostituito dal Catalogo) · /admin/collaudo-checkout (runbook
+//  del collaudo pagamenti). Le voci con lo stesso nome in due reparti sono vietate:
+//  Acquisizione = contenuti e campagne di Ciak, Delivery = quelli dei partner.
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
@@ -170,9 +174,7 @@ const NAV = [
       { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
-      { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
       { to: "/admin/catalogo", label: "Catalogo", desc: "Il catalogo completo dei servizi, con le descrizioni ufficiali" },
-      { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Verifica end-to-end del pagamento in ambiente di test" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
@@ -197,8 +199,8 @@ const NAV = [
       { title: "Contenuti e percorso", pages: [
         { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
         { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
-        { to: "/admin/calendario-editoriale", label: "Calendario editoriale", desc: "Piano contenuti dei partner live" },
-        { to: "/admin/campagne-ads", label: "Campagne ADV", desc: "Gestione campagne pubblicitarie dei partner" },
+        { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
+        { to: "/admin/campagne-ads", label: "Campagne partner", desc: "Gestione campagne pubblicitarie dei partner" },
       ] },
       { title: "Risultati", pages: [
         { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
