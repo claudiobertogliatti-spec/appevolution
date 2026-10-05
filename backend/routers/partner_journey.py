@@ -2282,11 +2282,20 @@ async def get_videocorso_review_video_url(
 
 
 @router.get("/videocorso/review-video/{partner_id}/{lesson_id}")
-async def stream_videocorso_review_video(partner_id: str, lesson_id: str, request: Request, t: str = Query("")):
-    """Grezzo della lezione a pezzi (Range) per il lettore della revisione. Autorizzato dal gettone breve `t`."""
+async def stream_videocorso_review_video(
+    partner_id: str, lesson_id: str, request: Request, t: str = Query(""),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Grezzo della lezione a pezzi (Range) per il lettore della revisione.
+
+    Mai senza autorizzazione: o un admin con il suo accesso (header Authorization), oppure il gettone breve `t`
+    (30 min, solo per questa lezione, rilasciato agli admin da /review-video-url) per il tag <video>, che non puo
+    mandare l'header."""
     from auth import JWT_ALGORITHM, JWT_SECRET_KEY
     from services import ciak_review_video as crv
-    if not crv.verify_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, t, partner_id, lesson_id):
+    if credentials:
+        await require_admin_token(credentials)
+    elif not crv.verify_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, t, partner_id, lesson_id):
         raise HTTPException(status_code=403, detail="Gettone non valido o scaduto")
     doc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
     lesson = (doc.get("lessons") or {}).get(lesson_id) or {}
