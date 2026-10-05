@@ -1445,11 +1445,13 @@ async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
     Se fallisce, solleva: non pubblicare silenziosamente una lezione priva della
     copertina/audio richiesti presentandola come montaggio completo.
     """
-    from services.ciak_lesson_standard import brand_profile, intro_fallback, render_standard_lesson
+    from services.ciak_lesson_standard import brand_profile, intro_fallback, real_lesson_title, render_standard_lesson
 
     vc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
     lesson = ((vc.get("lessons") or {}).get(lesson_id)) or {}
     title = lesson.get("title") or lesson.get("titolo") or f"Lezione {lesson_id}"
+    # Titolo vero dalla scaletta del corso (se il nome del file dichiara modulo e lezione): niente titolo = etichetta ripetuta.
+    title, subtitle = real_lesson_title(title, ((vc.get("course_data") or {}).get("outline_moduli")) or "")
     hub = await db.partner_hub.find_one({"partner_id": partner_id}) or {}
     step = await db.partner_journey_steps.find_one(
         {"partner_id": partner_id, "step_id": "03-brand-kit"}
@@ -1475,9 +1477,9 @@ async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
     output_path = str(tmp_dir / "lesson-standard.mp4")
     report = await render_standard_lesson(
         body_path=body_path, output_path=output_path, tmp_dir=tmp_dir,
-        title=title, intro_text=intro_text, brand=brand,
+        title=title, intro_text=intro_text, brand=brand, subtitle=subtitle,
     )
-    report.update({"title": title, "intro_text": intro_text})
+    report.update({"title": title, "subtitle": subtitle, "intro_text": intro_text})
     return output_path, report
 
 
