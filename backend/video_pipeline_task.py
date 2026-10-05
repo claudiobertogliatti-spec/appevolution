@@ -2741,3 +2741,99 @@ def process_lesson_revision(self, revision_id: str):
         raise self.retry(exc=exc)
     finally:
         loop.close()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# TAGLIO MANUALE PER INTERVALLI (videolezioni già montate)
+# ═══════════════════════════════════════════════════════════════════
+
+async def _process_manual_cut(cut_id: str):
+    """Toglie gli intervalli indicati dall'admin dalla versione corrente e pubblica la successiva."""
+    from motor.motor_asyncio import AsyncIOMotorClient
+    from services import ciak_manual_cut as mcut
+    mongo_url = os.environ.get("MONGO_ATLAS_URL") or os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
+    mongo = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+    database = mongo[os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))]
+    tmp_dir = Path(tempfile.mkdtemp(prefix="ciak-manualcut-"))
+    job = None
+    try:
+        claimed = await database.lesson_manual_cuts.find_one_and_update(
+            {"cut_id": cut_id, "status": "queued"},
+            {"$set": {"status": "processing", "started_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        if not claimed:
+            return
+        job = claimed
+        partner_id, lesson_id = job["partner_id"], job["lesson_id"]
+        lk = f"lessons.{lesson_id}"
+        vc = await database.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+        lesson = ((vc.get("lessons") or {}).get(lesson_id)) or {}
+        if int(lesson.get("output_version") or 0) != int(job["source_output_version"]):
+            raise ValueError("La versione sorgente non è più quella corrente")
+        source = lesson.get("output_gcs_url")
+        gs_url = mcut.gs_url_from_public(source or "")
+        if not gs_url:
+            raise ValueError("Sorgente montata non disponibile su storage")
+
+        input_path, output_path = str(tmp_dir / "input.mp4"), str(tmp_dir / "output.mp4")
+        await download_from_gcs(gs_url, input_path)
+        loop = asyncio.get_event_loop()
+        info = await loop.run_in_executor(None, lambda: mcut.cut_video(input_path, output_path, job["ranges"]))
+
+        from services.ciak_publish import edited_gcs_subpath, ciak_lesson_url, embed_snippet
+        version = int(job["target_output_version"])
+        public_url = await loop.run_in_executor(
+            None, lambda: _gcs_upload_public(output_path, edited_gcs_subpath(partner_id, lesson_id, version), "video/mp4"))
+        if not public_url:
+            raise RuntimeError("Upload GCS fallito")
+        now = datetime.now(timezone.utc).isoformat()
+        ciak_url = ciak_lesson_url(partner_id, lesson_id)
+        updated = await database.partner_videocorso.update_one(
+            {"partner_id": partner_id, f"{lk}.output_version": job["source_output_version"]},
+            {"$set": {f"{lk}.output_gcs_url": public_url, f"{lk}.output_version": version,
+                      f"{lk}.video_ciak_url": ciak_url, f"{lk}.video_embed_url": ciak_url,
+                      f"{lk}.video_systeme_embed": embed_snippet(ciak_url),
+                      f"{lk}.video_final_duration_s": int(round(info["duration_after_s"])),
+                      f"{lk}.pipeline_status": "ready_for_review", f"{lk}.status": "ready_for_review",
+                      f"{lk}.partner_review_status": "pending", f"{lk}.partner_approved": False,
+                      f"{lk}.video_approved": False, f"{lk}.partner_review_version": version,
+                      f"{lk}.active_manual_cut_id": None, "updated_at": now},
+             "$push": {f"{lk}.manual_cuts": {"cut_id": cut_id, "from_version": job["source_output_version"],
+                                              "to_version": version, "ranges": info["ranges"],
+                                              "removed_s": info["removed_s"], "at": now}}},
+        )
+        if not updated.modified_count:
+            raise RuntimeError("La lezione è cambiata durante il taglio: nuova versione caricata ma non collegata")
+        await database.lesson_manual_cuts.update_one(
+            {"cut_id": cut_id},
+            {"$set": {"status": "completed", "completed_at": now, "produced_output_version": version,
+                      "duration_before_s": info["duration_before_s"], "duration_after_s": info["duration_after_s"]}},
+        )
+        await telegram(f"✂️ <b>Taglio applicato</b>\nPartner {partner_id} · {lesson_id} · v{version} "
+                       f"({info['removed_s']:.0f}s tolti, ora {info['duration_after_s']:.0f}s)")
+    except Exception as exc:
+        logger.error("[MANUAL-CUT] %s", exc, exc_info=True)
+        if job:
+            await database.lesson_manual_cuts.update_one(
+                {"cut_id": cut_id}, {"$set": {"status": "failed", "error": str(exc)[:500]}})
+            await database.partner_videocorso.update_one(
+                {"partner_id": job["partner_id"]},
+                {"$set": {f"lessons.{job['lesson_id']}.active_manual_cut_id": None}})
+            try:
+                await telegram(f"⚠️ <b>Taglio non riuscito</b>\n{job['partner_id']} · {job['lesson_id']}\n{str(exc)[:200]}")
+            except Exception:
+                pass
+    finally:
+        shutil.rmtree(str(tmp_dir), ignore_errors=True)
+        mongo.close()
+
+
+@celery_app.task(name="apply_manual_cut", bind=True, acks_late=True,
+                 reject_on_worker_lost=True, max_retries=0, soft_time_limit=3600, time_limit=3900)
+def apply_manual_cut(self, cut_id: str):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_process_manual_cut(cut_id))
+    finally:
+        loop.close()
