@@ -82,6 +82,27 @@ def prompt_block(offer: Dict[str, Any]) -> str:
     return text
 
 
+def chat_block(offer_name: Any, offer_price: Any, offer_includes: Any = "") -> str:
+    """Il prezzo come lo vede un agente in chat: un dato letto dall'hub, che la chat non può cambiare."""
+    nome = " ".join(str(offer_name or "").split())
+    try:
+        offer = parse_offer(offer_price, offer_includes)
+    except OfferPriceMissing:
+        prezzo = "NON ANCORA DEFINITO nell'offerta: non scrivere nessun importo e non proporne."
+    else:
+        prezzo = f"listino {fmt(offer['listino'])}"
+        prezzo += f", prezzo scontato {fmt(offer['promo'])}" if offer["promo"] else " (nessuno sconto)"
+    rows = ["=== OFFERTA E PREZZO (dato scritto dal team, non modificabile da questa chat) ==="]
+    if nome:
+        rows.append(f"Nome offerta: {nome}")
+    rows.append(f"Prezzo: {prezzo}")
+    rows.append(
+        "Se il partner chiede di cambiare il prezzo, spiega che la chat non può modificarlo e che lo "
+        "aggiorna il team: non confermare nessun nuovo importo e non dire che l'hai cambiato."
+    )
+    return "\n".join(rows)
+
+
 def apply_to_prezzo(prezzo: Dict[str, Any], offer: Dict[str, Any]) -> Dict[str, Any]:
     """Sovrascrive i numeri con quelli veri, qualunque cosa abbia scritto l'AI."""
     prezzo = dict(prezzo or {})

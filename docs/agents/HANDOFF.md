@@ -1,4 +1,22 @@
-### 2026-09-10 · Codex · Mariangela aggiunta a Collaboratori
+### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
+
+**CONTESTO:** Daniele Andolfi (ID 23) non riusciva a far cambiare il prezzo ad Andrea. Nuovo prezzo deciso da Claudio: **147€ scontato / 247€ listino** (sostituisce 297/497).
+
+**DICHIARATO**
+- La chat partner (`POST /api/stefania/chat`) non ha strumenti: non può scrivere dati, e il contesto non conteneva il prezzo (l'agente lo inventava). Ora `build_partner_context` aggiunge un blocco OFFERTA letto da `partner_hub` (`offer_price.chat_block`): prezzo reale, oppure "NON ANCORA DEFINITO", più la regola "la chat non può cambiare il prezzo, lo aggiorna il team".
+- Nessun system prompt di agente modificato (né Matteo): il blocco sta nel contesto comune.
+
+**VERIFICATO**
+- `python -m pytest tests/test_webinar_offer_price.py -q` → **11 passed** (2 nuovi sul blocco chat).
+- `py_compile` routers/stefania_chat.py + services/offer_price.py → OK; `git diff --check` → 0.
+- `build_partner_context` con db simulato: con hub "147€ (listino 247€)" stampa listino 247€ / scontato 147€; con hub vuoto stampa NON ANCORA DEFINITO.
+
+**APERTO**
+- ⛔ Il valore reale di `partner_hub.offerPrice` di Daniele **non è stato letto né scritto**: `ciak.io` è bloccato dal proxy della sessione. Va scritto `147€ (listino 247€)` (console admin) e poi rigenerati webinar, dispensa e funnel.
+- ⛔ Nessun push su `main`, nessun deploy: il codice non è ancora in produzione.
+- 🔎 `funnel_export_service.py:83` ha ancora il default hardcoded `"297€"`; non toccato.
+- 🔎 Andrea compare nel drawer solo sugli step 05-09 (`agents.js`): visibilità fuori da quegli step = decisione di prodotto.
+
 
 **DIFETTO LIVE:** `/admin/collaboratori` caricava e mostrava esclusivamente Antonella (`/collaboratori/antonella`), mentre Mariangela Caccia compariva solo nell'organigramma Acquisizione/Vendite.
 

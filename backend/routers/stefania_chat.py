@@ -212,6 +212,16 @@ async def build_partner_context(partner_id: str, partner_name: str, phase: str, 
     except Exception as e:
         logger.warning(f"[stefania_chat] Impossibile caricare partner_journey_steps: {e}")
 
+    # === OFFERTA: il prezzo viene dall'hub, mai dall'agente ===
+    try:
+        if db is not None:
+            from services import offer_price
+            hub = await db.partner_hub.find_one({"partner_id": str(partner_id)}, {"_id": 0}) or {}
+            lines.append("")
+            lines.append(offer_price.chat_block(hub.get("offerName"), hub.get("offerPrice"), hub.get("offerIncludes")))
+    except Exception as e:
+        logger.warning(f"[stefania_chat] Impossibile caricare l'offerta dall'hub: {e}")
+
     return "\n".join(lines)
 
 # ─── Models ───────────────────────────────────────────────────────────────────

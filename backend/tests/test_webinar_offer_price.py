@@ -103,3 +103,18 @@ def test_gamma_is_gone():
     assert not hasattr(wd, "export_deck_to_gamma") and not hasattr(wd, "poll_gamma_generation")
     import inspect
     assert "gamma" not in inspect.getsource(wd).lower()
+
+
+def test_chat_block_gives_agents_the_real_price_and_forbids_changing_it():
+    block = op.chat_block("Sabai Academy", "147€ (listino 247€)", "12 moduli")
+    assert "Nome offerta: Sabai Academy" in block
+    assert "listino 247€, prezzo scontato 147€" in block
+    assert "non modificabile" in block and "non confermare nessun nuovo importo" in block
+    assert "297" not in block and "497" not in block
+
+
+def test_chat_block_without_a_usable_price_says_so_instead_of_guessing():
+    for bad in (None, "", "da definire", "97€, 197€ e 297€"):
+        block = op.chat_block("", bad)
+        assert "NON ANCORA DEFINITO" in block and "non scrivere nessun importo" in block
+    assert "nessuno sconto" in op.chat_block("X", "247€")
