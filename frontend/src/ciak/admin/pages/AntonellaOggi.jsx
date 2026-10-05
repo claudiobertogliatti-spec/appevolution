@@ -7,8 +7,8 @@
  * come Claudio:
  *   1. Approvazioni materiali partner (stesso pannello dell'admin)
  *   2. Video pronti per la revisione
- *   3. Alert sulle campagne ads (con "Risolvi")
- *   4. Snapshot KPI campagne + scorciatoia al Calendario Editoriale
+ *   3. Alert sulle campagne partner (con "Risolvi")
+ *   4. Snapshot KPI campagne + scorciatoia al Calendario partner
  *
  * Sorgenti: /api/admin/approvazioni/queue · /api/admin/video-review ·
  *           /api/stefania/war-mode/dashboard · /api/stefania/war-mode/alerts
@@ -266,7 +266,7 @@ export function AntonellaOggi({ onAuthExpired }) {
             <ActionCard
               icon={Target}
               count={adsAlerts.length}
-              label="Alert campagne ads"
+              label="Alert campagne partner"
               sublabel="Campagne che richiedono un intervento"
               urgency={adsAlerts.length > 0 ? "medium" : "ok"}
               onClick={() => navigate("/admin/campagne-ads")}
@@ -331,7 +331,7 @@ export function AntonellaOggi({ onAuthExpired }) {
               <CalendarDays className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-slate-900">Calendario Editoriale</div>
+              <div className="font-semibold text-sm text-slate-900">Calendario partner</div>
               <div className="text-xs mt-0.5 text-slate-400">
                 Lancio, regime e webinar di ogni partner — genera e revisiona i contenuti
               </div>
