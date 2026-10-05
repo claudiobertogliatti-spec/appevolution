@@ -355,6 +355,20 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     });
   };
 
+  // Solo supervisione admin: toglie il file dall'archivio del partner per tutti (record conservato, ripristinabile).
+  const rimuoviMateriale = async (file) => {
+    const chiama = (extra) => fetch(`/api/partner-step-materials/${encodeURIComponent(file.id)}/visibility`, {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ partner_id: partnerId, visibility: "removed", reason: "Rimosso dall'admin dalla pagina Materiali", ...extra }),
+    });
+    let r = await chiama({});
+    // più record con lo stesso file_id (collisione storica): si precisa col nome
+    if (r.status === 409) r = await chiama({ original_name: file.name });
+    if (!r.ok) throw new Error(`rimozione non riuscita (${r.status})`);
+    setRicarica((n) => n + 1);
+  };
+
   const openTelegramDelivery = () => {
     window.open(telegramFallbackUrl, "_blank", "noopener");
     setUploadModalOpen(false);
@@ -373,6 +387,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         telegramUrl={telegramFallbackUrl}
         upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress, undefined, { notify: !isAdminUser(getPartnerUser()) })}
         onUploaded={() => setRicarica((n) => n + 1)}
+        onRemove={partnerId && isAdminUser(getPartnerUser()) ? rimuoviMateriale : null}
         uploadDisabledReason={!partnerId ? "Il caricamento sarà disponibile appena il tuo profilo è pronto." : ""}
         uploadWarning={
           partnerId && isAdminUser(getPartnerUser())

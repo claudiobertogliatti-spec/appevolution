@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 
 const SerenoMateriali = require('./SerenoMateriali').default;
 
@@ -77,4 +77,50 @@ test('search that matches nothing says so instead of showing empty folders', () 
   render(<SerenoMateriali folders={folders} files={files} />);
   fireEvent.change(screen.getByLabelText('Cerca tra i materiali'), { target: { value: 'zzz' } });
   expect(screen.getByText('Nessun file corrisponde alla ricerca.')).toBeTruthy();
+});
+
+
+describe('Rimuovi (solo supervisione admin)', () => {
+  const rm = [{ id: 'f1', folderId: 'brand_kit', name: 'Quiz SlimAmour.docx', category: 'Documento', owner: '⚙️ CIAK', type: 'document', createdAt: '2026-08-15' }];
+
+  test('senza onRemove il pulsante non esiste: il partner non lo vede mai', () => {
+    render(<SerenoMateriali folders={folders} files={rm} />);
+    expect(screen.queryByRole('button', { name: /Rimuovi/ })).toBeNull();
+  });
+
+  test('con onRemove servono due passi e la rimozione parte solo alla conferma', async () => {
+    const onRemove = jest.fn().mockResolvedValue(undefined);
+    render(<SerenoMateriali folders={folders} files={rm} onRemove={onRemove} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Rimuovi Quiz SlimAmour/ }));
+    expect(onRemove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Conferma rimozione di Quiz SlimAmour/ }));
+    await waitFor(() => expect(onRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 'f1' })));
+  });
+
+  test('Annulla torna indietro senza rimuovere', () => {
+    const onRemove = jest.fn();
+    render(<SerenoMateriali folders={folders} files={rm} onRemove={onRemove} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Rimuovi Quiz SlimAmour/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla' }));
+    expect(onRemove).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^Rimuovi Quiz SlimAmour/ })).toBeTruthy();
+  });
+
+  test('se la rimozione fallisce lo dice e il file resta', async () => {
+    const onRemove = jest.fn().mockRejectedValue(new Error('x'));
+    render(<SerenoMateriali folders={folders} files={rm} onRemove={onRemove} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Rimuovi Quiz SlimAmour/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Conferma rimozione di Quiz SlimAmour/ }));
+    await screen.findByRole('alert');
+    expect(screen.getByText('Quiz SlimAmour')).toBeTruthy();
+  });
+
+  test('i collegamenti esterni e le voci generate (contratto, Drive) non si rimuovono', () => {
+    const items = [
+      { id: 'r-contratto', folderId: 'brand_kit', name: 'Contratto firmato', category: 'Contratto', owner: '⚙️ CIAK', type: 'pdf' },
+      { id: 'r-drive', folderId: 'brand_kit', name: 'Cartella Drive', category: 'Doc', owner: '⚙️ CIAK', type: 'link', esterno: true },
+    ];
+    render(<SerenoMateriali folders={folders} files={items} onRemove={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: /Rimuovi/ })).toBeNull();
+  });
 });
