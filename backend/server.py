@@ -9641,52 +9641,13 @@ async def _upsert_approved_video_material(
     )
     canonical_id = str((partner or {}).get("id", partner_id))
     partner_name = (partner or {}).get("name") or canonical_id
-    title = (
-        video_doc.get("title")
-        or video_doc.get("video_original_name")
-        or ("Masterclass" if video_type == "masterclass" else f"Lezione {lesson_id}")
-    )
-    if str(title).lower().endswith((".mp4", ".mov", ".webm", ".mkv")):
-        original_name = str(title)
-    else:
-        prefix = "Masterclass" if video_type == "masterclass" else "Videocorso"
-        original_name = f"{prefix} - {title}.mp4"
-
-    review_url = video_doc.get("video_review_url") or video_doc.get("video_gcs_review_url")
-    youtube_url = video_doc.get("video_youtube_url")
-    review_status = video_doc.get("pipeline_status") or video_doc.get("video_pipeline_status") or video_doc.get("status")
-    if review_status == "ready_for_review_gcs":
-        approved_url = review_url or youtube_url or video_doc.get("video_embed_url")
-    else:
-        approved_url = youtube_url or review_url or video_doc.get("video_embed_url")
-    if not approved_url:
+    from services.approved_video_material import build_approved_video_record
+    record = build_approved_video_record(
+        partner_id=canonical_id, partner_name=partner_name, video_type=video_type,
+        lesson_id=lesson_id, video_doc=video_doc, now=now)
+    if not record:
         return
-
-    stable_part = "masterclass" if video_type == "masterclass" else (lesson_id or "lesson")
-    file_id = f"approved-video-{canonical_id}-{stable_part}"
-    record = {
-        "id": str(uuid.uuid4()),
-        "file_id": file_id,
-        "partner_id": canonical_id,
-        "original_name": original_name,
-        "stored_name": original_name,
-        "file_type": "video",
-        "category": "video",
-        "internal_url": approved_url,
-        "youtube_url": youtube_url,
-        "embed_url": video_doc.get("video_embed_url"),
-        "review_url": review_url,
-        "lesson_id": lesson_id,
-        "video_type": video_type,
-        "partner_name": partner_name,
-        "status": "approved",
-        "source": "video_review",
-        "size": int(video_doc.get("video_file_size") or 0),
-        "uploaded_at": now,
-        "verified_at": now,
-        "verified_by": "admin",
-        "updated_at": now,
-    }
+    file_id = record["file_id"]
     await db.files.update_one(
         {"file_id": file_id},
         {"$set": record, "$setOnInsert": {"created_at": now}},
