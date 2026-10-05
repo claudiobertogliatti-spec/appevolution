@@ -20,6 +20,12 @@ const MATERIALI = {
 // La cartella Drive viene ancora dal posizionamento; qui non c'e'.
 const POSIZIONAMENTO = { posizionamento: {} };
 
+// Il file puo' comparire anche nelle "Novità": si cerca sempre la riga dell'elenco.
+const rowByName = async (name) => {
+  const hits = await screen.findAllByText(name);
+  return hits.map((h) => h.closest('.sereno-mat-file')).find(Boolean);
+};
+
 const materialsRoute = (url) => {
   if (String(url).includes('/operativo/materiali/')) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve(MATERIALI) });
@@ -52,10 +58,10 @@ test('flag-on renders the real fetched materials in the sereno skin, and downloa
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
 
   // The document fetched from the authenticated endpoint is shown by the sereno skin.
-  const title = await screen.findByText('Analisi_Mercato.pdf');
+  // (the name is shown cleaned: no underscores, no extension)
+  const row = await rowByName('Analisi Mercato');
 
   // Downloading it goes through the authenticated fetch (Bearer token), not a bare link.
-  const row = title.closest('.sereno-mat-file');
   fireEvent.click(within(row).getByRole('button', { name: /Scarica/i }));
 
   await waitFor(() => {
@@ -82,8 +88,8 @@ test('a Word/Excel file has no "Apri" (the browser would download it) while a PD
 
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
 
-  const pdfRow = (await screen.findByText('Analisi_Mercato.pdf')).closest('.sereno-mat-file');
-  const docxRow = (await screen.findByText('Script_Masterclass.docx')).closest('.sereno-mat-file');
+  const pdfRow = await rowByName('Analisi Mercato');
+  const docxRow = await rowByName('Script Masterclass');
 
   expect(within(pdfRow).getByRole('button', { name: /Apri/i })).toBeTruthy();
   expect(within(docxRow).queryByRole('button', { name: /Apri/i })).toBeNull();
@@ -107,9 +113,7 @@ test('partner with a signed contract AND an existing PDF shows a "Contratto firm
 
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
 
-  const title = await screen.findByText('Contratto firmato');
-
-  const row = title.closest('.sereno-mat-file');
+  const row = await rowByName('Contratto firmato');
   fireEvent.click(within(row).getByRole('button', { name: /Scarica/i }));
 
   await waitFor(() => {
@@ -138,7 +142,7 @@ test('partner with signed_at but NO real PDF (best-effort generation failed) sho
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
 
   // Aspetta che il fetch dei materiali reali sia risolto (l'altro documento appare comunque).
-  await screen.findByText('Analisi_Mercato.pdf');
+  await rowByName('Analisi Mercato');
 
   expect(screen.queryByText('Contratto firmato')).toBeNull();
 });
@@ -148,4 +152,57 @@ test('without a partner id the effect does not fetch (no crash, empty state)', a
   render(<MemoryRouter><PartnerFilesPage /></MemoryRouter>);
   await screen.findByText('I tuoi materiali.');
   expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test('uploading a file posts to the real endpoint with the token, then the list is read again', async () => {
+  let materialiCalls = 0;
+  global.fetch = jest.fn((url) => {
+    if (String(url).includes('/operativo/materiali/')) {
+      materialiCalls += 1;
+      const body = materialiCalls === 1
+        ? MATERIALI
+        : { materials: [...MATERIALI.materials, {
+          id: 'up1', type: 'pdf', title: 'Fatture_ottobre.pdf', category: 'document', source: 'operativo',
+          download_url: '/api/partner-step-materials/up1/download', public_url: null, created_at: new Date().toISOString(),
+        }] };
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+    }
+    if (String(url).includes('/posizionamento/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+    return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
+  });
+
+  const sent = [];
+  global.XMLHttpRequest = function FakeXhr() {
+    const x = this;
+    x.headers = {}; x.upload = {};
+    x.open = (m, u) => { x.method = m; x.url = u; };
+    x.setRequestHeader = (k, v) => { x.headers[k] = v; };
+    x.send = () => { sent.push(x); setTimeout(() => { x.status = 200; x.responseText = JSON.stringify({ success: true }); x.onload(); }, 0); };
+  };
+
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  await rowByName('Analisi Mercato');
+
+  const input = screen.getByTestId('sereno-file-input');
+  fireEvent.change(input, { target: { files: [new File(['abc'], 'Fatture_ottobre.pdf', { type: 'application/pdf' })] } });
+
+  expect(await screen.findByText('✓ Ricevuto')).toBeTruthy();
+  expect(sent).toHaveLength(1);
+  expect(sent[0].method).toBe('POST');
+  expect(sent[0].url).toBe('/api/partner-journey/operativo/upload/p1');
+  expect(sent[0].headers.Authorization).toBe('Bearer test-jwt');
+
+  // the new file is read back from the server and shown as the partner's own
+  const row = await rowByName('Fatture ottobre');
+  expect(within(row).getByText('Caricato da te')).toBeTruthy();
+  expect(materialiCalls).toBe(2);
+  delete global.XMLHttpRequest;
+});
+
+test('an admin viewing a partner cannot upload on their behalf', async () => {
+  localStorage.setItem('ciak_partner_user', JSON.stringify({ name: 'Admin', role: 'admin' }));
+  global.fetch = jest.fn((url) => materialsRoute(url) || Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }));
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  expect(await screen.findByText(/Vista supervisione/)).toBeTruthy();
+  expect(screen.queryByTestId('sereno-file-input')).toBeNull();
 });

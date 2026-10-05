@@ -4,7 +4,7 @@
  * con ampio respiro visivo e lista orizzontale dei file allineata.
  */
 import React, { useState, useEffect } from "react";
-import { authHeaders } from "../api";
+import { authHeaders, getPartnerUser, isAdminUser } from "../api";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
   FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
@@ -12,33 +12,18 @@ import {
 } from "lucide-react";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoMateriali from "../sereno/SerenoMateriali";
+import { folderForMaterial } from "../sereno/materialiModel";
+import { uploadPartnerFile } from "../sereno/uploadMateriale";
 
 // Struttura Cartelle Cloud Vault
 const DRIVE_FOLDERS = [
-  { id: "brand_kit", name: "01. Brand Kit & Strategia", subtitle: "Posizionamento Strategico, Brand Kit, Colori Ufficiali, Logo e Contratto Firmato", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
-  { id: "scripts", name: "02. Script & Teleprompter", subtitle: "Copywriting persuasivo per la Masterclass, Outline delle lezioni e Tracce Video", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
-  { id: "video", name: "03. Video & Moduli Corso", subtitle: "Videolezioni HD registrate, Video di Benvenuto e Risorse multimediali dell'Accademia", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
-  { id: "funnel", name: "04. Piattaforma & Stripe", subtitle: "Pagine web del Funnel, Link di Cassa Stripe, Credenziali Subaccount e Dominio", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
-  { id: "master_pdf", name: "05. Workbook & Certificati", subtitle: "Workbook completo F-1–F-20 e Certificati Ufficiali di Completamento", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "brand_kit", name: "01. Brand e strategia", subtitle: "Posizionamento, brand kit, logo e contratto", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "scripts", name: "02. Script e scalette", subtitle: "Masterclass, lezioni e script di chiusura", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
+  { id: "video", name: "03. Video del corso", subtitle: "Videolezioni registrate, video di benvenuto e altri video", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "funnel", name: "04. Vendita e piattaforma", subtitle: "Pagine del funnel, pagamenti, dominio e pagine legali", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { id: "social", name: "05. Contenuti social", subtitle: "Calendario di lancio, guide e prompt per i contenuti", icon: Folder, color: "text-violet-500", bg: "bg-violet-50" },
+  { id: "master_pdf", name: "06. Il tuo piano e altri documenti", subtitle: "Libretto di progetto, piano operativo, certificati e documenti firmati", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
 ];
-
-// Mappa la categoria di un file reale (collezione `files`) alla cartella della
-// vista Materiali. Default: Workbook & documenti (master_pdf).
-const MATERIALI_FOLDER_BY_CATEGORY = {
-  "brand-kit": "brand_kit", brand_kit: "brand_kit", posizionamento: "brand_kit",
-  logo: "brand_kit", image: "brand_kit",
-  masterclass: "scripts", script: "scripts", copione: "scripts",
-  videocorso_script: "scripts", "videocorso-script": "scripts", outline: "scripts",
-  video: "video",
-  vendita_descrizione: "funnel", vendita_faq: "funnel", vendita_privacy: "funnel",
-  vendita_cookie: "funnel", vendita_termini: "funnel", funnel: "funnel",
-  contratto_firmato: "master_pdf", distinta_pagamento: "master_pdf",
-  workbook: "master_pdf", certificato: "master_pdf", documento: "master_pdf",
-};
-
-function materialiFolderId(category) {
-  return MATERIALI_FOLDER_BY_CATEGORY[String(category || "").toLowerCase()] || "master_pdf";
-}
 
 function iconForMaterialType(type) {
   if (type === "video") return { icon: FileVideo, color: "text-red-500" };
@@ -204,6 +189,8 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   // con Scarica e Anteprima che non potevano funzionare (non esisteva il file).
   const [files, setFiles] = useState([]);
   const [caricamento, setCaricamento] = useState(Boolean(partnerId));
+  // Sale di 1 a ogni file caricato: rilancia la lettura e il nuovo file compare in lista.
+  const [ricarica, setRicarica] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
@@ -215,7 +202,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
   useEffect(() => {
     if (!partnerId) return undefined;
     let annullato = false;
-    setCaricamento(true);
+    if (ricarica === 0) setCaricamento(true); // dopo un caricamento la lista resta visibile
     (async () => {
       const reali = [
         {
@@ -272,12 +259,15 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
               const { icon, color } = iconForMaterialType(m.type);
               out.push({
                 id: m.id,
-                folderId: materialiFolderId(m.category),
+                folderId: folderForMaterial({ category: m.category, name: m.title, type: m.type }),
                 name: m.title,
                 category: m.category || "Documento",
                 size: m.type === "pdf" ? "PDF" : m.type === "image" ? "Immagine" : m.type === "video" ? "Video" : "Documento",
                 date: m.created_at ? String(m.created_at).slice(0, 10) : "—",
-                owner: "⚙️ CIAK",
+                // `source: operativo` = file passato dall'endpoint di caricamento del
+                // Percorso (partner o admin per conto suo): sono "documenti suoi".
+                owner: m.source === "operativo" ? "👤 Tu" : "⚙️ CIAK",
+                createdAt: m.created_at || null,
                 type: m.type,
                 icon,
                 iconColor: color,
@@ -316,7 +306,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
                     id: "r-contratto", folderId: "brand_kit",
                     name: "Contratto firmato", category: "Contratto",
                     size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
-                    owner: "👤 Tu", type: "pdf",
+                    owner: "👤 Tu", type: "pdf", createdAt: dc.signed_at || null,
                     icon: FileCheck, iconColor: "text-emerald-600",
                     url: dp.pdf_url,
                   });
@@ -335,12 +325,13 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
       if (!annullato) { setFiles(reali); setCaricamento(false); }
     })();
     return () => { annullato = true; };
-  }, [partnerId]);
+  }, [partnerId, ricarica]);
   const [previewFileModal, setPreviewFileModal] = useState(null);
 
   // Stato espansione menu a tendina cartelle (tutte aperte di default)
   const [openFolders, setOpenFolders] = useState({
     brand_kit: true,
+    social: true,
     scripts: true,
     video: true,
     funnel: true,
@@ -380,6 +371,15 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         onOpen={apriFile}
         onDownload={scaricaFile}
         telegramUrl={telegramFallbackUrl}
+        upload={(file, onProgress) => uploadPartnerFile(partnerId, file, onProgress)}
+        onUploaded={() => setRicarica((n) => n + 1)}
+        uploadDisabledReason={
+          !partnerId
+            ? "Il caricamento sarà disponibile appena il tuo profilo è pronto."
+            : isAdminUser(getPartnerUser())
+              ? "Vista supervisione: il caricamento è disattivato, così non si aggiungono file al posto del partner."
+              : ""
+        }
       />
     );
   }
