@@ -72,3 +72,14 @@ def test_partner_vede_solo_i_file_apribili_inclusi_i_reel_su_storage():
     admin = {f["file_id"] for f in partner_materiali_listing(files, include_hidden=True)}
     assert partner == {"cloud_doc", "cloud_reel", "youtube_video"}
     assert admin == {"cloud_doc", "cloud_reel", "youtube_video", "drive_doc", "drive_reel"}
+
+
+def test_removed_files_disappear_for_everyone_even_the_admin_view():
+    files = [
+        {"file_id": "ok", "status": "approved", "internal_url": CLOUD},
+        {"file_id": "tolto", "status": "approved", "visibility": "removed", "internal_url": CLOUD},
+        {"file_id": "interno", "status": "approved", "visibility": "admin_only", "internal_url": CLOUD},
+    ]
+    assert [f["file_id"] for f in partner_materiali_listing(files)] == ["ok"]
+    # l'admin continua a vedere gli interni, ma NON i rimossi
+    assert [f["file_id"] for f in partner_materiali_listing(files, include_hidden=True)] == ["ok", "interno"]

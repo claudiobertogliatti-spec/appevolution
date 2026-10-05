@@ -255,3 +255,10 @@ def test_funnel_preview_accepts_only_https_vercel_app_hosts():
 def test_funnel_preview_does_not_widen_the_generic_public_hosts():
     # `allowed_public_url` (YouTube/ciak.io) NON deve ammettere vercel.app: l'eccezione è solo per F-13.
     assert allowed_public_url("https://x.vercel.app") is None
+
+
+def test_removed_is_a_valid_migration_visibility_hidden_from_the_partner_and_restorable():
+    assert "removed" in materials.MIGRATION_VISIBILITIES            # l'endpoint di visibilita' lo accetta
+    assert materials.file_visible_to_partner({"approval_status": "approved", "visibility": "removed"}) is False
+    assert "partner_visible" in materials.MIGRATION_VISIBILITIES    # e si ripristina con partner_visible
+    assert current_files([{"file_id": "x", "approval_status": "approved", "visibility": "removed"}]) == []

@@ -40,7 +40,10 @@ DATA_WHITELISTS = {
 PUBLIC_HOSTS = {"youtube.com", "www.youtube.com", "youtu.be", "ciak.io", "www.ciak.io"}
 STORAGE_HOSTS = {"res.cloudinary.com", "storage.googleapis.com"}
 BLOCKED_HOST_MARKERS = ("drive.google", "googleusercontent", "storage.googleapis", "googleapis.com")
-PARTNER_HIDDEN_VISIBILITIES = {"admin_only", "legal_dispute", "needs_review", "foreign_owner"}
+# "removed" = tolto dall'archivio dall'admin: nascosto a TUTTI (admin compreso), senza cancellare il record;
+# si ripristina con visibility="partner_visible" (PATCH /api/partner-step-materials/{file_id}/visibility).
+REMOVED_VISIBILITY = "removed"
+PARTNER_HIDDEN_VISIBILITIES = {"admin_only", "legal_dispute", "needs_review", "foreign_owner", REMOVED_VISIBILITY}
 MIGRATION_VISIBILITIES = PARTNER_HIDDEN_VISIBILITIES | {"partner_visible"}
 
 
@@ -211,11 +214,11 @@ def partner_materiali_listing(files: Iterable[Dict[str, Any]], include_hidden: b
     'approved': quello serve al flusso di review per-step (bozza -> approvato),
     mentre qui contano anche gli upload e le consegne (status 'uploaded').
     `include_hidden=True` (solo per l'admin in vista) mostra tutto, anche gli
-    `admin_only`.
+    `admin_only`, ma NON i file `removed` (rimossi dall'admin: spariscono per tutti).
     """
     out = []
     for f in files:
-        if f.get("superseded"):
+        if f.get("superseded") or f.get("visibility") == REMOVED_VISIBILITY:
             continue
         if not include_hidden:
             if not file_visible_to_partner(f):
