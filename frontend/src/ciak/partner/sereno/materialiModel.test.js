@@ -1,5 +1,5 @@
 import {
-  cleanFileName, humanType, formatDate, folderForMaterial, folderLabel,
+  cleanFileName, humanType, formatDate, folderForMaterial, folderLabel, typeGroup, TYPE_FILTERS,
   groupVersions, recentFiles, validateUpload, MAX_UPLOAD_MB,
 } from './materialiModel';
 
@@ -29,24 +29,67 @@ test('formatDate writes the date in words and ignores anything that is not a dat
   expect(formatDate(null)).toBe('');
 });
 
-test('generic category "document" goes by name: scripts are not buried in the last folder', () => {
-  const f = (name, category = 'document', type = 'document') => folderForMaterial({ name, category, type });
-  expect(f('Script delle lezioni - Andrea Fredi.pdf')).toBe('scripts');
-  expect(f('Outline corso - Andrea Fredi.pdf')).toBe('scripts');
-  expect(f('Template_Videocorso_Andrea_Fredi.xlsx')).toBe('scripts');
-  expect(f('Calendario_Social_Lancio_TAI_Andrea.xlsx')).toBe('social');
-  expect(f('Guida_AI_Caption_SEO.docx')).toBe('social');
-  expect(f('Prompt_AI_Contenuti_Social.docx')).toBe('social');
-  expect(f('Documento_Posizionamento_Andrea_Fredi.pdf')).toBe('brand_kit');
-  expect(f('Distinta_Fredi.pdf')).toBe('master_pdf');
-  expect(f('Analisi_Fredi.pdf')).toBe('master_pdf'); // unknown -> the catch-all folder
+// Names and categories as they really appear in a partner's Materiali.
+const place = (name, category = 'document', type = 'document') => folderForMaterial({ name, category, type });
+
+test('generic category "document" goes by name: scripts, social and sales files each find their folder', () => {
+  expect(place('Script delle lezioni - Andrea Fredi.pdf')).toBe('scripts');
+  expect(place('Outline corso - Andrea Fredi.pdf')).toBe('scripts');
+  expect(place('Template_Videocorso_Andrea_Fredi.xlsx')).toBe('scripts');
+  expect(place('Calendario_Social_Lancio_TAI_Andrea.xlsx')).toBe('social');
+  expect(place('Calendario_Lancio_Social_Daniele.xlsx')).toBe('social');
+  expect(place('Guida_AI_Caption_SEO.docx')).toBe('social');
+  expect(place('Prompt_AI_Contenuti_Social.docx')).toBe('social');
+  expect(place('Documento_Posizionamento_Andrea_Fredi.pdf')).toBe('brand_kit');
+  expect(place('Analisi Daniele Andolfi.pdf')).toBe('brand_kit');
+  expect(place('Articolo Medintenzione.pdf')).toBe('master_pdf'); // unknown -> the catch-all folder
 });
 
-test('a meaningful category wins over the name; videos go to the video folder', () => {
-  expect(folderForMaterial({ category: 'brand-kit', name: 'Qualunque.pdf' })).toBe('brand_kit');
-  expect(folderForMaterial({ category: 'image', name: 'foto1.png', type: 'image' })).toBe('brand_kit');
-  expect(folderForMaterial({ category: 'document', name: 'Lezione 1.mp4', type: 'video' })).toBe('video');
+test('contract, payment slip and identity documents are kept apart from logo and photos', () => {
+  expect(place('Distinta_Fredi.pdf')).toBe('documenti');
+  expect(place('Contratto1.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('Contratto_Firmato2.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('CF_Fronte.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('CI_fronte.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('Fronte_CI.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('Retro_CI.jpeg', 'document', 'image')).toBe('documenti');
+  expect(place('Proforma_Partnership.pdf')).toBe('documenti');
+  expect(folderForMaterial({ category: 'contratto_firmato', name: 'Contratto_firmato_Daniele_Andolfi.pdf', type: 'pdf' })).toBe('documenti');
+  expect(folderForMaterial({ category: 'distinta_pagamento', name: 'Distinta_pagamento_Daniele_Andolfi.pdf', type: 'pdf' })).toBe('documenti');
+  expect(place('Logo_Sabai.png', 'image', 'image')).toBe('brand_kit');
+  expect(place('Foto_Personale.png', 'image', 'image')).toBe('brand_kit');
+});
+
+test('reels and their covers go to the social folder; the course video goes with the course', () => {
+  expect(place('reel2_g5.mp4', 'video', 'video')).toBe('social');
+  expect(place('copertina reel g29.jpeg', 'image', 'image')).toBe('social');
+  expect(place('Videocorso - Il pilota automatico.mp4', 'video', 'video')).toBe('scripts');
+  expect(place('Video_senza_nome.mp4', 'video', 'video')).toBe('social'); // an unnamed video is most likely a reel
+  expect(place('image senza nome.png', 'image', 'image')).toBe('brand_kit'); // an unnamed picture, brand material
+});
+
+test('sales and legal pages categories go to "vendita"; outline categories to "corso"', () => {
+  ['vendita_termini', 'vendita_cookie', 'vendita_privacy', 'vendita_faq', 'vendita_descrizione'].forEach((c) => {
+    expect(folderForMaterial({ category: c, name: 'Qualunque.pdf', type: 'pdf' })).toBe('funnel');
+  });
+  expect(place('Termini e condizioni di vendita - Daniele Andolfi.pdf')).toBe('funnel');
+  expect(place('FAQ della pagina di vendita - Daniele Andolfi.pdf')).toBe('funnel');
+  expect(place("Descrizione dell'offerta - Daniele Andolfi.pdf")).toBe('funnel');
+  ['course_outline', 'outline_corso', 'videocorso_script', 'masterclass'].forEach((c) => {
+    expect(folderForMaterial({ category: c, name: 'Qualunque.pdf', type: 'pdf' })).toBe('scripts');
+  });
   expect(folderForMaterial({ category: 'workbook', name: 'Script.pdf' })).toBe('master_pdf');
+  expect(folderForMaterial({ category: 'brand-kit', name: 'Qualunque.pdf' })).toBe('brand_kit');
+});
+
+test('typeGroup sorts files for the type chips: PDF, Immagine, Video, everything else together', () => {
+  expect(typeGroup({ type: 'pdf' })).toBe('PDF');
+  expect(typeGroup({ type: 'image' })).toBe('Immagine');
+  expect(typeGroup({ type: 'video' })).toBe('Video');
+  expect(typeGroup({ type: 'document', name: 'Calendario.xlsx' })).toBe('Altro');
+  expect(typeGroup({ type: 'document', name: 'Script.docx' })).toBe('Altro');
+  expect(typeGroup({ type: 'link', size: 'Google Drive' })).toBe('Altro');
+  expect(TYPE_FILTERS.map(([k]) => k)).toEqual(['all', 'PDF', 'Immagine', 'Video', 'Altro']);
 });
 
 test('folderLabel drops the internal number', () => {

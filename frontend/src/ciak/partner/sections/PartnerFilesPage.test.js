@@ -21,7 +21,9 @@ const MATERIALI = {
 const POSIZIONAMENTO = { posizionamento: {} };
 
 // Il file puo' comparire anche nelle "Novità": si cerca sempre la riga dell'elenco.
+// Le cartelle sono tessere: per arrivare a una riga si usa "Cerca file" (elenco unico).
 const rowByName = async (name) => {
+  fireEvent.change(await screen.findByPlaceholderText(/Cerca per nome/), { target: { value: name } });
   const hits = await screen.findAllByText(name);
   return hits.map((h) => h.closest('.sereno-mat-file')).find(Boolean);
 };
@@ -142,8 +144,10 @@ test('partner with signed_at but NO real PDF (best-effort generation failed) sho
   render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
 
   // Aspetta che il fetch dei materiali reali sia risolto (l'altro documento appare comunque).
-  await rowByName('Analisi Mercato');
+  await rowByName('Analisi Mercato'); // the page has finished loading and the document is there
 
+  fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: 'Contratto' } });
+  expect(screen.getByText('Nessun file corrisponde alla ricerca.')).toBeTruthy();
   expect(screen.queryByText('Contratto firmato')).toBeNull();
 });
 
@@ -218,4 +222,34 @@ test("an admin in supervision can upload on the partner's behalf: warned, and wi
   expect(screen.queryByText(/Il team è stato avvisato/)).toBeNull(); // notify=false: it must not claim the team was told
   expect(screen.getByText(/aggiunto all’area del partner/)).toBeTruthy();
   delete global.XMLHttpRequest;
+});
+
+test('real files land in the right folder tiles: contract and ID apart from logo, reels with their covers, sales pages together', async () => {
+  const m = (id, title, type, category) => ({ id, type, title, category, download_url: `/api/partner-step-materials/${id}/download`, public_url: null, created_at: '2026-01-10T10:00:00Z' });
+  const reali = { materials: [
+    m('1', 'Logo_Sabai.png', 'image', 'image'),
+    m('2', 'Brand Kit - Daniele Andolfi.pdf', 'pdf', 'brand-kit'),
+    m('3', 'CF_Fronte.jpeg', 'image', 'document'),
+    m('4', 'Distinta_pagamento_Daniele_Andolfi.pdf', 'pdf', 'distinta_pagamento'),
+    m('5', 'reel1.mp4', 'video', 'video'),
+    m('6', 'copertina reel g29.jpeg', 'image', 'image'),
+    m('7', 'Privacy Policy - Daniele Andolfi.pdf', 'pdf', 'vendita_privacy'),
+    m('8', 'Termini e condizioni di vendita.pdf', 'pdf', 'vendita_termini'),
+    m('9', 'Outline corso - Daniele Andolfi.pdf', 'pdf', 'course_outline'),
+  ] };
+  global.fetch = jest.fn((url) => {
+    if (String(url).includes('/operativo/materiali/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(reali) });
+    if (String(url).includes('/posizionamento/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+    if (String(url).includes('/api/contract/status/')) return Promise.resolve({ ok: true, json: () => Promise.resolve({ signed: true, signed_at: '2026-08-14T10:00:00Z' }) });
+    if (String(url).includes('/api/contract/pdf/')) return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, pdf_url: '/api/contract/pdf-download/p1' }) });
+    return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
+  });
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  const tile = async (name) => (await screen.findByRole('button', { name: new RegExp(`Apri la cartella ${name},`) })).textContent;
+  expect(await tile('Brand e strategia')).toMatch(/2 file/); // logo + brand kit
+  expect(await tile('Contratto e documenti personali')).toMatch(/3 file/); // CF + distinta + the signed contract
+  expect(await tile('Reel e contenuti social')).toMatch(/2 file/); // reel + its cover
+  expect(await tile('Vendita e pagine legali')).toMatch(/2 file/); // privacy + terms
+  expect(await tile('Corso e script')).toMatch(/1 file/); // outline
+  expect(await tile('Il tuo piano')).toMatch(/2 file/); // Libretto + Piano operativo
 });

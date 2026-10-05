@@ -45,40 +45,56 @@ export function formatDate(value) {
 }
 
 // ---- cartelle ----------------------------------------------------------
-// Categories coming from the API that really say where a file belongs. The
-// generic ones ("document", "documento") say nothing: those are placed by name.
-const GENERIC_CATEGORIES = new Set(['document', 'documento', '']);
+// Folder ids: brand_kit, scripts, funnel, social, documenti, master_pdf.
+// A category coming from the API wins when it really says where a file belongs.
+// Generic ones ("document", "image", "video"...) say nothing: the name decides.
+const GENERIC_CATEGORIES = new Set(['document', 'documento', 'image', 'video', '']);
 const BY_CATEGORY = {
-  'brand-kit': 'brand_kit', brand_kit: 'brand_kit', posizionamento: 'brand_kit',
-  logo: 'brand_kit', image: 'brand_kit',
-  masterclass: 'scripts', script: 'scripts', copione: 'scripts',
-  videocorso_script: 'scripts', 'videocorso-script': 'scripts', outline: 'scripts',
-  video: 'video',
+  'brand-kit': 'brand_kit', brand_kit: 'brand_kit', posizionamento: 'brand_kit', logo: 'brand_kit',
+  masterclass: 'scripts', script: 'scripts', copione: 'scripts', outline: 'scripts',
+  videocorso_script: 'scripts', 'videocorso-script': 'scripts', course_outline: 'scripts', outline_corso: 'scripts',
   vendita_descrizione: 'funnel', vendita_faq: 'funnel', vendita_privacy: 'funnel',
   vendita_cookie: 'funnel', vendita_termini: 'funnel', funnel: 'funnel',
-  contratto_firmato: 'master_pdf', distinta_pagamento: 'master_pdf',
+  contratto_firmato: 'documenti', distinta_pagamento: 'documenti', contratto: 'documenti',
   workbook: 'master_pdf', certificato: 'master_pdf',
 };
-// Order matters: the first rule that matches wins.
+// Order matters: the first rule that matches wins. Personal documents and reels
+// are tested first so that a "Contratto" or a "copertina reel" never ends up
+// next to the logo.
 const BY_NAME = [
-  [/posizionament|brand ?kit|logo|contratto/i, 'brand_kit'],
-  [/script|outline|scaletta|copione|masterclass|lezion|videocorso/i, 'scripts'],
+  [/contratto|distinta|proforma|identit|codice[ _-]?fiscale|(^|[^a-z])(ci|cf)([^a-z]|$)|fronte|retro/i, 'documenti'],
+  [/reel|copertina|instagram|tiktok/i, 'social'],
+  [/posizionament|brand ?kit|logo|foto|colori|analisi/i, 'brand_kit'],
+  [/script|outline|scaletta|copione|masterclass|lezion|videocorso|corso/i, 'scripts'],
   [/calendario|social|caption|\bseo\b|prompt|pre[- ]?lancio|editoriale|contenut/i, 'social'],
-  [/funnel|stripe|dominio|subaccount|privacy|cookie|termini|checkout/i, 'funnel'],
-  [/workbook|certificat|libretto|piano|distinta/i, 'master_pdf'],
+  [/funnel|stripe|dominio|subaccount|privacy|cookie|termini|checkout|faq|offerta|descrizione/i, 'funnel'],
+  [/workbook|certificat|libretto|piano|attestat/i, 'master_pdf'],
 ];
 
 /** Folder id for a material: a meaningful category first, then the file name. */
 export function folderForMaterial({ category, name, type } = {}) {
   const cat = String(category || '').toLowerCase();
   if (!GENERIC_CATEGORIES.has(cat) && BY_CATEGORY[cat]) return BY_CATEGORY[cat];
-  if (String(type).toLowerCase() === 'video') return 'video';
   const hit = BY_NAME.find(([re]) => re.test(String(name || '')));
-  return hit ? hit[1] : 'master_pdf';
+  if (hit) return hit[1];
+  const kind = String(type || '').toLowerCase();
+  if (kind === 'image') return 'brand_kit'; // an unnamed picture is most likely brand material
+  if (kind === 'video') return 'social';
+  return 'master_pdf';
 }
 
 /** "01. Brand Kit & Strategia" -> "Brand Kit & Strategia" (the number is internal). */
 export const folderLabel = (name) => String(name || '').replace(/^\d+\.\s*/, '');
+
+// ---- tipo di file (filtri) ---------------------------------------------------
+export const TYPE_FILTERS = [
+  ['all', 'Tutti'], ['PDF', 'PDF'], ['Immagine', 'Immagini'], ['Video', 'Video'], ['Altro', 'Word, Excel e altro'],
+];
+/** One of 'PDF' | 'Immagine' | 'Video' | 'Altro' — what the type chips filter on. */
+export function typeGroup(file) {
+  const kind = humanType(file);
+  return ['PDF', 'Immagine', 'Video'].includes(kind) ? kind : 'Altro';
+}
 
 // ---- versioni ------------------------------------------------------------
 const dateKey = (f) => String(f.createdAt || '');
