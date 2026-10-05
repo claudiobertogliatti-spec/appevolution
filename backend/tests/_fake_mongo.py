@@ -119,6 +119,12 @@ class FakeCollection:
             _set(target, k, copy.deepcopy(v))
         for k in (update.get("$unset") or {}):
             _unset(target, k)
+        for k, v in (update.get("$push") or {}).items():
+            cur = _get(target, k)
+            if not isinstance(cur, list):
+                cur = []
+                _set(target, k, cur)
+            cur.append(copy.deepcopy(v))
         return _Result(1)
 
     async def delete_one(self, flt):

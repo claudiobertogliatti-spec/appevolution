@@ -849,6 +849,9 @@ async def update_lead(lead_id: str, body: dict, admin=Depends(require_ciak_admin
         "business_phone", "business_address", "profession_category",
         # Assegnazione operativa outbound (ProVideo/Mariangela)
         "owner", "next_followup",
+        # Da dove arriva il contatto (ex_cliente | setter | rete): sceglie il messaggio
+        # di risveglio consigliato nella scheda.
+        "origine",
         # Cancello verso la pipeline di lavorazione (approvato+assegnato → board)
         "in_lavorazione",
     }
