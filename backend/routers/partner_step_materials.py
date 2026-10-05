@@ -197,6 +197,60 @@ async def set_material_visibility(file_id: str, body: dict,
     return {"success": True, "file_id": file_id, "partner_id": partner_id, "visibility": visibility}
 
 
+@router.patch("/api/partner-step-materials/{file_id}/owner")
+async def reassign_material_owner(file_id: str, body: dict,
+                                  credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin: assegna un file a un altro partner (es. un file finito per errore
+    nell'area sbagliata). Non cancella e non copia: cambia `partner_id` del record e
+    ricorda il precedente in `previous_partner_id`, quindi e' reversibile
+    richiamando l'endpoint con i due id scambiati.
+
+    Tutele: `partner_id` (proprietario attuale) e `new_partner_id` obbligatori; il
+    destinatario deve esistere; se piu' record hanno lo stesso `file_id` serve
+    `original_name` (409 altrimenti); 409 anche se il destinatario ha gia' un
+    record con lo stesso file_id e nome (niente nuove collisioni). Non tocca
+    `visibility`, `step_id` ne' `category`.
+    """
+    body = body or {}
+    partner_id = str(body.get("partner_id") or "").strip()
+    new_partner_id = str(body.get("new_partner_id") or "").strip()
+    if not partner_id or not new_partner_id:
+        raise HTTPException(400, "partner_id e new_partner_id obbligatori")
+    if partner_id == new_partner_id:
+        raise HTTPException(400, "Il file e' gia' di questo partner")
+    token_data = await _authorize(partner_id, credentials)
+    if getattr(token_data, "role", None) not in ("admin", "superadmin"):
+        raise HTTPException(403, "Accesso riservato agli admin")
+    if not await db.partners.find_one({"id": new_partner_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "Partner di destinazione non trovato")
+
+    key = {"file_id": file_id, "partner_id": partner_id}
+    original_name = body.get("original_name")
+    if original_name:
+        key["original_name"] = str(original_name)
+    matches = await db.files.count_documents(key)
+    if matches == 0:
+        raise HTTPException(404, "Materiale non trovato")
+    if matches > 1:
+        raise HTTPException(409, "Piu' record con questo file_id: indica anche original_name")
+    clash = {"file_id": file_id, "partner_id": new_partner_id}
+    if original_name:
+        clash["original_name"] = str(original_name)
+    if await db.files.count_documents(clash):
+        raise HTTPException(409, "Il partner di destinazione ha gia' un file con lo stesso id")
+
+    fields = {
+        "partner_id": new_partner_id,
+        "previous_partner_id": partner_id,
+        "owner_changed_at": datetime.utcnow().isoformat(),
+    }
+    reason = str(body.get("reason") or "").strip()[:200]
+    if reason:
+        fields["owner_change_reason"] = reason
+    await db.files.update_one(key, {"$set": fields})
+    return {"success": True, "file_id": file_id, "partner_id": new_partner_id, "previous_partner_id": partner_id}
+
+
 async def _serve(file_id: str, disposition: str, credentials):
     doc = await _file_or_404(file_id, credentials)
     # I video-materiale del partner (es. reel) sono servibili come gli altri file
