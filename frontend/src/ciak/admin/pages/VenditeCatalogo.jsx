@@ -12,7 +12,6 @@
  *    €2.291) NON usati: sono morti (memory prezzi_offerta_attuali).
  */
 import { ClipboardList } from "lucide-react";
-import { VenditeSubNav } from "../components/VenditeSubNav";
 
 const CATALOGO = [
   {
@@ -171,7 +170,6 @@ function ServizioCard({ s }) {
 export function VenditeCatalogo() {
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <VenditeSubNav active="Catalogo" />
 
       <div className="bg-slate-900 text-white rounded-2xl px-6 py-5">
         <div className="flex items-center gap-2">

@@ -43,6 +43,8 @@ import {
   X,
 } from "lucide-react";
 import { useDrawer } from "./components/useDrawer";
+import { SezioneNav } from "./components/SezioneNav";
+import { trovaSezione } from "./sezioneModel";
 import { CercaPalette } from "./components/CercaPalette";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
@@ -144,10 +146,13 @@ const NAV = [
     hideFor: ["antonella"],
     pages: [
       { to: "/admin/lead-manager", label: "New Lead", desc: "20 contatti mirati al giorno per alimentare Acquisizione Evolution" },
+      { to: "/admin/leads", label: "Lead inbound", desc: "Chi si e' iscritto o ha fatto il questionario: stato, tappe e scheda completa" },
       { to: "/admin/lista-fredda", label: "Lista Fredda", desc: "Archivio congelato: niente email massive, solo audience e analisi", hideFor: ["mariangela"] },
       { to: "/admin/pipeline", label: "Acquisizione Evolution", desc: "Progetto pilota madre: Blueprint, call, recuperi e target 3/4" },
       { to: "/admin/acq-campagne-ads", label: "Campagne Ads", desc: "Acceleratore da usare dopo la validazione organica/manuale" },
       { to: "/admin/acq-calendario", label: "Calendario Editoriale", desc: "Contenuti Claudio per generare conversazioni e Blueprint" },
+      { to: "/admin/acquisizione-editoriale", label: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare" },
+      { to: "/admin/acquisizione-script", label: "Script", desc: "La procedura di acquisizione su LinkedIn, con gli script da copiare" },
     ],
   },
   // ── VENDITE · Marco ── dal Blueprint alla firma (assorbe "Acquisizione e vendita":
@@ -168,6 +173,7 @@ const NAV = [
       { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
       { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
       { to: "/admin/listino-prezzi", label: "Listino & prezzi", desc: "I prezzi ufficiali del percorso, da un'unica fonte (sola lettura)" },
+      { to: "/admin/catalogo", label: "Catalogo", desc: "Il catalogo completo dei servizi, con le descrizioni ufficiali" },
       { to: "/admin/collaudo-checkout", label: "Collaudo checkout", desc: "Verifica end-to-end del pagamento in ambiente di test" },
     ],
   },
@@ -240,28 +246,6 @@ function macroTarget(macro) {
   if (macro.to) return macro.to;
   if (macro.landing) return `/admin/reparto/${macro.id}`;
   return macroPages(macro)[0].to;
-}
-
-// Una pagina "possiede" una path se è esattamente quella o un suo sotto-path.
-// Evita che to="/admin/pipeline" catturi "/admin/pipeline-blueprint".
-function pageOwns(pathname, p) {
-  if (p.end) return pathname === p.to;
-  return pathname === p.to || pathname.startsWith(p.to + "/");
-}
-
-// Data una path, trova la sezione (macro landing) a cui appartiene, per il
-// tasto "Indietro". Esclude il root /admin e le pagine-reparto (le home).
-function sectionLandingFor(pathname) {
-  if (pathname === "/admin") return null;
-  if (pathname.startsWith("/admin/reparto/")) return null;
-  for (const macro of NAV) {
-    if (!macro.landing) continue;
-    if (macroPages(macro).some((p) => pageOwns(pathname, p))) {
-      if (macro.to && pathname === macro.to) return null;
-      return { to: macro.to || `/admin/reparto/${macro.id}`, label: macro.label };
-    }
-  }
-  return null;
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────
@@ -415,9 +399,9 @@ function AdminShell({ user, onLogout, children }) {
   const pagineCercabili = nav.flatMap((macro) => macroPages(macro)
     .filter((page) => !(page.hideFor || []).includes(adminType))
     .map((page) => ({ ...page, department: macro.label })));
-  // Tasto "Indietro" verso la home della sezione corrente (se siamo in una
-  // sotto-pagina di una sezione con landing).
-  const back = sectionLandingFor(pathname);
+  // Menu di sezione: le pagine sorelle del reparto, su ogni pagina del reparto
+  // (sostituisce il "Torna a ..." e i tre sotto-menu scritti a mano).
+  const sezione = trovaSezione(pathname, nav, adminType);
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       {/* Sfondo scuro piatto (niente blur) dietro il cassetto, solo sotto lg. */}
@@ -519,16 +503,7 @@ function AdminShell({ user, onLogout, children }) {
         </button>
       </div>
       <main className="flex-1 min-w-0 overflow-auto">
-        {back && (
-          <div className="px-4 sm:px-8 pt-6">
-            <Link
-              to={back.to}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-colors"
-            >
-              <span aria-hidden>←</span> Torna a {back.label}
-            </Link>
-          </div>
-        )}
+        {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} />}
         {children}
       </main>
       </div>

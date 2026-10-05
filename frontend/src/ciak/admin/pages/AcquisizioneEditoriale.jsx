@@ -8,7 +8,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus, LayoutGrid, BookOpen, Wand2, Images } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../api";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const SECTIONS = [
   { id: "workspace", label: "Workspace", icon: LayoutGrid },
@@ -185,7 +184,6 @@ export function AcquisizioneEditoriale({ onAuthExpired }) {
 
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <AcquisizioneSubNav active="Editoriale" />
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6">
         <div className="flex justify-between items-start gap-4 flex-wrap">

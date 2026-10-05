@@ -9,12 +9,10 @@
  * non una pagina custom separata.
  */
 import { LeadManager } from "./LeadManager";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 export function AcquisizionePipelineProspect({ onAuthExpired }) {
   return (
     <div className="p-6 md:p-8 space-y-5">
-      <AcquisizioneSubNav active="Pipeline Prospect" />
       <LeadManager embedded onAuthExpired={onAuthExpired} />
     </div>
   );

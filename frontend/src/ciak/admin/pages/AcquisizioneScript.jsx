@@ -10,7 +10,6 @@ import {
   ClipboardList, Copy, Check, Linkedin, Phone, MessageCircle, Video,
   BarChart3, CalendarCheck, RotateCcw, Users, Info,
 } from "lucide-react";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const FLUSSO = [
   { icon: Linkedin, t: "Collegamento + messaggio LinkedIn a freddo" },
@@ -179,7 +178,6 @@ function ScriptBlock({ text }) {
 export function AcquisizioneScript() {
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-4xl">
-      <AcquisizioneSubNav active="Script" />
 
       <div className="bg-slate-900 text-white rounded-2xl px-6 py-5">
         <div className="flex items-center gap-2">

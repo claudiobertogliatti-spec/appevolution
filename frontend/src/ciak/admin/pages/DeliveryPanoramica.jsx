@@ -17,7 +17,6 @@ import {
   ArrowRight, Rocket, Gauge, AlertTriangle, ClipboardCheck, CalendarClock, Handshake,
 } from "lucide-react";
 import { apiGet } from "../api";
-import { DeliverySubNav } from "../components/DeliverySubNav";
 
 const ATTI = [
   { key: "esamina", label: "Esamina" },
@@ -76,14 +75,13 @@ export function DeliveryPanoramica({ onAuthExpired }) {
       .slice(0, 6);
   }, [pse]);
 
-  if (error) return <div className="p-8"><DeliverySubNav active="Home" /><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
-  if (!data) return <div className="p-8"><DeliverySubNav active="Home" /><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
+  if (error) return <div className="p-8"><p className="text-slate-600 mt-6">Errore: {error}</p></div>;
+  if (!data) return <div className="p-8"><p className="text-slate-400 mt-6">Caricamento panoramica...</p></div>;
 
   const totale = data.total ?? items.length;
 
   return (
     <div className="p-6 md:p-8 space-y-5 max-w-6xl">
-      <DeliverySubNav active="Home" />
 
       {/* HERO + north-star */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">

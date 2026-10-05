@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { apiGet, adminFetch, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { AcquisizioneSubNav } from "../components/AcquisizioneSubNav";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -179,7 +178,6 @@ export function AdminLeads({ onAuthExpired }) {
 
   return (
     <div className="p-6 md:p-8">
-      <div className="mb-5 max-w-6xl"><AcquisizioneSubNav active="Lead" /></div>
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead inbound · dal funnel</h1>
       <p className="text-slate-500 mb-6">
         Chi si è iscritto alla masterclass e chi ha compilato il questionario, anche senza
