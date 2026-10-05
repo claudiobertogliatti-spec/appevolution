@@ -792,9 +792,15 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
             f"[0:v]trim={s['start']:.3f}:{s['end']:.3f},"
             f"setpts=PTS-STARTPTS,fps=25,format=yuv420p[v{i}]"
         )
+        # micro-dissolvenze (8 ms) sulle giunzioni: niente "click" dove si e tagliato in mezzo al parlato
+        fades = ""
+        if i > 0:
+            fades += ",afade=t=in:st=0:d=0.008"
+        if i < len(keep) - 1:
+            fades += f",afade=t=out:st={max(s['end'] - s['start'] - 0.008, 0):.3f}:d=0.008"
         parts.append(
             f"[0:a]atrim={s['start']:.3f}:{s['end']:.3f},"
-            f"asetpts=PTS-STARTPTS,aresample=async=1:first_pts=0[a{i}]"
+            f"asetpts=PTS-STARTPTS,aresample=async=1:first_pts=0{fades}[a{i}]"
         )
     streams = "".join(f"[v{i}][a{i}]" for i in range(len(keep)))
     parts.append(f"{streams}concat=n={len(keep)}:v=1:a=1[outv][outa]")
@@ -1764,18 +1770,44 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 all_segs = filler_segs + silence_segs + smart_segs
                 all_segs.sort(key=lambda x: x["start"])
                 if video_type == "videocorso" and lesson_id:
-                    from services.ciak_lesson_standard import enforce_lesson_policy
-                    _policy = enforce_lesson_policy(all_segs, words, raw_dur)
+                    from services.ciak_lesson_standard import enforce_lesson_policy, normalize_words, protected_exercise_ranges
+                    from services.ciak_lesson_cut_plan import build_lesson_ai_prompt, plan_lesson_cuts
+                    from services import ciak_masterclass_standard as _mcs
+                    _words_s = normalize_words(words, raw_dur)
+                    # intercalari gia riconosciuti dal trascrittore (con le vecchie regole di sicurezza)
+                    _legacy = enforce_lesson_policy(filler_segs + smart_segs, words, raw_dur)
+                    _extra = [c for c in _legacy["cuts"] if c.get("type") != "silence"]
+                    # pause reali dell'audio (non solo i vuoti fra parole): ripiego sui vuoti se l'analisi fallisce
+                    try:
+                        _sil = await _loop.run_in_executor(None, _mcs.silence_list, raw_path)
+                    except Exception as _sil_err:
+                        logger.warning(f"[LESSON-CUTS] analisi silenzi non riuscita, uso i vuoti fra parole: {_sil_err}")
+                        _sil = None
+                    # filo del discorso: l'AI propone, le regole decidono (se l'AI non risponde si taglia comunque con le regole)
+                    _ai_cands = []
+                    try:
+                        from services.ciak_llm import LlmChat, UserMessage
+                        _chat = LlmChat(session_id=f"lesson-flow-{partner_id}-{lesson_id}",
+                                        system_message="Sei un montatore video professionista di videolezioni in italiano.")
+                        _raw_ai = await _chat.send_message(UserMessage(text=build_lesson_ai_prompt(
+                            _words_s, protected_exercise_ranges(_words_s))))
+                        _ai_cands = _mcs.parse_cards(_raw_ai or "")
+                    except Exception as _ai_err:
+                        logger.warning(f"[LESSON-CUTS] filo del discorso (AI) non disponibile: {_ai_err}")
+                    _policy = plan_lesson_cuts(words, raw_dur, silences=_sil, ai_candidates=_ai_cands, extra_cuts=_extra)
                     all_segs = _policy["cuts"]
                     lesson_standard_report = {
                         "standard_version": _policy["standard_version"],
+                        "cut_plan_version": _policy["cut_plan_version"],
                         "protected_ranges": _policy["protected_ranges"],
                         "rejected_cut_count": len(_policy["rejected"]),
                         "approved_cut_count": len(_policy["cuts"]),
+                        "cut_stats": _policy["stats"],
+                        "ai_cuts": _policy["ai_cuts"][:20],
                     }
                     logger.info(
-                        "[LESSON-STANDARD] %s tagli approvati, %s respinti, %s zone protette",
-                        len(_policy["cuts"]), len(_policy["rejected"]), len(_policy["protected_ranges"]),
+                        "[LESSON-STANDARD] %s tagli approvati (%s), %s respinti, %s zone protette",
+                        len(_policy["cuts"]), _policy["stats"], len(_policy["rejected"]), len(_policy["protected_ranges"]),
                     )
                 # ── AGENTE MASTERCLASS (ciak-masterclass-v1) ────────────────
                 # Monta il video intero dal girato. Se fallisce NON si pubblica il grezzo: errore
