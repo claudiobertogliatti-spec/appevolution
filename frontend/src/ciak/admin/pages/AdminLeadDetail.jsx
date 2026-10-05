@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiGet, adminFetch, errorDetail, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
+import LinkAccessoCliente from "../components/LinkAccessoCliente";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -610,6 +611,26 @@ export function AdminLeadDetail({ onAuthExpired }) {
         </div>
       )}
 
+      {/* Recupero accesso: il cliente non riesce a leggere la mail o il link e' scaduto.
+          Crea un link personale nuovo e NON invia nessuna mail. Non esiste per chi non ha
+          ancora un account cliente (nasce con la consegna del Blueprint). */}
+      {!isCommercial && data.client_id && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 mb-6">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Accesso del cliente</p>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Se non riesce ad aprire l'area, crea qui un link personale nuovo e mandaglielo tu.
+              Non parte nessuna mail.
+            </p>
+          </div>
+          <LinkAccessoCliente
+            client={{ id: data.client_id, email: data.email, name: lead?.nome }}
+            onAuthExpired={onAuthExpired}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50"
+          />
+        </div>
+      )}
+
       {/* Bridge Partnership */}
       {!isCommercial && qualified_for_proposta && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
@@ -629,15 +650,10 @@ export function AdminLeadDetail({ onAuthExpired }) {
             {generatingProposal ? "Generazione..." : "Genera Proposta Partnership"}
           </button>
           {proposal?.url && (
-            <div className="mt-4 rounded-xl border border-slate-700 p-4">
-              {/* Il link da dare al lead è la pagina post-call personalizzata sul Blueprint
-                  (/insider/:token, stesso token della proposta). */}
-              <p className="text-sm text-slate-200 mb-2">Proposta {proposal.status}: {proposal.url.replace("/proposta/", "/insider/")}</p>
-              <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => navigator.clipboard.writeText(proposal.url.replace("/proposta/", "/insider/"))} className="text-sm text-yellow-400">Copia URL</button>
-                <a href={proposal.url.replace("/proposta/", "/insider/")} target="_blank" rel="noopener noreferrer" className="text-sm text-yellow-400">Apri proposta</a>
-              </div>
-            </div>
+            <p className="text-sm text-slate-200 mt-4 leading-relaxed">
+              Proposta {proposal.status}. Il cliente la trova nella sua area: per mandargli
+              l'accesso usa «Accesso del cliente» qui sotto.
+            </p>
           )}
           {markMsg && <p className="text-sm text-slate-200 mt-3">{markMsg}</p>}
         </div>

@@ -117,3 +117,36 @@ async def test_salta_senza_email(sent):
     db = _Db([_client(email="")])
     res = await br.invia_promemoria_bonus(db)
     assert res["inviati"] == 0
+
+
+@pytest.mark.asyncio
+async def test_il_promemoria_porta_un_link_personale_non_cliente_nudo(monkeypatch):
+    """`/cliente` da solo apre l'area di chi ha gia' una sessione nel browser: il
+    promemoria deve portare il link col token del singolo cliente."""
+    links = []
+    monkeypatch.setattr(br, "_send_reminder", lambda email, nome, ore, link: links.append(link) or True)
+    import services.ciak_client_accounts as accounts
+
+    async def fake_token(db, client_id, email):
+        return {"token": f"tk-{client_id}", "expires_at": "2099-01-01T00:00:00+00:00"}
+
+    monkeypatch.setattr(accounts, "create_magic_login_token", fake_token)
+    db = _Db([_client()])
+    res = await br.invia_promemoria_bonus(db)
+    assert res["inviati"] == 1
+    assert links == ["https://www.ciak.io/cliente/accesso?token=tk-c1"]
+
+
+@pytest.mark.asyncio
+async def test_se_il_token_non_si_crea_il_link_e_la_pagina_di_accesso(monkeypatch):
+    links = []
+    monkeypatch.setattr(br, "_send_reminder", lambda email, nome, ore, link: links.append(link) or True)
+    import services.ciak_client_accounts as accounts
+
+    async def boom(db, client_id, email):
+        raise RuntimeError("db giu'")
+
+    monkeypatch.setattr(accounts, "create_magic_login_token", boom)
+    res = await br.invia_promemoria_bonus(_Db([_client()]))
+    assert res["inviati"] == 1  # il promemoria parte lo stesso
+    assert links == ["https://www.ciak.io/cliente/accesso"]

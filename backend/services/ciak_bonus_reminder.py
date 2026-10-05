@@ -76,6 +76,19 @@ Evolution PRO
         return False
 
 
+async def _link_personale(db, client: dict, email: str, base: str) -> str:
+    """Link d'accesso personale del cliente; se non si riesce a crearlo, la pagina di
+    accesso, dove "Rimandami l'accesso" gli rimanda il link per email."""
+    try:
+        from services.ciak_client_accounts import create_magic_login_token
+
+        login = await create_magic_login_token(db, client["id"], email)
+        return f"{base}/cliente/accesso?token={login['token']}"
+    except Exception as exc:  # noqa: BLE001 - il promemoria parte comunque
+        logger.warning("[BONUS_REMINDER] magic-link fallito per %s: %s", client.get("id"), exc)
+        return f"{base}/cliente/accesso"
+
+
 async def invia_promemoria_bonus(db) -> dict:
     """Manda il promemoria a chi ha la finestra bonus che si chiude entro ~24h e
     non ha ancora comprato Ciak Start. Un solo invio per cliente. Ritorna i conteggi.
@@ -85,7 +98,7 @@ async def invia_promemoria_bonus(db) -> dict:
 
     now = datetime.now(timezone.utc)
     soglia = now + timedelta(hours=REMINDER_HOURS_BEFORE)
-    link = os.environ.get("CIAK_BASE_URL", "https://www.ciak.io").rstrip("/") + "/cliente"
+    base = os.environ.get("CIAK_BASE_URL", "https://www.ciak.io").rstrip("/")
 
     query = {
         "bonus_expires_at": {"$nin": [None, ""]},
@@ -110,6 +123,9 @@ async def invia_promemoria_bonus(db) -> dict:
             continue
         validi += 1
         ore = max(1, int((exp - now).total_seconds() // 3600))
+        # Link PERSONALE: `/cliente` da solo apre l'area di chi ha gia' una sessione nel
+        # browser (altro cliente) o il login (chi non ce l'ha): mai quella giusta.
+        link = await _link_personale(db, c, email, base)
         ok = _send_reminder(email, c.get("name"), ore, link)
         if not ok:
             errori += 1

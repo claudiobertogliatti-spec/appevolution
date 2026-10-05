@@ -199,3 +199,47 @@ test("la scheda dice subito se e' un lead, un cliente Start o un partner", async
   render(<AdminLeadDetail onAuthExpired={() => {}} />);
   expect((await screen.findByTestId("ruolo-contatto")).textContent).toMatch(/^Lead/);
 });
+
+describe("recupero accesso del cliente", () => {
+  test("se il lead ha un account cliente, «Link di accesso» crea il link senza mandare mail", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, client_id: "c1" });
+    adminFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, link: "https://www.ciak.io/cliente/accesso?token=NEW", scade_il: "2026-11-04T09:00:00+00:00" }),
+    });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Link di accesso" }));
+    await waitFor(() =>
+      expect(adminFetch).toHaveBeenCalledWith(
+        "/api/admin/ciak/clients/c1/link-accesso",
+        expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "mario@x.it" }) })
+      )
+    );
+    expect((await screen.findByLabelText("Link di accesso")).value).toBe("https://www.ciak.io/cliente/accesso?token=NEW");
+    expect(screen.getByText(/Nessuna mail è partita/)).toBeTruthy();
+  });
+
+  test("senza account cliente il pulsante non c'è", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, client_id: null });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText(/Anagrafica lead/);
+    expect(screen.queryByRole("button", { name: "Link di accesso" })).toBeNull();
+  });
+
+  test("non c'è per l'account commerciale (il backend glielo rifiuterebbe)", async () => {
+    getAdminUser.mockReturnValue({ admin_type: "mariangela" });
+    apiGet.mockResolvedValue({ ...LEAD, client_id: "c1" });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText(/Anagrafica lead/);
+    expect(screen.queryByRole("button", { name: "Link di accesso" })).toBeNull();
+  });
+
+  test("la proposta non mostra più un URL /insider/ (non apre più nulla)", async () => {
+    apiGet.mockResolvedValue({ ...LEAD, qualified_for_proposta: true, latest_diagnostic: { id: "d1", scoring: { stato_finale: "A" } } });
+    adminFetch.mockResolvedValue({ ok: true, json: async () => ({ url: "https://www.ciak.io/proposta/TKN", status: "draft" }) });
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Genera Proposta Partnership/ }));
+    await screen.findByText(/Il cliente la trova nella sua area/);
+    expect(document.body.textContent).not.toMatch(/\/insider\//);
+  });
+});
