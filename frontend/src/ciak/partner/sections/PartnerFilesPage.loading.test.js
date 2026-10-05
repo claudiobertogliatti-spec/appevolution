@@ -49,6 +49,7 @@ test('when everything has answered the loading message goes away and real files 
       materials: [{ id: 'm1', type: 'pdf', title: 'Brand_Kit.pdf', category: 'brand_kit', download_url: '/x' }],
     });
   });
-  expect((await screen.findAllByText('Brand Kit')).length).toBeGreaterThan(0);
+  // loaded: the real file sits in its folder tile (the file itself is one click away)
+  expect(await screen.findByText('Brand e strategia')).toBeTruthy();
   await waitFor(() => expect(screen.queryByText('Sto caricando i tuoi materiali…')).toBeNull());
 });

@@ -7,8 +7,7 @@ import React, { useState, useEffect } from "react";
 import { authHeaders, getPartnerUser, isAdminUser } from "../api";
 import {
   FolderOpen, Search, Plus, Download, Eye, Link as LinkIcon,
-  FileText, FileCheck, FileVideo, FileAudio, Image, PenLine, Award,
-  Sparkles, Lock, ShieldCheck, X, Check, Folder, ChevronDown, ChevronUp
+  FileText, FileCheck, FileVideo, Image, Award, X, Folder, ChevronDown, ChevronUp
 } from "lucide-react";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoMateriali from "../sereno/SerenoMateriali";
@@ -17,12 +16,12 @@ import { uploadPartnerFile } from "../sereno/uploadMateriale";
 
 // Struttura Cartelle Cloud Vault
 const DRIVE_FOLDERS = [
-  { id: "brand_kit", name: "01. Brand e strategia", subtitle: "Posizionamento, brand kit, logo e contratto", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
-  { id: "scripts", name: "02. Script e scalette", subtitle: "Masterclass, lezioni e script di chiusura", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
-  { id: "video", name: "03. Video del corso", subtitle: "Videolezioni registrate, video di benvenuto e altri video", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
-  { id: "funnel", name: "04. Vendita e piattaforma", subtitle: "Pagine del funnel, pagamenti, dominio e pagine legali", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
-  { id: "social", name: "05. Contenuti social", subtitle: "Calendario di lancio, guide e prompt per i contenuti", icon: Folder, color: "text-violet-500", bg: "bg-violet-50" },
-  { id: "master_pdf", name: "06. Il tuo piano e altri documenti", subtitle: "Libretto di progetto, piano operativo, certificati e documenti firmati", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "brand_kit", name: "01. Brand e strategia", subtitle: "Posizionamento, brand kit, logo e foto", icon: Folder, color: "text-amber-500", bg: "bg-amber-50" },
+  { id: "scripts", name: "02. Corso e script", subtitle: "Masterclass, lezioni, outline e videocorso", icon: Folder, color: "text-yellow-600", bg: "bg-yellow-50" },
+  { id: "funnel", name: "03. Vendita e pagine legali", subtitle: "Offerta, FAQ, privacy, cookie e termini", icon: Folder, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { id: "social", name: "04. Reel e contenuti social", subtitle: "Reel, copertine e calendario di lancio", icon: Folder, color: "text-violet-500", bg: "bg-violet-50" },
+  { id: "documenti", name: "05. Contratto e documenti personali", subtitle: "Contratto, distinta e documenti che hai caricato", icon: Folder, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "master_pdf", name: "06. Il tuo piano", subtitle: "Libretto di progetto, piano operativo e altri documenti", icon: Folder, color: "text-amber-600", bg: "bg-amber-50" },
 ];
 
 function iconForMaterialType(type) {
@@ -30,114 +29,6 @@ function iconForMaterialType(type) {
   if (type === "image") return { icon: Image, color: "text-violet-500" };
   return { icon: FileText, color: "text-blue-600" };
 }
-
-// Mock File Vault per la demo e l'integrazione reale
-const INITIAL_VAULT_FILES = [
-  {
-    id: "f-1",
-    folderId: "master_pdf",
-    name: "Piano_Operativo_Strategico_EVO.pdf",
-    category: "Piano Master PDF",
-    size: "3.4 MB",
-    date: "23 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: Award,
-    iconColor: "text-amber-600",
-    url: "/api/partner-journey/piano-operativo-pdf/demo_mario_rossi",
-  },
-  {
-    id: "f-2",
-    folderId: "master_pdf",
-    name: "Certificato_Fase_Esamina_Mario_Rossi.pdf",
-    category: "Certificato",
-    size: "1.2 MB",
-    date: "22 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: Award,
-    iconColor: "text-emerald-600",
-    url: "/api/partner-journey/certificato-pdf/demo_mario_rossi/esamina",
-  },
-  {
-    id: "f-3",
-    folderId: "brand_kit",
-    name: "Posizionamento_Strategico_Dott_Mario_Rossi.pdf",
-    category: "Posizionamento",
-    size: "850 KB",
-    date: "21 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: FileText,
-    iconColor: "text-blue-600",
-    url: "#",
-  },
-  {
-    id: "f-4",
-    folderId: "brand_kit",
-    name: "Brand_Kit_Colori_Font_Logo.pdf",
-    category: "Brand Kit",
-    size: "2.1 MB",
-    date: "20 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "pdf",
-    icon: FileText,
-    iconColor: "text-amber-500",
-    url: "#",
-  },
-  {
-    id: "f-5",
-    folderId: "scripts",
-    name: "Script_Masterclass_Vendita_Bozza.docx",
-    category: "Script Word",
-    size: "420 KB",
-    date: "19 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "doc",
-    icon: PenLine,
-    iconColor: "text-yellow-600",
-    url: "#",
-  },
-  {
-    id: "f-6",
-    folderId: "brand_kit",
-    name: "Contratto_Partner_EVO_Firmato.pdf",
-    category: "Contratto Legal",
-    size: "1.8 MB",
-    date: "15 Lug 2026",
-    owner: "👤 Tu",
-    type: "pdf",
-    icon: FileCheck,
-    iconColor: "text-emerald-600",
-    url: "#",
-  },
-  {
-    id: "f-7",
-    folderId: "video",
-    name: "Video_Benvenuto_Claudio.mp4",
-    category: "Video HD",
-    size: "45 MB",
-    date: "15 Lug 2026",
-    owner: "⚙️ CIAK",
-    type: "video",
-    icon: FileVideo,
-    iconColor: "text-red-500",
-    url: "#",
-  },
-  {
-    id: "f-8",
-    folderId: "funnel",
-    name: "Piattaforma_Checkout_Stripe_Accademia.link",
-    category: "Link Checkout",
-    size: "1 KB",
-    date: "Oggi",
-    owner: "⚙️ CIAK",
-    type: "link",
-    icon: LinkIcon,
-    iconColor: "text-emerald-500",
-    url: "#",
-  }
-];
 
 /**
  * Scarica un file passando dal token del partner: gli endpoint PDF rispondono
@@ -303,7 +194,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
                 const dp = await rp.json();
                 if (dp?.success && dp?.pdf_url) {
                   out.push({
-                    id: "r-contratto", folderId: "brand_kit",
+                    id: "r-contratto", folderId: "documenti",
                     name: "Contratto firmato", category: "Contratto",
                     size: "PDF", date: dc.signed_at ? dc.signed_at.slice(0, 10) : "—",
                     owner: "👤 Tu", type: "pdf", createdAt: dc.signed_at || null,
@@ -333,8 +224,8 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     brand_kit: true,
     social: true,
     scripts: true,
-    video: true,
     funnel: true,
+    documenti: true,
     master_pdf: true,
   });
 
