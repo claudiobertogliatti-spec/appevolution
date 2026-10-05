@@ -93,3 +93,5 @@
   .sereno-more a,.sereno-more button{display:flex;align-items:center;gap:12px;padding:14px 6px;min-height:48px;font-size:15px;color:#0F172A;border:0;background:none;text-align:left}
   .sereno-sheet{width:100%}
 }
+.sereno-up-warn{background:#FEF3B7;color:#56400A!important;border-radius:8px;padding:10px 14px;font-size:14px;margin:0 0 14px!important;max-width:none!important}
+.sereno-sheet-warn{margin:14px 20px 0;padding:10px 12px;border-radius:8px;background:#FEF3B7;color:#56400A;font-size:14px}

@@ -10,12 +10,13 @@ import { authHeaders } from '../api';
  * Resolves { ok:true, fallback? } or { ok:false, error } — never throws, and never
  * claims success unless the server answered with success:true.
  */
-export function uploadPartnerFile(partnerId, file, onProgress = () => {}, makeXhr = () => new XMLHttpRequest()) {
+export function uploadPartnerFile(partnerId, file, onProgress = () => {}, makeXhr = () => new XMLHttpRequest(), { notify = true } = {}) {
   return new Promise((resolve) => {
     const xhr = makeXhr();
     const body = new FormData();
     body.append('file', file);
-    xhr.open('POST', `${API}/api/partner-journey/operativo/upload/${partnerId}`);
+    // notify=false: an admin uploading on the partner's behalf must not raise the "il partner ha caricato" alert.
+    xhr.open('POST', `${API}/api/partner-journey/operativo/upload/${partnerId}${notify ? '' : '?notify=false'}`);
     const headers = authHeaders();
     Object.keys(headers).forEach((k) => xhr.setRequestHeader(k, headers[k]));
     if (xhr.upload) {

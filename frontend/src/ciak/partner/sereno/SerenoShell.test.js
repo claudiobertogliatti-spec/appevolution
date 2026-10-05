@@ -45,9 +45,10 @@ test('"Ho un dubbio su questo passaggio" on Oggi opens the help sheet; progress 
   expect(screen.getByRole('dialog')).toBeTruthy();
 });
 
-test('supervision label is shown and the chat inside is off', () => {
+test('supervision label is shown, and the chat inside warns that it writes as the partner', () => {
   wrap(<p>pagina</p>, { adminViewLabel: 'Andrea Fredi' });
   expect(screen.getByText(/Supervisione · Andrea Fredi/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Chiedi aiuto/ }));
-  expect(screen.getByLabelText('La tua domanda').disabled).toBe(true);
+  expect(screen.getByRole('note').textContent).toMatch(/stai scrivendo come Giulia/);
+  expect(screen.getByLabelText('La tua domanda').disabled).toBe(false);
 });

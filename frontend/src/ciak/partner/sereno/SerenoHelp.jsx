@@ -34,7 +34,7 @@ function HelpSheet({ partnerId, partnerName, supervision, onClose }) {
 
   const send = async (retryText) => {
     const text = (typeof retryText === 'string' ? retryText : input).trim();
-    if (!text || sending || supervision) return;
+    if (!text || sending) return;
     if (typeof retryText !== 'string') setMessages((m) => [...m, { role: 'me', content: text }]);
     setInput('');
     setFailedText(null);
@@ -73,7 +73,7 @@ function HelpSheet({ partnerId, partnerName, supervision, onClose }) {
           <button onClick={onClose} aria-label="Chiudi"><X aria-hidden="true" /></button>
         </header>
         {step && step.label && <p className="sereno-sheet-ctx">Il tuo prossimo passo: {step.label}</p>}
-        {supervision && <p className="sereno-sheet-ctx">Vista supervisione: la chat è disattivata, così non si scrive al posto del partner.</p>}
+        {supervision && <p className="sereno-sheet-warn" role="note">Vista supervisione: stai scrivendo come {partnerName || 'il partner'}. Il messaggio entra nel suo storico conversazioni.</p>}
         <div className="sereno-sheet-log" ref={logRef} aria-live="polite">
           <p className="sereno-msg sereno-msg-agent">Ciao{partnerName ? `, ${String(partnerName).trim().split(' ')[0]}` : ''}! Sono {agent.name}. Dimmi pure cosa non ti è chiaro.</p>
           {messages.map((m, i) => <p key={i} className={`sereno-msg sereno-msg-${m.role}`}>{m.content}</p>)}
@@ -95,9 +95,9 @@ function HelpSheet({ partnerId, partnerName, supervision, onClose }) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Scrivi qui la tua domanda…"
             aria-label="La tua domanda"
-            disabled={sending || supervision}
+            disabled={sending}
           />
-          <button type="submit" className="sereno-primary" disabled={sending || supervision || !input.trim()}>Invia</button>
+          <button type="submit" className="sereno-primary" disabled={sending || !input.trim()}>Invia</button>
         </form>
       </aside>
     </>

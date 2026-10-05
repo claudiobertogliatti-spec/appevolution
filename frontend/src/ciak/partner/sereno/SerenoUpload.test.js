@@ -78,3 +78,9 @@ test('a file can be dropped on the area', async () => {
   fireEvent.drop(container.querySelector('.sereno-drop'), { dataTransfer: { files: [pdf()] } });
   await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
 });
+
+test('a warning (admin supervision) is shown without removing the picker', () => {
+  render(<SerenoUpload upload={jest.fn()} warning="Vista supervisione: il file viene aggiunto all'area di questo partner." />);
+  expect(screen.getByRole('note').textContent).toMatch(/Vista supervisione/);
+  expect(screen.getByRole('button', { name: /Scegli un file/ })).toBeTruthy();
+});
