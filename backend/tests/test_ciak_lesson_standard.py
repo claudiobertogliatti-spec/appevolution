@@ -84,3 +84,41 @@ def test_brand_profile_reads_colors_saved_by_the_brand_kit_step():
     step = {"data": {"colors": ["#000041", "#35B3CB"], "logo_url": "https://res.cloudinary.com/x/l.png"}}
     b = ls.brand_profile({"name": "Andrea Fredi"}, {}, step)
     assert b["primary"].lower() == "#000041" and b["brand_source"] == "partner"
+
+
+OUTLINE = (
+    "MODULO 1 — Le Fondamenta\nObiettivo: capire.\n"
+    "1.1 Benvenuti nel Crogiolo della Trasformazione: il mondo interiore — TAI come sistema di miglioramento\n"
+    "1.2 Il Punto Nave — dove sei e dove vuoi andare\n"
+    "1.3 Senza trattino\n"
+    "\nMODULO 2 — Scienza di Confine\n2.1 Le Tecniche Energetiche — le metodiche più efficaci\n"
+)
+
+
+def test_outline_titles_split_title_and_subtitle_on_the_long_dash():
+    t = ls.outline_lesson_titles(OUTLINE)
+    assert t[(1, 2)] == {"title": "Il Punto Nave", "subtitle": "Dove sei e dove vuoi andare"}
+    assert t[(1, 3)] == {"title": "Senza trattino", "subtitle": ""}
+    assert t[(1, 1)]["title"].startswith("Benvenuti nel Crogiolo") and t[(2, 1)]["title"] == "Le Tecniche Energetiche"
+    assert (1, 4) not in t and ls.outline_lesson_titles("") == {} and ls.outline_lesson_titles(None) == {}
+
+
+def test_real_title_replaces_the_bare_label_name_and_keeps_the_label():
+    name, sub = ls.real_lesson_title("Modulo 1 Lezione 2.mp4", OUTLINE)
+    assert (name, sub) == ("Modulo 1 Lezione 2 - Il Punto Nave", "Dove sei e dove vuoi andare")
+    assert ls.lesson_label(name) == "Modulo 1 · Lezione 2" and ls.clean_title(name) == "Il Punto Nave"   # niente etichetta doppia
+
+
+def test_real_title_never_invents_one():
+    assert ls.real_lesson_title("Modulo 9 Lezione 9.mp4", OUTLINE) == ("Modulo 9 Lezione 9.mp4", "")      # voce assente
+    assert ls.real_lesson_title("VID20260614181223.mp4", OUTLINE) == ("VID20260614181223.mp4", "")        # nome senza modulo/lezione
+    assert ls.real_lesson_title("Modulo 1 Lezione 2.mp4", "") == ("Modulo 1 Lezione 2.mp4", "")           # nessuna scaletta
+
+
+@pytest.mark.skipif(not ls._cover_font_path(), reason="font di sistema non disponibile")
+def test_cover_uses_the_subtitle_and_never_overflows():
+    brand = {"name": "TAI", "partner_name": "Andrea Fredi", "primary": "#000041", "background": "#F2EFE8", "text": "#20201E"}
+    long_sub = "una frase lunghissima " * 12
+    img = ls.draw_cover(brand, "Il Punto Nave", "Modulo 1 · Lezione 2", None, long_sub)
+    assert img.size == ls.COVER_SIZE
+    ls.draw_cover(brand, "Il Punto Nave", "Modulo 1 · Lezione 2", None)        # senza sottotitolo: il solito testo

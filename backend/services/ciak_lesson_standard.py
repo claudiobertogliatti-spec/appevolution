@@ -204,6 +204,43 @@ def lesson_label(raw: str) -> str:
     return f"{m.group(1).capitalize()} {int(m.group(2))} · Lezione {int(m.group(3))}" if m else ""
 
 
+_OUTLINE_LINE_RE = re.compile(r"^\s*(\d{1,2})\.(\d{1,2})\s+(\S.*?)\s*$")
+_OUTLINE_DASH_RE = re.compile(r"\s+[—–]\s+")
+
+
+def outline_lesson_titles(outline_text: str) -> dict:
+    """Titoli veri dalla scaletta del corso: righe '1.2 Il Punto Nave — dove sei e dove vuoi andare'.
+
+    Ritorna {(modulo, lezione): {"title": "Il Punto Nave", "subtitle": "Dove sei e dove vuoi andare"}}.
+    Il titolo e la parte prima del trattino lungo; il resto (se c'e) diventa sottotitolo.
+    """
+    out = {}
+    for line in str(outline_text or "").splitlines():
+        m = _OUTLINE_LINE_RE.match(line)
+        if not m:
+            continue
+        parts = _OUTLINE_DASH_RE.split(m.group(3), maxsplit=1)
+        title, subtitle = parts[0].strip(), (parts[1].strip() if len(parts) > 1 else "")
+        if title:
+            out[(int(m.group(1)), int(m.group(2)))] = {
+                "title": title, "subtitle": (subtitle[:1].upper() + subtitle[1:]) if subtitle else ""}
+    return out
+
+
+def real_lesson_title(raw_name: str, outline_text: str) -> tuple:
+    """('Modulo 1 Lezione 2.mp4', scaletta) -> ('Modulo 1 Lezione 2 - Il Punto Nave', 'Dove sei e dove vuoi andare').
+
+    Se il nome non dichiara modulo e lezione, o la scaletta non ha quella voce, ritorna (nome, "") invariato:
+    mai un titolo inventato."""
+    m = _LABEL_RE.match(_VIDEO_EXT_RE.sub("", str(raw_name or "")).replace("_", " "))
+    if not m:
+        return raw_name, ""
+    found = outline_lesson_titles(outline_text).get((int(m.group(2)), int(m.group(3))))
+    if not found:
+        return raw_name, ""
+    return f"{m.group(1).capitalize()} {int(m.group(2))} Lezione {int(m.group(3))} - {found['title']}", found["subtitle"]
+
+
 def cover_names(brand: dict) -> str:
     """'PROGETTO • PARTNER' senza ripetere lo stesso nome due volte."""
     seen, out = set(), []
@@ -297,7 +334,7 @@ def load_logo(url):
         return None
 
 
-def draw_cover(brand: dict, title: str, label: str = "", logo=None):
+def draw_cover(brand: dict, title: str, label: str = "", logo=None, subtitle: str = ""):
     """Copertina 1920x1080: nome (una volta), etichetta, titolo a capo, sottotitolo, logo se c'è."""
     from PIL import Image, ImageDraw, ImageFont
 
@@ -322,7 +359,10 @@ def draw_cover(brand: dict, title: str, label: str = "", logo=None):
     for line in lines:
         draw.text((COVER_MARGIN_X, y), line, font=font, fill=brand["text"])
         y += int(size * 1.18)
-    draw.text((COVER_MARGIN_X + 4, y + 30), "Una videolezione del tuo percorso", font=f_sub, fill=brand["text"])
+    sub = str(subtitle or "").strip() or "Una videolezione del tuo percorso"
+    while len(sub) > 8 and f_sub.getlength(sub) > max_w:          # una riga sola: meglio accorciare che uscire
+        sub = sub[:-2].rstrip(" ,;:—–-") + "…" if not sub.endswith("…") else sub[:-2] + "…"
+    draw.text((COVER_MARGIN_X + 4, y + 30), sub, font=f_sub, fill=brand["text"])
     draw.line((COVER_MARGIN_X, 740, w - COVER_MARGIN_X, 740), fill=brand["primary"], width=2)
     if logo is not None:
         ratio = min(420 / logo.width, 120 / logo.height)
@@ -332,7 +372,7 @@ def draw_cover(brand: dict, title: str, label: str = "", logo=None):
 
 
 async def render_standard_lesson(*, body_path: str, output_path: str, tmp_dir: Path,
-                                 title: str, intro_text: str, brand: dict) -> dict:
+                                 title: str, intro_text: str, brand: dict, subtitle: str = "") -> dict:
     """Anteponi copertina Andrew e finalizza audio con picco -1,5 dB.
 
     Richiede ffmpeg, Pillow ed edge-tts. Il body non riceve musica, overlay o sottotitoli.
@@ -346,7 +386,7 @@ async def render_standard_lesson(*, body_path: str, output_path: str, tmp_dir: P
     label, shown_title = lesson_label(title), clean_title(title)
     loop = asyncio.get_running_loop()
     logo = await loop.run_in_executor(None, load_logo, brand.get("logo"))
-    draw_cover(brand, shown_title or label or "Videolezione", label, logo).save(cover_png)
+    draw_cover(brand, shown_title or label or "Videolezione", label, logo, subtitle).save(cover_png)
 
     await edge_tts.Communicate(intro_text, VOICE, rate=VOICE_RATE).save(str(voice_mp3))
     cover_duration = max(10.0, min(20.0, _duration(str(voice_mp3)) + 1.3))
