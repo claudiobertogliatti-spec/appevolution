@@ -31,7 +31,12 @@ test('the desktop sidebar keeps every link, and the help button is on every page
   wrap(<p>pagina</p>);
   const side = screen.getByRole('navigation', { name: 'Area partner' });
   ['Oggi', 'Il percorso', 'I tuoi materiali', 'Assistenza'].forEach((l) => expect(within(side).getByRole('link', { name: l })).toBeTruthy());
-  expect(screen.getByRole('button', { name: /Chiedi aiuto/ })).toBeTruthy();
+  // two launchers, one per layout: in the sidebar on desktop (always on screen, covers nothing),
+  // floating on a phone where the sidebar is hidden — CSS shows exactly one of them
+  const launchers = screen.getAllByRole('button', { name: /Chiedi aiuto/ });
+  expect(launchers).toHaveLength(2);
+  expect(document.querySelector('aside.sereno-sidebar .sereno-side-help button')).toBeTruthy();
+  expect(document.querySelector('button.sereno-fab')).toBeTruthy();
 });
 
 test('"Ho un dubbio su questo passaggio" on Oggi opens the help sheet; progress is shown', () => {
@@ -48,7 +53,7 @@ test('"Ho un dubbio su questo passaggio" on Oggi opens the help sheet; progress 
 test('supervision label is shown, and the chat inside warns that it writes as the partner', () => {
   wrap(<p>pagina</p>, { adminViewLabel: 'Andrea Fredi' });
   expect(screen.getByText(/Supervisione · Andrea Fredi/)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: /Chiedi aiuto/ }));
+  fireEvent.click(screen.getAllByRole('button', { name: /Chiedi aiuto/ })[0]);
   expect(screen.getByRole('note').textContent).toMatch(/stai scrivendo come Giulia/);
   expect(screen.getByLabelText('La tua domanda').disabled).toBe(false);
 });

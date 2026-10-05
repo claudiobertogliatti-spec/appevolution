@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { House, Route, FolderOpen, MessagesSquare, Plus, CreditCard, LogOut, Ellipsis, KeyRound } from 'lucide-react';
-import SerenoHelp from './SerenoHelp';
+import SerenoHelp, { useHelp } from './SerenoHelp';
 import './sereno.css';
 
 const NAV = [
@@ -13,6 +13,12 @@ const TABS = [
   ['/partner', 'Oggi', House], ['/partner/percorso', 'Percorso', Route],
   ['/partner/materiali', 'Materiali', FolderOpen], ['/partner/team', 'Assistenza', MessagesSquare],
 ];
+// Desktop: help sits in the sidebar, which stays on screen while the page scrolls, so it never
+// covers the content. On a phone the sidebar is hidden and the floating button takes over.
+function SideHelp() {
+  const { openHelp } = useHelp();
+  return <div className="sereno-side-help"><button className="sereno-primary" onClick={openHelp}><MessagesSquare aria-hidden="true"/>Chiedi aiuto</button></div>;
+}
 export default function SerenoShell({ user, children, onLogout, adminViewLabel, onChangePartner, onBackToAdmin, partnerId, preview = false }) {
   const [more, setMore] = useState(false);
   return <SerenoHelp partnerId={partnerId} partnerName={user?.name} supervision={!!adminViewLabel}>
@@ -23,6 +29,7 @@ export default function SerenoShell({ user, children, onLogout, adminViewLabel, 
           <Link to="/partner" className="sereno-brand" aria-label="Ciak — torna a Oggi"><img src="/ciak/logo.webp" alt="Ciak — Si cambia" width="1580" height="1054" /></Link>
           <nav aria-label="Area partner">{NAV.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to === '/partner'}><Icon aria-hidden="true"/><span>{label}</span></NavLink>)}</nav>
           <nav aria-label="Piano e servizi" className="sereno-extra"><NavLink to="/partner/servizi-extra"><Plus aria-hidden="true"/>Servizi aggiuntivi</NavLink><NavLink to="/partner/rinnovo"><CreditCard aria-hidden="true"/>Il tuo piano</NavLink></nav>
+          <SideHelp />
           <div className="sereno-profile"><span>{user?.name || 'Area partner'}</span><Link to="/partner/cambia-password">Account e password</Link>{onLogout && <button onClick={onLogout}><LogOut aria-hidden="true"/>Esci</button>}</div>
         </aside>
         <main className="sereno-main" id="sereno-main">
