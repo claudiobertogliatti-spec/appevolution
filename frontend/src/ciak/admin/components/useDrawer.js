@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-export function useDrawer(routeKey, { desktopQuery = "(min-width: 1024px)" } = {}) {
+export function useDrawer(routeKey, { desktopQuery = "(min-width: 1024px)", closeOnDesktop = true } = {}) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
@@ -33,6 +33,7 @@ export function useDrawer(routeKey, { desktopQuery = "(min-width: 1024px)" } = {
 
   // Si passa a desktop → il menu torna fisso e il drawer non deve restare "aperto".
   useEffect(() => {
+    if (!closeOnDesktop) return undefined; // es. la finestra di ricerca: vale a ogni larghezza
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
     const mq = window.matchMedia(desktopQuery);
     const onChange = (e) => {
@@ -44,7 +45,7 @@ export function useDrawer(routeKey, { desktopQuery = "(min-width: 1024px)" } = {
       if (mq.removeEventListener) mq.removeEventListener("change", onChange);
       else mq.removeListener(onChange);
     };
-  }, [desktopQuery]);
+  }, [desktopQuery, closeOnDesktop]);
 
   // Aperto: il focus entra nel pannello, Esc chiude, Tab non esce.
   useEffect(() => {
