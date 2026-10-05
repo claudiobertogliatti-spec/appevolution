@@ -6,6 +6,7 @@
  * Ogni script è copiabile. Perimetro interno (brand Ciak: Poppins/slate/giallo).
  */
 import { useState } from "react";
+import { RISVEGLIO_ASSET } from "./risveglioAsset";
 import {
   ClipboardList, Copy, Check, Linkedin, Phone, MessageCircle, Video,
   BarChart3, CalendarCheck, RotateCcw, Users, Info,
@@ -72,6 +73,8 @@ Claudio Bertogliatti
 Evolution Pro`,
     warn: "Onestà (Codice del Consumo): «può diventare», non «diventa». Nessun numero, percentuale o risultato garantito. Nota di ruolo: qui apri tu (Claudio) e la call di qualifica la conduce Mariangela — canale alternativo allo Script standard, dove è Mariangela ad aprire.",
   },
+  // Primo contatto per chi ha già avuto un rapporto con noi (testi approvati 5/10/2026)
+  RISVEGLIO_ASSET,
   {
     n: "2", title: "Script della chiamata di qualifica",
     note: "A chi ha risposto positivamente. Obiettivo: rapport, qualificare, portare al gruppo a 3 + le 10 Domande Ciak. Non si parla di prezzi.",
