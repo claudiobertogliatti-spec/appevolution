@@ -2257,6 +2257,63 @@ async def get_videocorso_review_data(
     return _build_lesson_review_response(lesson)
 
 
+class LessonReviewVideoRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+
+
+@router.post("/videocorso/review-video-url")
+async def get_videocorso_review_video_url(
+    req: LessonReviewVideoRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Admin: indirizzo breve (30 min) per vedere il grezzo accanto al testo nella revisione dei tagli."""
+    await require_admin_token(credentials)
+    await get_partner_or_404(req.partner_id)
+    doc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}) or {}
+    lesson = (doc.get("lessons") or {}).get(req.lesson_id) or {}
+    from services import ciak_review_video as crv
+    if lesson.get("pipeline_status") != "da_revisionare" or not crv.split_gs_url(lesson.get("video_raw_url") or ""):
+        raise HTTPException(status_code=404, detail="Anteprima non disponibile per questa lezione")
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY
+    token = crv.make_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, req.partner_id, req.lesson_id)
+    return {"url": f"/api/partner-journey/videocorso/review-video/{req.partner_id}/{req.lesson_id}?t={token}",
+            "expires_in": crv.TOKEN_TTL_S}
+
+
+@router.get("/videocorso/review-video/{partner_id}/{lesson_id}")
+async def stream_videocorso_review_video(partner_id: str, lesson_id: str, request: Request, t: str = Query("")):
+    """Grezzo della lezione a pezzi (Range) per il lettore della revisione. Autorizzato dal gettone breve `t`."""
+    from auth import JWT_ALGORITHM, JWT_SECRET_KEY
+    from services import ciak_review_video as crv
+    if not crv.verify_token(jwt, JWT_SECRET_KEY, JWT_ALGORITHM, t, partner_id, lesson_id):
+        raise HTTPException(status_code=403, detail="Gettone non valido o scaduto")
+    doc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+    lesson = (doc.get("lessons") or {}).get(lesson_id) or {}
+    where = crv.split_gs_url(lesson.get("video_raw_url") or "")
+    if not where:
+        raise HTTPException(status_code=404, detail="Video non disponibile")
+    from google.cloud import storage as gcs_storage
+    loop = asyncio.get_event_loop()
+
+    def _meta():
+        blob = gcs_storage.Client().bucket(where[0]).blob(where[1])
+        blob.reload()
+        return blob
+
+    blob = await loop.run_in_executor(None, _meta)
+    size = int(blob.size or 0)
+    rng = crv.parse_range(request.headers.get("range"), size)
+    if rng is None:
+        return Response(status_code=416, headers={"Content-Range": f"bytes */{size}"})
+    start, end = rng
+    data = await loop.run_in_executor(None, lambda: blob.download_as_bytes(start=start, end=end))
+    return Response(content=data, status_code=206, media_type=blob.content_type or "video/mp4", headers={
+        "Content-Range": f"bytes {start}-{end}/{size}", "Accept-Ranges": "bytes",
+        "Cache-Control": "private, max-age=300", "Content-Length": str(len(data)),
+    })
+
+
 class LessonReviewApproveRequest(BaseModel):
     partner_id: str
     lesson_id: str
