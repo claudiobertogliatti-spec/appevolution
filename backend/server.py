@@ -9742,6 +9742,36 @@ async def approve_video_review(
     return {"success": True, "partner_id": partner_id, "approved_at": now}
 
 
+@api_router.post("/admin/video-review/{partner_id}/cut")
+async def cut_video_review(
+    partner_id: str,
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: toglie uno o piu intervalli [start_s, end_s] da una videolezione gia montata.
+    Il worker pubblica una NUOVA versione (la precedente resta nello storage) e la rimette "da approvare"."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from services.ciak_manual_cut_job import create_manual_cut_job, ManualCutError
+
+    def _dispatch(cut_id: str):
+        from video_pipeline_task import apply_manual_cut
+        return apply_manual_cut.delay(cut_id)
+
+    try:
+        return await create_manual_cut_job(
+            db, partner_id=partner_id, lesson_id=body.get("lesson_id"),
+            video_type=body.get("type", "videocorso"), ranges=body.get("ranges") or [],
+            actor_id=user.get("id"), dispatch=_dispatch)
+    except ManualCutError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
+
+
 @api_router.delete("/admin/video-review/{partner_id}")
 async def delete_video_review_item(
     partner_id: str,

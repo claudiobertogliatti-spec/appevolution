@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { ManualCutPanel } from "../components/ManualCutPanel";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
@@ -235,6 +236,9 @@ function VideoCard({ video, onApprove, onDelete, onAuthExpired }) {
         )}
         {video.youtube_url && (
           <CopyButton text={video.youtube_url} label="Copia URL YouTube" />
+        )}
+        {video.type === "videocorso" && video.lesson_id && !video.approved && REVIEW_STATUSES.includes(video.status) && (
+          <ManualCutPanel video={video} onAuthExpired={onAuthExpired} />
         )}
         <button onClick={() => setAskDelete(true)} disabled={deleting || approving}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80 disabled:opacity-50"
