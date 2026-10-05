@@ -11,7 +11,7 @@
  *  - /api/admin/ciak/partners                  → conteggio partner attivi
  *  - /api/admin/approvazioni/queue             → materiali partner in attesa
  *  - /api/admin/video-review                   → video pronti per la revisione
- *  - /api/stefania/war-mode/dashboard          → KPI campagne ads
+ *  - /api/stefania/war-mode/dashboard          → KPI campagne partner
  *  - /api/stefania/war-mode/alerts             → alert ads da gestire
  */
 import { useEffect, useState } from "react";
@@ -165,8 +165,8 @@ export function AntonellaDashboard({ onAuthExpired }) {
   if (adsAlerts.length > 0)
     alerts.push({
       id: "ads", count: adsAlerts.length,
-      label: "alert sulle campagne ads",
-      cta: "Campagne Ads", to: "/admin/campagne-ads", urgent: false,
+      label: "alert sulle campagne partner",
+      cta: "Campagne partner", to: "/admin/campagne-ads", urgent: false,
     });
 
   return (
@@ -179,7 +179,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
 
       {/* ② CAMPAGNE ADS */}
       <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-        Campagne Ads
+        Campagne partner
       </h2>
       {ads ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
@@ -196,7 +196,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
         <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-10 text-sm text-slate-500">
           Nessun dato campagne disponibile al momento.{" "}
           <button onClick={() => navigate("/admin/campagne-ads")} className="text-yellow-600 font-semibold">
-            Vai a Campagne Ads →
+            Vai a Campagne partner →
           </button>
         </div>
       )}
@@ -222,7 +222,7 @@ export function AntonellaDashboard({ onAuthExpired }) {
             Scorciatoie
           </h2>
           <div className="grid grid-cols-1 gap-3">
-            <ShortcutTile icon={CalendarDays} title="Calendario Editoriale"
+            <ShortcutTile icon={CalendarDays} title="Calendario partner"
               subtitle={`Contenuti dei ${partnerTot} partner: lancio, regime e webinar`}
               onClick={() => navigate("/admin/calendario-editoriale")} />
             <ShortcutTile icon={Megaphone} title="Servizi Extra"

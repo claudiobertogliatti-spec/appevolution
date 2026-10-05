@@ -90,3 +90,22 @@ test("le pagine tolte dal menu non ci sono piu': restano raggiungibili solo da i
   expect(sorgente).toMatch(/<Route path="listino-prezzi"/);
   expect(sorgente).toMatch(/<Route path="collaudo-checkout"/);
 });
+
+test("le dashboard di Antonella chiamano le pagine Delivery con il nome del menu", () => {
+  // "Calendario Editoriale" e "Campagne Ads" sono i nomi di Acquisizione (contenuti di
+  // Ciak); le pagine Delivery a cui Antonella arriva si chiamano "... partner".
+  const dashboard = fs.readFileSync(path.join(__dirname, "pages", "AntonellaDashboard.jsx"), "utf8");
+  const oggi = fs.readFileSync(path.join(__dirname, "pages", "AntonellaOggi.jsx"), "utf8");
+  for (const testo of [dashboard, oggi]) {
+    expect(testo).not.toMatch(/Campagne Ads|campagne ads/);
+    expect(testo).not.toMatch(/Calendario Editoriale/);
+  }
+  expect(dashboard).toMatch(/Campagne partner/);
+  expect(dashboard).toMatch(/Calendario partner/);
+  expect(oggi).toMatch(/Calendario partner/);
+  expect(oggi).toMatch(/Alert campagne partner/);
+  // e il menu di Delivery usa gli stessi nomi
+  expect(PAGINE.filter((p) => p.macro === "delivery").map((p) => p.label)).toEqual(
+    expect.arrayContaining(["Calendario partner", "Campagne partner"])
+  );
+});
