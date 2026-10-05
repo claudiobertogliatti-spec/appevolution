@@ -2229,6 +2229,7 @@ def _build_lesson_review_response(lesson: dict) -> dict:
         "words": lesson.get("review_words", []),
         "cut_segments": lesson.get("review_cut_segments", []),
         "filler_report": lesson.get("review_filler_report"),
+        "cut_stats": lesson.get("review_cut_stats"),
         "review_note": lesson.get("review_note"),
         "pipeline_error": lesson.get("pipeline_error"),
         "script": lesson.get("script_content") or lesson.get("approved_script") or lesson.get("script") or "",
@@ -2260,6 +2261,8 @@ class LessonReviewApproveRequest(BaseModel):
     partner_id: str
     lesson_id: str
     disabled_cut_ids: list = []
+    # tagli aggiunti a mano sul testo: [{"start_s": 57.0, "end_s": 74.0}, ...]
+    custom_cuts: list = []
 
 
 @router.post("/videocorso/review-approve")
@@ -2275,10 +2278,13 @@ async def approve_videocorso_review(
     lesson = (doc.get("lessons") or {}).get(req.lesson_id) if doc else None
     if not lesson or lesson.get("pipeline_status") != "da_revisionare":
         raise HTTPException(status_code=400, detail="Nessuna revisione in attesa per questa lezione")
-    segs = lesson.get("review_cut_segments", [])
-    disabled = set(req.disabled_cut_ids or [])
-    for s in segs:
-        s["enabled"] = s.get("id") not in disabled
+    from services.ciak_lesson_review_cuts import apply_review_decisions
+    try:
+        segs = apply_review_decisions(
+            [s for s in lesson.get("review_cut_segments", []) if s.get("type") != "manual"],
+            req.disabled_cut_ids, req.custom_cuts, float(lesson.get("video_raw_duration_s") or 0))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     enabled_count = sum(1 for s in segs if s.get("enabled"))
     lk = f"lessons.{req.lesson_id}"
     now = datetime.now(timezone.utc).isoformat()

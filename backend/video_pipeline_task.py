@@ -1809,6 +1809,51 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         "[LESSON-STANDARD] %s tagli approvati (%s), %s respinti, %s zone protette",
                         len(_policy["cuts"]), _policy["stats"], len(_policy["rejected"]), len(_policy["protected_ranges"]),
                     )
+                    # ── REVISIONE DEI TAGLI (stile Descript) ─────────────────────
+                    # Con LESSON_REVIEW_ENABLED / LESSON_REVIEW_PARTNERS il montaggio NON parte: si salvano trascrizione,
+                    # parole e proposte e ci si ferma a "da_revisionare". L'admin rivede (toglie/aggiunge tagli sul testo)
+                    # e solo dopo "Approva e monta" parte il rendering (apply_approved_cuts).
+                    from services.ciak_lesson_review_cuts import lesson_review_enabled_for, proposals_for_review
+                    if lesson_review_enabled_for(partner_id):
+                        _cut_rev = proposals_for_review(all_segs)
+                        _review_now = datetime.now(timezone.utc).isoformat()
+                        from services import ciak_edit_project as _ceep
+                        _lk = f"lessons.{lesson_id}"
+                        _vc_doc = await db.partner_videocorso.find_one({"partner_id": partner_id}) or {}
+                        _ep_doc = ((_vc_doc.get("lessons") or {}).get(lesson_id)) or {}
+                        _ep_set = _ceep.safe_set_fields(
+                            _ceep.project_from_pipeline, lesson_key=_lk,
+                            doc=_ep_doc, video_url=video_url, raw_duration_s=int(raw_dur),
+                            transcript=transcript, words=words, filler_report=filler_report,
+                            cut_segments=_cut_rev, pipeline_status="da_revisionare",
+                            updated_at=_review_now,
+                        )
+                        await db.partner_videocorso.update_one(
+                            {"partner_id": partner_id},
+                            {"$set": {
+                                f"{_lk}.pipeline_status": "da_revisionare",
+                                f"{_lk}.video_pipeline_error": None,
+                                f"{_lk}.pipeline_error": None,
+                                f"{_lk}.video_raw_url": video_url,
+                                f"{_lk}.video_raw_duration_s": int(raw_dur),
+                                f"{_lk}.review_transcript": transcript,
+                                f"{_lk}.review_words": words,
+                                f"{_lk}.review_cut_segments": _cut_rev,
+                                f"{_lk}.review_filler_report": filler_report,
+                                f"{_lk}.review_cut_stats": _policy["stats"],
+                                f"{_lk}.review_created_at": _review_now,
+                                "updated_at": _review_now,
+                                **_ep_set,
+                            }},
+                            upsert=True,
+                        )
+                        logger.info(f"[LESSON-REVIEW] {label}: {len(_cut_rev)} tagli proposti — fermo a da_revisionare")
+                        try:
+                            await telegram(f"📝 <b>Lezione pronta per la revisione dei tagli</b>\n👤 {name} — {label}\n"
+                                           f"{len(_cut_rev)} tagli proposti. Aprila in admin → Revisione.")
+                        except Exception:
+                            pass
+                        return
                 # ── AGENTE MASTERCLASS (ciak-masterclass-v1) ────────────────
                 # Monta il video intero dal girato. Se fallisce NON si pubblica il grezzo: errore
                 # recuperabile, grezzo preservato. Il video montato passa poi dalla revisione umana.
@@ -2503,14 +2548,20 @@ async def _apply_approved_cuts(partner_id: str, video_type: str = "masterclass",
 
         lesson_standard_report = None
         if is_lesson:
-            from services.ciak_lesson_standard import enforce_lesson_policy
-            _policy = enforce_lesson_policy(segs, review_words, raw_dur)
-            segs = _policy["cuts"]
+            # I tagli approvati dall'admin NON passano dai limiti delle proposte automatiche (2,5 s, pause ricalcolate):
+            # la decisione e sua. Si segnala solo quanti toccano un esercizio guidato.
+            from services.ciak_lesson_standard import normalize_words, protected_exercise_ranges, STANDARD_VERSION
+            from services.ciak_lesson_review_cuts import cuts_for_render
+            _prot = protected_exercise_ranges(normalize_words(review_words, raw_dur))
+            _rendered = cuts_for_render(segs, _prot)
+            segs = _rendered["cuts"]
             lesson_standard_report = {
-                "standard_version": _policy["standard_version"],
-                "protected_ranges": _policy["protected_ranges"],
-                "rejected_cut_count": len(_policy["rejected"]),
-                "approved_cut_count": len(_policy["cuts"]),
+                "standard_version": STANDARD_VERSION,
+                "cut_origin": "review_admin",
+                "protected_ranges": _prot,
+                "approved_cut_count": len(segs),
+                "cut_s": _rendered["cut_s"],
+                "cuts_touching_protected": _rendered["touching_protected"],
             }
 
         await _set("cutting_fillers")
