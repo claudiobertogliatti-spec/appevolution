@@ -97,6 +97,7 @@ import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { ConsegneMancate } from "./pages/ConsegneMancate";
 import { ConsegneStart } from "./pages/ConsegneStart";
+import { RisultatiFinali } from "./pages/RisultatiFinali";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
 import { AntonellaOggi } from "./pages/AntonellaOggi";
@@ -198,6 +199,7 @@ const NAV = [
       { title: "Materiali e video", pages: [
         { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
         { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
+        { to: "/admin/risultati-finali", label: "Risultati finali", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
       { title: "Contenuti e percorso", pages: [
         { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
@@ -813,6 +815,7 @@ export default function CiakAdminApp() {
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
+        <Route path="risultati-finali" element={<RisultatiFinali onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />
         <Route path="revisione-video/:partnerId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
