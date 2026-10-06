@@ -125,3 +125,20 @@ test("mergeManualCut fonde i tagli manuali contigui o sovrapposti in uno solo e 
   expect(mergeManualCut(list, { id: "m5", start: 57, end: 71, type: "manual" }).map((m) => [m.start, m.end])).toEqual([[54.5, 72]]);
   expect(mergeManualCut(undefined, a)).toHaveLength(1);
 });
+
+
+test("le proposte mandate gia spente dalla pipeline partono tolte e restano tolte all'approvazione", async () => {
+  const off = { ...DATA, cut_segments: [{ id: 7, start: 1.0, end: 4.0, type: "smart", reason: "da controllare (3 s): ripresa ripetuta", enabled: false }] };
+  adminFetch.mockImplementation((url, opts) => {
+    if (String(url).includes("review-video-url")) return Promise.resolve({ ok: false, status: 404 });
+    if (opts?.method === "POST") return Promise.resolve({ ok: true, text: async () => "" });
+    return Promise.resolve({ ok: true, json: async () => off });
+  });
+  renderLesson();
+  const word = await screen.findByText("vediamo");                    // dentro 1-4 s: non e barrata perche il taglio e spento
+  expect(word.className).not.toMatch(/line-through/);
+  fireEvent.click(screen.getByRole("button", { name: /Approva e monta/ }));
+  await waitFor(() => expect(adminFetch.mock.calls.some(([, o]) => o?.method === "POST")).toBe(true));
+  const call = adminFetch.mock.calls.find(([u, o]) => o?.method === "POST" && !String(u).includes("review-video-url"));
+  expect(JSON.parse(call[1].body).disabled_cut_ids).toEqual([7]);
+});

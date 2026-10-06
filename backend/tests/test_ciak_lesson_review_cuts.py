@@ -52,3 +52,14 @@ def test_render_cuts_are_authoritative_long_and_merged_and_report_protected_touc
     assert [(c["start"], c["end"]) for c in r["cuts"]] == [(10.0, 50.0), (100.0, 110.0)]
     assert all(c["exact"] for c in r["cuts"]) and r["cut_s"] == 50.0 and r["touching_protected"] == 1
     assert rc.cuts_for_render([], [])["cuts"] == []
+
+
+def test_long_retakes_from_the_rules_are_proposed_switched_off_with_a_warning():
+    out = rc.proposals_for_review([
+        {"start": 221.8, "end": 253.5, "type": "smart", "reason": "ripresa ripetuta: si tiene l'ultima"},      # 31,7 s: falso positivo reale
+        {"start": 490.4, "end": 494.0, "type": "smart", "reason": "ripresa ripetuta: si tiene l'ultima"},      # 3,6 s: tenuto da Claudio
+        {"start": 14.6, "end": 16.8, "type": "smart", "reason": "TENTATIVI MULTIPLI"},
+        {"start": 400.0, "end": 430.0, "type": "smart", "reason": "TENTATIVI MULTIPLI: passaggio confuso"},   # l'AI e un'altra cosa: resta acceso
+    ])
+    assert [c["enabled"] for c in out] == [False, True, True, True]
+    assert out[0]["reason"].startswith("da controllare (32 s): ripresa ripetuta")
