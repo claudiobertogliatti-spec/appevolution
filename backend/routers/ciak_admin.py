@@ -5230,6 +5230,71 @@ async def approva_deliverable_start(
     return {"success": True, "type": body.tipo, **approval}
 
 
+_BOZZE_START_ORDINE = (
+    ("positioning", "04-posizionamento"),
+    ("brand_kit", "03-brand-kit"),
+    ("social_profiles", "start-profili"),
+    ("showcase", "start-vetrina"),
+    ("content_plan_90d", "start-contenuti-90"),
+    ("partnership_readiness", "start-readiness"),
+)
+
+
+@router.get("/start/{client_id}/bozze")
+async def bozze_start(
+    client_id: str,
+    _admin=Depends(require_ciak_admin),
+):
+    """Sola lettura: cosa ha risposto il cliente e cosa e' stato generato per lui.
+
+    Serve a verificare il lavoro PRIMA di approvarlo: il pannello Consegne Start
+    aveva solo i pulsanti genera/approva, senza modo di leggere il contenuto.
+    Include le bozze non approvate (il cliente vede solo le approvate) e l'HTML
+    della vetrina (che il cliente non riceve).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+
+    risposte_step = await _start_step(client_id, "04-posizionamento")
+    marchio_step = await _start_step(client_id, "03-brand-kit")
+    docs = {
+        d.get("type"): d
+        async for d in db.ciak_start_deliverables.find({"partner_id": client_id}, {"_id": 0})
+    }
+
+    items = []
+    for tipo, step_id in _BOZZE_START_ORDINE:
+        doc = docs.get(tipo)
+        step = await _start_step(client_id, step_id)
+        entry = {
+            "type": tipo,
+            "step_id": step_id,
+            "generato": bool(doc),
+            "generation_status": step.get("generation_status"),
+            "generation_error": step.get("generation_error"),
+        }
+        if doc:
+            tecnici = {"type", "partner_id", "html", "generated_by", "approved_by", "approval_status",
+                       "generated_at", "approved_at", "created_at", "live_url"}
+            entry.update({
+                "approval_status": doc.get("approval_status") or "pending_review",
+                "generated_at": doc.get("generated_at"),
+                "approved_at": doc.get("approved_at"),
+                "live_url": doc.get("live_url"),
+                "html": doc.get("html"),
+                "contenuto": {k: v for k, v in doc.items() if k not in tecnici},
+            })
+        items.append(entry)
+
+    return {
+        "client_id": client_id,
+        "risposte": (risposte_step.get("data") or {}).get("answers") or {},
+        "marchio_scelto": marchio_step.get("data") or {},
+        "items": items,
+    }
+
+
 @router.get("/start/consegne")
 async def consegne_start(
     _admin=Depends(require_ciak_admin),

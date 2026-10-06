@@ -31,6 +31,48 @@ _FRASI = {
 _FRASE_GENERICA = ("Un tuo nuovo materiale", "e' pronto")
 
 
+# I cinque materiali che il cliente Start si aspetta (le 3 tappe promesse per
+# iscritto), con parole semplici. La verifica finale non c'e': non ha data promessa.
+_AVANZAMENTO = (
+    ("positioning", "Posizionamento"),
+    ("brand_kit", "Marchio"),
+    ("social_profiles", "Profili social"),
+    ("showcase", "Sito vetrina"),
+    ("content_plan_90d", "Calendario dei 60 giorni"),
+)
+
+
+async def _avanzamento_lavori(db, client_id: str, appena_approvato: str) -> str:
+    """Blocco "a che punto siamo" per la mail di approvazione: solo materiali
+    APPROVATI contano come pronti (una bozza non e' un lavoro consegnato).
+
+    Accessorio: se la lettura fallisce ritorna "" e la mail parte comunque."""
+    if appena_approvato not in {tipo for tipo, _ in _AVANZAMENTO}:
+        return ""
+    try:
+        pronti = {
+            d["type"]
+            async for d in db.ciak_start_deliverables.find(
+                {"partner_id": client_id, "approval_status": "approved"}, {"_id": 0, "type": 1}
+            )
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[REENGAGE] avanzamento lavori non letto per %s: %s", client_id, exc)
+        return ""
+    pronti.add(appena_approvato)  # l'approvazione e' gia' scritta, ma non dipendiamo dall'ordine
+    righe = [
+        f"{'✓' if tipo in pronti else '•'} {nome}: {'pronto' if tipo in pronti else 'in lavorazione'}"
+        for tipo, nome in _AVANZAMENTO
+    ]
+    n, tot = len(pronti & {t for t, _ in _AVANZAMENTO}), len(_AVANZAMENTO)
+    titolo = (
+        f"Avanzamento lavori: tutti e {tot} i materiali sono pronti."
+        if n == tot
+        else f"Avanzamento lavori: {n} materiali su {tot} pronti. Gli altri sono in lavorazione."
+    )
+    return f"{titolo}\n" + "\n".join(righe)
+
+
 def _base_url() -> str:
     return (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")).rstrip("/")
 
@@ -118,9 +160,13 @@ async def invia_deliverable_pronto(db, client_id: str, tipo: str) -> bool:
         return False
     # Il pronome si accorda con il soggetto: "lo trovi", "la trovi", "li trovi".
     pronome = {"sono pronti": "li", "e' pronta": "la"}.get(verbo, "lo")
+    corpo = f"Ciao {{primo}}, {soggetto[0].lower()}{soggetto[1:]} {verbo}: {pronome} trovi nella tua area Ciak."
+    avanzamento = await _avanzamento_lavori(db, client_id, tipo)
+    if avanzamento:
+        corpo = f"{corpo}\n\n{avanzamento}"
     return await asyncio.to_thread(
         _send, email, client.get("name"),
         f"{soggetto} {verbo}",
-        f"Ciao {{primo}}, {soggetto[0].lower()}{soggetto[1:]} {verbo}: {pronome} trovi nella tua area Ciak.",
+        corpo,
         link,
     )

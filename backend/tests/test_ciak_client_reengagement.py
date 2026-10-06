@@ -96,3 +96,75 @@ async def test_l_avviso_parla_in_italiano_semplice_e_concorda(_patch, tipo, ogge
     assert _patch[0]["subject"] == oggetto
     assert corpo in _patch[0]["corpo"]
     assert not any(brutto in _patch[0]["subject"].lower() for brutto in ("brand kit", "90 giorni", "deliverable"))
+
+
+class _CursorDeliverable:
+    def __init__(self, docs):
+        self.docs = docs
+
+    def __aiter__(self):
+        self._it = iter(self.docs)
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._it)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
+class _DeliverableColl:
+    def __init__(self, docs):
+        self.docs = docs
+
+    def find(self, q, projection=None):
+        return _CursorDeliverable([
+            {"type": d["type"]} for d in self.docs
+            if all(d.get(k) == v for k, v in q.items())
+        ])
+
+
+class _DbConAvanzamento(_Db):
+    def __init__(self, docs, deliverables):
+        super().__init__(docs)
+        self.ciak_start_deliverables = _DeliverableColl(deliverables)
+
+
+@pytest.mark.asyncio
+async def test_mail_di_approvazione_dice_a_che_punto_siamo(_patch):
+    """Conta solo cio' che e' APPROVATO: la bozza di un altro cliente o non approvata
+    non e' un lavoro consegnato."""
+    db = _DbConAvanzamento([CLIENT], [
+        {"partner_id": "c1", "type": "positioning", "approval_status": "approved"},
+        {"partner_id": "c1", "type": "brand_kit", "approval_status": "pending_review"},
+        {"partner_id": "altro", "type": "showcase", "approval_status": "approved"},
+    ])
+    assert await reeng.invia_deliverable_pronto(db, "c1", "positioning") is True
+    corpo = _patch[0]["corpo"]
+    assert "Avanzamento lavori: 1 materiali su 5 pronti" in corpo
+    assert "✓ Posizionamento: pronto" in corpo
+    assert "• Marchio: in lavorazione" in corpo
+    assert "• Sito vetrina: in lavorazione" in corpo  # approvato ma di un altro cliente
+
+
+@pytest.mark.asyncio
+async def test_mail_con_tutto_pronto_lo_dice(_patch):
+    tipi = ("positioning", "brand_kit", "social_profiles", "showcase", "content_plan_90d")
+    db = _DbConAvanzamento([CLIENT], [{"partner_id": "c1", "type": t, "approval_status": "approved"} for t in tipi])
+    assert await reeng.invia_deliverable_pronto(db, "c1", "content_plan_90d") is True
+    assert "tutti e 5 i materiali sono pronti" in _patch[0]["corpo"]
+
+
+@pytest.mark.asyncio
+async def test_readiness_non_ha_il_blocco_avanzamento(_patch):
+    db = _DbConAvanzamento([CLIENT], [])
+    assert await reeng.invia_deliverable_pronto(db, "c1", "partnership_readiness") is True
+    assert "Avanzamento lavori" not in _patch[0]["corpo"]
+
+
+@pytest.mark.asyncio
+async def test_se_l_avanzamento_non_si_legge_la_mail_parte_comunque(_patch):
+    """_Db senza la collezione dei deliverable: la lettura solleva, la mail parte senza blocco."""
+    assert await reeng.invia_deliverable_pronto(_Db([CLIENT]), "c1", "positioning") is True
+    assert "Avanzamento lavori" not in _patch[0]["corpo"]
+    assert "il tuo posizionamento e' pronto: lo trovi" in _patch[0]["corpo"]
