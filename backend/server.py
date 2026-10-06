@@ -13097,9 +13097,9 @@ async def export_funnel_for_systeme(request: FunnelExportRequest, _admin=Depends
         raise HTTPException(status_code=500, detail="Export generation failed")
 
 @api_router.get("/funnel/exports")
-async def list_funnel_exports(partner_id: Optional[str] = None, _admin=Depends(require_admin_role)):
+async def list_funnel_exports(_admin=Depends(require_admin_role)):
     """List all funnel exports"""
-    exports = funnel_export_service.list_exports(partner_id)
+    exports = funnel_export_service.list_exports()
     return {"exports": exports, "count": len(exports)}
 
 @api_router.get("/funnel/export/download/{filename}")
@@ -13123,7 +13123,11 @@ async def preview_funnel_export(filename: str, _admin=Depends(require_admin_role
     if filepath is None or not filepath.exists():
         raise HTTPException(status_code=404, detail="Export file not found")
     
-    return FileResponse(str(filepath), media_type="text/html")
+    return FileResponse(
+        str(filepath),
+        media_type="text/html",
+        headers={"Content-Security-Policy": "sandbox", "X-Content-Type-Options": "nosniff"},
+    )
 
 # =============================================================================
 # LEGAL PAGES GENERATOR (ANDREA)

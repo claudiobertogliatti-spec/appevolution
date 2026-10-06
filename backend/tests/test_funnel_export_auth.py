@@ -101,3 +101,41 @@ def test_only_html_files_inside_the_exports_folder_can_be_read(export_module, tm
     assert ok is not None and ok.parent == tmp_path.resolve()
     for bad in ("../x.html", "a/b.html", "..", "x.txt", "", None, "..\\x.html", "a..b.html", "a.html\n"):
         assert export_module.resolve_export_path(bad) is None, bad
+
+
+# ── Residui della revisione: HTML escapato, nessun percorso del server, preview in sandbox ──
+
+HOSTILE = "<img src=x onerror=alert(1)>"
+
+
+def test_partner_and_section_data_are_html_escaped_in_the_export(export_module):
+    svc = export_module.FunnelExportService()
+    html = svc._generate_html_document(
+        {"name": "<script>alert(1)</script>", "offer_name": "<b>x</b>", "niche": HOSTILE},
+        [
+            {"id": 1, "icon": "🎯", "title": "<i>t</i>", "subtitle": "", "content": {"headline": HOSTILE}},
+            {"id": 2, "icon": "📄", "title": "t2", "subtitle": "", "content": {"struttura": [HOSTILE]}},
+            {"id": 3, "icon": "💰", "title": "t3", "subtitle": "",
+             "content": {"prezzo": "147€ & 247€", "emails": [{"subject": HOSTILE}]}},
+        ],
+        [1, 2, 3],
+    )
+    assert "<script>alert(1)" not in html and "<img src=x" not in html and "<b>x</b>" not in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html and "&lt;script&gt;" in html
+    assert "147€ &amp; 247€" in html  # il testo normale resta leggibile
+
+
+def test_exports_never_reveal_the_server_path(export_module, tmp_path):
+    svc = export_module.FunnelExportService()
+    result = svc.generate_funnel_export({"name": "Mario"}, [], [])
+    assert "filepath" not in result and str(tmp_path) not in str(result)
+    listed = svc.list_exports()
+    assert [e["filename"] for e in listed] == [result["filename"]]
+    assert all("filepath" not in e for e in listed) and str(tmp_path) not in str(listed)
+
+
+def test_preview_is_served_in_a_sandbox():
+    tree = ast.parse(SERVER.read_text(encoding="utf-8"))
+    fn = next(n for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef) and n.name == "preview_funnel_export")
+    constants = {c.value for c in ast.walk(fn) if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+    assert "Content-Security-Policy" in constants and "sandbox" in constants
