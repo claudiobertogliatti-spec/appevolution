@@ -25,11 +25,12 @@
 - Chat di Andrea: Claudio riferisce il 6/10 che «risponde bene» (⛔ output delle due domande "quanto costa?" e "cambialo" non incollato).
 
 **APERTO**
-- ⛔ **Webinar e slide** di Daniele: `steps.14.data.strategia` e `deck.slides.19` contenevano 497/297 alla scansione del 5/10; si rigenerano solo dall'interfaccia (step "Prezzo e webinar": Genera, poi Deck). Dispensa PDF: si allinea dopo, legge il prezzo dall'hub.
-- ⛔ **`descrizione_offerta`** di Daniele contiene ancora «una sessione costa facilmente 80€» (cifra inventata dall'AI): va rigenerata ora che la guardia è live (`POST /api/partner-journey/workspace/23/vendita/generate/descrizione_offerta`); esito non ancora riportato. Atteso: importi nel testo solo 100, 147, 247.
+- ⛔ **Webinar**: dalla scansione del 6/10 le slide (`deck.slides.19`) risultano pulite, ma `steps[14].data.strategia.prezzo` ha ancora `listino 497€` / `promo_webinar 297€`: va rigenerata la **strategia** (pulsante Genera in "Prezzo e webinar"; sovrascrive le modifiche a mano allo script). Dispensa PDF: si allinea dopo, legge il prezzo dall'hub.
+- ✅ **`descrizione_offerta`** di Daniele rigenerata il 6/10 alle 08:02 con la guardia live (PowerShell: `OK`, file_id `f034381a…`; importi nel testo `100, 147, 247` — «80€» sparito; 100 = risparmio 247−147).
 - 🔎 `termini` di Daniele resta a 297/497 per scelta (legacy non esposto; testo legale AI superato da `legal_documents`).
 - 🔎 Dopo le rigenerazioni: scansione finale degli importi (devono restare solo `termini`, la correzione chiusa `review.corrections.0` e le note del contratto in `partner.notes`).
-- 🔎 `funnel_export_service.py:83` ha ancora il default hardcoded `"297€"`; note di migrazione (`docs/migration/partner-daniele-andolfi-ciak.md`, `ciak-falle-simulazione-andolfi.md`, `memory/CIAK_MIGRATION_MEMORY.md`) riportano ancora 297/497; CLAUDE.md (sez. 6) cita chiavi token superate (`access_token`/`token`; quella vera è `ciak_admin_token`). Non toccati.
+- ✅ Corretti in PR (non ancora in produzione fino al merge): default `"297€"` in `funnel_export_service.py` → `"Da definire"` (endpoint `POST /funnel/export` senza chiamanti nel frontend, `partner_data` dal body); `CLAUDE.md` sez. 6 ora usa la chiave `ciak_admin_token`; `memory/CIAK_MIGRATION_MEMORY.md` e `docs/migration/partner-daniele-andolfi-ciak.md` annotati (prezzo 147/247; gli endpoint della regola 18 oggi richiedono token admin). Restano 297/497 storici in `docs/migration/ciak-falle-simulazione-andolfi.md` (cronaca del 30/07).
+- 🔎 `POST /funnel/export` (`server.py:13062`) non ha autenticazione e scrive file da `partner_data` fornito dal chiamante: non toccato, da valutare con `auth-reviewer`.
 - 🔎 Andrea compare nel drawer solo sugli step 05-09 (`agents.js`): visibilità fuori da quegli step = decisione di prodotto.
 - ✅ Intestazione della voce di Codex del 2026-09-10 (Mariangela), cancellata per errore in #327, ripristinata con #330.
 

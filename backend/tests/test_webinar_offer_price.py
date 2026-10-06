@@ -165,3 +165,30 @@ def test_guard_refuses_a_text_that_still_has_foreign_amounts_after_the_retry():
     with pytest.raises(vg.PriceGuardError) as e:
         asyncio.run(vg.generate_checked(llm, "Sei Gaia.", "SISTEMA", OFFER))
     assert e.value.amounts == [80, 150] and len(llm.calls) == 2
+
+
+# ── Export funnel: senza prezzo nell'hub non si stampa un prezzo inventato (era il default "297€") ──
+
+def _export_service(monkeypatch):
+    import importlib
+    import pathlib
+    import sys
+
+    # il modulo crea /app/storage/... all'import: nei test non deve toccare il disco
+    monkeypatch.setattr(pathlib.Path, "mkdir", lambda *a, **k: None)
+    monkeypatch.delitem(sys.modules, "funnel_export_service", raising=False)
+    return importlib.import_module("funnel_export_service").FunnelExportService()
+
+
+def test_funnel_export_does_not_invent_a_price_when_the_offer_has_none(monkeypatch):
+    svc = _export_service(monkeypatch)
+    html = svc._generate_html_document({"name": "Daniele"}, [], [])
+    assert "Da definire" in html and "297" not in html
+    html = svc._generate_html_document({"name": "Daniele", "offer_price": ""}, [], [])
+    assert "Da definire" in html and "297" not in html
+
+
+def test_funnel_export_prints_the_real_price_when_given(monkeypatch):
+    svc = _export_service(monkeypatch)
+    html = svc._generate_html_document({"name": "Daniele", "offer_price": "147€ (listino 247€)"}, [], [])
+    assert "147€ (listino 247€)" in html and "Da definire" not in html
