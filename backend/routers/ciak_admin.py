@@ -5230,6 +5230,27 @@ async def approva_deliverable_start(
     return {"success": True, "type": body.tipo, **approval}
 
 
+@router.post("/start/{client_id}/bozze/prepara")
+async def prepara_bozze_start(
+    client_id: str,
+    background_tasks: BackgroundTasks,
+    _admin=Depends(require_ciak_admin),
+):
+    """Prepara in un colpo solo tutte le bozze Start per cui gli input ci sono.
+
+    E' lo stesso lavoro che Ciak fa da solo quando il cliente invia risposte e
+    marchio: serve per i clienti arrivati prima dell'automatismo e per ritentare
+    dopo un errore. Non sovrascrive niente di gia' generato e non approva mai.
+    """
+    from services.start_autogenerazione import prepara_bozze
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    background_tasks.add_task(prepara_bozze, client_id)
+    return {"success": True, "generating": True}
+
+
 _BOZZE_START_ORDINE = (
     ("positioning", "04-posizionamento"),
     ("brand_kit", "03-brand-kit"),

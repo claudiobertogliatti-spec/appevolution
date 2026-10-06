@@ -285,3 +285,15 @@ test("Vedi bozze: se la sintesi automatica e' di ripiego lo dice prima di approv
   fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
   expect(await screen.findByText(/di ripiego/)).toBeTruthy();
 });
+
+test("Prepara tutte le bozze: un solo clic al posto di cinque, e dice che nulla si approva da solo", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: true, generating: true });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+
+  fireEvent.click(screen.getByRole("button", { name: "Prepara tutte le bozze" }));
+
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/bozze/prepara", {}));
+  expect(await screen.findByText(/Nessuna viene approvata da sola/)).toBeTruthy();
+});
