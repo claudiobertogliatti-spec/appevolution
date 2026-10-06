@@ -212,3 +212,76 @@ test("profili e vetrina hanno finalmente il loro pulsante Genera, e la vetrina c
     })
   );
 });
+
+const BOZZE = {
+  client_id: "client-1",
+  risposte: { nicchia: "yoga per over 50" },
+  marchio_scelto: { colors: ["#112233"] },
+  items: [
+    {
+      type: "positioning",
+      generato: true,
+      approval_status: "pending_review",
+      contenuto: { frase: "Aiuto le donne over 50 a ritrovare energia", fallback: false },
+    },
+    { type: "brand_kit", generato: false },
+    {
+      type: "showcase",
+      generato: true,
+      approval_status: "pending_review",
+      contenuto: { titolo: "Linda Pavia" },
+      html: "<html><body>vetrina</body></html>",
+    },
+    { type: "content_plan_90d", generato: false, generation_status: "in_corso" },
+  ],
+};
+
+test("Vedi bozze: mostra risposte del cliente e il contenuto generato PRIMA dell'approvazione", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(path === "/start/client-1/bozze" ? BOZZE : REPORT)
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  expect(apiGet).not.toHaveBeenCalledWith("/start/client-1/bozze");
+
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+
+  expect(await screen.findByText("Aiuto le donne over 50 a ritrovare energia")).toBeTruthy();
+  expect(apiGet).toHaveBeenCalledWith("/start/client-1/bozze");
+  expect(screen.getByText("yoga per over 50")).toBeTruthy();
+  expect(screen.getAllByText("Bozza da approvare · il cliente non la vede").length).toBe(2);
+  expect(screen.getByText("Non ancora generato")).toBeTruthy();
+  expect(screen.getByText("In generazione…")).toBeTruthy();
+});
+
+test("Vedi bozze: la vetrina si vede in un riquadro isolato, senza script", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(path === "/start/client-1/bozze" ? BOZZE : REPORT)
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+
+  const frame = await screen.findByTitle("Anteprima Sito vetrina");
+  expect(frame.getAttribute("sandbox")).toBe("");
+  expect(frame.getAttribute("srcdoc")).toContain("vetrina");
+});
+
+test("Vedi bozze: se la sintesi automatica e' di ripiego lo dice prima di approvare", async () => {
+  apiGet.mockImplementation((path) =>
+    Promise.resolve(
+      path === "/start/client-1/bozze"
+        ? {
+            ...BOZZE,
+            items: [
+              { type: "positioning", generato: true, approval_status: "pending_review", contenuto: { frase: "x", fallback: true } },
+            ],
+          }
+        : REPORT
+    )
+  );
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+  fireEvent.click(screen.getByRole("button", { name: "Vedi bozze e risposte del cliente" }));
+  expect(await screen.findByText(/di ripiego/)).toBeTruthy();
+});

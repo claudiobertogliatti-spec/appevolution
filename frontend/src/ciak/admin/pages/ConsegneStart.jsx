@@ -251,7 +251,196 @@ function VoceTappa({ item, onSegna, inCorso }) {
   );
 }
 
+const TITOLI_BOZZE = {
+  positioning: "Posizionamento",
+  brand_kit: "Marchio",
+  social_profiles: "Profili social",
+  showcase: "Sito vetrina",
+  content_plan_90d: "Calendario 60 giorni",
+  partnership_readiness: "Verifica readiness",
+};
+
+const COLORE_HEX = /^#[0-9a-f]{3,8}$/i;
+const URL_HTTP = /^https?:\/\//;
+
+function etichettaChiave(chiave) {
+  const t = String(chiave).replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// Rende qualunque contenuto generato in modo leggibile, senza conoscere la forma
+// esatta di ogni deliverable: una chiave nuova nel generatore compare da sola.
+function Valore({ v }) {
+  if (v === null || v === undefined || v === "") return <span className="text-slate-400">—</span>;
+  if (typeof v === "boolean") return <span>{v ? "Si" : "No"}</span>;
+  if (typeof v === "number") return <span>{v}</span>;
+  if (typeof v === "string") {
+    if (COLORE_HEX.test(v)) {
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="inline-block w-4 h-4 rounded border border-gray-300"
+            style={{ background: v }}
+            aria-hidden="true"
+          />
+          {v}
+        </span>
+      );
+    }
+    if (URL_HTTP.test(v)) {
+      return (
+        <a href={v} target="_blank" rel="noreferrer" className="text-blue-700 underline break-all">
+          {v}
+        </a>
+      );
+    }
+    return <span className="whitespace-pre-wrap break-words">{v}</span>;
+  }
+  if (Array.isArray(v)) {
+    if (!v.length) return <span className="text-slate-400">—</span>;
+    return (
+      <ul className="space-y-1.5">
+        {v.map((x, i) => (
+          <li key={i} className={x && typeof x === "object" ? "rounded-lg border border-gray-100 bg-gray-50 p-2" : ""}>
+            <Valore v={x} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <dl className="space-y-1.5">
+      {Object.entries(v)
+        .filter(([k]) => k !== "status" && k !== "_fallback")
+        .map(([k, x]) => (
+          <div key={k}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{etichettaChiave(k)}</dt>
+            <dd className="text-sm text-slate-800">
+              <Valore v={x} />
+            </dd>
+          </div>
+        ))}
+    </dl>
+  );
+}
+
+function StatoBozza({ item }) {
+  const base = "text-[11px] font-semibold px-2 py-0.5 rounded border";
+  if (item.generation_status === "errore") {
+    return <span className={`${base} bg-red-50 text-red-700 border-red-200`}>Generazione fallita</span>;
+  }
+  if (item.generation_status === "in_corso" && !item.generato) {
+    return <span className={`${base} bg-slate-100 text-slate-600 border-slate-200`}>In generazione…</span>;
+  }
+  if (!item.generato) {
+    return <span className={`${base} bg-slate-100 text-slate-500 border-slate-200`}>Non ancora generato</span>;
+  }
+  if (item.approval_status === "approved") {
+    return <span className={`${base} bg-emerald-50 text-emerald-700 border-emerald-200`}>Approvato · il cliente lo vede</span>;
+  }
+  return <span className={`${base} bg-amber-50 text-amber-800 border-amber-200`}>Bozza da approvare · il cliente non la vede</span>;
+}
+
+// Sola lettura: serve a controllare il lavoro PRIMA di premere "Approva".
+function BozzeCliente({ clientId, versione, onAuthExpired }) {
+  const [aperto, setAperto] = useState(false);
+  const [dati, setDati] = useState(null);
+  const [errore, setErrore] = useState(null);
+
+  useEffect(() => {
+    if (!aperto) return undefined;
+    let attivo = true;
+    setErrore(null);
+    apiGet(`/start/${clientId}/bozze`)
+      .then((r) => attivo && setDati(r))
+      .catch((e) => {
+        if (!attivo) return;
+        if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+        else setErrore(e.message);
+      });
+    return () => {
+      attivo = false;
+    };
+  }, [aperto, clientId, versione, onAuthExpired]);
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        aria-expanded={aperto}
+        onClick={() => setAperto((v) => !v)}
+        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+      >
+        {aperto ? "Nascondi bozze" : "Vedi bozze e risposte del cliente"}
+      </button>
+
+      {aperto && (
+        <div className="mt-3 space-y-3">
+          {errore && <p className="text-sm text-red-700">Errore: {errore}</p>}
+          {!dati && !errore && <p className="text-sm text-slate-400">Caricamento…</p>}
+          {dati && (
+            <>
+              <details className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                  Cosa ha risposto e scelto il cliente
+                </summary>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                      Risposte (posizionamento)
+                    </p>
+                    <Valore v={dati.risposte} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">Marchio scelto</p>
+                    <Valore v={dati.marchio_scelto} />
+                  </div>
+                </div>
+              </details>
+
+              {dati.items.map((item) => (
+                <article key={item.type} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900">{TITOLI_BOZZE[item.type] || item.type}</h3>
+                    <StatoBozza item={item} />
+                  </div>
+                  {item.generation_error && <p className="mt-2 text-xs text-red-700">{item.generation_error}</p>}
+                  {item.generato && (
+                    <div className="mt-3 space-y-3">
+                      {item.contenuto?.fallback || item.contenuto?._fallback ? (
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                          Attenzione: la sintesi automatica non e' riuscita, questo testo e' di ripiego. Va riscritto a
+                          mano prima di approvare.
+                        </p>
+                      ) : null}
+                      <Valore v={item.contenuto} />
+                      {item.live_url && (
+                        <p className="text-sm">
+                          Pubblicata su: <Valore v={item.live_url} />
+                        </p>
+                      )}
+                      {item.html && (
+                        <iframe
+                          title={`Anteprima ${TITOLI_BOZZE[item.type]}`}
+                          sandbox=""
+                          srcDoc={item.html}
+                          className="h-96 w-full rounded-lg border border-gray-200"
+                        />
+                      )}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ConsegneStart({ onAuthExpired }) {
+  const [versione, setVersione] = useState(0);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [inCorso, setInCorso] = useState(null);
@@ -339,6 +528,7 @@ export function ConsegneStart({ onAuthExpired }) {
         testo = `Operazione completata per ${client.nome || client.email}.`;
       }
       setEsito({ ok: true, testo });
+      setVersione((n) => n + 1);
       load();
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
@@ -428,6 +618,7 @@ export function ConsegneStart({ onAuthExpired }) {
                     </button>
                   ))}
                 </div>
+                <BozzeCliente clientId={client.client_id} versione={versione} onAuthExpired={onAuthExpired} />
               </div>
             ))}
           </div>
