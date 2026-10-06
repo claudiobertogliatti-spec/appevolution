@@ -4,6 +4,7 @@ Generates formatted documents for Systeme.io manual import
 """
 
 import os
+import re
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -14,6 +15,23 @@ logger = logging.getLogger(__name__)
 # Storage for exports
 EXPORTS_PATH = Path("/app/storage/funnel_exports")
 EXPORTS_PATH.mkdir(parents=True, exist_ok=True)
+
+_UNSAFE_NAME = re.compile(r"[^A-Za-z0-9_-]+")
+_EXPORT_FILE = re.compile(r"[A-Za-z0-9_.-]+\.html")
+
+
+def safe_export_name(name) -> str:
+    """Parte del nome file ricavata da un dato fornito dal chiamante: solo lettere, cifre, _ e -."""
+    return _UNSAFE_NAME.sub("_", str(name or "")).strip("_")[:60] or "partner"
+
+
+def resolve_export_path(filename) -> Optional[Path]:
+    """Percorso di un export, solo se e' un .html direttamente dentro EXPORTS_PATH; altrimenti None."""
+    name = str(filename or "")
+    if not _EXPORT_FILE.fullmatch(name) or ".." in name:
+        return None
+    path = (EXPORTS_PATH / name).resolve()
+    return path if path.parent == EXPORTS_PATH.resolve() else None
 
 
 class FunnelExportService:
@@ -53,7 +71,7 @@ class FunnelExportService:
         
         # Save to file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"funnel_export_{partner_name.replace(' ', '_')}_{timestamp}.html"
+        filename = f"funnel_export_{safe_export_name(partner_name)}_{timestamp}.html"
         filepath = EXPORTS_PATH / filename
         
         with open(filepath, 'w', encoding='utf-8') as f:
