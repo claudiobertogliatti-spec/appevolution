@@ -5219,6 +5219,12 @@ async def approva_deliverable_start(
         {"partner_id": client_id, "step_id": step_id},
         {"$set": step_set},
     )
+    # Il PDF nasce PRIMA dell'avviso: cosi' chi riceve la mail trova gia' il
+    # documento nell'archivio. Non solleva mai: se non riesce, l'approvazione vale
+    # lo stesso e il PDF si rigenera dal pannello ("Crea i PDF dei materiali").
+    from services.start_pdf import registra_pdf_start
+
+    pdf_creato = await registra_pdf_start(db, client_id, body.tipo)
     # Richiamo: avvisa il cliente che il deliverable e' pronto in area (magic-link
     # fresco). Non deve mai bloccare l'approvazione: la funzione non solleva.
     try:
@@ -5227,7 +5233,33 @@ async def approva_deliverable_start(
         await invia_deliverable_pronto(db, client_id, body.tipo)
     except Exception as exc:  # noqa: BLE001 - il richiamo e' accessorio
         logger.warning("[REENGAGE] avviso deliverable pronto fallito per %s: %s", client_id, exc)
-    return {"success": True, "type": body.tipo, **approval}
+    return {"success": True, "type": body.tipo, "pdf_creato": pdf_creato, **approval}
+
+
+@router.post("/start/{client_id}/pdf/crea")
+async def crea_pdf_start(
+    client_id: str,
+    _admin=Depends(require_ciak_admin),
+):
+    """Crea (o rifa) il PDF dei materiali Start gia' APPROVATI.
+
+    Serve per chi e' stato approvato prima che il PDF esistesse, e per ritentare
+    dopo un errore. Sostituisce il PDF precedente, non ne accumula.
+    """
+    from services.start_pdf import DOCUMENTI, registra_pdf_start
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    creati, falliti = [], []
+    for tipo in DOCUMENTI:
+        approvato = await db.ciak_start_deliverables.find_one(
+            {"partner_id": client_id, "type": tipo, "approval_status": "approved"}, {"_id": 0, "type": 1}
+        )
+        if not approvato:
+            continue  # niente da fare: non e' ancora approvato
+        (creati if await registra_pdf_start(db, client_id, tipo) else falliti).append(tipo)
+    return {"success": not falliti, "creati": creati, "falliti": falliti}
 
 
 @router.post("/start/{client_id}/bozze/prepara")

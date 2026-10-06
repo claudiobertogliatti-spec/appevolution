@@ -253,3 +253,38 @@ test('real files land in the right folder tiles: contract and ID apart from logo
   expect(await tile('Corso e script')).toMatch(/1 file/); // outline
   expect(await tile('Il tuo piano')).toMatch(/2 file/); // Libretto + Piano operativo
 });
+
+const routeConLivello = (tier) => (url) => {
+  const u = String(url);
+  if (u.includes('/operativo/materiali/')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...MATERIALI, tier }) });
+  }
+  if (u.includes('/posizionamento/')) return Promise.resolve({ ok: true, json: () => Promise.resolve(POSIZIONAMENTO) });
+  if (u.includes('/api/contract/status/')) return Promise.resolve({ ok: true, json: () => Promise.resolve({ signed: false }) });
+  return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) });
+};
+
+test('un cliente Ciak Start NON vede Libretto di Progetto e Piano Operativo EVO (sono della Partnership)', async () => {
+  global.fetch = jest.fn(routeConLivello('start'));
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  expect(await rowByName('Analisi Mercato')).toBeTruthy(); // i suoi materiali ci sono (nome mostrato pulito)
+  fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: 'Libretto' } });
+  expect(screen.queryByText(/Libretto di Progetto Ciak/)).toBeNull();
+  fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: 'Piano Operativo' } });
+  expect(screen.queryByText(/Piano Operativo Strategico EVO/)).toBeNull();
+  fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: '' } });
+  expect(screen.queryByRole('button', { name: /Apri la cartella Il tuo piano,/ })).toBeNull();
+});
+
+test('un partner (Partnership) continua a vedere Libretto di Progetto e Piano Operativo', async () => {
+  global.fetch = jest.fn(routeConLivello('partnership'));
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  const piano = await screen.findByRole('button', { name: /Apri la cartella Il tuo piano,/ });
+  expect(piano.textContent).toMatch(/2 file/);
+});
+
+test('un partner senza livello scritto (i 26 migrati) resta Partnership: vede i due documenti', async () => {
+  global.fetch = jest.fn(routeConLivello(undefined));
+  render(<MemoryRouter><PartnerFilesPage partnerId="p1" /></MemoryRouter>);
+  expect((await screen.findByRole('button', { name: /Apri la cartella Il tuo piano,/ })).textContent).toMatch(/2 file/);
+});

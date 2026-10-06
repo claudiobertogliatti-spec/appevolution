@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from services.partner_step_materials import (
-    MIGRATION_VISIBILITIES, WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
+    MIGRATION_VISIBILITIES, START_NOTICE, WORKBOOK_NOTICE, allowed_funnel_preview_url, allowed_public_url, categories_for_step, content_type_for_material,
     file_visible_to_partner, normalize_file_material, partner_materiali_listing, safe_step_data,
     step_archive_files, step_assignment_fields, trusted_storage_url,
 )
@@ -64,7 +64,7 @@ async def get_step_materials(partner_id: str, step_id: str,
             "metadata": data,
         })
 
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "youtube_playlist_url": 1}) or {}
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "youtube_playlist_url": 1, "tier": 1}) or {}
     if step_id in ("08-registra-masterclass", "09-registra-lezioni"):
         playlist = allowed_public_url(partner.get("youtube_playlist_url"))
         if playlist:
@@ -94,10 +94,13 @@ async def get_step_materials(partner_id: str, step_id: str,
                 "is_current": True, "metadata": {},
             })
 
+    # Il Workbook finale con "tutti gli output fase per fase" e' della Partnership:
+    # a un cliente Start non e' promesso, quindi non gli si scrive.
+    notice = START_NOTICE if partner.get("tier") == "start" else WORKBOOK_NOTICE
     return {
         "step_id": step_id, "title": step.get("label") or step_id,
         "status": step.get("status"), "materials": materials,
-        "workbook_notice": WORKBOOK_NOTICE,
+        "workbook_notice": notice,
     }
 
 
@@ -124,7 +127,10 @@ async def get_all_partner_materiali(partner_id: str,
         item["visibility"] = doc.get("visibility")
         materials.append(item)
 
-    return {"partner_id": partner_id, "materials": materials, "total": len(materials)}
+    # `tier` serve alla pagina per non mostrare a un cliente Start i due documenti
+    # della Partnership (Libretto di Progetto e Piano Operativo EVO a 14 fasi).
+    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "tier": 1}) or {}
+    return {"partner_id": partner_id, "materials": materials, "total": len(materials), "tier": partner.get("tier")}
 
 
 @router.patch("/api/partner-step-materials/{file_id}/step")
