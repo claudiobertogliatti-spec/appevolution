@@ -106,3 +106,20 @@ def test_rephrase_proposals_from_the_ai_are_kept_but_literal_repeats_and_multipl
 def test_prompt_asks_for_whole_confused_passages_and_keeps_natural_rephrasing():
     p = cp.build_lesson_ai_prompt(seq(["ciao"]), [])
     assert "TENTATIVI MULTIPLI" in p and "RIPETIZIONE LETTERALE" in p and "NON proporre MAI: riformulazioni brevi" in p
+
+
+def _w(text, start):
+    return {"text": text, "start": start, "end": start + 0.3}
+
+
+def test_repetition_across_a_full_stop_or_question_is_deliberate_not_a_stutter():
+    # domanda -> risposta e definizione: scelte di Claudio nella revisione di lezione 3 e 4
+    q = [_w("cosa", 0.0), _w("significa?", 0.4), _w("Significa", 0.8), _w("che", 1.2), _w("tutto", 1.6)]
+    d = [_w("il", 0.0), _w("cervello", 0.4), _w("enterico.", 0.8), _w("Enterico", 1.2), _w("e", 1.6), _w("quello", 2.0)]
+    real = [_w("anche", 0.0), _w("se", 0.4), _w("se", 0.8), _w("lo", 1.2), _w("fai", 1.6)]
+    assert not [c for c in cp.mc.repeat_cuts(q, [], respect_sentence_end=True) if c["reason"] == "balbettio"]
+    assert not [c for c in cp.mc.repeat_cuts(d, [], respect_sentence_end=True) if c["reason"] == "balbettio"]
+    assert any(c["reason"] == "balbettio" for c in cp.mc.repeat_cuts(real, [], respect_sentence_end=True))     # un vero balbettio resta
+    assert any(c["reason"] == "balbettio" for c in cp.mc.repeat_cuts(q, []))                                    # masterclass: comportamento invariato
+    plan = cp.plan_lesson_cuts(q + [_w("fine", 2.0)], 10)
+    assert not [c for c in plan["cuts"] if c["type"] == "smart"]

@@ -175,7 +175,11 @@ def filler_cuts(words: list, protected: Iterable[dict]) -> list[dict]:
     return cuts
 
 
-def repeat_cuts(words: list, protected: Iterable[dict]) -> list[dict]:
+def _ends_sentence(w: dict) -> bool:
+    return str(w.get("text") or w.get("word") or "").rstrip().endswith((".", "?", "!", "…"))
+
+
+def repeat_cuts(words: list, protected: Iterable[dict], respect_sentence_end: bool = False) -> list[dict]:
     """Elimina le riprese abbandonate: si tiene l'ULTIMA ripresa di una frase.
 
     (1) balbettii immediati (stessa parola o gruppo ripetuto subito: "sul sul pulsante");
@@ -212,6 +216,10 @@ def repeat_cuts(words: list, protected: Iterable[dict]) -> list[dict]:
         for i in range(0, n - 2 * size + 1):
             a, b = toks[i:i + size], toks[i + size:i + 2 * size]
             if a == b and all(a) and not any(t.isdigit() for t in a):
+                # "Cosa significa? Significa che…", "l'enterico. Enterico e…": la ripetizione oltre un punto fermo/interrogativo
+                # e voluta (domanda→risposta, definizione), non un balbettio.
+                if respect_sentence_end and _ends_sentence(words[i + size - 1]):
+                    continue
                 seg = {"start": round(float(words[i]["start"]), 3),
                        "end": round(float(words[i + size]["start"]), 3),
                        "type": "smart", "reason": "balbettio", "word": " ".join(a)}

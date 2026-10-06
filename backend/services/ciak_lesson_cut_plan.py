@@ -98,7 +98,7 @@ def plan_lesson_cuts(words: list, duration_s: float, *, silences: Optional[list]
 
     pause = mc.silence_cuts(sil, protected, max_s=pause_max_s)
     fill = mc.filler_cuts(words, protected)
-    rep = drop_overlapping_repeats(mc.repeat_cuts(words, protected))
+    rep = drop_overlapping_repeats(mc.repeat_cuts(words, protected, respect_sentence_end=True))
     pause += mc.adjacent_pause_cuts(sil, fill + rep, protected, max_s=pause_max_s)
 
     ai = {"accepted": [], "rejected": [], "total_s": 0.0}

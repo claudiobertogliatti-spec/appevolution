@@ -95,6 +95,8 @@ export function MasterclassReview({ onAuthExpired }) {
       const res = await adminFetch(url);
       const d = await res.json();
       setData(d);
+      // le proposte che la pipeline manda gia SPENTE (es. riprese lunghe "da controllare") partono tolte dalla lista dei tagli
+      setDisabled(new Set((d?.cut_segments || []).filter((c) => c.enabled === false).map((c) => c.id)));
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
       setError("Impossibile caricare i dati di revisione.");

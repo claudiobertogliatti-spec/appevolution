@@ -13,6 +13,7 @@ import os
 from typing import Iterable, Optional
 
 PADDING_S = 0.30                 # margine che le proposte "non esatte" del trascrittore avevano nel taglio
+LONG_RETAKE_REVIEW_S = 6.0       # una "ripresa ripetuta" piu lunga di cosi si propone SPENTA: l'admin decide
 MAX_MANUAL_CUTS = 100
 MIN_MANUAL_S = 0.1
 MAX_MANUAL_SHARE = 0.5           # i tagli manuali non tolgono piu della meta del video
@@ -38,8 +39,15 @@ def proposals_for_review(cuts: Iterable[dict]) -> list[dict]:
             start, end = start + PADDING_S, end - PADDING_S
         if end - start <= 0.02:
             continue
+        reason = c.get("reason", "")
+        enabled = True
+        # Le riprese ripetute lunghe trovate dalle regole sbagliano spesso (un riepilogo legittimo preso per una ripresa:
+        # 31 s in una lezione): si mostrano ma spente, con l'avviso, e le accende l'admin se sono davvero da togliere.
+        if reason.startswith("ripresa") and end - start > LONG_RETAKE_REVIEW_S:
+            enabled = False
+            reason = f"da controllare ({end - start:.0f} s): {reason}"
         out.append({"id": len(out), "start": round(start, 3), "end": round(end, 3), "type": c.get("type", "smart"),
-                    "reason": c.get("reason", ""), "word": c.get("word", ""), "enabled": True, "exact": True})
+                    "reason": reason, "word": c.get("word", ""), "enabled": enabled, "exact": True})
     return out
 
 
