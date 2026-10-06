@@ -141,7 +141,7 @@ async def test_mail_di_approvazione_dice_a_che_punto_siamo(_patch):
     ])
     assert await reeng.invia_deliverable_pronto(db, "c1", "positioning") is True
     corpo = _patch[0]["corpo"]
-    assert "Avanzamento lavori: 1 materiali su 5 pronti" in corpo
+    assert "Avanzamento lavori: 1 su 5 materiali pronti" in corpo
     assert "✓ Posizionamento: pronto" in corpo
     assert "• Marchio: in lavorazione" in corpo
     assert "• Sito vetrina: in lavorazione" in corpo  # approvato ma di un altro cliente

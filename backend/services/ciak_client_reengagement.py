@@ -68,7 +68,7 @@ async def _avanzamento_lavori(db, client_id: str, appena_approvato: str) -> str:
     titolo = (
         f"Avanzamento lavori: tutti e {tot} i materiali sono pronti."
         if n == tot
-        else f"Avanzamento lavori: {n} materiali su {tot} pronti. Gli altri sono in lavorazione."
+        else f"Avanzamento lavori: {n} su {tot} materiali pronti. Gli altri sono in lavorazione."
     )
     return f"{titolo}\n" + "\n".join(righe)
 
