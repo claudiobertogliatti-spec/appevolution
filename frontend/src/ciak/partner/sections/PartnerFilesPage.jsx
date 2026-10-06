@@ -216,7 +216,19 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
       };
       // Le tre fonti sono indipendenti: in parallelo, non una dopo l'altra.
       const [dDrive, dMateriali, dContratto] = await Promise.all([daDrive(), daMateriali(), daContratto()]);
-      if (livelloPartner !== "start") reali.push(...documentiPartnership);
+      if (livelloPartner === "start") {
+        // Il cliente Start ha il SUO libretto: un solo PDF sempre aggiornato con i
+        // materiali approvati (al posto dei due documenti della Partnership).
+        reali.push({
+          id: "r-libretto-start", folderId: "master_pdf",
+          name: "Il_tuo_progetto_Start.pdf", category: "Libretto Start",
+          size: "PDF", date: "sempre aggiornato", owner: "⚙️ CIAK", type: "pdf",
+          icon: Award, iconColor: "text-amber-600",
+          url: `/api/partner-journey/start-libretto-pdf/${partnerId}`,
+        });
+      } else {
+        reali.push(...documentiPartnership);
+      }
       reali.push(...dDrive, ...dMateriali, ...dContratto);
       if (!annullato) { setFiles(reali); setCaricamento(false); }
     })();

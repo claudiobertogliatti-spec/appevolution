@@ -161,6 +161,7 @@ jobs:
           tests/test_start_content_cycle.py
           tests/test_start_final_deliverables_contract.py
           tests/test_start_pdf.py
+          tests/test_start_libretto.py
           tests/test_risultati_finali_admin.py
           tests/test_start_bozze_admin.py
           tests/test_start_autogenerazione.py

@@ -273,7 +273,10 @@ test('un cliente Ciak Start NON vede Libretto di Progetto e Piano Operativo EVO 
   fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: 'Piano Operativo' } });
   expect(screen.queryByText(/Piano Operativo Strategico EVO/)).toBeNull();
   fireEvent.change(screen.getByPlaceholderText(/Cerca per nome/), { target: { value: '' } });
-  expect(screen.queryByRole('button', { name: /Apri la cartella Il tuo piano,/ })).toBeNull();
+  // al loro posto ha il SUO libretto: un solo file, con il suo indirizzo
+  const piano = await screen.findByRole('button', { name: /Apri la cartella Il tuo piano,/ });
+  expect(piano.textContent).toMatch(/1 file/);
+  expect(await rowByName('Il tuo progetto Start')).toBeTruthy();
 });
 
 test('un partner (Partnership) continua a vedere Libretto di Progetto e Piano Operativo', async () => {
