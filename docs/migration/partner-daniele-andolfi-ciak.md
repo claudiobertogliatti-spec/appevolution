@@ -1,5 +1,7 @@
 # Daniele Andolfi (ID 23) — simulazione percorso EVO
 
+> ⚠️ **Aggiornamento 5/10/2026 — prezzo dell'offerta.** Claudio ha deciso **147€ scontato / 247€ listino** (`offerPrice` = `147€ (listino 247€)`, riletto alla fonte). Le cifre **297€ / 497€** qui sotto sono lo stato del 30/07/2026 e non sono più valide.
+
 > ## ✅ MIGRAZIONE CHIUSA — 30/07/2026
 > Scritture eseguite in produzione e **rilette alla fonte** (`full-data` + `partner-hub`),
 > backup pre/post in `storage/migration-backups/daniele-andolfi-{before,after}-2026-07-30.json`

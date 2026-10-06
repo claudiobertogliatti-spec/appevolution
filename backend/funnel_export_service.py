@@ -80,7 +80,7 @@ class FunnelExportService:
         partner_name = partner_data.get("name", "Partner")
         partner_niche = partner_data.get("niche", "")
         offer_name = partner_data.get("offer_name", "Programma Acceleratore")
-        offer_price = partner_data.get("offer_price", "297€")
+        offer_price = partner_data.get("offer_price") or "Da definire"
         
         # Build sections HTML
         sections_html = ""

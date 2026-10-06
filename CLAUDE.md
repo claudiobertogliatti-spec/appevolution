@@ -300,7 +300,8 @@ Se un video resta in `queued` per più di 30 minuti:
 **Procedura di recovery** (da fare dal browser loggato come admin su `ciak.io/admin`):
 ```js
 // 1. Verifica stato
-const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+// chiave verificata il 5/10/2026 (frontend/src/ciak/admin/api.js, TOKEN_KEY): access_token/token danno 401
+const token = localStorage.getItem("ciak_admin_token");
 fetch("/api/partner-journey/masterclass/video-status/PARTNER_ID", {headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(console.log)
 
 // 2. Reset pipeline

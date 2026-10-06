@@ -20,13 +20,19 @@
 - `production_kit`: descrizione_offerta e faq → 200 (file_id `a74a6073…`, `80b0d4c6…`); scansione: resta solo "Risparmi 100€" (247−147, corretto).
 - correzione: PRIMA `aperta` → DOPO `risolta` 17:52:47, `preview_version` 1.
 - codice: `pytest tests/test_webinar_offer_price.py` → 11 passed; CI della PR #327 verde (4 controlli).
+- Deploy (letti dai job GitHub Actions, 5-6/10): run 374 (`f9d1fcc3`, #327) `success` in tutti gli step, smoke incluso (18:03:42). Run 376 (#330) **annullato**, sostituito dal 377 (`3c4abdb`, #331, successivo) `success` con smoke alle 18:38:51; la #330 è antenata di `3c4abdb` e i suoi due file non sono cambiati dopo (`git merge-base --is-ancestor` + `git diff`), quindi la guardia è in produzione.
+- Codice #330 (merge `6976834d`): i generatori Gaia `descrizione_offerta`, `faq`, `termini` leggono il prezzo da `partner_hub`, ammettono solo listino/promo/risparmio, riprovano una volta, poi 502 senza salvare; senza prezzo nell'hub rispondono 400. `pytest tests/test_webinar_offer_price.py` → 15 passed, CI verde.
+- Chat di Andrea: Claudio riferisce il 6/10 che «risponde bene» (⛔ output delle due domande "quanto costa?" e "cambialo" non incollato).
 
 **APERTO**
-- ⛔ **Webinar e slide** di Daniele: `steps.14.data.strategia` e `deck.slides.19` contenevano 497/297 alla scansione di oggi; si rigenerano solo dall'interfaccia (step "Prezzo e webinar": Genera, poi Deck). Dispensa PDF: si allinea dopo, legge il prezzo dall'hub.
-- ⛔ **Deploy**: al momento di questa nota Deploy Backend run 374 (`f9d1fcc3`) era `in_progress` e il 375 (#325) `pending`. Finché non è `success` la chat di Andrea non legge il prezzo. Prova da fare: chiedere ad Andrea "quanto costa?" (atteso 247€ / 147€) e "cambialo" (atteso: lo aggiorna il team).
-- 🔎 `funnel_export_service.py:83` ha ancora il default hardcoded `"297€"`; note di migrazione (`docs/migration/partner-daniele-andolfi-ciak.md`, `ciak-falle-simulazione-andolfi.md`, `memory/CIAK_MIGRATION_MEMORY.md`) riportano ancora 297/497; CLAUDE.md cita chiavi token superate. Non toccati.
+- ⛔ **Webinar**: dalla scansione del 6/10 le slide (`deck.slides.19`) risultano pulite, ma `steps[14].data.strategia.prezzo` ha ancora `listino 497€` / `promo_webinar 297€`: va rigenerata la **strategia** (pulsante Genera in "Prezzo e webinar"; sovrascrive le modifiche a mano allo script). Dispensa PDF: si allinea dopo, legge il prezzo dall'hub.
+- ✅ **`descrizione_offerta`** di Daniele rigenerata il 6/10 alle 08:02 con la guardia live (PowerShell: `OK`, file_id `f034381a…`; importi nel testo `100, 147, 247` — «80€» sparito; 100 = risparmio 247−147).
+- 🔎 `termini` di Daniele resta a 297/497 per scelta (legacy non esposto; testo legale AI superato da `legal_documents`).
+- 🔎 Dopo le rigenerazioni: scansione finale degli importi (devono restare solo `termini`, la correzione chiusa `review.corrections.0` e le note del contratto in `partner.notes`).
+- ✅ Corretti in PR (non ancora in produzione fino al merge): default `"297€"` in `funnel_export_service.py` → `"Da definire"` (endpoint `POST /funnel/export` senza chiamanti nel frontend, `partner_data` dal body); `CLAUDE.md` sez. 6 ora usa la chiave `ciak_admin_token`; `memory/CIAK_MIGRATION_MEMORY.md` e `docs/migration/partner-daniele-andolfi-ciak.md` annotati (prezzo 147/247; gli endpoint della regola 18 oggi richiedono token admin). Restano 297/497 storici in `docs/migration/ciak-falle-simulazione-andolfi.md` (cronaca del 30/07).
+- 🔎 `POST /funnel/export` (`server.py:13062`) non ha autenticazione e scrive file da `partner_data` fornito dal chiamante: non toccato, da valutare con `auth-reviewer`.
 - 🔎 Andrea compare nel drawer solo sugli step 05-09 (`agents.js`): visibilità fuori da quegli step = decisione di prodotto.
-- ⚠️ Errore corretto in questa voce: la mia modifica in #327 aveva cancellato l'intestazione della voce di Codex del 2026-09-10 (Mariangela); ripristinata qui sotto.
+- ✅ Intestazione della voce di Codex del 2026-09-10 (Mariangela), cancellata per errore in #327, ripristinata con #330.
 
 ### 2026-09-10 · Codex · Mariangela aggiunta a Collaboratori
 
