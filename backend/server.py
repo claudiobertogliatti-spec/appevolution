@@ -50,7 +50,7 @@ from youtube_uploader import youtube_uploader, YouTubeUploader
 from tts_generator import tts_generator, TTSGenerator
 from video_editor_service import video_editor, VideoEditorService
 from legal_pages_service import legal_generator, LegalPagesGenerator
-from funnel_export_service import funnel_export_service, FunnelExportService
+from funnel_export_service import funnel_export_service, FunnelExportService, resolve_export_path
 from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 from analisi_workflow import esegui_workflow_analisi
 
@@ -13060,7 +13060,7 @@ class FunnelExportRequest(BaseModel):
     approved_sections: List[int]
 
 @api_router.post("/funnel/export")
-async def export_funnel_for_systeme(request: FunnelExportRequest):
+async def export_funnel_for_systeme(request: FunnelExportRequest, _admin=Depends(require_admin_role)):
     """
     Generate HTML export document for Systeme.io manual import
     """
@@ -13095,18 +13095,16 @@ async def export_funnel_for_systeme(request: FunnelExportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/funnel/exports")
-async def list_funnel_exports(partner_id: Optional[str] = None):
+async def list_funnel_exports(partner_id: Optional[str] = None, _admin=Depends(require_admin_role)):
     """List all funnel exports"""
     exports = funnel_export_service.list_exports(partner_id)
     return {"exports": exports, "count": len(exports)}
 
 @api_router.get("/funnel/export/download/{filename}")
-async def download_funnel_export(filename: str):
+async def download_funnel_export(filename: str, _admin=Depends(require_admin_role)):
     """Download a funnel export file"""
-    from pathlib import Path
-    
-    filepath = Path("/app/storage/funnel_exports") / filename
-    if not filepath.exists():
+    filepath = resolve_export_path(filename)
+    if filepath is None or not filepath.exists():
         raise HTTPException(status_code=404, detail="Export file not found")
     
     return FileResponse(
@@ -13117,12 +13115,10 @@ async def download_funnel_export(filename: str):
     )
 
 @api_router.get("/funnel/export/preview/{filename}")
-async def preview_funnel_export(filename: str):
+async def preview_funnel_export(filename: str, _admin=Depends(require_admin_role)):
     """Preview a funnel export file in browser"""
-    from pathlib import Path
-    
-    filepath = Path("/app/storage/funnel_exports") / filename
-    if not filepath.exists():
+    filepath = resolve_export_path(filename)
+    if filepath is None or not filepath.exists():
         raise HTTPException(status_code=404, detail="Export file not found")
     
     return FileResponse(str(filepath), media_type="text/html")

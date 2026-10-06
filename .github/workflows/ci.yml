@@ -116,6 +116,7 @@ jobs:
           tests/test_partner_journey_auth_unittest.py
           tests/test_no_shadow_routes.py
           tests/test_admin_endpoints_auth.py
+          tests/test_funnel_export_auth.py
           tests/test_partners_write_auth.py
           tests/test_sales_bonifico_auth.py
           tests/test_attiva_partnership_auth.py
