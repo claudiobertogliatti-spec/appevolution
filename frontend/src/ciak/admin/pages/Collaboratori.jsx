@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "../api";
 import { CollaboratorSettlements } from "./CollaboratorSettlements";
+import { GettoniMariangela } from "./GettoniMariangela";
 
 function minutesLabel(minutes) {
   const n = Number(minutes || 0);
@@ -153,12 +154,12 @@ export function Collaboratori({ onAuthExpired }) {
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Mariangela Caccia</h2>
             <p className="mt-1 text-sm text-slate-600">Collaboratrice nei reparti Acquisizione e Vendite.</p>
-            <p className="mt-3 text-sm font-medium text-amber-700">Compenso non calcolabile: regola economica non configurata.</p>
-            <p className="mt-1 text-sm text-slate-500">Contratto, tariffa e modalità di pagamento devono provenire da una fonte verificata prima di calcolare importi.</p>
+            <p className="mt-3 text-sm text-slate-500">Compenso a gettone sul fatturato incassato, non a ore.</p>
             <Link to="/admin/persona/mariangela" className="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-yellow-400">Apri attività di Mariangela</Link>
           </div>
         </div>
       </section>
+      <GettoniMariangela onAuthExpired={onAuthExpired} />
     </div>
   );
 
