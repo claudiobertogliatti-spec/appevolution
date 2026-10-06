@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import re
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
@@ -654,6 +654,13 @@ async def _avvisa_team_start(client: dict[str, Any], cosa: str) -> None:
         logger.warning("[START] avviso al team non inviato per %s: %s", client.get("id"), exc)
 
 
+def _prepara_bozze_in_background(background_tasks: BackgroundTasks, client_id: str) -> None:
+    """Dopo il salvataggio Ciak prepara le bozze Start da solo (mai approvate)."""
+    from services.start_autogenerazione import prepara_bozze
+
+    background_tasks.add_task(prepara_bozze, client_id)
+
+
 class StartRisposteBody(BaseModel):
     answers: dict = Field(default_factory=dict)
     completato: bool = False
@@ -684,6 +691,7 @@ async def start_risposte(client: dict[str, Any] = Depends(require_client)):
 @router.put("/start/risposte")
 async def salva_start_risposte(
     body: StartRisposteBody,
+    background_tasks: BackgroundTasks,
     client: dict[str, Any] = Depends(require_client),
 ):
     """Salva (anche a meta') le risposte e, con `completato`, le segna come inviate.
@@ -736,6 +744,7 @@ async def salva_start_risposte(
             {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
         )
         await _avvisa_team_start(client, "le sue risposte")
+        _prepara_bozze_in_background(background_tasks, client["id"])
     answers, completato_at = await _risposte_start(client["id"])
     return {"success": True, "answers": answers, "completato_at": completato_at}
 
@@ -781,6 +790,7 @@ async def start_marchio(client: dict[str, Any] = Depends(require_client)):
 @router.put("/start/marchio")
 async def salva_start_marchio(
     body: StartMarchioBody,
+    background_tasks: BackgroundTasks,
     client: dict[str, Any] = Depends(require_client),
 ):
     """Salva (anche a meta') le scelte sul marchio; con `completato` le segna inviate.
@@ -830,6 +840,7 @@ async def salva_start_marchio(
             {"id": client["id"]}, {"$set": {"events": events, "updated_at": now}}
         )
         await _avvisa_team_start(client, "le scelte sul marchio")
+        _prepara_bozze_in_background(background_tasks, client["id"])
     data = await _marchio_start(client["id"])
     return {"success": True, "valori": _valori_marchio(data), "completato_at": data.get("brand_completed_at")}
 

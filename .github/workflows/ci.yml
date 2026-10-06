@@ -160,6 +160,7 @@ jobs:
           tests/test_start_content_cycle.py
           tests/test_start_final_deliverables_contract.py
           tests/test_start_bozze_admin.py
+          tests/test_start_autogenerazione.py
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
           tests/test_ciak_clients_router.py

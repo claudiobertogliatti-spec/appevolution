@@ -502,6 +502,7 @@ export function ConsegneStart({ onAuthExpired }) {
     const routes = {
       genera_posizionamento: [`/start/${client.client_id}/posizionamento/genera`, null],
       approva_posizionamento: [`/start/${client.client_id}/deliverable/approva`, { tipo: "positioning" }],
+      prepara_bozze: [`/start/${client.client_id}/bozze/prepara`, null],
       genera_marchio: [`/start/${client.client_id}/marchio/genera`, null],
       approva_marchio: [`/start/${client.client_id}/deliverable/approva`, { tipo: "brand_kit" }],
       genera_profili: [`/start/${client.client_id}/profili/genera`, null],
@@ -518,7 +519,9 @@ export function ConsegneStart({ onAuthExpired }) {
       const result = await apiPost(route, body || {});
       const missing = result?.deliverable?.missing || [];
       let testo;
-      if (result?.generating) {
+      if (result?.generating && azione === "prepara_bozze") {
+        testo = `Bozze in preparazione per ${client.nome || client.email}: tra 2-4 minuti le trovi in "Vedi bozze". Nessuna viene approvata da sola.`;
+      } else if (result?.generating) {
         // Il calendario si genera in background (AI lunga): non c'e' ancora nulla
         // da mostrare, comparira' al prossimo aggiornamento del pannello.
         testo = `Generazione del calendario avviata per ${client.nome || client.email}: sara' pronto tra 1-2 minuti. Aggiorna il pannello.`;
@@ -592,6 +595,17 @@ export function ConsegneStart({ onAuthExpired }) {
             {clienti.map((client) => (
               <div key={client.client_id} className="rounded-xl border border-slate-200 p-4">
                 <p className="text-sm font-semibold text-slate-900">{client.nome || client.email}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Le bozze si preparano da sole quando il cliente invia risposte e marchio. Qui puoi rilanciarle.
+                </p>
+                <button
+                  type="button"
+                  disabled={inCorso === `${client.client_id}-prepara_bozze`}
+                  onClick={() => onDeliverable(client, "prepara_bozze")}
+                  className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+                >
+                  {inCorso === `${client.client_id}-prepara_bozze` ? "Attendi…" : "Prepara tutte le bozze"}
+                </button>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[
                     ["genera_posizionamento", "1a · Genera posizionamento"],
