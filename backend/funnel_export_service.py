@@ -17,7 +17,7 @@ EXPORTS_PATH = Path("/app/storage/funnel_exports")
 EXPORTS_PATH.mkdir(parents=True, exist_ok=True)
 
 _UNSAFE_NAME = re.compile(r"[^A-Za-z0-9_-]+")
-_EXPORT_FILE = re.compile(r"^[A-Za-z0-9_.-]+\.html$")
+_EXPORT_FILE = re.compile(r"[A-Za-z0-9_.-]+\.html")
 
 
 def safe_export_name(name) -> str:
@@ -28,7 +28,7 @@ def safe_export_name(name) -> str:
 def resolve_export_path(filename) -> Optional[Path]:
     """Percorso di un export, solo se e' un .html direttamente dentro EXPORTS_PATH; altrimenti None."""
     name = str(filename or "")
-    if not _EXPORT_FILE.match(name) or ".." in name:
+    if not _EXPORT_FILE.fullmatch(name) or ".." in name:
         return None
     path = (EXPORTS_PATH / name).resolve()
     return path if path.parent == EXPORTS_PATH.resolve() else None

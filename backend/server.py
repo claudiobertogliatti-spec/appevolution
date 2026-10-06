@@ -13090,9 +13090,11 @@ async def export_funnel_for_systeme(request: FunnelExportRequest, _admin=Depends
         
         return result
         
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Funnel export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Export generation failed")
 
 @api_router.get("/funnel/exports")
 async def list_funnel_exports(partner_id: Optional[str] = None, _admin=Depends(require_admin_role)):

@@ -35,7 +35,7 @@ def _export_routes():
                 and isinstance(dec.args[0], ast.Constant)
                 and str(dec.args[0].value).startswith("/funnel/export")
             ):
-                found.append((dec.func.attr.upper(), dec.args[0].value, fn))
+                found.append((dec.func.attr.upper(), dec.args[0].value, fn, dec))
     return found
 
 
@@ -58,7 +58,17 @@ def _signature_depends(fn):
 def test_every_funnel_export_route_requires_an_admin():
     routes = _export_routes()
     assert routes, "nessuna route /funnel/export trovata: se le hai ritirate, aggiorna questo test"
-    open_routes = [f"{m} {p}" for m, p, fn in routes if "require_admin_role" not in _signature_depends(fn)]
+    def guards(fn, dec):
+        # guardia nella firma dell'handler oppure in `dependencies=[Depends(...)]` del decoratore
+        names = _signature_depends(fn)
+        for kw in dec.keywords:
+            if kw.arg == "dependencies":
+                for sub in ast.walk(kw.value):
+                    if isinstance(sub, ast.Call) and getattr(sub.func, "id", "") == "Depends" and sub.args:
+                        names.add(getattr(sub.args[0], "id", ""))
+        return names
+
+    open_routes = [f"{m} {p}" for m, p, fn, dec in routes if "require_admin_role" not in guards(fn, dec)]
     assert open_routes == [], f"route /funnel/export senza guardia admin: {open_routes}"
 
 
@@ -89,5 +99,5 @@ def test_export_file_name_never_comes_from_the_caller_as_is(export_module, tmp_p
 def test_only_html_files_inside_the_exports_folder_can_be_read(export_module, tmp_path):
     ok = export_module.resolve_export_path("funnel_export_Mario_20261006_120000.html")
     assert ok is not None and ok.parent == tmp_path.resolve()
-    for bad in ("../x.html", "a/b.html", "..", "x.txt", "", None, "..\\x.html", "a..b.html"):
+    for bad in ("../x.html", "a/b.html", "..", "x.txt", "", None, "..\\x.html", "a..b.html", "a.html\n"):
         assert export_module.resolve_export_path(bad) is None, bad
