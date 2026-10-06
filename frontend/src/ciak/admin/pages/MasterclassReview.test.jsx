@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { MasterclassReview, wordIndexAt, skipCuts } from "./MasterclassReview";
+import { MasterclassReview, wordIndexAt, skipCuts, mergeManualCut } from "./MasterclassReview";
 import { adminFetch } from "../api";
 
 jest.mock("../api", () => ({ adminFetch: jest.fn() }));
@@ -108,4 +108,20 @@ test("se il video non si puo servire la revisione sul testo funziona lo stesso",
   renderLesson();
   expect(await screen.findByText(/Anteprima video non disponibile/)).toBeTruthy();
   expect(screen.getByText("grazie")).toBeTruthy();
+});
+
+
+test("mergeManualCut fonde i tagli manuali contigui o sovrapposti in uno solo e tiene separati quelli lontani", () => {
+  const a = { id: "m1", start: 54.5, end: 55.9, type: "manual" };
+  const b = { id: "m2", start: 55.9, end: 56.3, type: "manual" };      // contiguo
+  const c = { id: "m3", start: 56.5, end: 58.0, type: "manual" };      // buco di 0,2 s: si fonde
+  const far = { id: "m4", start: 70, end: 72, type: "manual" };
+  let list = mergeManualCut([], a);
+  list = mergeManualCut(list, b);
+  list = mergeManualCut(list, far);
+  list = mergeManualCut(list, c);
+  expect(list.map((m) => [m.start, m.end])).toEqual([[54.5, 58], [70, 72]]);
+  // un taglio che ne scavalca due li fonde tutti
+  expect(mergeManualCut(list, { id: "m5", start: 57, end: 71, type: "manual" }).map((m) => [m.start, m.end])).toEqual([[54.5, 72]]);
+  expect(mergeManualCut(undefined, a)).toHaveLength(1);
 });

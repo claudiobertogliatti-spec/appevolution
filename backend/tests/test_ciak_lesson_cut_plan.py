@@ -76,3 +76,33 @@ def test_transcriber_fillers_are_kept_with_a_margin_but_never_overlap_a_decided_
 def test_prompt_lists_protected_ranges_and_forbids_touching_them():
     p = cp.build_lesson_ai_prompt(seq(["ciao", "mondo"]), [{"start": 100, "end": 200}])
     assert "100-200s" in p and "MAI gli esercizi guidati" in p and "ciao | 0.00-0.30" in p
+
+
+def test_overlapping_repeat_cuts_keep_only_the_first_so_the_last_copy_survives():
+    cuts = [{"start": 11.9, "end": 16.0, "type": "smart"}, {"start": 13.4, "end": 19.0, "type": "smart"},
+            {"start": 30.0, "end": 31.0, "type": "smart"}, {"start": 16.0, "end": 17.0, "type": "smart"}]
+    out = cp.drop_overlapping_repeats(cuts)
+    assert [(c["start"], c["end"]) for c in out] == [(11.9, 16.0), (16.0, 17.0), (30.0, 31.0)]   # il secondo e dentro il primo: scartato
+    assert cp.drop_overlapping_repeats([]) == []
+
+
+def test_rephrase_proposals_from_the_ai_are_kept_but_literal_repeats_and_multiple_attempts_pass():
+    words = seq(["parola"] * 60, 0, 1.0)
+    ai = [
+        {"start": 10, "end": 14, "reason": "Ripetizione di 'per questi vari' - falsa partenza e riformulazione"},
+        {"start": 20, "end": 23, "reason": "Ripetizione di 'che effettivamente' - riformulazione ridondante della stessa idea"},
+        {"start": 30, "end": 31, "reason": "Falsa partenza 'hai' seguita da pausa"},
+        {"start": 40, "end": 44, "reason": "RIPETIZIONE LETTERALE di 'per poter tracciare una rotta' gia detta"},
+        {"start": 50, "end": 57, "reason": "TENTATIVI MULTIPLI: quattro formulazioni della stessa frase"},
+    ]
+    plan = cp.plan_lesson_cuts(words, 100, ai_candidates=ai)
+    assert [(c["start"], c["end"]) for c in plan["ai_cuts"]] == [(40.0, 44.0), (50.0, 57.0)]
+    assert sum("riformulazione nel parlato naturale" in r["reason"] for r in plan["rejected"]) == 3
+    assert not cp.is_rephrase_proposal("RIPETIZIONE LETTERALE ... gia detta immediatamente")
+    assert not cp.is_rephrase_proposal("DIGRESSIONE fuori tema")
+    assert cp.is_rephrase_proposal("falsa partenza e riformulazione")
+
+
+def test_prompt_asks_for_whole_confused_passages_and_keeps_natural_rephrasing():
+    p = cp.build_lesson_ai_prompt(seq(["ciao"]), [])
+    assert "TENTATIVI MULTIPLI" in p and "RIPETIZIONE LETTERALE" in p and "NON proporre MAI: riformulazioni brevi" in p

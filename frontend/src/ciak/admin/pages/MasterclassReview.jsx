@@ -24,6 +24,21 @@ const fmt = (s) => {
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 };
 
+/** Aggiunge un taglio manuale fondendolo con quelli contigui o sovrapposti (gap <= 0,35 s): niente decine di pezzetti. */
+export function mergeManualCut(list, cut, gap = 0.35) {
+  const merged = { ...cut };
+  const rest = [];
+  for (const m of list || []) {
+    if (m.start <= merged.end + gap && m.end >= merged.start - gap) {
+      merged.start = Math.min(merged.start, m.start);
+      merged.end = Math.max(merged.end, m.end);
+    } else {
+      rest.push(m);
+    }
+  }
+  return [...rest, merged].sort((a, b) => a.start - b.start);
+}
+
 /** Indice della parola che si sta pronunciando al tempo `t` (ultima con start <= t), -1 se prima della prima o oltre la fine. */
 export function wordIndexAt(words, t) {
   if (!words?.length || t < words[0].start) return -1;
@@ -192,8 +207,8 @@ export function MasterclassReview({ onAuthExpired }) {
   const addManualCut = () => {
     if (!sel) return;
     const start = words[sel.a].start, end = words[sel.b].end;
-    setManual((prev) => [...prev, { id: `m${Date.now()}${prev.length}`, start, end, type: "manual",
-      reason: "taglio manuale", word: "", enabled: true }]);
+    setManual((prev) => mergeManualCut(prev, { id: `m${Date.now()}${prev.length}`, start, end, type: "manual",
+      reason: "taglio manuale", word: "", enabled: true }));
     setSel(null);
     setAnchor(null);
   };

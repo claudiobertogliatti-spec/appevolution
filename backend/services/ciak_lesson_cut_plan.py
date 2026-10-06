@@ -27,11 +27,17 @@ LESSON_AI_CUT_MAX_S = 60.0       # un taglio AI di una lezione non supera 1 minu
 MIN_GAP_AS_SILENCE_S = 0.25      # senza audio, si considera "pausa" un vuoto fra due parole di almeno 0,25 s
 
 LESSON_AI_PROMPT = """Sei il montatore di una VIDEOLEZIONE di un videocorso, in italiano.
-Ti do la trascrizione a tempi (secondi). Proponi SOLO tagli che migliorano il FILO DEL DISCORSO:
-- la stessa idea detta due volte (ripetizioni di contenuto o riformulazioni): tieni la versione migliore, quasi sempre l'ultima;
-- false partenze e frasi lasciate a metà; "dicevo", "come ti dicevo prima" quando non servono;
-- digressioni fuori tema e ripetizioni di cortesia.
-NON tagliare: esempi che chiariscono, definizioni, numeri, passaggi che introducono un esercizio, il saluto iniziale e
+Ti do la trascrizione a tempi (secondi). Proponi SOLO tagli che migliorano il FILO DEL DISCORSO, di TRE tipi,
+e scrivi nel campo "reason" la parola chiave del tipo:
+1. RIPETIZIONE LETTERALE: la stessa frase detta due volte quasi con le stesse parole, una dopo l'altra: togli la prima copia.
+2. TENTATIVI MULTIPLI: il relatore prova tre o piu volte a formulare la stessa frase ("dobbiamo considerare / dobbiamo
+   scoprire / dobbiamo rendere / dobbiamo diventare coscienti...") e poi la dice in modo pulito: UN solo taglio che toglie tutto
+   il passaggio confuso, purche la frase pulita successiva regga da sola.
+3. DIGRESSIONE: un passaggio fuori tema che interrompe il filo.
+NON proporre MAI: riformulazioni brevi nel parlato naturale (es. "che effettivamente... che effettivamente"), piccole false
+partenze, esitazioni isolate di una o due parole, frasi riflessive o di chiusura: l'autore le vuole tenere perche il tono resti
+naturale.
+NON tagliare nemmeno: esempi che chiariscono, definizioni, numeri, passaggi che introducono un esercizio, il saluto iniziale e
 la chiusura, MAI gli esercizi guidati (respiro, pratiche, "facciamo insieme").
 Ogni taglio deve iniziare e finire a un confine di frase, durare al massimo 1 minuto, usare i tempi esatti delle parole.
 Rispondi SOLO con un array JSON: [{{"start": float, "end": float, "reason": "..."}}]. Se non c'e nulla da togliere, [].
@@ -60,6 +66,27 @@ def silences_from_words(words: list) -> list[dict]:
     return out
 
 
+REPHRASE_MARKERS = ("riformula", "falsa partenza", "ridondante", "esitazion")
+KEEP_MARKERS = ("letterale", "tentativi", "digressione")
+
+
+def is_rephrase_proposal(reason: str) -> bool:
+    """True se la proposta dell'AI e una riformulazione/esitazione da TENERE (decisione dell'autore, 6/10/2026)."""
+    r = str(reason or "").lower()
+    return any(m in r for m in REPHRASE_MARKERS) and not any(m in r for m in KEEP_MARKERS)
+
+
+def drop_overlapping_repeats(cuts: list) -> list:
+    """Due tagli di ripresa che si sovrappongono si fonderebbero in uno solo e toglierebbero anche l'ULTIMA copia, che e
+    quella da tenere ("il punto nave quando si naviga appunto | il punto nave e | quando si naviga"). Si tiene il primo."""
+    out, last_end = [], -1.0
+    for c in sorted(cuts, key=lambda x: float(x["start"])):
+        if float(c["start"]) >= last_end - 1e-6:
+            out.append(c)
+            last_end = float(c["end"])
+    return out
+
+
 def plan_lesson_cuts(words: list, duration_s: float, *, silences: Optional[list] = None,
                      ai_candidates: Optional[Iterable[dict]] = None,
                      extra_cuts: Optional[Iterable[dict]] = None,
@@ -71,17 +98,21 @@ def plan_lesson_cuts(words: list, duration_s: float, *, silences: Optional[list]
 
     pause = mc.silence_cuts(sil, protected, max_s=pause_max_s)
     fill = mc.filler_cuts(words, protected)
-    rep = mc.repeat_cuts(words, protected)
+    rep = drop_overlapping_repeats(mc.repeat_cuts(words, protected))
     pause += mc.adjacent_pause_cuts(sil, fill + rep, protected, max_s=pause_max_s)
 
     ai = {"accepted": [], "rejected": [], "total_s": 0.0}
     ai_candidates = [c for c in (ai_candidates or []) if isinstance(c, dict)]
     if ai_candidates:
+        rephrases = [{"start": _num(c.get("start")), "end": _num(c.get("end")), "type": "smart", "word": "",
+                      "reason": "riformulazione nel parlato naturale: tenuta"}
+                     for c in ai_candidates if is_rephrase_proposal(c.get("reason"))]
+        ai_candidates = [c for c in ai_candidates if not is_rephrase_proposal(c.get("reason"))]
         capped = [c for c in ai_candidates
                   if _num(c.get("end")) - _num(c.get("start")) <= LESSON_AI_CUT_MAX_S]
         too_long = [{"start": _num(c.get("start")), "end": _num(c.get("end")), "reason": "taglio AI oltre 60 s",
                      "type": "smart", "word": ""}
-                    for c in ai_candidates if c not in capped]
+                    for c in ai_candidates if c not in capped] + rephrases
         ai = mc.validate_ai_cuts(capped, words, protected, duration_s)
         ai["rejected"] = list(ai["rejected"]) + too_long
     plan = mc.assemble_plan(pause, fill, rep, ai["accepted"], duration_s=duration_s)
