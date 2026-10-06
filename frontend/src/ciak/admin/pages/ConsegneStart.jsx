@@ -503,6 +503,7 @@ export function ConsegneStart({ onAuthExpired }) {
       genera_posizionamento: [`/start/${client.client_id}/posizionamento/genera`, null],
       approva_posizionamento: [`/start/${client.client_id}/deliverable/approva`, { tipo: "positioning" }],
       prepara_bozze: [`/start/${client.client_id}/bozze/prepara`, null],
+      crea_pdf: [`/start/${client.client_id}/pdf/crea`, null],
       genera_marchio: [`/start/${client.client_id}/marchio/genera`, null],
       approva_marchio: [`/start/${client.client_id}/deliverable/approva`, { tipo: "brand_kit" }],
       genera_profili: [`/start/${client.client_id}/profili/genera`, null],
@@ -519,7 +520,14 @@ export function ConsegneStart({ onAuthExpired }) {
       const result = await apiPost(route, body || {});
       const missing = result?.deliverable?.missing || [];
       let testo;
-      if (result?.generating && azione === "prepara_bozze") {
+      if (azione === "crea_pdf") {
+        const nomi = { positioning: "posizionamento", brand_kit: "marchio" };
+        const fatti = (result?.creati || []).map((t) => nomi[t] || t);
+        const falliti = (result?.falliti || []).map((t) => nomi[t] || t);
+        testo = fatti.length || falliti.length
+          ? `PDF di ${client.nome || client.email}: creati ${fatti.length ? fatti.join(", ") : "nessuno"}${falliti.length ? `; non riusciti: ${falliti.join(", ")}` : ""}.`
+          : `Nessun materiale approvato per ${client.nome || client.email}: i PDF nascono all'approvazione.`;
+      } else if (result?.generating && azione === "prepara_bozze") {
         testo = `Bozze in preparazione per ${client.nome || client.email}: tra 2-4 minuti le trovi in "Vedi bozze". Nessuna viene approvata da sola.`;
       } else if (result?.generating) {
         // Il calendario si genera in background (AI lunga): non c'e' ancora nulla
@@ -605,6 +613,14 @@ export function ConsegneStart({ onAuthExpired }) {
                   className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
                 >
                   {inCorso === `${client.client_id}-prepara_bozze` ? "Attendi…" : "Prepara tutte le bozze"}
+                </button>
+                <button
+                  type="button"
+                  disabled={inCorso === `${client.client_id}-crea_pdf`}
+                  onClick={() => onDeliverable(client, "crea_pdf")}
+                  className="mt-3 ml-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+                >
+                  {inCorso === `${client.client_id}-crea_pdf` ? "Attendi…" : "Crea i PDF dei materiali approvati"}
                 </button>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[

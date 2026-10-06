@@ -110,9 +110,14 @@ def _gruppo(num: int, titolo: str, sottotitolo: str, corpo: str) -> str:
     )
 
 
-def render_brand_kit_html(data: dict, nome: str) -> str:
+def render_brand_kit_html(data: dict, nome: str, *, start: bool = False) -> str:
     """data: logo_url, foto_url, colors (list[str] HEX), tone_of_voice,
-    parole_chiave (list[str]), parole_evitare (list[str])."""
+    parole_chiave (list[str]), parole_evitare (list[str]).
+
+    `start=True`: versione per il cliente Ciak Start. Stesso documento, ma senza
+    "Metodo EVO / Fase Esamina" (parole della Partnership) e senza il blocco
+    "Parole da evitare", che a chi compra Start non viene mai chiesto."""
+    evitare = [p for p in (data.get("parole_evitare") or []) if (p or "").strip()]
     logo_url = (data.get("logo_url") or "").strip()
     foto_url = (data.get("foto_url") or "").strip()
     colors = data.get("colors") or []
@@ -138,16 +143,19 @@ def render_brand_kit_html(data: dict, nome: str) -> str:
                   f'<div class="doc-qa"><div class="lab">Tone of voice</div></div>{tone_html}'
                   f'<div class="doc-qa" style="margin-top:6mm"><div class="lab">Parole chiave</div></div>'
                   f'{_pills(data.get("parole_chiave"))}'
-                  f'<div class="doc-qa" style="margin-top:6mm"><div class="lab">Parole da evitare</div></div>'
-                  f'{_pills(data.get("parole_evitare"), avoid=True)}')
+                  + ("" if start and not evitare else
+                     f'<div class="doc-qa" style="margin-top:6mm"><div class="lab">Parole da evitare</div></div>'
+                     f'{_pills(data.get("parole_evitare"), avoid=True)}'))
     )
 
     return documento(
-        f"Brand Kit di {esc(nome)}",
+        f"{'Il marchio' if start else 'Brand Kit'} di {esc(nome)}",
         cover(
-            kicker="Metodo EVO · Fase Esamina",
-            titolo="Il tuo Brand Kit",
-            sottotitolo="Gli elementi fissi della tua identità: da qui in avanti, "
+            kicker="Ciak Start · Le basi del tuo marchio" if start else "Metodo EVO · Fase Esamina",
+            titolo="Il tuo marchio" if start else "Il tuo Brand Kit",
+            sottotitolo="Le scelte che hai fatto sul tuo marchio, messe in ordine: da qui in avanti, "
+                        "tutto quello che pubblichi parte da questa pagina." if start else
+                        "Gli elementi fissi della tua identità: da qui in avanti, "
                         "tutto quello che pubblichi parte da questa pagina.",
             meta=f"Preparato per <strong>{esc(nome)}</strong>",
         )
@@ -157,5 +165,6 @@ def render_brand_kit_html(data: dict, nome: str) -> str:
     )
 
 
-async def genera_brand_kit_pdf(data: dict, nome: str) -> bytes:
-    return await render_pdf(render_brand_kit_html(data, nome), f"Brand Kit · {nome}")
+async def genera_brand_kit_pdf(data: dict, nome: str, *, start: bool = False) -> bytes:
+    etichetta = f"{'Il tuo marchio' if start else 'Brand Kit'} · {nome}"
+    return await render_pdf(render_brand_kit_html(data, nome, start=start), etichetta)

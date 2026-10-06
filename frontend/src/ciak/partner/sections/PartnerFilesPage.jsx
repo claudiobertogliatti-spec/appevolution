@@ -95,7 +95,10 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
     let annullato = false;
     if (ricarica === 0) setCaricamento(true); // dopo un caricamento la lista resta visibile
     (async () => {
-      const reali = [
+      // Libretto di Progetto e Piano Operativo EVO (14 fasi) sono documenti della
+      // PARTNERSHIP: a un cliente Ciak Start non vanno mostrati (descrivono un
+      // percorso che non ha). Si aggiungono solo dopo aver saputo il livello.
+      const documentiPartnership = [
         {
           id: "r-libretto", folderId: "master_pdf",
           name: "Libretto_di_Progetto_Ciak.pdf", category: "Libretto di Progetto",
@@ -111,6 +114,8 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           url: `/api/partner-journey/piano-operativo-pdf/${partnerId}`,
         },
       ];
+      const reali = [];
+      let livelloPartner = null;
       const daDrive = async () => {
         const out = [];
         try {
@@ -144,6 +149,7 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
           );
           if (rm.ok) {
             const dm = await rm.json();
+            livelloPartner = dm?.tier || null;
             for (const m of dm?.materials || []) {
               const url = m.download_url || m.public_url;
               if (!url) continue; // nessuna sorgente apribile: niente riga
@@ -208,10 +214,9 @@ export function PartnerFilesPage({ partnerId: partnerIdProp, partner }) {
         } catch { /* nessun contratto in lista se il check fallisce */ }
         return out;
       };
-      // Le tre fonti sono indipendenti: in parallelo, non una dopo l'altra. I due
-      // PDF fissi compaiono subito; il resto si aggiunge appena arriva.
-      if (!annullato) setFiles([...reali]);
+      // Le tre fonti sono indipendenti: in parallelo, non una dopo l'altra.
       const [dDrive, dMateriali, dContratto] = await Promise.all([daDrive(), daMateriali(), daContratto()]);
+      if (livelloPartner !== "start") reali.push(...documentiPartnership);
       reali.push(...dDrive, ...dMateriali, ...dContratto);
       if (!annullato) { setFiles(reali); setCaricamento(false); }
     })();

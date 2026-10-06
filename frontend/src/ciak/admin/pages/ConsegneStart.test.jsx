@@ -297,3 +297,15 @@ test("Prepara tutte le bozze: un solo clic al posto di cinque, e dice che nulla 
   await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/bozze/prepara", {}));
   expect(await screen.findByText(/Nessuna viene approvata da sola/)).toBeTruthy();
 });
+
+test("Crea i PDF dei materiali approvati: dice quali sono nati e quali no", async () => {
+  apiGet.mockResolvedValue(REPORT);
+  apiPost.mockResolvedValue({ success: false, creati: ["brand_kit"], falliti: ["positioning"] });
+  render(<ConsegneStart />);
+  await screen.findByText("Posizionamento e brand");
+
+  fireEvent.click(screen.getByRole("button", { name: "Crea i PDF dei materiali approvati" }));
+
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/client-1/pdf/crea", {}));
+  expect(await screen.findByText(/creati marchio; non riusciti: posizionamento/)).toBeTruthy();
+});

@@ -8,6 +8,10 @@ from urllib.parse import urlparse
 WORKBOOK_NOTICE = ("Puoi consultare e scaricare questo materiale ora. Al termine del percorso "
                    "riceverai anche il Workbook completo, con tutti gli output ordinati fase per fase.")
 
+# Cliente Ciak Start: niente Workbook ne' "fasi" (sono della Partnership).
+START_NOTICE = ("Questo è il documento che il team ha controllato e approvato per te. "
+                "Puoi consultarlo e scaricarlo quando vuoi: resta sempre qui, in Ciak.")
+
 STEP_CATEGORIES = {
     "01-contratto": {
         "contratto", "contratto_firmato", "contract",
