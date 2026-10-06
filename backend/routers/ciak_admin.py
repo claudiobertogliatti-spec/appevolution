@@ -5316,6 +5316,79 @@ async def bozze_start(
     }
 
 
+@router.get("/risultati-finali")
+async def risultati_finali(_admin=Depends(require_ciak_admin)):
+    """Sola lettura: il risultato finale costruito per ogni cliente.
+
+    - `vetrine`: il sito vetrina dei clienti Start (l'HTML si legge da
+      `/start/{id}/bozze`, qui solo l'elenco);
+    - `funnel`: il funnel dei partner in anteprima su Vercel, con le sue pagine.
+    Gli URL non validi (non https o non `*.vercel.app`) non diventano mai link.
+    """
+    from services import funnel_review as fr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    docs = [
+        d async for d in db.partner_funnel.find(
+            {"preview_url": {"$nin": [None, ""]}}, {"_id": 0}
+        )
+    ]
+    partner_ids = [d["partner_id"] for d in docs if d.get("partner_id")]
+    partners = {}
+    if partner_ids:
+        async for p in db.partners.find({"id": {"$in": partner_ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+            partners[p["id"]] = p
+
+    funnel = []
+    for rec in docs:
+        base = fr.allowed_funnel_preview_url(rec.get("preview_url"))
+        partner = partners.get(rec.get("partner_id")) or {}
+        stato = fr.review_state(rec) if base else {}
+        funnel.append({
+            "partner_id": rec.get("partner_id"),
+            "nome": partner.get("name") or partner.get("email") or rec.get("partner_id"),
+            "preview_url": base,
+            "url_non_valido": base is None,
+            "version": stato.get("version"),
+            "released": bool(stato.get("released")),
+            "progress": stato.get("progress"),
+            "corrections_open": stato.get("corrections_open"),
+            "pages": (
+                [{"id": p["id"], "title": p["title"], "url": fr._page_url(base, p["path"])} for p in fr.PAGES]
+                if base else []
+            ),
+        })
+    funnel.sort(key=lambda f: str(f["nome"]).lower())
+
+    vetrine_docs = [
+        d async for d in db.ciak_start_deliverables.find(
+            {"type": "showcase"},
+            {"_id": 0, "partner_id": 1, "approval_status": 1, "generated_at": 1, "approved_at": 1, "live_url": 1},
+        )
+    ]
+    clienti = {}
+    ids = [d["partner_id"] for d in vetrine_docs if d.get("partner_id")]
+    if ids:
+        async for c in db.ciak_clients.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+            clienti[c["id"]] = c
+    vetrine = [
+        {
+            "client_id": d.get("partner_id"),
+            "nome": (clienti.get(d.get("partner_id")) or {}).get("name")
+            or (clienti.get(d.get("partner_id")) or {}).get("email")
+            or d.get("partner_id"),
+            "approval_status": d.get("approval_status") or "pending_review",
+            "generated_at": d.get("generated_at"),
+            "live_url": d.get("live_url"),
+        }
+        for d in vetrine_docs
+    ]
+    vetrine.sort(key=lambda v: str(v.get("generated_at") or ""), reverse=True)
+    return {"funnel": funnel, "vetrine": vetrine}
+
+
 @router.get("/start/consegne")
 async def consegne_start(
     _admin=Depends(require_ciak_admin),
