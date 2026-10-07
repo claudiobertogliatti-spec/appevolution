@@ -593,6 +593,19 @@ export function ConsegneStart({ onAuthExpired }) {
         />
       </div>
 
+      {esito && (
+        <p
+          role="status"
+          className={`sticky top-4 z-20 text-sm mb-4 px-4 py-3 rounded-xl border shadow-sm ${
+            esito.ok
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}
+        >
+          {esito.testo}
+        </p>
+      )}
+
       {clienti.length ? (
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-semibold text-slate-900">Output finali Start</h2>
@@ -655,18 +668,6 @@ export function ConsegneStart({ onAuthExpired }) {
         </section>
       ) : null}
 
-      {esito && (
-        <p
-          role="status"
-          className={`text-sm mb-4 px-4 py-3 rounded-xl border ${
-            esito.ok
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-red-50 text-red-700 border-red-200"
-          }`}
-        >
-          {esito.testo}
-        </p>
-      )}
 
       {data.totale_tappe === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
