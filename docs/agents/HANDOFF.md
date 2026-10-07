@@ -1,3 +1,29 @@
+### 2026-10-07 · Claude Code · claude/fervent-ramanujan-wfdt8k — iscrizione dal funnel Vercel di Andolfi + home «Ciak prepara. Systeme pubblica.»
+
+**CONTESTO:** Daniele Andolfi (ID 23) riferiva che le iscrizioni alla masterclass non risultavano su Systeme. Decisioni di Claudio: il funnel **definitivo sta su Systeme**, Vercel è solo **bozza**; il dominio sarà collegato a Systeme; nel frattempo il modulo della bozza deve salvare i contatti in Ciak, per trasferirli poi in Systeme. Ciò che Daniele segnalava (modulo non collegato, video non più su Ciak) non erano guasti: il collegamento si fa col dominio; i video, dopo l'editing, escono da Ciak verso YouTube e Systeme.
+
+**DICHIARATO**
+- PR #350 (squash `cceba6c`): nuovo `POST /api/partner-optin/{partner_id}` (`backend/routers/partner_optin.py`, pubblico per scelta) che salva in `partner_leads`. Regole: attivo solo con `partners.public_optin.enabled is True` (404 uguale per «non esiste» e «non abilitato»); consenso obbligatorio (controllato prima del 404) e registrato con data; email validata; nessun JSON grezzo né IP salvati; campo trappola `website`; tetto 120/ora per partner e 10 ogni 10 min per IP (da `X-Forwarded-For`); upsert atomico; storico interazioni a 20; avviso Telegram senza email. Export CSV dei lead (`partner_journey._csv_safe`): formule `= + - @` neutralizzate. Revisione `auth-reviewer` fatta, correzioni applicate prima del merge.
+- Home area partner (`SerenoHome.jsx`): blocco «Ciak prepara. Systeme pubblica.» con tre punti.
+- Flag per Daniele acceso da Claudio: `PATCH /api/admin/partner/23/journey` con `collection: partners`, `data.public_optin = {enabled: true, funnel_origin: "masterclass_vercel"}`.
+- Sito Vercel (`sabai-daniele-andolfi`, file in `C:\Users\berto\.claude\funnel-daniele\_deploy\sabai-daniele-andolfi`, backup `funnel-daniele_backup_optin_2026-10-07`): `config.js` con `optinEndpoint: "/api/optin"`; `vercel.json` con rewrite `/api/optin` → `https://www.ciak.io/api/partner-optin/23` (nessuna modifica CORS); riga `/_vercel/insights/script.js` in index, guarda, grazie, offerta. Deploy `dpl_G3xHWyN8…` (`fryntgnb5`), `READY`.
+
+**VERIFICATO**
+- CI della #350 verde (4 controlli); locale: `test_partner_optin.py` 14 test + guardie route, 31 passati. Deploy backend run 392 (`cceba6c`) `success` in tutti gli step, smoke incluso (10:59:39 UTC), letto dai job GitHub Actions.
+- Prova in produzione (PowerShell di Claudio, 7/10): `POST /api/partner-optin/23` → `ok: True`; `GET /api/partner-journey/leads/23` mostra `source: funnel_bozza_vercel`, `funnel_origin: masterclass_vercel`, `status: new`. Poi un'iscrizione fatta da Claudio dal sito (riga `Claudio`, `c5cabd59…`) è comparsa nello stesso elenco: **il percorso modulo → rewrite Vercel → Ciak funziona** (indirizzo usato non dichiarato, ma `corso.sabaiacademy.it` non risolve, quindi un `vercel.app`).
+- Entrambe le righe di prova segnate `lost` (`update-status`, «Status aggiornato a lost» ×2).
+- Letto da Vercel: deployment nuovo con `config.js` e `vercel.json` come sopra. Progetto `berto` senza deployment.
+
+**APERTO**
+- 🔴 **Errore mio, già corretto con Claudio:** avevo scritto che `corso.sabaiacademy.it` serviva il sito con i prezzi giusti. **Falso**: era un falso positivo dello script PowerShell (variabile rimasta dalla pagina precedente). Lo screenshot del browser mostra `DNS_PROBE_FINISHED_NXDOMAIN`: il nome non esiste nel DNS. Vercel lo elenca fra i domini del progetto, ma il DNS pubblico no.
+- ⛔ Il progetto Vercel ha la protezione attiva («Deployment Protection … Vercel Authentication»): non è verificato se i link `vercel.app` siano apribili da chi non ha un account Vercel. Se non lo sono, nessun visitatore poteva iscriversi.
+- ⛔ **Incidente 7/10:** `npx vercel deploy --prod --yes` lanciato da `C:\Users\berto` (cartella personale) ha creato il progetto Vercel vuoto **`berto`** e avviato il caricamento della home. Nessun deployment risulta (letto da Vercel), ma non è dimostrabile che nessun file sia stato trasferito. Da fare: cancellare il progetto `berto` dal pannello Vercel; **rigenerare il token admin** (`ciak_admin_token.txt` stava in quella cartella). Regola: `vercel deploy` solo dalla cartella del sito; se chiede di confermare la «home directory», rispondere no.
+- ⛔ Lead precedenti a oggi (Daniele e la moglie): non salvati da nessuna parte, vanno reinseriti a mano. Quando il dominio è collegato a Systeme: export `POST /api/partner-journey/leads/export-csv/23` e import in Systeme.
+- ⛔ Web Analytics Vercel: la riga è nelle pagine, ma va acceso dal pannello (non verificato).
+- ⛔ Limiti dichiarati dell'endpoint: tetto per IP per istanza Cloud Run, `X-Forwarded-For` falsificabile (resta il tetto orario per partner); nessun indice unico `(partner_id, email)`; nessun double opt-in.
+- ⛔ Il testo «Il passaggio da Ciak a Systeme lo facciamo noi» (home) vale per i video; per pubblicazione e dominio dipende da chi fa il DNS (decisione di Claudio ancora aperta). Il pannello «Indirizzo web» chiede ancora al partner di aggiungere righe DNS, mentre il piano 11/7 dice che le configura Evolution.
+- ⛔ Non indagato: il video «prima lezione non sincronizzata» di Daniele (serve il sintomo preciso); le «stories» caricate su Drive da Daniele (nel Drive leggibile da me non risultano; i `giorno N` in `04 - Calendario editoriale/reel` mi apparivano vuoti, ma il connettore potrebbe non vedere tutto).
+
 ### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
 
 **CONTESTO:** Daniele Andolfi (ID 23) non riusciva a far cambiare il prezzo ad Andrea. Nuovo prezzo deciso da Claudio: **147€ scontato / 247€ listino** (sostituisce 297/497).
