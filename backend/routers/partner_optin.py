@@ -16,17 +16,26 @@ pubblico, quindi:
   - email validata, campi con lunghezza massima, nessun JSON grezzo salvato;
   - consenso obbligatorio e registrato con data;
   - campo trappola `website`: se compilato non si salva nulla (risposta identica);
-  - tetto orario per partner, cosi' un abuso non diventa spam su Telegram.
+  - tetto orario per partner e tetto per IP (in memoria), cosi' un abuso non diventa spam su
+    Telegram ne' riempie la lista lead; quando scatta il 429 resta un log.
+
+Limiti noti (dichiarati, non risolti): il tetto per IP e' per istanza Cloud Run; senza un
+indice unico su (partner_id, email) due richieste simultanee con la stessa email nuova possono
+creare due lead; non c'e' double opt-in, quindi il consenso registrato e' quello dichiarato da
+chi compila il modulo.
 """
 import asyncio
 import logging
+import os
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
+
+from services.proposta_chat import ChatRateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +47,11 @@ db = None
 SOURCE = "funnel_bozza_vercel"
 DEFAULT_ORIGIN = "masterclass"
 MAX_PER_HOUR = 120
+MAX_PER_IP = 10          # richieste ogni 10 minuti, per IP
+IP_WINDOW_SECONDS = 600
+MAX_INTERACTIONS = 20    # storico tenuto per lead: l'array non cresce senza limite
+_ip_limiter = ChatRateLimiter(max_messages=MAX_PER_IP, window_seconds=IP_WINDOW_SECONDS)
+_tasks: set = set()      # riferimenti forti ai task Telegram, altrimenti Python puo' scartarli
 _PHONE_RE = re.compile(r"[^0-9+ ()./-]")
 
 
@@ -74,10 +88,27 @@ async def _find_partner(partner_id: str):
     return partner
 
 
+def _client_ip(request: Request) -> str:
+    if os.environ.get("TRUST_PROXY_HEADERS", "").lower() == "true":
+        forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+        if forwarded:
+            return forwarded
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/{partner_id}", response_model=OptinResponse)
-async def partner_optin(partner_id: str, payload: OptinRequest):
+async def partner_optin(partner_id: str, payload: OptinRequest, request: Request):
     if db is None:
         raise HTTPException(503, "Database non configurato")
+
+    # Il consenso si controlla prima di cercare il partner: il 422 non rivela quale funnel e' acceso.
+    if payload.consenso is not True:
+        raise HTTPException(422, "Serve il consenso al trattamento dei dati")
+
+    # Per IP, prima di qualunque lettura sul database (anche le richieste con email gia' presente).
+    if not _ip_limiter.allow(f"{partner_id}:{_client_ip(request)}"):
+        logger.warning("[PARTNER-OPTIN] limite per IP raggiunto partner=%s", partner_id)
+        raise HTTPException(429, "Troppe richieste, riprova tra poco")
 
     # 404 identico per "non esiste" e "non abilitato": non si indovina chi ha il funnel acceso.
     partner = await _find_partner(partner_id)
@@ -87,8 +118,6 @@ async def partner_optin(partner_id: str, payload: OptinRequest):
 
     if payload.website:  # bot: finge successo, non salva
         return OptinResponse(ok=True)
-    if payload.consenso is not True:
-        raise HTTPException(422, "Serve il consenso al trattamento dei dati")
 
     pid = str(partner.get("id", partner_id))
     now = datetime.now(timezone.utc)
@@ -99,48 +128,65 @@ async def partner_optin(partner_id: str, payload: OptinRequest):
         "created_at": {"$gte": (now - timedelta(hours=1)).isoformat()},
     })
     if recenti >= MAX_PER_HOUR:
+        logger.warning("[PARTNER-OPTIN] tetto orario raggiunto partner=%s", pid)
         raise HTTPException(429, "Troppe richieste, riprova tra poco")
 
     email = str(payload.email).lower()
     telefono = _PHONE_RE.sub("", payload.telefono or "").strip() or None
-    existing = await db.partner_leads.find_one({"partner_id": pid, "email": email})
-    if existing:
-        await db.partner_leads.update_one(
-            {"partner_id": pid, "email": email},
-            {
-                "$set": {"last_interaction": now_iso},
-                "$push": {"interactions": {"timestamp": now_iso, "type": "optin"}},
-            },
-        )
-        return OptinResponse(ok=True)
-
     utm = {k: v for k, v in {
         "utm_source": payload.utm_source,
         "utm_medium": payload.utm_medium,
         "utm_campaign": payload.utm_campaign,
     }.items() if v}
     origin = str(cfg.get("funnel_origin") or DEFAULT_ORIGIN)[:60]
-    await db.partner_leads.insert_one({
-        "id": str(uuid.uuid4()),
-        "partner_id": pid,
-        "name": payload.nome.strip(),
-        "email": email,
-        "phone": telefono,
-        "funnel_origin": origin,
-        "status": "new",
-        "source": SOURCE,
-        "utm": utm,
-        "referrer": payload.referrer,
-        "pagina": payload.pagina,
-        "consent": {"accepted": True, "at": now_iso, "informativa": "privacy.html"},
-        "created_at": now_iso,
-    })
+    consent = {"accepted": True, "at": now_iso, "informativa": "privacy.html"}
+
+    # Un'unica scrittura: o crea il lead o lo trova. `upserted_id` dice quale dei due.
+    result = await db.partner_leads.update_one(
+        {"partner_id": pid, "email": email},
+        {"$setOnInsert": {
+            "id": str(uuid.uuid4()),
+            "partner_id": pid,
+            "email": email,
+            "name": payload.nome.strip(),
+            "phone": telefono,
+            "funnel_origin": origin,
+            "status": "new",
+            "source": SOURCE,
+            "utm": utm,
+            "referrer": payload.referrer,
+            "pagina": payload.pagina,
+            "consent": consent,
+            "created_at": now_iso,
+        }},
+        upsert=True,
+    )
+    if getattr(result, "upserted_id", None) is None:
+        # Gia' presente (anche da un altro canale): si registra l'interazione, con storico
+        # limitato, e il consenso dato ora se il lead non ne ha uno.
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {
+                "$set": {"last_interaction": now_iso},
+                "$push": {"interactions": {
+                    "$each": [{"timestamp": now_iso, "type": "optin"}],
+                    "$slice": -MAX_INTERACTIONS,
+                }},
+            },
+        )
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email, "consent": {"$exists": False}},
+            {"$set": {"consent": consent}},
+        )
+        return OptinResponse(ok=True)
 
     try:  # l'avviso non deve mai far fallire l'iscrizione, e non porta l'email
         from routers.partner_journey import notify_telegram
-        asyncio.create_task(notify_telegram(
+        task = asyncio.create_task(notify_telegram(
             f"🎯 Nuova iscrizione masterclass\n👤 Partner: {partner.get('name')}\n📍 Origine: {origin}"
         ))
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
     except Exception:  # noqa: BLE001
         logger.warning("[PARTNER-OPTIN] avviso Telegram non inviato", exc_info=True)
 
