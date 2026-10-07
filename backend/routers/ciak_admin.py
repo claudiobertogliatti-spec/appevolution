@@ -809,6 +809,7 @@ async def ciak_delete_partner(partner_id: str, admin=Depends(require_ciak_admin)
 @router.delete("/lead")
 async def ciak_delete_lead(
     email: str = Query(..., description="Email del lead da eliminare"),
+    elimina_account: bool = Query(False, description="Elimina anche l'account Blueprint gratuito, se non ha acquistato"),
     admin=Depends(require_ciak_admin),
 ):
     """
@@ -820,6 +821,20 @@ async def ciak_delete_lead(
     if db is None:
         raise HTTPException(503, "Database non configurato")
     email = email.strip().lower()
+    # L'account Blueprint (gratuito) si elimina solo su richiesta e solo se NON ha
+    # acquistato: il controllo viene PRIMA di cancellare qualunque cosa, cosi' un
+    # rifiuto non lascia un lead mezzo eliminato.
+    account = None
+    # `is True`: chiamata direttamente (test, altri moduli) il default e' un oggetto Query, sempre "vero".
+    if elimina_account is True:
+        from services.ciak_client_accounts import ACCESS_PARTNER, has_start_entitlement
+
+        account = await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 0})
+        if account and (has_start_entitlement(account) or account.get("access_level") == ACCESS_PARTNER):
+            raise HTTPException(
+                409,
+                "Ha gia' acquistato: l'account non si elimina da qui. Eliminalo da Clienti se serve davvero.",
+            )
     # Stesso confronto della scheda (GET /lead): l'email dei record è come l'ha
     # digitata il lead, anche in maiuscolo.
     leads_r = await db.ciak_leads.delete_many({"email": _email_ci(email)})
@@ -828,12 +843,16 @@ async def ciak_delete_lead(
     total = leads_r.deleted_count + diag_r.deleted_count + chk_r.deleted_count
     if total == 0:
         raise HTTPException(404, "Lead non trovato")
+    account_eliminato = None
+    if account:
+        account_eliminato = await _cascade_delete_client(account["id"], email)
     return {
         "ok": True,
         "email": email,
         "ciak_leads_deleted": leads_r.deleted_count,
         "diagnostic_sessions_deleted": diag_r.deleted_count,
         "ciak_checkpoint_events_deleted": chk_r.deleted_count,
+        "account_deleted": account_eliminato,
     }
 
 
@@ -1899,44 +1918,77 @@ async def ciak_cerca_persone(
 class LeadEditIn(BaseModel):
     email: str
     nome: Optional[str] = None
+    cognome: Optional[str] = None
     phone: Optional[str] = None
+    nuova_email: Optional[str] = None
 
 
 @router.patch("/lead")
 async def ciak_lead_edit(body: LeadEditIn, admin=Depends(require_ciak_admin)):
     """
-    Modifica di un lead inbound: SOLO nome e telefono.
+    Modifica di un lead: nome, cognome, telefono e (con controlli) email.
 
-    ⛔ L'email NON è modificabile: è la chiave che lega ciak_leads +
-    diagnostic_sessions; cambiarla orfanerebbe questionario e
-    cronologia. Il nome vive in due posti (ciak_leads.nome per la lista Lead,
-    diagnostic user_name per la lista Trattative) → si aggiornano entrambi. Il
-    telefono si salva su ciak_leads (serve per le chiamate ai fermi-masterclass).
+    Le regole di scrittura stanno in `services/lead_edit.py`: `nome` resta il nome
+    per intero (lo leggono tutte le pagine), il cognome si salva in piu', il
+    telefono in `telefono` e `phone`.
+
+    ⛔ Email: cambia solo se il lead NON ha un account Ciak (ha un login legato a
+    quell'indirizzo), NON ha una proposta (la pipeline Trattative la lega per email)
+    e il nuovo indirizzo non e' gia' di un altro lead. Se passa, si aggiorna insieme
+    scheda, questionari e cronologia (le tre collezioni legate all'email).
     """
+    from services.lead_edit import ModificaNonValida, prepara_modifica
+
     if db is None:
         raise HTTPException(503, "Database non configurato")
     email = (body.email or "").strip()
     if not email:
         raise HTTPException(400, "Email mancante")
-    set_lead: dict = {}
-    if body.nome is not None:
-        set_lead["nome"] = body.nome.strip()
-    if body.phone is not None:
-        set_lead["phone"] = body.phone.strip()
-    if not set_lead:
+    try:
+        mod = prepara_modifica(
+            nome=body.nome, cognome=body.cognome, telefono=body.phone, nuova_email=body.nuova_email
+        )
+    except ModificaNonValida as exc:
+        raise HTTPException(400, str(exc))
+
+    nuova = mod["email"]
+    if nuova and nuova == email.lower():
+        nuova = None  # stessa email: niente da cambiare
+    if not mod["lead"] and not nuova:
         raise HTTPException(400, "Niente da aggiornare")
 
+    if nuova:
+        if await db.ciak_clients.find_one({"email": _email_ci(email)}, {"_id": 1}):
+            raise HTTPException(409, "Ha gia' un account Ciak: l'email dell'account non si cambia da qui.")
+        if await db.proposte.find_one(
+            {"$or": [{"prospect_email": _email_ci(email)}, {"email": _email_ci(email)}, {"user_email": _email_ci(email)}]},
+            {"_id": 1},
+        ):
+            raise HTTPException(409, "Ha una proposta collegata a questo indirizzo: l'email non si cambia da qui.")
+        if (
+            await db.ciak_leads.find_one({"email": _email_ci(nuova)}, {"_id": 1})
+            or await db.diagnostic_sessions.find_one({"user_email": _email_ci(nuova)}, {"_id": 1})
+            or await db.ciak_clients.find_one({"email": _email_ci(nuova)}, {"_id": 1})
+        ):
+            raise HTTPException(409, "Questo indirizzo e' gia' di un altro lead o cliente.")
+
     touched = 0
-    r1 = await db.ciak_leads.update_one({"email": _email_ci(email)}, {"$set": set_lead})
-    touched += r1.matched_count
-    if body.nome is not None:
+    if mod["lead"]:
+        r1 = await db.ciak_leads.update_one({"email": _email_ci(email)}, {"$set": mod["lead"]})
+        touched += r1.matched_count
+    if mod["nome_completo"] is not None:
         r2 = await db.diagnostic_sessions.update_many(
-            {"user_email": _email_ci(email)}, {"$set": {"user_name": body.nome.strip()}}
+            {"user_email": _email_ci(email)}, {"$set": {"user_name": mod["nome_completo"]}}
         )
         touched += r2.matched_count
+    if nuova:
+        r3 = await db.ciak_leads.update_many({"email": _email_ci(email)}, {"$set": {"email": nuova}})
+        r4 = await db.diagnostic_sessions.update_many({"user_email": _email_ci(email)}, {"$set": {"user_email": nuova}})
+        r5 = await db.ciak_checkpoint_events.update_many({"email": _email_ci(email)}, {"$set": {"email": nuova}})
+        touched += r3.matched_count + r4.matched_count + r5.matched_count
     if touched == 0:
         raise HTTPException(404, "Lead non trovato")
-    return {"success": True, "email": email, **set_lead}
+    return {"success": True, "email": nuova or email, **mod["lead"]}
 
 
 # ─── Lead detail ───────────────────────────────────────────────────────────
@@ -2629,7 +2681,31 @@ async def lead_gestione(admin=Depends(require_ciak_admin)):
             compratori.add((p.get("email") or "").strip().lower())
     compratori.discard("")
 
-    return build_lead_board(entries, blueprint["columns"], compratori)
+    board = build_lead_board(entries, blueprint["columns"], compratori)
+
+    # Dati per la modifica e per capire se ha un account da eliminare.
+    emails = [r["email"] for c in board["colonne"] for r in c["lead"]]
+    anagrafica: dict[str, dict] = {}
+    if emails:
+        async for l in db.ciak_leads.find(
+            {"email": {"$in": emails}},
+            {"_id": 0, "email": 1, "nome_proprio": 1, "cognome": 1, "telefono": 1, "phone": 1},
+        ):
+            anagrafica[(l.get("email") or "").strip().lower()] = l
+        con_account = {
+            (c.get("email") or "").strip().lower()
+            async for c in db.ciak_clients.find({"email": {"$in": emails}}, {"_id": 0, "email": 1})
+        }
+    else:
+        con_account = set()
+    for colonna in board["colonne"]:
+        for r in colonna["lead"]:
+            a = anagrafica.get(r["email"], {})
+            r["nome_proprio"] = a.get("nome_proprio")
+            r["cognome"] = a.get("cognome")
+            r["telefono"] = a.get("phone") or a.get("telefono") or r.get("phone")
+            r["ha_account"] = r["email"] in con_account
+    return board
 
 
 # ─── Transactions Partnership €2.990 ──────────────────────────────────────
