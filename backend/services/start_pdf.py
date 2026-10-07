@@ -47,6 +47,24 @@ _CSS = """
 """
 
 
+def render_posizionamento_corpo(doc: dict[str, Any]) -> str:
+    """Il solo contenuto (frase, elementi, promessa), senza copertina ne' sezioni:
+    lo riusa il libretto del progetto Start."""
+    elementi = doc.get("elementi") or {}
+    righe = "".join(
+        f'<div class="doc-qa"><div class="lab">{esc(etichetta)}</div>'
+        f'<div class="ans">{esc(elementi.get(chiave) or "—")}</div></div>'
+        for chiave, etichetta in _ELEMENTI
+        if (elementi.get(chiave) or "").strip()
+    )
+    promessa = (doc.get("promessa") or "").strip()
+    return (
+        f'<div class="ps-frase">{esc(doc.get("frase") or "—")}</div>'
+        + righe
+        + (f'<div class="doc-qa"><div class="lab">La tua promessa</div><div class="ans">{esc(promessa)}</div></div>' if promessa else "")
+    )
+
+
 def render_posizionamento_html(doc: dict[str, Any], nome: str) -> str:
     """Il posizionamento approvato: la frase e i suoi cinque elementi."""
     elementi = doc.get("elementi") or {}

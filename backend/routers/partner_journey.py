@@ -8219,6 +8219,35 @@ async def get_piano_operativo_pdf(
     )
 
 
+@router.get("/start-libretto-pdf/{partner_id}")
+async def get_start_libretto_pdf(
+    partner_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Il libretto del progetto per il cliente Ciak Start: un solo PDF, sempre aggiornato.
+
+    Mostra solo i materiali APPROVATI dal team. E' l'equivalente di Start del
+    Libretto di Progetto (Partnership), ma con parole e contenuti di Start.
+    """
+    from services.ciak_client_accounts import has_start_entitlement
+    from services.start_libretto import genera_libretto_start_pdf
+
+    await require_partner_or_admin_for_partner(partner_id, credentials)
+    client = await db.ciak_clients.find_one({"id": partner_id}, {"_id": 0})
+    if not client or not has_start_entitlement(client):
+        raise HTTPException(status_code=404, detail="Questo documento e' per i clienti Ciak Start")
+    try:
+        pdf_bytes = await genera_libretto_start_pdf(db, partner_id)
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).exception("[START_LIBRETTO] PDF non generato per %s: %s", partner_id, exc)
+        raise HTTPException(status_code=500, detail="Non riesco a preparare il documento adesso: riprova fra poco.")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="il_tuo_progetto_start_{partner_id}.pdf"'},
+    )
+
+
 @router.get("/piano-operativo-data/{partner_id}")
 async def get_piano_operativo_data(
     partner_id: str,

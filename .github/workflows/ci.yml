@@ -161,6 +161,7 @@ jobs:
           tests/test_start_content_cycle.py
           tests/test_start_final_deliverables_contract.py
           tests/test_start_pdf.py
+          tests/test_start_libretto.py
           tests/test_risultati_finali_admin.py
           tests/test_start_bozze_admin.py
           tests/test_start_autogenerazione.py
@@ -236,6 +237,8 @@ jobs:
           tests/test_collaborator_document_storage.py
           tests/test_collaborator_settlements.py
           tests/test_collaborator_settlements_api.py
+          tests/test_collaborator_gettoni.py
+          tests/test_collaborator_gettoni_api.py
           tests/test_frontend_security_headers.py
           tests/test_journey_obiettivo.py
           tests/test_legacy_partnership_routes.py
