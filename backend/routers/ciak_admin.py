@@ -4969,6 +4969,45 @@ async def genera_posizionamento_start(
     return await _salva_bozza_tappa1(client_id, "positioning", "04-posizionamento", deliverable, admin)
 
 
+class MarchioStartAdminBody(BaseModel):
+    valori: dict
+
+
+@router.put("/start/{client_id}/marchio")
+async def imposta_marchio_start(
+    client_id: str,
+    body: MarchioStartAdminBody,
+    admin=Depends(require_ciak_admin),
+):
+    """Imposta a mano le scelte sul marchio di un cliente Start.
+
+    Serve quando il cliente ha gia' una sua identita' (studio esterno): le 6
+    palette di Ciak non la coprono e la pagina del cliente non offre colori
+    personalizzati. Stessa validazione della pagina (`normalizza`): palette
+    `miei` con 3 esadecimali, logo/foto solo https; il resto viene ignorato.
+    Scrive solo i dati del brand kit: non tocca lo stato dello step, non segna il
+    marchio come inviato, non approva e non rigenera nulla (la scheda gia'
+    generata va rifatta dal pannello).
+    """
+    from services.ciak_start_marchio import STEP_ID, normalizza
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    nuovi = normalizza(body.valori)
+    if not nuovi:
+        raise HTTPException(422, "Nessun valore valido da salvare")
+    if not await _start_step(client_id, STEP_ID):
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto: nessuno step marchio")
+    imposta = {f"data.{k}": v for k, v in nuovi.items()}
+    imposta["updated_at"] = datetime.now(timezone.utc).isoformat()
+    imposta["last_edited_by"] = getattr(admin, "email", None) or "admin"
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": STEP_ID}, {"$set": imposta}
+    )
+    return {"success": True, "salvati": sorted(nuovi.keys())}
+
+
 @router.post("/start/{client_id}/marchio/genera")
 async def genera_marchio_start(
     client_id: str,

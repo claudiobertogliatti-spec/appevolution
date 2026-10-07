@@ -165,6 +165,7 @@ jobs:
           tests/test_start_libretto.py
           tests/test_risultati_finali_admin.py
           tests/test_start_bozze_admin.py
+          tests/test_start_marchio_admin.py
           tests/test_start_autogenerazione.py
           tests/test_ciak_start_recovery.py
           tests/test_ciak_client_accounts.py
