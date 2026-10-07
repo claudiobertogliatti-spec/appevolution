@@ -97,6 +97,8 @@ import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { ConsegneMancate } from "./pages/ConsegneMancate";
 import { ConsegneStart } from "./pages/ConsegneStart";
+import { PipelineStart } from "./pages/PipelineStart";
+import { SchedaStart } from "./pages/SchedaStart";
 import { RisultatiFinali } from "./pages/RisultatiFinali";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
@@ -202,6 +204,7 @@ const NAV = [
         { to: "/admin/risultati-finali", label: "Risultati finali", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
       { title: "Contenuti e percorso", pages: [
+        { to: "/admin/start", label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
         { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
         { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
         { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
@@ -815,6 +818,8 @@ export default function CiakAdminApp() {
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
+        <Route path="start" element={<PipelineStart onAuthExpired={handleLogout} />} />
+        <Route path="start/:clientId" element={<SchedaStart onAuthExpired={handleLogout} />} />
         <Route path="risultati-finali" element={<RisultatiFinali onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />

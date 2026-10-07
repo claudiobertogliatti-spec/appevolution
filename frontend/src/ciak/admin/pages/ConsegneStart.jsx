@@ -270,7 +270,7 @@ function etichettaChiave(chiave) {
 
 // Rende qualunque contenuto generato in modo leggibile, senza conoscere la forma
 // esatta di ogni deliverable: una chiave nuova nel generatore compare da sola.
-function Valore({ v }) {
+export function Valore({ v }) {
   if (v === null || v === undefined || v === "") return <span className="text-slate-400">—</span>;
   if (typeof v === "boolean") return <span>{v ? "Si" : "No"}</span>;
   if (typeof v === "number") return <span>{v}</span>;

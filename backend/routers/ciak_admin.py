@@ -5460,6 +5460,48 @@ async def risultati_finali(_admin=Depends(require_ciak_admin)):
     return {"funnel": funnel, "vetrine": vetrine}
 
 
+@router.get("/start/pipeline")
+async def pipeline_start(
+    _admin=Depends(require_ciak_admin),
+    max_items: int = Query(500, ge=1, le=2000),
+):
+    """Tutti i clienti Start in colonne: di chi e' la prossima mossa."""
+    from services.ciak_client_accounts import ACCESS_START
+    from services.start_pipeline import build_pipeline
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    clients = await db.ciak_clients.find(
+        {"$or": [
+            {"access_level": ACCESS_START},
+            {"start_purchased_at": {"$nin": [None, ""]}},
+            {"start_credit_amount": {"$nin": [None, "", 0, "0"]}},
+        ]},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "access_level": 1,
+         "start_purchased_at": 1, "start_credit_amount": 1},
+    ).sort("start_purchased_at", -1).to_list(max_items)
+
+    ids = [c.get("id") for c in clients if c.get("id")]
+    steps_by_client: dict[str, list[dict]] = {}
+    docs_by_client: dict[str, list[dict]] = {}
+    if ids:
+        async for step in db.partner_journey_steps.find(
+            {"partner_id": {"$in": ids}},
+            {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1, "approval_status": 1,
+             "approved_at": 1, "approved_by": 1, "completed_at": 1, "ready_at": 1,
+             "updated_at": 1, "reference": 1, "note": 1, "generation_status": 1,
+             "data.answers_completed_at": 1, "data.brand_completed_at": 1},
+        ):
+            steps_by_client.setdefault(step.get("partner_id"), []).append(step)
+        async for doc in db.ciak_start_deliverables.find(
+            {"partner_id": {"$in": ids}}, {"_id": 0, "partner_id": 1, "type": 1, "approval_status": 1}
+        ):
+            docs_by_client.setdefault(doc.get("partner_id"), []).append(doc)
+
+    return build_pipeline(clients, steps_by_client, docs_by_client)
+
+
 @router.get("/start/consegne")
 async def consegne_start(
     _admin=Depends(require_ciak_admin),
