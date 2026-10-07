@@ -239,7 +239,7 @@ export function DeliveryAudit({ onAuthExpired }) {
           <Route className="w-5 h-5 text-emerald-600" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Delivery · Simona</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Delivery Audit</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Stato del percorso</h1>
           </div>
         </div>
         <p className="text-sm text-slate-500 mt-2 max-w-3xl leading-relaxed">

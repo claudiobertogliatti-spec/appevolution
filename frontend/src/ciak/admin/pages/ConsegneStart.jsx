@@ -270,7 +270,7 @@ function etichettaChiave(chiave) {
 
 // Rende qualunque contenuto generato in modo leggibile, senza conoscere la forma
 // esatta di ogni deliverable: una chiave nuova nel generatore compare da sola.
-function Valore({ v }) {
+export function Valore({ v }) {
   if (v === null || v === undefined || v === "") return <span className="text-slate-400">—</span>;
   if (typeof v === "boolean") return <span>{v ? "Si" : "No"}</span>;
   if (typeof v === "number") return <span>{v}</span>;
@@ -570,7 +570,7 @@ export function ConsegneStart({ onAuthExpired }) {
 
   return (
     <div className="p-10 max-w-6xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Consegne Start</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Scadenze Start</h1>
       <p className="text-slate-500 mb-6">
         Le tre tappe che ogni cliente Ciak Start ha ricevuto per iscritto, con le date
         promesse nella sua email di attivazione. {data.totale_clienti}{" "}
@@ -592,6 +592,19 @@ export function ConsegneStart({ onAuthExpired }) {
           tono={data.entro_48_ore > 0 ? "amber" : "slate"}
         />
       </div>
+
+      {esito && (
+        <p
+          role="status"
+          className={`sticky top-4 z-20 text-sm mb-4 px-4 py-3 rounded-xl border shadow-sm ${
+            esito.ok
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}
+        >
+          {esito.testo}
+        </p>
+      )}
 
       {clienti.length ? (
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
@@ -655,18 +668,6 @@ export function ConsegneStart({ onAuthExpired }) {
         </section>
       ) : null}
 
-      {esito && (
-        <p
-          role="status"
-          className={`text-sm mb-4 px-4 py-3 rounded-xl border ${
-            esito.ok
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-red-50 text-red-700 border-red-200"
-          }`}
-        >
-          {esito.testo}
-        </p>
-      )}
 
       {data.totale_tappe === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">

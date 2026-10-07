@@ -143,9 +143,9 @@ function QuestionnaireAnswers({ responses }) {
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, children, id }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
+    <div id={id} className="bg-white rounded-2xl border border-gray-200 p-6 mb-5 scroll-mt-6">
       <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-4">
         {title}
       </h2>
@@ -315,8 +315,22 @@ function Field({ label, value }) {
   );
 }
 
+// `?vai=` porta la scheda gia' sulla sezione giusta (lo usa il menu Azioni della
+// pagina Lead). Una sezione che non c'e' (es. Blueprint gia' inviato) non fa nulla:
+// la scheda resta aperta dall'inizio, come prima.
+const VAI_A = {
+  questionario: "lead-questionario",
+  fissata: "lead-questionario",
+  blueprint: "lead-blueprint",
+  invia: "lead-invia",
+  proposta: "lead-proposta",
+  riporta: "lead-riporta",
+};
+
 export function AdminLeadDetail({ onAuthExpired }) {
   const { email } = useParams();
+  // Dall'indirizzo del browser (non da un hook del router): la scheda non dipende da altro.
+  const vai = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("vai");
   // Account commerciale (Mariangela): il reparto Acquisizione finisce a "call
   // fissata". Generare/inviare il Blueprint, la proposta e il ripristino sono
   // di Claudio (backend: 403, routers/ciak_admin.py): qui non compaiono.
@@ -350,6 +364,13 @@ export function AdminLeadDetail({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [email, onAuthExpired]);
+
+  const sezioneId = VAI_A[vai];
+  const caricata = Boolean(data);
+  useEffect(() => {
+    if (!sezioneId || !caricata) return;
+    document.getElementById(sezioneId)?.scrollIntoView({ block: "start" });
+  }, [sezioneId, caricata]);
 
   // Mentre il Blueprint è in preparazione ricarica la scheda ogni 10 secondi:
   // la generazione finisce lato server anche se la richiesta originale si è chiusa.
@@ -539,6 +560,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       <RuoloBadge ruolo={data.ruolo} />
 
       {diagnostics.length > 0 && (
+        <div id="lead-blueprint" className="scroll-mt-6">
         <BlueprintPanel
           blueprint={data.blueprint}
           busy={bpBusy}
@@ -549,6 +571,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
           pdfLoading={pdfLoading}
           pdfError={pdfError}
         />
+        </div>
       )}
 
       {/* Consegna Blueprint GRATUITO — sempre manuale, dopo la call.
@@ -556,7 +579,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
           "call fatta": un lead può essere a call_done senza aver mai ricevuto
           l'email). Dopo l'invio resta solo il riepilogo verde. */}
       {!isCommercial && diagnostics.length > 0 && (!blueprintInviato || deliverResult) && (
-        <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
+        <div id="lead-invia" className="bg-slate-900 text-white rounded-2xl p-6 mb-6 scroll-mt-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
             {callFatta && !blueprintInviato ? "Call fatta · Blueprint non ancora inviato" : "Dopo la call di consegna"}
           </p>
@@ -633,7 +656,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
 
       {/* Bridge Partnership */}
       {!isCommercial && qualified_for_proposta && (
-        <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6">
+        <div id="lead-proposta" className="bg-slate-900 text-white rounded-2xl p-6 mb-6 scroll-mt-6">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
             Lead qualificato — Partnership Evolution
           </p>
@@ -671,7 +694,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       </Section>
 
       {/* Questionario + report */}
-      <Section title={`Questionario (${diagnostics.length})`}>
+      <Section id="lead-questionario" title={`Questionario (${diagnostics.length})`}>
         {diagnostics.length === 0 ? (
           <p className="text-slate-400 text-sm">Nessuna diagnostica avviata.</p>
         ) : (
@@ -762,7 +785,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
       />
 
       {!isCommercial && callFatta && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 mt-2 mb-5">
+        <div id="lead-riporta" className="rounded-2xl border border-gray-200 bg-white p-6 mt-2 mb-5 scroll-mt-6">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-2">Ripristino</h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-4">
             Se questo lead ha un Ciak Start attivato per errore o non ha mai ricevuto il Blueprint,

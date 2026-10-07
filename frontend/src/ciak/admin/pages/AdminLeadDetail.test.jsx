@@ -243,3 +243,36 @@ describe("recupero accesso del cliente", () => {
     expect(document.body.textContent).not.toMatch(/\/insider\//);
   });
 });
+
+describe("?vai= porta la scheda sulla sezione giusta (menu Azioni della pagina Lead)", () => {
+  const scrollIntoView = jest.fn();
+  beforeEach(() => {
+    scrollIntoView.mockClear();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+  });
+  afterEach(() => window.history.pushState({}, "", "/"));
+
+  test("?vai=blueprint scorre al pannello Blueprint", async () => {
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=blueprint");
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText("Questionario (1)");
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.instances[0].id).toBe("lead-blueprint");
+  });
+
+  test("?vai=questionario scorre alla sezione Questionario", async () => {
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=questionario");
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.instances[0].id).toBe("lead-questionario");
+  });
+
+  test("senza ?vai= o con una sezione che non c'e' la scheda resta aperta dall'inizio", async () => {
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await screen.findByText("Questionario (1)");
+    window.history.pushState({}, "", "/admin/leads/mario%40x.it?vai=proposta"); // lead non qualificato: niente blocco proposta
+    render(<AdminLeadDetail onAuthExpired={() => {}} />);
+    await waitFor(() => expect(screen.getAllByText("Questionario (1)").length).toBe(2));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+});

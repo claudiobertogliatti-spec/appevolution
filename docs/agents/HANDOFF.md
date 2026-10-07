@@ -1,3 +1,26 @@
+### 2026-10-07 · Claude Code · claude/dreamy-maxwell-mz80ju (PR #352) — admin: Lead, Clienti, menu per persona
+
+**CONTESTO:** Claudio faticava a trovare le cose e a seguire i clienti Start. Decisioni prese con lui il 7/10: menu con accessi diretti **Home · Lead · Clienti · Partner** sopra i 4 reparti (invariati); pagina **Lead** = lead *in gestione* (Questionario · Call fissata · Call fatta · Trattativa) in **tabella** con un solo pulsante **Azioni** (menu a tendina con tutte le funzioni gia' attive); chi **acquista** (Start o Partnership) esce da Lead e compare in Clienti/Partner. Il **Blueprint e' gratuito**: chi lo riceve resta lead. Pipeline a tabella anche per Clienti.
+
+**DICHIARATO**
+- Backend: `GET /api/admin/ciak/lead-gestione` (`services/lead_gestione.py`: fasi, uscita dei compratori — Start per entitlement, Partnership per contratto pagato/partner attivo); `GET /start/pipeline` (`services/start_pipeline.py`); `PUT /start/{id}/marchio` (admin imposta colori/logo del marchio Start, stessa validazione della pagina cliente, non tocca stato); `PATCH /lead` esteso (nome, cognome, telefono in `telefono`+`phone`, email con controlli: mai se ha account o proposta o l'indirizzo e' di altri; cascata su `ciak_leads`/`diagnostic_sessions`/`ciak_checkpoint_events`); `DELETE /lead?elimina_account=` (solo su richiesta, mai se ha acquistato, controllo PRIMA di cancellare).
+- `nome` resta il nome per intero (lo leggono tutte le pagine); il cognome si salva in piu' (`nome_proprio`, `cognome`).
+- Frontend: `pages/LeadHub.jsx` + `leadModel.js`, `pages/PipelineStart.jsx` (tabella) + `SchedaStart.jsx` (account cliente: 6 materiali, un pulsante per stato), blocco "Clienti Start" nella Home (`components/OggiStart.jsx`, `oggiModel.buildOggiStart`), `QUICK` in `CiakAdminApp.jsx`, `AdminLeadDetail` apre sulla sezione giusta con `?vai=` (questionario, fissata, blueprint, invia, proposta, riporta). Esito dei pulsanti di Consegne Start ora visibile in alto (sticky).
+
+**VERIFICATO**
+- Backend: `pytest` (con `APP_ENV=test JWT_SECRET_KEY=ci-test-secret`): `test_lead_gestione` + `test_lead_modifica_elimina` + `test_start_pipeline` + `test_start_marchio_admin` + `test_start_bozze_admin` + i test esistenti su lead/eliminazione passano (125 nell'ultimo giro mirato). Due test esistenti sull'eliminazione fallivano con il mio primo codice (default `Query(False)` letto come vero chiamando la funzione direttamente): corretto con `is True`.
+- Frontend: `src/ciak/admin` 62 suite, 379 test passati.
+- ⛔ `src/ciak/partner/sections/PartnerFilesPage.loading.test.js` fallisce **anche senza le mie modifiche** (verificato con `git stash`): non e' mio, non l'ho toccato.
+
+**APERTO**
+- ⛔ Mai visto nel browser: nessuna istanza avviata. Dopo il merge/deploy aprire `/admin/lead`, `/admin/start`, il menu **Azioni** (apertura sopra/sotto, tastiera) e una scheda con `?vai=blueprint`.
+- ⛔ Il prezzo/uscita: le pagine **Trattative** di oggi continuano a mostrare chi ha comprato Start (non ho cambiato `/pipeline-blueprint`); l'uscita automatica vale solo per la pagina Lead.
+- 🔎 Dopo una modifica con cognome, le altre pagine leggono `nome` (intero): corretto. Il telefono e' in due campi (`telefono`, `phone`) scritti insieme: non ho unificato i vecchi record.
+- 🔎 "Trattative KO" e' solo una pagina di collegamenti (il backend non ha uno stadio KO): non e' una fase di Lead.
+- ✅ Fatto dopo (stesso giorno, "procedi"): **nomi nel menu e titoli di pagina** — Pipeline Partner→Partner, Quarantena→Partner in pausa, Ex Partner→Partner usciti, Motore Vendite Partner→Vendite dei partner, Audit Delivery→Stato del percorso (titolo pagina era "Delivery Audit"), Produzione video→Video da approvare, Risultati finali→Siti e funnel da guardare, Consegne Start→Scadenze Start, KPI Partner→Numeri dei partner, Trattative KO→Trattative perse, Consegna manuale→Invia il Blueprint, Date contratti→Scadenze contratti, Clienti Ciak→**Account Ciak**. Invariati di proposito: "Calendario partner" e "Campagne partner" (li citano le dashboard di Antonella e `navCoerenza.test.js`), File, Casi studio, Clienti Start. Gli URL non cambiano.
+- ✅ **Account Ciak** (`/admin/clienti-ciak`): tre viste — *Hanno comprato* (default: Start, Partner, credito/acquisto Start o Partnership attiva), *Solo Blueprint* (lead gratuiti), *Tutti* — con conteggi; `haComprato()` esportata e provata. Frontend `src/ciak/admin`: 62 suite, 382 test passati.
+- ⏭️ Non fatto: le pagine **Trattative** (`/pipeline-blueprint`) mostrano ancora chi ha gia' comprato Start (la Home le dedupica da sola in `oggiModel`); i commenti nel codice citano ancora i vecchi nomi.
+
 ### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
 
 **CONTESTO:** Daniele Andolfi (ID 23) non riusciva a far cambiare il prezzo ad Andrea. Nuovo prezzo deciso da Claudio: **147€ scontato / 247€ listino** (sostituisce 297/497).

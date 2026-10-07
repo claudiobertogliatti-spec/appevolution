@@ -34,11 +34,14 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CreditCard,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Menu,
   Search,
+  UserCheck,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -97,6 +100,9 @@ import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { ConsegneMancate } from "./pages/ConsegneMancate";
 import { ConsegneStart } from "./pages/ConsegneStart";
+import { LeadHub } from "./pages/LeadHub";
+import { PipelineStart } from "./pages/PipelineStart";
+import { SchedaStart } from "./pages/SchedaStart";
 import { RisultatiFinali } from "./pages/RisultatiFinali";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 import { AntonellaDashboard } from "./pages/AntonellaDashboard";
@@ -175,9 +181,9 @@ const NAV = [
     pages: [
       { to: "/admin/trattative", label: "Trattative", desc: "Pipeline dopo il Blueprint in un'unica vista a tab: Blueprint, Call, In trattativa, OK" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare", desc: "Report diagnostici da validare prima della call" },
-      { to: "/admin/consegna-manuale", label: "Consegna manuale", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
-      { to: "/admin/vendite-ko", label: "Trattative KO", desc: "Trattative chiuse senza esito" },
-      { to: "/admin/clienti-ciak", label: "Clienti Ciak", desc: "Blueprint, Start e upgrade verso Partnership" },
+      { to: "/admin/consegna-manuale", label: "Invia il Blueprint", desc: "Invia il Blueprint a un cliente fuori-funnel (PDF già pronto) + accesso alla sales page" },
+      { to: "/admin/vendite-ko", label: "Trattative perse", desc: "Trattative chiuse senza esito" },
+      { to: "/admin/clienti-ciak", label: "Account Ciak", desc: "Tutti gli account: chi ha solo il Blueprint gratuito e chi ha comprato Start o la Partnership" },
       { to: "/admin/catalogo", label: "Catalogo", desc: "Il catalogo completo dei servizi, con le descrizioni ufficiali" },
     ],
   },
@@ -191,24 +197,25 @@ const NAV = [
     // 12 funzioni raccolte in 4 gruppi chiari (stile Poste). Nessuna rimossa.
     groups: [
       { title: "Partner", pages: [
-        { to: "/admin/partner", label: "Pipeline Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
-        { to: "/admin/motore-vendite-partner", label: "Motore Vendite Partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
-        { to: "/admin/quarantena-partner", label: "Quarantena", desc: "Partner in pausa o a rischio" },
-        { to: "/admin/ex-partner", label: "Ex Partner", desc: "Partner usciti dal percorso" },
+        { to: "/admin/partner", label: "Partner", desc: "Kanban delle 3 fasi EVO dei partner attivi" },
+        { to: "/admin/motore-vendite-partner", label: "Vendite dei partner", desc: "Setup Systeme, KPI e prime vendite per ogni partner" },
+        { to: "/admin/quarantena-partner", label: "Partner in pausa", desc: "Partner in pausa o a rischio" },
+        { to: "/admin/ex-partner", label: "Partner usciti", desc: "Partner usciti dal percorso" },
       ] },
       { title: "Materiali e video", pages: [
         { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
-        { to: "/admin/video-review", label: "Produzione video", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
-        { to: "/admin/risultati-finali", label: "Risultati finali", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
+        { to: "/admin/video-review", label: "Video da approvare", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
+        { to: "/admin/risultati-finali", label: "Siti e funnel da guardare", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
       { title: "Contenuti e percorso", pages: [
-        { to: "/admin/consegne-start", label: "Consegne Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
-        { to: "/admin/delivery-audit", label: "Audit Delivery", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
+        { to: "/admin/start", label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
+        { to: "/admin/consegne-start", label: "Scadenze Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
+        { to: "/admin/delivery-audit", label: "Stato del percorso", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
         { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
         { to: "/admin/campagne-ads", label: "Campagne partner", desc: "Gestione campagne pubblicitarie dei partner" },
       ] },
       { title: "Risultati", pages: [
-        { to: "/admin/metriche", label: "KPI Partner", desc: "Metriche post-lancio dei partner" },
+        { to: "/admin/metriche", label: "Numeri dei partner", desc: "Metriche post-lancio dei partner" },
         { to: "/admin/casi-studio", label: "Casi studio", desc: "Prova sociale: casi studio dei partner per il funnel" },
       ] },
     ],
@@ -225,7 +232,7 @@ const NAV = [
       { to: "/admin/transactions", label: "Pagamenti", desc: "Transazioni e incassi" },
       { to: "/admin/fatture", label: "Fatture", desc: "Genera e scarica le fatture di cortesia" },
       { to: "/admin/collaboratori", label: "Collaboratori", desc: "Ore approvate, accordi mensili e pagamenti operativi" },
-      { to: "/admin/date-contratti", label: "Date contratti", desc: "Scadenze e rinnovi contrattuali" },
+      { to: "/admin/date-contratti", label: "Scadenze contratti", desc: "Scadenze e rinnovi contrattuali" },
       { to: "/admin/servizi-extra", label: "Servizi extra", desc: "Upsell e servizi aggiuntivi" },
     ],
   },
@@ -239,6 +246,18 @@ const MACRO_ICONS = {
   "casi-studio": ClipboardCheck,
   "back-office": CreditCard,
 };
+
+// Accessi diretti "per persona", sopra i reparti: le tre cose che si cercano di
+// piu'. Non sono voci nuove: puntano a pagine che gia' esistono (e restano anche
+// nel loro reparto). Lead = il percorso del lead in una pagina (Contatti, Lead in arrivo, call, trattative); Clienti =
+// clienti Start in colonne; Partner = pipeline partner (Delivery).
+// hideFor come per i reparti: Mariangela vede solo i lead, Antonella solo clienti
+// e partner.
+const QUICK = [
+  { to: "/admin/lead", label: "Lead", Icon: UserPlus, hideFor: ["antonella"] },
+  { to: "/admin/start", label: "Clienti", Icon: UserCheck, hideFor: ["mariangela"] },
+  { to: "/admin/partner", label: "Partner", Icon: Handshake, hideFor: ["mariangela"] },
+];
 
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
@@ -445,6 +464,15 @@ function AdminShell({ user, onLogout, children }) {
           >
             <LayoutDashboard className="w-4 h-4" aria-hidden /> Home
           </NavLink>
+          {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+            >
+              <Icon className="w-4 h-4" aria-hidden /> {label}
+            </NavLink>
+          ))}
           <button
             type="button"
             ref={cerca.triggerRef}
@@ -815,6 +843,9 @@ export default function CiakAdminApp() {
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
+        <Route path="lead" element={<LeadHub onAuthExpired={handleLogout} />} />
+        <Route path="start" element={<PipelineStart onAuthExpired={handleLogout} />} />
+        <Route path="start/:clientId" element={<SchedaStart onAuthExpired={handleLogout} />} />
         <Route path="risultati-finali" element={<RisultatiFinali onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="cabina-regia" element={<Navigate to="/admin/direzione" replace />} />

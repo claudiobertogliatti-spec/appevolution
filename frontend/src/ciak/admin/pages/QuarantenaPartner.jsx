@@ -273,7 +273,7 @@ export function QuarantenaPartner({ onAuthExpired }) {
   return (
     <div className="p-8">
       <div className="flex items-start justify-between mb-1">
-        <h1 className="text-2xl font-semibold text-slate-900">Quarantena Partner</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Partner in pausa</h1>
         <button
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-sm font-semibold hover:bg-slate-800 transition"

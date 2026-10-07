@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, BarChart3, CreditCard, LayoutDashboard, Megaphone, Users, AlertTriangle } from "lucide-react";
 import { useRepartoMetrics } from "../repartoMetrics";
 import { OggiBlocks } from "../components/OggiBlocks";
+import { OggiStart } from "../components/OggiStart";
 
 // Primo intero da un valore tipo "3", "2 · €480" → numero; "Nessuna"/"—"/null → null.
 function numFrom(v) {
@@ -103,6 +104,7 @@ export function AdminHome({ user, onAuthExpired }) {
       </div>
 
       {/* Oggi: call, trattative, partner, urgenze di delivery (liste di persone) */}
+      <OggiStart onAuthExpired={onAuthExpired} />
       <OggiBlocks onAuthExpired={onAuthExpired} />
 
       <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Numeri per reparto</p>

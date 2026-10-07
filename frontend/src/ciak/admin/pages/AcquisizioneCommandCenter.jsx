@@ -260,7 +260,7 @@ export function AcquisizioneCommandCenter({ onAuthExpired }) {
 
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Duplicazione partner</p>
-        <h2 className="text-xl font-semibold text-slate-900 mt-1">Motore Vendite Partner</h2>
+        <h2 className="text-xl font-semibold text-slate-900 mt-1">Vendite dei partner</h2>
         <p className="text-sm text-slate-600 mt-2 leading-relaxed">
           {partnerSalesEngine.summary || "Il sistema validato su Evolution viene adattato al mercato del partner."}
         </p>

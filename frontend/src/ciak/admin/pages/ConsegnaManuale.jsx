@@ -61,7 +61,7 @@ export function ConsegnaManuale({ onAuthExpired }) {
 
   return (
     <div className="p-10 max-w-2xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Consegna manuale del Blueprint</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Invia il Blueprint</h1>
       <p className="text-slate-500 mb-8 leading-relaxed">
         Per i clienti che <strong>non passano dal funnel</strong> (es. lead ProVideo, con il PDF già
         pronto). Carica il PDF: parte l'email col Blueprint + il link d'accesso, e si sbloccano
