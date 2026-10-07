@@ -26,7 +26,6 @@ chi compila il modulo.
 """
 import asyncio
 import logging
-import os
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -89,10 +88,18 @@ async def _find_partner(partner_id: str):
 
 
 def _client_ip(request: Request) -> str:
-    if os.environ.get("TRUST_PROXY_HEADERS", "").lower() == "true":
-        forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
-        if forwarded:
-            return forwarded
+    """IP del visitatore per il tetto per IP.
+
+    La richiesta arriva da browser -> Vercel -> www.ciak.io -> Cloud Run: l'indirizzo di
+    connessione e' quello di un proxy, uguale per tutti. Se lo usassimo, 10 iscrizioni di
+    persone diverse nello stesso quarto d'ora si bloccherebbero a vicenda. Si usa quindi il
+    primo valore di X-Forwarded-For, anche senza TRUST_PROXY_HEADERS. Il rovescio e' dichiarato:
+    un attaccante puo' falsificare l'intestazione e aggirare il tetto per IP; resta il tetto
+    orario per partner, che non dipende dall'IP.
+    """
+    forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    if forwarded:
+        return forwarded[:64]
     return request.client.host if request.client else "unknown"
 
 

@@ -75,7 +75,9 @@ ON = {"id": "23", "name": "Daniele Andolfi", "public_optin": {"enabled": True, "
 
 
 def fake_request(ip="1.2.3.4"):
-    return SimpleNamespace(headers={}, client=SimpleNamespace(host=ip))
+    # come dietro i proxy: l'indirizzo di connessione e' sempre quello del proxy, il visitatore
+    # vero sta in X-Forwarded-For
+    return SimpleNamespace(headers={"x-forwarded-for": f"{ip}, 76.76.21.21"}, client=SimpleNamespace(host="10.0.0.1"))
 
 
 @pytest.fixture(autouse=True)
@@ -240,3 +242,16 @@ def test_csv_export_neutralizes_spreadsheet_formulas():
         assert partner_journey._csv_safe(pericolosi).startswith("'")
     assert partner_journey._csv_safe("Giulia Rossi") == "Giulia Rossi"
     assert partner_journey._csv_safe(None) == ""
+
+
+def test_visitors_behind_the_same_proxy_do_not_block_each_other(monkeypatch, telegram):
+    db = FakeDb([ON])
+    use(monkeypatch, db)
+    for i in range(partner_optin.MAX_PER_IP + 5):  # IP diversi, stesso proxy di connessione
+        assert run("23", ip=f"5.5.5.{i}", email=f"p{i}@example.it").ok is True
+    assert len(db.partner_leads.docs) == partner_optin.MAX_PER_IP + 5
+
+
+def test_without_forwarded_header_it_falls_back_to_the_connection_address():
+    req = SimpleNamespace(headers={}, client=SimpleNamespace(host="8.8.4.4"))
+    assert partner_optin._client_ip(req) == "8.8.4.4"
