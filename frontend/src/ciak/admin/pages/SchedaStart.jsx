@@ -187,7 +187,7 @@ export function SchedaStart({ onAuthExpired }) {
       <div className="p-10 max-w-4xl">
         <p className="text-slate-700 mb-4">Questo cliente non risulta tra i clienti Start attivi.</p>
         <Link to="/admin/start" className="text-sm font-semibold text-slate-900 underline">
-          Torna ai clienti Start
+          Torna ai clienti
         </Link>
       </div>
     );
@@ -200,7 +200,7 @@ export function SchedaStart({ onAuthExpired }) {
   return (
     <div className="p-10 max-w-4xl">
       <Link to="/admin/start" className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Clienti Start
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Clienti
       </Link>
 
       <h1 className="text-2xl font-semibold text-slate-900">{riga.nome || riga.email}</h1>

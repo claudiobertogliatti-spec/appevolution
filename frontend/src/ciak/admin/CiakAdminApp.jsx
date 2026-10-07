@@ -100,6 +100,7 @@ import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { ConsegneMancate } from "./pages/ConsegneMancate";
 import { ConsegneStart } from "./pages/ConsegneStart";
+import { LeadHub } from "./pages/LeadHub";
 import { PipelineStart } from "./pages/PipelineStart";
 import { SchedaStart } from "./pages/SchedaStart";
 import { RisultatiFinali } from "./pages/RisultatiFinali";
@@ -248,12 +249,12 @@ const MACRO_ICONS = {
 
 // Accessi diretti "per persona", sopra i reparti: le tre cose che si cercano di
 // piu'. Non sono voci nuove: puntano a pagine che gia' esistono (e restano anche
-// nel loro reparto). Lead = Contatti (Acquisizione); Clienti =
+// nel loro reparto). Lead = il percorso del lead in una pagina (Contatti, Lead in arrivo, call, trattative); Clienti =
 // clienti Start in colonne; Partner = pipeline partner (Delivery).
 // hideFor come per i reparti: Mariangela vede solo i lead, Antonella solo clienti
 // e partner.
 const QUICK = [
-  { to: "/admin/pipeline", label: "Lead", Icon: UserPlus, hideFor: ["antonella"] },
+  { to: "/admin/lead", label: "Lead", Icon: UserPlus, hideFor: ["antonella"] },
   { to: "/admin/start", label: "Clienti", Icon: UserCheck, hideFor: ["mariangela"] },
   { to: "/admin/partner", label: "Partner", Icon: Handshake, hideFor: ["mariangela"] },
 ];
@@ -842,6 +843,7 @@ export default function CiakAdminApp() {
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />
         <Route path="consegne-start" element={<ConsegneStart onAuthExpired={handleLogout} />} />
+        <Route path="lead" element={<LeadHub onAuthExpired={handleLogout} />} />
         <Route path="start" element={<PipelineStart onAuthExpired={handleLogout} />} />
         <Route path="start/:clientId" element={<SchedaStart onAuthExpired={handleLogout} />} />
         <Route path="risultati-finali" element={<RisultatiFinali onAuthExpired={handleLogout} />} />

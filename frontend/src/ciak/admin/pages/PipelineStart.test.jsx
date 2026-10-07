@@ -4,7 +4,7 @@
  * ha la prossima mossa, un clic apre il suo account, e nella scheda ogni materiale
  * ha UN pulsante giusto per il suo stato (mai "Approva" su qualcosa che non esiste).
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PipelineStart } from "./PipelineStart";
 import { SchedaStart } from "./SchedaStart";
@@ -61,23 +61,34 @@ beforeEach(() => {
   apiPost.mockResolvedValue({ success: true });
 });
 
-test("ogni cliente sta nella colonna di chi ha la prossima mossa e mostra cosa fare", async () => {
+test("una riga per cliente, il segno nella colonna di chi ha la prossima mossa", async () => {
   render(<MemoryRouter><PipelineStart /></MemoryRouter>);
   expect(await screen.findByText("Linda Pavia")).toBeInTheDocument();
-  expect(screen.getByText("Leggi e approva: Materiale 1")).toBeInTheDocument();
-  expect(screen.getByText("Aspetta le risposte del cliente")).toBeInTheDocument();
-  expect(screen.getAllByText("0 di 6 approvati")).toHaveLength(2);
+  for (const f of ["Aspetta il cliente", "Da preparare", "Da approvare", "Completato"]) {
+    expect(screen.getByRole("columnheader", { name: f })).toBeInTheDocument();
+  }
+  // Linda e' in "Da approvare": la sua scadenza sta nella terza colonna, non in un'altra
+  const riga = screen.getByText("Linda Pavia").closest("tr");
+  const celle = within(riga).getAllByRole("cell");
+  expect(within(celle[3]).getByText(/Tappa 1 fra 1 giorno/)).toBeInTheDocument();
+  expect(within(celle[1]).queryByText(/Tappa/)).not.toBeInTheDocument();
+  expect(screen.getByText(/Leggi e approva: Materiale 1 · 0 di 6 approvati/)).toBeInTheDocument();
+  expect(screen.queryByRole("img", { name: "Fase superata" })).not.toBeInTheDocument(); // niente spunte: Start non ha un ordine rigido
 });
 
-test("la ricerca filtra per nome", async () => {
+test("filtri per fase con i conteggi, e ricerca per nome", async () => {
   render(<MemoryRouter><PipelineStart /></MemoryRouter>);
   await screen.findByText("Linda Pavia");
+  expect(screen.getByRole("button", { name: /Tutti 2/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Da approvare 1/ }));
+  expect(screen.queryByText("Anna Rossi")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Tutti/ }));
   fireEvent.change(screen.getByPlaceholderText("Cerca per nome o email"), { target: { value: "anna" } });
   expect(screen.queryByText("Linda Pavia")).not.toBeInTheDocument();
   expect(screen.getByText("Anna Rossi")).toBeInTheDocument();
 });
 
-test("un clic sulla card apre l'account del cliente", async () => {
+test("un clic sulla riga apre l'account del cliente", async () => {
   render(
     <MemoryRouter initialEntries={["/admin/start"]}>
       <Routes>
@@ -86,7 +97,7 @@ test("un clic sulla card apre l'account del cliente", async () => {
       </Routes>
     </MemoryRouter>,
   );
-  fireEvent.click(await screen.findByText("Linda Pavia"));
+  fireEvent.click((await screen.findByText("Linda Pavia")).closest("tr"));
   expect(await screen.findByText("SCHEDA")).toBeInTheDocument();
 });
 
