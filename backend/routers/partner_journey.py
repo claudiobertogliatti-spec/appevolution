@@ -5949,6 +5949,12 @@ async def get_partner_leads(
     }
 
 
+def _csv_safe(value):
+    """Neutralizza le formule: un campo che inizia con = + - @ (o tab/CR) viene eseguito da Excel."""
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
 @router.post("/leads/export-csv/{partner_id}")
 async def export_leads_csv(
     partner_id: str,
@@ -5978,15 +5984,15 @@ async def export_leads_csv(
     
     # Data
     for lead in leads:
-        writer.writerow([
+        writer.writerow([_csv_safe(v) for v in (
             lead.get("name", ""),
             lead.get("email", ""),
             lead.get("phone", ""),
             lead.get("created_at", ""),
             lead.get("funnel_origin", ""),
             lead.get("status", ""),
-            lead.get("notes", "")
-        ])
+            lead.get("notes", ""),
+        )])
     
     output.seek(0)
     

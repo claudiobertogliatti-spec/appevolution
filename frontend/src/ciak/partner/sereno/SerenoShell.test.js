@@ -44,6 +44,7 @@ test('"Ho un dubbio su questo passaggio" on Oggi opens the help sheet; progress 
   const done = { step_id: 'la-tua-storia', label: 'Storia', status: 'done', macro_phase: 'esamina' };
   wrap(<SerenoHome state={{ steps: [done, step], current_step: step }} partnerName="Giulia Bianchi" onOpenStep={() => {}} />);
   expect(screen.getByText('1 di 2 passaggi completati')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Ciak prepara. Systeme pubblica.' })).toBeTruthy();
   expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('1');
   expect(screen.getByText('Quanto vendi e come lo presenti.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Ho un dubbio su questo passaggio' }));

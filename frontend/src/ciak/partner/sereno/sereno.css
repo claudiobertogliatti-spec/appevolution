@@ -127,3 +127,11 @@
 .sereno-sidebar .sereno-profile{margin-top:0;padding-top:22px}
 .sereno-fab{display:none}
 @media(max-width:600px){.sereno-fab{display:inline-flex}}
+
+/* Home: perché ci sono due piattaforme (Ciak prepara, Systeme pubblica) */
+.sereno-how{margin:0 0 22px;padding:22px 24px;background:#fff;border:1px solid #E5E7EB;border-left:4px solid #FACC15;border-radius:14px}
+.sereno-how h2{font-size:20px;font-weight:600;letter-spacing:-.3px;margin:0 0 8px}
+.sereno-how p{margin:0 0 12px;color:#475569;font-size:15px;max-width:680px}
+.sereno-how ul{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;color:#0F172A}
+.sereno-how li{padding-left:16px;position:relative}
+.sereno-how li::before{content:"";position:absolute;left:0;top:.7em;width:6px;height:6px;border-radius:50%;background:#FACC15}
