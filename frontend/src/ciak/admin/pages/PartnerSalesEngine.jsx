@@ -179,7 +179,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
   }, [data, filter]);
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento Motore Vendite Partner...</div>;
+  if (!data) return <div className="p-8 text-slate-400">Caricamento Vendite dei partner...</div>;
 
   const c = data.counters || {};
   const filters = [
@@ -202,7 +202,7 @@ export function PartnerSalesEngine({ onAuthExpired }) {
           <Route className="w-5 h-5 text-yellow-600" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Delivery · Gaia + Luca</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Motore Vendite Partner</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Vendite dei partner</h1>
           </div>
         </div>
         <p className="text-sm text-slate-500 mt-2 max-w-3xl leading-relaxed">

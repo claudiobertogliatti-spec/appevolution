@@ -107,3 +107,45 @@ describe("link di accesso da mandare a mano", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("Account Ciak: chi ha comprato e chi ha solo il Blueprint gratuito", () => {
+  const ITEMS = [
+    { id: "a", email: "start@x.it", name: "Linda Start", access_level: "cliente_start", start_credit_amount: 39000 },
+    { id: "b", email: "bp@x.it", name: "Lorenzo Blueprint", access_level: "cliente_blueprint" },
+    { id: "c", email: "p@x.it", name: "Paola Partner", access_level: "partner" },
+    { id: "d", email: "cr@x.it", name: "Carla Credito", access_level: "cliente_blueprint", start_credit_amount: 39000 },
+  ];
+
+  test("haComprato: Start, Partner, credito o acquisto Start; il solo Blueprint no", () => {
+    const { haComprato } = require("./ClientiCiak");
+    expect(haComprato(ITEMS[0])).toBe(true);
+    expect(haComprato(ITEMS[2])).toBe(true);
+    expect(haComprato(ITEMS[3])).toBe(true);
+    expect(haComprato(ITEMS[1])).toBe(false);
+    expect(haComprato({ access_level: "cliente_blueprint", start_credit_amount: 0 })).toBe(false);
+    expect(haComprato({ access_level: "cliente_blueprint", start_purchased_at: "2026-10-01" })).toBe(true);
+  });
+
+  test("di default si vedono solo i clienti; i lead Blueprint stanno nella loro vista", async () => {
+    apiGet.mockResolvedValue({ items: ITEMS, count: 4 });
+    render(<MemoryRouter><ClientiCiak /></MemoryRouter>);
+    expect(await screen.findByText("Linda Start")).toBeTruthy();
+    expect(screen.getByText("Paola Partner")).toBeTruthy();
+    expect(screen.getByText("Carla Credito")).toBeTruthy();
+    expect(screen.queryByText("Lorenzo Blueprint")).toBeNull();
+    expect(screen.getByRole("button", { name: /Hanno comprato 3/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Solo Blueprint 1/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Solo Blueprint/ }));
+    expect(screen.getByText("Lorenzo Blueprint")).toBeTruthy();
+    expect(screen.queryByText("Linda Start")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Tutti 4/ }));
+    expect(screen.getByText("Lorenzo Blueprint")).toBeTruthy();
+    expect(screen.getByText("Linda Start")).toBeTruthy();
+  });
+
+  test("vista vuota: lo dice, non lascia una tabella bianca", async () => {
+    apiGet.mockResolvedValue({ items: [ITEMS[1]], count: 1 });
+    render(<MemoryRouter><ClientiCiak /></MemoryRouter>);
+    expect(await screen.findByText("Nessun cliente ha ancora comprato.")).toBeTruthy();
+  });
+});

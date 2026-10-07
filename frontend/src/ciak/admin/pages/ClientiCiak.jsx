@@ -24,6 +24,25 @@ const START_STATUS_LABELS = {
   sospeso: "Sospeso",
 };
 
+// Chi ha COMPRATO: livello Start o Partner, oppure ha un credito/acquisto Start registrato o la
+// Partnership attiva. Chi ha solo il Blueprint (gratuito) e' un lead, non un cliente.
+export function haComprato(item) {
+  const livello = String(item?.access_level || "").toLowerCase();
+  return (
+    livello === "cliente_start" ||
+    livello === "partner" ||
+    Boolean(item?.start_purchased_at) ||
+    Number(item?.start_credit_amount) > 0 ||
+    Boolean(item?.partnership_attiva)
+  );
+}
+
+export const VISTE = [
+  { id: "comprato", label: "Hanno comprato", vuoto: "Nessun cliente ha ancora comprato." },
+  { id: "blueprint", label: "Solo Blueprint", vuoto: "Nessun account con solo il Blueprint gratuito." },
+  { id: "tutti", label: "Tutti", vuoto: "Nessun account Ciak disponibile." },
+];
+
 function formatOffer(value) {
   if (!value) return "Da definire";
   return OFFER_LABELS[value] || value;
@@ -227,6 +246,7 @@ export function ClientiCiak({ onAuthExpired }) {
   const [notice, setNotice] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [vista, setVista] = useState("comprato");
 
   const loadItems = useCallback(async ({ silent = false } = {}) => {
     if (silent) setRefreshing(true);
@@ -359,9 +379,22 @@ export function ClientiCiak({ onAuthExpired }) {
           startStatus: startStatus ? START_STATUS_LABELS[startStatus] || startStatus : null,
           analysisStatus: item.analysis_status || null,
           updatedAt,
+          comprato: haComprato(item),
         };
       }),
     [items]
+  );
+  const conteggi = useMemo(
+    () => ({
+      comprato: rows.filter((r) => r.comprato).length,
+      blueprint: rows.filter((r) => !r.comprato).length,
+      tutti: rows.length,
+    }),
+    [rows]
+  );
+  const visibili = useMemo(
+    () => rows.filter((r) => (vista === "comprato" ? r.comprato : vista === "blueprint" ? !r.comprato : true)),
+    [rows, vista]
   );
 
   return (
@@ -369,14 +402,15 @@ export function ClientiCiak({ onAuthExpired }) {
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Vendite</p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Clienti Ciak</h1>
+          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Account Ciak</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
-            Blueprint, Start e passaggi verso Partnership. Vista rapida per leggere stato, punteggio e prossima offerta.
+            Tutti gli account, divisi in chi ha comprato e chi ha solo il Blueprint gratuito (un lead, non ancora un cliente).
+            Per seguire i lead usa la pagina Lead.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Clienti</div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Account</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{count}</div>
           </div>
           <button
@@ -405,7 +439,21 @@ export function ClientiCiak({ onAuthExpired }) {
 
       <AttivaStartCard onAuthExpired={onAuthExpired} onAttivato={() => loadItems({ silent: true })} />
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Quali account vedere">
+        {VISTE.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            aria-pressed={vista === v.id}
+            onClick={() => setVista(v.id)}
+            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 ${vista === v.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"}`}
+          >
+            {v.label} <span className="opacity-70">{conteggi[v.id]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
@@ -435,14 +483,14 @@ export function ClientiCiak({ onAuthExpired }) {
                     <td className="px-4 py-4"><div className="h-8 w-40 rounded bg-slate-100" /></td>
                   </tr>
                 ))
-              ) : rows.length === 0 ? (
+              ) : visibili.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
-                    Nessun cliente Ciak disponibile.
+                    {VISTE.find((v) => v.id === vista)?.vuoto}
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
+                visibili.map((row) => (
                   <tr key={row.key} className="align-top">
                     <td className="px-4 py-4">
                       {row.email && row.email !== "-" ? (

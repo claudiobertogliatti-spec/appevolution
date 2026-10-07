@@ -37,7 +37,7 @@ const fmtDate = (s) => {
 function Header() {
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">KPI Partner</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">Numeri dei partner</h1>
       <p className="text-sm text-slate-500 mt-0.5">Metriche reali dei partner in atto Ottimizza (post-lancio).</p>
     </div>
   );
@@ -175,7 +175,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
               <Info className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
               <span>
                 Nessun dato ancora per questo partner. Inserisci i KPI dal dettaglio partner
-                (Pipeline Partner → apri il partner → KPI: visite, lead, vendite, conversione),
+                (Partner → apri il partner → KPI: visite, lead, vendite, conversione),
                 oppure arriveranno automaticamente da tracking interno / Systeme.io.
               </span>
             </div>

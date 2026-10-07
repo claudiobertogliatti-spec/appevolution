@@ -108,7 +108,7 @@ export function DeliveryMasterclassHub() {
         { to: "/admin/documenti-partner", title: "File partner", desc: "Materiali caricati e approvazioni documenti.", icon: FileText },
         { to: "/admin/video-pipeline", title: "Monitor pipeline", desc: "Job video, errori, riavvii e stato elaborazione.", icon: TrendingUp },
         { to: "/admin/video-review", title: "Approvazione video", desc: "Video pronti da controllare e pubblicare.", icon: PlayCircle },
-        { to: "/admin/partner", title: "Pipeline Partner", desc: "Apri scheda e journey del partner.", icon: Users },
+        { to: "/admin/partner", title: "Partner", desc: "Apri scheda e journey del partner.", icon: Users },
       ]}
     />
   );
@@ -134,13 +134,13 @@ export function TrattativeKoHub() {
   return (
     <OperationalHub
       eyebrow="Vendite"
-      title="Trattative KO"
+      title="Trattative perse"
       subtitle="Il backend oggi non ha uno stadio KO separato: per non perdere contesto, questa vista porta alle liste dove si intercettano recuperi e decisioni."
       icon={TrendingUp}
       cards={[
         { to: "/admin/vendite-call", title: "Call di vendita", desc: "Call prenotate o fatte da qualificare.", icon: Users },
         { to: "/admin/vendite-trattativa", title: "In trattativa", desc: "Proposte inviate, viste o accettate.", icon: TrendingUp },
-        { to: "/admin/clienti-ciak", title: "Clienti Ciak", desc: "Blueprint, Start e upgrade Partnership.", icon: ClipboardCheck },
+        { to: "/admin/clienti-ciak", title: "Account Ciak", desc: "Chi ha comprato e chi ha solo il Blueprint gratuito.", icon: ClipboardCheck },
         { to: "/admin/leads", title: "Archivio lead", desc: "Storico contatti e dettaglio diagnostico.", icon: FileText },
       ]}
     />
@@ -257,7 +257,7 @@ export function DateContratti({ onAuthExpired }) {
     <div className="p-8">
       <PageHeader
         eyebrow="Back office"
-        title="Date contratti"
+        title="Scadenze contratti"
         subtitle="Registro operativo dei partner con contratto o pagamento collegato."
         icon={CalendarDays}
       />

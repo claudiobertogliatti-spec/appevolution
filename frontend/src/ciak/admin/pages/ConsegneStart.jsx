@@ -570,7 +570,7 @@ export function ConsegneStart({ onAuthExpired }) {
 
   return (
     <div className="p-10 max-w-6xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Consegne Start</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Scadenze Start</h1>
       <p className="text-slate-500 mb-6">
         Le tre tappe che ogni cliente Ciak Start ha ricevuto per iscritto, con le date
         promesse nella sua email di attivazione. {data.totale_clienti}{" "}

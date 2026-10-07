@@ -193,7 +193,7 @@ export function RisultatiFinali({ onAuthExpired }) {
 
   return (
     <div className="p-10 max-w-6xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Risultati finali</h1>
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Siti e funnel da guardare</h1>
       <p className="text-slate-500 mb-8">
         Il lavoro finito, da guardare prima che lo veda il cliente: i siti vetrina dei clienti Start e i funnel dei partner.
       </p>

@@ -17,8 +17,9 @@
 - ⛔ Il prezzo/uscita: le pagine **Trattative** di oggi continuano a mostrare chi ha comprato Start (non ho cambiato `/pipeline-blueprint`); l'uscita automatica vale solo per la pagina Lead.
 - 🔎 Dopo una modifica con cognome, le altre pagine leggono `nome` (intero): corretto. Il telefono e' in due campi (`telefono`, `phone`) scritti insieme: non ho unificato i vecchi record.
 - 🔎 "Trattative KO" e' solo una pagina di collegamenti (il backend non ha uno stadio KO): non e' una fase di Lead.
-- ⏭️ Non fatto: nuovi nomi nelle pagine dei reparti ("Partner in pausa", "Scadenze Start", ...) e le tre viste di "Clienti Ciak" (Clienti/Solo Blueprint/Tutti); mockup in discussione, non approvati.
-- ⏭️ Clienti Ciak (Vendite) mostra ancora anche i lead Blueprint che non hanno comprato.
+- ✅ Fatto dopo (stesso giorno, "procedi"): **nomi nel menu e titoli di pagina** — Pipeline Partner→Partner, Quarantena→Partner in pausa, Ex Partner→Partner usciti, Motore Vendite Partner→Vendite dei partner, Audit Delivery→Stato del percorso (titolo pagina era "Delivery Audit"), Produzione video→Video da approvare, Risultati finali→Siti e funnel da guardare, Consegne Start→Scadenze Start, KPI Partner→Numeri dei partner, Trattative KO→Trattative perse, Consegna manuale→Invia il Blueprint, Date contratti→Scadenze contratti, Clienti Ciak→**Account Ciak**. Invariati di proposito: "Calendario partner" e "Campagne partner" (li citano le dashboard di Antonella e `navCoerenza.test.js`), File, Casi studio, Clienti Start. Gli URL non cambiano.
+- ✅ **Account Ciak** (`/admin/clienti-ciak`): tre viste — *Hanno comprato* (default: Start, Partner, credito/acquisto Start o Partnership attiva), *Solo Blueprint* (lead gratuiti), *Tutti* — con conteggi; `haComprato()` esportata e provata. Frontend `src/ciak/admin`: 62 suite, 382 test passati.
+- ⏭️ Non fatto: le pagine **Trattative** (`/pipeline-blueprint`) mostrano ancora chi ha gia' comprato Start (la Home le dedupica da sola in `oggiModel`); i commenti nel codice citano ancora i vecchi nomi.
 
 ### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
 
