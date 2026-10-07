@@ -26,6 +26,7 @@ class Attribution(BaseModel):
     nome: str = Field(default="", max_length=120)
     nota: str = Field(default="", max_length=500)
     call_fatta_il: Optional[str] = None  # YYYY-MM-DD, solo per call fatte fuori da Ciak
+    esito_start_il: Optional[str] = None  # YYYY-MM-DD, pacchetto su misura pagato con link personalizzato
 
 
 def _email(value) -> str:
@@ -34,6 +35,20 @@ def _email(value) -> str:
 
 def _actor(admin):
     return getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+
+
+def _past_date(value, what: str) -> str:
+    """Data YYYY-MM-DD opzionale, mai nel futuro. Vuota = nessuna data."""
+    value = (value or "").strip()
+    if not value:
+        return ""
+    try:
+        day = date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(422, f"Data {what} non valida (YYYY-MM-DD)")
+    if day > datetime.now(timezone.utc).date():
+        raise HTTPException(422, f"La data dell'{what} non può essere nel futuro" if what == "acquisto" else f"La {what} non può essere nel futuro")
+    return value
 
 
 def _ci(email: str) -> dict:
@@ -50,6 +65,7 @@ async def gettoni(month: str = Query(default=None), admin=Depends(require_billin
             "nome": a.get("nome") or "",
             "nota": a.get("nota") or "",
             "call_fatta_il": a.get("call_fatta_il") or "",
+            "esito_start_il": a.get("esito_start_il") or "",
         }
         async for a in db.collaborator_attributions.find({"collaborator_id": COLLABORATOR_ID}, {"_id": 0})
     }
@@ -74,14 +90,8 @@ async def save_attribution(req: Attribution, admin=Depends(require_billing_admin
     email = _email(req.email)
     if not _EMAIL_RE.match(email):
         raise HTTPException(422, "Email non valida")
-    call_fatta_il = (req.call_fatta_il or "").strip()
-    if call_fatta_il:
-        try:
-            day = date.fromisoformat(call_fatta_il)
-        except ValueError:
-            raise HTTPException(422, "Data call non valida (YYYY-MM-DD)")
-        if day > datetime.now(timezone.utc).date():
-            raise HTTPException(422, "La call non può essere nel futuro")
+    call_fatta_il = _past_date(req.call_fatta_il, "call")
+    esito_start_il = _past_date(req.esito_start_il, "acquisto")
     nome = req.nome.strip()
     known = await db.diagnostic_sessions.find_one({"user_email": _ci(email)}) or await db.ciak_clients.find_one({"email": _ci(email)})
     if not known and not nome:
@@ -90,7 +100,7 @@ async def save_attribution(req: Attribution, admin=Depends(require_billing_admin
     await db.collaborator_attributions.update_one(
         {"collaborator_id": COLLABORATOR_ID, "email": email},
         {
-            "$set": {"nome": nome, "nota": req.nota.strip(), "call_fatta_il": call_fatta_il,
+            "$set": {"nome": nome, "nota": req.nota.strip(), "call_fatta_il": call_fatta_il, "esito_start_il": esito_start_il,
                      "updated_by": _actor(admin), "updated_at": now},
             "$setOnInsert": {"created_by": _actor(admin), "created_at": now},
         },

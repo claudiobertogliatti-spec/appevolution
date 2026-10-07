@@ -74,10 +74,10 @@ def pay_by(month: str) -> str:
     return f"{year:04d}-{mon:02d}-10"
 
 
-def _event(kind: str, email: str, name: str, when: str, how: Optional[str]) -> dict:
+def _event(kind: str, email: str, name: str, when: str, how: Optional[str], label: Optional[str] = None) -> dict:
     return {
         "tipo": kind,
-        "etichetta": LABELS[kind],
+        "etichetta": label or LABELS[kind],
         "email": email,
         "nome": name,
         "data": when,
@@ -113,7 +113,7 @@ def build_gettoni(
     clients_by_email: dict[str, dict],
     manual,
 ) -> dict:
-    """`manual`: {email: {"nome", "nota", "call_fatta_il"}} (anche un semplice set di email).
+    """`manual`: {email: {"nome", "nota", "call_fatta_il", "esito_start_il"}} (anche un semplice set di email).
 
     Un lead attribuito a mano puo non avere nessuna sessione diagnostica (contatto portato
     fuori dal funnel): in quel caso la call fatta e quella dichiarata nell'attribuzione.
@@ -148,7 +148,14 @@ def build_gettoni(
             else:
                 to_verify.append({"email": email, "nome": name, "data": _iso(call_done)})
 
-        for kind, when in _purchases(client, month):
+        purchases = _purchases(client, month)
+        # Pacchetto su misura pagato fuori dal checkout Start (link Stripe personalizzato):
+        # stesso gettone dello Start, dichiarato a mano. Una sola volta: se Ciak ha gia
+        # registrato lo Start nel mese, vale quello.
+        custom = m.get("esito_start_il")
+        if how and custom and _in_month(custom, month) and not any(k == "start" for k, _ in purchases):
+            events.append(_event("start", email, name, _iso(custom), how, "Esito pacchetto su misura"))
+        for kind, when in purchases:
             if how:
                 events.append(_event(kind, email, name, when, how))
             else:
@@ -190,6 +197,7 @@ def build_gettoni(
         row["nome"] = m.get("nome") or row["nome"]
         row["nota"] = m.get("nota") or ""
         row["call_fatta_il"] = m.get("call_fatta_il") or ""
+        row["esito_start_il"] = m.get("esito_start_il") or ""
         row["manuale"] = True
     leads = sorted(by_lead.values(), key=lambda r: (-r["totale_cents"], r["nome"].lower()))
 

@@ -28,6 +28,7 @@ export function leadForm(lead) {
     nome: lead?.nome && lead.nome !== lead.email ? lead.nome : "",
     nota: lead?.nota || "",
     call_fatta_il: lead?.call_fatta_il || "",
+    esito_start_il: lead?.esito_start_il || "",
   };
 }
 
@@ -77,6 +78,10 @@ function LeadDialog({ lead, isNew, busy, onSave, onRemove, onClose }) {
           <label className="block text-sm font-medium text-slate-700">Call fatta il
             <input type="date" max={today()} value={form.call_fatta_il} onChange={set("call_fatta_il")} className={`${fieldClass} mt-1`} />
             <span className="mt-1 block text-xs font-normal text-slate-500">Solo per call fatte fuori da Ciak. Se la call è già registrata in Ciak, lascia vuoto: vale quella.</span>
+          </label>
+          <label className="block text-sm font-medium text-slate-700">Pacchetto su misura pagato il
+            <input type="date" max={today()} value={form.esito_start_il} onChange={set("esito_start_il")} className={`${fieldClass} mt-1`} />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Solo se ha pagato con un link Stripe personalizzato. Vale come esito Start (50 €). Se ha pagato il checkout Start di Ciak, lascia vuoto: lo vede da solo.</span>
           </label>
           <label className="block text-sm font-medium text-slate-700">Nota
             <textarea rows={3} maxLength={500} value={form.nota} onChange={set("nota")} className={`${fieldClass} mt-1`} />
@@ -147,7 +152,7 @@ export function GettoniMariangela({ onAuthExpired }) {
     setBusy(true);
     try {
       await apiPost("/collaboratori/mariangela/attribuzioni", {
-        email: form.email.trim(), nome: form.nome, nota: form.nota, call_fatta_il: form.call_fatta_il || null,
+        email: form.email.trim(), nome: form.nome, nota: form.nota, call_fatta_il: form.call_fatta_il || null, esito_start_il: form.esito_start_il || null,
       });
       toast.success(okMessage);
       setDialog(null);
@@ -171,7 +176,7 @@ export function GettoniMariangela({ onAuthExpired }) {
     } finally { setBusy(false); }
   };
 
-  const attributeQuick = (row) => save({ email: row.email, nome: row.nome === row.email ? "" : row.nome, nota: "", call_fatta_il: "" }, "Lead attribuito a Mariangela");
+  const attributeQuick = (row) => save({ email: row.email, nome: row.nome === row.email ? "" : row.nome, nota: "", call_fatta_il: "", esito_start_il: "" }, "Lead attribuito a Mariangela");
 
   if (error) return <p className="mt-6 text-sm text-red-600">Gettoni non disponibili: {error}</p>;
   if (!data) return <p className="mt-6 text-sm text-slate-400">Caricamento gettoni...</p>;
