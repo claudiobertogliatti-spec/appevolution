@@ -39,8 +39,18 @@ class _Coll:
         self.docs = list(docs or [])
 
     def find(self, query=None, _proj=None):
+        import re
         q = query or {}
-        return _Cursor([d for d in self.docs if all(d.get(k) == v for k, v in q.items() if not isinstance(v, dict))])
+
+        def ok(d):
+            for k, v in q.items():
+                if isinstance(v, dict) and "$regex" in v:
+                    if not re.match(v["$regex"], str(d.get(k, "")), re.I):
+                        return False
+                elif not isinstance(v, dict) and d.get(k) != v:
+                    return False
+            return True
+        return _Cursor([d for d in self.docs if ok(d)])
 
     async def find_one(self, query, _proj=None):
         key = "user_email" if "user_email" in query else ("email" if isinstance(query.get("email"), dict) else None)
@@ -123,11 +133,11 @@ async def test_lead_fuori_funnel_con_nome_e_call_dichiarata_e_modificabile_e_rim
     await mod.save_attribution(mod.Attribution(email="Nuovo@Esempio.it", nome="Nuovo Lead", call_fatta_il=today), admin=ADMIN)
     out = await mod.gettoni(month=month, admin=ADMIN)
     row = next(r for r in out["leads"] if r["email"] == "nuovo@esempio.it")
-    assert row["nome"] == "Nuovo Lead" and row["totale_cents"] == 1500 and row["manuale"] is True
+    assert row["nome"] == "Nuovo Lead" and row["pagato_nel_mese_cents"] == 1500 and row["manuale"] is True
     await mod.save_attribution(mod.Attribution(email="nuovo@esempio.it", nome="Nuovo Lead Corretto", nota="ricontattare"), admin=ADMIN)
     out = await mod.gettoni(month=month, admin=ADMIN)
     row = next(r for r in out["leads"] if r["email"] == "nuovo@esempio.it")
-    assert row["nome"] == "Nuovo Lead Corretto" and row["nota"] == "ricontattare" and row["totale_cents"] == 0
+    assert row["nome"] == "Nuovo Lead Corretto" and row["nota"] == "ricontattare" and row["pagato_nel_mese_cents"] == 0
     assert len(db.collaborator_attributions.docs) == 1  # stessa email = stesso lead, non un duplicato
     assert (await mod.remove_attribution("nuovo@esempio.it", admin=ADMIN))["removed"] == 1
     assert not any(r["email"] == "nuovo@esempio.it" for r in (await mod.gettoni(month=month, admin=ADMIN))["leads"])
@@ -153,8 +163,41 @@ async def test_esito_su_misura_salvato_letto_e_validato(monkeypatch):
     await mod.save_attribution(mod.Attribution(email="su@misura.it", nome="Su Misura", esito_start_il=today), admin=ADMIN)
     out = await mod.gettoni(month=today[:7], admin=ADMIN)
     row = next(r for r in out["leads"] if r["email"] == "su@misura.it")
-    assert row["esito_start_il"] == today and row["totale_cents"] == 5000
+    assert row["esito_start_il"] == today and row["pagato_nel_mese_cents"] == 5000
     for bad in ("2099-01-01", "non-una-data"):
         with pytest.raises(HTTPException) as exc:
             await mod.save_attribution(mod.Attribution(email="su@misura.it", nome="X", esito_start_il=bad), admin=ADMIN)
         assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_mese_di_ingresso_default_primo_contatto_poi_esplicito_e_validato(monkeypatch):
+    lead = {"user_email": "Primo@Esempio.it", "user_name": "Primo", "tracking": {}, "state_history": [],
+            "created_at": "2026-09-23T10:00:00+00:00"}
+    db = _db([lead, {**lead, "created_at": "2026-10-03T10:00:00+00:00"}])
+    monkeypatch.setattr(mod, "db", db)
+    await mod.save_attribution(mod.Attribution(email="primo@esempio.it"), admin=ADMIN)
+    assert db.collaborator_attributions.docs[0]["mese"] == "2026-09"  # primo contatto reale, non l'ultima sessione
+    sett = await mod.gettoni(month="2026-09", admin=ADMIN)
+    ott = await mod.gettoni(month="2026-10", admin=ADMIN)
+    assert [l["email"] for l in sett["leads"]] == ["primo@esempio.it"] and ott["leads"] == []
+    await mod.save_attribution(mod.Attribution(email="primo@esempio.it", mese="2026-10"), admin=ADMIN)
+    ott = await mod.gettoni(month="2026-10", admin=ADMIN)
+    assert [l["email"] for l in ott["leads"]] == ["primo@esempio.it"]
+    for bad in ("2099-01", "ottobre"):
+        with pytest.raises(HTTPException) as exc:
+            await mod.save_attribution(mod.Attribution(email="primo@esempio.it", mese=bad), admin=ADMIN)
+        assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_senza_mese_e_senza_diagnostica_vale_il_mese_corrente_e_resta_se_non_cambiato(monkeypatch):
+    import datetime as _dt
+    db = _db([])
+    monkeypatch.setattr(mod, "db", db)
+    this_month = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m")
+    await mod.save_attribution(mod.Attribution(email="fuori@esempio.it", nome="Fuori"), admin=ADMIN)
+    assert db.collaborator_attributions.docs[0]["mese"] == this_month
+    db.collaborator_attributions.docs[0]["mese"] = "2026-08"
+    await mod.save_attribution(mod.Attribution(email="fuori@esempio.it", nome="Fuori Corretto"), admin=ADMIN)
+    assert db.collaborator_attributions.docs[0]["mese"] == "2026-08"  # modificare la scheda non sposta il mese
