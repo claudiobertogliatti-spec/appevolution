@@ -34,11 +34,14 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   CreditCard,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Menu,
   Search,
+  UserCheck,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -242,6 +245,18 @@ const MACRO_ICONS = {
   "casi-studio": ClipboardCheck,
   "back-office": CreditCard,
 };
+
+// Accessi diretti "per persona", sopra i reparti: le tre cose che si cercano di
+// piu'. Non sono voci nuove: puntano a pagine che gia' esistono (e restano anche
+// nel loro reparto). Lead in lavorazione = Contatti (Acquisizione); Clienti =
+// clienti Start in colonne; Partner = pipeline partner (Delivery).
+// hideFor come per i reparti: Mariangela vede solo i lead, Antonella solo clienti
+// e partner.
+const QUICK = [
+  { to: "/admin/pipeline", label: "Lead in lavorazione", Icon: UserPlus, hideFor: ["antonella"] },
+  { to: "/admin/start", label: "Clienti", Icon: UserCheck, hideFor: ["mariangela"] },
+  { to: "/admin/partner", label: "Partner", Icon: Handshake, hideFor: ["mariangela"] },
+];
 
 // Pagine di una macro (gestisce sia `pages` flat sia eventuali `groups`).
 function macroPages(macro) {
@@ -448,6 +463,15 @@ function AdminShell({ user, onLogout, children }) {
           >
             <LayoutDashboard className="w-4 h-4" aria-hidden /> Home
           </NavLink>
+          {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+            >
+              <Icon className="w-4 h-4" aria-hidden /> {label}
+            </NavLink>
+          ))}
           <button
             type="button"
             ref={cerca.triggerRef}

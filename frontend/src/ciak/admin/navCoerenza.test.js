@@ -127,3 +127,20 @@ test("i vecchi link restano vivi: /lead-manager reindirizza a Contatti conservan
   // le scorciatoie "Importa lista / Ricerca automatica" aprono direttamente Contatti
   expect(sorgente).not.toMatch(/navigate\("\/admin\/lead-manager/);
 });
+
+test("gli accessi diretti sopra i reparti (Lead in lavorazione, Clienti, Partner) portano a pagine vere", () => {
+  const i = sorgente.indexOf("const QUICK = [");
+  const blocco = sorgente.slice(i, sorgente.indexOf("];", i));
+  const voci = [...blocco.matchAll(/to: "(\/admin\/[^"]+)", label: "([^"]+)"/g)].map((m) => ({ to: m[1], label: m[2] }));
+  expect(voci.map((v) => v.label)).toEqual(["Lead in lavorazione", "Clienti", "Partner"]);
+  for (const v of voci) {
+    const rotta = v.to.replace("/admin/", "");
+    const re = new RegExp(`<Route\\s+path="${rotta}"[\\s\\S]{0,160}?(/>|</Route>)`);
+    const m = sorgente.match(re);
+    expect(m && !/<Navigate/.test(m[0])).toBeTruthy();
+  }
+  // Mariangela lavora solo in Acquisizione, Antonella solo in Delivery: stessa regola dei reparti
+  expect(blocco).toMatch(/label: "Lead in lavorazione".*hideFor: \["antonella"\]/);
+  expect(blocco).toMatch(/label: "Clienti".*hideFor: \["mariangela"\]/);
+  expect(blocco).toMatch(/label: "Partner".*hideFor: \["mariangela"\]/);
+});
