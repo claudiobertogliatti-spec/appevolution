@@ -97,3 +97,62 @@ def test_email_cliente_in_maiuscolo_e_diagnostica_minuscola():
 def test_scadenza_pagamento_entro_il_10_del_mese_dopo():
     assert pay_by("2026-10") == "2026-11-10"
     assert pay_by("2026-12") == "2027-01-10"
+
+
+def test_lead_inserito_a_mano_senza_diagnostica_con_call_dichiarata():
+    out = build_gettoni("2026-10", [], {}, {"fuori@x.it": {"nome": "Fuori Funnel", "call_fatta_il": "2026-10-05"}})
+    assert [(e["tipo"], e["nome"], e["attribuzione"]) for e in out["events"]] == [("call_fatta", "Fuori Funnel", "manuale")]
+    assert out["total_cents"] == 1500
+
+
+def test_lead_manuale_che_compra_senza_diagnostica_matura_lo_start():
+    out = build_gettoni("2026-10", [], {"fuori@x.it": {"name": "Fuori", "start_purchased_at": "2026-10-06T08:00:00+00:00"}},
+                        {"fuori@x.it": {"nome": "Fuori Funnel"}})
+    assert [e["tipo"] for e in out["events"]] == ["start"] and out["total_cents"] == 5000
+
+
+def test_acquisto_non_attribuito_va_in_da_verificare_con_importo_ma_non_nel_totale():
+    clients = {"cliente@x.it": {"name": "Cliente", "partnership_purchased_at": "2026-10-06T08:00:00+00:00"}}
+    out = build_gettoni("2026-10", [_diag("cliente@x.it")], clients, set())
+    assert out["total_cents"] == 0
+    pv = out["purchases_to_verify"]
+    assert len(pv) == 1 and pv[0]["tipo"] == "partnership" and pv[0]["importo_cents"] == 25000
+
+
+def test_acquisto_senza_diagnostica_ne_attribuzione_compare_in_da_verificare():
+    clients = {"solo@x.it": {"name": "Solo Cliente", "start_purchased_at": "2026-10-06T08:00:00+00:00"}}
+    out = build_gettoni("2026-10", [], clients, set())
+    assert [p["email"] for p in out["purchases_to_verify"]] == ["solo@x.it"] and out["total_cents"] == 0
+
+
+def test_righe_lead_includono_i_manuali_anche_senza_eventi_e_il_totale_per_lead():
+    diags = [_diag("a@x.it", utm="mariangela", call_done="2026-10-03T10:00:00+00:00")]
+    clients = {"a@x.it": {"start_purchased_at": "2026-10-04T08:00:00+00:00"}}
+    out = build_gettoni("2026-10", diags, clients, {"vuoto@x.it": {"nome": "Senza Eventi", "nota": "da sentire"}})
+    rows = {r["email"]: r for r in out["leads"]}
+    assert rows["a@x.it"]["totale_cents"] == 6500 and len(rows["a@x.it"]["eventi"]) == 2
+    assert rows["vuoto@x.it"]["eventi"] == [] and rows["vuoto@x.it"]["manuale"] is True and rows["vuoto@x.it"]["nota"] == "da sentire"
+
+
+def test_pacchetto_su_misura_pagato_con_link_personalizzato_vale_50():
+    out = build_gettoni("2026-10", [], {}, {"su@misura.it": {"nome": "Su Misura", "esito_start_il": "2026-10-08"}})
+    assert [(e["tipo"], e["etichetta"], e["importo_cents"]) for e in out["events"]] == [
+        ("start", "Esito pacchetto su misura", 5000)]
+    assert out["total_cents"] == 5000
+
+
+def test_su_misura_e_checkout_start_nello_stesso_mese_contano_una_volta():
+    clients = {"su@misura.it": {"start_purchased_at": "2026-10-08T08:00:00+00:00"}}
+    out = build_gettoni("2026-10", [], clients, {"su@misura.it": {"nome": "Su Misura", "esito_start_il": "2026-10-08"}})
+    assert [e["tipo"] for e in out["events"]] == ["start"] and out["total_cents"] == 5000
+
+
+def test_su_misura_fuori_mese_non_matura_e_senza_attribuzione_non_conta():
+    out = build_gettoni("2026-10", [], {}, {"su@misura.it": {"nome": "X", "esito_start_il": "2026-09-30"}})
+    assert out["total_cents"] == 0
+    assert build_gettoni("2026-10", [_diag("n@x.it")], {}, set())["total_cents"] == 0
+
+
+def test_su_misura_e_call_fatta_sono_due_gettoni_distinti_50_piu_15():
+    out = build_gettoni("2026-10", [], {}, {"l@x.it": {"nome": "L", "call_fatta_il": "2026-10-02", "esito_start_il": "2026-10-08"}})
+    assert sorted(e["tipo"] for e in out["events"]) == ["call_fatta", "start"] and out["total_cents"] == 6500

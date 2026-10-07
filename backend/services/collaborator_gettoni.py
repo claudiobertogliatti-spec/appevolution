@@ -74,10 +74,10 @@ def pay_by(month: str) -> str:
     return f"{year:04d}-{mon:02d}-10"
 
 
-def _event(kind: str, email: str, name: str, when: str, how: Optional[str]) -> dict:
+def _event(kind: str, email: str, name: str, when: str, how: Optional[str], label: Optional[str] = None) -> dict:
     return {
         "tipo": kind,
-        "etichetta": LABELS[kind],
+        "etichetta": label or LABELS[kind],
         "email": email,
         "nome": name,
         "data": when,
@@ -94,52 +94,121 @@ def month_bounds_ok(month: str) -> bool:
         return False
 
 
+def _purchases(client: dict, month: str) -> list[tuple[str, str]]:
+    """(tipo, data) degli acquisti Start/Partnership di un cliente nel mese."""
+    out = []
+    start_at = client.get("start_purchased_at")
+    partner_at = client.get("partnership_purchased_at")
+    if start_at and _in_month(start_at, month):
+        out.append(("start", _iso(start_at)))
+    if partner_at and _in_month(partner_at, month):
+        is_upgrade = bool(start_at) and _iso(start_at) < _iso(partner_at)
+        out.append(("upgrade" if is_upgrade else "partnership", _iso(partner_at)))
+    return out
+
+
 def build_gettoni(
     month: str,
     diagnostics: Iterable[dict],
     clients_by_email: dict[str, dict],
-    manual_emails: set[str],
+    manual,
 ) -> dict:
+    """`manual`: {email: {"nome", "nota", "call_fatta_il", "esito_start_il"}} (anche un semplice set di email).
+
+    Un lead attribuito a mano puo non avere nessuna sessione diagnostica (contatto portato
+    fuori dal funnel): in quel caso la call fatta e quella dichiarata nell'attribuzione.
+    """
+    if not isinstance(manual, dict):
+        manual = {e: {} for e in manual}
     events: list[dict] = []
     to_verify: list[dict] = []
+    purchases_to_verify: list[dict] = []
 
-    for d in diagnostics:
+    docs = list(diagnostics)
+    present = {str(d.get("user_email") or "").strip().lower() for d in docs}
+    for email, m in manual.items():
+        if email not in present:
+            docs.append({"user_email": email, "user_name": m.get("nome") or "", "state_history": []})
+    seen: set[str] = set()
+
+    for d in docs:
         email = str(d.get("user_email") or "").strip().lower()
         if not email:
             continue
-        name = d.get("user_name") or d.get("nome") or email
-        how = attribution_of(d, email, manual_emails)
+        seen.add(email)
+        m = manual.get(email) or {}
+        client = clients_by_email.get(email) or {}
+        name = d.get("user_name") or d.get("nome") or m.get("nome") or client.get("name") or client.get("nome") or email
+        how = attribution_of(d, email, set(manual))
 
-        call_done = state_ts(d, "call_done")
+        call_done = state_ts(d, "call_done") or (m.get("call_fatta_il") or None)
         if call_done and _in_month(call_done, month):
             if how:
-                events.append(_event("call_fatta", email, name, call_done, how))
+                events.append(_event("call_fatta", email, name, _iso(call_done), how))
             else:
-                to_verify.append({"email": email, "nome": name, "data": call_done})
+                to_verify.append({"email": email, "nome": name, "data": _iso(call_done)})
 
-        if not how:
+        purchases = _purchases(client, month)
+        # Pacchetto su misura pagato fuori dal checkout Start (link Stripe personalizzato):
+        # stesso gettone dello Start, dichiarato a mano. Una sola volta: se Ciak ha gia
+        # registrato lo Start nel mese, vale quello.
+        custom = m.get("esito_start_il")
+        if how and custom and _in_month(custom, month) and not any(k == "start" for k, _ in purchases):
+            events.append(_event("start", email, name, _iso(custom), how, "Esito pacchetto su misura"))
+        for kind, when in purchases:
+            if how:
+                events.append(_event(kind, email, name, when, how))
+            else:
+                purchases_to_verify.append({
+                    "email": email, "nome": name, "tipo": kind, "etichetta": LABELS[kind],
+                    "data": when, "importo_cents": RATES["importi_cents"][kind],
+                })
+
+    # Clienti che hanno comprato nel mese senza nessuna sessione diagnostica ne attribuzione
+    for email, client in clients_by_email.items():
+        if email in seen:
             continue
-
-        client = clients_by_email.get(email) or {}
-        start_at = client.get("start_purchased_at")
-        partner_at = client.get("partnership_purchased_at")
-        if start_at and _in_month(start_at, month):
-            events.append(_event("start", email, name, _iso(start_at), how))
-        if partner_at and _in_month(partner_at, month):
-            is_upgrade = bool(start_at) and _iso(start_at) < _iso(partner_at)
-            events.append(_event("upgrade" if is_upgrade else "partnership", email, name, _iso(partner_at), how))
+        name = client.get("name") or client.get("nome") or email
+        for kind, when in _purchases(client, month):
+            purchases_to_verify.append({
+                "email": email, "nome": name, "tipo": kind, "etichetta": LABELS[kind],
+                "data": when, "importo_cents": RATES["importi_cents"][kind],
+            })
 
     events.sort(key=lambda e: e["data"])
+    purchases_to_verify.sort(key=lambda e: e["data"])
     totals = {k: 0 for k in RATES["importi_cents"]}
     for e in events:
         totals[e["tipo"]] += e["importo_cents"]
 
+    # Un riga per lead: chi ha eventi nel mese + tutti gli attribuiti a mano (anche senza
+    # eventi), cosi un'attribuzione si puo sempre aprire, modificare o rimuovere.
+    by_lead: dict[str, dict] = {}
+    for e in events:
+        row = by_lead.setdefault(e["email"], {
+            "email": e["email"], "nome": e["nome"], "attribuzione": e["attribuzione"],
+            "eventi": [], "totale_cents": 0,
+        })
+        row["eventi"].append({"tipo": e["tipo"], "etichetta": e["etichetta"], "data": e["data"], "importo_cents": e["importo_cents"]})
+        row["totale_cents"] += e["importo_cents"]
+    for email, m in manual.items():
+        row = by_lead.setdefault(email, {"email": email, "nome": m.get("nome") or email, "eventi": [], "totale_cents": 0})
+        row["attribuzione"] = "manuale"
+        row["nome"] = m.get("nome") or row["nome"]
+        row["nota"] = m.get("nota") or ""
+        row["call_fatta_il"] = m.get("call_fatta_il") or ""
+        row["esito_start_il"] = m.get("esito_start_il") or ""
+        row["manuale"] = True
+    leads = sorted(by_lead.values(), key=lambda r: (-r["totale_cents"], r["nome"].lower()))
+
     return {
         "month": month,
         "rates": RATES,
+        "leads": leads,
         "events": events,
         "totals_cents": totals,
         "total_cents": sum(totals.values()),
         "pay_by": pay_by(month),
         "to_verify": to_verify,
+        "purchases_to_verify": purchases_to_verify,
     }

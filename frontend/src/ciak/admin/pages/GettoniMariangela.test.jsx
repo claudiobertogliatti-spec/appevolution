@@ -1,4 +1,4 @@
-import { formatCents, monthLabel, shiftMonth } from "./GettoniMariangela";
+import { formatCents, leadForm, monthLabel, shiftMonth } from "./GettoniMariangela";
 
 test("formatCents mostra euro da centesimi", () => {
   expect(formatCents(25000)).toMatch(/250,00/);
@@ -14,4 +14,19 @@ test("shiftMonth attraversa l'anno", () => {
 
 test("monthLabel in italiano", () => {
   expect(monthLabel("2026-10").toLowerCase()).toContain("ottobre");
+});
+
+test("leadForm: lead nuovo vuoto, scheda esistente precompilata", () => {
+  expect(leadForm(null)).toEqual({ email: "", nome: "", nota: "", call_fatta_il: "", esito_start_il: "" });
+  expect(leadForm({ email: "a@x.it", nome: "A Esempio", nota: "n", call_fatta_il: "2026-10-05" }))
+    .toEqual({ email: "a@x.it", nome: "A Esempio", nota: "n", call_fatta_il: "2026-10-05", esito_start_il: "" });
+});
+
+test("leadForm: se il nome coincide con l'email non lo ripropone come nome", () => {
+  expect(leadForm({ email: "a@x.it", nome: "a@x.it" }).nome).toBe("");
+});
+
+test("leadForm include la data del pacchetto su misura", () => {
+  expect(leadForm(null).esito_start_il).toBe("");
+  expect(leadForm({ email: "a@x.it", esito_start_il: "2026-10-08" }).esito_start_il).toBe("2026-10-08");
 });
