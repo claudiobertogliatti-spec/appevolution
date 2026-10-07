@@ -2600,6 +2600,38 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     return {"columns": columns, "total": sum(c["count"] for c in columns)}
 
 
+@router.get("/lead-gestione")
+async def lead_gestione(admin=Depends(require_ciak_admin)):
+    """I lead in gestione: questionario, call fissata, call fatta, trattativa.
+
+    Il Blueprint e' gratuito: chi lo riceve resta qui. Esce solo chi ACQUISTA
+    (Ciak Start o Partnership) e compare in Clienti / Partner.
+    """
+    from services.ciak_client_accounts import ACCESS_PARTNER, has_start_entitlement
+    from services.lead_gestione import build_lead_board
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    entries = await _build_prospect_entries()
+    blueprint = await pipeline_blueprint(admin)
+
+    compratori: set[str] = set()
+    async for c in db.ciak_clients.find(
+        {}, {"_id": 0, "email": 1, "access_level": 1, "start_purchased_at": 1, "start_credit_amount": 1}
+    ):
+        if has_start_entitlement(c) or c.get("access_level") == ACCESS_PARTNER:
+            compratori.add((c.get("email") or "").strip().lower())
+    async for p in db.partners.find(
+        {}, {"email": 1, "contract_signed": 1, "partnership_pagata": 1, "stato": 1}
+    ):
+        if p.get("contract_signed") or p.get("partnership_pagata") or p.get("stato") == "attivo":
+            compratori.add((p.get("email") or "").strip().lower())
+    compratori.discard("")
+
+    return build_lead_board(entries, blueprint["columns"], compratori)
+
+
 # ─── Transactions Partnership €2.990 ──────────────────────────────────────
 
 @router.get("/transactions-partnership")
