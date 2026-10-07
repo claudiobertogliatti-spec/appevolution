@@ -142,3 +142,19 @@ async def test_validazioni_email_e_data_call(monkeypatch):
         with pytest.raises(HTTPException) as exc:
             await mod.save_attribution(bad, admin=ADMIN)
         assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_esito_su_misura_salvato_letto_e_validato(monkeypatch):
+    import datetime as _dt
+    db = _db([])
+    monkeypatch.setattr(mod, "db", db)
+    today = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+    await mod.save_attribution(mod.Attribution(email="su@misura.it", nome="Su Misura", esito_start_il=today), admin=ADMIN)
+    out = await mod.gettoni(month=today[:7], admin=ADMIN)
+    row = next(r for r in out["leads"] if r["email"] == "su@misura.it")
+    assert row["esito_start_il"] == today and row["totale_cents"] == 5000
+    for bad in ("2099-01-01", "non-una-data"):
+        with pytest.raises(HTTPException) as exc:
+            await mod.save_attribution(mod.Attribution(email="su@misura.it", nome="X", esito_start_il=bad), admin=ADMIN)
+        assert exc.value.status_code == 422
