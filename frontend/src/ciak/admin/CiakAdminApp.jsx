@@ -248,12 +248,12 @@ const MACRO_ICONS = {
 
 // Accessi diretti "per persona", sopra i reparti: le tre cose che si cercano di
 // piu'. Non sono voci nuove: puntano a pagine che gia' esistono (e restano anche
-// nel loro reparto). Lead in lavorazione = Contatti (Acquisizione); Clienti =
+// nel loro reparto). Lead = Contatti (Acquisizione); Clienti =
 // clienti Start in colonne; Partner = pipeline partner (Delivery).
 // hideFor come per i reparti: Mariangela vede solo i lead, Antonella solo clienti
 // e partner.
 const QUICK = [
-  { to: "/admin/pipeline", label: "Lead in lavorazione", Icon: UserPlus, hideFor: ["antonella"] },
+  { to: "/admin/pipeline", label: "Lead", Icon: UserPlus, hideFor: ["antonella"] },
   { to: "/admin/start", label: "Clienti", Icon: UserCheck, hideFor: ["mariangela"] },
   { to: "/admin/partner", label: "Partner", Icon: Handshake, hideFor: ["mariangela"] },
 ];
