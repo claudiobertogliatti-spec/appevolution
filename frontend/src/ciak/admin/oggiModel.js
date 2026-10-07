@@ -204,3 +204,47 @@ export function buildOggi({ pipeline, audit, now = new Date() } = {}) {
 
   return { call, trattative, partner, esclusi: [...new Set(esclusi)], doppi };
 }
+
+/**
+ * Clienti Start: cosa tocca a te oggi. Fonte: GET /api/admin/ciak/start/pipeline
+ * ({ colonne:[{id, clienti:[...]}] }). Nessuna regola nuova: la colonna e la
+ * prossima mossa le ha gia' decise il backend (`services/start_pipeline.py`).
+ *
+ * - `daApprovare`: hanno una bozza che aspetta te (il cliente la attende);
+ * - `daPreparare`: gli input ci sono, restano bozze da generare;
+ * - `inScadenza`: tappa promessa scaduta o entro 2 giorni, qualunque sia la
+ *   colonna (anche chi aspetta il cliente: la data promessa corre lo stesso);
+ * - `aspettano`: solo contati, non c'e' niente da fare;
+ * Un cliente compare in UNA sola lista di azione (da approvare vince su da
+ * preparare); `inScadenza` e' un'avvertenza, non una seconda lista di lavoro.
+ * Gli account di prova non entrano e si dichiarano.
+ * Pipeline assente (null) -> null: l'interfaccia dice "non disponibile", non "0".
+ */
+export function buildOggiStart(pipeline) {
+  if (!pipeline || !Array.isArray(pipeline.colonne)) return null;
+  const esclusi = [];
+  const per = (id) =>
+    (pipeline.colonne.find((c) => c.id === id)?.clienti || []).filter((c) => {
+      if (isProva({ email: c.email, nome: c.nome })) {
+        esclusi.push(c.nome || c.email);
+        return false;
+      }
+      return true;
+    });
+  const riga = (c) => ({
+    id: c.client_id,
+    nome: pulisciNome(c.nome) || c.email,
+    azione: c.prossima_azione || null,
+    scadenza: c.prossima_scadenza || null,
+    approvati: c.approvati,
+    totale: c.totale,
+  });
+  const urgente = (r) => r.scadenza && r.scadenza.giorni <= 2;
+  const daApprovare = per("da_approvare").map(riga);
+  const daPreparare = per("da_preparare").map(riga);
+  const aspettano = per("attesa_cliente").map(riga);
+  const inScadenza = [...daApprovare, ...daPreparare, ...aspettano]
+    .filter(urgente)
+    .sort((a, b) => a.scadenza.giorni - b.scadenza.giorni);
+  return { daApprovare, daPreparare, aspettano, inScadenza, esclusi: [...new Set(esclusi)] };
+}
