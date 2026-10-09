@@ -30,6 +30,7 @@ SYSTEME_BASE_URL = "https://api.systeme.io/api"
 DEFAULT_TAG = "iscritto_masterclass"
 _TAG_RE = re.compile(r"[^a-z0-9_]+")
 _ID_RE = re.compile(r"[^A-Za-z0-9]")
+_CTRL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def api_key_for(partner_id: str) -> str:
@@ -47,7 +48,7 @@ def clean_tag(value: Optional[str]) -> str:
 
 
 def split_name(full_name: str) -> Tuple[str, str]:
-    parts = (full_name or "").split()
+    parts = _CTRL_RE.sub(" ", full_name or "").split()
     if not parts:
         return "", ""
     return parts[0], " ".join(parts[1:])

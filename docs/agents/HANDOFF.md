@@ -1,3 +1,23 @@
+### 2026-10-09 · Claude Code · claude/fervent-ramanujan-wfdt8k — Andolfi: dominio `corsi.`, lezione 1, iscrizioni → Systeme
+
+**CONTESTO:** il funnel di Daniele Andolfi (ID 23) resta sulla bozza Vercel; l'indirizzo finale e' `corsi.sabaiacademy.it` (NON `corso.`, residuo da togliere). CRM, automazioni e statistiche vanno nel suo Systeme.
+
+**VERIFICATO (output di Claudio / API, 9/10/2026)**
+- DNS su SiteGround (nameserver `ns1/ns2.siteground.net`, ✅ NS letti da 8.8.8.8): Daniele ha cambiato il CNAME `corsi` da `d34qf1t3po3iok.cloudfront.net` (Systeme) a `181bdfce03c120d9.vercel-dns-017.com` (Vercel). `Resolve-DnsName ... 8.8.8.8` conferma. Vercel `get_domain_config`: `misconfigured: false`, `configuredBy: CNAME`. Il sito si apre (Claudio).
+- Ciak: `domain_records` sostituite con la riga Vercel (`POST /funnel-review/23/admin/set` con `connections.dominio=false`), poi `domain/check` → `corsi ok`, passo `dominio fatto`, `via_libera attesa`. Il controllo ha mandato l'avviso Telegram "DOMINIO COLLEGATO" (visto).
+- `team_ready` NON impostato: restano aperti i collegamenti `optin` (contatti nel Systeme), `email` (sequenze, testi da validare con Daniele) e `pagamento` (`checkoutUrl` vuoto il 7/10; sistema di pagamento da decidere).
+- Lezione 1 (`m1_l1`): il vecchio grezzo Drive `1IgfzkPt…` non esiste piu' (Claudio, pagina Drive); retry con `force_phase=a` ha fallito (gdown, log del worker). Il worker `evolution-pro-worker` e' sano (minScale 1). `/api/celery/status` dal web service dice `enabled:false` perche' e' il servizio web, non il worker. Daniele ha ricaricato `Modulo1_L1_pilotaautomatico.mp4` (Drive `1xsl4AK4…`, 456 MB, condiviso come "chiunque col link, writer"); `submit-video-link` → `success`. ⛔ Esito non ancora visto; ⛔ non confermato che sia il girato (non montato).
+- `09-funnel-asset` `skipped`: id storico mappato su `10-sistema-vendita` da `_migrate_legacy_valida_steps` (`partner_journey.py:6962-7032`), non un problema.
+
+**DICHIARATO (codice, in questa PR)**
+- `POST /api/partner-optin/{id}`: con `partners.public_optin.systeme_sync=True` e la chiave del partner in `SYSTEME_API_KEY_PARTNER_<id>` (solo ambiente), l'iscritto viene creato anche nel Systeme del partner con tag `public_optin.systeme_tag` (default `iscritto_masterclass`). Background, mai bloccante; esito sul lead in `systeme` (ok, reason, attempts, at). Tetti dalla revisione `auth-reviewer`: 3 tentativi per lead, 15 min tra l'uno e l'altro, 5 sincronizzazioni in volo per istanza, tentativo prenotato prima di partire. Nome ripulito dai caratteri di controllo. Telefono non inviato (slug non verificato).
+- Test: `pytest tests/test_partner_systeme.py tests/test_partner_optin.py` → 38 passed (MONGO_URL fittizia come in CI); senza la modifica al router i test della sincronizzazione falliscono.
+
+**APERTO / ⛔**
+- Per attivarlo: PR mergiata e deployata; chiave API del Systeme di Daniele (*Impostazioni → Chiavi MCP e API*) nell'ambiente del backend come `SYSTEME_API_KEY_PARTNER_23` (dalla console Cloud Run, non in chat); poi `PATCH /api/admin/partner/23/journey` (`collection: partners`, chiavi puntate `public_optin.systeme_sync`, `public_optin.systeme_tag`).
+- Nessun trasferimento in blocco dei lead gia' presenti (erano di prova il 7/10; per eventuali reali: export CSV o backfill da aggiungere).
+- Residui: tetto per IP aggirabile con `X-Forwarded-For` falsificato (dichiarato); nessun double opt-in; nessun test sulla concorrenza; `corso.sabaiacademy.it` da togliere da Vercel; Cookie Policy della bozza dice "niente cookie di analisi" ma Web Analytics e' acceso (come lavora senza cookie non verificato); condivisione Drive del video da ridurre a "visualizzatore"; `la-tua-storia` risulta `done` ma non validata da Daniele (regola 7).
+
 ### 2026-10-07 · Claude Code · claude/dreamy-maxwell-mz80ju (PR #352) — admin: Lead, Clienti, menu per persona
 
 **CONTESTO:** Claudio faticava a trovare le cose e a seguire i clienti Start. Decisioni prese con lui il 7/10: menu con accessi diretti **Home · Lead · Clienti · Partner** sopra i 4 reparti (invariati); pagina **Lead** = lead *in gestione* (Questionario · Call fissata · Call fatta · Trattativa) in **tabella** con un solo pulsante **Azioni** (menu a tendina con tutte le funzioni gia' attive); chi **acquista** (Start o Partnership) esce da Lead e compare in Clienti/Partner. Il **Blueprint e' gratuito**: chi lo riceve resta lead. Pipeline a tabella anche per Clienti.

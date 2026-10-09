@@ -148,3 +148,4 @@ def test_name_is_split_into_first_and_surname():
     assert ps.split_name("Maria Anna De Luca") == ("Maria", "Anna De Luca")
     assert ps.split_name("Giulia") == ("Giulia", "")
     assert ps.split_name("") == ("", "")
+    assert ps.split_name("Giulia\x00\nRossi\x07") == ("Giulia", "Rossi")  # niente caratteri di controllo
