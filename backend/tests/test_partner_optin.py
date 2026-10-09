@@ -103,8 +103,8 @@ def run(partner_id, ip="1.2.3.4", **body):
 
     async def go():
         out = await handler(partner_id, OptinRequest(**base), fake_request(ip))
-        await asyncio.sleep(0)  # lascia partire l'avviso
-        await asyncio.sleep(0)
+        for _ in range(6):  # lascia partire l'avviso Telegram e la sincronizzazione Systeme
+            await asyncio.sleep(0)
         return out
 
     return asyncio.run(go())
@@ -250,6 +250,135 @@ def test_visitors_behind_the_same_proxy_do_not_block_each_other(monkeypatch, tel
     for i in range(partner_optin.MAX_PER_IP + 5):  # IP diversi, stesso proxy di connessione
         assert run("23", ip=f"5.5.5.{i}", email=f"p{i}@example.it").ok is True
     assert len(db.partner_leads.docs) == partner_optin.MAX_PER_IP + 5
+
+
+ON_SYNC = {"id": "23", "name": "Daniele Andolfi",
+           "public_optin": {"enabled": True, "funnel_origin": "masterclass-bozza", "systeme_sync": True}}
+
+
+@pytest.fixture
+def systeme(monkeypatch):
+    """Sostituisce la chiamata a Systeme: registra le chiamate e restituisce l'esito scelto."""
+    calls = []
+    state = {"result": {"ok": True, "contact_id": 99, "reason": "ok"}, "raise": False}
+
+    async def fake_sync(api_key, email, full_name, tag, client=None):
+        calls.append({"api_key": api_key, "email": email, "full_name": full_name, "tag": tag})
+        if state["raise"]:
+            raise RuntimeError("Systeme giu'")
+        return state["result"]
+
+    monkeypatch.setattr("services.partner_systeme.sync_contact", fake_sync)
+    monkeypatch.setenv("SYSTEME_API_KEY_PARTNER_23", "chiave-segreta-di-prova")
+    return SimpleNamespace(calls=calls, state=state)
+
+
+def test_systeme_sync_is_off_unless_the_partner_turns_it_on(monkeypatch, telegram, systeme):
+    use(monkeypatch, FakeDb([ON]))
+    assert run("23").ok is True
+    assert systeme.calls == []
+
+
+def test_new_signup_is_mirrored_into_the_partners_systeme_and_outcome_is_recorded(monkeypatch, telegram, systeme):
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    assert run("23").ok is True
+    (call,) = systeme.calls
+    assert call["email"] == "giulia@example.it" and call["full_name"] == "Giulia Rossi"
+    assert call["tag"] == "iscritto_masterclass"  # tag predefinito
+    (lead,) = db.partner_leads.docs
+    assert lead["systeme"]["ok"] is True and lead["systeme"]["contact_id"] == 99
+    assert "chiave-segreta" not in repr(lead)  # la chiave non finisce mai nel database
+
+
+def test_custom_tag_is_sanitized(monkeypatch, telegram, systeme):
+    cfg = {**ON_SYNC["public_optin"], "systeme_tag": "Iscritti Masterclass!"}
+    use(monkeypatch, FakeDb([{**ON_SYNC, "public_optin": cfg}]))
+    run("23")
+    assert systeme.calls[0]["tag"] == "iscritti_masterclass"
+
+
+def test_missing_key_does_not_break_the_signup(monkeypatch, telegram, systeme):
+    monkeypatch.delenv("SYSTEME_API_KEY_PARTNER_23")
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    assert run("23").ok is True
+    assert systeme.calls == [] and len(db.partner_leads.docs) == 1
+
+
+def test_systeme_failure_never_breaks_the_signup(monkeypatch, telegram, systeme):
+    systeme.state["raise"] = True
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    assert run("23").ok is True
+    assert len(db.partner_leads.docs) == 1 and len(telegram) == 1
+
+
+def _backdate(db, minutes=30):
+    """Fa sembrare vecchio l'ultimo tentativo di sincronizzazione."""
+    old = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
+    db.partner_leads.docs[0]["systeme"]["at"] = old
+
+
+def test_repeat_signup_retries_only_when_the_previous_sync_failed(monkeypatch, telegram, systeme):
+    systeme.state["result"] = {"ok": False, "contact_id": None, "reason": "network_error"}
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    run("23")
+    assert db.partner_leads.docs[0]["systeme"]["ok"] is False
+    systeme.state["result"] = {"ok": True, "contact_id": 7, "reason": "ok"}
+    _backdate(db)
+    run("23")  # stessa email, pausa trascorsa: riprova e questa volta riesce
+    assert len(systeme.calls) == 2 and db.partner_leads.docs[0]["systeme"]["ok"] is True
+    run("23")  # gia' sincronizzato: nessuna nuova chiamata
+    assert len(systeme.calls) == 2
+
+
+def test_retry_is_not_repeated_within_the_cooldown(monkeypatch, telegram, systeme):
+    systeme.state["result"] = {"ok": False, "contact_id": None, "reason": "network_error"}
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    run("23")
+    for _ in range(5):  # raffica con la stessa email: nessun nuovo tentativo
+        run("23")
+    assert len(systeme.calls) == 1
+
+
+def test_attempts_per_lead_are_capped(monkeypatch, telegram, systeme):
+    systeme.state["result"] = {"ok": False, "contact_id": None, "reason": "create_contact_422"}
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    run("23")
+    for _ in range(partner_optin.SYSTEME_MAX_ATTEMPTS + 3):
+        _backdate(db)
+        run("23")
+    assert len(systeme.calls) == partner_optin.SYSTEME_MAX_ATTEMPTS
+    assert db.partner_leads.docs[0]["systeme"]["attempts"] == partner_optin.SYSTEME_MAX_ATTEMPTS
+
+
+def test_missing_key_starts_no_task_and_writes_no_marker(monkeypatch, telegram, systeme):
+    monkeypatch.delenv("SYSTEME_API_KEY_PARTNER_23")
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    run("23")
+    run("23")
+    assert systeme.calls == [] and "systeme" not in db.partner_leads.docs[0]
+
+
+def test_too_many_syncs_in_flight_are_skipped_not_queued(monkeypatch, telegram, systeme):
+    db = FakeDb([ON_SYNC])
+    use(monkeypatch, db)
+    monkeypatch.setattr(partner_optin, "_systeme_inflight", partner_optin.SYSTEME_MAX_INFLIGHT)
+    assert run("23").ok is True  # l'iscrizione riesce comunque
+    assert systeme.calls == [] and len(db.partner_leads.docs) == 1
+
+
+def test_inflight_counter_is_released_even_when_systeme_fails(monkeypatch, telegram, systeme):
+    systeme.state["raise"] = True
+    use(monkeypatch, FakeDb([ON_SYNC]))
+    monkeypatch.setattr(partner_optin, "_systeme_inflight", 0)
+    run("23")
+    assert partner_optin._systeme_inflight == 0
 
 
 def test_without_forwarded_header_it_falls_back_to_the_connection_address():

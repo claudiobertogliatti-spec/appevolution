@@ -1,3 +1,23 @@
+### 2026-10-09 · Claude Code · claude/fervent-ramanujan-wfdt8k — Andolfi: dominio `corsi.`, lezione 1, iscrizioni → Systeme
+
+**CONTESTO:** il funnel di Daniele Andolfi (ID 23) resta sulla bozza Vercel; l'indirizzo finale e' `corsi.sabaiacademy.it` (NON `corso.`, residuo da togliere). CRM, automazioni e statistiche vanno nel suo Systeme.
+
+**VERIFICATO (output di Claudio / API, 9/10/2026)**
+- DNS su SiteGround (nameserver `ns1/ns2.siteground.net`, ✅ NS letti da 8.8.8.8): Daniele ha cambiato il CNAME `corsi` da `d34qf1t3po3iok.cloudfront.net` (Systeme) a `181bdfce03c120d9.vercel-dns-017.com` (Vercel). `Resolve-DnsName ... 8.8.8.8` conferma. Vercel `get_domain_config`: `misconfigured: false`, `configuredBy: CNAME`. Il sito si apre (Claudio).
+- Ciak: `domain_records` sostituite con la riga Vercel (`POST /funnel-review/23/admin/set` con `connections.dominio=false`), poi `domain/check` → `corsi ok`, passo `dominio fatto`, `via_libera attesa`. Il controllo ha mandato l'avviso Telegram "DOMINIO COLLEGATO" (visto).
+- `team_ready` NON impostato: restano aperti i collegamenti `optin` (contatti nel Systeme), `email` (sequenze, testi da validare con Daniele) e `pagamento` (`checkoutUrl` vuoto il 7/10; sistema di pagamento da decidere).
+- Lezione 1 (`m1_l1`): il vecchio grezzo Drive `1IgfzkPt…` non esiste piu' (Claudio, pagina Drive); retry con `force_phase=a` ha fallito (gdown, log del worker). Il worker `evolution-pro-worker` e' sano (minScale 1). `/api/celery/status` dal web service dice `enabled:false` perche' e' il servizio web, non il worker. Daniele ha ricaricato `Modulo1_L1_pilotaautomatico.mp4` (Drive `1xsl4AK4…`, 456 MB, condiviso come "chiunque col link, writer"); `submit-video-link` → `success`. ⛔ Esito non ancora visto; ⛔ non confermato che sia il girato (non montato).
+- `09-funnel-asset` `skipped`: id storico mappato su `10-sistema-vendita` da `_migrate_legacy_valida_steps` (`partner_journey.py:6962-7032`), non un problema.
+
+**DICHIARATO (codice, in questa PR)**
+- `POST /api/partner-optin/{id}`: con `partners.public_optin.systeme_sync=True` e la chiave del partner in `SYSTEME_API_KEY_PARTNER_<id>` (solo ambiente), l'iscritto viene creato anche nel Systeme del partner con tag `public_optin.systeme_tag` (default `iscritto_masterclass`). Background, mai bloccante; esito sul lead in `systeme` (ok, reason, attempts, at). Tetti dalla revisione `auth-reviewer`: 3 tentativi per lead, 15 min tra l'uno e l'altro, 5 sincronizzazioni in volo per istanza, tentativo prenotato prima di partire. Nome ripulito dai caratteri di controllo. Telefono non inviato (slug non verificato).
+- Test: `pytest tests/test_partner_systeme.py tests/test_partner_optin.py` → 38 passed (MONGO_URL fittizia come in CI); senza la modifica al router i test della sincronizzazione falliscono.
+
+**APERTO / ⛔**
+- Per attivarlo: PR mergiata e deployata; chiave API del Systeme di Daniele (*Impostazioni → Chiavi MCP e API*) nell'ambiente del backend come `SYSTEME_API_KEY_PARTNER_23` (dalla console Cloud Run, non in chat); poi `PATCH /api/admin/partner/23/journey` (`collection: partners`, chiavi puntate `public_optin.systeme_sync`, `public_optin.systeme_tag`).
+- Nessun trasferimento in blocco dei lead gia' presenti (erano di prova il 7/10; per eventuali reali: export CSV o backfill da aggiungere).
+- Residui: tetto per IP aggirabile con `X-Forwarded-For` falsificato (dichiarato); nessun double opt-in; nessun test sulla concorrenza; `corso.sabaiacademy.it` da togliere da Vercel; Cookie Policy della bozza dice "niente cookie di analisi" ma Web Analytics e' acceso (come lavora senza cookie non verificato); condivisione Drive del video da ridurre a "visualizzatore"; `la-tua-storia` risulta `done` ma non validata da Daniele (regola 7).
+
 ### 2026-10-07 · Claude Code · claude/dreamy-maxwell-mz80ju (PR #352) — admin: Lead, Clienti, menu per persona
 
 **CONTESTO:** Claudio faticava a trovare le cose e a seguire i clienti Start. Decisioni prese con lui il 7/10: menu con accessi diretti **Home · Lead · Clienti · Partner** sopra i 4 reparti (invariati); pagina **Lead** = lead *in gestione* (Questionario · Call fissata · Call fatta · Trattativa) in **tabella** con un solo pulsante **Azioni** (menu a tendina con tutte le funzioni gia' attive); chi **acquista** (Start o Partnership) esce da Lead e compare in Clienti/Partner. Il **Blueprint e' gratuito**: chi lo riceve resta lead. Pipeline a tabella anche per Clienti.
@@ -20,6 +40,32 @@
 - ✅ Fatto dopo (stesso giorno, "procedi"): **nomi nel menu e titoli di pagina** — Pipeline Partner→Partner, Quarantena→Partner in pausa, Ex Partner→Partner usciti, Motore Vendite Partner→Vendite dei partner, Audit Delivery→Stato del percorso (titolo pagina era "Delivery Audit"), Produzione video→Video da approvare, Risultati finali→Siti e funnel da guardare, Consegne Start→Scadenze Start, KPI Partner→Numeri dei partner, Trattative KO→Trattative perse, Consegna manuale→Invia il Blueprint, Date contratti→Scadenze contratti, Clienti Ciak→**Account Ciak**. Invariati di proposito: "Calendario partner" e "Campagne partner" (li citano le dashboard di Antonella e `navCoerenza.test.js`), File, Casi studio, Clienti Start. Gli URL non cambiano.
 - ✅ **Account Ciak** (`/admin/clienti-ciak`): tre viste — *Hanno comprato* (default: Start, Partner, credito/acquisto Start o Partnership attiva), *Solo Blueprint* (lead gratuiti), *Tutti* — con conteggi; `haComprato()` esportata e provata. Frontend `src/ciak/admin`: 62 suite, 382 test passati.
 - ⏭️ Non fatto: le pagine **Trattative** (`/pipeline-blueprint`) mostrano ancora chi ha gia' comprato Start (la Home le dedupica da sola in `oggiModel`); i commenti nel codice citano ancora i vecchi nomi.
+
+### 2026-10-07 · Claude Code · claude/fervent-ramanujan-wfdt8k — iscrizione dal funnel Vercel di Andolfi + home «Ciak prepara. Systeme pubblica.»
+
+**CONTESTO:** Daniele Andolfi (ID 23) riferiva che le iscrizioni alla masterclass non risultavano su Systeme. Decisioni di Claudio: il funnel **definitivo sta su Systeme**, Vercel è solo **bozza**; il dominio sarà collegato a Systeme; nel frattempo il modulo della bozza deve salvare i contatti in Ciak, per trasferirli poi in Systeme. Ciò che Daniele segnalava (modulo non collegato, video non più su Ciak) non erano guasti: il collegamento si fa col dominio; i video, dopo l'editing, escono da Ciak verso YouTube e Systeme.
+
+**DICHIARATO**
+- PR #350 (squash `cceba6c`): nuovo `POST /api/partner-optin/{partner_id}` (`backend/routers/partner_optin.py`, pubblico per scelta) che salva in `partner_leads`. Regole: attivo solo con `partners.public_optin.enabled is True` (404 uguale per «non esiste» e «non abilitato»); consenso obbligatorio (controllato prima del 404) e registrato con data; email validata; nessun JSON grezzo né IP salvati; campo trappola `website`; tetto 120/ora per partner e 10 ogni 10 min per IP (da `X-Forwarded-For`); upsert atomico; storico interazioni a 20; avviso Telegram senza email. Export CSV dei lead (`partner_journey._csv_safe`): formule `= + - @` neutralizzate. Revisione `auth-reviewer` fatta, correzioni applicate prima del merge.
+- Home area partner (`SerenoHome.jsx`): blocco «Ciak prepara. Systeme pubblica.» con tre punti.
+- Flag per Daniele acceso da Claudio: `PATCH /api/admin/partner/23/journey` con `collection: partners`, `data.public_optin = {enabled: true, funnel_origin: "masterclass_vercel"}`.
+- Sito Vercel (`sabai-daniele-andolfi`, file in `C:\Users\berto\.claude\funnel-daniele\_deploy\sabai-daniele-andolfi`, backup `funnel-daniele_backup_optin_2026-10-07`): `config.js` con `optinEndpoint: "/api/optin"`; `vercel.json` con rewrite `/api/optin` → `https://www.ciak.io/api/partner-optin/23` (nessuna modifica CORS); riga `/_vercel/insights/script.js` in index, guarda, grazie, offerta. Deploy `dpl_G3xHWyN8…` (`fryntgnb5`), `READY`.
+
+**VERIFICATO**
+- CI della #350 verde (4 controlli); locale: `test_partner_optin.py` 14 test + guardie route, 31 passati. Deploy backend run 392 (`cceba6c`) `success` in tutti gli step, smoke incluso (10:59:39 UTC), letto dai job GitHub Actions.
+- Prova in produzione (PowerShell di Claudio, 7/10): `POST /api/partner-optin/23` → `ok: True`; `GET /api/partner-journey/leads/23` mostra `source: funnel_bozza_vercel`, `funnel_origin: masterclass_vercel`, `status: new`. Poi un'iscrizione fatta da Claudio dal sito (riga `Claudio`, `c5cabd59…`) è comparsa nello stesso elenco: **il percorso modulo → rewrite Vercel → Ciak funziona** (indirizzo usato non dichiarato, ma `corso.sabaiacademy.it` non risolve, quindi un `vercel.app`).
+- Entrambe le righe di prova segnate `lost` (`update-status`, «Status aggiornato a lost» ×2).
+- Letto da Vercel: deployment nuovo con `config.js` e `vercel.json` come sopra. Progetto `berto` senza deployment.
+
+**APERTO**
+- 🔴 **Errore mio, già corretto con Claudio:** avevo scritto che `corso.sabaiacademy.it` serviva il sito con i prezzi giusti. **Falso**: era un falso positivo dello script PowerShell (variabile rimasta dalla pagina precedente). Lo screenshot del browser mostra `DNS_PROBE_FINISHED_NXDOMAIN`: il nome non esiste nel DNS. Vercel lo elenca fra i domini del progetto, ma il DNS pubblico no.
+- ⛔ Il progetto Vercel ha la protezione attiva («Deployment Protection … Vercel Authentication»): non è verificato se i link `vercel.app` siano apribili da chi non ha un account Vercel. Se non lo sono, nessun visitatore poteva iscriversi.
+- ⛔ **Incidente 7/10:** `npx vercel deploy --prod --yes` lanciato da `C:\Users\berto` (cartella personale) ha creato il progetto Vercel vuoto **`berto`** e avviato il caricamento della home. Nessun deployment risulta (letto da Vercel), ma non è dimostrabile che nessun file sia stato trasferito. Da fare: cancellare il progetto `berto` dal pannello Vercel; **rigenerare il token admin** (`ciak_admin_token.txt` stava in quella cartella). Regola: `vercel deploy` solo dalla cartella del sito; se chiede di confermare la «home directory», rispondere no.
+- ⛔ Lead precedenti a oggi (Daniele e la moglie): non salvati da nessuna parte, vanno reinseriti a mano. Quando il dominio è collegato a Systeme: export `POST /api/partner-journey/leads/export-csv/23` e import in Systeme.
+- ⛔ Web Analytics Vercel: la riga è nelle pagine, ma va acceso dal pannello (non verificato).
+- ⛔ Limiti dichiarati dell'endpoint: tetto per IP per istanza Cloud Run, `X-Forwarded-For` falsificabile (resta il tetto orario per partner); nessun indice unico `(partner_id, email)`; nessun double opt-in.
+- ⛔ Il testo «Il passaggio da Ciak a Systeme lo facciamo noi» (home) vale per i video; per pubblicazione e dominio dipende da chi fa il DNS (decisione di Claudio ancora aperta). Il pannello «Indirizzo web» chiede ancora al partner di aggiungere righe DNS, mentre il piano 11/7 dice che le configura Evolution.
+- ⛔ Non indagato: il video «prima lezione non sincronizzata» di Daniele (serve il sintomo preciso); le «stories» caricate su Drive da Daniele (nel Drive leggibile da me non risultano; i `giorno N` in `04 - Calendario editoriale/reel` mi apparivano vuoti, ma il connettore potrebbe non vedere tutto).
 
 ### 2026-10-05 · Claude Code · claude/fervent-ramanujan-wfdt8k — prezzo reale nella chat degli agenti
 

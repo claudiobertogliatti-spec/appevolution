@@ -19,6 +19,13 @@ pubblico, quindi:
   - tetto orario per partner e tetto per IP (in memoria), cosi' un abuso non diventa spam su
     Telegram ne' riempie la lista lead; quando scatta il 429 resta un log.
 
+Sincronizzazione Systeme (opzionale, per partner): con `partners.public_optin.systeme_sync` a True
+e la chiave del partner in `SYSTEME_API_KEY_PARTNER_<id>`, l'iscritto viene creato anche nel
+Systeme del partner con il tag `public_optin.systeme_tag` (vedi services/partner_systeme.py).
+Parte in background: se Systeme non risponde l'iscrizione riesce comunque e l'esito resta nel
+campo `systeme` del lead. Tetti: 3 tentativi per lead, 15 minuti tra l'uno e l'altro, 5
+sincronizzazioni contemporanee per istanza.
+
 Limiti noti (dichiarati, non risolti): il tetto per IP e' per istanza Cloud Run; senza un
 indice unico su (partner_id, email) due richieste simultanee con la stessa email nuova possono
 creare due lead; non c'e' double opt-in, quindi il consenso registrato e' quello dichiarato da
@@ -34,6 +41,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 
+from services import partner_systeme
 from services.proposta_chat import ChatRateLimiter
 
 logger = logging.getLogger(__name__)
@@ -75,6 +83,85 @@ class OptinRequest(BaseModel):
 
 class OptinResponse(BaseModel):
     ok: bool
+
+
+def _keep(coro) -> None:
+    """Task in background con riferimento forte (altrimenti Python puo' scartarlo)."""
+    task = asyncio.create_task(coro)
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+
+
+# Sincronizzazione Systeme: tetti che impediscono di usare la rotta pubblica per martellare
+# l'account Systeme del partner (3-6 chiamate in uscita per ogni sincronizzazione).
+SYSTEME_MAX_ATTEMPTS = 3        # tentativi totali per lead
+SYSTEME_RETRY_MINUTES = 15      # pausa minima tra un tentativo e il successivo
+SYSTEME_MAX_INFLIGHT = 5        # sincronizzazioni contemporanee, per istanza
+_systeme_inflight = 0
+
+
+def _systeme_due(state: Optional[dict], now: datetime) -> bool:
+    """True se per questo lead si puo' (ri)provare la sincronizzazione ora."""
+    state = state or {}
+    if state.get("ok") is True:
+        return False
+    if int(state.get("attempts") or 0) >= SYSTEME_MAX_ATTEMPTS:
+        return False
+    try:
+        last = datetime.fromisoformat(str(state.get("at")))
+    except (TypeError, ValueError):
+        return True
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    return now - last >= timedelta(minutes=SYSTEME_RETRY_MINUTES)
+
+
+async def _launch_sync(pid: str, email: str, nome: str, cfg: dict, state: Optional[dict] = None) -> None:
+    """Prenota il tentativo sul lead (cosi' una raffica di richieste ne avvia uno solo) e lo lancia.
+
+    Non parte se manca la chiave del partner o se sono gia' in corso troppe sincronizzazioni.
+    """
+    global _systeme_inflight
+    now = datetime.now(timezone.utc)
+    if not partner_systeme.api_key_for(pid):
+        logger.info("[PARTNER-OPTIN] sync Systeme acceso ma manca SYSTEME_API_KEY_PARTNER_%s", pid)
+        return
+    if _systeme_inflight >= SYSTEME_MAX_INFLIGHT or not _systeme_due(state, now):
+        return
+    attempts = int((state or {}).get("attempts") or 0) + 1
+    await db.partner_leads.update_one(
+        {"partner_id": pid, "email": email},
+        {"$set": {"systeme": {"ok": False, "reason": "in_corso", "contact_id": None,
+                              "attempts": attempts, "at": now.isoformat()}}},
+    )
+    _systeme_inflight += 1
+    _keep(_sync_systeme(pid, email, nome, cfg, attempts))
+
+
+async def _sync_systeme(pid: str, email: str, nome: str, cfg: dict, attempts: int) -> None:
+    """Riflette l'iscritto nel Systeme del partner e registra l'esito sul lead.
+
+    L'esito (`systeme`: ok, motivo, tentativi, data, id contatto) non contiene mai la chiave.
+    Non solleva.
+    """
+    global _systeme_inflight
+    try:
+        result = await partner_systeme.sync_contact(
+            partner_systeme.api_key_for(pid), email, nome, partner_systeme.clean_tag(cfg.get("systeme_tag")))
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {"$set": {"systeme": {
+                "ok": bool(result.get("ok")),
+                "reason": result.get("reason"),
+                "contact_id": result.get("contact_id"),
+                "attempts": attempts,
+                "at": datetime.now(timezone.utc).isoformat(),
+            }}},
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("[PARTNER-OPTIN] sync Systeme non riuscita", exc_info=True)
+    finally:
+        _systeme_inflight = max(0, _systeme_inflight - 1)
 
 
 async def _find_partner(partner_id: str):
@@ -185,6 +272,9 @@ async def partner_optin(partner_id: str, payload: OptinRequest, request: Request
             {"partner_id": pid, "email": email, "consent": {"$exists": False}},
             {"$set": {"consent": consent}},
         )
+        if cfg.get("systeme_sync") is True:  # riprova se la sincronizzazione precedente non e' andata
+            lead = await db.partner_leads.find_one({"partner_id": pid, "email": email}, {"_id": 0, "systeme": 1})
+            await _launch_sync(pid, email, payload.nome.strip(), cfg, (lead or {}).get("systeme"))
         return OptinResponse(ok=True)
 
     try:  # l'avviso non deve mai far fallire l'iscrizione, e non porta l'email
@@ -196,5 +286,8 @@ async def partner_optin(partner_id: str, payload: OptinRequest, request: Request
         task.add_done_callback(_tasks.discard)
     except Exception:  # noqa: BLE001
         logger.warning("[PARTNER-OPTIN] avviso Telegram non inviato", exc_info=True)
+
+    if cfg.get("systeme_sync") is True:
+        await _launch_sync(pid, email, payload.nome.strip(), cfg)
 
     return OptinResponse(ok=True)
