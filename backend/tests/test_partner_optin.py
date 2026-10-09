@@ -436,6 +436,33 @@ def test_backfill_is_capped_per_call(monkeypatch, systeme):
     assert out["sincronizzati"] == partner_optin.SYNC_BATCH_MAX and out["rimasti"] == 4
 
 
+def test_backfill_stops_when_the_time_budget_is_over_and_loses_nothing(monkeypatch, systeme):
+    monkeypatch.setattr(partner_optin, "SYNC_TIME_BUDGET_S", -1)  # tempo gia' scaduto
+    db = FakeDb([ON_SYNC], [_lead("a@example.it", "A"), _lead("b@example.it", "B")])
+    out = sync_all(monkeypatch, db)
+    assert out["sincronizzati"] == 0 and out["rimasti"] == 2 and systeme.calls == []
+    assert all("systeme" not in d for d in db.partner_leads.docs)  # nessun lead prenotato per sbaglio
+
+
+def test_backfill_skips_a_lead_another_run_is_working_on(monkeypatch, systeme):
+    adesso = datetime.now(timezone.utc).isoformat()
+    vecchio = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    leads = [
+        _lead("occupato@example.it", "Occupato", systeme={"ok": False, "reason": "in_corso", "attempts": 1, "at": adesso}),
+        _lead("scaduto@example.it", "Scaduto", systeme={"ok": False, "reason": "in_corso", "attempts": 1, "at": vecchio}),
+    ]
+    out = sync_all(monkeypatch, FakeDb([ON_SYNC], leads))
+    assert out["saltati_gia_in_corso"] == 1 and out["sincronizzati"] == 1
+    assert [c["email"] for c in systeme.calls] == ["scaduto@example.it"]  # la prenotazione vecchia non blocca
+
+
+def test_backfill_double_click_does_not_resync_what_is_already_done(monkeypatch, systeme):
+    db = FakeDb([ON_SYNC], [_lead("a@example.it", "A")])
+    sync_all(monkeypatch, db)
+    out = sync_all(monkeypatch, db)
+    assert len(systeme.calls) == 1 and out["gia_sincronizzati"] == 1 and out["da_sincronizzare"] == 0
+
+
 def test_backfill_refuses_when_sync_is_off_or_key_missing(monkeypatch, systeme):
     with pytest.raises(HTTPException) as e:
         sync_all(monkeypatch, FakeDb([ON], [_lead("a@example.it", "A")]))

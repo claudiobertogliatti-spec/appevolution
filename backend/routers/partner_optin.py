@@ -34,6 +34,7 @@ chi compila il modulo.
 import asyncio
 import logging
 import re
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -308,7 +309,22 @@ async def _require_admin(credentials: HTTPAuthorizationCredentials = Depends(sec
     return data
 
 
-SYNC_BATCH_MAX = 25  # lead per chiamata: ognuno costa 3-6 chiamate verso Systeme
+SYNC_BATCH_MAX = 10         # lead per chiamata: ognuno costa 3-6 chiamate verso Systeme
+SYNC_TIME_BUDGET_S = 100    # si ferma prima del timeout di Cloud Run (300 s); i lead restanti alla chiamata dopo
+SYNC_LOCK_MINUTES = 5       # un lead "in_corso" da meno di cosi' lo sta lavorando qualcun altro
+
+
+def _in_progress(state: Optional[dict], now: datetime) -> bool:
+    state = state or {}
+    if state.get("reason") != "in_corso":
+        return False
+    try:
+        at = datetime.fromisoformat(str(state.get("at")))
+    except (TypeError, ValueError):
+        return False
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)
+    return now - at < timedelta(minutes=SYNC_LOCK_MINUTES)
 
 
 @router.post("/{partner_id}/sync-systeme")
@@ -316,8 +332,15 @@ async def sync_existing_leads(partner_id: str, _admin=Depends(_require_admin)):
     """Admin: porta nel Systeme del partner i lead del funnel in bozza non ancora sincronizzati.
 
     Per chi si e' iscritto prima di accendere `systeme_sync`. Prende solo i lead di questa
-    origine, con consenso registrato, non `lost` e senza `systeme.ok`. Al massimo 25 per
-    chiamata; ripetibile. La risposta ha solo conteggi e motivi: niente email.
+    origine, con consenso registrato, non `lost` e senza `systeme.ok`. Al massimo 10 per chiamata
+    e non oltre ~100 secondi: se ne restano, si rilancia. La risposta ha solo conteggi e motivi:
+    niente email.
+
+    L'admin puo' volutamente ritentare lead gia' falliti: qui NON valgono il tetto di 3 tentativi
+    ne' la pausa di 15 minuti del percorso pubblico (il contatore `attempts` continua a salire).
+    Un doppio clic non duplica il lavoro: ogni lead viene riletto e prenotato (`in_corso`) subito
+    prima di essere sincronizzato; la prenotazione non e' atomica, quindi due chiamate esattamente
+    simultanee possono ancora sovrapporsi sul primo lead (Systeme non crea doppioni: cerca per email).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -345,26 +368,43 @@ async def sync_existing_leads(partner_id: str, _admin=Depends(_require_admin)):
             todo.append(lead)
 
     tag = partner_systeme.clean_tag(cfg.get("systeme_tag"))
-    synced, failed, reasons = 0, 0, {}
+    deadline = time.monotonic() + SYNC_TIME_BUDGET_S
+    synced = failed = busy = done = 0
+    reasons: dict = {}
     for lead in todo[:SYNC_BATCH_MAX]:
+        if time.monotonic() > deadline:
+            break
         email = str(lead.get("email") or "").lower()
+        now = datetime.now(timezone.utc)
+        fresh = await db.partner_leads.find_one({"partner_id": pid, "email": email}, {"_id": 0, "systeme": 1})
+        state = (fresh or {}).get("systeme") or {}
+        if state.get("ok") is True or _in_progress(state, now):
+            busy += 1
+            done += 1
+            continue
+        attempts = int(state.get("attempts") or 0) + 1
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {"$set": {"systeme": {"ok": False, "reason": "in_corso", "contact_id": None,
+                                  "attempts": attempts, "at": now.isoformat()}}},
+        )
         result = await partner_systeme.sync_contact(key, email, str(lead.get("name") or ""), tag)
         ok = bool(result.get("ok"))
         synced += ok
         failed += not ok
+        done += 1
         if not ok:
             reasons[result.get("reason")] = reasons.get(result.get("reason"), 0) + 1
         await db.partner_leads.update_one(
             {"partner_id": pid, "email": email},
             {"$set": {"systeme": {
                 "ok": ok, "reason": result.get("reason"), "contact_id": result.get("contact_id"),
-                "attempts": int((lead.get("systeme") or {}).get("attempts") or 0) + 1,
-                "at": datetime.now(timezone.utc).isoformat(),
+                "attempts": attempts, "at": datetime.now(timezone.utc).isoformat(),
             }}},
         )
     return {
         "ok": True, "lead_totali": len(leads), "da_sincronizzare": len(todo),
         "sincronizzati": synced, "falliti": failed, "motivi": reasons,
         "gia_sincronizzati": already, "senza_consenso": no_consent, "persi_esclusi": lost,
-        "rimasti": max(0, len(todo) - SYNC_BATCH_MAX),
+        "saltati_gia_in_corso": busy, "rimasti": max(0, len(todo) - done),
     }
