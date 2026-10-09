@@ -39,6 +39,15 @@ class FakeColl:
                 return False
         return True
 
+    def find(self, query, projection=None):
+        docs = [{k: v for k, v in d.items() if k != "_id"} for d in self.docs if self._match(d, query)]
+
+        class _Cursor:
+            async def to_list(self, length=None):
+                return docs[:length] if length else docs
+
+        return _Cursor()
+
     async def find_one(self, query, projection=None):
         for d in self.docs:
             if self._match(d, query):
@@ -379,6 +388,129 @@ def test_inflight_counter_is_released_even_when_systeme_fails(monkeypatch, teleg
     monkeypatch.setattr(partner_optin, "_systeme_inflight", 0)
     run("23")
     assert partner_optin._systeme_inflight == 0
+
+
+def _lead(email, nome, **extra):
+    base = {"partner_id": "23", "email": email, "name": nome, "source": partner_optin.SOURCE, "status": "new",
+            "consent": {"accepted": True, "at": "2026-10-07T12:00:00+00:00"}}
+    return {**base, **extra}
+
+
+def sync_all(monkeypatch, db, partner=None):
+    use(monkeypatch, db)
+    return asyncio.run(partner_optin.sync_existing_leads("23", _admin=object()))
+
+
+def test_backfill_syncs_only_eligible_leads_and_reports_counts_without_emails(monkeypatch, systeme):
+    leads = [
+        _lead("anna@example.it", "ANNA MARIA"),
+        _lead("carmine@example.it", "Carmine"),
+        _lead("prova@example.it", "PROVA Claudio", status="lost"),                       # di prova: escluso
+        _lead("senza@example.it", "Senza Consenso", consent={"accepted": False}),        # niente consenso: escluso
+        _lead("gia@example.it", "Gia Fatto", systeme={"ok": True, "attempts": 1}),       # gia' sincronizzato
+    ]
+    db = FakeDb([ON_SYNC], leads)
+    out = sync_all(monkeypatch, db)
+    assert out["sincronizzati"] == 2 and out["falliti"] == 0 and out["rimasti"] == 0
+    assert out["gia_sincronizzati"] == 1 and out["senza_consenso"] == 1 and out["persi_esclusi"] == 1
+    assert sorted(c["email"] for c in systeme.calls) == ["anna@example.it", "carmine@example.it"]
+    assert "example.it" not in repr(out)  # la risposta non contiene email
+    anna = next(d for d in db.partner_leads.docs if d["email"] == "anna@example.it")
+    assert anna["systeme"]["ok"] is True and anna["systeme"]["attempts"] == 1
+    assert "chiave-segreta" not in repr(db.partner_leads.docs)
+
+
+def test_backfill_records_failures_and_can_be_repeated(monkeypatch, systeme):
+    systeme.state["result"] = {"ok": False, "contact_id": None, "reason": "network_error"}
+    db = FakeDb([ON_SYNC], [_lead("anna@example.it", "ANNA MARIA")])
+    out = sync_all(monkeypatch, db)
+    assert out["falliti"] == 1 and out["motivi"] == {"network_error": 1}
+    systeme.state["result"] = {"ok": True, "contact_id": 3, "reason": "ok"}
+    out = sync_all(monkeypatch, db)  # l'admin puo' ripetere subito, senza pausa
+    assert out["sincronizzati"] == 1 and db.partner_leads.docs[0]["systeme"]["attempts"] == 2
+
+
+def test_backfill_is_capped_per_call(monkeypatch, systeme):
+    leads = [_lead(f"p{i}@example.it", f"P {i}") for i in range(partner_optin.SYNC_BATCH_MAX + 4)]
+    out = sync_all(monkeypatch, FakeDb([ON_SYNC], leads))
+    assert out["sincronizzati"] == partner_optin.SYNC_BATCH_MAX and out["rimasti"] == 4
+
+
+def test_backfill_stops_when_the_time_budget_is_over_and_loses_nothing(monkeypatch, systeme):
+    monkeypatch.setattr(partner_optin, "SYNC_TIME_BUDGET_S", -1)  # tempo gia' scaduto
+    db = FakeDb([ON_SYNC], [_lead("a@example.it", "A"), _lead("b@example.it", "B")])
+    out = sync_all(monkeypatch, db)
+    assert out["sincronizzati"] == 0 and out["rimasti"] == 2 and systeme.calls == []
+    assert all("systeme" not in d for d in db.partner_leads.docs)  # nessun lead prenotato per sbaglio
+
+
+def test_backfill_skips_a_lead_another_run_is_working_on(monkeypatch, systeme):
+    adesso = datetime.now(timezone.utc).isoformat()
+    vecchio = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    leads = [
+        _lead("occupato@example.it", "Occupato", systeme={"ok": False, "reason": "in_corso", "attempts": 1, "at": adesso}),
+        _lead("scaduto@example.it", "Scaduto", systeme={"ok": False, "reason": "in_corso", "attempts": 1, "at": vecchio}),
+    ]
+    out = sync_all(monkeypatch, FakeDb([ON_SYNC], leads))
+    assert out["saltati_gia_in_corso"] == 1 and out["sincronizzati"] == 1
+    assert [c["email"] for c in systeme.calls] == ["scaduto@example.it"]  # la prenotazione vecchia non blocca
+
+
+def test_backfill_double_click_does_not_resync_what_is_already_done(monkeypatch, systeme):
+    db = FakeDb([ON_SYNC], [_lead("a@example.it", "A")])
+    sync_all(monkeypatch, db)
+    out = sync_all(monkeypatch, db)
+    assert len(systeme.calls) == 1 and out["gia_sincronizzati"] == 1 and out["da_sincronizzare"] == 0
+
+
+def test_backfill_refuses_when_sync_is_off_or_key_missing(monkeypatch, systeme):
+    with pytest.raises(HTTPException) as e:
+        sync_all(monkeypatch, FakeDb([ON], [_lead("a@example.it", "A")]))
+    assert e.value.status_code == 409
+    monkeypatch.delenv("SYSTEME_API_KEY_PARTNER_23")
+    with pytest.raises(HTTPException) as e:
+        sync_all(monkeypatch, FakeDb([ON_SYNC], [_lead("a@example.it", "A")]))
+    assert e.value.status_code == 409 and systeme.calls == []
+
+
+def test_backfill_unknown_partner_is_404(monkeypatch, systeme):
+    use(monkeypatch, FakeDb([ON_SYNC]))
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(partner_optin.sync_existing_leads("999", _admin=object()))
+    assert e.value.status_code == 404
+
+
+def test_backfill_route_requires_an_admin_token(monkeypatch):
+    import sys
+    import types
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    auth = types.ModuleType("auth")  # modulo finto: i test unit non dipendono da passlib/jwt
+    auth.decode_token = lambda t: None
+    monkeypatch.setitem(sys.modules, "auth", auth)
+
+    def creds(token="x"):
+        return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(partner_optin._require_admin(None))
+    assert e.value.status_code == 401
+    auth.decode_token = lambda t: None
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(partner_optin._require_admin(creds()))
+    assert e.value.status_code == 401
+    auth.decode_token = lambda t: SimpleNamespace(role="partner")
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(partner_optin._require_admin(creds()))
+    assert e.value.status_code == 403
+    auth.decode_token = lambda t: SimpleNamespace(role="admin")
+    assert asyncio.run(partner_optin._require_admin(creds())).role == "admin"
+
+
+def test_backfill_route_is_registered_behind_the_admin_dependency():
+    route = next(r for r in partner_optin.router.routes if r.path.endswith("/sync-systeme"))
+    deps = [d.call for d in route.dependant.dependencies]
+    assert partner_optin._require_admin in deps
 
 
 def test_without_forwarded_header_it_falls_back_to_the_connection_address():

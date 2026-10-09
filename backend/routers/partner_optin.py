@@ -34,11 +34,13 @@ chi compila il modulo.
 import asyncio
 import logging
 import re
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 
 from services import partner_systeme
@@ -47,6 +49,7 @@ from services.proposta_chat import ChatRateLimiter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner-optin", tags=["partner-optin"])
+security = HTTPBearer(auto_error=False)
 
 # Iniettato da server.py via set_db()
 db = None
@@ -291,3 +294,117 @@ async def partner_optin(partner_id: str, payload: OptinRequest, request: Request
         await _launch_sync(pid, email, payload.nome.strip(), cfg)
 
     return OptinResponse(ok=True)
+
+
+async def _require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin/superadmin (stesso schema di routers/evo_booster.py)."""
+    from auth import decode_token
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    if data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return data
+
+
+SYNC_BATCH_MAX = 10         # lead per chiamata: ognuno costa 3-6 chiamate verso Systeme
+SYNC_TIME_BUDGET_S = 100    # si ferma prima del timeout di Cloud Run (300 s); i lead restanti alla chiamata dopo
+SYNC_LOCK_MINUTES = 5       # un lead "in_corso" da meno di cosi' lo sta lavorando qualcun altro
+
+
+def _in_progress(state: Optional[dict], now: datetime) -> bool:
+    state = state or {}
+    if state.get("reason") != "in_corso":
+        return False
+    try:
+        at = datetime.fromisoformat(str(state.get("at")))
+    except (TypeError, ValueError):
+        return False
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)
+    return now - at < timedelta(minutes=SYNC_LOCK_MINUTES)
+
+
+@router.post("/{partner_id}/sync-systeme")
+async def sync_existing_leads(partner_id: str, _admin=Depends(_require_admin)):
+    """Admin: porta nel Systeme del partner i lead del funnel in bozza non ancora sincronizzati.
+
+    Per chi si e' iscritto prima di accendere `systeme_sync`. Prende solo i lead di questa
+    origine, con consenso registrato, non `lost` e senza `systeme.ok`. Al massimo 10 per chiamata
+    e non oltre ~100 secondi: se ne restano, si rilancia. La risposta ha solo conteggi e motivi:
+    niente email.
+
+    L'admin puo' volutamente ritentare lead gia' falliti: qui NON valgono il tetto di 3 tentativi
+    ne' la pausa di 15 minuti del percorso pubblico (il contatore `attempts` continua a salire).
+    Un doppio clic non duplica il lavoro: ogni lead viene riletto e prenotato (`in_corso`) subito
+    prima di essere sincronizzato; la prenotazione non e' atomica, quindi due chiamate esattamente
+    simultanee possono ancora sovrapporsi sul primo lead (Systeme non crea doppioni: cerca per email).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partner = await _find_partner(partner_id)
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    cfg = partner.get("public_optin") or {}
+    pid = str(partner.get("id", partner_id))
+    if cfg.get("systeme_sync") is not True:
+        raise HTTPException(409, "Sincronizzazione Systeme non attiva per questo partner")
+    key = partner_systeme.api_key_for(pid)
+    if not key:
+        raise HTTPException(409, f"Manca la chiave SYSTEME_API_KEY_PARTNER_{pid} nell'ambiente")
+
+    leads = await db.partner_leads.find({"partner_id": pid, "source": SOURCE}, {"_id": 0}).to_list(length=1000)
+    todo, already, no_consent, lost = [], 0, 0, 0
+    for lead in leads:
+        if lead.get("status") == "lost":
+            lost += 1
+        elif not ((lead.get("consent") or {}).get("accepted") is True):
+            no_consent += 1
+        elif (lead.get("systeme") or {}).get("ok") is True:
+            already += 1
+        else:
+            todo.append(lead)
+
+    tag = partner_systeme.clean_tag(cfg.get("systeme_tag"))
+    deadline = time.monotonic() + SYNC_TIME_BUDGET_S
+    synced = failed = busy = done = 0
+    reasons: dict = {}
+    for lead in todo[:SYNC_BATCH_MAX]:
+        if time.monotonic() > deadline:
+            break
+        email = str(lead.get("email") or "").lower()
+        now = datetime.now(timezone.utc)
+        fresh = await db.partner_leads.find_one({"partner_id": pid, "email": email}, {"_id": 0, "systeme": 1})
+        state = (fresh or {}).get("systeme") or {}
+        if state.get("ok") is True or _in_progress(state, now):
+            busy += 1
+            done += 1
+            continue
+        attempts = int(state.get("attempts") or 0) + 1
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {"$set": {"systeme": {"ok": False, "reason": "in_corso", "contact_id": None,
+                                  "attempts": attempts, "at": now.isoformat()}}},
+        )
+        result = await partner_systeme.sync_contact(key, email, str(lead.get("name") or ""), tag)
+        ok = bool(result.get("ok"))
+        synced += ok
+        failed += not ok
+        done += 1
+        if not ok:
+            reasons[result.get("reason")] = reasons.get(result.get("reason"), 0) + 1
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {"$set": {"systeme": {
+                "ok": ok, "reason": result.get("reason"), "contact_id": result.get("contact_id"),
+                "attempts": attempts, "at": datetime.now(timezone.utc).isoformat(),
+            }}},
+        )
+    return {
+        "ok": True, "lead_totali": len(leads), "da_sincronizzare": len(todo),
+        "sincronizzati": synced, "falliti": failed, "motivi": reasons,
+        "gia_sincronizzati": already, "senza_consenso": no_consent, "persi_esclusi": lost,
+        "saltati_gia_in_corso": busy, "rimasti": max(0, len(todo) - done),
+    }
