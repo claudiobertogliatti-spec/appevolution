@@ -38,7 +38,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 
 from services import partner_systeme
@@ -47,6 +48,7 @@ from services.proposta_chat import ChatRateLimiter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner-optin", tags=["partner-optin"])
+security = HTTPBearer(auto_error=False)
 
 # Iniettato da server.py via set_db()
 db = None
@@ -291,3 +293,78 @@ async def partner_optin(partner_id: str, payload: OptinRequest, request: Request
         await _launch_sync(pid, email, payload.nome.strip(), cfg)
 
     return OptinResponse(ok=True)
+
+
+async def _require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Solo admin/superadmin (stesso schema di routers/evo_booster.py)."""
+    from auth import decode_token
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    if data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return data
+
+
+SYNC_BATCH_MAX = 25  # lead per chiamata: ognuno costa 3-6 chiamate verso Systeme
+
+
+@router.post("/{partner_id}/sync-systeme")
+async def sync_existing_leads(partner_id: str, _admin=Depends(_require_admin)):
+    """Admin: porta nel Systeme del partner i lead del funnel in bozza non ancora sincronizzati.
+
+    Per chi si e' iscritto prima di accendere `systeme_sync`. Prende solo i lead di questa
+    origine, con consenso registrato, non `lost` e senza `systeme.ok`. Al massimo 25 per
+    chiamata; ripetibile. La risposta ha solo conteggi e motivi: niente email.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partner = await _find_partner(partner_id)
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    cfg = partner.get("public_optin") or {}
+    pid = str(partner.get("id", partner_id))
+    if cfg.get("systeme_sync") is not True:
+        raise HTTPException(409, "Sincronizzazione Systeme non attiva per questo partner")
+    key = partner_systeme.api_key_for(pid)
+    if not key:
+        raise HTTPException(409, f"Manca la chiave SYSTEME_API_KEY_PARTNER_{pid} nell'ambiente")
+
+    leads = await db.partner_leads.find({"partner_id": pid, "source": SOURCE}, {"_id": 0}).to_list(length=1000)
+    todo, already, no_consent, lost = [], 0, 0, 0
+    for lead in leads:
+        if lead.get("status") == "lost":
+            lost += 1
+        elif not ((lead.get("consent") or {}).get("accepted") is True):
+            no_consent += 1
+        elif (lead.get("systeme") or {}).get("ok") is True:
+            already += 1
+        else:
+            todo.append(lead)
+
+    tag = partner_systeme.clean_tag(cfg.get("systeme_tag"))
+    synced, failed, reasons = 0, 0, {}
+    for lead in todo[:SYNC_BATCH_MAX]:
+        email = str(lead.get("email") or "").lower()
+        result = await partner_systeme.sync_contact(key, email, str(lead.get("name") or ""), tag)
+        ok = bool(result.get("ok"))
+        synced += ok
+        failed += not ok
+        if not ok:
+            reasons[result.get("reason")] = reasons.get(result.get("reason"), 0) + 1
+        await db.partner_leads.update_one(
+            {"partner_id": pid, "email": email},
+            {"$set": {"systeme": {
+                "ok": ok, "reason": result.get("reason"), "contact_id": result.get("contact_id"),
+                "attempts": int((lead.get("systeme") or {}).get("attempts") or 0) + 1,
+                "at": datetime.now(timezone.utc).isoformat(),
+            }}},
+        )
+    return {
+        "ok": True, "lead_totali": len(leads), "da_sincronizzare": len(todo),
+        "sincronizzati": synced, "falliti": failed, "motivi": reasons,
+        "gia_sincronizzati": already, "senza_consenso": no_consent, "persi_esclusi": lost,
+        "rimasti": max(0, len(todo) - SYNC_BATCH_MAX),
+    }
