@@ -1,7 +1,7 @@
 /**
- * Home "Oggi" — i quattro blocchi che rispondono alle domande di ogni mattina:
- * quali call devo fare · quali trattative sono in corso · come procedono i partner
- * in EVO · quali sono le urgenze di delivery.
+ * Home "Oggi" — quattro riquadri lunghi, apribili con la freccia, in quest'ordine:
+ * Call · Trattative · Clienti (passato da fuori in `clienti`) · Partner (fasi EVO e
+ * urgenze di delivery). Chiusi mostrano un riassunto coi numeri.
  *
  * Sono LISTE di persone con i giorni di attesa, non conteggi per reparto. Ogni riga
  * apre il contatto. Le fonti sono quelle delle pagine esistenti (Trattative e Audit
@@ -17,6 +17,7 @@ import { ArrowRight, RefreshCw } from "lucide-react";
 import { apiGet } from "../api";
 import { buildOggi } from "../oggiModel";
 import { StatusPill } from "./ui/StatusPill";
+import { Riquadro } from "./ui/Riquadro";
 
 const RIGHE = 6; // righe mostrate per lista; il resto sta nella pagina completa
 
@@ -62,27 +63,6 @@ export function useOggiData(onAuthExpired) {
 
 // ── Pezzi di interfaccia ────────────────────────────────────────────────────
 
-function Block({ id, title, hint, state, onRetry, children }) {
-  return (
-    <section id={id} aria-labelledby={`${id}-t`} className="rounded-2xl border border-slate-200 bg-white p-5 scroll-mt-6">
-      <h2 id={`${id}-t`} className="text-lg font-semibold text-slate-900">{title}</h2>
-      {hint && <p className="text-sm text-slate-500 mt-0.5">{hint}</p>}
-      <div className="mt-4">
-        {state === "loading" ? (
-          <p className="text-sm text-slate-400" aria-busy="true">Caricamento…</p>
-        ) : state === "error" ? (
-          <p className="text-sm text-slate-600">
-            Dato non disponibile.{" "}
-            <button type="button" onClick={onRetry} className="font-semibold text-slate-900 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
-              Riprova
-            </button>
-          </p>
-        ) : children}
-      </div>
-    </section>
-  );
-}
-
 function Sub({ title, count, children, empty, more }) {
   return (
     <div className="mb-5 last:mb-0">
@@ -117,11 +97,12 @@ const Tutte = ({ to, n, mostrate }) =>
 
 // ── I quattro blocchi ───────────────────────────────────────────────────────
 
-export function OggiBlocks({ onAuthExpired }) {
+export function OggiBlocks({ onAuthExpired, clienti = null }) {
   const { src, model, reload } = useOggiData(onAuthExpired);
   const { call, trattative, partner } = model;
   const stPipe = src.pipeline === undefined ? "loading" : src.pipeline === null ? "error" : "ok";
   const stAudit = src.audit === undefined ? "loading" : src.audit === null ? "error" : "ok";
+  const callN = call ? call.prenotate.length + call.fatte.length : 0;
 
   return (
     <div className="mb-10">
@@ -137,8 +118,9 @@ export function OggiBlocks({ onAuthExpired }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5">
-        <Block id="call" title="Call" hint="Da fare e da chiudere" state={stPipe} onRetry={reload}>
+      <div className="grid grid-cols-1 gap-3">
+        <Riquadro id="call" title="Call" state={stPipe} onRetry={reload}
+          summary={call ? `${callN} da gestire · ${call.prenotate.length} prenotate, ${call.fatte.length} fatte` : ""}>
           {call && (
             <>
               <Sub title="Prenotate" count={call.prenotate.length} empty="Nessuna call prenotata.">
@@ -157,9 +139,10 @@ export function OggiBlocks({ onAuthExpired }) {
               </Sub>
             </>
           )}
-        </Block>
+        </Riquadro>
 
-        <Block id="trattative" title="Trattative in corso" hint="Proposte inviate, viste o accettate" state={stPipe} onRetry={reload}>
+        <Riquadro id="trattative" title="Trattative" state={stPipe} onRetry={reload}
+          summary={trattative ? `${trattative.length} in corso · proposte inviate, viste o accettate` : ""}>
           {trattative && (
             <Sub title="Aperte" count={trattative.length} empty="Nessuna trattativa aperta."
               more={<Tutte to="/admin/trattative?stadio=trattativa" n={trattative.length} mostrate={RIGHE} />}>
@@ -169,29 +152,31 @@ export function OggiBlocks({ onAuthExpired }) {
               ))}
             </Sub>
           )}
-        </Block>
+        </Riquadro>
 
-        <Block id="partner" title="Come procedono i partner in EVO" hint="Quanti per fase, e quanti sono fermi" state={stAudit} onRetry={reload}>
-          {partner && (
-            partner.perFase.length === 0 ? (
-              <p className="text-sm text-slate-500">Nessun partner attivo.</p>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {partner.perFase.map((f) => (
-                  <li key={f.fase} className="rounded-xl border border-slate-200 px-3 py-2">
-                    <span className="block text-xs font-semibold text-slate-500">{f.fase}</span>
-                    <span className="text-xl font-semibold text-slate-900 tabular-nums">{f.totale}</span>
-                    {f.fermi > 0 && <span className="ml-2 text-xs font-semibold text-amber-800">{f.fermi} fermi</span>}
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
-        </Block>
+        {clienti}
 
-        <Block id="delivery" title="Urgenze di delivery" hint="Prima chi aspetta te, poi chi aspetta il partner" state={stAudit} onRetry={reload}>
+        <Riquadro id="partner" title="Partner" state={stAudit} onRetry={reload}
+          summary={partner ? `${partner.totale} in EVO · ${partner.fermi} fermi · ${partner.tocca.length} aspettano te` : ""}>
           {partner && (
             <>
+              <div className="mb-5">
+                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Come procedono, per fase</h3>
+                {partner.perFase.length === 0 ? (
+                  <p className="text-sm text-slate-500">Nessun partner attivo.</p>
+                ) : (
+                  <ul className="flex flex-wrap gap-2">
+                    {partner.perFase.map((f) => (
+                      <li key={f.fase} className="rounded-xl border border-slate-200 px-3 py-2">
+                        <span className="block text-xs font-semibold text-slate-500">{f.fase}</span>
+                        <span className="text-xl font-semibold text-slate-900 tabular-nums">{f.totale}</span>
+                        {f.fermi > 0 && <span className="ml-2 text-xs font-semibold text-amber-800">{f.fermi} fermi</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <h3 className="sr-only">Urgenze di delivery</h3>
               {[
                 ["Tocca a te", partner.tocca, "Niente in attesa di te."],
                 ["Aspettiamo il partner", partner.aspettiamo, "Nessun partner da sollecitare."],
@@ -209,7 +194,7 @@ export function OggiBlocks({ onAuthExpired }) {
               ))}
             </>
           )}
-        </Block>
+        </Riquadro>
       </div>
 
       {(model.esclusi.length > 0 || model.doppi > 0) && (

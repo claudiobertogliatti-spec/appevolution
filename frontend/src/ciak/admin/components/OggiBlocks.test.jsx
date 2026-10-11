@@ -40,7 +40,11 @@ const rispondi = ({ pipeline = PIPELINE, audit = AUDIT } = {}) =>
     return v instanceof Error ? Promise.reject(v) : Promise.resolve(v);
   });
 
-beforeEach(() => apiGet.mockReset());
+// I riquadri partono chiusi: qui li si apre come farebbe chi li ha lasciati aperti.
+beforeEach(() => {
+  apiGet.mockReset();
+  window.localStorage.setItem("ciak_admin_home_riquadri", JSON.stringify(["call","trattative","partner"]));
+});
 
 // I titoli compaiono subito: i dati arrivano dopo. Si aspetta che finisca il caricamento.
 const caricato = () => waitFor(() => expect(screen.queryAllByText("Caricamento…")).toHaveLength(0));
@@ -57,7 +61,7 @@ test("mostra le quattro domande del mattino con numeri veri, senza prova e senza
   // trattative: Test Ciak escluso → solo Sandro
   expect(screen.getByText("Aperte · 1")).toBeTruthy();
   // partner: Mario Rossi (finto) escluso → 3, nel blocco "Come procedono i partner"
-  const partner = screen.getByRole("heading", { name: "Come procedono i partner in EVO" }).closest("section");
+  const partner = screen.getByRole("heading", { name: "Partner" }).closest("section");
   const totali = within(partner).getAllByRole("listitem").map((li) => parseInt(li.textContent.match(/\d+/)?.[0] || "0", 10));
   expect(totali.reduce((x, y) => x + y, 0)).toBeGreaterThanOrEqual(3);
 });
@@ -115,20 +119,21 @@ test("delivery: prima chi aspetta te, poi il partner, con il motivo del fermo", 
   rispondi();
   render(<OggiBlocks />);
   await caricato();
-  const blocco = screen.getByRole("heading", { name: "Urgenze di delivery" }).closest("section");
+  const blocco = screen.getByRole("heading", { name: "Partner" }).closest("section");
   expect(within(blocco).getByText("Fermo da 30 giorni")).toBeTruthy();
   expect(within(blocco).getByText("In moto")).toBeTruthy();
   const titoli = within(blocco).getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
-  expect(titoli[0]).toMatch(/^Tocca a te/);
-  expect(titoli[1]).toMatch(/^Aspettiamo il partner/);
+  const i = titoli.findIndex((t) => /^Tocca a te/.test(t));
+  expect(i).toBeGreaterThanOrEqual(0);
+  expect(titoli[i + 1]).toMatch(/^Aspettiamo il partner/);
   expect(within(blocco).getByText(/Pubblicare il funnel/)).toBeTruthy();
 });
 
 test("se una fonte non risponde, i suoi blocchi lo dicono e gli altri restano", async () => {
   rispondi({ audit: new Error("boom") });
   render(<OggiBlocks />);
-  const delivery = (await screen.findByRole("heading", { name: "Urgenze di delivery" })).closest("section");
-  await waitFor(() => expect(within(delivery).getByText(/Dato non disponibile/)).toBeTruthy());
+  const delivery = (await screen.findByRole("heading", { name: "Partner" })).closest("section");
+  await waitFor(() => expect(within(delivery).getAllByText(/Dato non disponibile/)).toBeTruthy());
   // le call (altra fonte) sono comunque visibili
   expect(screen.getByText("Chiara Ferri")).toBeTruthy();
 });
@@ -136,8 +141,8 @@ test("se una fonte non risponde, i suoi blocchi lo dicono e gli altri restano", 
 test("'Riprova' ricarica entrambe le fonti", async () => {
   rispondi({ audit: new Error("boom") });
   render(<OggiBlocks />);
-  const delivery = (await screen.findByRole("heading", { name: "Urgenze di delivery" })).closest("section");
-  await waitFor(() => within(delivery).getByText(/Dato non disponibile/));
+  const delivery = (await screen.findByRole("heading", { name: "Partner" })).closest("section");
+  await waitFor(() => within(delivery).getAllByText(/Dato non disponibile/));
   const chiamate = apiGet.mock.calls.length;
   rispondi();
   fireEvent.click(within(delivery).getByRole("button", { name: "Riprova" }));
@@ -166,4 +171,36 @@ test("in caricamento non inventa numeri", () => {
   apiGet.mockImplementation(() => new Promise(() => {})); // non risponde mai
   render(<OggiBlocks />);
   expect(screen.getAllByText("Caricamento…").length).toBeGreaterThan(0);
+});
+
+test("quattro riquadri nell'ordine Call, Trattative, Clienti, Partner; partono chiusi e si aprono con la freccia", async () => {
+  window.localStorage.clear();
+  rispondi();
+  render(<OggiBlocks clienti={<section aria-label="Clienti-segnaposto"><h2><button aria-expanded="false">Clienti</button></h2></section>} />);
+  await caricato();
+  const titoli = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+  expect(titoli).toEqual(["Call", "Trattative", "Clienti", "Partner"]);
+  const call = screen.getByRole("button", { name: "Call" });
+  expect(call).toHaveAttribute("aria-expanded", "false");
+  // chiuso: il riassunto con i numeri e' visibile, il contenuto no
+  expect(call).toHaveAccessibleDescription(/da gestire/);
+  expect(screen.queryByRole("link", { name: "Chiara Ferri" })).toBeNull();
+  fireEvent.click(call);
+  expect(call).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("link", { name: "Chiara Ferri" })).toBeTruthy();
+  fireEvent.click(call);
+  expect(screen.queryByRole("link", { name: "Chiara Ferri" })).toBeNull();
+});
+
+test("i riquadri ricordano cosa era aperto", async () => {
+  window.localStorage.clear();
+  rispondi();
+  const { unmount } = render(<OggiBlocks />);
+  await caricato();
+  fireEvent.click(screen.getByRole("button", { name: "Trattative" }));
+  unmount();
+  render(<OggiBlocks />);
+  await caricato();
+  expect(screen.getByRole("button", { name: "Trattative" })).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("button", { name: "Call" })).toHaveAttribute("aria-expanded", "false");
 });

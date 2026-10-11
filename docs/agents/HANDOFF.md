@@ -1,3 +1,9 @@
+### 2026-10-11 (sera, 2) · Claude Code · claude/modest-euler-xde2pw — Home a 4 riquadri apribili
+
+**DICHIARATO:** su richiesta di Claudio la Home «Oggi» e' ora fatta di 4 riquadri lunghi, apribili con la freccia, in quest'ordine: **Call · Trattative · Clienti · Partner**. Intestazione nel blu scuro della sidebar (slate-900, titolo bianco, freccia gialla `#FACC15`). Chiusi mostrano un riassunto con i numeri; partono chiusi e il browser ricorda cosa era aperto (`localStorage` chiave `ciak_admin_home_riquadri`, solo comodita'). Componente nuovo `components/ui/Riquadro.jsx` (un solo `<button aria-expanded>` nell'`<h2>`, riga intera cliccabile). `OggiBlocks` riceve `clienti` (= `OggiStart`) e lo mette in terza posizione. «Partner» unisce «Come procedono per fase» e le urgenze di delivery (Tocca a te / Aspettiamo il partner). Titolo «Trattative in corso» → «Trattative».
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 384 test passati (nuovi: ordine dei 4 riquadri, apertura/chiusura, memoria). ⛔ Mai visto nel browser; build non lanciata. 🔎 «Blu come la sidebar» interpretato come slate-900 (colore attivo della sidebar), non un blu nuovo.
+
 ### 2026-10-11 (sera) · Claude Code · claude/modest-euler-xde2pw — Clienti Start rivista, barra Delivery tolta, riepilogo Oggi tolto
 
 **DICHIARATO**

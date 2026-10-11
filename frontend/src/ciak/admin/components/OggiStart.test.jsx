@@ -10,6 +10,8 @@ import { apiGet } from "../api";
 
 jest.mock("../api", () => ({ apiGet: jest.fn() }));
 
+beforeEach(() => window.localStorage.setItem("ciak_admin_home_riquadri", JSON.stringify(["start"])));
+
 const C = (over) => ({
   client_id: "c1", nome: "Linda Pavia", email: "l@x.it", prossima_azione: "Leggi e approva: Il tuo marchio",
   approvati: 1, totale: 6, prossima_scadenza: { tappa: 1, titolo: "t", data_promessa: "08/10/2026", giorni: 1, urgenza: "imminente" },
@@ -52,7 +54,7 @@ test("mostra cosa tocca a te e linka l'account del cliente", async () => {
 test("fonte che non risponde: 'Dato non disponibile' con Riprova, non 'nessuna bozza'", async () => {
   apiGet.mockRejectedValue(new Error("500"));
   render(<MemoryRouter><OggiStart /></MemoryRouter>);
-  expect(await screen.findByText(/Dato non disponibile/)).toBeInTheDocument();
+  expect((await screen.findAllByText(/Dato non disponibile/)).length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Riprova" })).toBeInTheDocument();
   expect(screen.queryByText("Nessuna bozza in attesa di te.")).not.toBeInTheDocument();
 });

@@ -14,6 +14,7 @@ import { ArrowRight } from "lucide-react";
 import { apiGet } from "../api";
 import { buildOggiStart } from "../oggiModel";
 import { StatusPill } from "./ui/StatusPill";
+import { Riquadro } from "./ui/Riquadro";
 
 const RIGHE = 6;
 
@@ -82,49 +83,41 @@ export function OggiStart({ onAuthExpired }) {
   const stato = pipeline === undefined ? "loading" : m ? "ok" : "error";
 
   return (
-    <section id="start" aria-labelledby="start-t" className="mb-5 rounded-2xl border border-slate-200 bg-white p-5 scroll-mt-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 id="start-t" className="text-lg font-semibold text-slate-900">Clienti Start</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Cosa tocca a te: prima le bozze che il cliente aspetta</p>
-        </div>
-        <Link to="/admin/start" className="text-sm font-semibold text-slate-700 hover:text-slate-900 flex-shrink-0">
-          Apri tutti
-        </Link>
-      </div>
-      <div className="mt-4">
-        {stato === "loading" && <p className="text-sm text-slate-400" aria-busy="true">Caricamento…</p>}
-        {stato === "error" && (
-          <p className="text-sm text-slate-600">
-            Dato non disponibile.{" "}
-            <button type="button" onClick={carica} className="font-semibold text-slate-900 underline underline-offset-2">
-              Riprova
-            </button>
-          </p>
-        )}
-        {stato === "ok" && (
-          <>
-            {m.inScadenza.length > 0 && (
-              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {m.inScadenza.length === 1 ? "1 cliente ha" : `${m.inScadenza.length} clienti hanno`} una consegna in
-                scadenza: {m.inScadenza.slice(0, 3).map((r) => r.nome).join(", ")}
-                {m.inScadenza.length > 3 ? "…" : ""}.
-              </p>
-            )}
-            <Lista titolo="Da approvare" righe={m.daApprovare} vuoto="Nessuna bozza in attesa di te." />
-            <Lista titolo="Da preparare" righe={m.daPreparare} vuoto="Niente da preparare." />
-            <p className="text-sm text-slate-500">
-              {m.aspettano.length === 0
-                ? "Nessun cliente aspetta di rispondere."
-                : `${m.aspettano.length} ${m.aspettano.length === 1 ? "cliente deve" : "clienti devono"} ancora inviare risposte o marchio: non puoi fare niente.`}
+    <Riquadro
+      id="start"
+      title="Clienti"
+      state={stato}
+      onRetry={carica}
+      summary={m ? `${m.daApprovare.length} da approvare · ${m.daPreparare.length} da preparare · ${m.aspettano.length} aspettano il cliente` : ""}
+    >
+      {m && (
+        <>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <p className="text-sm text-slate-500">Clienti Start. Cosa tocca a te: prima le bozze che il cliente aspetta.</p>
+            <Link to="/admin/start" className="text-sm font-semibold text-slate-700 hover:text-slate-900 flex-shrink-0">
+              Apri tutti
+            </Link>
+          </div>
+          {m.inScadenza.length > 0 && (
+            <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {m.inScadenza.length === 1 ? "1 cliente ha" : `${m.inScadenza.length} clienti hanno`} una consegna in
+              scadenza: {m.inScadenza.slice(0, 3).map((r) => r.nome).join(", ")}
+              {m.inScadenza.length > 3 ? "…" : ""}.
             </p>
-            {m.esclusi.length > 0 && (
-              <p className="text-xs text-slate-500 mt-2">Non contati: {m.esclusi.length} account di prova ({m.esclusi.join(", ")}).</p>
-            )}
-          </>
-        )}
-      </div>
-    </section>
+          )}
+          <Lista titolo="Da approvare" righe={m.daApprovare} vuoto="Nessuna bozza in attesa di te." />
+          <Lista titolo="Da preparare" righe={m.daPreparare} vuoto="Niente da preparare." />
+          <p className="text-sm text-slate-500">
+            {m.aspettano.length === 0
+              ? "Nessun cliente aspetta di rispondere."
+              : `${m.aspettano.length} ${m.aspettano.length === 1 ? "cliente deve" : "clienti devono"} ancora inviare risposte o marchio: non puoi fare niente.`}
+          </p>
+          {m.esclusi.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">Non contati: {m.esclusi.length} account di prova ({m.esclusi.join(", ")}).</p>
+          )}
+        </>
+      )}
+    </Riquadro>
   );
 }
 

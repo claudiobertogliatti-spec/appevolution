@@ -86,9 +86,8 @@ export function AdminHome({ user, onAuthExpired }) {
         )}
       </div>
 
-      {/* Oggi: call, trattative, partner, urgenze di delivery (liste di persone) */}
-      <OggiStart onAuthExpired={onAuthExpired} />
-      <OggiBlocks onAuthExpired={onAuthExpired} />
+      {/* Oggi: quattro riquadri apribili — Call, Trattative, Clienti, Partner */}
+      <OggiBlocks onAuthExpired={onAuthExpired} clienti={<OggiStart onAuthExpired={onAuthExpired} />} />
 
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Le tue collaboratrici</p>
