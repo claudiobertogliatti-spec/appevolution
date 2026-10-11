@@ -28,6 +28,8 @@ const pagineDi = (macro) =>
  * pagine non consentite (`hideFor` sulla pagina): chi ha un accesso limitato non
  * vede nel menu di sezione pagine che non sono sue.
  *
+ * Le pagine con `propria: true` non appartengono alla sezione: nessuna barra su di esse.
+ *
  * Restituisce { id, label, attiva, voci:[{to,label,gruppo}] }. La prima voce e'
  * sempre la "Panoramica" del reparto; `attiva` e' la voce piu' specifica che
  * possiede il percorso.
@@ -38,7 +40,9 @@ export function trovaSezione(pathname, nav, adminType = "claudio") {
     const panoramica = `/admin/reparto/${macro.id}`;
     const pagine = pagineDi(macro).filter((p) => !(p.hideFor || []).includes(adminType));
     const suPanoramica = pathname === panoramica;
-    const possessori = pagine.filter((p) => pageOwns(pathname, p));
+    // Una pagina "propria" (es. Clienti Start, che ha il suo accesso diretto nel menu)
+    // sta nel NAV per ricerca e raggiungibilita', ma non apre la barra del reparto.
+    const possessori = pagine.filter((p) => !p.propria && pageOwns(pathname, p));
     if (!suPanoramica && possessori.length === 0) continue;
     const attiva = suPanoramica
       ? panoramica

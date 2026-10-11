@@ -1,3 +1,13 @@
+### 2026-10-11 (sera) · Claude Code · claude/modest-euler-xde2pw — Clienti Start rivista, barra Delivery tolta, riepilogo Oggi tolto
+
+**DICHIARATO**
+- Pagina Clienti (`/admin/start`, `PipelineStart.jsx`) rifatta sul concetto «i clienti Start costruiscono il pacchetto o si sono fermati?»: colonne Cliente · Pacchetto (6 segmenti colorati + «N di 6 approvati», con testo per ogni materiale) · Prossima mossa (Tocca a te / Tocca al cliente) · Ultimo movimento (+ pillola «Fermo»). Filtri: Tutti · Fermi · le 4 fasi. Ordine: prima chi aspetta te, poi i fermi, in fondo i completi.
+- Backend (`services/start_pipeline.py`, `routers/ciak_admin.py`): `riga_cliente` aggiunge `ultimo_movimento {quando, giorni, da_acquisto}` (data piu' recente fra `updated_at/approved_at/completed_at/ready_at` degli step, `answers_completed_at`, `brand_completed_at`, bozze; se nessuna → acquisto, e lo dice) e `fermo` (non completato e `giorni >= SOGLIA_FERMO_GIORNI = 7`). ⚠️ **La soglia di 7 giorni e' una mia scelta di prodotto, non un dato**: da confermare con Claudio. 🔎 Non verificato che `updated_at` si aggiorni su OGNI avanzamento reale (puo' muoversi anche per modifiche admin).
+- `CiakAdminApp.jsx` + `sezioneModel.js`: pagine con `propria: true` (solo Clienti Start) non aprono la barra «DELIVERY · Panoramica · …» e non accendono «Delivery» nella sidebar. Resta nel NAV (ricerca, palette).
+- `OggiBlocks.jsx`: tolta la riga di 3 tasselli (Call da gestire, Trattative in corso, Partner in EVO): ripeteva i blocchi sotto.
+
+**VERIFICATO:** `pytest tests/test_start_pipeline.py` (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL fittizia) → 14 passed (4 nuovi). `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 382 test passati. ⛔ Mai visto nel browser; ⛔ eslint non eseguito (config v9 assente), build non lanciata.
+
 ### 2026-10-11 · Claude Code · claude/modest-euler-xde2pw — admin Home: tolte le card dei reparti
 
 **DICHIARATO:** su richiesta di Claudio (screenshot di `ciak.io/admin`) rimosso da `AdminHome.jsx` il blocco «Numeri per reparto» (5 card Direzione/Acquisizione/Vendite/Delivery/Back office): ripeteva la sidebar. Restano striscia «Richiede attenzione», blocchi Oggi e «Le tue collaboratrici». Sottotitolo: «I reparti sono nel menu a sinistra.» Persi dalla Home, di proposito: cassa del mese, nuovi lead 7 gg, proposte inviate, partner attivi (sono nelle pagine dei reparti).

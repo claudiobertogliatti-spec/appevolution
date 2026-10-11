@@ -88,3 +88,31 @@ def test_pipeline_colonne_in_ordine_e_solo_clienti_start():
     assert p["totale"] == 2
     assert [c["nome"] for c in p["colonne"][0]["clienti"]] == ["Anna"]
     assert [c["nome"] for c in p["colonne"][1]["clienti"]] == ["Linda Pavia"]
+
+
+def test_ultimo_movimento_e_la_data_piu_recente_registrata():
+    step = {"step_id": "start-vetrina", "updated_at": "2026-10-05T08:00:00+00:00"}
+    r = riga_cliente(CLIENTE, [RISPOSTE_OK, MARCHIO_OK, step], [], now=NOW)
+    assert r["ultimo_movimento"]["quando"].startswith("2026-10-05")
+    assert r["ultimo_movimento"]["giorni"] == 1 and r["ultimo_movimento"]["da_acquisto"] is False
+    assert r["fermo"] is False
+
+
+def test_senza_nessuna_data_si_parte_dall_acquisto_e_lo_dice():
+    r = riga_cliente(CLIENTE, [], [], now=NOW)
+    assert r["ultimo_movimento"]["da_acquisto"] is True
+    assert r["ultimo_movimento"]["giorni"] == 5  # 1 ottobre -> 7 ottobre, ore 10 -> 00: 5 giorni interi
+
+
+def test_fermo_dopo_la_soglia_ma_mai_se_completato():
+    tardi = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    assert riga_cliente(CLIENTE, [], [], now=tardi)["fermo"] is True
+    completo = riga_cliente(CLIENTE, [RISPOSTE_OK, MARCHIO_OK], _docs(approvati=TIPI), now=tardi)
+    assert completo["stage"] == "completato" and completo["fermo"] is False
+
+
+def test_data_illeggibile_non_rompe_la_riga():
+    step = {"step_id": "start-vetrina", "updated_at": "boh"}
+    r = riga_cliente({**CLIENTE, "start_purchased_at": None}, [step], [], now=NOW)
+    assert r["ultimo_movimento"] == {"quando": None, "giorni": None, "da_acquisto": False}
+    assert r["fermo"] is False

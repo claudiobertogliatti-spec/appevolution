@@ -41,6 +41,10 @@ MATERIALI: tuple[tuple[str, str, str], ...] = (
     ("partnership_readiness", "start-readiness", "Il controllo finale"),
 )
 
+# Giorni senza alcun movimento registrato oltre i quali un cliente non completato
+# risulta "fermo". Soglia di prodotto, non un dato: si cambia qui.
+SOGLIA_FERMO_GIORNI = 7
+
 APPROVATO = "approvato"
 DA_APPROVARE = "da_approvare"
 IN_GENERAZIONE = "in_generazione"
@@ -58,6 +62,50 @@ def _materiale(tipo: str, step_id: str, titolo: str, doc: Optional[dict], step: 
     else:
         stato = DA_FARE
     return {"type": tipo, "step_id": step_id, "titolo": titolo, "stato": stato}
+
+
+def _data(valore: Any) -> Optional[datetime]:
+    """Data da stringa ISO o datetime, sempre con fuso (UTC se manca). Altro -> None."""
+    if isinstance(valore, datetime):
+        d = valore
+    elif isinstance(valore, str) and valore.strip():
+        try:
+            d = datetime.fromisoformat(valore.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def _ultimo_movimento(client: dict, steps: list[dict], docs: list[dict], now: datetime) -> dict:
+    """L'ultima data registrata in cui qualcosa si e' mosso (step, risposte, marchio, bozze).
+
+    Se non c'e' nessuna data, si parte dall'acquisto e lo si dice (`da_acquisto`): un
+    cliente che non ha mai fatto niente e' fermo dal giorno in cui ha comprato.
+    """
+    candidate: list[datetime] = []
+    for s in steps:
+        for k in ("updated_at", "approved_at", "completed_at", "ready_at"):
+            candidate.append(_data(s.get(k)))
+        dati = s.get("data") or {}
+        for k in ("answers_completed_at", "brand_completed_at"):
+            candidate.append(_data(dati.get(k)))
+    for d in docs:
+        for k in ("approved_at", "created_at"):
+            candidate.append(_data(d.get(k)))
+    candidate = [d for d in candidate if d]
+    if candidate:
+        quando, da_acquisto = max(candidate), False
+    else:
+        quando, da_acquisto = _data(client.get("start_purchased_at")), True
+    if not quando:
+        return {"quando": None, "giorni": None, "da_acquisto": False}
+    return {
+        "quando": quando.isoformat(),
+        "giorni": max(0, (now - quando).days),
+        "da_acquisto": da_acquisto,
+    }
 
 
 def _prossima_scadenza(client: dict, steps: list[dict], now: datetime) -> Optional[dict]:
@@ -115,6 +163,9 @@ def riga_cliente(
             else "Prepara le bozze"
         )
 
+    ultimo = _ultimo_movimento(client, steps, [d for d in docs.values()], adesso)
+    fermo = stage != "completato" and ultimo["giorni"] is not None and ultimo["giorni"] >= SOGLIA_FERMO_GIORNI
+
     return {
         "client_id": client.get("id"),
         "nome": client.get("name"),
@@ -128,6 +179,8 @@ def riga_cliente(
         "totale": len(materiali),
         "materiali": materiali,
         "prossima_scadenza": _prossima_scadenza(client, steps, adesso),
+        "ultimo_movimento": ultimo,
+        "fermo": fermo,
     }
 
 

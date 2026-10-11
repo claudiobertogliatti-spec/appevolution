@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Clienti Start: pipeline e scheda cliente.
- * Cio' che deve essere vero a colpo d'occhio: ogni cliente e' nella colonna di chi
- * ha la prossima mossa, un clic apre il suo account, e nella scheda ogni materiale
+ * Cio' che deve essere vero a colpo d'occhio: per ogni cliente a che punto e' il
+ * pacchetto, di chi e' la mossa, se e' fermo; un clic apre il suo account, e nella scheda ogni materiale
  * ha UN pulsante giusto per il suo stato (mai "Approva" su qualcosa che non esiste).
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -27,9 +27,12 @@ const LINDA = {
   totale: 6,
   materiali: MAT(["da_approvare"]),
   prossima_scadenza: { tappa: 1, titolo: "Posizionamento e brand", data_promessa: "08/10/2026", giorni: 1, urgenza: "imminente" },
+  ultimo_movimento: { quando: "2026-10-10T08:00:00+00:00", giorni: 1, da_acquisto: false },
+  fermo: false,
 };
 const ANNA = { ...LINDA, client_id: "c2", nome: "Anna Rossi", email: "anna@x.it", stage: "attesa_cliente",
-  prossima_azione: "Aspetta le risposte del cliente", prossima_scadenza: null };
+  prossima_azione: "Aspetta le risposte del cliente", prossima_scadenza: null,
+  ultimo_movimento: { quando: "2026-10-01T10:00:00+00:00", giorni: 10, da_acquisto: true }, fermo: true };
 
 const PIPELINE = {
   totale: 2,
@@ -61,25 +64,37 @@ beforeEach(() => {
   apiPost.mockResolvedValue({ success: true });
 });
 
-test("una riga per cliente, il segno nella colonna di chi ha la prossima mossa", async () => {
+test("una riga per cliente: pacchetto, di chi e' la mossa, ultimo movimento, fermo", async () => {
   render(<MemoryRouter><PipelineStart /></MemoryRouter>);
   expect(await screen.findByText("Linda Pavia")).toBeInTheDocument();
-  for (const f of ["Aspetta il cliente", "Da preparare", "Da approvare", "Completato"]) {
+  for (const f of ["Cliente", "Pacchetto", "Prossima mossa", "Ultimo movimento"]) {
     expect(screen.getByRole("columnheader", { name: f })).toBeInTheDocument();
   }
-  // Linda e' in "Da approvare": la sua scadenza sta nella terza colonna, non in un'altra
-  const riga = screen.getByText("Linda Pavia").closest("tr");
-  const celle = within(riga).getAllByRole("cell");
-  expect(within(celle[3]).getByText(/Tappa 1 fra 1 giorno/)).toBeInTheDocument();
-  expect(within(celle[1]).queryByText(/Tappa/)).not.toBeInTheDocument();
-  expect(screen.getByText(/Leggi e approva: Materiale 1 · 0 di 6 approvati/)).toBeInTheDocument();
-  expect(screen.queryByRole("img", { name: "Fase superata" })).not.toBeInTheDocument(); // niente spunte: Start non ha un ordine rigido
+  const linda = screen.getByText("Linda Pavia").closest("tr");
+  expect(within(linda).getByText("Tocca a te")).toBeInTheDocument();
+  expect(within(linda).getByText("Leggi e approva: Materiale 1")).toBeInTheDocument();
+  expect(within(linda).getByText("ieri")).toBeInTheDocument();
+  expect(within(linda).queryByText("Fermo")).not.toBeInTheDocument();
+  // il pacchetto e' a parole, non solo a colori: 6 materiali con il loro stato
+  expect(within(linda).getByText("Materiale 1: Da approvare")).toBeInTheDocument();
+  expect(within(linda).getByText("Materiale 2: Da fare")).toBeInTheDocument();
+  expect(within(linda).getByText(/0 di 6/)).toBeInTheDocument();
+  const anna = screen.getByText("Anna Rossi").closest("tr");
+  expect(within(anna).getByText("Tocca al cliente")).toBeInTheDocument();
+  expect(within(anna).getByText("Fermo")).toBeInTheDocument();
+  expect(within(anna).getByText(/Nessun movimento dall'acquisto/)).toBeInTheDocument();
+  // chi aspetta te viene prima di chi aspetta il cliente
+  const nomi = screen.getAllByRole("row").slice(1).map((r) => r.textContent);
+  expect(nomi[0]).toMatch(/Linda Pavia/);
 });
 
-test("filtri per fase con i conteggi, e ricerca per nome", async () => {
+test("filtri con i conteggi (anche Fermi), e ricerca per nome", async () => {
   render(<MemoryRouter><PipelineStart /></MemoryRouter>);
   await screen.findByText("Linda Pavia");
   expect(screen.getByRole("button", { name: /Tutti 2/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Fermi 1/ }));
+  expect(screen.queryByText("Linda Pavia")).not.toBeInTheDocument();
+  expect(screen.getByText("Anna Rossi")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Da approvare 1/ }));
   expect(screen.queryByText("Anna Rossi")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Tutti/ }));

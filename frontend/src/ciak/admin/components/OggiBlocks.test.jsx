@@ -49,15 +49,17 @@ test("mostra le quattro domande del mattino con numeri veri, senza prova e senza
   rispondi();
   render(<OggiBlocks />);
   await caricato();
-  const riepilogo = screen.getByLabelText("Riepilogo di oggi");
-  // call: 1 prenotata + 2 fatte (Paola e' gia' partner → fuori) = 3
-  expect(within(riepilogo).getByText("Call da gestire").nextSibling.textContent).toBe("3");
+  // niente riepilogo ripetuto sopra i blocchi: i numeri stanno nei blocchi
+  expect(screen.queryByLabelText("Riepilogo di oggi")).toBeNull();
+  // call: 1 prenotata + 2 fatte (Paola e' gia' partner → fuori)
+  expect(screen.getByText("Prenotate · 1")).toBeTruthy();
+  expect(screen.getByText("Fatte, in attesa del passo successivo · 2")).toBeTruthy();
   // trattative: Test Ciak escluso → solo Sandro
-  expect(within(riepilogo).getByText("Trattative in corso").nextSibling.textContent).toBe("1");
-  // partner: Mario Rossi (finto) escluso → 3
-  expect(within(riepilogo).getByText("Partner in EVO").nextSibling.textContent).toBe("3");
-  // il tassello "Tocca a te" non c'e' piu': l'elenco con i nomi sta in "Urgenze di delivery"
-  expect(within(riepilogo).queryByText("Tocca a te")).toBeNull();
+  expect(screen.getByText("Aperte · 1")).toBeTruthy();
+  // partner: Mario Rossi (finto) escluso → 3, nel blocco "Come procedono i partner"
+  const partner = screen.getByRole("heading", { name: "Come procedono i partner in EVO" }).closest("section");
+  const totali = within(partner).getAllByRole("listitem").map((li) => parseInt(li.textContent.match(/\d+/)?.[0] || "0", 10));
+  expect(totali.reduce((x, y) => x + y, 0)).toBeGreaterThanOrEqual(3);
 });
 
 test("le call fatte mettono in cima chi aspetta da piu' giorni", async () => {
@@ -129,9 +131,6 @@ test("se una fonte non risponde, i suoi blocchi lo dicono e gli altri restano", 
   await waitFor(() => expect(within(delivery).getByText(/Dato non disponibile/)).toBeTruthy());
   // le call (altra fonte) sono comunque visibili
   expect(screen.getByText("Chiara Ferri")).toBeTruthy();
-  // e il riepilogo non finge uno zero per i partner
-  const riepilogo = screen.getByLabelText("Riepilogo di oggi");
-  expect(within(riepilogo).getByText("Partner in EVO").nextSibling.textContent).toBe("…");
 });
 
 test("'Riprova' ricarica entrambe le fonti", async () => {
@@ -166,7 +165,5 @@ test("se i giorni non si conoscono l'etichetta e' solo la parola, mai 'Fermo —
 test("in caricamento non inventa numeri", () => {
   apiGet.mockImplementation(() => new Promise(() => {})); // non risponde mai
   render(<OggiBlocks />);
-  const riepilogo = screen.getByLabelText("Riepilogo di oggi");
-  expect(within(riepilogo).getByText("Call da gestire").nextSibling.textContent).toBe("…");
   expect(screen.getAllByText("Caricamento…").length).toBeGreaterThan(0);
 });

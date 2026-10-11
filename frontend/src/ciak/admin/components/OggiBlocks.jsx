@@ -62,19 +62,6 @@ export function useOggiData(onAuthExpired) {
 
 // ── Pezzi di interfaccia ────────────────────────────────────────────────────
 
-function Stat({ href, label, value, sub }) {
-  return (
-    <a
-      href={href}
-      className="rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-slate-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-    >
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-      <span className="block text-3xl font-semibold text-slate-900 tabular-nums leading-tight mt-1">{value ?? "…"}</span>
-      {sub && <span className="block text-xs text-slate-500 mt-0.5">{sub}</span>}
-    </a>
-  );
-}
-
 function Block({ id, title, hint, state, onRetry, children }) {
   return (
     <section id={id} aria-labelledby={`${id}-t`} className="rounded-2xl border border-slate-200 bg-white p-5 scroll-mt-6">
@@ -135,7 +122,6 @@ export function OggiBlocks({ onAuthExpired }) {
   const { call, trattative, partner } = model;
   const stPipe = src.pipeline === undefined ? "loading" : src.pipeline === null ? "error" : "ok";
   const stAudit = src.audit === undefined ? "loading" : src.audit === null ? "error" : "ok";
-  const callN = call ? call.prenotate.length + call.fatte.length : null;
 
   return (
     <div className="mb-10">
@@ -149,14 +135,6 @@ export function OggiBlocks({ onAuthExpired }) {
           <RefreshCw className="w-3.5 h-3.5" aria-hidden />
           {src.at ? `Aggiornato alle ${new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" }).format(src.at)}` : "Aggiorna"}
         </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" aria-label="Riepilogo di oggi">
-        <Stat href="#call" label="Call da gestire" value={callN}
-          sub={call ? `${call.prenotate.length} prenotate · ${call.fatte.length} fatte` : null} />
-        <Stat href="#trattative" label="Trattative in corso" value={trattative ? trattative.length : null} />
-        <Stat href="#partner" label="Partner in EVO" value={partner ? partner.totale : null}
-          sub={partner ? `${partner.fermi} fermi` : null} />
       </div>
 
       <div className="grid grid-cols-1 gap-5">

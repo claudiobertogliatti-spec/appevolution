@@ -208,7 +208,7 @@ const NAV = [
         { to: "/admin/risultati-finali", label: "Siti e funnel da guardare", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
       { title: "Contenuti e percorso", pages: [
-        { to: "/admin/start", label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
+        { to: "/admin/start", propria: true, label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
         { to: "/admin/consegne-start", label: "Scadenze Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
         { to: "/admin/delivery-audit", label: "Stato del percorso", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
         { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
@@ -374,7 +374,7 @@ function MacroItem({ macro, currentPath }) {
   const landingPath = macro.landing ? `/admin/reparto/${macro.id}` : null;
   const isActive =
     (landingPath && matchesAdminPath(currentPath, landingPath)) ||
-    allPages.some((p) => matchesAdminPath(currentPath, p.to, p.end));
+    allPages.some((p) => !p.propria && matchesAdminPath(currentPath, p.to, p.end));
   return (
     <NavLink
       to={macroTarget(macro)}

@@ -5603,7 +5603,8 @@ async def pipeline_start(
         ):
             steps_by_client.setdefault(step.get("partner_id"), []).append(step)
         async for doc in db.ciak_start_deliverables.find(
-            {"partner_id": {"$in": ids}}, {"_id": 0, "partner_id": 1, "type": 1, "approval_status": 1}
+            {"partner_id": {"$in": ids}},
+            {"_id": 0, "partner_id": 1, "type": 1, "approval_status": 1, "approved_at": 1, "created_at": 1},
         ):
             docs_by_client.setdefault(doc.get("partner_id"), []).append(doc)
 
