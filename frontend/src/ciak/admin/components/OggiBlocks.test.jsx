@@ -56,8 +56,8 @@ test("mostra le quattro domande del mattino con numeri veri, senza prova e senza
   expect(within(riepilogo).getByText("Trattative in corso").nextSibling.textContent).toBe("1");
   // partner: Mario Rossi (finto) escluso → 3
   expect(within(riepilogo).getByText("Partner in EVO").nextSibling.textContent).toBe("3");
-  // tocca a te: Dario e Paola
-  expect(within(riepilogo).getByText("Tocca a te").nextSibling.textContent).toBe("2");
+  // il tassello "Tocca a te" non c'e' piu': l'elenco con i nomi sta in "Urgenze di delivery"
+  expect(within(riepilogo).queryByText("Tocca a te")).toBeNull();
 });
 
 test("le call fatte mettono in cima chi aspetta da piu' giorni", async () => {

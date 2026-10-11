@@ -2,6 +2,8 @@
 
 **DICHIARATO:** su richiesta di Claudio (screenshot di `ciak.io/admin`) rimosso da `AdminHome.jsx` il blocco «Numeri per reparto» (5 card Direzione/Acquisizione/Vendite/Delivery/Back office): ripeteva la sidebar. Restano striscia «Richiede attenzione», blocchi Oggi e «Le tue collaboratrici». Sottotitolo: «I reparti sono nel menu a sinistra.» Persi dalla Home, di proposito: cassa del mese, nuovi lead 7 gg, proposte inviate, partner attivi (sono nelle pagine dei reparti).
 
+**Aggiunta (stesso giorno):** tolto anche il tassello «Tocca a te» dal riepilogo di Oggi (`OggiBlocks.jsx`; ora 3 tasselli). L'elenco «Tocca a te» con i nomi resta in «Urgenze di delivery». Interpretazione di «il riquadro tocca a te» non confermata da Claudio.
+
 **VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 381 test passati. ⛔ Non visto nel browser. ⛔ L'evidenziazione dello screenshot non era visibile: ho dedotto che fosse il blocco card.
 
 ### 2026-10-09 · Claude Code · claude/fervent-ramanujan-wfdt8k — Andolfi: dominio `corsi.`, lezione 1, iscrizioni → Systeme

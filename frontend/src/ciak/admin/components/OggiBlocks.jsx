@@ -151,14 +151,12 @@ export function OggiBlocks({ onAuthExpired }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" aria-label="Riepilogo di oggi">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" aria-label="Riepilogo di oggi">
         <Stat href="#call" label="Call da gestire" value={callN}
           sub={call ? `${call.prenotate.length} prenotate · ${call.fatte.length} fatte` : null} />
         <Stat href="#trattative" label="Trattative in corso" value={trattative ? trattative.length : null} />
         <Stat href="#partner" label="Partner in EVO" value={partner ? partner.totale : null}
           sub={partner ? `${partner.fermi} fermi` : null} />
-        <Stat href="#delivery" label="Tocca a te" value={partner ? partner.tocca.length : null}
-          sub={partner ? `su ${partner.totale} partner` : null} />
       </div>
 
       <div className="grid grid-cols-1 gap-5">
