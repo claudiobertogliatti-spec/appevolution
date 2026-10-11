@@ -1,6 +1,6 @@
 /**
- * Il marchio di Ciak Start: scelte semplici fra opzioni pronte, un passo alla
- * volta. Logo e foto sono facoltativi. Niente codici colore da scrivere.
+ * Il marchio di Ciak Start = il brand kit EVO (Step03BrandKit riusato): tre colori,
+ * voce, parole, ecc. Logo e foto facoltativi, invio ai servizi Start, mai il PDF partner.
  */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
@@ -18,157 +18,89 @@ jest.mock("../api", () => ({
 import { StartMarchioPage } from "./StartMarchioPage";
 import { clientGet, clientPut } from "../api";
 
-const OPZIONI = {
-  palette: [
-    { id: "sicuro", nome: "Sicuro e professionale", descrizione: "Blu profondo e un tocco di oro.", colori: ["#0F2A4A", "#5B7C99", "#D9A441"] },
-    { id: "caldo", nome: "Caldo e accogliente", descrizione: "Marrone e terracotta.", colori: ["#5A2E1E", "#B5651D", "#E8B98A"] },
-  ],
-  font: [
-    { id: "moderno", nome: "Moderno", famiglia: "Poppins", descrizione: "Pulito e chiaro." },
-    { id: "classico", nome: "Classico", famiglia: "Lora", descrizione: "Con le grazie." },
-  ],
-  toni: [
-    { id: "semplice", nome: "Semplice e diretto" },
-    { id: "caldo", nome: "Caldo e rassicurante" },
-  ],
-};
 const DASH = { client: { id: "c1", name: "Linda Pavia" } };
+const VOCE = "Parlo in modo semplice e diretto, con esempi concreti e senza parole complicate, come in una consulenza.";
 
 beforeEach(() => {
   jest.clearAllMocks();
-  clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: {}, completato_at: null });
+  clientGet.mockResolvedValue({ valori: {}, completato_at: null });
   clientPut.mockImplementation(async (_p, body) => ({ success: true, valori: body.valori || {} }));
 });
 
-const avanti = () => screen.getByRole("button", { name: /avanti/i });
+const invia = () => screen.findByRole("button", { name: "Invia le mie scelte" });
 
-test("si sceglie fra colori pronti, senza scrivere codici, e Avanti si sblocca solo dopo la scelta", async () => {
+async function compila() {
+  fireEvent.change(await screen.findByPlaceholderText("Scrivi qui, con parole tue…"), { target: { value: VOCE } });
+  ["calma", "ascolto", "metodo"].forEach((p, i) =>
+    fireEvent.change(screen.getByPlaceholderText(`Parola ${i + 1}`), { target: { value: p } })
+  );
+}
+
+test("e' il form del brand kit EVO, con logo e foto facoltativi", async () => {
   render(<StartMarchioPage dashboard={DASH} />);
-  expect(await screen.findByText("Quali colori ti somigliano di più?")).toBeTruthy();
-  expect(screen.getByText("Sicuro e professionale")).toBeTruthy();
-  expect(screen.queryByPlaceholderText(/#/)).toBeNull();
-  expect(avanti().disabled).toBe(true);
-  fireEvent.click(screen.getByRole("radio", { name: /Caldo e accogliente/ }));
-  await waitFor(() => expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { palette_id: "caldo" } }));
-  expect(avanti().disabled).toBe(false);
+  expect(await screen.findByText("Il tuo marchio")).toBeTruthy();
+  expect(screen.getByText(/Logo, se ce l'hai/)).toBeTruthy();
+  expect(screen.getByText(/Una tua foto, se vuoi/)).toBeTruthy();
+  expect(screen.getByText("La voce del tuo Brand")).toBeTruthy();
+  expect(screen.getByText("Le parole da evitare", { exact: false })).toBeTruthy();
 });
 
-test("le lettere si vedono con il nome del cliente e la scelta si salva", async () => {
-  clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: { palette_id: "sicuro" }, completato_at: null });
+test("si invia solo con voce lunga come in EVO e almeno tre parole, senza logo ne' foto", async () => {
   render(<StartMarchioPage dashboard={DASH} />);
-  // La palette c'e' gia': si riprende dalle lettere.
-  expect(await screen.findByText("Quali lettere vuoi usare per il tuo nome?")).toBeTruthy();
-  expect(screen.getAllByText("Linda Pavia").length).toBe(2);
-  fireEvent.click(screen.getAllByRole("radio")[1]);
-  await waitFor(() => expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { font_id: "classico" } }));
+  expect((await invia()).disabled).toBe(true);
+  await compila();
+  expect((await invia()).disabled).toBe(false);
 });
 
-test("giro completo: logo e foto sono facoltativi e alla fine invia", async () => {
+test("l'invio va ai servizi Start con completato=true e poi ringrazia", async () => {
+  render(<StartMarchioPage dashboard={DASH} />);
+  await compila();
+  fireEvent.click(await invia());
+  await waitFor(() => expect(clientPut).toHaveBeenCalledWith(
+    "/start/marchio",
+    expect.objectContaining({ completato: true, valori: expect.objectContaining({ tone_of_voice: VOCE, parole_chiave: ["calma", "ascolto", "metodo"] }) })
+  ));
+  expect(await screen.findByTestId("marchio-inviato")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Torna al tuo percorso" }).getAttribute("href")).toBe("/cliente/start");
+});
+
+test("chi aveva gia' inviato vede il ringraziamento e puo' cambiare, ritrovando le sue scelte", async () => {
   clientGet.mockResolvedValue({
-    opzioni: OPZIONI,
-    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto", "metodo"] },
-    completato_at: null,
+    valori: { colors: ["#0F2A4A", "#5B7C99", "#D9A441"], tone_of_voice: VOCE, parole_chiave: ["calma", "ascolto", "metodo"] },
+    completato_at: "2026-10-02T10:00:00+00:00",
   });
-  render(<StartMarchioPage dashboard={DASH} />);
-  expect(await screen.findByText("Una tua foto")).toBeTruthy(); // ha scelto tutto: riparte dall'ultima
-  fireEvent.click(screen.getByRole("button", { name: "Indietro" }));
-  expect(await screen.findByText("Hai già un logo?")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Non ce l'ho, avanti" }));
-  expect(await screen.findByText("Una tua foto")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Invia le mie scelte" }));
-  expect(await screen.findByText("Grazie, abbiamo le tue scelte")).toBeTruthy();
-  expect(clientPut).toHaveBeenLastCalledWith("/start/marchio", { valori: {}, completato: true });
-});
-
-test("servono tre parole per andare avanti", async () => {
-  clientGet.mockResolvedValue({
-    opzioni: OPZIONI,
-    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto"] },
-    completato_at: null,
-  });
-  render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Tre parole che descrivono il tuo lavoro");
-  expect(avanti().disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText("Parola 3"), { target: { value: "metodo" } });
-  expect(avanti().disabled).toBe(false);
-});
-
-test("carica il logo e lo salva come indirizzo, senza dire nulla al team per ogni file", async () => {
-  clientGet.mockResolvedValue({
-    opzioni: OPZIONI,
-    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto", "metodo"] },
-    completato_at: null,
-  });
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://cdn.example.com/logo.png" }) });
-  const { container } = render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Una tua foto");
-  fireEvent.click(screen.getByRole("button", { name: "Indietro" }));
-  await screen.findByText("Hai già un logo?");
-  const file = new File(["x"], "logo.png", { type: "image/png" });
-  fireEvent.change(container.querySelector("input[type=file]"), { target: { files: [file] } });
-  await waitFor(() => expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { logo_url: "https://cdn.example.com/logo.png" } }));
-  expect(global.fetch.mock.calls[0][0]).toBe("/api/partner-journey/operativo/upload/c1?notify=false");
-});
-
-test("se il server dice che manca una scelta, riapre quel passo", async () => {
-  clientGet.mockResolvedValue({
-    opzioni: OPZIONI,
-    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto", "metodo"] },
-    completato_at: null,
-  });
-  clientPut.mockImplementation(async (_p, body) => {
-    if (body.completato) throw Object.assign(new Error("Manca"), { mancanti: ["font_id"] });
-    return { success: true, valori: body.valori || {} };
-  });
-  render(<StartMarchioPage dashboard={DASH} />);
-  await screen.findByText("Una tua foto");
-  fireEvent.click(screen.getByRole("button", { name: "Invia le mie scelte" }));
-  expect(await screen.findByText("Quali lettere vuoi usare per il tuo nome?")).toBeTruthy();
-  expect(screen.getByText(/Manca ancora una scelta/)).toBeTruthy();
-});
-
-test("chi ha già inviato vede il ringraziamento e può cambiare", async () => {
-  clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: { palette_id: "sicuro" }, completato_at: "2026-10-02T10:00:00+00:00" });
   render(<StartMarchioPage dashboard={DASH} />);
   expect(await screen.findByTestId("marchio-inviato")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Voglio cambiare qualcosa" }));
-  expect(await screen.findByText("Quali colori ti somigliano di più?")).toBeTruthy();
+  expect(await screen.findByDisplayValue(VOCE)).toBeTruthy();
+  expect(screen.getByDisplayValue("calma")).toBeTruthy();
 });
 
-test("riprende dalla prima scelta mancante, non dalla prima schermata", async () => {
-  clientGet.mockResolvedValue({ opzioni: OPZIONI, valori: { palette_id: "sicuro", font_id: "moderno" }, completato_at: null });
+test("se l'invio fallisce lo dice e resta sul form", async () => {
+  clientPut.mockRejectedValue(new Error("rete"));
   render(<StartMarchioPage dashboard={DASH} />);
-  expect(await screen.findByText("Come vuoi parlare alle persone?")).toBeTruthy();
+  await compila();
+  fireEvent.click(await invia());
+  expect(await screen.findByText(/Non sono riuscito a inviare/)).toBeTruthy();
+  expect(screen.queryByTestId("marchio-inviato")).toBeNull();
 });
 
-test("se ha scelto tutto ma non ha inviato riparte dall'ultima schermata", async () => {
-  clientGet.mockResolvedValue({
-    opzioni: OPZIONI,
-    valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo", parole_chiave: ["calma", "ascolto", "metodo"] },
-    completato_at: null,
-  });
-  render(<StartMarchioPage dashboard={DASH} />);
-  expect(await screen.findByText("Una tua foto")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Invia le mie scelte" })).toBeTruthy();
-});
-
-describe("le tre parole si salvano mentre scrive", () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
-  test("dopo un secondo di pausa, senza premere Avanti", async () => {
-    clientGet.mockResolvedValue({
-      opzioni: OPZIONI,
-      valori: { palette_id: "sicuro", font_id: "moderno", tono_id: "caldo" },
-      completato_at: null,
-    });
+test("mentre scrive si salva da solo, a pezzi, senza inviare", async () => {
+  jest.useFakeTimers();
+  try {
     render(<StartMarchioPage dashboard={DASH} />);
-    await screen.findByText("Tre parole che descrivono il tuo lavoro");
-    fireEvent.change(screen.getByLabelText("Parola 1"), { target: { value: "calma" } });
+    const campo = await screen.findByPlaceholderText("Scrivi qui, con parole tue…");
+    fireEvent.change(campo, { target: { value: "Parlo semplice" } });
     expect(clientPut).not.toHaveBeenCalled();
-    await act(async () => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { parole_chiave: ["calma", "", ""] } });
-  });
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(clientPut).toHaveBeenCalledWith("/start/marchio", { valori: { tone_of_voice: "Parlo semplice" } });
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test("errore di caricamento: messaggio semplice", async () => {
+  clientGet.mockRejectedValue(new Error("500"));
+  render(<StartMarchioPage dashboard={DASH} />);
+  expect(await screen.findByText(/Non riesco a caricare questa pagina/)).toBeTruthy();
 });

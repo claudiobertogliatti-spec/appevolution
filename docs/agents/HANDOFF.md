@@ -1,3 +1,23 @@
+### 2026-10-12 · Claude Code · claude/modest-euler-xde2pw — «Chi sei» e «Il tuo brand» di Start = percorso EVO
+
+**DECISIONI DI CLAUDIO (11-12/10):** (1) i clienti Start rispondono alle STESSE 20 domande del posizionamento EVO, tutte obbligatorie; (2) il marchio e' il brand kit completo di EVO. ⚠️ Contraddice la scelta documentata nel vecchio `ciak_start_domande.py` («otto e non venti: chi compra Start e' poco digitalizzato») e il principio «accompagnare per mano»: Claudio e' stato avvisato e ha confermato. Rischio da monitorare: clienti che non finiscono il questionario.
+
+**DICHIARATO (codice, sul branch, NON su main)**
+- Backend: `ciak_start_domande.py` → `DOMANDE_START_IDS` = 20 chiavi EVO (stesso ordine di `posizionamentoQuestions.js`); `DOMANDE_START_LEGACY_IDS` = le vecchie 8; `mancanti(risposte, gia_inviate)`: chi aveva GIA' inviato le 8 non viene riaperto (gli bastano le 8 se corregge). `routers/ciak_clients.py` passa `gia_inviate`.
+- `ciak_start_marchio.normalizza` accetta anche la forma EVO: `colors` (3 hex), `tone_of_voice` libera (bozza salvata di qualsiasi lunghezza; per INVIARE `mancanti` pretende `TONO_MIN`=40 come EVO), `espressioni`, `parole_evitare`, `emozioni`, `tono_scale`. Restano valide le vecchie scelte pronte. Le lettere (`font`) NON sono piu' obbligatorie (EVO non le chiede): default `Poppins` in `build_start_brand`. Logo e foto restano facoltativi in Start (obbligatori in EVO).
+- Frontend: `client/startDomande.js` deriva da `POSIZIONAMENTO_QUESTIONS` (una sola fonte; se cambia l'elenco va cambiato anche `DOMANDE_START_IDS`); `StartDomandePage` mostra il blocco («Il cliente ideale · Domanda 1 di 20»). `StartMarchioPage` ora incapsula `Step03BrandKit` (partner) con nuove prop opzionali `uploadFn`, `onFinalize`, `logoFotoObbligatori`, `ctaLabel`, `titolo`: il percorso EVO e' invariato (default). `MaterialiStart` e `start_libretto._sezione_marchio` mostrano anche espressioni / parole da evitare / emozioni.
+- Soglia minima per andare avanti nelle domande: resta 8 caratteri (`MIN_CARATTERI`), PIU' BASSA dei `minChar` EVO (25-80): scelta mia per un pubblico poco digitale, da confermare.
+
+**VERIFICATO**
+- Backend: nei file toccati i test che fallivano PRIMA falliscono uguale DOPO (dipendenze mancanti nel mio ambiente: es. `anthropic`, rotte dashboard), nessun fallimento nuovo; +8 test nuovi passati (domande: 2; marchio EVO: 5; libretto: 1). Eseguiti con `APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017`, dipendenze installate a mano nel sandbox.
+- Frontend `CI=true npx craco test --watchAll=false src/ciak` → 117 suite passate; unico fallito `PartnerFilesPage.loading` (preesistente).
+- ⛔ Mai visto nel browser vero. ⛔ La generazione automatica delle bozze con 20 risposte (posizionamento_statement ecc.) NON provata end-to-end.
+
+**APERTO**
+- ⛔ Non e' stata scritta l'approvazione automatica (vedi voce precedente): resta da fare.
+- ⛔ Il form brand EVO e' una pagina lunga (colori in esadecimale, scala del tono, emozioni): non l'ho reso «a passi» come i profili social. Candidato al prossimo giro.
+- 🔎 `AgentVoiceNarrante.jsx:8` (partner) dice ancora «8 domande»: preesistente, EVO ne ha 20.
+
 ### 2026-10-11 (notte) · Claude Code · claude/modest-euler-xde2pw — Profili social guidati per il cliente (pilota) + decisione sull'approvazione
 
 **DECISIONE DI CLAUDIO (da implementare, NON ANCORA FATTO):** l'approvazione a mano resta SOLO per sito vetrina + dominio (sono un passaggio solo: `approva_deliverable_start` con `live_url` https). Gli altri materiali (posizionamento, marchio, profili social, calendario 60 giorni) devono andare al cliente senza approvazione, MA: (a) una bozza con testo di ripiego (`_fallback`/`fallback`) resta ferma per l'approvazione manuale; (b) UNA sola email al cliente quando i materiali automatici sono pronti (oggi `invia_deliverable_pronto` parte a ogni approvazione). Punto d'innesto individuato: `services/start_autogenerazione.prepara_bozze` + `approva_deliverable_start` (PDF + email). `partnership_readiness` richiede `ready` (tutte le evidenze approvate): da decidere. Nessun codice scritto per questo.

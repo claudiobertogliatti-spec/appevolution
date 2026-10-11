@@ -708,7 +708,7 @@ async def salva_start_risposte(
     nuove = pulisci_risposte(body.answers)
     # Il percorso nasce con l'attivazione; se per qualunque motivo manca lo si
     # ricostruisce (idempotente) invece di far perdere le risposte al cliente.
-    giaci, _ = await _risposte_start(client["id"])
+    giaci, gia_inviate_at = await _risposte_start(client["id"])
     step = await db.partner_journey_steps.find_one(
         {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
     )
@@ -722,7 +722,7 @@ async def salva_start_risposte(
 
     tutte = {**giaci, **nuove}
     if body.completato:
-        assenti = mancanti(tutte)
+        assenti = mancanti(tutte, gia_inviate=bool(gia_inviate_at))
         if assenti:
             raise HTTPException(
                 status_code=422,
@@ -764,7 +764,11 @@ async def _marchio_start(client_id: str) -> dict:
 def _valori_marchio(data: dict) -> dict:
     valori = {
         k: data.get(k)
-        for k in ("palette_id", "font_id", "tono_id", "parole_chiave", "logo_url", "foto_url")
+        for k in (
+            "palette_id", "font_id", "tono_id", "parole_chiave", "logo_url", "foto_url",
+            # forma del brand kit EVO
+            "colors", "tone_of_voice", "tono_scale", "espressioni", "parole_evitare", "emozioni",
+        )
         if data.get(k)
     }
     if data.get("palette_id") == "miei" and data.get("colors"):

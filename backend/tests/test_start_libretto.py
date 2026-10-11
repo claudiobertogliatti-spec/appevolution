@@ -163,3 +163,18 @@ async def test_endpoint_restituisce_il_pdf(monkeypatch):
     monkeypatch.setattr(sl, "genera_libretto_start_pdf", _pdf)
     res = await partner_journey.get_start_libretto_pdf("c1", credentials=None)
     assert res.body == b"%PDF-libretto" and res.media_type == "application/pdf"
+
+
+def test_il_libretto_porta_i_campi_del_brand_kit_evo():
+    from services.start_libretto import _sezione_marchio
+
+    html = _sezione_marchio({
+        "colors": ["#112233", "#445566", "#778899"],
+        "tone_of_voice": "Parlo semplice e diretto con esempi concreti sempre",
+        "parole_chiave": ["calma"],
+        "espressioni": ["Partiamo dalle basi"],
+        "parole_evitare": ["subito"],
+        "emozioni": ["Sicuro"],
+    })
+    assert "Partiamo dalle basi" in html and "subito" in html and "Sicuro" in html
+    assert "Le parole da evitare" in html

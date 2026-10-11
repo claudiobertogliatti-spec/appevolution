@@ -846,7 +846,7 @@ def test_start_marchio_non_si_invia_se_manca_una_scelta(monkeypatch, client_app,
         headers=auth,
     )
     assert r.status_code == 422
-    assert set(r.json()["detail"]["mancanti"]) == {"font_id", "tono_id", "parole_chiave"}
+    assert set(r.json()["detail"]["mancanti"]) == {"tono_id", "parole_chiave"}  # le lettere non sono piu' obbligatorie
 
 
 def test_start_marchio_inviato_segna_il_momento_e_logo_foto_sono_facoltativi(monkeypatch, client_app, fake_db):
@@ -1112,3 +1112,34 @@ def test_il_cliente_ottiene_la_sua_proposta_dalla_sua_area(monkeypatch, client_a
 
 def test_la_proposta_dell_area_cliente_richiede_il_login(client_app):
     assert client_app.post("/api/ciak/client/partnership/proposta").status_code in (401, 403)
+
+
+def test_start_risposte_le_venti_sono_tutte_obbligatorie_per_chi_inizia(monkeypatch, client_app, fake_db):
+    from services.ciak_start_domande import DOMANDE_START_IDS, DOMANDE_START_LEGACY_IDS
+
+    assert len(DOMANDE_START_IDS) == 20 and set(DOMANDE_START_LEGACY_IDS) <= set(DOMANDE_START_IDS)
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    solo_otto = {k: f"Risposta di prova per {k}" for k in DOMANDE_START_LEGACY_IDS}
+    r = client_app.put("/api/ciak/client/start/risposte", json={"answers": solo_otto, "completato": True}, headers=auth)
+    assert r.status_code == 422
+    assert "paure_avatar" in r.json()["detail"]["mancanti"]
+    assert "answers_completed_at" not in fake_db.partner_journey_steps.docs[0]["data"]
+
+
+def test_start_risposte_chi_aveva_gia_inviato_le_otto_non_viene_riaperto(monkeypatch, client_app, fake_db):
+    from services.ciak_start_domande import DOMANDE_START_LEGACY_IDS
+
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    step = fake_db.partner_journey_steps.docs[0]
+    step["data"] = {
+        "answers": {k: f"Risposta di prova per {k}" for k in DOMANDE_START_LEGACY_IDS},
+        "answers_completed_at": "2026-10-01T10:00:00+00:00",
+    }
+    # corregge una risposta e reinvia: bastano le otto di prima
+    r = client_app.put(
+        "/api/ciak/client/start/risposte",
+        json={"answers": {"nicchia": "Donne dopo i 40, versione corretta"}, "completato": True},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["answers"]["nicchia"] == "Donne dopo i 40, versione corretta"

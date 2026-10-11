@@ -127,3 +127,15 @@ test("senza materiali non mostra niente", () => {
   const { container } = render(<MaterialiStart items={[]} />);
   expect(container.firstChild).toBeNull();
 });
+
+test("il marchio mostra anche espressioni, parole da evitare ed emozioni del brand kit EVO", () => {
+  render(<MaterialiStart items={[{
+    ...MARCHIO,
+    espressioni: ["Partiamo dalle basi"],
+    parole_evitare: ["subito"],
+    emozioni: ["Sicuro", "Curioso"],
+  }]} />);
+  expect(screen.getByText("Partiamo dalle basi")).toBeTruthy();
+  expect(screen.getByText("Le parole da evitare")).toBeTruthy();
+  expect(screen.getByText("Curioso")).toBeTruthy();
+});

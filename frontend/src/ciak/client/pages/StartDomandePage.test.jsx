@@ -18,6 +18,7 @@ import { StartDomandePage } from "./StartDomandePage";
 import { clientGet, clientPut } from "../api";
 import { START_DOMANDE } from "../startDomande";
 
+const ULTIMA = START_DOMANDE[START_DOMANDE.length - 1];
 const DASH = { start: { consegne: ["08/10/2026", "15/10/2026", "22/10/2026"] } };
 
 beforeEach(() => {
@@ -32,7 +33,7 @@ test("parte dalla prima domanda e Avanti si sblocca solo con una risposta vera",
   clientGet.mockResolvedValue({ answers: {}, completato_at: null });
   render(<StartDomandePage dashboard={DASH} />);
   expect(await screen.findByText(START_DOMANDE[0].domanda)).toBeTruthy();
-  expect(screen.getByText(/Domanda 1 di 8/)).toBeTruthy();
+  expect(screen.getByText(/Domanda 1 di 20/)).toBeTruthy();
   const avanti = screen.getByRole("button", { name: "Avanti" });
   expect(avanti.disabled).toBe(true);
   scrivi("ok");
@@ -60,21 +61,21 @@ test("riprende dalla prima domanda senza risposta", async () => {
   });
   render(<StartDomandePage dashboard={DASH} />);
   expect(await screen.findByText(START_DOMANDE[2].domanda)).toBeTruthy();
-  expect(screen.getByText(/Domanda 3 di 8/)).toBeTruthy();
+  expect(screen.getByText(/Domanda 3 di 20/)).toBeTruthy();
 });
 
 test("all'ultima domanda invia tutto e ringrazia con la data della prima tappa", async () => {
   const tutte = Object.fromEntries(START_DOMANDE.map((d) => [d.id, `Risposta per ${d.id}`]));
   const quasi = { ...tutte };
-  delete quasi.prezzo_e_formato;
+  delete quasi[ULTIMA.id];
   clientGet.mockResolvedValue({ answers: quasi, completato_at: null });
   render(<StartDomandePage dashboard={DASH} />);
-  expect(await screen.findByText(START_DOMANDE[7].domanda)).toBeTruthy();
+  expect(await screen.findByText(ULTIMA.domanda)).toBeTruthy();
   scrivi("Percorso di otto incontri");
   fireEvent.click(screen.getByRole("button", { name: "Invia le risposte" }));
   await waitFor(() =>
     expect(clientPut).toHaveBeenLastCalledWith("/start/risposte", {
-      answers: { ...quasi, prezzo_e_formato: "Percorso di otto incontri" },
+      answers: { ...quasi, [ULTIMA.id]: "Percorso di otto incontri" },
       completato: true,
     })
   );
@@ -89,9 +90,10 @@ test("se il server dice che manca una risposta, riapre quella domanda", async ()
   const err = Object.assign(new Error("Manca ancora qualche risposta."), { mancanti: ["promessa"] });
   clientPut.mockRejectedValueOnce(err);
   render(<StartDomandePage dashboard={DASH} />);
-  await screen.findByText(START_DOMANDE[7].domanda);
+  await screen.findByText(ULTIMA.domanda);
   fireEvent.click(screen.getByRole("button", { name: "Invia le risposte" }));
-  expect(await screen.findByText(START_DOMANDE[2].domanda)).toBeTruthy();
+  const promessa = START_DOMANDE.find((d) => d.id === "promessa");
+  expect(await screen.findByText(promessa.domanda)).toBeTruthy();
   expect(screen.getByText(/Manca ancora una risposta/)).toBeTruthy();
 });
 
@@ -158,4 +160,11 @@ describe("non si perde quello che sta scrivendo", () => {
     });
     Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
   });
+});
+
+test("sono le 20 domande del percorso EVO, raggruppate per blocco", async () => {
+  expect(START_DOMANDE).toHaveLength(20);
+  clientGet.mockResolvedValue({ answers: {}, completato_at: null });
+  render(<StartDomandePage dashboard={DASH} />);
+  expect(await screen.findByText(/Il cliente ideale · Domanda 1 di 20/)).toBeTruthy();
 });

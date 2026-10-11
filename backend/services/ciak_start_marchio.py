@@ -1,8 +1,12 @@
-"""Il marchio del cliente Start: scelte semplici invece di codici colore.
+"""Il marchio del cliente Start.
 
-Il brand kit del partner chiede esadecimali, sliders di tono e 20 campi. Chi
-compra Start non ha dimestichezza con quei termini: sceglie fra poche opzioni
-gia' pronte (colori, lettere, modo di parlare) e, se vuole, carica logo e foto.
+Dall'11/10/2026 (decisione di Claudio) il cliente Start compila lo STESSO brand kit del
+percorso EVO: tre colori, voce, tono a coppie, parole, espressioni, parole da evitare,
+emozioni, logo e foto (questi ultimi due FACOLTATIVI in Start, obbligatori in EVO).
+Restano valide anche le vecchie scelte pronte (palette/lettere/tono) per chi le aveva
+gia' fatte: `normalizza` accetta entrambe le forme.
+
+Prima: sceglieva fra poche opzioni gia' pronte (colori, lettere, modo di parlare).
 
 Le scelte finiscono nello step `03-brand-kit` con DUE forme, per non rompere
 nessuno:
@@ -57,6 +61,22 @@ MAX_PAROLA = 40
 PAROLE_MIN = 3
 PAROLE_MAX = 5
 
+# Campi del brand kit EVO (stesse chiavi di `Step03BrandKit.jsx`).
+TONO_MIN = 40            # caratteri minimi della voce scritta a mano (come in EVO)
+TONO_MAX = 1500
+ESPRESSIONI_MAX = 3
+ESPRESSIONE_MAX = 160
+PAROLE_EVITARE_MAX = 3
+EMOZIONI = (
+    "Motivato", "Tranquillo", "Compreso", "Curioso", "Sicuro", "Ispirato",
+    "Competente", "Fiducioso", "Stimolato ad agire",
+)
+EMOZIONI_MAX = 5
+TONO_COPPIE = 6          # coppie di toni (Formale/Informale ...), valori 0-4
+
+# Font di default quando il cliente non sceglie le lettere (il brand kit EVO non le chiede).
+FONT_DEFAULT = "Poppins"
+
 
 def opzioni() -> dict[str, Any]:
     return {
@@ -106,6 +126,42 @@ def normalizza(valori: Any) -> dict[str, Any]:
         out["tono_id"] = valori["tono_id"]
         out["tone_of_voice"] = toni[valori["tono_id"]]["frase"]
 
+    # ── Forma EVO ────────────────────────────────────────────────────────────
+    liberi = valori.get("colors")
+    if (
+        "colors" not in out
+        and isinstance(liberi, list)
+        and len(liberi) == 3
+        and all(isinstance(c, str) and HEX_RE.match(c) for c in liberi)
+    ):
+        colori = [c.upper() for c in liberi]
+        out["palette_id"] = "miei"
+        out["colors"] = colori
+        out["colore_primario"], out["colore_secondario"], out["colore_accento"] = colori
+
+    if "tone_of_voice" not in out:
+        # La bozza si salva di qualunque lunghezza (chi scrive piano non perde il testo se
+        # chiude la pagina); i TONO_MIN caratteri servono solo per INVIARE (vedi `mancanti`).
+        voce = " ".join(str(valori.get("tone_of_voice") or "").split())[:TONO_MAX]
+        if voce:
+            out["tone_of_voice"] = voce
+
+    for chiave, massimo, lunghezza in (
+        ("espressioni", ESPRESSIONI_MAX, ESPRESSIONE_MAX),
+        ("parole_evitare", PAROLE_EVITARE_MAX, MAX_PAROLA),
+    ):
+        lista = valori.get(chiave)
+        if isinstance(lista, list):
+            out[chiave] = [" ".join(str(p).split())[:lunghezza] for p in lista if str(p or "").strip()][:massimo]
+
+    emozioni = valori.get("emozioni")
+    if isinstance(emozioni, list):
+        out["emozioni"] = [e for e in dict.fromkeys(emozioni) if e in EMOZIONI][:EMOZIONI_MAX]
+
+    scala = valori.get("tono_scale")
+    if isinstance(scala, list) and len(scala) == TONO_COPPIE and all(isinstance(v, int) and 0 <= v <= 4 for v in scala):
+        out["tono_scale"] = scala
+
     parole = valori.get("parole_chiave")
     if isinstance(parole, list):
         out["parole_chiave"] = [str(p).strip()[:MAX_PAROLA] for p in parole if str(p or "").strip()][:PAROLE_MAX]
@@ -117,13 +173,12 @@ def normalizza(valori: Any) -> dict[str, Any]:
 
 
 def mancanti(dati: dict[str, Any]) -> list[str]:
-    """Le scelte obbligatorie non ancora fatte. Logo e foto sono facoltativi."""
+    """Le scelte obbligatorie non ancora fatte. Logo, foto e lettere sono facoltativi
+    (le lettere, se mancano, sono Poppins: il brand kit EVO non le chiede)."""
     assenti = []
     if not dati.get("colore_primario"):
         assenti.append("palette_id")
-    if not dati.get("font"):
-        assenti.append("font_id")
-    if not dati.get("tone_of_voice"):
+    if len(str(dati.get("tone_of_voice") or "").strip()) < TONO_MIN:
         assenti.append("tono_id")
     if len([p for p in (dati.get("parole_chiave") or []) if str(p).strip()]) < PAROLE_MIN:
         assenti.append("parole_chiave")

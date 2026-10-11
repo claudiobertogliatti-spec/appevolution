@@ -127,7 +127,7 @@ function Marchio({ item }) {
       ) : null}
       {(item.parole_chiave || []).length ? (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Le tue tre parole</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Le tue parole</p>
           <p className="mt-1 flex flex-wrap gap-2">
             {item.parole_chiave.map((p) => (
               <span key={p} className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-800">{p}</span>
@@ -135,6 +135,22 @@ function Marchio({ item }) {
           </p>
         </div>
       ) : null}
+      {[
+        ["Le espressioni che ti rappresentano", item.espressioni],
+        ["Le parole da evitare", item.parole_evitare],
+        ["Come vuoi far sentire chi ti ascolta", item.emozioni],
+      ].map(([titolo, voci]) =>
+        (voci || []).length ? (
+          <div key={titolo}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{titolo}</p>
+            <p className="mt-1 flex flex-wrap gap-2">
+              {voci.map((v) => (
+                <span key={v} className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-800">{v}</span>
+              ))}
+            </p>
+          </div>
+        ) : null
+      )}
       {item.logo_url || item.foto_url ? (
         <div className="flex flex-wrap gap-4">
           {item.logo_url ? <img src={item.logo_url} alt="Il tuo logo" className="max-h-28 rounded-lg border border-slate-200 object-contain" /> : null}

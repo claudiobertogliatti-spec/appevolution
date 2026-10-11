@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from services.ciak_start_marchio import FONT, PALETTE, TONI
+from services.ciak_start_marchio import FONT, FONT_DEFAULT, PALETTE, TONI
 
 
 def build_start_positioning(statement: dict[str, Any], answers: dict[str, Any]) -> dict[str, Any]:
@@ -52,11 +52,15 @@ def build_start_brand(data: dict[str, Any]) -> dict[str, Any]:
             "colori": colori,
         },
         "font": {
-            "nome": (font or {}).get("nome") or data.get("font") or "",
-            "famiglia": data.get("font") or (font or {}).get("famiglia") or "",
+            "nome": (font or {}).get("nome") or ("" if data.get("font") else "Moderno"),
+            "famiglia": data.get("font") or (font or {}).get("famiglia") or FONT_DEFAULT,
         },
         "tono": {"nome": (tono or {}).get("nome") or "", "frase": data.get("tone_of_voice") or ""},
         "parole_chiave": [str(p) for p in (data.get("parole_chiave") or []) if str(p).strip()],
+        # Dal brand kit EVO (facoltativi: assenti nei marchi scelti con le opzioni pronte).
+        "parole_evitare": [str(p) for p in (data.get("parole_evitare") or []) if str(p).strip()],
+        "espressioni": [str(p) for p in (data.get("espressioni") or []) if str(p).strip()],
+        "emozioni": [str(p) for p in (data.get("emozioni") or []) if str(p).strip()],
         "logo_url": data.get("logo_url") or "",
         "foto_url": data.get("foto_url") or "",
     }

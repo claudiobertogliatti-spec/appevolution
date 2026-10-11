@@ -173,7 +173,7 @@ export function StartDomandePage({ dashboard }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">
-        Domanda {indice + 1} di {START_DOMANDE.length}
+        {domanda.blocco ? `${domanda.blocco} · ` : ""}Domanda {indice + 1} di {START_DOMANDE.length}
       </p>
       <div
         className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100"

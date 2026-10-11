@@ -96,11 +96,23 @@ def _sezione_marchio(brand: dict[str, Any]) -> str:
         '<div class="sl-pills">' + "".join(f'<span class="sl-pill">{esc(p)}</span>' for p in parole) + "</div>"
         if parole else ""
     )
+    def _pillole(titolo: str, voci: Any) -> str:
+        voci = [v for v in (voci or []) if str(v).strip()]
+        return (
+            f'<div class="doc-qa"><div class="lab">{esc(titolo)}</div></div>'
+            '<div class="sl-pills">' + "".join(f'<span class="sl-pill">{esc(v)}</span>' for v in voci) + "</div>"
+            if voci else ""
+        )
+
     return (
         (f'<div class="doc-qa"><div class="lab">Colori</div></div><div class="sl-palette">{palette}</div>' if palette else "")
         + _qa("Carattere", brand.get("font") or "")
         + _qa("Come parli", brand.get("tone_of_voice") or "")
         + pills
+        # dal brand kit EVO (assenti nei marchi scelti con le opzioni pronte)
+        + _pillole("Le espressioni che ti rappresentano", brand.get("espressioni"))
+        + _pillole("Le parole da evitare", brand.get("parole_evitare"))
+        + _pillole("Come vuoi far sentire chi ti ascolta", brand.get("emozioni"))
     ) or '<div class="doc-empty">Scelte sul marchio non ancora indicate.</div>'
 
 
