@@ -2,7 +2,7 @@
  * I materiali approvati di Ciak Start, come li legge il cliente: ognuno col suo
  * titolo in parole semplici e, dove serve, il pulsante "Copia".
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MaterialiStart } from "./MaterialiStart";
 
 const POS = {
@@ -58,13 +58,61 @@ test("il marchio mostra colori, lettere, voce e parole scelte", () => {
   expect(container.querySelector("img[alt='Il tuo logo']")).not.toBeNull();
 });
 
-test("i testi dei profili si copiano con un pulsante", async () => {
-  Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue() } });
-  render(<MaterialiStart items={[PROFILI]} />);
-  const copia = screen.getAllByRole("button", { name: "Copia" });
-  fireEvent.click(copia[1]); // il primo e' il nome, il secondo Instagram
-  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Ti aiuto a ritrovare energia."));
-  expect(await screen.findByText("Copiato")).toBeTruthy();
+describe("profili social guidati", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  test("un passo alla volta: parte da Instagram, con i passi numerati e il disegno d'esempio", () => {
+    render(<MaterialiStart items={[PROFILI]} />);
+    expect(screen.getByText("Passo 1 di 2")).toBeTruthy(); // Instagram e LinkedIn (non ci sono Facebook e TikTok)
+    expect(screen.getByRole("heading", { name: "Instagram" })).toBeTruthy();
+    expect(screen.getByText(/Tocca «Modifica profilo»/)).toBeTruthy();
+    expect(screen.getByRole("img", { name: /zona gialla/ })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "LinkedIn" })).toBeNull(); // LinkedIn arriva dopo
+    expect(screen.getByText("Hai completato 0 passi su 2")).toBeTruthy();
+  });
+
+  test("il testo si copia con un pulsante grande e dice cosa fare dopo", async () => {
+    Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue() } });
+    render(<MaterialiStart items={[PROFILI]} />);
+    const passo = screen.getByRole("heading", { name: "Instagram" }).parentElement;
+    fireEvent.click(within(passo).getByRole("button", { name: "Copia il testo" }));
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Ti aiuto a ritrovare energia."));
+    expect(await screen.findByText(/Copiato! Ora vai a incollarlo/)).toBeTruthy();
+  });
+
+  test("«Ho incollato» segna il passo e porta al successivo; il progresso resta", () => {
+    const { unmount } = render(<MaterialiStart items={[PROFILI]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ho incollato, vai avanti" }));
+    expect(screen.getByRole("heading", { name: "LinkedIn" })).toBeTruthy();
+    expect(screen.getByText("Hai completato 1 passo su 2")).toBeTruthy();
+    unmount();
+    render(<MaterialiStart items={[PROFILI]} />);
+    // riaperto: riparte dal primo passo non fatto
+    expect(screen.getByRole("heading", { name: "LinkedIn" })).toBeTruthy();
+    expect(screen.getByText("Hai completato 1 passo su 2")).toBeTruthy();
+  });
+
+  test("LinkedIn ha due testi numerati; «Lo faccio dopo» non lo segna come fatto", () => {
+    render(<MaterialiStart items={[PROFILI]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Lo faccio dopo" }));
+    expect(screen.getByText("1. La riga sotto il tuo nome")).toBeTruthy();
+    expect(screen.getByText("2. La sezione «Informazioni»")).toBeTruthy();
+    const passo = screen.getByRole("heading", { name: "LinkedIn" }).parentElement;
+    expect(within(passo).getAllByRole("button", { name: "Copia il testo" })).toHaveLength(2);
+    expect(screen.getByText("Hai completato 0 passi su 2")).toBeTruthy();
+  });
+
+  test("c'e' sempre un modo per chiedere aiuto, e il link segnaposto non si copia come testo", () => {
+    render(<MaterialiStart items={[{ ...PROFILI, link_in_bio: "da inserire quando il sito vetrina e' online" }]} />);
+    expect(screen.getByRole("link", { name: /scrivici e ti aiutiamo/ }).getAttribute("href")).toMatch(/^mailto:/);
+    expect(screen.queryByText(/da inserire quando/)).toBeNull();
+    expect(screen.getByText(/lo aggiungiamo dopo/)).toBeTruthy();
+  });
+
+  test("senza testi pronti lo dice con parole semplici", () => {
+    render(<MaterialiStart items={[{ type: "social_profiles" }]} />);
+    expect(screen.getByText(/non sono ancora pronti/)).toBeTruthy();
+  });
 });
 
 test("la pagina web rimanda all'indirizzo vero, o dice che arriva", () => {

@@ -1,3 +1,20 @@
+### 2026-10-11 (notte) · Claude Code · claude/modest-euler-xde2pw — Profili social guidati per il cliente (pilota) + decisione sull'approvazione
+
+**DECISIONE DI CLAUDIO (da implementare, NON ANCORA FATTO):** l'approvazione a mano resta SOLO per sito vetrina + dominio (sono un passaggio solo: `approva_deliverable_start` con `live_url` https). Gli altri materiali (posizionamento, marchio, profili social, calendario 60 giorni) devono andare al cliente senza approvazione, MA: (a) una bozza con testo di ripiego (`_fallback`/`fallback`) resta ferma per l'approvazione manuale; (b) UNA sola email al cliente quando i materiali automatici sono pronti (oggi `invia_deliverable_pronto` parte a ogni approvazione). Punto d'innesto individuato: `services/start_autogenerazione.prepara_bozze` + `approva_deliverable_start` (PDF + email). `partnership_readiness` richiede `ready` (tutte le evidenze approvate): da decidere. Nessun codice scritto per questo.
+
+**PRINCIPIO (Claudio):** il cliente Start e' poco digitalizzato: va accompagnato per mano, una azione alla volta, parole semplici, esempi visivi.
+
+**DICHIARATO (codice, sul branch, NON su main):** `frontend/src/ciak/client/ProfiliGuidati.jsx` sostituisce il vecchio blocco `Profili` in `MaterialiStart.jsx`: un passo per piattaforma (Instagram, Facebook, LinkedIn, TikTok), disegno d'esempio nostro (SVG generico con la zona gialla «qui incolli», non screenshot di app altrui), passi numerati, un pulsante grande «Copia il testo», «Ho incollato, vai avanti» / «Lo faccio dopo», contatore «Hai completato N passi su M», aiuto via `mailto:assistenza@evolution-pro.it` (indirizzo gia' presente in `CiakClientApp.jsx`). Il link in bio segnaposto («da inserire quando…») non si mostra piu' come testo da copiare. Nome da mostrare, scritte per la copertina e storie in evidenza stanno in «Più avanti».
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak` → 117 suite passate, 741 test; unico fallito `PartnerFilesPage.loading` (preesistente, gia' noto). I 4 disegni resi con Chromium e guardati (uno ritoccato: etichetta LinkedIn sul bordo).
+
+**⛔ NON VERIFICATO / APERTO**
+- I passi dei menu delle app (es. «Tocca la tua foto in basso a destra → Modifica profilo → Bio») vengono da guide di TERZI trovate con WebSearch (nessuna pagina ufficiale Instagram/Facebook/LinkedIn/TikTok trovata): vanno provati con le app aperte (Claudio/Antonella) prima di fidarsi. I testi dicono al cliente di cercare la voce simile o di scrivere.
+- 🔎 DISCREPANZA: `services/start_profili_social.LIMITI["facebook_descrizione"] = 255` («verificati al 12/8/2026»), una guida di terzi parla di 155 caratteri per la descrizione. Non toccato: da verificare sulla piattaforma.
+- «Fatto» si ricorda solo sul dispositivo del cliente (localStorage): l'admin NON lo vede. Idea: salvarlo lato server per alimentare la pagina Clienti.
+- Mai visto nel browser vero (solo test e render dei disegni). Il PDF «libretto» (`start_libretto.py`) non e' stato toccato e ha ancora etichette tecniche; i testi generati hanno ancora apostrofi al posto delle accentate («Cos'e'», «e'»).
+- Stesso schema guidato da applicare a sito, marchio, calendario.
+
 ### 2026-10-11 (sera, 2) · Claude Code · claude/modest-euler-xde2pw — Home a 4 riquadri apribili
 
 **DICHIARATO:** su richiesta di Claudio la Home «Oggi» e' ora fatta di 4 riquadri lunghi, apribili con la freccia, in quest'ordine: **Call · Trattative · Clienti · Partner**. Intestazione nel blu scuro della sidebar (slate-900, titolo bianco, freccia gialla `#FACC15`). Chiusi mostrano un riassunto con i numeri; partono chiusi e il browser ricorda cosa era aperto (`localStorage` chiave `ciak_admin_home_riquadri`, solo comodita'). Componente nuovo `components/ui/Riquadro.jsx` (un solo `<button aria-expanded>` nell'`<h2>`, riga intera cliccabile). `OggiBlocks` riceve `clienti` (= `OggiStart`) e lo mette in terza posizione. «Partner» unisce «Come procedono per fase» e le urgenze di delivery (Tocca a te / Aspettiamo il partner). Titolo «Trattative in corso» → «Trattative».

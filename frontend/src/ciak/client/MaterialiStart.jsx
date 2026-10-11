@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ProfiliGuidati } from "./ProfiliGuidati";
 
 /**
  * I materiali di Ciak Start approvati dal team, come li legge il cliente:
@@ -144,27 +145,6 @@ function Marchio({ item }) {
   );
 }
 
-function Profili({ item }) {
-  return (
-    <div className="mt-4 space-y-3">
-      <p className="text-sm leading-relaxed text-slate-600">
-        Sono i testi pronti per i tuoi profili. Premi «Copia» e incollali dove vanno.
-      </p>
-      <Blocco titolo="Il nome da mostrare" testo={item.nome_visualizzato} />
-      <Blocco titolo="Instagram · presentazione" testo={item.instagram?.bio} />
-      <Blocco titolo="Facebook · descrizione" testo={item.facebook?.descrizione} />
-      <Blocco titolo="LinkedIn · titolo" testo={item.linkedin?.headline} />
-      <Blocco titolo="LinkedIn · chi sono" testo={item.linkedin?.about} />
-      <Blocco titolo="TikTok · presentazione" testo={item.tiktok?.bio} />
-      <Blocco titolo="Immagine di copertina · titolo" testo={item.cover?.titolo} />
-      <Blocco titolo="Immagine di copertina · sottotitolo" testo={item.cover?.sottotitolo} />
-      {(item.in_evidenza || []).length ? (
-        <Blocco titolo="Le storie in evidenza" testo={item.in_evidenza.join("\n")} />
-      ) : null}
-    </div>
-  );
-}
-
 function Pagina({ item }) {
   return (
     <div className="mt-4 space-y-3">
@@ -227,7 +207,7 @@ export function MaterialiStart({ items }) {
             <summary className="cursor-pointer font-semibold text-slate-800">{TITOLI[item.type] || "Materiale"}</summary>
             {item.type === "positioning" && <Posizionamento item={item} />}
             {item.type === "brand_kit" && <Marchio item={item} />}
-            {item.type === "social_profiles" && <Profili item={item} />}
+            {item.type === "social_profiles" && <ProfiliGuidati item={item} />}
             {item.type === "showcase" && <Pagina item={item} />}
             {item.type === "content_plan_90d" && <Calendario item={item} />}
             {item.type === "partnership_readiness" && (
