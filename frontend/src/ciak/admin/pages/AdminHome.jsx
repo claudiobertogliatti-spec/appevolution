@@ -1,19 +1,17 @@
 /**
  * Ciak Admin — Home "Regia" (lancia-reparti, stile app bancaria/Poste).
  *
- * Pagina d'ingresso di /admin: entri e vedi le grandi categorie (i 5 reparti),
- * ognuna con un'etichetta chiara, una frase piana e UN numero reale. In cima, la
- * striscia "Richiede attenzione" (come i movimenti in evidenza di una banca).
+ * Pagina d'ingresso di /admin: striscia "Richiede attenzione", blocchi "Oggi" e
+ * accessi alle collaboratrici. I reparti NON sono ripetuti qui: stanno nella sidebar.
  *
- * I numeri vengono dalle fonti già esistenti (useRepartoMetrics → endpoint admin).
- * Stati distinti e onesti: caricamento (…), dato non disponibile (—/Da attivare),
- * zero (0/Nessuna), valore reale. Nessuna cifra inventata. La Direzione non ha un
- * endpoint metriche dedicato: la sua tessera mostra la cassa reale (da Back office).
+ * La striscia legge le fonti già esistenti (useRepartoMetrics → endpoint admin).
+ * Stati distinti e onesti: caricamento, dato non disponibile, zero, valore reale.
+ * Nessuna cifra inventata.
  *
- * Brand lockato: Poppins, slate + giallo. Riusa lo stile delle card di RepartoLanding.
+ * Brand lockato: Poppins, slate + giallo.
  */
 import { Link } from "react-router-dom";
-import { ArrowRight, BarChart3, CreditCard, LayoutDashboard, Megaphone, Users, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { useRepartoMetrics } from "../repartoMetrics";
 import { OggiBlocks } from "../components/OggiBlocks";
 import { OggiStart } from "../components/OggiStart";
@@ -35,23 +33,8 @@ const metric = (obj, label) => stateOf(obj) === "loading"
 
 export function AdminHome({ user, onAuthExpired }) {
   const nome = (user?.name || "").trim().split(/\s+/)[0] || "Claudio";
-  const acq = useRepartoMetrics("acquisizione");
-  const ven = useRepartoMetrics("vendite");
   const del = useRepartoMetrics("delivery");
   const bo = useRepartoMetrics("back-office");
-
-  const tiles = [
-    { id: "direzione", label: "Direzione", to: "/admin/direzione", Icon: LayoutDashboard,
-      desc: "Decisioni, cassa e andamento dei reparti.", sl: "Cassa del mese", sv: metric(bo, "Incassi mese") },
-    { id: "acquisizione", label: "Acquisizione", to: "/admin/reparto/acquisizione", Icon: Megaphone,
-      desc: "Trova e scalda nuovi contatti fino al Blueprint.", sl: "Nuovi lead · 7 giorni", sv: metric(acq, "Nuovi lead 7 giorni") },
-    { id: "vendite", label: "Vendite", to: "/admin/reparto/vendite", Icon: BarChart3,
-      desc: "Dal Blueprint alla firma: call, trattative, chiusura.", sl: "Proposte inviate", sv: metric(ven, "Proposte inviate") },
-    { id: "delivery", label: "Delivery", to: "/admin/reparto/delivery", Icon: Users,
-      desc: "Segui i partner fino al live: materiali, video, risultati.", sl: "Partner attivi", sv: metric(del, "Partner attivi") },
-    { id: "back-office", label: "Back office", to: "/admin/reparto/back-office", Icon: CreditCard,
-      desc: "Soldi, contratti e collaboratori.", sl: "Scade oggi", sv: metric(bo, "Scade oggi") },
-  ];
 
   // Striscia "richiede attenzione": solo voci realmente > 0, dalle stesse fonti.
   // I partner fermi NON stanno piu' qui: li conta il blocco "Oggi" (che esclude gli
@@ -74,7 +57,7 @@ export function AdminHome({ user, onAuthExpired }) {
     <div className="p-5 sm:p-10 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-slate-900">Ciao {nome}</h1>
-        <p className="text-slate-500 mt-2">Cosa fare oggi, in ordine. I reparti sono qui sotto, per leggere i numeri.</p>
+        <p className="text-slate-500 mt-2">Cosa fare oggi, in ordine. I reparti sono nel menu a sinistra.</p>
       </div>
 
       {/* Richiede attenzione (soldi e approvazioni) */}
@@ -107,34 +90,7 @@ export function AdminHome({ user, onAuthExpired }) {
       <OggiStart onAuthExpired={onAuthExpired} />
       <OggiBlocks onAuthExpired={onAuthExpired} />
 
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Numeri per reparto</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {tiles.map(({ id, label, to, Icon, desc, sl, sv }) => (
-          <Link
-            key={id}
-            to={to}
-            className="group flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-          >
-            <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-yellow-400 flex-shrink-0">
-              <Icon className="w-6 h-6" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center justify-between gap-3">
-                <span className="block text-xl font-semibold text-slate-900">{label}</span>
-                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" aria-hidden />
-              </span>
-              <span className="block text-base text-slate-500 mt-1 leading-snug">{desc}</span>
-              <span className="block text-sm text-slate-600 mt-3">
-                {sl}: {sv === null
-                  ? <span className="text-slate-400">…</span>
-                  : <b className="text-slate-900 font-semibold">{sv}</b>}
-              </span>
-            </span>
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-10">
+      <div>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Le tue collaboratrici</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {[

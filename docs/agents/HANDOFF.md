@@ -1,3 +1,9 @@
+### 2026-10-11 · Claude Code · claude/modest-euler-xde2pw — admin Home: tolte le card dei reparti
+
+**DICHIARATO:** su richiesta di Claudio (screenshot di `ciak.io/admin`) rimosso da `AdminHome.jsx` il blocco «Numeri per reparto» (5 card Direzione/Acquisizione/Vendite/Delivery/Back office): ripeteva la sidebar. Restano striscia «Richiede attenzione», blocchi Oggi e «Le tue collaboratrici». Sottotitolo: «I reparti sono nel menu a sinistra.» Persi dalla Home, di proposito: cassa del mese, nuovi lead 7 gg, proposte inviate, partner attivi (sono nelle pagine dei reparti).
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak/admin` → 62 suite, 381 test passati. ⛔ Non visto nel browser. ⛔ L'evidenziazione dello screenshot non era visibile: ho dedotto che fosse il blocco card.
+
 ### 2026-10-09 · Claude Code · claude/fervent-ramanujan-wfdt8k — Andolfi: dominio `corsi.`, lezione 1, iscrizioni → Systeme
 
 **CONTESTO:** il funnel di Daniele Andolfi (ID 23) resta sulla bozza Vercel; l'indirizzo finale e' `corsi.sabaiacademy.it` (NON `corso.`, residuo da togliere). CRM, automazioni e statistiche vanno nel suo Systeme.

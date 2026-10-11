@@ -16,21 +16,23 @@ const LOADED = {
   "back-office": { "Incassi mese": "€6.480 su €10.000", "In ritardo": "2 · €480" },
 };
 
-test("mostra i 5 reparti verso le loro home", () => {
+test("saluta per nome e non ripete i reparti della sidebar", () => {
   useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
   render(<AdminHome user={{ name: "Claudio Bertogliatti" }} />);
   expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Ciao Claudio");
-  const wanted = ["/admin/direzione", "/admin/reparto/acquisizione", "/admin/reparto/vendite", "/admin/reparto/delivery", "/admin/reparto/back-office"];
-  const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-  wanted.forEach((h) => expect(hrefs).toContain(h));
+  expect(screen.queryByText("Numeri per reparto")).toBeNull();
+  // le card dei reparti avevano queste frasi: non ci sono piu'
+  expect(screen.queryByText(/Decisioni, cassa e andamento dei reparti/)).toBeNull();
+  expect(screen.queryByText(/Trova e scalda nuovi contatti/)).toBeNull();
+  expect(screen.queryByText("Cassa del mese")).toBeNull();
 });
 
-test("mostra i numeri reali dalle fonti esistenti", () => {
+test("restano gli accessi alle collaboratrici", () => {
   useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
   render(<AdminHome user={{ name: "Claudio" }} />);
-  expect(screen.getByText("€6.480 su €10.000")).toBeTruthy(); // cassa (Direzione)
-  expect(screen.getByText("18")).toBeTruthy();                // nuovi lead
-  expect(screen.getByText("12")).toBeTruthy();                // partner attivi
+  const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+  expect(hrefs).toContain("/admin/persona/mariangela");
+  expect(hrefs).toContain("/admin/persona/antonella");
 });
 
 test("la striscia attenzione elenca solo le voci reali > 0", () => {
@@ -50,21 +52,11 @@ test("i partner fermi li conta solo il blocco Oggi: la striscia non li ripete", 
   expect(within(region).queryByText("Partner fermi")).toBeNull();
 });
 
-test("la home apre con i blocchi Oggi, prima dei numeri per reparto", () => {
-  useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
-  render(<AdminHome user={{ name: "Claudio" }} />);
-  const oggi = screen.getByTestId("oggi-blocks");
-  const reparti = screen.getByText("Numeri per reparto");
-  // 4 = DOCUMENT_POSITION_FOLLOWING: "Numeri per reparto" viene dopo Oggi
-  expect(oggi.compareDocumentPosition(reparti) & 4).toBeTruthy();
-});
-
 test("in caricamento non inventa numeri né urgenze", () => {
   useRepartoMetrics.mockImplementation(() => ({})); // hook non ancora popolato
   render(<AdminHome user={{ name: "Claudio" }} />);
   expect(screen.getByText(/Controllo cosa richiede attenzione/)).toBeTruthy();
   expect(screen.queryByText("Output da approvare")).toBeNull();
-  expect(screen.getAllByText("…").length).toBeGreaterThan(0); // segnaposto, non zeri finti
 });
 
 test("zero urgenze = messaggio calmo, non una lista vuota ambigua", () => {
@@ -82,6 +74,5 @@ test("un errore delle fonti non viene presentato come zero o dato valido", () =>
     : id === "back-office" ? { __status: "ready", "In ritardo": "Nessuna" } : { __status: "ready" });
   render(<AdminHome user={{ name: "Claudio" }} />);
   expect(screen.getByText("Dati sulle urgenze non disponibili.")).toBeTruthy();
-  expect(screen.getByText("Dato non disponibile")).toBeTruthy();
   expect(screen.queryByText("Nessuna urgenza in evidenza.")).toBeNull();
 });
