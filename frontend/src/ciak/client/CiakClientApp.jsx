@@ -12,6 +12,7 @@ import { StartDomandePage } from "./pages/StartDomandePage";
 import { StartMarchioPage } from "./pages/StartMarchioPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
 import { SimulatorePage } from "./pages/SimulatorePage";
+import StartArea from "./start/StartArea";
 // Il benvenuto di Ciak Start e' suo: cosa si e' acquistato e cosa si fa insieme.
 // Il Metodo E.V.O. (corso, lezioni, vendita, lancio) e' della Partnership.
 import BenvenutoStart from "./BenvenutoStart";
@@ -164,6 +165,12 @@ function ProtectedClient() {
         }}
       />
     );
+  }
+
+  // Chi ha Ciak Start attivo ha la sua area, nella grafica dell'area partner.
+  // Blueprint e Partnership restano con l'area di sempre.
+  if (dashboard.client?.access_level === "cliente_start") {
+    return <StartArea dashboard={dashboard} pagamentoConfermato={startPaymentConfirmed} />;
   }
 
   return (

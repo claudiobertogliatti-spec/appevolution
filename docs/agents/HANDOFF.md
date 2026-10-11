@@ -1,3 +1,21 @@
+### 2026-10-12 (2) · Claude Code · claude/modest-euler-xde2pw — Area cliente Start nella grafica dell'area partner
+
+**RICHIESTA DI CLAUDIO:** «la schermata per il cliente deve essere simile al partner». Mockup approvato («perfetto procedi»). ⚠️ Mia scelta di perimetro (domanda non risposta): la nuova area vale SOLO per `access_level === "cliente_start"`; Blueprint e Partnership restano con `ClientLayout`/`ClientHome` come prima.
+
+**DICHIARATO (codice, sul branch, NON su main)**
+- `frontend/src/ciak/client/start/`: `StartShell.jsx` (stessa grafica «Sereno»: importa `partner/sereno/sereno.css`; menu Oggi · Il percorso · I tuoi materiali · Assistenza, «Cosa viene dopo», «Chiedi aiuto», barra in basso sul telefono), `StartArea.jsx` (carica `/start/risposte`, `/start/marchio`, `/start/deliverables`, li ricarica a ogni cambio pagina; rotte: indice, `percorso`, `materiali`, `assistenza`, `start/domande`, `start/marchio`, `partnership`, `simulatore`; il resto → Oggi), `StartOggi.jsx`, `StartPercorso.jsx`, `StartMateriali.jsx` (riusa `MaterialiStart`), `StartAssistenza.jsx` (email `assistenza@evolution-pro.it`, nessuna chat), `startOggiModel.js` (puro: prossimo passo = domande → marchio → materiali pronti → «tocca a noi»; 6 materiali, tappe con le date `dashboard.start.consegne`).
+- `CiakClientApp.jsx`: se `cliente_start` → `<StartArea>` (con il banner «Pagamento ricevuto» passato come prop); il gate `BenvenutoStart` resta prima. Indirizzi storici `/cliente/start/domande` e `/cliente/start/marchio` invariati; `/cliente/start` → Oggi.
+- Saluto «Ciao {nome}.» (non «Bentornato»: sbaglia il genere).
+
+**VERIFICATO:** `CI=true npx craco test --watchAll=false src/ciak` → 120 suite passate, 760 test; unico fallito `PartnerFilesPage.loading` (preesistente). Nuovi: 10 test del modello, 9 dell'area, 3 del routing per livello. Render con Chromium del componente vero (desktop 1400 px e 390 px) con dati di esempio: fedele all'area partner.
+
+**⛔ NON VERIFICATO / APERTO**
+- Mai visto con un account Start reale nel browser; dati di esempio, non quelli di Linda.
+- «Il prossimo passo» non sa se il cliente ha gia' copiato i testi sui profili (lo stato «fatto» dei profili guidati e' solo nel browser): dopo i materiali approvati dice sempre «Hai N materiali pronti».
+- Assistenza = solo email, nessuna chat come nell'area partner (`SerenoHelp` usa endpoint partner).
+- `StartPage.jsx` (vecchia pagina Start, ancora usata per `access_level === "partner"`) dice ancora «Le tue otto domande» e «scegli i colori…»: testi vecchi, non toccati.
+- Il form del brand EVO dentro l'area resta lungo; le pagine domande/marchio hanno ancora la loro grafica Tailwind dentro il contenitore Sereno.
+
 ### 2026-10-12 · Claude Code · claude/modest-euler-xde2pw — «Chi sei» e «Il tuo brand» di Start = percorso EVO
 
 **DECISIONI DI CLAUDIO (11-12/10):** (1) i clienti Start rispondono alle STESSE 20 domande del posizionamento EVO, tutte obbligatorie; (2) il marchio e' il brand kit completo di EVO. ⚠️ Contraddice la scelta documentata nel vecchio `ciak_start_domande.py` («otto e non venti: chi compra Start e' poco digitalizzato») e il principio «accompagnare per mano»: Claudio e' stato avvisato e ha confermato. Rischio da monitorare: clienti che non finiscono il questionario.
