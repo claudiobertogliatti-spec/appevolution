@@ -1,3 +1,23 @@
+### 2026-10-12 (3) · Claude Code · claude/modest-euler-xde2pw — Approvazione automatica dei materiali Start
+
+**DECISIONE DI CLAUDIO (11/10):** a mano restano SOLO sito vetrina e dominio (un solo passaggio: `live_url` https). Gli altri materiali vanno al cliente senza approvazione, MA (1) una bozza con testo di ripiego resta ferma, (2) UNA sola email al cliente. Supera la regola del 13/8/2026 «Claudio approva ogni deliverable».
+
+**DICHIARATO (codice, sul branch)**
+- `routers/ciak_admin.py`: l'approvazione e' ora `_approva_start_deliverable(client_id, tipo, actor, live_url_richiesta, *, avvisa=True)`; l'endpoint `POST /start/{id}/deliverable/approva` la chiama (comportamento invariato, 11 test del wiring passano).
+- `services/start_autogenerazione.py`: `AUTO_APPROVA = (positioning, brand_kit, social_profiles, content_plan_90d)`; dopo ogni generazione riuscita `_auto_approva` approva (approvatore `ciak-automatico`, senza email per singolo materiale) SE la bozza non e' di ripiego (`positioning.fallback`, `social_profiles._fallback`, `content_plan_90d.calendar.source != "ai"`). Approva SOLO cio' che questa esecuzione ha generato: le bozze gia' esistenti restano come sono. Sito vetrina e `partnership_readiness` MAI automatici.
+- Email unica: `ciak_client_reengagement.invia_materiali_pronti`, inviata da `_una_email_per_gruppo` solo quando tutti e 4 i materiali automatici sono approvati e `ciak_clients.start_materiali_email_at` non e' impostato (poi lo imposta). Se uno e' da rivedere a mano, nessuna email a meta': quando il team lo approva parte la vecchia email singola.
+- Avviso al team: dice cosa e' gia' al cliente e cosa resta «da rivedere a mano»; `requires_approval` solo se resta qualcosa (di solito il sito).
+- Testi al cliente resi veri: tolti «li controlliamo uno per uno» / «nessun materiale ti arriva senza essere stato guardato» (`StartOggi`, `startOggiModel`, `StartMateriali`, `MaterialiStart`, `BenvenutoStart`, pagine domande/marchio, libretto PDF). Il sito web: «lo controlliamo e lo mettiamo online noi».
+
+**VERIFICATO:** backend (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017, con `pytest-asyncio`, `anthropic` ecc. installati nel sandbox): 13 file di test Start/clienti → 183 passati prima, **195 dopo, 0 fallimenti**; nuovi: 10 sull'approvazione automatica (approva i 4 e non il sito, email una volta sola e non ripetuta, ripiego per posizionamento/profili/calendario resta fermo, calendario di origine ignota si rivede, bozze esistenti non toccate, errore di approvazione non solleva) + 2 sull'email. Frontend `src/ciak`: 120 suite, 760 test; unico fallito `PartnerFilesPage.loading` (preesistente).
+
+**⛔ APERTO / RISCHI**
+- Mai provata con LLM e SMTP veri: i generatori e l'invio sono mockati. Dopo il deploy la prima volta che un cliente Start invia risposte+marchio le 4 bozze andranno DAVVERO al cliente senza che nessuno le guardi: tenere d'occhio la prima.
+- Il marker di ripiego e' letto dai flag attuali dei generatori; se un generatore cambia nome del flag, l'approvazione automatica smette di fermare il ripiego (c'e' un test per ciascuno).
+- Una bozza approvata in automatico non ha un passaggio di «correzione» lato cliente: se il testo e' scadente il cliente lo vede comunque.
+- `partnership_readiness` resta a mano (richiede che tutte le evidenze siano approvate, incluso il sito).
+- «Dominio»: nessun passaggio separato (decisione: un solo passaggio con il sito).
+
 ### 2026-10-12 (2) · Claude Code · claude/modest-euler-xde2pw — Area cliente Start nella grafica dell'area partner
 
 **RICHIESTA DI CLAUDIO:** «la schermata per il cliente deve essere simile al partner». Mockup approvato («perfetto procedi»). ⚠️ Mia scelta di perimetro (domanda non risposta): la nuova area vale SOLO per `access_level === "cliente_start"`; Blueprint e Partnership restano con `ClientLayout`/`ClientHome` come prima.

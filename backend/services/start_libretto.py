@@ -67,7 +67,7 @@ def _gruppo(num: int, titolo: str, sottotitolo: str, corpo: str) -> str:
 def _in_lavorazione(nome: str) -> str:
     return (
         f'<div class="sl-wip-box">{esc(nome)}: in lavorazione. '
-        "Lo trovi qui appena il team lo ha controllato e approvato.</div>"
+        "Lo trovi qui appena è pronto.</div>"
     )
 
 

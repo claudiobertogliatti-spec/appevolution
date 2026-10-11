@@ -82,15 +82,15 @@ export function startOggiModel({ risposte, marchio, deliverables, consegne }) {
     return {
       ...base, kind: "ready", badge: "Pronto per te", to: "/cliente/materiali", cta: "Guarda i tuoi materiali",
       title: pronti === 1 ? "Hai un materiale pronto da usare" : `Hai ${pronti} materiali pronti da usare`,
-      description: "Li abbiamo controllati noi. Apri i materiali: ogni passo è spiegato, con un esempio. Gli altri li stiamo preparando.",
+      description: "Apri i materiali: ogni passo è spiegato, con un esempio. Gli altri li stiamo preparando.",
     };
   }
   return {
     ...base, kind: "waiting", badge: "Ora tocca a noi", to: "/cliente/percorso", cta: "Guarda il percorso",
     title: "Stiamo preparando i tuoi materiali",
     description: tappa?.data
-      ? `Hai fatto la tua parte, grazie. Li controlliamo uno per uno e ti arriva il primo entro il ${tappa.data}.`
-      : "Hai fatto la tua parte, grazie. Li controlliamo uno per uno e te li mostriamo qui appena sono pronti.",
+      ? `Hai fatto la tua parte, grazie. Li prepariamo e il primo ti arriva entro il ${tappa.data}.`
+      : "Hai fatto la tua parte, grazie. Li prepariamo e te li mostriamo qui appena sono pronti.",
   };
 }
 

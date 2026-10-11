@@ -139,7 +139,7 @@ export function StartDomandePage({ dashboard }) {
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Grazie, abbiamo le tue risposte</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
           Da qui ci pensiamo noi. Prepariamo il tuo marchio e le frasi che spiegano chi sei e cosa offri,
-          e prima di mandarteli li controlliamo uno per uno.
+          e te li mostriamo qui appena sono pronti.
           {consegne[0] ? ` La prima tappa arriva entro il ${consegne[0]}.` : ""}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">

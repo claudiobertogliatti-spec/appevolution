@@ -9,7 +9,7 @@ export default function StartMateriali({ dati, onRetry }) {
     <>
       <header className="sereno-intro">
         <h1>I tuoi materiali.</h1>
-        <p>Qui compare ogni cosa appena l'abbiamo controllata, pronta da usare.</p>
+        <p>Qui compare ogni cosa appena è pronta, da usare.</p>
       </header>
       {dati.errore ? (
         <section className="sereno-panel" role="alert">
@@ -21,7 +21,7 @@ export default function StartMateriali({ dati, onRetry }) {
       ) : items.length === 0 ? (
         <section className="sereno-panel">
           <h2>Non c'è ancora niente da vedere.</h2>
-          <p>I tuoi materiali compaiono qui uno alla volta, appena li abbiamo preparati e controllati. Nel frattempo puoi guardare a che punto sei.</p>
+          <p>I tuoi materiali compaiono qui uno alla volta, appena li abbiamo preparati. Nel frattempo puoi guardare a che punto sei.</p>
           <Link className="sereno-primary" to="/cliente/percorso">Guarda il percorso</Link>
         </section>
       ) : (

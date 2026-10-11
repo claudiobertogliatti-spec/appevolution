@@ -91,8 +91,8 @@ export default function BenvenutoStart({ clientName, consegne = [], onStart, cta
           <h2 className="text-base font-semibold">Cosa faremo insieme</h2>
           <p className="text-sm text-slate-600 mt-1 leading-relaxed">
             Nelle prossime settimane mettiamo in ordine il tuo lavoro online, in tre tappe.
-            Tu ci racconti chi sei e cosa fai. Al resto pensiamo noi, e ogni cosa la
-            controlliamo prima di consegnartela.
+            Tu ci racconti chi sei e cosa fai. Al resto pensiamo noi, e ti consegniamo
+            ogni cosa qui, pronta da usare.
           </p>
           <ol className="mt-4 space-y-3">
             {TAPPE.map((t, i) => (

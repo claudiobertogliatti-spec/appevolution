@@ -60,7 +60,7 @@ export function StartMarchioPage({ dashboard }) {
         <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600">Ciak Start</p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Grazie, abbiamo le tue scelte</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-          Da qui ci pensiamo noi: prepariamo il tuo marchio e, prima di mandartelo, lo controlliamo uno per uno.
+          Da qui ci pensiamo noi: prepariamo il tuo marchio e te lo mostriamo qui appena è pronto.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link

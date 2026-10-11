@@ -168,3 +168,23 @@ async def test_se_l_avanzamento_non_si_legge_la_mail_parte_comunque(_patch):
     assert await reeng.invia_deliverable_pronto(_Db([CLIENT]), "c1", "positioning") is True
     assert "Avanzamento lavori" not in _patch[0]["corpo"]
     assert "il tuo posizionamento e' pronto: lo trovi" in _patch[0]["corpo"]
+
+
+@pytest.mark.asyncio
+async def test_una_sola_email_per_il_gruppo_di_materiali(_patch):
+    tipi = ["positioning", "brand_kit", "social_profiles", "content_plan_90d"]
+    ok = await reeng.invia_materiali_pronti(_Db([CLIENT]), "c1", tipi)
+    assert ok is True and len(_patch) == 1
+    mail = _patch[0]
+    assert mail["subject"] == "I tuoi materiali sono pronti" and "token=T" in mail["link"]
+    for frase in ("Il tuo posizionamento", "Il tuo marchio", "I testi per i tuoi profili social", "Il tuo calendario dei 60 giorni"):
+        assert frase in mail["corpo"]
+    assert "pagina web" not in mail["corpo"]  # il sito non e' nel gruppo automatico
+    mail["corpo"].format(primo="Linda")  # niente graffe sporche: il corpo passa da str.format
+
+
+@pytest.mark.asyncio
+async def test_email_di_gruppo_non_solleva_senza_cliente_o_senza_indirizzo(_patch):
+    assert await reeng.invia_materiali_pronti(_Db([]), "c1", ["positioning"]) is False
+    assert await reeng.invia_materiali_pronti(_Db([{"id": "c1", "email": ""}]), "c1", ["positioning"]) is False
+    assert _patch == []

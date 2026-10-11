@@ -5311,16 +5311,22 @@ async def genera_readiness_start(
     return {"success": True, "deliverable": payload}
 
 
-@router.post("/start/{client_id}/deliverable/approva")
-async def approva_deliverable_start(
+async def _approva_start_deliverable(
     client_id: str,
-    body: ApprovaStartDeliverableRequest,
-    admin=Depends(require_ciak_admin),
-):
-    """Approva esplicitamente un output Start gia' generato."""
+    tipo: str,
+    actor: str,
+    live_url_richiesta: str | None = None,
+    *,
+    avvisa: bool = True,
+) -> dict:
+    """Approva un output Start gia' generato: lo rende visibile al cliente.
+
+    Usata sia dall'approvazione a mano (`approva_deliverable_start`) sia da quella
+    automatica (`services/start_autogenerazione`). `avvisa=False` salta l'email «e'
+    pronto»: l'approvazione automatica ne manda UNA sola per tutto il gruppo.
+    """
     if db is None:
         raise HTTPException(503, "Database non configurato")
-    await _cliente_start_o_errore(client_id)
     mapping = {
         "positioning": "04-posizionamento",
         "brand_kit": "03-brand-kit",
@@ -5329,30 +5335,29 @@ async def approva_deliverable_start(
         "social_profiles": "start-profili",
         "showcase": "start-vetrina",
     }
-    step_id = mapping.get(body.tipo)
+    step_id = mapping.get(tipo)
     if not step_id:
         raise HTTPException(422, "Tipo deliverable non valido")
     # Tutti e 4 i deliverable Start ora hanno un produttore reale (endpoint
     # /genera): l'approvazione richiede che la bozza esista, non piu' uno step
     # "done con dati" che nessuno produceva (era il deadlock su profili/vetrina).
     existing = await db.ciak_start_deliverables.find_one(
-        {"partner_id": client_id, "type": body.tipo}, {"_id": 0}
+        {"partner_id": client_id, "type": tipo}, {"_id": 0}
     )
     if not existing:
         raise HTTPException(409, "Genera prima il deliverable")
-    if body.tipo == "partnership_readiness" and not existing.get("ready"):
+    if tipo == "partnership_readiness" and not existing.get("ready"):
         raise HTTPException(409, "Readiness bloccata: completa e approva prima tutte le evidenze Start")
     live_url = None
-    if body.tipo == "showcase":
+    if tipo == "showcase":
         # La readiness esige showcase.live_url: la vetrina va prima pubblicata.
-        live_url = (body.live_url or existing.get("live_url") or "").strip()
+        live_url = (live_url_richiesta or existing.get("live_url") or "").strip()
         if not live_url:
             raise HTTPException(409, "Serve la live_url della vetrina pubblicata per approvarla")
         if not live_url.startswith("https://") or " " in live_url:
             # Il cliente vede questo indirizzo come un link: solo https.
             raise HTTPException(422, "L'indirizzo della vetrina deve iniziare con https://")
     now = datetime.now(timezone.utc).isoformat()
-    actor = getattr(admin, "email", None) or "admin"
     approval = {"approval_status": "approved", "approved_at": now, "approved_by": actor}
     deliverable_set = dict(approval)
     step_set = {"status": "done", **approval, "data.approved_at": now, "updated_at": now}
@@ -5360,7 +5365,7 @@ async def approva_deliverable_start(
         deliverable_set["live_url"] = live_url
         step_set["data.live_url"] = live_url
     await db.ciak_start_deliverables.update_one(
-        {"partner_id": client_id, "type": body.tipo}, {"$set": deliverable_set}
+        {"partner_id": client_id, "type": tipo}, {"$set": deliverable_set}
     )
     await db.partner_journey_steps.update_one(
         {"partner_id": client_id, "step_id": step_id},
@@ -5371,16 +5376,31 @@ async def approva_deliverable_start(
     # lo stesso e il PDF si rigenera dal pannello ("Crea i PDF dei materiali").
     from services.start_pdf import registra_pdf_start
 
-    pdf_creato = await registra_pdf_start(db, client_id, body.tipo)
+    pdf_creato = await registra_pdf_start(db, client_id, tipo)
     # Richiamo: avvisa il cliente che il deliverable e' pronto in area (magic-link
     # fresco). Non deve mai bloccare l'approvazione: la funzione non solleva.
-    try:
-        from services.ciak_client_reengagement import invia_deliverable_pronto
+    if avvisa:
+        try:
+            from services.ciak_client_reengagement import invia_deliverable_pronto
 
-        await invia_deliverable_pronto(db, client_id, body.tipo)
-    except Exception as exc:  # noqa: BLE001 - il richiamo e' accessorio
-        logger.warning("[REENGAGE] avviso deliverable pronto fallito per %s: %s", client_id, exc)
-    return {"success": True, "type": body.tipo, "pdf_creato": pdf_creato, **approval}
+            await invia_deliverable_pronto(db, client_id, tipo)
+        except Exception as exc:  # noqa: BLE001 - il richiamo e' accessorio
+            logger.warning("[REENGAGE] avviso deliverable pronto fallito per %s: %s", client_id, exc)
+    return {"success": True, "type": tipo, "pdf_creato": pdf_creato, **approval}
+
+
+@router.post("/start/{client_id}/deliverable/approva")
+async def approva_deliverable_start(
+    client_id: str,
+    body: ApprovaStartDeliverableRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Approva esplicitamente un output Start gia' generato."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    actor = getattr(admin, "email", None) or "admin"
+    return await _approva_start_deliverable(client_id, body.tipo, actor, body.live_url)
 
 
 @router.post("/start/{client_id}/pdf/crea")

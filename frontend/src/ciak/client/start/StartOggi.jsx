@@ -23,10 +23,10 @@ export default function StartOggi({ client, dati, onRetry, pagamentoConfermato =
 
       <section className="sereno-how" aria-labelledby="start-how">
         <h2 id="start-how">Tu rispondi. Noi prepariamo.</h2>
-        <p>Ci racconti di te e del tuo lavoro. Noi prepariamo i tuoi materiali e li controlliamo uno per uno. Li trovi qui, pronti da usare, con ogni passo spiegato.</p>
+        <p>Ci racconti di te e del tuo lavoro. Noi prepariamo i tuoi materiali. Li trovi qui, pronti da usare, con ogni passo spiegato.</p>
         <ul>
           <li><strong>Tu rispondi alle domande.</strong> Una alla volta, quando hai tempo.</li>
-          <li><strong>Noi prepariamo e controlliamo.</strong> Nessun materiale ti arriva senza essere stato guardato.</li>
+          <li><strong>Noi prepariamo.</strong> Il sito web lo controlliamo e lo mettiamo online noi.</li>
           <li><strong>Ti accompagniamo nell'usarli.</strong> Ogni passo è spiegato, con un esempio.</li>
         </ul>
       </section>

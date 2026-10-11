@@ -5,8 +5,15 @@ cliente) solo per far comparire una bozza. Ora, quando arrivano le risposte e/o 
 scelte sul marchio, Ciak prepara le bozze con gli STESSI generatori del pannello e
 avvisa il team (alert in-app + Telegram) che c'e' qualcosa da approvare.
 
-Regole:
-  - mai approvare: ogni bozza nasce `pending_review`, il cliente non la vede;
+Regole (aggiornate l'11/10/2026, decisione di Claudio):
+  - approvazione AUTOMATICA solo per posizionamento, marchio, profili social e calendario
+    (`AUTO_APPROVA`); sito vetrina (e dominio) e controllo finale restano A MANO;
+  - una bozza con testo di ripiego (sintesi AI fallita) NON si approva da sola:
+    resta `pending_review` e va rivista dal team prima che il cliente la veda;
+  - il cliente riceve UNA sola email, quando tutti e quattro i materiali automatici
+    sono approvati (non una per materiale);
+  - si approva SOLO cio' che questa esecuzione ha appena generato: le bozze gia'
+    esistenti restano come sono, qualunque stato abbiano;
   - mai sovrascrivere: un materiale gia' generato (bozza o approvato) non si tocca;
   - mai sollevare: gira dopo la risposta HTTP, un errore si logga e non blocca nulla;
   - ogni materiale parte solo quando ha i suoi input veri (non si genera a vuoto).
@@ -25,6 +32,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 SISTEMA = type("Sistema", (), {"email": "ciak-automatico"})()
+
+# Materiali che vanno al cliente senza passare dal team. Il sito vetrina (con il dominio
+# online) e il controllo finale restano da approvare a mano.
+AUTO_APPROVA: tuple[str, ...] = ("positioning", "brand_kit", "social_profiles", "content_plan_90d")
+APPROVATORE = "ciak-automatico"
 
 ETICHETTE = {
     "positioning": "posizionamento",
@@ -48,6 +60,64 @@ async def _completati(db, client_id: str) -> tuple[bool, bool]:
     )
 
 
+def _e_di_ripiego(tipo: str, doc: dict) -> bool:
+    """True se il testo e' quello di ripiego (la sintesi AI non e' riuscita)."""
+    if tipo == "positioning":
+        return bool(doc.get("fallback"))
+    if tipo == "social_profiles":
+        return bool(doc.get("_fallback"))
+    if tipo == "content_plan_90d":
+        # "ai" = scritto dal modello; qualunque altra origine (fallback o ignota) si rivede.
+        return (doc.get("calendar") or {}).get("source") != "ai"
+    return False
+
+
+async def _auto_approva(db, ciak_admin, client_id: str, tipo: str, esito: dict) -> None:
+    """Approva la bozza appena generata se e' tra quelle automatiche e non e' di ripiego."""
+    if tipo not in AUTO_APPROVA:
+        return
+    try:
+        doc = await db.ciak_start_deliverables.find_one({"partner_id": client_id, "type": tipo}, {"_id": 0})
+        if not doc or _e_di_ripiego(tipo, doc):
+            esito["da_rivedere"].append(tipo)
+            return
+        await ciak_admin._approva_start_deliverable(client_id, tipo, APPROVATORE, avvisa=False)
+        esito["approvati"].append(tipo)
+    except Exception as exc:  # noqa: BLE001 - se non riesce resta da approvare a mano
+        logger.warning("[START_AUTO] approvazione automatica di %s fallita per %s: %s", tipo, client_id, exc)
+        esito["da_rivedere"].append(tipo)
+
+
+async def _una_email_per_gruppo(db, client_id: str, esito: dict) -> None:
+    """UNA sola email, quando tutti i materiali automatici sono approvati."""
+    if not esito["approvati"]:
+        return
+    try:
+        client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0, "start_materiali_email_at": 1})
+        if (client or {}).get("start_materiali_email_at"):
+            return
+        approvati = {
+            d.get("type")
+            async for d in db.ciak_start_deliverables.find(
+                {"partner_id": client_id, "approval_status": "approved"}, {"_id": 0, "type": 1}
+            )
+        }
+        if not set(AUTO_APPROVA) <= approvati:
+            return  # manca ancora qualcosa (anche da rivedere a mano): niente email a meta'
+        from datetime import datetime, timezone
+
+        from services.ciak_client_reengagement import invia_materiali_pronti
+
+        if await invia_materiali_pronti(db, client_id, list(AUTO_APPROVA)):
+            await db.ciak_clients.update_one(
+                {"id": client_id},
+                {"$set": {"start_materiali_email_at": datetime.now(timezone.utc).isoformat()}},
+            )
+            esito["email"] = True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[START_AUTO] email unica non inviata per %s: %s", client_id, exc)
+
+
 async def prepara_bozze(client_id: str) -> dict:
     """Genera le bozze mancanti per cui gli input ci sono. Ritorna {generati, errori}."""
     from fastapi import BackgroundTasks, HTTPException
@@ -55,7 +125,7 @@ async def prepara_bozze(client_id: str) -> dict:
     from routers import ciak_admin
 
     db = ciak_admin.db
-    esito: dict = {"generati": [], "errori": {}}
+    esito: dict = {"generati": [], "errori": {}, "approvati": [], "da_rivedere": [], "email": False}
     if db is None:
         return esito
     try:
@@ -88,22 +158,27 @@ async def prepara_bozze(client_id: str) -> dict:
         try:
             await genera()
             esito["generati"].append(tipo)
+            await _auto_approva(db, ciak_admin, client_id, tipo, esito)
         except HTTPException as exc:
             esito["errori"][tipo] = str(exc.detail)[:160]
         except Exception as exc:  # noqa: BLE001 - il task in background non propaga
             logger.exception("[START_AUTO] %s fallito per %s: %s", tipo, client_id, exc)
             esito["errori"][tipo] = str(exc)[:160]
 
+    await _una_email_per_gruppo(db, client_id, esito)
+
     if esito["generati"]:
         try:
             from routers.partner_journey import _notify_admin_partner_activity
 
             elenco = ", ".join(ETICHETTE[t] for t in esito["generati"])
-            await _notify_admin_partner_activity(
-                client_id,
-                f"ha le bozze Start pronte (preparate in automatico): {elenco}",
-                requires_approval=True,
-            )
+            testo = f"ha le bozze Start pronte (preparate in automatico): {elenco}"
+            if esito["approvati"]:
+                testo += ". Gia' al cliente (approvate in automatico): " + ", ".join(ETICHETTE[t] for t in esito["approvati"])
+            da_vedere = [t for t in esito["generati"] if t not in esito["approvati"]]
+            if da_vedere:
+                testo += ". Da rivedere a mano: " + ", ".join(ETICHETTE[t] for t in da_vedere)
+            await _notify_admin_partner_activity(client_id, testo, requires_approval=bool(da_vedere))
         except Exception as exc:  # noqa: BLE001
             logger.warning("[START_AUTO] avviso al team non inviato per %s: %s", client_id, exc)
     return esito

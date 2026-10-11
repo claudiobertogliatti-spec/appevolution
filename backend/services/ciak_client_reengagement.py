@@ -73,6 +73,35 @@ async def _avanzamento_lavori(db, client_id: str, appena_approvato: str) -> str:
     return f"{titolo}\n" + "\n".join(righe)
 
 
+async def invia_materiali_pronti(db, client_id: str, tipi: list[str]) -> bool:
+    """UNA sola email per tutto il gruppo di materiali approvati in automatico.
+
+    Sostituisce le 4-5 email «X e' pronto» una per materiale (decisione di Claudio,
+    11/10/2026). Non solleva mai: logga e ritorna bool.
+    """
+    try:
+        client = await db.ciak_clients.find_one({"id": client_id})
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[REENGAGE] lookup cliente fallito: %s", exc)
+        return False
+    if not client or not (client.get("email") or "").strip():
+        return False
+    email = client["email"].strip().lower()
+    link = await _magic_link(db, client_id, email)
+    if not link:
+        return False
+    elenco = "\n".join(f"• {_FRASI[t][0]}" for t in _AVANZAMENTO_ORDINE if t in tipi and t in _FRASI)
+    corpo = (
+        "Ciao {primo}, abbiamo preparato i tuoi materiali e li abbiamo controllati uno per uno.\n\n"
+        f"{elenco}\n\n"
+        "Li trovi nella tua area Ciak, con ogni passo spiegato."
+    )
+    return await asyncio.to_thread(_send, email, client.get("name"), "I tuoi materiali sono pronti", corpo, link)
+
+
+_AVANZAMENTO_ORDINE = ("positioning", "brand_kit", "social_profiles", "showcase", "content_plan_90d")
+
+
 def _base_url() -> str:
     return (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")).rstrip("/")
 

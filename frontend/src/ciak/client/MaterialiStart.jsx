@@ -216,7 +216,7 @@ export function MaterialiStart({ items }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6" data-testid="materiali-start">
       <h2 className="text-lg font-semibold text-slate-900">I tuoi materiali</h2>
-      <p className="mt-1 text-sm text-slate-500">Qui compare ogni cosa appena l'abbiamo controllata.</p>
+      <p className="mt-1 text-sm text-slate-500">Qui compare ogni cosa appena è pronta.</p>
       <div className="mt-4 space-y-3">
         {ordinati.map((item, i) => (
           <details key={item.type} open={i === 0} className="rounded-lg border border-slate-200 p-4">
