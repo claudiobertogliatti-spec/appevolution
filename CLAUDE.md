@@ -217,9 +217,9 @@ VIDEO GREZZO (Drive o GCS) → Extract Audio → AssemblyAI (transcript+filler+s
 ```
 
 ### Variabili Cloud Run richieste
-- `ASSEMBLYAI_API_KEY` = `d11bb60eb50a4c7bb33aa37b6b21d38b`
-- `SHOTSTACK_API_KEY` = `DsuIAAMRfJlnmKbZP9NGTOic0jESshwDB6tHwPHm`
-- `SYSTEME_API_KEY_DEFAULT` = `h9vsf4fb2hwiclriknvslyxzk5p9gmoleodsduaydqwttndlagje3huzqhxsuxmf` ← account evolutionpro, vale per TUTTI i partner come sub-account
+- `ASSEMBLYAI_API_KEY` (valore solo su Cloud Run, mai nel repo)
+- `SHOTSTACK_API_KEY` (valore solo su Cloud Run, mai nel repo)
+- `SYSTEME_API_KEY_DEFAULT` (valore solo su Cloud Run, mai nel repo) ← account evolutionpro, vale per TUTTI i partner come sub-account
 
 ### Per ogni nuovo partner: unico step manuale
 1. Creare corso Systeme.io nell'account del partner (UI o API)

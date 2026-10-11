@@ -133,6 +133,12 @@ final_cors_origins = build_cors_origins(
 from routers.ciak_admin import CommercialScopeMiddleware
 app.add_middleware(CommercialScopeMiddleware)
 
+# Token tecnico dell'agente (agent_token_auth.py): DOPO lo scope commerciale
+# (cosi' gira prima e quel filtro vede gia' il JWT scambiato), PRIMA del CORS.
+# Fail-closed: senza CIAK_AGENT_TOKEN (>=32 caratteri) non fa nulla.
+from agent_token_auth import AgentTokenMiddleware
+app.add_middleware(AgentTokenMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=final_cors_origins,
@@ -3744,6 +3750,10 @@ async def update_partner_journey(partner_id: str, body: dict, _admin=Depends(req
         raise HTTPException(status_code=400, detail=f"Collection non valida. Valide: {list(collection_map.keys())}")
     if not data:
         raise HTTPException(status_code=400, detail="Nessun dato da salvare")
+    # Il token tecnico dell'agente (agent_token_auth.py) non scrive l'anagrafica
+    # `partners` (tier, contratto, stato pagamento...): solo i dati del percorso.
+    if collection_name == "partners" and getattr(_admin, "user_id", None) == "agent-claude":
+        raise HTTPException(status_code=403, detail="Token agente: collection 'partners' non scrivibile")
 
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
     data["last_edited_by"] = "admin"
