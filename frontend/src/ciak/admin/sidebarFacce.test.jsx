@@ -4,7 +4,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { Handshake } from "lucide-react";
-import { MacroLabel, sidebarConFacce } from "./CiakAdminApp";
+import { MacroLabel, sidebarConFacce, VOCE_CONTENUTI } from "./CiakAdminApp";
 import { DEPARTMENT_ROOMS } from "./departmentRooms";
 
 const macro = (id, label) => ({ id, label });
@@ -51,4 +51,12 @@ test("il numero accanto all'agente compare solo se c'è e se è maggiore di zero
   expect(container.querySelector('[aria-label$="da fare"]')).toBeNull();
   rerender(<MacroLabel macro={macro("vendite", "Vendite")} Icon={Handshake} facce badge={null} />);
   expect(container.querySelector('[aria-label$="da fare"]')).toBeNull();
+});
+
+test("Andrea ha la sua voce «Contenuti» con la sua faccia, fuori dal menu classico", () => {
+  const { container } = render(<MacroLabel macro={VOCE_CONTENUTI} Icon={Handshake} facce />);
+  expect(container.querySelector("img").getAttribute("src")).toBe(DEPARTMENT_ROOMS["casi-studio"].agent.avatar);
+  expect(screen.getByText("Andrea")).toBeTruthy();
+  expect(screen.getByText("Contenuti")).toBeTruthy();
+  expect(VOCE_CONTENUTI.to).toBe("/admin/contenuti");
 });

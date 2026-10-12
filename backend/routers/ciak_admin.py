@@ -3578,6 +3578,35 @@ async def notifica_letta(body: NotificaLetta, admin=Depends(require_ciak_admin))
     return {"success": True}
 
 
+# ─── Andrea (Contenuti): bozze di testo e SEO. Solo bozze: non pubblica, non salva ─
+
+class ContenutoBozzaIn(BaseModel):
+    tipo: str = Field(..., max_length=30)
+    brief: str = Field(..., max_length=4000)
+
+
+@router.post("/contenuti/bozza")
+async def contenuto_bozza(body: ContenutoBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive una bozza dal brief + Memoria Ciak. Se l'AI non risponde: 503, nessun
+    testo inventato."""
+    from services import ciak_contenuti as ct, ciak_memoria
+
+    try:
+        tipo, brief = ct.valida_richiesta(body.tipo, body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = ct.prompt(tipo, brief, await ciak_memoria.render_active_block())
+    testo = await _chiedi_llm(system, user, 800)
+    if not testo:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    if tipo == "seo_pagina":
+        seo = ct.parse_seo(testo)
+        if seo is None:
+            raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+        return {"tipo": tipo, "seo": seo}
+    return {"tipo": tipo, "testo": testo}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

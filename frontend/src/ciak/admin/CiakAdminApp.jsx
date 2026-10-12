@@ -99,6 +99,7 @@ import { PartnerSalesEngine } from "./pages/PartnerSalesEngine";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { MemoriaCiak } from "./pages/MemoriaCiak";
 import { NuovaHome } from "./pages/NuovaHome";
+import { Contenuti } from "./pages/Contenuti";
 import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
@@ -242,6 +243,10 @@ const NAV = [
     ],
   },
 ];
+
+// Andrea (Contenuti) non ha un reparto nel menu classico: ha la sua voce solo nella colonna con
+// le facce. Fuori da NAV di proposito: il menu di tutti gli altri non cambia.
+export const VOCE_CONTENUTI = { id: "casi-studio", label: "Contenuti", to: "/admin/contenuti" };
 
 const MACRO_ICONS = {
   dashboard: LayoutDashboard,
@@ -548,6 +553,7 @@ function AdminShell({ user, onLogout, children }) {
           {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} facce />
           ))}
+          <MacroItem macro={VOCE_CONTENUTI} currentPath={pathname} facce />
           <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">Accessi rapidi</p>
           {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
             <NavLink
@@ -956,6 +962,10 @@ export default function CiakAdminApp() {
         <Route path="nuova" element={isAntonella || isMariangela
           ? <Navigate to="/admin" replace />
           : <NuovaHome user={user} onAuthExpired={handleLogout} />} />
+        {/* La stanza di Andrea: solo Claudio, voce nella colonna con le facce. */}
+        <Route path="contenuti" element={isAntonella || isMariangela
+          ? <Navigate to="/admin" replace />
+          : <Contenuti onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
         <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />
