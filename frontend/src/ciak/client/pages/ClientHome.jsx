@@ -34,20 +34,20 @@ function nextAction(dashboard) {
   if (diagnostic.state === "call_booked") {
     return {
       title: "Call prenotata",
-      body: "Troverai qui analisi e roadmap prima della sessione strategica.",
+      body: "Troverai qui la tua analisi prima della call.",
       to: "/cliente/blueprint",
     };
   }
   if (diagnostic.state === "call_done") {
     return {
       title: "Prossimo passo disponibile",
-      body: "Il tuo Blueprint è pronto: puoi iniziare da Ciak Start o passare alla Partnership.",
+      body: "La tua analisi è pronta: puoi iniziare da Ciak Start o passare alla Partnership.",
       to: diagnostic.recommended_offer === "partnership" ? "/cliente/partnership" : "/cliente/start",
     };
   }
   return {
-    title: "Prenota la sessione strategica",
-    body: "Il Blueprint serve a preparare una call concreta, non una vendita al buio.",
+    title: "Prenota la call con noi",
+    body: "L'analisi serve a preparare una call concreta, non una vendita al buio.",
     to: "/cliente/blueprint",
   };
 }
@@ -85,19 +85,19 @@ function HomeStato({ dashboard }) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
-          <p className="font-semibold text-slate-900">Blueprint</p>
+          <p className="font-semibold text-slate-900">La tua analisi</p>
           <p className="mt-1 text-sm text-slate-500">
             {analysis.status === "inviata"
-              ? `Analisi pronta${roadmapCount ? `, roadmap con ${roadmapCount} tappe.` : "."}`
-              : "Analisi e roadmap in preparazione."}
+              ? `Pronta${roadmapCount ? `, con ${roadmapCount} passi da seguire.` : "."}`
+              : "La stiamo preparando per te."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <CalendarDays className="mb-3 h-5 w-5 text-blue-600" />
-          <p className="font-semibold text-slate-900">Call strategica</p>
+          <p className="font-semibold text-slate-900">La call con noi</p>
           <p className="mt-1 text-sm text-slate-500">
             {statusLabel(diagnostic.state)}
-            {diagnostic.state === "call_booked" ? ". Arriva qui tutto cio' che serve prima della sessione." : "."}
+            {diagnostic.state === "call_booked" ? ". Qui trovi tutto quello che serve prima della call." : "."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -105,17 +105,17 @@ function HomeStato({ dashboard }) {
           <p className="font-semibold text-slate-900">Ciak Start</p>
           <p className="mt-1 text-sm text-slate-500">
             {startActive
-              ? "Area di lavoro attiva con servizi, avanzamento e credito sempre garantito."
+              ? "Attivo: qui trovi i tuoi materiali e il prossimo passo."
               : diagnostic.state === "call_done"
-                ? "Disponibile: puoi attivarlo per costruire le fondazioni, con il credito garantito verso la Partnership."
-                : "Si apre dopo la call di consegna del Blueprint."}
+                ? "Puoi attivarlo per costruire le basi del tuo progetto. Quello che spendi viene riconosciuto se poi scegli la Partnership."
+                : "Si apre dopo la call in cui ti consegniamo l'analisi."}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <LockKeyhole className="mb-3 h-5 w-5 text-slate-600" />
-          <p className="font-semibold text-slate-900">Area partner</p>
+          <p className="font-semibold text-slate-900">Percorso Partner</p>
           <p className="mt-1 text-sm text-slate-500">
-            {partnershipActive ? "Attiva." : "Disponibile dopo attivazione."}
+            {partnershipActive ? "Attiva." : "Si attiva dopo la Partnership."}
           </p>
         </div>
       </div>
