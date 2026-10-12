@@ -113,7 +113,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   }
   if (!state) return null;
   if (PARTNER_SERENO_ENABLED && viewingStepId && !WORKSPACE_COMPONENTS[viewingStepId] && !state.steps?.some(s => s.step_id === viewingStepId)) return <section className="sereno-focus"><h2>Questo passaggio non è disponibile.</h2><p>Torna alla Home per ritrovare l’attività corrente.</p><button className="sereno-primary" onClick={() => setViewingStepId(null)}>Torna a Oggi</button></section>;
-  if (PARTNER_SERENO_ENABLED && !viewingStepId) return <SerenoHome state={state} partnerName={partnerName} onOpenStep={setViewingStepId} />;
+  if (PARTNER_SERENO_ENABLED && !viewingStepId) return <SerenoHome state={state} partnerName={partnerName} partnerId={partnerId} onOpenStep={setViewingStepId} />;
 
   // Deep-link ai Workspace della Fase Valida (pilota nuova architettura a 5 Workspace).
   const WorkspaceComp = viewingStepId ? WORKSPACE_COMPONENTS[viewingStepId] : null;

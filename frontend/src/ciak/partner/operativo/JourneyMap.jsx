@@ -27,7 +27,7 @@ export const STEP_COPY = {
   "07-script-videolezioni": { title: "Script videolezioni", desc: "Prepariamo una traccia per ogni lezione, come per la masterclass." },
   "08-registra-masterclass": { title: "Registra la masterclass", desc: "La tua lezione gratuita: il primo assaggio." },
   "09-registra-lezioni": { title: "Registra le lezioni", desc: "Il cuore del corso che venderai." },
-  "10-sistema-vendita": { title: "Sistema di vendita", desc: "Subaccount Systeme, dominio, legal pages, funnel e checkout." },
+  "10-sistema-vendita": { title: "Sistema di vendita", desc: "Il tuo funnel in anteprima, le pagine legali, il tuo indirizzo web e il via libera." },
   "11-calendario-30gg": { title: "Il piano 30 giorni", desc: "Calendario incluso; contenuti pronti come servizio extra." },
   "12-prezzo-webinar": { title: "Prezzo e diretta", desc: "Quanto vendi e come lo presenti." },
   "13-lancio": { title: "Il lancio", desc: "Online e pronto a vendere. Ce l'hai fatta." },

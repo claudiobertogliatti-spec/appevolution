@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Route, MessagesSquare } from 'lucide-react';
 import { homeModel, PHASE_COPY } from './homeModel';
 import { useHelp } from './SerenoHelp';
+import { TappaCard, ExtraTappa } from './TappaCard';
+import LibroProgetto from './LibroProgetto';
+import FunnelBozza from './FunnelBozza';
 import './sereno.css';
 
-export default function SerenoHome({ state, partnerName, onOpenStep }) {
+export default function SerenoHome({ state, partnerName, partnerId, onOpenStep }) {
   const model = homeModel(state);
   const { openHelp } = useHelp();
   const phase = PHASE_COPY[model.step?.macro_phase];
@@ -27,16 +30,22 @@ export default function SerenoHome({ state, partnerName, onOpenStep }) {
         : <Link className="sereno-primary" to={model.kind === 'complete' ? '/partner/materiali' : '/partner/team'}>{model.kind === 'complete' ? 'Guarda i tuoi materiali' : 'Chiedi un aggiornamento'}<ArrowRight aria-hidden="true"/></Link>}
       </div>
     </section>
-    <div className="sereno-columns"><section className="sereno-panel"><h3><Route aria-hidden="true"/>Il tuo progetto prende forma</h3><div className="sereno-phases">{Object.entries(PHASE_COPY).map(([id, [label]]) => <span key={id} className={model.step?.macro_phase === id ? 'current' : ''}>{label}</span>)}</div><Link to="/partner/percorso">Guarda il percorso completo →</Link></section>
-      <section className="sereno-panel"><h3><MessagesSquare aria-hidden="true"/>Un aiuto, quando serve</h3><p>Per un dubbio o un passaggio poco chiaro, scrivi qui: ti risponde l’assistente, senza uscire da Ciak.</p><button className="sereno-linkbtn" onClick={openHelp}>Chiedi una mano →</button></section></div>
+    <TappaCard macroPhase={model.step?.macro_phase} />
+    <ExtraTappa macroPhase={model.step?.macro_phase} />
+    <FunnelBozza partnerId={partnerId} macroPhase={model.step?.macro_phase} />
+    <LibroProgetto state={state} partnerId={partnerId} />
     <section className="sereno-how" aria-labelledby="sereno-how-title">
       <h2 id="sereno-how-title">Ciak prepara. Systeme pubblica.</h2>
-      <p>Ciak raccoglie i tuoi materiali, li mette in ordine e li impacchetta. Poi li carica dentro Systeme, che li mostra online ai tuoi clienti, manda le email e tiene i tuoi contatti.</p>
+      <div className="sereno-how-duo">
+        <div><strong>Ciak</strong><span>Si costruisce</span><p>Qui lavori tu con il team: materiali, testi, video.</p></div>
+        <div><strong>Systeme</strong><span>Si va online</span><p>È la vetrina: i clienti vedono il corso, ricevono le email, lasciano i contatti.</p></div>
+      </div>
       <ul>
         <li><strong>Tu lavori solo in Ciak.</strong> Non devi imparare Systeme.</li>
-        <li><strong>Systeme è la vetrina.</strong> È dove i tuoi clienti vedono il corso e dove arrivano i loro contatti.</li>
         <li><strong>Il passaggio da Ciak a Systeme lo facciamo noi.</strong></li>
       </ul>
     </section>
+    <div className="sereno-columns"><section className="sereno-panel"><h3><Route aria-hidden="true"/>Il tuo progetto prende forma</h3><div className="sereno-phases">{Object.entries(PHASE_COPY).map(([id, [label]]) => <span key={id} className={model.step?.macro_phase === id ? 'current' : ''}>{label}</span>)}</div><Link to="/partner/percorso">Guarda il percorso completo →</Link></section>
+      <section className="sereno-panel"><h3><MessagesSquare aria-hidden="true"/>Un aiuto, quando serve</h3><p>Per un dubbio o un passaggio poco chiaro, scrivi qui: ti risponde l’assistente, senza uscire da Ciak.</p><button className="sereno-linkbtn" onClick={openHelp}>Chiedi una mano →</button></section></div>
   </div>;
 }

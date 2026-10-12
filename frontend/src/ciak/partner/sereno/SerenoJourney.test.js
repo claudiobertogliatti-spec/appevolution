@@ -31,6 +31,6 @@ test('with many steps in progress only ONE says "Il tuo prossimo passo", no inte
   expect(screen.getAllByText('Il tuo prossimo passo')).toHaveLength(1);
   expect(screen.getAllByText('Già avviato')).toHaveLength(2);
   expect(screen.queryByText('F-12')).toBeNull(); // technical code hidden
-  expect(screen.getByText('Subaccount Systeme, dominio, legal pages, funnel e checkout.')).toBeTruthy(); // what comes later
+  expect(screen.getByText('Il tuo funnel in anteprima, le pagine legali, il tuo indirizzo web e il via libera.')).toBeTruthy(); // what comes later
   expect(screen.getAllByRole('link', { name: 'Apri →' })).toHaveLength(2);
 });
