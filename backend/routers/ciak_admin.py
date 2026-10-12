@@ -3665,6 +3665,157 @@ async def andrea_history_clear(admin=Depends(require_ciak_admin)):
     return {"success": True}
 
 
+# ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
+
+class ReelAvatarIn(BaseModel):
+    avatar_id: str = Field(..., min_length=3, max_length=200)
+    voice_id: str = Field(..., min_length=3, max_length=200)
+    tetto_mensile: int = Field(8, ge=1, le=60)
+
+
+class ReelBozzaIn(BaseModel):
+    brief: str = Field(..., max_length=2000)
+
+
+class ReelGeneraIn(BaseModel):
+    script: str = Field(..., max_length=2000)
+    didascalia: str = Field("", max_length=600)
+    approvato: bool = False
+
+
+async def _reel_config() -> dict:
+    doc = await db.ciak_site_config.find_one({"key": "reel_config"}, {"_id": 0}) or {}
+    return doc.get("value") or {}
+
+
+def _heygen():
+    from heygen_service import heygen_service
+    return heygen_service
+
+
+@router.get("/reel/avatar")
+async def reel_avatar(admin=Depends(require_ciak_admin)):
+    """Gli avatar e le voci che HeyGen ha sull'account, piu' la scelta fatta. Se HeyGen non
+    risponde lo dice (non inventa elenchi)."""
+    conf = await _reel_config()
+    out = {"scelta": {"avatar_id": conf.get("avatar_id"), "voice_id": conf.get("voice_id"),
+                      "tetto_mensile": conf.get("tetto_mensile", 8)},
+           "avatars": [], "voices": [], "heygen_ok": False, "errore": None}
+    try:
+        svc = _heygen()
+        av = await svc.get_my_avatars()
+        voci = await svc.get_voices()
+        out["avatars"] = [
+            {"avatar_id": a.get("avatar_id"), "nome": a.get("avatar_name") or a.get("name") or a.get("avatar_id"),
+             "anteprima": a.get("preview_image_url")}
+            for a in (av.get("data", {}).get("avatars") or []) if a.get("avatar_id")
+        ]
+        out["voices"] = [
+            {"voice_id": v.get("voice_id"), "nome": v.get("name") or v.get("display_name") or v.get("voice_id"),
+             "lingua": v.get("language")}
+            for v in (voci.get("data", {}).get("voices") or [])
+            if v.get("voice_id") and "ital" in str(v.get("language", "")).lower()
+        ][:100]
+        out["heygen_ok"] = True
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[REEL] HeyGen non raggiungibile: %s", e)
+        out["errore"] = "HeyGen non risponde (chiave mancante o servizio non raggiungibile)."
+    return out
+
+
+@router.post("/reel/avatar")
+async def reel_avatar_salva(body: ReelAvatarIn, admin=Depends(require_ciak_admin)):
+    now = datetime.now(timezone.utc).isoformat()
+    valore = {"avatar_id": body.avatar_id.strip(), "voice_id": body.voice_id.strip(),
+              "tetto_mensile": body.tetto_mensile}
+    await db.ciak_site_config.update_one(
+        {"key": "reel_config"},
+        {"$set": {"key": "reel_config", "value": valore, "updated_at": now, "updated_by": _autore(admin)}},
+        upsert=True,
+    )
+    return {"ok": True, "scelta": valore}
+
+
+@router.post("/reel/bozza")
+async def reel_bozza(body: ReelBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive script e didascalia. Non genera nulla e non consuma crediti HeyGen."""
+    from services import ciak_reel as cr, ciak_memoria
+
+    try:
+        brief = cr.valida_brief(body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = cr.prompt_script(brief, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 700)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    bozza = cr.parse_script(raw)
+    if bozza is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato o con una durata che non vanno bene. Riprova.")
+    return bozza
+
+
+@router.post("/reel/genera")
+async def reel_genera(body: ReelGeneraIn, admin=Depends(require_ciak_admin)):
+    """Genera il video con HeyGen (verticale). Solo con approvazione esplicita, avatar scelto e
+    sotto il tetto mensile. Consuma crediti HeyGen."""
+    from services import ciak_reel as cr
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione: leggi lo script e conferma.")
+    try:
+        script = cr.valida_script(body.script)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    conf = await _reel_config()
+    if not conf.get("avatar_id") or not conf.get("voice_id"):
+        raise HTTPException(409, "Scegli prima il tuo avatar e la tua voce.")
+    mese = cr.mese_corrente()
+    tetto = int(conf.get("tetto_mensile") or cr.TETTO_MENSILE_DEFAULT)
+    del_mese = await db.ciak_reel.find({"mese": mese}, {"_id": 0}).to_list(500)
+    if cr.tetto_raggiunto(del_mese, tetto, mese):
+        raise HTTPException(409, f"Hai raggiunto il tetto di {tetto} reel per questo mese. Alzalo nella scelta dell'avatar se vuoi continuare.")
+    didascalia = " ".join((body.didascalia or "").split())[:220]
+    try:
+        r = await _heygen().generate_video(
+            script=script, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            title=f"Reel {mese}", test=False, dimension=cr.DIMENSIONE_REEL,
+        )
+        video_id = (r.get("data") or {}).get("video_id")
+        if not video_id:
+            raise RuntimeError(f"risposta senza video_id: {str(r)[:200]}")
+    except Exception as e:  # noqa: BLE001
+        await db.ciak_reel.insert_one(cr.riga_reel(
+            script=script, didascalia=didascalia, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            video_id=None, by=_autore(admin), stato="fallito", errore=str(e)[:300]))
+        raise HTTPException(502, "HeyGen non ha accettato la richiesta. Controlla i crediti sul tuo account HeyGen e riprova più tardi.")
+    riga = cr.riga_reel(script=script, didascalia=didascalia, avatar_id=conf["avatar_id"],
+                        voice_id=conf["voice_id"], video_id=video_id, by=_autore(admin), stato="in_generazione")
+    await db.ciak_reel.insert_one(dict(riga))
+    return {"ok": True, "reel": {k: v for k, v in riga.items() if k != "_id"}}
+
+
+@router.get("/reel")
+async def reel_elenco(admin=Depends(require_ciak_admin)):
+    """I reel degli ultimi mesi; quelli in generazione si aggiornano chiedendo a HeyGen."""
+    righe = await db.ciak_reel.find({}, {"_id": 0}).sort("creato_at", -1).to_list(60)
+    for r in righe:
+        if r.get("stato") != "in_generazione" or not r.get("heygen_video_id"):
+            continue
+        try:
+            st = (await _heygen().get_video_status(r["heygen_video_id"])).get("data", {})
+        except Exception:  # noqa: BLE001
+            continue
+        if st.get("status") == "completed" and st.get("video_url"):
+            r["stato"], r["video_url"] = "pronto", st["video_url"]
+        elif st.get("status") == "failed":
+            r["stato"], r["errore"] = "fallito", str((st.get("error") or {}))[:300]
+        else:
+            continue
+        await db.ciak_reel.update_one({"id": r["id"]}, {"$set": {"stato": r["stato"], "video_url": r.get("video_url"), "errore": r.get("errore")}})
+    return {"items": righe}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

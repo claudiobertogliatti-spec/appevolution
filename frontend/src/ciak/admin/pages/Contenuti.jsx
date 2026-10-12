@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { apiPost } from "../api";
 import { messaggioErrore } from "../components/SollecitoPannello";
 import { AndreaChat } from "../components/AndreaChat";
+import { ReelStudio } from "../components/ReelStudio";
 
 const PAGINE = [
   { to: "/admin/acquisizione-editoriale", titolo: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare." },
@@ -79,6 +80,8 @@ export function Contenuti({ onAuthExpired }) {
       </header>
 
       <div className="mb-10"><AndreaChat onAuthExpired={onAuthExpired} /></div>
+
+      <ReelStudio onAuthExpired={onAuthExpired} />
 
       <section aria-labelledby="t-pagine" className="mb-10">
         <h2 id="t-pagine" className="text-2xl font-semibold text-slate-900">Le pagine dei contenuti</h2>
