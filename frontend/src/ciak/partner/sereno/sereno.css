@@ -162,3 +162,11 @@
 .sereno-libro h2{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:600;margin:0 0 6px}
 .sereno-libro p{margin:0 0 8px;font-size:15px;color:#475569;max-width:620px}
 .sereno-libro ul{margin:0;padding:0;list-style:none;display:flex;gap:16px;flex-wrap:wrap;font-size:14px}
+.sereno-bozza{margin:0 0 22px;padding:22px 24px;background:#fff;border:1px solid #E5E7EB;border-left:4px solid #FACC15;border-radius:14px}
+.sereno-bozza h2{display:flex;align-items:center;gap:9px;font-size:20px;font-weight:600;margin:0 0 6px}
+.sereno-bozza>p{margin:0 0 12px;font-size:15px;color:#475569;max-width:640px}
+.sereno-bozza-ok{color:#176448!important}.sereno-bozza-err{color:#9A2B14!important}
+.sereno-bozza-list{list-style:none;margin:0;padding:0}.sereno-bozza-list li{padding:16px 0;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.sereno-bozza-list h3{margin:0;font-size:16px;font-weight:600}.sereno-bozza-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.sereno-bozza-form{display:grid;gap:6px;min-width:min(100%,340px)}.sereno-bozza-form label{margin-top:8px;font-size:14px}
+.sereno-bozza-form input,.sereno-bozza-form select{border:1px solid #CBD5E1;border-radius:8px;padding:11px;font-size:16px;background:#fff;color:#0F172A}
