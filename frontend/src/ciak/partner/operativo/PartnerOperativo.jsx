@@ -291,7 +291,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                     onClick={() => setDrawerOpen(true)}
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
                   >
-                    Parla con il tuo tutor
+                    Chiedi aiuto all'assistente
                   </button>
                 </div>
               )}

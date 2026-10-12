@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Route, MessagesSquare } from "lucide-react";
-import { startOggiModel, TAPPE } from "./startOggiModel";
+import { startOggiModel } from "./startOggiModel";
 import "../../partner/sereno/sereno.css";
 
 /** "Oggi" del cliente Start: dove siamo e il prossimo passo, come nell'area partner. */
@@ -20,16 +20,6 @@ export default function StartOggi({ client, dati, onRetry, pagamentoConfermato =
         <h1>{nome ? `Ciao ${nome}.` : "Ciao."}</h1>
         <p>Ecco dove siamo e il prossimo passo.</p>
       </header>
-
-      <section className="sereno-how" aria-labelledby="start-how">
-        <h2 id="start-how">Tu rispondi. Noi prepariamo.</h2>
-        <p>Ci racconti di te e del tuo lavoro. Noi prepariamo i tuoi materiali. Li trovi qui, pronti da usare, con ogni passo spiegato.</p>
-        <ul>
-          <li><strong>Tu rispondi alle domande.</strong> Una alla volta, quando hai tempo.</li>
-          <li><strong>Noi prepariamo.</strong> Il sito web lo controlliamo e lo mettiamo online noi.</li>
-          <li><strong>Ti accompagniamo nell'usarli.</strong> Ogni passo è spiegato, con un esempio.</li>
-        </ul>
-      </section>
 
       {dati.errore ? (
         <section className="sereno-panel" role="alert">
@@ -75,24 +65,21 @@ export default function StartOggi({ client, dati, onRetry, pagamentoConfermato =
         </>
       )}
 
-      <div className="sereno-columns">
-        <section className="sereno-panel">
-          <h3><Route aria-hidden="true" />Le tue tre tappe</h3>
-          <div className="sereno-phases">
-            {[1, 2, 3].map((n) => (
-              <span key={n} className={model?.tappa?.numero === n ? "current" : ""}>
-                {n} · {TAPPE[n]}{(dati.consegne || [])[n - 1] ? ` · ${dati.consegne[n - 1]}` : ""}
-              </span>
-            ))}
-          </div>
-          <Link to="/cliente/percorso">Guarda il percorso completo →</Link>
-        </section>
-        <section className="sereno-panel">
-          <h3><MessagesSquare aria-hidden="true" />Un aiuto, quando serve</h3>
-          <p>Per un dubbio o un passaggio poco chiaro, scrivici: ti rispondiamo noi.</p>
-          <Link to="/cliente/assistenza">Chiedi una mano →</Link>
-        </section>
-      </div>
+      <section className="sereno-panel">
+        <h3><MessagesSquare aria-hidden="true" />Un aiuto, quando serve</h3>
+        <p>Per un dubbio o un passaggio poco chiaro, scrivici: ti rispondiamo noi.</p>
+        <Link to="/cliente/assistenza">Chiedi una mano →</Link>
+      </section>
+
+      <section className="sereno-how" aria-labelledby="start-how">
+        <h2 id="start-how">Tu rispondi. Noi prepariamo.</h2>
+        <p>Ci racconti di te e del tuo lavoro. Noi prepariamo i tuoi materiali. Li trovi qui, pronti da usare, con ogni passo spiegato.</p>
+        <ul>
+          <li><strong>Tu rispondi alle domande.</strong> Una alla volta, quando hai tempo.</li>
+          <li><strong>Noi prepariamo.</strong> Il sito web lo controlliamo e lo mettiamo online noi.</li>
+          <li><strong>Ti accompagniamo nell'usarli.</strong> Ogni passo è spiegato, con un esempio.</li>
+        </ul>
+      </section>
     </div>
   );
 }

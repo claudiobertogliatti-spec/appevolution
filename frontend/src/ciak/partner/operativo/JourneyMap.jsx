@@ -17,7 +17,7 @@ import {
 export const STEP_COPY = {
   "01-contratto": { title: "Il tuo contratto", desc: "Hai firmato. Si parte da qui." },
   "02-discovery-video": { title: "Benvenuto/a", desc: "Come funziona il percorso e chi ti accompagna." },
-  "burocrazia": { title: "I tuoi dati", desc: "Dati personali, contratto firmato e distinta. Una volta sola." },
+  "burocrazia": { title: "I tuoi dati", desc: "I tuoi dati personali e fiscali. Una volta sola." },
   "03-brand-kit": { title: "Il tuo Brand", desc: "Logo, foto, colori e la tua voce." },
   "la-tua-storia": { title: "La tua storia", desc: "I momenti veri che rendono il tuo racconto credibile." },
   "obiettivo": { title: "Il tuo obiettivo", desc: "Il risultato concreto che guiderà il progetto." },
