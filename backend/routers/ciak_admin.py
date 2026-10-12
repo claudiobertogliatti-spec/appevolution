@@ -3665,6 +3665,81 @@ async def andrea_history_clear(admin=Depends(require_ciak_admin)):
     return {"success": True}
 
 
+# ─── Chat di Carlo, Marco e Valentina: leggono i dati del reparto, consigliano ───
+
+CHAT_AGENTI = ("carlo", "marco", "valentina")
+
+
+async def _contesto_agente(agente: str) -> str:
+    from services import ciak_agenti_chat as ag
+
+    if agente == "carlo":
+        return ag.contesto_carlo(await _candidati_recupero())
+    if agente == "marco":
+        proposte = await db.proposte.find(
+            {}, {"_id": 0, "prospect_nome": 1, "stato": 1, "creato_at": 1, "visto_at": 1,
+                 "pagamento_completato": 1}
+        ).sort("creato_at", -1).to_list(500)
+        passi = (await prossimi_passi(None))["items"]
+        return ag.contesto_marco(proposte, passi)
+    return ag.contesto_valentina((await avvisi_percorso(None))["items"], (await partner_attivita(None, None))["items"])
+
+
+def _agente_valido(agente: str) -> str:
+    if agente not in CHAT_AGENTI:
+        raise HTTPException(404, "Agente non trovato")
+    return agente
+
+
+@router.post("/agenti/{agente}/chat")
+async def agente_chat(agente: str, body: AndreaChatIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_agenti_chat as ag, ciak_memoria
+
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo = ag.valida_messaggio(body.message)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    chiave = _chiave_chat(admin, agente)
+    doc = await db.ciak_agenti_chat.find_one({"chiave": chiave}, {"_id": 0}) or {}
+    storico = list(doc.get("messages") or [])
+    system = ag.prompt_sistema(agente, await _contesto_agente(agente), await ciak_memoria.render_active_block())
+    risposta = await _chiedi_llm(system, "", 900, messages=ag.messaggi_per_llm(storico, testo))
+    nome = ag.AGENTI[agente]["nome"].capitalize()
+    if not risposta:
+        raise HTTPException(503, f"{nome} non può rispondere adesso. Riprova tra un momento.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico += [{"role": "user", "content": testo, "ts": adesso}, {"role": "assistant", "content": risposta, "ts": adesso}]
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave},
+        {"$set": {"chiave": chiave, "agente": agente, "messages": storico[-ag.STORICO_SALVATO:], "updated_at": adesso}},
+        upsert=True,
+    )
+    return {"reply": risposta}
+
+
+@router.get("/agenti/{agente}/history")
+async def agente_history(agente: str, admin=Depends(require_ciak_admin)):
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": _chiave_chat(admin, agente)}, {"_id": 0}) or {}
+    return {"messages": (doc.get("messages") or [])[-50:]}
+
+
+@router.delete("/agenti/{agente}/history")
+async def agente_history_clear(agente: str, admin=Depends(require_ciak_admin)):
+    _agente_valido(agente)
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    chiave = _chiave_chat(admin, agente)
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave}, {"$set": {"chiave": chiave, "agente": agente, "messages": []}}, upsert=True)
+    return {"success": True}
+
+
 # ─── Report della settimana (Luca) ───────────────────────────────────────────
 
 @router.get("/report/settimana")
