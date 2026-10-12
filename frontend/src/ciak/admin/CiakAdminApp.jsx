@@ -52,7 +52,7 @@ import { CercaPalette } from "./components/CercaPalette";
 import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
 import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
-import { getDepartmentRoom } from "./departmentRooms";
+import { getDepartmentRoom, DEPARTMENT_ROOMS } from "./departmentRooms";
 import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
@@ -347,7 +347,50 @@ function MacroRoster({ macro, cls }) {
   return <span className={cls}>Agenti: {agenti.join(", ")}</span>;
 }
 
-function MacroItem({ macro, currentPath }) {
+// Menu con la faccia dell'agente al posto dell'icona (anteprima del 12/10/2026, solo Claudio).
+// Spento con localStorage `ciak_admin_sidebar_facce` = "0". Se il reparto non ha un agente
+// con la foto resta l'icona: mai la faccia sbagliata.
+export function sidebarConFacce(adminType) {
+  if (adminType !== "claudio") return false;
+  try {
+    return window.localStorage.getItem("ciak_admin_sidebar_facce") !== "0";
+  } catch {
+    return true;
+  }
+}
+
+// Marcatore + testo di una voce. Con le facce: foto, nome dell'agente, reparto sotto.
+export function MacroLabel({ macro, Icon, facce }) {
+  const agente = facce ? DEPARTMENT_ROOMS[macro.id]?.agent : null;
+  if (agente?.avatar) {
+    return (
+      <>
+        <img
+          src={agente.avatar}
+          alt=""
+          width={32}
+          height={32}
+          className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-slate-200"
+        />
+        <span className="min-w-0">
+          <span className="block leading-tight truncate">{agente.name}</span>
+          <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">{macro.label}</span>
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <span className="min-w-0">
+        <span className="block leading-tight truncate">{macro.label}</span>
+        <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
+      </span>
+    </>
+  );
+}
+
+function MacroItem({ macro, currentPath, facce = false }) {
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
   // Macro "diretta" (link semplice).
   if (macro.to) {
@@ -363,11 +406,7 @@ function MacroItem({ macro, currentPath }) {
           }`
         }
       >
-        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        <span className="min-w-0">
-          <span className="block leading-tight truncate">{macro.label}</span>
-          <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
-        </span>
+        <MacroLabel macro={macro} Icon={Icon} facce={facce} />
       </NavLink>
     );
   }
@@ -386,11 +425,7 @@ function MacroItem({ macro, currentPath }) {
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
-      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-      <span className="min-w-0">
-        <span className="block leading-tight truncate">{macro.label}</span>
-        <MacroRoster macro={macro} cls="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5" />
-      </span>
+      <MacroLabel macro={macro} Icon={Icon} facce={facce} />
     </NavLink>
   );
 }
@@ -420,6 +455,7 @@ function AdminShell({ user, onLogout, children }) {
   // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
+  const facce = sidebarConFacce(adminType);
   // Pagine cercabili: SOLO quelle del ruolo (un account con accesso limitato non
   // trova nemmeno le pagine che non sono sue).
   const pagineCercabili = nav.flatMap((macro) => macroPages(macro)
@@ -489,7 +525,7 @@ function AdminShell({ user, onLogout, children }) {
             Reparti
           </p>
           {nav.map((macro) => (
-            <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
+            <MacroItem key={macro.id} macro={macro} currentPath={pathname} facce={facce} />
           ))}
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>

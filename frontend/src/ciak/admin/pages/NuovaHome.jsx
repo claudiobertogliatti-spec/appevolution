@@ -2,8 +2,8 @@
  * Ciak Admin — nuova home «Oggi» (anteprima su /admin/nuova, solo per Claudio).
  *
  * Ordine deciso il 12/10/2026: 1) quante call oggi e a che ora, 2) le trattative da
- * sollecitare per chiudere, 3) la consegna (partner e clienti Start). A sinistra «La tua
- * squadra»: gli agenti con la faccia, ognuno porta al suo reparto.
+ * sollecitare per chiudere, 3) la consegna (partner e clienti Start). Gli agenti con la faccia
+ * stanno nella sidebar (CiakAdminApp, MacroLabel), non qui.
  *
  * Dati: gli stessi della home di oggi (useOggiData, OggiCallStrip, OggiStart). Nessuna
  * fonte nuova, nessuna cifra scritta a mano. Una fonte che non risponde lo dice.
@@ -15,18 +15,9 @@ import { ArrowRight } from "lucide-react";
 import { useOggiData } from "../components/OggiBlocks";
 import { OggiCallStrip } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
-import { DEPARTMENT_ROOMS } from "../departmentRooms";
 import { daSollecitare, frasePrincipale, SOLLECITO_GIORNI } from "../nuovaHomeModel";
 
 const RIGHE = 5;
-
-// Dove porta ogni agente. Direzione e Casi studio non hanno una landing di reparto.
-const DESTINAZIONE = {
-  dashboard: "/admin/direzione",
-  "casi-studio": "/admin/casi-studio",
-};
-const destinazione = (id) => DESTINAZIONE[id] || `/admin/reparto/${id}`;
-const ORDINE = ["dashboard", "acquisizione", "vendite", "delivery", "back-office", "casi-studio"];
 
 const leadHref = (email) => `/admin/leads/${encodeURIComponent(email)}`;
 const giorniLabel = (n) => `${n} ${n === 1 ? "giorno" : "giorni"}`;
@@ -36,44 +27,6 @@ const TONO = {
   neutral: "text-slate-500",
   info: "text-slate-500",
 };
-
-export function Squadra() {
-  return (
-    <nav aria-label="La tua squadra" className="lg:w-60 flex-shrink-0">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">La tua squadra</p>
-      <ul className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
-        {ORDINE.map((id) => {
-          const room = DEPARTMENT_ROOMS[id];
-          if (!room) return null;
-          const a = room.agent;
-          return (
-            <li key={id} className="flex-shrink-0">
-              <Link
-                to={destinazione(id)}
-                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-              >
-                <img
-                  src={a.avatar}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-slate-200"
-                />
-                <span className="min-w-0">
-                  <span className="block font-semibold text-slate-900 leading-tight">{a.name}</span>
-                  <span className="block text-xs text-slate-500 truncate">{room.label}</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-3 text-xs text-slate-500">
-        Gli agenti sono assistenti AI di Ciak: controlla ogni messaggio prima di approvarlo.
-      </p>
-    </nav>
-  );
-}
 
 function Sezione({ id, titolo, sotto, children }) {
   return (
@@ -113,9 +66,7 @@ export function NuovaHome({ user, onAuthExpired }) {
         <p className="text-slate-600 mt-2" aria-live="polite">{frase}</p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <Squadra />
-
+      <div>
         <div className="min-w-0 flex-1">
           {/* 1. Call di oggi, con l'orario */}
           <OggiCallStrip onAuthExpired={onAuthExpired} />

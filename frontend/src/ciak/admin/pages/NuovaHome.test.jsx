@@ -1,5 +1,5 @@
 /**
- * Nuova home «Oggi»: squadra con i volti, frase con numeri veri, stati onesti.
+ * Nuova home «Oggi»: frase con numeri veri, stati onesti, nessun pulsante finto.
  */
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -46,15 +46,6 @@ test("non c'è nessun pulsante «Prepara il sollecito» finché non esiste", () 
   useOggiData.mockReturnValue(vivo());
   mostra();
   expect(screen.queryByText(/Prepara il sollecito/)).toBeNull();
-});
-
-test("la squadra ha i sei volti con link ai reparti", () => {
-  useOggiData.mockReturnValue(vivo());
-  mostra();
-  const nav = screen.getByRole("navigation", { name: "La tua squadra" });
-  expect(nav.querySelectorAll("img").length).toBe(6);
-  expect(nav.querySelector('a[href="/admin/reparto/vendite"]')).toBeTruthy();
-  expect(nav.querySelector('a[href="/admin/direzione"]')).toBeTruthy();
 });
 
 test("trattative non leggibili: lo dice, non mostra zero", () => {
