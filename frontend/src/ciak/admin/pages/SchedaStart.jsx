@@ -1,10 +1,12 @@
 /**
  * Ciak Admin — Account di un cliente Start (`/admin/start/:clientId`).
  *
- * Una pagina sola per un cliente: a che punto e', cosa tocca a te adesso, i 6
- * materiali in ordine ciascuno col suo stato e UN pulsante giusto per quello
- * stato (Genera / Leggi e approva / niente). Sostituisce i 12 pulsanti piatti di
- * Consegne Start, che restano li' per chi li usa.
+ * Stesso impianto della scheda del partner (`PartnerDetailModal`): intestazione e schede
+ * in alto, stesso stile. Panoramica (cosa tocca a te adesso) · Percorso (i 6 materiali in
+ * ordine, ciascuno col suo stato e UN pulsante giusto: Genera / Leggi e approva) ·
+ * Materiali (risposte alle 20 domande e marchio) · Documenti (PDF) · Impostazioni (link
+ * d'accesso). Niente scheda Pagamenti: per Start non c'e' un dato verificato da mostrare.
+ * Sostituisce i 12 pulsanti piatti di Consegne Start, che restano li' per chi li usa.
  *
  * Backend: GET  /start/pipeline            (riga del cliente: stato, prossima mossa)
  *          GET  /start/{id}/bozze          (contenuto delle bozze, da leggere prima di approvare)
@@ -12,8 +14,8 @@
  * Approvare e' un'azione esplicita sul singolo materiale: mai in blocco.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Eye, Target, Edit3, FileText, Settings } from "lucide-react";
 import { apiGet, apiPost } from "../api";
 import { Valore } from "./ConsegneStart";
 import { StatusPill } from "../components/ui/StatusPill";
@@ -35,6 +37,14 @@ const STATO = {
   errore: { testo: "Generazione fallita", tono: "bg-red-50 text-red-700 border-red-200" },
   da_fare: { testo: "Da fare", tono: "bg-slate-100 text-slate-500 border-slate-200" },
 };
+
+const SCHEDE = [
+  { id: "panoramica", label: "Panoramica", Icon: Eye },
+  { id: "percorso", label: "Percorso", Icon: Target },
+  { id: "materiali", label: "Materiali", Icon: Edit3 },
+  { id: "documenti", label: "Documenti", Icon: FileText },
+  { id: "impostazioni", label: "Impostazioni", Icon: Settings },
+];
 
 const STAGE_TESTO = {
   attesa_cliente: "Aspetta il cliente",
@@ -137,6 +147,25 @@ export function SchedaStart({ onAuthExpired }) {
   const [errore, setErrore] = useState(null);
   const [inCorso, setInCorso] = useState(null);
   const [esito, setEsito] = useState(null);
+  const [params, setParams] = useSearchParams();
+  const scheda = SCHEDE.some((x) => x.id === params.get("scheda")) ? params.get("scheda") : "panoramica";
+  const [link, setLink] = useState(null);
+  const vaiA = (id) => setParams(id === "panoramica" ? {} : { scheda: id }, { replace: true });
+
+  const generaLink = async () => {
+    setInCorso("link");
+    setEsito(null);
+    setLink(null);
+    try {
+      const r = await apiPost(`/clients/${clientId}/link-accesso`, { email: riga.email });
+      setLink(r);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setEsito({ ok: false, testo: e.message });
+    } finally {
+      setInCorso(null);
+    }
+  };
 
   const carica = useCallback(() => {
     setErrore(null);
@@ -247,6 +276,27 @@ export function SchedaStart({ onAuthExpired }) {
         </p>
       )}
 
+      <div className="mt-6 flex overflow-x-auto border-b border-gray-200 bg-[#FAFAF7]" role="tablist" aria-label="Schede del cliente">
+        {SCHEDE.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={scheda === id}
+            onClick={() => vaiA(id)}
+            className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+              scheda === id ? "border-yellow-400 bg-white text-gray-900" : "border-transparent text-gray-500 hover:bg-white/50 hover:text-gray-700"
+            }`}
+            data-testid={`scheda-${id}`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {scheda === "panoramica" && (
+        <>
       <section className="my-6 rounded-2xl border border-slate-900 bg-white p-5">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Cosa fare adesso</p>
         <p className="mt-1 text-lg font-semibold text-slate-900">{riga.prossima_azione}</p>
@@ -279,7 +329,12 @@ export function SchedaStart({ onAuthExpired }) {
         </p>
       </section>
 
-      <h2 className="mb-3 text-sm font-semibold text-slate-900">I 6 materiali, in ordine</h2>
+        </>
+      )}
+
+      {scheda === "percorso" && (
+        <>
+      <h2 className="mb-3 mt-6 text-sm font-semibold text-slate-900">I 6 materiali, in ordine</h2>
       <ol className="space-y-3">
         {bozze.items.map((item, i) => (
           <RigaMateriale
@@ -294,6 +349,11 @@ export function SchedaStart({ onAuthExpired }) {
         ))}
       </ol>
 
+        </>
+      )}
+
+      {scheda === "materiali" && (
+        <>
       <Domande20 risposte={bozze.risposte} domande={bozze.domande} />
       <MarchioScelto marchio={bozze.marchio_scelto} />
 
@@ -311,16 +371,42 @@ export function SchedaStart({ onAuthExpired }) {
         </div>
       </details>
 
-      <div className="mt-6">
-        <button
-          type="button"
-          disabled={inCorso === "pdf"}
-          onClick={() => esegui("pdf", `/start/${clientId}/pdf/crea`, null, "PDF dei materiali approvati creati.")}
-          className={BTN_CHIARO}
-        >
-          {inCorso === "pdf" ? "Attendi…" : "Crea i PDF dei materiali approvati"}
-        </button>
-      </div>
+        </>
+      )}
+
+      {scheda === "documenti" && (
+        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-slate-900">PDF dei materiali approvati</h2>
+          <p className="mt-1 text-xs text-slate-500">Crea i PDF di quello che il cliente puo' gia' vedere. Non approva niente.</p>
+          <button
+            type="button"
+            disabled={inCorso === "pdf"}
+            onClick={() => esegui("pdf", `/start/${clientId}/pdf/crea`, null, "PDF dei materiali approvati creati.")}
+            className={`mt-3 ${BTN_CHIARO}`}
+          >
+            {inCorso === "pdf" ? "Attendi…" : "Crea i PDF dei materiali approvati"}
+          </button>
+        </section>
+      )}
+
+      {scheda === "impostazioni" && (
+        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-slate-900">Link di accesso del cliente</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Il link gia' mandato vale 30 giorni dalla creazione ed e' riutilizzabile: prova prima quello. Ne crei uno nuovo solo
+            se non entra. Non invia nessuna email e non invalida i link precedenti: lo copi e lo mandi tu.
+          </p>
+          <button type="button" disabled={inCorso === "link"} onClick={generaLink} className={`mt-3 ${BTN_SCURO}`}>
+            {inCorso === "link" ? "Attendi…" : "Genera un link nuovo"}
+          </button>
+          {link && (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+              <p className="break-all font-mono" data-testid="link-generato">{link.link}</p>
+              <p className="mt-1">Scade il {String(link.scade_il).slice(0, 10)}.</p>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

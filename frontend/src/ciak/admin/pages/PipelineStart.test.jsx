@@ -116,17 +116,18 @@ test("un clic sulla riga apre l'account del cliente", async () => {
   expect(await screen.findByText("SCHEDA")).toBeInTheDocument();
 });
 
-function scheda() {
+// La scheda ha le schede in alto (come quella del partner): si apre direttamente su quella da provare.
+function scheda(tab = "panoramica") {
   return render(
-    <MemoryRouter initialEntries={["/admin/start/c1"]}>
+    <MemoryRouter initialEntries={[tab === "panoramica" ? "/admin/start/c1" : `/admin/start/c1?scheda=${tab}`]}>
       <Routes><Route path="/admin/start/:clientId" element={<SchedaStart />} /></Routes>
     </MemoryRouter>,
   );
 }
 
 test("scheda: un solo pulsante giusto per stato di ogni materiale", async () => {
-  scheda();
-  await screen.findByText("Cosa fare adesso");
+  scheda("percorso");
+  await screen.findByText("I 6 materiali, in ordine");
   expect(screen.getAllByRole("button", { name: "Approva" })).toHaveLength(1); // solo la bozza da approvare
   expect(screen.getAllByRole("button", { name: "Genera bozza" })).toHaveLength(2); // brand_kit e readiness
   expect(screen.getAllByRole("button", { name: "Riprova" })).toHaveLength(1); // profili in errore
@@ -135,7 +136,7 @@ test("scheda: un solo pulsante giusto per stato di ogni materiale", async () => 
 });
 
 test("scheda: approvare chiama l'endpoint del solo materiale e mostra l'esito subito", async () => {
-  scheda();
+  scheda("percorso");
   fireEvent.click(await screen.findByRole("button", { name: "Approva" }));
   await waitFor(() =>
     expect(apiPost).toHaveBeenCalledWith("/start/c1/deliverable/approva", { tipo: "positioning" }),
@@ -168,8 +169,8 @@ test("scheda: dice chi ha approvato, ferma il testo di ripiego, e il sito si app
     ],
     domande: { inviate_at: null, riaperto_dal_team: false, dal_team: {}, proposte: {}, mancanti: [] },
   }));
-  scheda();
-  await screen.findByText("Cosa fare adesso");
+  scheda("percorso");
+  await screen.findByText("I 6 materiali, in ordine");
   expect(screen.getByText("Approvato in automatico · il cliente lo vede")).toBeInTheDocument();
   expect(screen.getByText("Approvato · il cliente lo vede")).toBeInTheDocument(); // quello approvato a mano
   expect(screen.getByText("Testo di ripiego · da rivedere")).toBeInTheDocument();
@@ -190,8 +191,8 @@ test("scheda: le 20 domande mostrano chi ha scritto cosa, le proposte e quelle d
       mancanti: ["paure_avatar", "origin_story"],
     },
   }));
-  scheda();
-  await screen.findByText("Cosa fare adesso");
+  scheda("materiali");
+  await screen.findByText(/Le 20 domande/);
   expect(screen.getByText(/Le 20 domande · 9 su 20 · riaperte per le mancanti/)).toBeInTheDocument();
   expect(screen.getByText("Mancano 2 risposte")).toBeInTheDocument();
   expect(screen.getByText("1 inserite dal team")).toBeInTheDocument();
