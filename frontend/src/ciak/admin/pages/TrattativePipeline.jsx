@@ -27,7 +27,7 @@ export function TrattativePipeline({ onAuthExpired }) {
   const active = STADI_TRATTATIVE.find((s) => s.id === params.get("stadio")) || STADI_TRATTATIVE[0];
   return (
     <div>
-      <div className="px-8 pt-8">
+      <div className="px-5 pt-8 sm:px-10 lg:px-16">
         <div role="tablist" aria-label="Stadio trattativa" className="flex flex-wrap gap-2">
           {STADI_TRATTATIVE.map((s) => {
             const on = s.id === active.id;
@@ -52,6 +52,7 @@ export function TrattativePipeline({ onAuthExpired }) {
         key={active.id}
         endpoint="/pipeline-blueprint"
         title="Trattative"
+        agente="marco"
         subtitle={active.subtitle}
         lockedStages={active.lockedStages}
         deletable

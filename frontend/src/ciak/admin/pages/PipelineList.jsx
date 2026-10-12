@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { apiGet, adminFetch } from "../api";
+import { IntestazioneAgente } from "../components/ui/IntestazioneAgente";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function fmtDate(s) {
@@ -38,7 +39,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote, deletable, editable, lockedStages }) {
+export function PipelineList({ endpoint, title, subtitle, agente, onAuthExpired, mirrorNote, deletable, editable, lockedStages }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -133,27 +134,27 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-start justify-between mb-1">
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        {!locked && (
+    <div className="px-5 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <IntestazioneAgente
+        agente={agente}
+        titolo={title}
+        sotto={`${subtitle} — ${shownTotal} contatti.`}
+        className="mb-4"
+        azione={!locked ? (
           <select
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
-          >
-            <option value="">Tutti gli stadi</option>
-            {selectableColumns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label} ({c.count})
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-      <p className="text-slate-500 mb-3">
-        {subtitle} — {shownTotal} contatti.
-      </p>
+                      value={stageFilter}
+                      onChange={(e) => setStageFilter(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
+                    >
+                      <option value="">Tutti gli stadi</option>
+                      {selectableColumns.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label} ({c.count})
+                        </option>
+                      ))}
+                    </select>
+        ) : null}
+      />
 
       {mirrorNote && (
         <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-500">
