@@ -16,6 +16,8 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { apiGet, apiPost } from "../api";
 import { Valore } from "./ConsegneStart";
+import { StatusPill } from "../components/ui/StatusPill";
+import { Domande20, MarchioScelto } from "./SchedaStartDati";
 
 const GENERA = {
   positioning: "posizionamento/genera",
@@ -55,6 +57,9 @@ const BTN_CHIARO =
 
 function RigaMateriale({ n, item, titolo, inCorso, onGenera, onApprova }) {
   const s = stato(item);
+  const auto = s === "approvato" && item.approvato_da === "ciak-automatico";
+  const ripiego = s === "da_approvare" && item.ripiego;
+  const manuale = item.type === "showcase" || item.type === "partnership_readiness";
   const [aperto, setAperto] = useState(false);
   const occupato = inCorso === item.type;
   return (
@@ -64,7 +69,9 @@ function RigaMateriale({ n, item, titolo, inCorso, onGenera, onApprova }) {
           {n}
         </span>
         <h3 className="text-sm font-semibold text-slate-900">{titolo}</h3>
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${STATO[s].tono}`}>{STATO[s].testo}</span>
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${STATO[s].tono}`}>
+          {auto ? "Approvato in automatico · il cliente lo vede" : ripiego ? "Testo di ripiego · da rivedere" : STATO[s].testo}
+        </span>
         <div className="ml-auto flex flex-wrap gap-2">
           {item.generato && (
             <button type="button" aria-expanded={aperto} onClick={() => setAperto((v) => !v)} className={BTN_CHIARO}>
@@ -78,14 +85,22 @@ function RigaMateriale({ n, item, titolo, inCorso, onGenera, onApprova }) {
           )}
           {s === "da_approvare" && (
             <button type="button" disabled={occupato} onClick={() => onApprova(item)} className={BTN_SCURO}>
-              {occupato ? "Attendi…" : "Approva"}
+              {occupato ? "Attendi…" : item.type === "showcase" ? "Approva sito e dominio" : "Approva"}
             </button>
           )}
         </div>
       </div>
       {item.generation_error && <p className="mt-2 text-xs text-red-700">{item.generation_error}</p>}
       {s === "da_approvare" && !aperto && (
-        <p className="mt-2 text-xs text-slate-500">Premi "Leggi" per controllare la bozza prima di approvarla.</p>
+        <p className="mt-2 text-xs text-slate-500">
+          {ripiego
+            ? "La sintesi automatica non e' riuscita: il testo e' di ripiego e non va al cliente da solo. Riscrivilo o rivedilo prima di approvare."
+            : item.type === "showcase"
+              ? "Approvare vuol dire che il sito e' online sul suo dominio: ti chiedo l'indirizzo (https://…). Premi \"Leggi\" per controllarlo prima."
+              : manuale
+                ? 'Premi "Leggi" per controllare la bozza prima di approvarla.'
+                : 'Premi "Leggi" per controllare la bozza prima di approvarla. (Di solito questo materiale va al cliente da solo: e\' fermo perche\' esisteva gia\' prima o per altro motivo.)'}
+        </p>
       )}
       {aperto && item.generato && (
         <div className="mt-3 space-y-3">
@@ -207,6 +222,19 @@ export function SchedaStart({ onAuthExpired }) {
       <p className="mt-1 text-sm text-slate-500">
         {riga.email} · {STAGE_TESTO[riga.stage]} · {riga.approvati} di {riga.totale} materiali approvati
       </p>
+      {(riga.fermo || riga.ultimo_movimento?.giorni != null) && (
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          {riga.ultimo_movimento?.giorni != null && (
+            <span>
+              Ultimo movimento{" "}
+              {riga.ultimo_movimento.da_acquisto
+                ? `nessuno dall'acquisto (${riga.ultimo_movimento.giorni} giorni)`
+                : riga.ultimo_movimento.giorni === 0 ? "oggi" : riga.ultimo_movimento.giorni === 1 ? "ieri" : `${riga.ultimo_movimento.giorni} giorni fa`}
+            </span>
+          )}
+          {riga.fermo && <StatusPill tone="warning" label="Fermo" />}
+        </p>
+      )}
 
       {esito && (
         <p
@@ -242,9 +270,13 @@ export function SchedaStart({ onAuthExpired }) {
         )}
         {riga.stage === "da_approvare" && primoDaApprovare && (
           <p className="mt-3 text-xs text-slate-500">
-            Leggi la bozza ("Leggi" nella riga qui sotto), poi premi "Approva". Il cliente vede solo ciò che approvi.
+            Leggi la bozza ("Leggi" nella riga qui sotto), poi premi "Approva". Il cliente vede solo ciò che e' approvato.
           </p>
         )}
+        <p className="mt-3 text-xs text-slate-500">
+          Come funziona: posizionamento, marchio, profili social e calendario vanno al cliente da soli, a meno che il testo
+          sia di ripiego. A mano restano solo il sito web (con il suo dominio) e il controllo finale.
+        </p>
       </section>
 
       <h2 className="mb-3 text-sm font-semibold text-slate-900">I 6 materiali, in ordine</h2>
@@ -262,8 +294,11 @@ export function SchedaStart({ onAuthExpired }) {
         ))}
       </ol>
 
-      <details className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-800">Cosa ha risposto e scelto il cliente</summary>
+      <Domande20 risposte={bozze.risposte} domande={bozze.domande} />
+      <MarchioScelto marchio={bozze.marchio_scelto} />
+
+      <details className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">Dati grezzi (per controllo)</summary>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">Risposte</p>

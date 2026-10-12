@@ -148,3 +148,60 @@ test("scheda: cliente non Start attivo non mostra pulsanti ma un messaggio", asy
   scheda();
   expect(await screen.findByText(/non risulta tra i clienti Start/)).toBeInTheDocument();
 });
+
+const RISPOSTE_8 = Object.fromEntries(
+  ["nicchia", "momento_di_vita", "promessa", "trasformazione_90gg", "metodo_nome", "differenza_riconoscibile", "mercato_affollato", "prezzo_e_formato"]
+    .map((k) => [k, `Risposta vera per ${k}`]),
+);
+
+test("scheda: dice chi ha approvato, ferma il testo di ripiego, e il sito si approva insieme al dominio", async () => {
+  apiGet.mockImplementation((path) => Promise.resolve(path === "/start/pipeline" ? PIPELINE : {
+    ...BOZZE,
+    risposte: RISPOSTE_8,
+    items: [
+      { type: "positioning", generato: true, approval_status: "approved", approvato_da: "ciak-automatico", ripiego: false, contenuto: {} },
+      { type: "brand_kit", generato: true, approval_status: "approved", approvato_da: "claudio@x.it", ripiego: false, contenuto: {} },
+      { type: "social_profiles", generato: true, approval_status: "pending_review", ripiego: true, contenuto: {} },
+      { type: "showcase", generato: true, approval_status: "pending_review", ripiego: false, contenuto: {} },
+      { type: "content_plan_90d", generato: false },
+      { type: "partnership_readiness", generato: false },
+    ],
+    domande: { inviate_at: null, riaperto_dal_team: false, dal_team: {}, proposte: {}, mancanti: [] },
+  }));
+  scheda();
+  await screen.findByText("Cosa fare adesso");
+  expect(screen.getByText("Approvato in automatico · il cliente lo vede")).toBeInTheDocument();
+  expect(screen.getByText("Approvato · il cliente lo vede")).toBeInTheDocument(); // quello approvato a mano
+  expect(screen.getByText("Testo di ripiego · da rivedere")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Approva sito e dominio" })).toBeInTheDocument();
+  expect(screen.getByText(/Approvare vuol dire che il sito e' online sul suo dominio/)).toBeInTheDocument();
+  expect(screen.getByText(/La sintesi automatica non e' riuscita/)).toBeInTheDocument();
+});
+
+test("scheda: le 20 domande mostrano chi ha scritto cosa, le proposte e quelle da scrivere", async () => {
+  apiGet.mockImplementation((path) => Promise.resolve(path === "/start/pipeline" ? PIPELINE : {
+    ...BOZZE,
+    risposte: { ...RISPOSTE_8, desideri_avatar: "Capire quale strada professionale prendere" },
+    marchio_scelto: { colors: ["#0F2A4A", "#5B7C99", "#D9A441"], palette_id: "sicuro", tone_of_voice: "Parlo in modo caldo", parole_chiave: ["autenticità"], brand_completed_at: "2026-10-06T07:32:41+00:00" },
+    domande: {
+      inviate_at: "2026-10-02T10:00:00+00:00", riaperto_dal_team: true,
+      dal_team: { desideri_avatar: { da: "claudio@x.it", at: "2026-10-12T09:00:00+00:00" } },
+      proposte: { paure_avatar: "Paura di non essere all'altezza" },
+      mancanti: ["paure_avatar", "origin_story"],
+    },
+  }));
+  scheda();
+  await screen.findByText("Cosa fare adesso");
+  expect(screen.getByText(/Le 20 domande · 9 su 20 · riaperte per le mancanti/)).toBeInTheDocument();
+  expect(screen.getByText("Mancano 2 risposte")).toBeInTheDocument();
+  expect(screen.getByText("1 inserite dal team")).toBeInTheDocument();
+  expect(screen.getAllByText("Capire quale strada professionale prendere").length).toBeGreaterThan(0);
+  expect(screen.getByText(/Inserita dal team il/)).toBeInTheDocument();
+  expect(screen.getByText(/Proposta in attesa:/)).toBeInTheDocument();
+  expect(screen.getAllByText("Da scrivere").length).toBeGreaterThan(0);
+  // il marchio EVO: colori, voce, parole
+  expect(screen.getByText(/Il marchio scelto · inviato il/)).toBeInTheDocument();
+  expect(screen.getAllByText("#0F2A4A").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Parlo in modo caldo").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("autenticità").length).toBeGreaterThan(0);
+});

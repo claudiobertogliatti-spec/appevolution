@@ -104,3 +104,33 @@ async def test_bozze_cliente_non_start_409(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         await ciak_admin.bozze_start("c2", _admin=ADMIN)
     assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_bozze_dice_chi_ha_approvato_se_e_di_ripiego_e_lo_stato_delle_20_domande(monkeypatch):
+    from services.ciak_start_domande import DOMANDE_START_LEGACY_IDS
+
+    otto = {k: f"Risposta vera per {k}" for k in DOMANDE_START_LEGACY_IDS}
+    db = _Db(
+        [START],
+        [{"partner_id": "c1", "step_id": "04-posizionamento", "data": {
+            "answers": otto, "answers_completed_at": "2026-10-02",
+            "risposte_dal_team": {"desideri_avatar": {"da": "claudio@x.it", "at": "2026-10-12"}},
+            "proposte": {"paure_avatar": "Paura di non essere all'altezza", "costo_del_no": None},
+            "integrazione_richiesta_at": "2026-10-12"}}],
+        [
+            {"partner_id": "c1", "type": "positioning", "approval_status": "approved", "approved_by": "ciak-automatico", "fallback": False},
+            {"partner_id": "c1", "type": "social_profiles", "approval_status": "pending_review", "_fallback": True},
+        ],
+    )
+    monkeypatch.setattr(ciak_admin, "db", db)
+    res = await ciak_admin.bozze_start("c1", _admin=ADMIN)
+    pos = next(i for i in res["items"] if i["type"] == "positioning")
+    soc = next(i for i in res["items"] if i["type"] == "social_profiles")
+    assert pos["approvato_da"] == "ciak-automatico" and pos["ripiego"] is False
+    assert soc["ripiego"] is True and soc["approval_status"] == "pending_review"
+    d = res["domande"]
+    assert d["inviate_at"] == "2026-10-02" and d["riaperto_dal_team"] is True
+    assert d["dal_team"]["desideri_avatar"]["da"] == "claudio@x.it"
+    assert d["proposte"] == {"paure_avatar": "Paura di non essere all'altezza"}  # le svuotate non contano
+    assert "origin_story" in d["mancanti"] and "nicchia" not in d["mancanti"]

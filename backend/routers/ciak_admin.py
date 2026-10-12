@@ -5594,21 +5594,39 @@ async def bozze_start(
         if doc:
             tecnici = {"type", "partner_id", "html", "generated_by", "approved_by", "approval_status",
                        "generated_at", "approved_at", "created_at", "live_url"}
+            from services.start_autogenerazione import _e_di_ripiego
+
             entry.update({
                 "approval_status": doc.get("approval_status") or "pending_review",
                 "generated_at": doc.get("generated_at"),
                 "approved_at": doc.get("approved_at"),
+                # chi ha approvato: "ciak-automatico" = approvazione automatica del sistema
+                "approvato_da": doc.get("approved_by"),
+                # testo di ripiego (sintesi AI fallita): l'approvazione automatica lo ferma
+                "ripiego": _e_di_ripiego(tipo, doc),
                 "live_url": doc.get("live_url"),
                 "html": doc.get("html"),
                 "contenuto": {k: v for k, v in doc.items() if k not in tecnici},
             })
         items.append(entry)
 
+    from services.ciak_start_domande import mancanti
+
+    dati_risposte = risposte_step.get("data") or {}
+    risposte = dati_risposte.get("answers") or {}
     return {
         "client_id": client_id,
-        "risposte": (risposte_step.get("data") or {}).get("answers") or {},
+        "risposte": risposte,
         "marchio_scelto": marchio_step.get("data") or {},
         "items": items,
+        # questionario delle 20 domande: stato, chi ha scritto cosa, cosa manca
+        "domande": {
+            "inviate_at": dati_risposte.get("answers_completed_at"),
+            "riaperto_dal_team": bool(dati_risposte.get("integrazione_richiesta_at")),
+            "dal_team": dati_risposte.get("risposte_dal_team") or {},
+            "proposte": {k: v for k, v in (dati_risposte.get("proposte") or {}).items() if v},
+            "mancanti": mancanti(risposte),
+        },
     }
 
 

@@ -1,3 +1,15 @@
+### 2026-10-12 (5) · Claude Code · claude/modest-euler-xde2pw — Scheda admin del cliente Start aggiornata al nuovo regime
+
+**RICHIESTA:** «aggiorna la pagina di Linda Pavia… l'account con tutte le nuove impostazioni» = la scheda admin `/admin/start/<id>` (`SchedaStart.jsx`), ferma al vecchio regime.
+
+**DICHIARATO**
+- Backend `GET /start/{id}/bozze` aggiunge per materiale `approvato_da` («ciak-automatico» = approvazione automatica) e `ripiego`; e un blocco `domande {inviate_at, riaperto_dal_team, dal_team, proposte, mancanti}`.
+- Frontend: `SchedaStartDati.jsx` (`Domande20`: le 20 domande per blocco con la risposta, «inserita dal team», proposte in attesa, «da scrivere»; `MarchioScelto`: colori, voce, parole, espressioni, parole da evitare, emozioni, foto/logo). `SchedaStart.jsx`: etichetta «Approvato in automatico», «Testo di ripiego · da rivedere», pulsante «Approva sito e dominio» con spiegazione, ultimo movimento/fermo, riquadro «Come funziona». I dati grezzi restano in un details chiuso.
+
+**VERIFICATO:** frontend `src/ciak/admin` 62 suite, 386 test; backend 5 file (bozze, proposte, router clienti, autogenerazione, pipeline) tutti passati. Render con Chromium della scheda con i dati veri di Linda (incollati da Claudio il 12/10) + le 2 risposte del team simulate.
+
+**⛔ PROBLEMA DATI TROVATO:** per `differenza_riconoscibile` la domanda EVO («Come ti descriverebbe una cliente a un'amica, in una frase?») NON e' quella a cui Linda aveva risposto (vecchio testo Start: «Cosa fai tu di diverso dagli altri…»). Ora la sua risposta («Lavoro One to One e creo un percorso personalizzato») appare sotto la domanda sbagliata. Le altre 7 vecchie domande hanno testo molto simile a EVO. Da decidere con Claudio: farle riconfermare quella risposta.
+
 ### 2026-10-12 (4) · Claude Code · claude/modest-euler-xde2pw — Risposte mancanti: il team propone/inserisce, il cliente completa
 
 **CONTESTO:** dopo il passaggio alle 20 domande EVO, Linda Pavia (letta dalla console admin di Claudio, 12/10) aveva solo le 8 vecchie risposte. Online NON esiste nulla su di lei né su «Nuovi Inizi» (due ricerche): nessun dato inventato. Claudio ha confermato le risposte dedotte (A: 5 riformulazioni delle sue parole; B: 2 ipotesi, approvate da lui). Le 5 che solo lei puo' scrivere (`metodo_step`, `prova_sociale_concreta`, `origin_story`, `obiezione_principale`, `limite_onesto`) restano a lei.
