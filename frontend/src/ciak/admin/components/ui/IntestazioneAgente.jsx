@@ -18,7 +18,7 @@ export function IntestazioneAgente({ agente, titolo, sotto, azione, className = 
         />
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">{titolo}</h1>
+        <h1 data-volto="" className="text-3xl font-semibold text-slate-900 sm:text-4xl">{titolo}</h1>
         {sotto && <p className="mt-1.5 max-w-3xl text-lg text-slate-600">{sotto}</p>}
       </div>
       {azione && <div className="flex-shrink-0">{azione}</div>}

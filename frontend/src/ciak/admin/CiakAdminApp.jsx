@@ -639,7 +639,10 @@ function AdminShell({ user, onLogout, children }) {
           <Search className="h-5 w-5" aria-hidden />
         </button>
       </div>
-      <main className="ciak-pagina flex-1 min-w-0 overflow-auto">
+      <main
+        className={`ciak-pagina flex-1 min-w-0 overflow-auto${facce && sezione && DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar ? " ciak-con-volto" : ""}`}
+        style={facce && sezione && DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar ? { "--volto": `url(${DEPARTMENT_ROOMS[sezione.id].agent.avatar})` } : undefined}
+      >
         {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} volto={facce ? DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar : null} />}
         {children}
       </main>

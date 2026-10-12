@@ -526,7 +526,7 @@ export function VideoReview({ onAuthExpired }) {
   );
 
   return (
-    <div className="p-6" style={{ background: C.bg, minHeight: "100%" }}>
+    <div className="px-5 py-8 sm:px-10 lg:px-16 lg:py-12" style={{ background: C.bg, minHeight: "100%" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
