@@ -19,6 +19,7 @@ import { fmtOraRoma } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
 import { SollecitoPannello } from "../components/SollecitoPannello";
+import { PassoPannello, dataIt } from "../components/PassoPannello";
 import { apiGet } from "../api";
 import { daSollecitare, frasePrincipale, SOLLECITO_GIORNI } from "../nuovaHomeModel";
 
@@ -57,6 +58,27 @@ function NonDisponibile({ onRiprova }) {
   );
 }
 
+function PassoRiga({ passo, caricamento, nonLeggibile, onApri }) {
+  if (caricamento || nonLeggibile) return null; // senza il dato non si dice «manca»
+  const base = "mt-0.5 text-sm";
+  if (!passo) {
+    return (
+      <p className={`${base} text-amber-800`}>
+        Manca il prossimo passo.{" "}
+        <button type="button" onClick={onApri} className="font-semibold underline underline-offset-2">Imposta</button>
+      </p>
+    );
+  }
+  const scaduto = passo.stato_scadenza === "scaduto";
+  return (
+    <p className={`${base} truncate ${scaduto ? "text-red-700" : "text-slate-500"}`}>
+      <button type="button" onClick={onApri} className="text-left hover:underline underline-offset-2">
+        {passo.testo} · {scaduto ? "scaduto il" : passo.stato_scadenza === "oggi" ? "oggi" : "entro il"}{passo.stato_scadenza === "oggi" ? "" : ` ${dataIt(passo.scadenza)}`}
+      </button>
+    </p>
+  );
+}
+
 function Iniziali({ nome }) {
   return (
     <span className="inline-grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600" aria-hidden>
@@ -74,7 +96,15 @@ export function NuovaHome({ user, onAuthExpired }) {
   const shared = useOggiShared();
   const [sollecito, setSollecito] = useState(null); // { email, nome } aperto
   const [recenti, setRecenti] = useState({}); // email -> data ISO dell'ultimo sollecito
+  const [passoAperto, setPassoAperto] = useState(null); // { email, nome } aperto
+  const [passi, setPassi] = useState(undefined); // undefined = carico · null = non leggibili · { email: passo }
   const abilitata = Boolean(shared);
+
+  const caricaPassi = () => {
+    apiGet("/prossimi-passi")
+      .then((r) => setPassi(Object.fromEntries((r.items || []).map((i) => [i.email, i]))))
+      .catch(() => setPassi(null));
+  };
 
   useEffect(() => {
     if (!abilitata) return undefined;
@@ -85,8 +115,9 @@ export function NuovaHome({ user, onAuthExpired }) {
         setRecenti(Object.fromEntries((r.items || []).map((i) => [i.email, i.sent_at])));
       })
       .catch(() => {}); // senza l'elenco si perde solo l'etichetta: il server blocca comunque i doppi
+    caricaPassi();
     return () => { vivo = false; };
-  }, [abilitata]);
+  }, [abilitata]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!shared) {
     return <div className="p-10 text-slate-600">Questa pagina è disponibile solo dal tuo account.</div>;
@@ -175,12 +206,16 @@ export function NuovaHome({ user, onAuthExpired }) {
               <li key={t.email || t.nome} className="flex items-center justify-between gap-4 px-6 py-4">
                 <div className="flex min-w-0 items-center gap-4">
                   <Iniziali nome={t.nome} />
-                  <Link
-                    to={leadHref(t.email)}
-                    className="min-w-0 truncate text-lg font-semibold text-slate-900 hover:underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-                  >
-                    {t.nome}
-                  </Link>
+                  <div className="min-w-0">
+                    <Link
+                      to={leadHref(t.email)}
+                      className="block truncate text-lg font-semibold text-slate-900 hover:underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+                    >
+                      {t.nome}
+                    </Link>
+                    <PassoRiga passo={passi ? passi[(t.email || "").toLowerCase()] : undefined} caricamento={passi === undefined} nonLeggibile={passi === null}
+                      onApri={() => setPassoAperto({ email: t.email, nome: t.nome })} />
+                  </div>
                 </div>
                 <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-3">
                   <span className={`rounded-full px-3 py-1 text-sm font-semibold ${PILLOLA[t.tone] || PILLOLA.neutral}`}>
@@ -255,6 +290,18 @@ export function NuovaHome({ user, onAuthExpired }) {
       <OggiStart onAuthExpired={onAuthExpired} />
 
       <ChiediALuca onAuthExpired={onAuthExpired} />
+
+      {passoAperto && (
+        <PassoPannello
+          email={passoAperto.email}
+          nome={passoAperto.nome}
+          passo={passi ? passi[(passoAperto.email || "").toLowerCase()] : undefined}
+          onClose={() => setPassoAperto(null)}
+          onSalvato={caricaPassi}
+          onFatto={caricaPassi}
+          onAuthExpired={onAuthExpired}
+        />
+      )}
 
       {sollecito && (
         <SollecitoPannello

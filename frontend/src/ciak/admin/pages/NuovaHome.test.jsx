@@ -10,6 +10,7 @@ import { apiGet } from "../api";
 jest.mock("../components/OggiShared", () => ({ useOggiShared: jest.fn() }));
 jest.mock("../components/OggiStart", () => ({ OggiStart: () => <div>CLIENTI-START</div> }));
 jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
+jest.mock("../components/PassoPannello", () => ({ PassoPannello: ({ email }) => <div>PASSO-{email}</div>, dataIt: (d) => d.split("-").reverse().join("/") }));
 jest.mock("../components/SollecitoPannello", () => ({ SollecitoPannello: ({ email }) => <div>PANNELLO-{email}</div> }));
 jest.mock("../components/ChiediALuca", () => ({ ChiediALuca: () => <div>CHIEDI-A-LUCA</div> }));
 
@@ -110,4 +111,30 @@ test("fuori dal provider non si rompe", () => {
   useOggiShared.mockReturnValue(null);
   mostra();
   expect(screen.getByText(/solo dal tuo account/)).toBeTruthy();
+});
+
+test("senza prossimo passo lo dice e permette di impostarlo", async () => {
+  useOggiShared.mockReturnValue(vivo());
+  mostra();
+  const imposta = await screen.findAllByRole("button", { name: "Imposta" });
+  expect(imposta).toHaveLength(2);
+  fireEvent.click(imposta[0]);
+  expect(screen.getByText("PASSO-a@x.it")).toBeTruthy();
+});
+
+test("con un passo scaduto lo mostra in evidenza; se i passi non si leggono non dice «manca»", async () => {
+  apiGet.mockImplementation((path) =>
+    path === "/prossimi-passi"
+      ? Promise.resolve({ items: [{ email: "a@x.it", testo: "Richiamo per il contratto", scadenza: "2026-10-10", stato_scadenza: "scaduto" }] })
+      : Promise.resolve({ items: [] }));
+  useOggiShared.mockReturnValue(vivo());
+  const { unmount } = mostra();
+  expect(await screen.findByText(/Richiamo per il contratto · scaduto il 10\/10\/2026/)).toBeTruthy();
+  unmount();
+
+  apiGet.mockImplementation((path) => (path === "/prossimi-passi" ? Promise.reject(new Error("x")) : Promise.resolve({ items: [] })));
+  mostra();
+  await screen.findByText("Chiara Ferri");
+  await new Promise((r) => setTimeout(r, 0));
+  expect(screen.queryByText(/Manca il prossimo passo/)).toBeNull();
 });

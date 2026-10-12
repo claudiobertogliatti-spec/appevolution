@@ -3112,6 +3112,117 @@ async def solleciti_recenti(giorni: int = Query(14, ge=1, le=90), admin=Depends(
     return {"items": ciak_sollecito.ultimi_per_email(righe, giorni)}
 
 
+# ─── Trattative — prossimo passo con data + cronologia del contatto ─────────
+# Un solo passo aperto per persona (`ciak_prossimi_passi`, chiave email). Quando cambia o si
+# chiude, il vecchio va in `storico` e compare nella cronologia.
+
+class ProssimoPassoIn(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    testo: str = Field(..., max_length=600)
+    scadenza: str = Field(..., max_length=10)
+
+
+class ProssimoPassoFatto(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+def _autore(admin) -> str:
+    return getattr(admin, "email", None) or "sconosciuto"
+
+
+@router.get("/prossimi-passi")
+async def prossimi_passi(admin=Depends(require_ciak_admin)):
+    """I passi aperti, con lo stato della scadenza (scaduto / oggi / futuro)."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_prossimi_passi.find({"testo": {"$nin": [None, ""]}}, {"_id": 0, "storico": 0}).to_list(2000)
+    items = [{**r, "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))} for r in righe]
+    items.sort(key=lambda r: r.get("scadenza") or "9999")
+    return {"items": items}
+
+
+@router.post("/prossimi-passi")
+async def imposta_prossimo_passo(body: ProssimoPassoIn, admin=Depends(require_ciak_admin)):
+    """Imposta (o sostituisce) il prossimo passo. Il vecchio passo aperto va nello storico."""
+    from services import ciak_trattativa as tr, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    try:
+        testo, scadenza = tr.valida_passo(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not (await db.ciak_leads.find_one({"email": _email_ci(email)}, {"_id": 1})
+            or await db.diagnostic_sessions.find_one({"user_email": _email_ci(email)}, {"_id": 1})
+            or await db.proposte.find_one({"prospect_email": _email_ci(email)}, {"_id": 1})):
+        raise HTTPException(404, "Non conosco questa persona.")
+
+    adesso = datetime.now(timezone.utc).isoformat()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0}) or {}
+    storico = list(attuale.get("storico") or [])
+    if attuale.get("testo"):
+        storico.append({
+            "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+            "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+            "sostituito_at": adesso,
+        })
+    doc = {
+        "email": email, "testo": testo, "scadenza": scadenza,
+        "creato_at": adesso, "creato_da": _autore(admin), "storico": storico,
+    }
+    await db.ciak_prossimi_passi.update_one({"email": email}, {"$set": doc}, upsert=True)
+    return {"success": True, "passo": {k: v for k, v in doc.items() if k != "storico"}}
+
+
+@router.post("/prossimi-passi/fatto")
+async def prossimo_passo_fatto(body: ProssimoPassoFatto, admin=Depends(require_ciak_admin)):
+    """Segna il passo come fatto: esce dai passi aperti, resta in cronologia."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not attuale or not attuale.get("testo"):
+        raise HTTPException(404, "Non c'è nessun passo aperto per questa persona.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico = list(attuale.get("storico") or [])
+    storico.append({
+        "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+        "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+        "fatto_at": adesso, "fatto_da": _autore(admin),
+    })
+    await db.ciak_prossimi_passi.update_one(
+        {"email": email},
+        {"$set": {"testo": None, "scadenza": None, "creato_at": None, "creato_da": None, "storico": storico}},
+    )
+    return {"success": True}
+
+
+@router.get("/cronologia")
+async def cronologia_contatto(email: str = Query(..., min_length=3), admin=Depends(require_ciak_admin)):
+    """Cronologia di una persona: solo eventi con data vera nelle fonti che abbiamo."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = email.strip().lower()
+    diagnostics = await db.diagnostic_sessions.find({"user_email": _email_ci(email)}, {"_id": 0, "state_history": 1}).to_list(50)
+    proposte = await db.proposte.find({"prospect_email": _email_ci(email)}, {"_id": 0}).to_list(50)
+    solleciti = await db.ciak_solleciti.find({"email": email}, {"_id": 0, "body": 0}).to_list(200)
+    passo = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not (diagnostics or proposte or solleciti or passo):
+        raise HTTPException(404, "Nessun evento registrato per questa persona.")
+    return {
+        "email": email,
+        "eventi": tr.costruisci_cronologia(diagnostics=diagnostics, proposte=proposte, solleciti=solleciti, passo=passo),
+        "passo": ({k: v for k, v in passo.items() if k != "storico"} if passo and passo.get("testo") else None),
+    }
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 
