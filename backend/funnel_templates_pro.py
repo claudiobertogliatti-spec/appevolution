@@ -161,10 +161,7 @@ OPTIN_TEMPLATE = r"""<!DOCTYPE html>
     <span class="eyebrow">{HERO_EYEBROW}</span>
     <h1>{H1_PRE}<span class="hl">{H1_HL}</span>{H1_POST}</h1>
     <p class="sub">{HERO_SUB}</p>
-    <div class="proof">
-      <div class="avatars"><span>{AV1}</span><span>{AV2}</span><span>{AV3}</span><span>{AV4}</span></div>
-      <small><strong>{PROOF_STRONG}</strong> {PROOF_TESTO}</small>
-    </div>
+    {PROOF_HTML}
   </div>
   <div class="optin" id="optin">
     <div class="kicker"><span class="badge">Gratis</span> {OPTIN_KICKER}</div>
@@ -251,9 +248,9 @@ OPTIN_DEFAULTS: dict[str, str] = {
     "H1_HL": "accademia digitale",
     "H1_POST": " che vende",
     "HERO_SUB": "Il sistema passo-passo per portare online quello che sai fare.",
-    "AV1": "MC", "AV2": "GR", "AV3": "LB", "AV4": "DF",
-    "PROOF_STRONG": "+200 professionisti",
-    "PROOF_TESTO": "hanno già guardato la masterclass",
+    # Prova sociale: MAI di default (regola anti-invenzione). Compare solo con dati reali del partner.
+    "PROOF_STRONG": "",
+    "PROOF_TESTO": "",
     "OPTIN_KICKER": "Accesso immediato al video",
     "OPTIN_H3": "Guarda i 3 passi per andare online",
     "OPTIN_LEAD": "Inserisci i tuoi dati: ti apro subito la masterclass e ti mando il link via email.",
@@ -263,7 +260,7 @@ OPTIN_DEFAULTS: dict[str, str] = {
     "STRIP_1_B": "30 min", "STRIP_1_T": "di contenuto pratico",
     "STRIP_2_B": "3 passi", "STRIP_2_T": "chiari e applicabili",
     "STRIP_3_B": "0€", "STRIP_3_T": "accesso gratuito",
-    "STRIP_4_B": "+200", "STRIP_4_T": "professionisti formati",
+    "STRIP_4_B": "Subito", "STRIP_4_T": "accesso al video",
     "LEARN_EYEBROW": "Cosa scoprirai",
     "LEARN_H": "In 30 minuti, la strada per la tua accademia",
     "LEARN_LEAD": "Niente teoria fumosa: tre mosse concrete che puoi mettere in pratica già da domani.",
@@ -276,7 +273,7 @@ OPTIN_DEFAULTS: dict[str, str] = {
     "PHOTO_STYLE": "", "PHOTO_FALLBACK": "Foto",
     "AUTHOR_ROLE": "Chi ti guida",
     "AUTHOR_BIO": "Ho deciso di portare online il mio metodo per aiutare più persone — e in questa masterclass ti mostro esattamente come puoi farlo anche tu.",
-    "AUTHOR_CHECK_1": "Metodo testato sul campo",
+    "AUTHOR_CHECK_1": "Spiegato passo per passo",
     "AUTHOR_CHECK_2": "Zero tecnicismi: pensato per chi parte da zero",
     "AUTHOR_CHECK_3": "Passi concreti, applicabili da subito",
     "BAND_H": "La tua accademia digitale parte da qui",
@@ -298,8 +295,88 @@ def render_optin(overrides: dict | None = None, colore_brand: str | None = None)
     params = dict(OPTIN_DEFAULTS)
     params.update({k: v for k, v in (overrides or {}).items() if v is not None})
     params.update(brand_vars(colore_brand))
+    params["PROOF_HTML"] = (
+        f'<div class="proof"><small><strong>{params["PROOF_STRONG"]}</strong> {params["PROOF_TESTO"]}</small></div>'
+        if params.get("PROOF_STRONG") else ""
+    )
     # Iniziale del logo dal nome partner.
     nome = (params.get("PARTNER_NOME") or "").strip()
     if nome and params.get("BRAND_INIZIALE") in ("•", "", None):
         params["BRAND_INIZIALE"] = nome[0].upper()
     return render(OPTIN_TEMPLATE, params)
+
+
+
+# ── PAGINE SEMPLICI: MASTERCLASS (video) e GRAZIE (dopo l'acquisto) ──────────
+# Regola anti-invenzione: se manca il video o il contatto, la pagina mostra un riquadro rosso
+# «DA DEFINIRE» (mai un valore di fantasia). Nessuna prova sociale, nessun numero.
+_SIMPLE_CSS = """
+:root{--brand:{BRAND_COLOR};--brand-ink:{BRAND_INK};--brand-rgb:{BRAND_RGB};--ink:#0F172A;--soft:#475569;--night:#0B1120}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:#fff;line-height:1.6}
+h1,h2{font-family:Sora,system-ui,sans-serif;line-height:1.15;letter-spacing:-.02em}
+.top{background:var(--night);color:#fff;padding:18px 24px;font-family:Sora;font-weight:700}
+.wrap{max-width:860px;margin:0 auto;padding:48px 24px}
+.eyebrow{display:inline-block;background:rgba(var(--brand-rgb),.14);color:#0F172A;border:1px solid rgba(var(--brand-rgb),.5);font-weight:700;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+h1{font-size:40px;font-weight:800;margin:18px 0 12px}h2{font-size:26px;margin:36px 0 12px}
+p{color:var(--soft);font-size:17px;margin-bottom:12px}
+.video{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;margin:24px 0}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.todo{border:2px dashed #dc2626;background:#fef2f2;color:#991b1b;border-radius:12px;padding:18px;font-weight:700;margin:24px 0}
+.btn{display:inline-block;background:var(--brand);color:var(--brand-ink);font-family:Sora;font-weight:800;font-size:18px;padding:16px 28px;border-radius:12px;text-decoration:none;margin-top:12px}
+ol{margin:12px 0 12px 22px;color:var(--soft);font-size:17px}li{margin-bottom:8px}
+footer{border-top:1px solid #E5E7EB;padding:24px;text-align:center;font-size:13.5px;color:var(--soft)}footer a{color:inherit;margin:0 8px}
+"""
+
+_SIMPLE_HEAD = """<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{TITLE}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>{CSS}</style></head><body><div class="top">{PARTNER_NOME}</div><div class="wrap">"""
+
+_SIMPLE_FOOT = """</div><footer>© {ANNO} {PARTNER_NOME} ·
+<a href="/privacy.html">Privacy</a><a href="/cookie.html">Cookie</a><a href="/termini.html">Termini</a></footer></body></html>"""
+
+
+def _esc(v) -> str:
+    return str(v or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _yt_id_ok(v: str) -> bool:
+    import re
+    return bool(re.fullmatch(r"[A-Za-z0-9_-]{6,20}", v or ""))
+
+
+def _simple_page(body: str, p: dict, colore_brand: str | None) -> str:
+    params = {**brand_vars(colore_brand), "ANNO": "2026", "PARTNER_NOME": _esc(p.get("PARTNER_NOME")), "TITLE": _esc(p.get("TITLE"))}
+    params["CSS"] = render(_SIMPLE_CSS, params)
+    return render(_SIMPLE_HEAD + body + _SIMPLE_FOOT, params)
+
+
+def render_masterclass(overrides: dict | None = None, colore_brand: str | None = None) -> str:
+    """Pagina «La masterclass»: video + pulsante verso l'offerta. Il video arriva da VIDEO_ID."""
+    p = {"PARTNER_NOME": "", "TITOLO": "Guarda la masterclass", "SOTTOTITOLO": "", "CTA_TESTO": "Scopri il corso",
+         "CTA_LINK": "/offerta.html", "VIDEO_ID": ""}
+    p.update({k: v for k, v in (overrides or {}).items() if v is not None})
+    p["TITLE"] = p["TITOLO"]
+    vid = str(p["VIDEO_ID"]).strip()
+    video = (f'<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/{vid}" title="Masterclass" '
+             'allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>'
+             if _yt_id_ok(vid) else '<div class="todo">DA DEFINIRE: video della masterclass non collegato.</div>')
+    sub = f'<p>{_esc(p["SOTTOTITOLO"])}</p>' if p["SOTTOTITOLO"] else ""
+    body = (f'<span class="eyebrow">Masterclass gratuita</span><h1>{_esc(p["TITOLO"])}</h1>{sub}{video}'
+            f'<a class="btn" href="{_esc(p["CTA_LINK"])}">{_esc(p["CTA_TESTO"])}</a>')
+    return _simple_page(body, p, colore_brand)
+
+
+def render_grazie(overrides: dict | None = None, colore_brand: str | None = None) -> str:
+    """Pagina «Grazie»: conferma l'acquisto e dice cosa fare. Il contatto è quello reale del partner."""
+    p = {"PARTNER_NOME": "", "TITOLO": "Grazie, sei dentro!", "CONTATTO_EMAIL": ""}
+    p.update({k: v for k, v in (overrides or {}).items() if v is not None})
+    p["TITLE"] = p["TITOLO"]
+    email = _esc(p["CONTATTO_EMAIL"])
+    contatto = (f'<p>Se qualcosa non funziona, scrivi a <a href="mailto:{email}">{email}</a>.</p>' if email
+                else '<div class="todo">DA DEFINIRE: contatto per i problemi di accesso.</div>')
+    body = (f'<span class="eyebrow">Acquisto confermato</span><h1>{_esc(p["TITOLO"])}</h1>'
+            '<p>Il tuo acquisto è andato a buon fine.</p><h2>Cosa fare adesso</h2>'
+            '<ol><li>Controlla la tua email: ti arriva la conferma con le istruzioni.</li>'
+            '<li>Segui il link nell\'email per accedere al corso.</li></ol>' + contatto)
+    return _simple_page(body, p, colore_brand)

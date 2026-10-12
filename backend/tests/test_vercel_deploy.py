@@ -16,7 +16,7 @@ from tests.test_funnel_review_api import FakeFunnel
 
 pytestmark = pytest.mark.unit
 
-FILES = {"index.html": "<h1>ok</h1>", "vendita.html": "<h1>v</h1>", "privacy.html": "p", "cookie.html": "c", "termini.html": "t"}
+FILES = {"guarda.html": "g", "grazie.html": "z", "index.html": "<h1>ok</h1>", "vendita.html": "<h1>v</h1>", "privacy.html": "p", "cookie.html": "c", "termini.html": "t"}
 
 
 def test_project_name_is_a_safe_slug():
@@ -28,7 +28,7 @@ def test_project_name_is_a_safe_slug():
 def test_sales_page_becomes_offerta_and_missing_pages_are_reported():
     names = [f["file"] for f in vd.prepare_files(FILES)]
     assert "offerta.html" in names and "vendita.html" not in names
-    assert vd.missing_pages(FILES, fr.PAGES) == ["masterclass", "grazie"]
+    assert vd.missing_pages(FILES, fr.PAGES) == []
 
 
 def test_preview_address_only_vercel_app():
@@ -102,7 +102,7 @@ async def test_publish_first_time_sets_url_and_does_not_release(env):
     f = env(None)
     out = await route.admin_publish_draft("p1", None)
     assert out["url"] == "https://n.vercel.app" and out["released"] is False
-    assert out["pagine_senza_file"] == ["masterclass", "grazie"]
+    assert out["pagine_senza_file"] == []
     assert f.doc["preview_url"] == "https://n.vercel.app" and not f.doc.get("preview_released")
 
 
@@ -122,3 +122,8 @@ async def test_partner_cannot_publish(env):
     with pytest.raises(HTTPException) as e:
         await route.admin_publish_draft("p1", None)
     assert e.value.status_code == 403
+
+
+def test_missing_pages_still_reported_when_a_file_is_absent():
+    partial = {k: v for k, v in FILES.items() if k != "grazie.html"}
+    assert vd.missing_pages(partial, fr.PAGES) == ["grazie"]

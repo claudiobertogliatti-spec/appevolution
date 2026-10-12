@@ -31,8 +31,7 @@ def project_name(partner_id: str, nome: str = "") -> str:
 
 def prepare_files(files: Dict[str, str]) -> List[Dict[str, str]]:
     """File per l'API Vercel. La pagina di vendita del generatore diventa «offerta.html», cioè
-    la pagina «L'offerta» della revisione. Le altre pagine della revisione (masterclass,
-    grazie) non hanno ancora un generatore: vedi missing_pages()."""
+    la pagina «L'offerta» della revisione. Se una pagina della revisione non ha file, vedi missing_pages()."""
     out = dict(files)
     if "vendita.html" in out and "offerta.html" not in out:
         out["offerta.html"] = out.pop("vendita.html")
