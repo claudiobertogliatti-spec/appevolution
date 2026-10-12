@@ -4954,6 +4954,54 @@ async def _start_step(client_id: str, step_id: str) -> dict:
     ) or {}
 
 
+class ProponiRisposteStartRequest(BaseModel):
+    proposte: dict[str, str]
+
+
+@router.put("/start/{client_id}/risposte-proposte")
+async def proponi_risposte_start(
+    client_id: str,
+    body: ProponiRisposteStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Il team prepara PROPOSTE per le domande a cui il cliente non ha ancora risposto.
+
+    Non sono risposte del cliente: finiscono in `data.proposte` (mai in `data.answers`) e
+    la sua pagina le mostra come «proposta del team, controlla se ti somiglia»; diventano
+    sue solo quando le conferma o le corregge. Riapre il questionario (le 20 domande)
+    anche a chi aveva gia' inviato le vecchie 8. Non tocca stato ne' approvazioni.
+    """
+    from services.ciak_start_domande import DOMANDE_START_IDS, MAX_CARATTERI, MIN_CARATTERI
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    step = await _start_step(client_id, "04-posizionamento")
+    if not step:
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto")
+    answers = (step.get("data") or {}).get("answers") or {}
+    valide = {}
+    for chiave, testo in body.proposte.items():
+        pulito = " ".join(str(testo or "").split())[:MAX_CARATTERI]
+        # solo domande Start; mai sopra una risposta vera del cliente
+        if chiave in DOMANDE_START_IDS and pulito and len(str(answers.get(chiave) or "").strip()) < MIN_CARATTERI:
+            valide[chiave] = pulito
+    if not valide:
+        raise HTTPException(422, "Nessuna proposta valida: servono domande Start ancora senza risposta")
+    now = datetime.now(timezone.utc).isoformat()
+    imposta = {f"data.proposte.{k}": v for k, v in valide.items()}
+    imposta.update({
+        "data.proposte_at": now,
+        "data.proposte_da": getattr(admin, "email", None) or "admin",
+        "data.integrazione_richiesta_at": now,
+        "updated_at": now,
+    })
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"$set": imposta}
+    )
+    return {"success": True, "proposte": sorted(valide)}
+
+
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,

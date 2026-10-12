@@ -1143,3 +1143,49 @@ def test_start_risposte_chi_aveva_gia_inviato_le_otto_non_viene_riaperto(monkeyp
     )
     assert r.status_code == 200, r.text
     assert r.json()["answers"]["nicchia"] == "Donne dopo i 40, versione corretta"
+
+
+# ─── Proposte del team + integrazione delle 20 domande (12/10/2026) ──────────
+
+def _con_8_inviate_e_proposte(fake_db):
+    from services.ciak_start_domande import DOMANDE_START_LEGACY_IDS
+
+    fake_db.partner_journey_steps.docs[0]["data"] = {
+        "answers": {k: f"Risposta vera per {k}" for k in DOMANDE_START_LEGACY_IDS},
+        "answers_completed_at": "2026-10-02T10:00:00+00:00",
+        "proposte": {
+            "desideri_avatar": "Capire quale strada prendere",
+            "nicchia": "Proposta sopra risposta vera: va ignorata",  # gia' risposta: non si mostra
+            "inventata": "x",
+        },
+        "integrazione_richiesta_at": "2026-10-12T09:00:00+00:00",
+    }
+
+
+def test_il_cliente_vede_le_proposte_solo_per_le_domande_senza_risposta(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    _con_8_inviate_e_proposte(fake_db)
+    r = client_app.get("/api/ciak/client/start/risposte", headers=auth).json()
+    assert r["proposte"] == {"desideri_avatar": "Capire quale strada prendere"}
+    assert r["integrazione"] is True
+    assert "desideri_avatar" not in r["answers"]  # la proposta NON e' una sua risposta
+
+
+def test_dopo_la_richiesta_del_team_servono_tutte_e_venti_poi_si_chiude(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    _con_8_inviate_e_proposte(fake_db)
+    r = client_app.put("/api/ciak/client/start/risposte", json={"answers": {}, "completato": True}, headers=auth)
+    assert r.status_code == 422 and "paure_avatar" in r.json()["detail"]["mancanti"]
+    r = client_app.put("/api/ciak/client/start/risposte", json={"answers": _risposte_complete(), "completato": True}, headers=auth)
+    assert r.status_code == 200
+    dati = fake_db.partner_journey_steps.docs[0]["data"]
+    assert dati["integrazione_richiesta_at"] is None  # richiesta soddisfatta
+    assert client_app.get("/api/ciak/client/start/risposte", headers=auth).json()["integrazione"] is False
+
+
+def test_senza_richiesta_del_team_chi_aveva_inviato_le_otto_resta_chiuso(monkeypatch, client_app, fake_db):
+    auth = _cliente_loggato(monkeypatch, client_app, fake_db)
+    _con_8_inviate_e_proposte(fake_db)
+    fake_db.partner_journey_steps.docs[0]["data"]["integrazione_richiesta_at"] = None
+    r = client_app.put("/api/ciak/client/start/risposte", json={"answers": {"nicchia": "Versione corretta della nicchia"}, "completato": True}, headers=auth)
+    assert r.status_code == 200

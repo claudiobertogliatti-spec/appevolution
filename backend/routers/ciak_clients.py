@@ -666,25 +666,40 @@ class StartRisposteBody(BaseModel):
     completato: bool = False
 
 
-async def _risposte_start(client_id: str) -> tuple[dict, str | None]:
+async def _dati_risposte_start(client_id: str) -> dict:
     step = await db.partner_journey_steps.find_one(
         {"partner_id": client_id, "step_id": "04-posizionamento"}, {"_id": 0, "data": 1}
     )
-    data = (step or {}).get("data") or {}
+    return (step or {}).get("data") or {}
+
+
+async def _risposte_start(client_id: str) -> tuple[dict, str | None]:
+    data = await _dati_risposte_start(client_id)
     return data.get("answers") or {}, data.get("answers_completed_at")
 
 
 @router.get("/start/risposte")
 async def start_risposte(client: dict[str, Any] = Depends(require_client)):
     """Le risposte che il cliente Start ha gia' dato alle sue domande."""
-    from services.ciak_start_domande import DOMANDE_START_IDS
+    from services.ciak_start_domande import DOMANDE_START_IDS, MIN_CARATTERI
 
     if not has_start_entitlement(client):
         raise HTTPException(status_code=403, detail="Ciak Start non attivo")
-    answers, completato_at = await _risposte_start(client["id"])
+    data = await _dati_risposte_start(client["id"])
+    answers = data.get("answers") or {}
+    # Proposte del team per le domande a cui il cliente non ha ancora risposto: sono
+    # SUGGERIMENTI da confermare, non sue risposte (non finiscono in `answers`).
+    proposte = {
+        k: v
+        for k, v in (data.get("proposte") or {}).items()
+        if k in DOMANDE_START_IDS and v and len(str(answers.get(k) or "").strip()) < MIN_CARATTERI
+    }
     return {
         "answers": {k: answers[k] for k in DOMANDE_START_IDS if answers.get(k)},
-        "completato_at": completato_at,
+        "completato_at": data.get("answers_completed_at"),
+        "proposte": proposte,
+        # il team ha chiesto di completare anche le altre domande: la pagina si riapre
+        "integrazione": bool(data.get("integrazione_richiesta_at")),
     }
 
 
@@ -708,7 +723,11 @@ async def salva_start_risposte(
     nuove = pulisci_risposte(body.answers)
     # Il percorso nasce con l'attivazione; se per qualunque motivo manca lo si
     # ricostruisce (idempotente) invece di far perdere le risposte al cliente.
-    giaci, gia_inviate_at = await _risposte_start(client["id"])
+    dati_step = await _dati_risposte_start(client["id"])
+    giaci, gia_inviate_at = dati_step.get("answers") or {}, dati_step.get("answers_completed_at")
+    # Chi aveva inviato le 8 vecchie risposte non viene riaperto, SALVO richiesta del team
+    # (`integrazione_richiesta_at`): allora servono tutte e 20.
+    gia_inviate = bool(gia_inviate_at) and not dati_step.get("integrazione_richiesta_at")
     step = await db.partner_journey_steps.find_one(
         {"partner_id": client["id"], "step_id": STEP_ID}, {"_id": 0, "step_id": 1}
     )
@@ -722,7 +741,7 @@ async def salva_start_risposte(
 
     tutte = {**giaci, **nuove}
     if body.completato:
-        assenti = mancanti(tutte, gia_inviate=bool(gia_inviate_at))
+        assenti = mancanti(tutte, gia_inviate=gia_inviate)
         if assenti:
             raise HTTPException(
                 status_code=422,
@@ -734,6 +753,7 @@ async def salva_start_risposte(
     imposta["updated_at"] = now
     if body.completato:
         imposta["data.answers_completed_at"] = now
+        imposta["data.integrazione_richiesta_at"] = None  # richiesta del team soddisfatta
     await db.partner_journey_steps.update_one(
         {"partner_id": client["id"], "step_id": STEP_ID}, {"$set": imposta}
     )
