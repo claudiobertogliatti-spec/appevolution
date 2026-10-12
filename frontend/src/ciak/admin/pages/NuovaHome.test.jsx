@@ -4,59 +4,100 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { NuovaHome } from "./NuovaHome";
-import { useOggiData } from "../components/OggiBlocks";
+import { useOggiShared } from "../components/OggiShared";
 
-jest.mock("../components/OggiBlocks", () => ({ useOggiData: jest.fn() }));
-jest.mock("../components/OggiCallStrip", () => ({ OggiCallStrip: () => <div>STRISCIA-CALL</div> }));
+jest.mock("../components/OggiShared", () => ({ useOggiShared: jest.fn() }));
 jest.mock("../components/OggiStart", () => ({ OggiStart: () => <div>CLIENTI-START</div> }));
+jest.mock("../components/ChiediALuca", () => ({ ChiediALuca: () => <div>CHIEDI-A-LUCA</div> }));
 
-const vivo = (extra = {}) => ({
-  src: { pipeline: {}, audit: {} },
-  model: {
-    trattative: [
-      { email: "a@x.it", nome: "Chiara Ferri", giorni: 14, tone: "critical" },
-      { email: "b@x.it", nome: "Sandro Moretti", giorni: 8, tone: "warning" },
-      { email: "c@x.it", nome: "Recente", giorni: 2, tone: "neutral" },
-    ],
-    partner: { tocca: [{ id: "p1", nome: "Dario Fontana", fermo: true, giorni: 30, azione: "Pubblicare il funnel" }] },
+const vivo = ({ oggi = {}, calls = {} } = {}) => ({
+  oggi: {
+    src: { pipeline: {}, audit: {} },
+    model: {
+      trattative: [
+        { email: "a@x.it", nome: "Chiara Ferri", giorni: 14, tone: "critical" },
+        { email: "b@x.it", nome: "Sandro Moretti", giorni: 8, tone: "warning" },
+        { email: "c@x.it", nome: "Recente", giorni: 2, tone: "neutral" },
+      ],
+      partner: { tocca: [{ id: "p1", nome: "Dario Fontana", fermo: true, giorni: 30, azione: "Pubblicare il funnel" }] },
+    },
+    reload: jest.fn(),
+    ...oggi,
   },
-  reload: jest.fn(),
-  ...extra,
+  calls: {
+    dati: { calls: [
+      { email: "e@x.it", nome: "Elena Rizzo", starts_at: "2026-10-12T08:30:00Z", session_token: "t1" },
+      { email: "n@x.it", nome: "Nico Bruni", starts_at: "2026-10-12T13:00:00Z", session_token: "t2" },
+    ] },
+    carica: jest.fn(),
+    ...calls,
+  },
 });
 
 const mostra = () => render(<MemoryRouter><NuovaHome user={{ name: "Claudio Bertogliatti" }} /></MemoryRouter>);
 
 test("saluto e frase con i numeri veri; chi è sotto soglia non entra", () => {
-  useOggiData.mockReturnValue(vivo());
+  useOggiShared.mockReturnValue(vivo());
   mostra();
   expect(screen.getByText("Buongiorno, Claudio.")).toBeTruthy();
-  expect(screen.getByText("Hai 2 trattative da sollecitare e 1 partner che aspetta te.")).toBeTruthy();
+  expect(screen.getByText("Hai 2 call oggi, 2 trattative da sollecitare e 1 partner che aspetta te.")).toBeTruthy();
   expect(screen.getByText("Chiara Ferri")).toBeTruthy();
   expect(screen.queryByText("Recente")).toBeNull();
 });
 
+test("le call hanno l'orario di Roma e il link al report", () => {
+  useOggiShared.mockReturnValue(vivo());
+  mostra();
+  expect(screen.getByText("10:30")).toBeTruthy();
+  expect(screen.getByText("15:00")).toBeTruthy();
+  const link = screen.getAllByRole("link", { name: "Apri il report" })[0];
+  expect(link.getAttribute("href")).toBe("/admin/leads/e%40x.it");
+});
+
 test("non scrive «senza risposta»: il dato è da quanto è in trattativa", () => {
-  useOggiData.mockReturnValue(vivo());
+  useOggiShared.mockReturnValue(vivo());
   mostra();
   expect(screen.getByText("In trattativa da 14 giorni")).toBeTruthy();
   expect(document.body.textContent).not.toMatch(/senza risposta/i);
 });
 
 test("non c'è nessun pulsante «Prepara il sollecito» finché non esiste", () => {
-  useOggiData.mockReturnValue(vivo());
+  useOggiShared.mockReturnValue(vivo());
   mostra();
   expect(screen.queryByText(/Prepara il sollecito/)).toBeNull();
 });
 
+test("c'è la barra «Chiedi a Luca»", () => {
+  useOggiShared.mockReturnValue(vivo());
+  mostra();
+  expect(screen.getByText("CHIEDI-A-LUCA")).toBeTruthy();
+});
+
 test("trattative non leggibili: lo dice, non mostra zero", () => {
-  useOggiData.mockReturnValue(vivo({ src: { pipeline: null, audit: {} }, model: { trattative: null, partner: { tocca: [] } } }));
+  useOggiShared.mockReturnValue(vivo({ oggi: { src: { pipeline: null, audit: {} }, model: { trattative: null, partner: { tocca: [] } } } }));
   mostra();
   expect(screen.getByText(/Non riesco a leggere le trattative/)).toBeTruthy();
-  expect(screen.getAllByText("Dato non disponibile.").length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Dato non disponibile/).length).toBeGreaterThan(0);
+});
+
+test("call non leggibili: lo dice, non dice «nessuna call»", () => {
+  useOggiShared.mockReturnValue(vivo({ calls: { dati: null } }));
+  mostra();
+  expect(screen.getByText(/Non riesco a leggere le call/)).toBeTruthy();
+  expect(screen.queryByText("Nessuna call oggi.")).toBeNull();
 });
 
 test("in caricamento non mostra numeri", () => {
-  useOggiData.mockReturnValue({ src: { pipeline: undefined, audit: undefined }, model: { trattative: null, partner: null }, reload: jest.fn() });
+  useOggiShared.mockReturnValue({
+    oggi: { src: { pipeline: undefined, audit: undefined }, model: { trattative: null, partner: null }, reload: jest.fn() },
+    calls: { dati: undefined, carica: jest.fn() },
+  });
   mostra();
   expect(screen.getByText("Controllo cosa c'è da fare…")).toBeTruthy();
+});
+
+test("fuori dal provider non si rompe", () => {
+  useOggiShared.mockReturnValue(null);
+  mostra();
+  expect(screen.getByText(/solo dal tuo account/)).toBeTruthy();
 });

@@ -32,15 +32,20 @@ export function daSollecitare(trattative, soglia = SOLLECITO_GIORNI) {
 }
 
 const plurale = (n, uno, molti) => (n === 1 ? uno : molti);
+const elenco = (v) => (v.length <= 1 ? v.join("") : `${v.slice(0, -1).join(", ")} e ${v[v.length - 1]}`);
+const maiuscola = (t) => `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
 
 /**
  * La frase sotto il saluto. Una fonte non disponibile (null) lo dice, non conta zero.
- *   solleciti: numero | null     tocca: numero | null
+ *   call, solleciti, tocca: numero | null
  */
-export function frasePrincipale({ solleciti, tocca }) {
+export function frasePrincipale({ call, solleciti, tocca }) {
   const pezzi = [];
   const zero = [];
   const mancanti = [];
+  if (call == null) mancanti.push("le call");
+  else if (call > 0) pezzi.push(`${call} ${plurale(call, "call", "call")} oggi`);
+  else zero.push("nessuna call oggi");
   if (solleciti == null) mancanti.push("le trattative");
   else if (solleciti > 0) {
     pezzi.push(`${solleciti} ${plurale(solleciti, "trattativa da sollecitare", "trattative da sollecitare")}`);
@@ -48,14 +53,11 @@ export function frasePrincipale({ solleciti, tocca }) {
   if (tocca == null) mancanti.push("i partner");
   else if (tocca > 0) {
     pezzi.push(`${tocca} ${plurale(tocca, "partner che aspetta", "partner che aspettano")} te`);
-  } else zero.push("nessun partner aspetta te");
+  } else zero.push("nessun partner che aspetta te");
 
   const parti = [];
-  if (pezzi.length) parti.push(`Hai ${pezzi.join(" e ")}.`);
-  else if (zero.length) {
-    const t = zero.join(" e ");
-    parti.push(`${t.charAt(0).toUpperCase()}${t.slice(1)}.`);
-  }
-  if (mancanti.length) parti.push(`Non riesco a leggere ${mancanti.join(" e ")}.`);
+  if (pezzi.length) parti.push(`Hai ${elenco(pezzi)}.`);
+  else if (zero.length) parti.push(`${maiuscola(elenco(zero))}.`);
+  if (mancanti.length) parti.push(`Non riesco a leggere ${elenco(mancanti)}.`);
   return parti.join(" ");
 }

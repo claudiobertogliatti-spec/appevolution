@@ -33,6 +33,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   ClipboardCheck,
+  Clock,
   CreditCard,
   Handshake,
   LayoutDashboard,
@@ -53,6 +54,8 @@ import { DepartmentRoomIntro } from "./components/DepartmentRoom";
 import { DeliveryQueue, VenditeQueue, BackOfficeQueue } from "./components/DepartmentQueue";
 import { AcquisizioneQueue } from "./components/AcquisizioneQueue";
 import { getDepartmentRoom, DEPARTMENT_ROOMS } from "./departmentRooms";
+import { OggiSharedProvider, useOggiShared } from "./components/OggiShared";
+import { daSollecitare } from "./nuovaHomeModel";
 import { useRepartoMetrics } from "./repartoMetrics";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminLeads } from "./pages/AdminLeads";
@@ -360,7 +363,7 @@ export function sidebarConFacce(adminType) {
 }
 
 // Marcatore + testo di una voce. Con le facce: foto, nome dell'agente, reparto sotto.
-export function MacroLabel({ macro, Icon, facce }) {
+export function MacroLabel({ macro, Icon, facce, badge = null }) {
   const agente = facce ? DEPARTMENT_ROOMS[macro.id]?.agent : null;
   if (agente?.avatar) {
     return (
@@ -368,14 +371,22 @@ export function MacroLabel({ macro, Icon, facce }) {
         <img
           src={agente.avatar}
           alt=""
-          width={32}
-          height={32}
-          className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-slate-200"
+          width={44}
+          height={44}
+          className="w-11 h-11 rounded-full object-cover flex-shrink-0 bg-slate-200"
         />
-        <span className="min-w-0">
-          <span className="block leading-tight truncate">{agente.name}</span>
-          <span className="block text-[11px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">{macro.label}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base leading-tight truncate">{agente.name}</span>
+          <span className="block text-[13px] font-normal normal-case opacity-70 leading-tight mt-0.5 truncate">{macro.label}</span>
         </span>
+        {badge > 0 && (
+          <span
+            className="inline-grid min-w-[26px] h-[26px] px-1.5 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white flex-shrink-0"
+            aria-label={`${badge} da fare`}
+          >
+            {badge}
+          </span>
+        )}
       </>
     );
   }
@@ -390,8 +401,20 @@ export function MacroLabel({ macro, Icon, facce }) {
   );
 }
 
+// Numero accanto all'agente: solo dove c'e' un dato vero. Marco = trattative da sollecitare,
+// Simona = partner che aspettano te. Gli altri non hanno ancora un numero e non se ne inventa uno.
+export function useBadgeAgente(macroId) {
+  const shared = useOggiShared();
+  const model = shared?.oggi?.model;
+  if (!model) return null;
+  if (macroId === "vendite") return daSollecitare(model.trattative)?.lista.length ?? null;
+  if (macroId === "delivery") return model.partner ? model.partner.tocca.length : null;
+  return null;
+}
+
 function MacroItem({ macro, currentPath, facce = false }) {
   const Icon = MACRO_ICONS[macro.id] || BriefcaseBusiness;
+  const badge = useBadgeAgente(macro.id);
   // Macro "diretta" (link semplice).
   if (macro.to) {
     return (
@@ -399,14 +422,14 @@ function MacroItem({ macro, currentPath, facce = false }) {
         to={macro.to}
         end={macro.end}
         className={({ isActive }) =>
-          `flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+          `flex ${facce ? "items-center" : "items-start"} gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
             isActive
               ? "bg-slate-900 text-yellow-400"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`
         }
       >
-        <MacroLabel macro={macro} Icon={Icon} facce={facce} />
+        <MacroLabel macro={macro} Icon={Icon} facce={facce} badge={badge} />
       </NavLink>
     );
   }
@@ -419,13 +442,13 @@ function MacroItem({ macro, currentPath, facce = false }) {
   return (
     <NavLink
       to={macroTarget(macro)}
-      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+      className={`flex ${facce ? "items-center" : "items-start"} gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
         isActive
           ? "bg-slate-900 text-yellow-400"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       }`}
     >
-      <MacroLabel macro={macro} Icon={Icon} facce={facce} />
+      <MacroLabel macro={macro} Icon={Icon} facce={facce} badge={badge} />
     </NavLink>
   );
 }
@@ -464,7 +487,20 @@ function AdminShell({ user, onLogout, children }) {
   // Menu di sezione: le pagine sorelle del reparto, su ogni pagina del reparto
   // (sostituisce il "Torna a ..." e i tre sotto-menu scritti a mano).
   const sezione = trovaSezione(pathname, nav, adminType);
+  const bottoneCerca = (
+      <button
+        type="button"
+        ref={cerca.triggerRef}
+        onClick={apriCerca}
+        className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-[13px] text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
+      >
+        <Search className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden />
+        <span className="flex-1 truncate">Cerca persone o pagine</span>
+        <kbd className="hidden lg:inline rounded border border-slate-200 px-1.5 text-[11px] font-semibold text-slate-500">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+      </button>
+  );
   return (
+    <OggiSharedProvider enabled={adminType === "claudio"} onAuthExpired={onLogout}>
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       {/* Sfondo scuro piatto (niente blur) dietro il cassetto, solo sotto lg. */}
       {drawer.open && (
@@ -489,12 +525,42 @@ function AdminShell({ user, onLogout, children }) {
           <Link to="/admin" aria-label="Vai alla Home admin">
             <img src="/ciak/logo.webp" alt="Ciak.io" className="h-9 w-auto object-contain" />
           </Link>
-          <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
-          <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
-            Cabina operativa per funnel, partner e Metodo EVO.
-          </p>
+          {!facce && (
+            <>
+              <p className="text-xs font-semibold text-yellow-600 uppercase tracking-widest mt-4">Area Admin</p>
+              <p className="text-[12px] leading-relaxed text-slate-500 mt-1">
+                Cabina operativa per funnel, partner e Metodo EVO.
+              </p>
+            </>
+          )}
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {facce ? (
+            <>
+          {bottoneCerca}
+          <NavLink
+            to="/admin/nuova"
+            className={({ isActive }) => `flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+          >
+            <Clock className="w-5 h-5" aria-hidden /> Oggi
+          </NavLink>
+          <p className="px-1 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">La tua squadra</p>
+          {nav.map((macro) => (
+            <MacroItem key={macro.id} macro={macro} currentPath={pathname} facce />
+          ))}
+          <p className="px-1 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">Accessi rapidi</p>
+          {QUICK.filter((q) => !(q.hideFor || []).includes(adminType)).map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+            >
+              <Icon className="w-4 h-4" aria-hidden /> {label}
+            </NavLink>
+          ))}
+            </>
+          ) : (
+            <>
           <NavLink
             to="/admin"
             end
@@ -511,21 +577,12 @@ function AdminShell({ user, onLogout, children }) {
               <Icon className="w-4 h-4" aria-hidden /> {label}
             </NavLink>
           ))}
-          <button
-            type="button"
-            ref={cerca.triggerRef}
-            onClick={apriCerca}
-            className="my-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-[13px] text-slate-500 hover:border-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400"
-          >
-            <Search className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden />
-            <span className="flex-1 truncate">Cerca persone o pagine</span>
-            <kbd className="hidden lg:inline rounded border border-slate-200 px-1.5 text-[11px] font-semibold text-slate-500">{isMac ? "⌘K" : "Ctrl K"}</kbd>
-          </button>
+          {bottoneCerca}
           <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
             Reparti
           </p>
           {nav.map((macro) => (
-            <MacroItem key={macro.id} macro={macro} currentPath={pathname} facce={facce} />
+            <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-[13px] font-semibold text-slate-900">Focus admin</p>
@@ -533,6 +590,8 @@ function AdminShell({ user, onLogout, children }) {
               Acquisizione, vendite, delivery, materiali e post-lancio in un'unica regia.
             </p>
           </div>
+            </>
+          )}
         </nav>
         <div className="px-4 py-4 border-t border-slate-100">
           <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
@@ -587,6 +646,7 @@ function AdminShell({ user, onLogout, children }) {
         onAuthExpired={onLogout}
       />
     </div>
+    </OggiSharedProvider>
   );
 }
 

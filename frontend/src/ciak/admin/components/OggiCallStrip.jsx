@@ -22,8 +22,8 @@ export function fmtOraRoma(iso) {
   }).format(new Date(t));
 }
 
-export function OggiCallStrip({ onAuthExpired }) {
-  // undefined = in caricamento · null = non disponibile · oggetto = dati veri
+/** Le call di oggi. undefined = in caricamento · null = non disponibile · oggetto = dati veri. */
+export function useCallsToday(onAuthExpired) {
   const [dati, setDati] = useState(undefined);
 
   const carica = useCallback(() => {
@@ -37,6 +37,11 @@ export function OggiCallStrip({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   useEffect(carica, [carica]);
+  return { dati, carica };
+}
+
+export function OggiCallStrip({ onAuthExpired }) {
+  const { dati, carica } = useCallsToday(onAuthExpired);
 
   const calls = dati ? dati.calls : [];
 

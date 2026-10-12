@@ -43,3 +43,12 @@ test("si spegne con l'impostazione locale", () => {
   expect(sidebarConFacce("claudio")).toBe(false);
   window.localStorage.removeItem("ciak_admin_sidebar_facce");
 });
+
+test("il numero accanto all'agente compare solo se c'è e se è maggiore di zero", () => {
+  const { container, rerender } = render(<MacroLabel macro={macro("vendite", "Vendite")} Icon={Handshake} facce badge={2} />);
+  expect(container.textContent).toContain("2");
+  rerender(<MacroLabel macro={macro("vendite", "Vendite")} Icon={Handshake} facce badge={0} />);
+  expect(container.querySelector('[aria-label$="da fare"]')).toBeNull();
+  rerender(<MacroLabel macro={macro("vendite", "Vendite")} Icon={Handshake} facce badge={null} />);
+  expect(container.querySelector('[aria-label$="da fare"]')).toBeNull();
+});
