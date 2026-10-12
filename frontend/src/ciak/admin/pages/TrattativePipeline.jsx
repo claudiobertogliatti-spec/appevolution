@@ -26,39 +26,38 @@ export function TrattativePipeline({ onAuthExpired }) {
   const [params, setParams] = useSearchParams();
   const active = STADI_TRATTATIVE.find((s) => s.id === params.get("stadio")) || STADI_TRATTATIVE[0];
   return (
-    <div>
-      <div className="px-8 pt-8">
-        <div role="tablist" aria-label="Stadio trattativa" className="flex flex-wrap gap-2">
-          {STADI_TRATTATIVE.map((s) => {
-            const on = s.id === active.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setParams(s.id === "tutte" ? {} : { stadio: s.id }, { replace: true })}
-                className={`text-sm font-semibold px-3 py-1.5 rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 ${
-                  on ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
-                }`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <PipelineList
+    <PipelineList
         key={active.id}
         endpoint="/pipeline-blueprint"
         title="Trattative"
+        agente="marco"
         subtitle={active.subtitle}
         lockedStages={active.lockedStages}
         deletable
         editable
         onAuthExpired={onAuthExpired}
+        filtri={(
+            <div role="tablist" aria-label="Stadio trattativa" className="mb-5 flex flex-wrap gap-2">
+              {STADI_TRATTATIVE.map((s) => {
+                const on = s.id === active.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => setParams(s.id === "tutte" ? {} : { stadio: s.id }, { replace: true })}
+                    className={`text-sm font-semibold px-3 py-1.5 rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 ${
+                      on ? "bg-slate-900 text-yellow-400 border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+        )}
       />
-    </div>
   );
 }
 

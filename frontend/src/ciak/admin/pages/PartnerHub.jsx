@@ -10,6 +10,7 @@
  *                  azioni Journey / Vista (impersonazione) / Elimina.
  * Dati caricati una sola volta; il modale è condiviso tra le due viste.
  */
+import { IntestazioneAgente } from "../components/ui/IntestazioneAgente";
 import { useEffect, useState, useCallback } from "react";
 import { Search, Rocket, TrendingUp, LayoutGrid, Table2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -548,31 +549,34 @@ export function PartnerHub({ onAuthExpired }) {
 
   return (
     <>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-semibold text-slate-900">Partner</h1>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = view === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => switchView(t.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                    active
-                      ? "bg-slate-900 text-yellow-400"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="mb-6" />
+      <div className="px-5 py-8 sm:px-10 lg:px-16 lg:py-12">
+        <IntestazioneAgente
+          agente="stefania"
+          titolo="Partner"
+          sotto="Chi è nel percorso, a che punto è e cosa tocca a te."
+          azione={(
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                const active = view === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => switchView(t.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                      active
+                        ? "bg-slate-900 text-yellow-400"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        />
 
         {view === "atto" ? (
           <AttoView partners={partners} onOpen={(p) => openPartner(p, "percorso")} />
