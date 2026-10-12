@@ -150,6 +150,7 @@ export function SchedaStart({ onAuthExpired }) {
   const [params, setParams] = useSearchParams();
   const scheda = SCHEDE.some((x) => x.id === params.get("scheda")) ? params.get("scheda") : "panoramica";
   const [link, setLink] = useState(null);
+  const [assistente, setAssistente] = useState(null); // null = non letto: non diventa mai "zero domande"
   const vaiA = (id) => setParams(id === "panoramica" ? {} : { scheda: id }, { replace: true });
 
   const generaLink = async () => {
@@ -189,6 +190,10 @@ export function SchedaStart({ onAuthExpired }) {
 
   const carica = useCallback(() => {
     setErrore(null);
+    // Le domande all'assistente sono accessorie: se non si leggono, la scheda funziona lo stesso.
+    apiGet(`/start/${clientId}/assistente`)
+      .then((a) => setAssistente(Array.isArray(a?.righe) ? a : null))
+      .catch(() => setAssistente(null));
     Promise.all([apiGet("/start/pipeline"), apiGet(`/start/${clientId}/bozze`)])
       .then(([pipe, b]) => {
         const tutti = pipe.colonne.flatMap((c) => c.clienti);
@@ -217,6 +222,9 @@ export function SchedaStart({ onAuthExpired }) {
       setInCorso(null);
     }
   };
+
+  const segnaGestita = (riga) =>
+    esegui(`gestita-${riga.id}`, `/start/${clientId}/assistente/${riga.id}/gestita`, null, "Segnata come gestita.");
 
   const onGenera = (item) =>
     esegui(item.type, `/start/${clientId}/${GENERA[item.type]}`, null, "Bozza generata: leggila prima di approvare.");
@@ -360,6 +368,34 @@ export function SchedaStart({ onAuthExpired }) {
         </p>
       </section>
 
+          <section className="my-6 rounded-xl border border-gray-200 bg-white p-5" data-testid="assistente-coda">
+            <h2 className="text-sm font-semibold text-slate-900">Domande all'assistente</h2>
+            {assistente === null ? (
+              <p className="mt-2 text-xs text-slate-500">Dato non disponibile.</p>
+            ) : assistente.da_rispondere === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Nessuna domanda in attesa di te{assistente.righe.length ? ` (${assistente.righe.length} fatte, l'assistente ha risposto)` : ""}.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {assistente.righe
+                  .filter((r) => r.passato_al_team && !r.gestita)
+                  .map((r) => (
+                    <li key={r.id} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800">
+                      <p>«{r.domanda}»</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {String(r.at || "").slice(0, 10)} ·{" "}
+                        {r.motivo === "argomento_delicato" ? "tema delicato" : r.motivo === "errore_servizio" ? "servizio non raggiungibile" : "l'assistente non sapeva"}
+                        {" · "}rispondi tu a {riga.email}
+                      </p>
+                      <button type="button" disabled={inCorso === `gestita-${r.id}`} onClick={() => segnaGestita(r)} className={`mt-2 ${BTN_CHIARO}`}>
+                        Fatto, ho risposto
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </section>
         </>
       )}
 

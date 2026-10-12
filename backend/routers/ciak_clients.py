@@ -706,6 +706,128 @@ async def start_risposte(client: dict[str, Any] = Depends(require_client)):
     }
 
 
+class AssistenteStartRequest(BaseModel):
+    message: str = Field(..., max_length=2000)
+    history: list = Field(default_factory=list)  # turni {role, content}: li ripulisce clean_history
+
+
+_assistente_limiter = None
+
+
+def _assistente_limiter_get():
+    global _assistente_limiter
+    if _assistente_limiter is None:
+        from services.proposta_chat import ChatRateLimiter
+
+        _assistente_limiter = ChatRateLimiter()
+    return _assistente_limiter
+
+
+async def _contesto_assistente(client: dict[str, Any]) -> str:
+    """I dati reali del cliente per l'assistente. Una fonte che non risponde non diventa un
+    dato inventato: la riga dice «non disponibile»."""
+    from services.ciak_start_domande import mancanti
+    from services.start_assistente import scheda_cliente
+    from services.start_pipeline import MATERIALI
+
+    materiali: list[dict] = []
+    try:
+        approvati = {
+            d.get("type")
+            async for d in db.ciak_start_deliverables.find(
+                {"partner_id": client["id"], "approval_status": "approved"}, {"_id": 0, "type": 1}
+            )
+        }
+        materiali = [
+            {"titolo": titolo, "stato": "approvato" if tipo in approvati else "da_fare"}
+            for tipo, _step, titolo in MATERIALI
+        ]
+    except Exception:  # noqa: BLE001 - l'assistente non deve rompersi per un dato accessorio
+        logger.exception("[ASSISTENTE START] materiali non letti")
+    n_mancanti = None
+    riaperte = False
+    try:
+        dati = await _dati_risposte_start(client["id"])
+        n_mancanti = len(mancanti(dati.get("answers") or {}))
+        riaperte = bool(dati.get("integrazione_richiesta_at"))
+    except Exception:  # noqa: BLE001
+        logger.exception("[ASSISTENTE START] domande non lette")
+    return scheda_cliente(
+        nome=client.get("name") or "",
+        consegne=_start_consegne(client),
+        materiali=materiali,
+        domande_mancanti=n_mancanti,
+        domande_riaperte=riaperte,
+    )
+
+
+@router.post("/start/assistente")
+async def start_assistente(
+    body: AssistenteStartRequest,
+    client: dict[str, Any] = Depends(require_client),
+):
+    """Chat dell'area Start (streaming SSE). Risponde solo con la scheda verificata e i dati del
+    cliente; sugli argomenti delicati o quando non sa, passa al team e lascia la domanda in coda
+    (`ciak_start_assistente`, letta in admin dalla scheda del cliente)."""
+    from fastapi.responses import StreamingResponse
+
+    from services import proposta_chat, start_assistente
+
+    if not has_start_entitlement(client):
+        raise HTTPException(status_code=403, detail="Ciak Start non attivo")
+    message = proposta_chat.clean_message(body.message)
+    if not message:
+        raise HTTPException(status_code=422, detail="Scrivi la tua domanda")
+    history = proposta_chat.clean_history(body.history)
+    allowed = _assistente_limiter_get().allow(f"start:{client['id']}")
+
+    async def salva(risposta: str, passato: bool, motivo: str) -> None:
+        try:
+            await db.ciak_start_assistente.insert_one(
+                start_assistente.riga_log(
+                    client_id=client["id"], domanda=message, risposta=risposta,
+                    passato=passato, motivo=motivo, at=_now_iso(),
+                )
+            )
+        except Exception:  # noqa: BLE001 - il log non deve rompere la risposta
+            logger.exception("[ASSISTENTE START] riga non salvata")
+
+    async def events():
+        if not allowed:
+            yield proposta_chat.sse({"t": proposta_chat.RATE_LIMIT_REPLY})
+            yield proposta_chat.sse({"done": True})
+            return
+        if start_assistente.argomento_delicato(message):
+            yield proposta_chat.sse({"t": start_assistente.RISPOSTA_DELICATA})
+            await salva(start_assistente.RISPOSTA_DELICATA, True, "argomento_delicato")
+            yield proposta_chat.sse({"done": True, "passato": True})
+            return
+        pezzi: list[str] = []
+        try:
+            contesto = await _contesto_assistente(client)
+            first = (client.get("name") or "").split(" ")[0]
+            system = start_assistente.build_system_blocks(first_name=first, contesto=contesto)
+            async for piece in proposta_chat.stream_reply(system, history, message):
+                pezzi.append(piece)
+                yield proposta_chat.sse({"t": piece})
+        except Exception:  # noqa: BLE001
+            logger.exception("[ASSISTENTE START] errore")
+            yield proposta_chat.sse({"error": proposta_chat.UNAVAILABLE_REPLY})
+            await salva("", True, "errore_servizio")
+            yield proposta_chat.sse({"done": True, "passato": True})
+            return
+        risposta = "".join(pezzi)
+        passato = start_assistente.passa_al_team(risposta)
+        await salva(risposta, passato, "non_sa" if passato else "")
+        yield proposta_chat.sse({"done": True, "passato": passato})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
 @router.put("/start/risposte")
 async def salva_start_risposte(
     body: StartRisposteBody,

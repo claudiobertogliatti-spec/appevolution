@@ -1,3 +1,22 @@
+### 2026-10-12 (7) · Claude Code · claude/modest-euler-xde2pw — Assistente chat nell'area cliente Start
+
+**RICHIESTA:** «inserisci un chatbot che risponde in automatico su tutte le questioni operative tecniche commerciali sui servizi evolution». Scelte di Claudio: dove = **area cliente Start** (pagina Assistenza); limiti = **passa al team** quando non sa o il tema e' delicato.
+
+**DICHIARATO**
+- `backend/services/start_assistente.py`: scheda verificata (6 materiali da `start_pipeline.MATERIALI`, tappe 7/14/21 giorni, Start 390 €, Partnership 2.990 €, credito → 2.600 € da pagare, flusso approvazioni), regole del prompt, `argomento_delicato` (regex su rimborso/contratto/fattura/pagamento/rate/disdetta/accesso/avvocato/garanzia…), `passa_al_team`, `scheda_cliente` (dati reali: date tappe, materiali pronti, domande mancanti), `riga_log`.
+- `POST /api/ciak/client/start/assistente` (`routers/ciak_clients.py`, SSE, solo `has_start_entitlement`): riusa `proposta_chat` (stream_reply, clean_*, sse, `ChatRateLimiter` 20 msg/10 min per cliente, messaggi di errore). Temi delicati → risposta fissa SENZA chiamare il modello + riga in coda; se il modello usa la frase «Lo giro al team: ti risponde una persona.» → riga in coda; errore del servizio → messaggio onesto + riga in coda. Collezione `ciak_start_assistente` (`id, client_id, at, domanda, risposta, passato_al_team, motivo, gestita`).
+- Admin: `GET /start/{id}/assistente`, `POST /start/{id}/assistente/{riga}/gestita`; scheda cliente → Panoramica → «Domande all'assistente» (coda con motivo, «Fatto, ho risposto»; se non leggibile dice «Dato non disponibile»).
+- Frontend: `client/start/StartAssistenza.jsx` (chat nella grafica Sereno, esempi a un tocco, «Riprova» che non duplica, mail sempre disponibile), `assistenteStream.js`.
+
+**VERIFICATO:** backend `test_start_assistente.py` (25) + `test_start_assistente_admin.py` (3) + clienti/bozze 87 passati (con MONGO_URL, DB_NAME, JWT_SECRET_KEY, APP_ENV=test); frontend `src/ciak` 780/781 (rosso = `PartnerFilesPage.loading`, preesistente). Aggiunti i 2 file test a `.github/workflows/ci.yml`.
+
+**⛔ NON VERIFICATO / APERTO**
+- Nessuna chiave Anthropic nel sandbox: **il modello vero non e' stato mai interrogato**. Tono, aderenza alle regole e qualita' delle risposte vanno provati da Claudio con 5-6 domande reali su `/cliente/start/assistenza` (incluse una delicata e una fuori scheda). Modello: `proposta_chat.CHAT_MODEL` (Haiku 4.5, env `PROPOSTA_CHAT_MODEL`).
+- «Tutte le questioni»: la scheda copre SOLO Start (cosa fare, tempi, strumenti, importi). Non conosce funnel, video, lancio, ads, Systeme dei partner: per quelli passa al team. Per allargare serve ampliare `_scheda_servizio` con fonti verificate.
+- Nessuna notifica quando una domanda va in coda: il team la vede solo aprendo la scheda del cliente (o, in futuro, un contatore in Home/pipeline).
+- Le regex dei temi delicati sono prudenti ma non esaustive; il modello ha comunque l'istruzione di passare al team sui soldi/contratto.
+- Non estesa all'area partner (hanno Stefania e gli agenti) ne' al sito pubblico.
+
 ### 2026-10-12 (6) · Claude Code · claude/modest-euler-xde2pw — Linda Pavia allineata, scheda a schede, Vista cliente
 
 **RICHIESTA:** finire l'account di Linda (risposte mancanti), poi «clienti e partner devono avere la stessa videata».

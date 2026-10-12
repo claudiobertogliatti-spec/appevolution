@@ -25,8 +25,20 @@ const BOZZE = {
   ],
 };
 
+const CODA = {
+  da_rispondere: 1,
+  righe: [
+    { id: "r1", at: "2026-10-12T09:00:00+00:00", domanda: "Voglio un rimborso", passato_al_team: true, gestita: false, motivo: "argomento_delicato" },
+    { id: "r2", at: "2026-10-12T08:00:00+00:00", domanda: "Come scelgo i colori?", passato_al_team: false, gestita: false, motivo: "" },
+  ],
+};
+
 beforeEach(() => {
-  apiGet.mockImplementation((p) => Promise.resolve(p === "/start/pipeline" ? { colonne: [{ id: "da_approvare", clienti: [RIGA] }] } : BOZZE));
+  apiGet.mockImplementation((p) =>
+    Promise.resolve(
+      p === "/start/pipeline" ? { colonne: [{ id: "da_approvare", clienti: [RIGA] }] } : p.endsWith("/assistente") ? CODA : BOZZE,
+    ),
+  );
   apiPost.mockResolvedValue({ link: "https://www.ciak.io/cliente/accesso?token=abc", scade_il: "2026-11-11T08:00:00+00:00" });
 });
 
@@ -89,4 +101,27 @@ test("Vista cliente: se la richiesta fallisce chiude la scheda vuota e lo dice",
   expect(await screen.findByRole("status")).toHaveTextContent("L'email non combacia");
   expect(finestra.close).toHaveBeenCalled();
   apri.mockRestore();
+});
+
+test("Panoramica: le domande passate al team sono in coda, con il motivo, e si segnano gestite", async () => {
+  monta();
+  const coda = await screen.findByTestId("assistente-coda");
+  expect(coda.textContent).toContain("«Voglio un rimborso»");
+  expect(coda.textContent).toContain("tema delicato");
+  expect(coda.textContent).toContain("rispondi tu a linda@x.it");
+  expect(coda.textContent).not.toContain("Come scelgo i colori?"); // quella l'ha risolta l'assistente
+  fireEvent.click(screen.getByRole("button", { name: "Fatto, ho risposto" }));
+  await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/start/c1/assistente/r1/gestita", {}));
+});
+
+test("coda non leggibile: dice «Dato non disponibile», non «nessuna domanda»", async () => {
+  apiGet.mockImplementation((p) =>
+    p.endsWith("/assistente")
+      ? Promise.reject(new Error("500"))
+      : Promise.resolve(p === "/start/pipeline" ? { colonne: [{ id: "da_approvare", clienti: [RIGA] }] } : BOZZE),
+  );
+  monta();
+  const coda = await screen.findByTestId("assistente-coda");
+  await waitFor(() => expect(coda.textContent).toContain("Dato non disponibile"));
+  expect(coda.textContent).not.toContain("Nessuna domanda");
 });

@@ -5051,6 +5051,42 @@ async def inserisci_risposte_team_start(
     return {"success": True, "inserite": sorted(valide), "ancora_da_scrivere": ancora}
 
 
+@router.get("/start/{client_id}/assistente")
+async def assistente_start_cliente(client_id: str, _admin=Depends(require_ciak_admin)):
+    """Sola lettura: le ultime domande fatte all'assistente dal cliente. Quelle che l'assistente ha
+    passato al team (`passato_al_team`) e non sono ancora `gestita` aspettano una risposta a mano."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    righe = [
+        r
+        async for r in db.ciak_start_assistente.find({"client_id": client_id}, {"_id": 0})
+        .sort("at", -1)
+        .limit(30)
+    ]
+    return {
+        "client_id": client_id,
+        "righe": righe,
+        "da_rispondere": sum(1 for r in righe if r.get("passato_al_team") and not r.get("gestita")),
+    }
+
+
+@router.post("/start/{client_id}/assistente/{riga_id}/gestita")
+async def assistente_start_gestita(client_id: str, riga_id: str, admin=Depends(require_ciak_admin)):
+    """Segna come gestita una domanda passata al team (l'hai risposta tu, di persona)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    res = await db.ciak_start_assistente.update_one(
+        {"id": riga_id, "client_id": client_id},
+        {"$set": {"gestita": True, "gestita_da": getattr(admin, "email", None) or "admin",
+                  "gestita_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(404, "Domanda non trovata")
+    return {"success": True}
+
+
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,
