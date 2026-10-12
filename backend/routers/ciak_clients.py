@@ -530,6 +530,9 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
         "raccomandata": recommended_path(effective_client, None),
         "checkout_readiness": paid_offer_readiness(),
         "start": {
+            # Stessa regola dell'admin (`has_start_entitlement`): anche un account attivato a
+            # mano (start_purchased_at / credito) ha Ciak Start, pur con access_level diverso.
+            "attivo": bool(has_start_entitlement(client) and not is_partner),
             "credit_amount_cents": partnership_price["credit_amount_cents"],
             # Le tre date promesse nell'email di attivazione: stessa sorgente
             # (`ciak_start_milestones`), cosi' il cliente legge ovunque le stesse.

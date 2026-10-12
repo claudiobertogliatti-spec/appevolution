@@ -103,6 +103,12 @@ function AccessPage() {
   );
 }
 
+// Ciak Start attivo: lo dice il server (stessa regola dell'admin, anche per gli account attivati
+// a mano); `access_level` resta come ripiego per le risposte vecchie.
+function haStartAttivo(dashboard) {
+  return dashboard?.start?.attivo === true || dashboard?.client?.access_level === "cliente_start";
+}
+
 function ProtectedClient() {
   const token = getClientToken();
   const [params] = useSearchParams();
@@ -122,7 +128,7 @@ function ProtectedClient() {
       .then((data) => {
         if (cancelled) return;
         setDashboard(data);
-        if (waitForStart && data.client?.access_level !== "cliente_start" && attempts < 10) {
+        if (waitForStart && !haStartAttivo(data) && attempts < 10) {
           attempts += 1;
           timer = window.setTimeout(loadDashboard, 1500);
         }
@@ -141,12 +147,13 @@ function ProtectedClient() {
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!dashboard) return <div className="p-8 text-slate-400">Caricamento percorso...</div>;
 
+  const startAttivo = haStartAttivo(dashboard);
   const startPaymentConfirmed = params.get("checkout") === "start"
     && params.get("payment") === "success"
-    && dashboard.client?.access_level === "cliente_start";
+    && startAttivo;
 
   const clientId = dashboard.client?.id;
-  const showWelcome = dashboard.client?.access_level === "cliente_start"
+  const showWelcome = startAttivo
     && !welcomeDismissed
     && !welcomeAlreadySeen(clientId);
 
@@ -169,7 +176,7 @@ function ProtectedClient() {
 
   // Chi ha Ciak Start attivo ha la sua area, nella grafica dell'area partner.
   // Blueprint e Partnership restano con l'area di sempre.
-  if (dashboard.client?.access_level === "cliente_start") {
+  if (startAttivo) {
     return <StartArea dashboard={dashboard} pagamentoConfermato={startPaymentConfirmed} />;
   }
 

@@ -195,6 +195,26 @@ async def test_dashboard_payload_contains_credit_and_analysis(fake_db):
 
 
 @pytest.mark.asyncio
+async def test_dashboard_start_attivo_anche_per_account_attivato_a_mano(fake_db):
+    """Stessa regola dell'admin: start_purchased_at basta, anche con access_level blueprint."""
+    ciak_clients.set_db(fake_db)
+    a_mano = await ciak_clients._dashboard_for_client(
+        {"id": "c1", "email": "a@example.com", "access_level": "cliente_blueprint",
+         "session_token": "t1", "start_purchased_at": "2026-09-17T08:00:00+00:00"}
+    )
+    senza = await ciak_clients._dashboard_for_client(
+        {"id": "c2", "email": "b@example.com", "access_level": "cliente_blueprint", "session_token": "t2"}
+    )
+    partner = await ciak_clients._dashboard_for_client(
+        {"id": "c3", "email": "c@example.com", "access_level": "partner",
+         "session_token": "t3", "start_credit_amount": 39000}
+    )
+    assert a_mano["start"]["attivo"] is True
+    assert senza["start"]["attivo"] is False
+    assert partner["start"]["attivo"] is False  # chi e' gia' partner ha l'area partner
+
+
+@pytest.mark.asyncio
 async def test_dashboard_retains_start_credit_for_promoted_partner(fake_db):
     ciak_clients.set_db(fake_db)
     payload = await ciak_clients._dashboard_for_client(
