@@ -219,6 +219,21 @@ def minuti_altri_compiti(compiti_settimana: Iterable[dict]) -> int:
     return tot
 
 
+def stato_per_partner(partner_approvato: bool, esito: Optional[dict]) -> Optional[str]:
+    """Cosa vede il partner di una lezione dopo il controllo del team (mai la nota interna di Antonella).
+
+    'online'       -> verificata e caricata;
+    'sistemando'   -> segnalata «da correggere»;
+    'in_controllo' -> il partner l'ha approvata e Antonella non ha ancora dato un esito;
+    None           -> niente da dire (il partner non l'ha ancora approvata)."""
+    tipo = (esito or {}).get("esito")
+    if tipo == "verificata":
+        return "online"
+    if tipo == "da_correggere":
+        return "sistemando"
+    return "in_controllo" if partner_approvato else None
+
+
 def valida_esito(body: Dict[str, Any]) -> Dict[str, Any]:
     """Normalizza l'esito inviato da Antonella. Solleva ValueError con un messaggio chiaro."""
     esito = body.get("esito")

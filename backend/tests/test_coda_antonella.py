@@ -137,3 +137,10 @@ def test_minuti_altri_compiti_ignora_la_coda_lezioni_e_i_chiusi():
 def test_raggruppa_per_partner_somma_minuti():
     g = c.raggruppa_per_partner(compiti(20, 30) + compiti(10, partner="p2"))
     assert [(x["partner_id"], x["minuti"], len(x["lezioni"])) for x in g] == [("p1", 50, 2), ("p2", 10, 1)]
+
+
+def test_stato_per_partner_non_espone_note_e_non_inventa():
+    assert c.stato_per_partner(True, {"esito": "verificata", "note": "x"}) == "online"
+    assert c.stato_per_partner(True, {"esito": "da_correggere", "note": "audio basso"}) == "sistemando"
+    assert c.stato_per_partner(True, None) == "in_controllo"
+    assert c.stato_per_partner(False, None) is None

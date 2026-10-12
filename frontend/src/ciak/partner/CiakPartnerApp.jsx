@@ -7,6 +7,7 @@
  *
  * Token in localStorage `ciak_partner_token` (isolato). Endpoint backend invariati.
  */
+import SerenoGuide from "./sereno/SerenoGuide";
 import { useEffect, useState, useCallback } from "react";
 import { Routes, Route, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { FolderOpen, Home, LogOut, Map, Send, Users } from "lucide-react";
@@ -321,6 +322,7 @@ export default function CiakPartnerApp() {
         <Route path="team-ciak" element={<TeamSupportoPage partner={partnerContext} />} />
         <Route path="telegram" element={<TeamSupportoPage partner={partnerContext} />} />
         <Route path="supporto" element={<TeamSupportoPage partner={partnerContext} />} />
+        <Route path="guide" element={<SerenoGuide />} />
         <Route path="servizi-extra" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="servizi-extra/:serviceId" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="booster-evo" element={<ServiziExtraPage partnerId={partnerId} />} />
