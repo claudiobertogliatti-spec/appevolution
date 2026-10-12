@@ -3665,6 +3665,30 @@ async def andrea_history_clear(admin=Depends(require_ciak_admin)):
     return {"success": True}
 
 
+# ─── Report della settimana (Luca) ───────────────────────────────────────────
+
+@router.get("/report/settimana")
+async def report_settimana(admin=Depends(require_ciak_admin)):
+    """Conteggi degli ultimi 7 giorni contro i 7 precedenti. Una voce che non si riesce a
+    contare esce come non disponibile (None), mai come zero."""
+    from services import ciak_report as rp
+
+    fin = rp.finestre()
+    conteggi = {}
+    for chiave, _et, coll, campo, extra in rp.VOCI:
+        coppia = []
+        for nome in ("attuale", "precedente"):
+            da, a = fin[nome]
+            try:
+                n = await db[coll].count_documents({**extra, campo: {"$gte": da, "$lt": a}})
+            except Exception as e:  # noqa: BLE001
+                logger.warning("[REPORT] %s non contabile: %s", chiave, e)
+                n = None
+            coppia.append(n)
+        conteggi[chiave] = tuple(coppia)
+    return {"da": fin["attuale"][0], "a": fin["attuale"][1], "voci": rp.costruisci(conteggi)}
+
+
 # ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
 
 class ReelAvatarIn(BaseModel):

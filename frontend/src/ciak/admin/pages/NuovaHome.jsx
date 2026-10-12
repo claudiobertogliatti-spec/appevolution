@@ -20,6 +20,7 @@ import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
 import { DaRecuperare } from "../components/DaRecuperare";
 import { NotificheInbox } from "../components/NotificheInbox";
+import { ReportSettimana } from "../components/ReportSettimana";
 import { PartnerAvvisi } from "../components/PartnerAvvisi";
 import { SollecitoPannello } from "../components/SollecitoPannello";
 import { PassoPannello, dataIt } from "../components/PassoPannello";
@@ -297,6 +298,8 @@ export function NuovaHome({ user, onAuthExpired }) {
       <PartnerAvvisi onAuthExpired={onAuthExpired} />
 
       <OggiStart onAuthExpired={onAuthExpired} />
+
+      <ReportSettimana onAuthExpired={onAuthExpired} />
 
       <ChiediALuca onAuthExpired={onAuthExpired} />
 
