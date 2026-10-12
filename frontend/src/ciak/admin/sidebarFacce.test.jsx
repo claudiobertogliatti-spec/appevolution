@@ -4,7 +4,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { Handshake } from "lucide-react";
-import { MacroLabel, sidebarConFacce, VOCE_CONTENUTI } from "./CiakAdminApp";
+import { MacroLabel, sidebarConFacce, VOCE_CONTENUTI, PAGINE_DI_ANDREA, NAV } from "./CiakAdminApp";
 import { DEPARTMENT_ROOMS } from "./departmentRooms";
 
 const macro = (id, label) => ({ id, label });
@@ -59,4 +59,11 @@ test("Andrea ha la sua voce «Contenuti» con la sua faccia, fuori dal menu clas
   expect(screen.getByText("Andrea")).toBeTruthy();
   expect(screen.getByText("Contenuti")).toBeTruthy();
   expect(VOCE_CONTENUTI.to).toBe("/admin/contenuti");
+});
+
+test("Editoriale e Calendario Editoriale hanno il volto di Andrea ma restano nel menu di Acquisizione", () => {
+  expect(PAGINE_DI_ANDREA).toEqual(["/admin/acquisizione-editoriale", "/admin/acq-calendario"]);
+  const acq = NAV.find((m) => m.id === "acquisizione");
+  const to = acq.pages.map((p) => p.to);
+  PAGINE_DI_ANDREA.forEach((p) => expect(to).toContain(p));
 });

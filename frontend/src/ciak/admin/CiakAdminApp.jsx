@@ -145,7 +145,7 @@ function RedirectKeepSearch({ to }) {
   return <Navigate to={`${to}${search}`} replace />;
 }
 
-const NAV = [
+export const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
     id: "dashboard",
@@ -246,6 +246,8 @@ const NAV = [
 
 // Andrea (Contenuti) non ha un reparto nel menu classico: ha la sua voce solo nella colonna con
 // le facce. Fuori da NAV di proposito: il menu di tutti gli altri non cambia.
+export const PAGINE_DI_ANDREA = ["/admin/acquisizione-editoriale", "/admin/acq-calendario"];
+
 export const VOCE_CONTENUTI = { id: "casi-studio", label: "Contenuti", to: "/admin/contenuti" };
 
 const MACRO_ICONS = {
@@ -492,6 +494,11 @@ function AdminShell({ user, onLogout, children }) {
   // Menu di sezione: le pagine sorelle del reparto, su ogni pagina del reparto
   // (sostituisce il "Torna a ..." e i tre sotto-menu scritti a mano).
   const sezione = trovaSezione(pathname, nav, adminType);
+  // Il volto sul titolo: quello del reparto, ma Editoriale e Calendario Editoriale sono lavoro di
+  // Andrea (contenuti) anche se stanno nel menu di Acquisizione, dove Mariangela li usa: il menu non cambia.
+  const voltoPagina = !facce ? null
+    : PAGINE_DI_ANDREA.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ? "/agents/andrea.jpg"
+    : (sezione && DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar) || null;
   const bottoneCerca = (
       <button
         type="button"
@@ -639,7 +646,10 @@ function AdminShell({ user, onLogout, children }) {
           <Search className="h-5 w-5" aria-hidden />
         </button>
       </div>
-      <main className="ciak-pagina flex-1 min-w-0 overflow-auto">
+      <main
+        className={`ciak-pagina flex-1 min-w-0 overflow-auto${voltoPagina ? " ciak-con-volto" : ""}`}
+        style={voltoPagina ? { "--volto": `url(${voltoPagina})` } : undefined}
+      >
         {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} volto={facce ? DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar : null} />}
         {children}
       </main>

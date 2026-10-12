@@ -118,4 +118,14 @@ code {
    Solo tipografia: nessuna pagina cambia struttura. */
 .ciak-pagina h1 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.01em; }
 @media (min-width: 640px) { .ciak-pagina h1 { font-size: 2.25rem; line-height: 2.5rem; } }
-.ciak-pagina h1 + p { font-size: 1.0625rem; line-height: 1.6; color: rgb(71 85 105); }
+.ciak-pagina h1 + p { font-size: 1.0625rem; line-height: 1.6; }
+
+/* Il volto del reparto davanti al titolo, su ogni pagina che non lo mostra già (solo per Claudio).
+   Il volto arriva dalla variabile --volto impostata dal reparto; le pagine con intestazione propria
+   (data-volto) non lo ripetono. */
+.ciak-con-volto h1:not([data-volto])::before {
+  content: ""; display: inline-block; flex-shrink: 0;
+  width: 2.75rem; height: 2.75rem; margin-right: 0.875rem; vertical-align: middle;
+  border-radius: 9999px; background: var(--volto) center / cover no-repeat #e2e8f0;
+  box-shadow: 0 0 0 3px #FACC15;
+}
