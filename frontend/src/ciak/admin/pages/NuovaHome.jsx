@@ -18,6 +18,7 @@ import { useOggiShared } from "../components/OggiShared";
 import { fmtOraRoma } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
+import { PartnerAvvisi } from "../components/PartnerAvvisi";
 import { SollecitoPannello } from "../components/SollecitoPannello";
 import { PassoPannello, dataIt } from "../components/PassoPannello";
 import { apiGet } from "../api";
@@ -286,6 +287,8 @@ export function NuovaHome({ user, onAuthExpired }) {
           </Link>
         )}
       </Sezione>
+
+      <PartnerAvvisi onAuthExpired={onAuthExpired} />
 
       <OggiStart onAuthExpired={onAuthExpired} />
 

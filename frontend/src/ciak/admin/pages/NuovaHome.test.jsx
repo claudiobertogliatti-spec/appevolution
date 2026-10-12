@@ -11,6 +11,7 @@ jest.mock("../components/OggiShared", () => ({ useOggiShared: jest.fn() }));
 jest.mock("../components/OggiStart", () => ({ OggiStart: () => <div>CLIENTI-START</div> }));
 jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
 jest.mock("../components/PassoPannello", () => ({ PassoPannello: ({ email }) => <div>PASSO-{email}</div>, dataIt: (d) => d.split("-").reverse().join("/") }));
+jest.mock("../components/PartnerAvvisi", () => ({ PartnerAvvisi: () => <div>AVVISI-VALENTINA</div> }));
 jest.mock("../components/SollecitoPannello", () => ({ SollecitoPannello: ({ email }) => <div>PANNELLO-{email}</div> }));
 jest.mock("../components/ChiediALuca", () => ({ ChiediALuca: () => <div>CHIEDI-A-LUCA</div> }));
 
@@ -137,4 +138,10 @@ test("con un passo scaduto lo mostra in evidenza; se i passi non si leggono non 
   await screen.findByText("Chiara Ferri");
   await new Promise((r) => setTimeout(r, 0));
   expect(screen.queryByText(/Manca il prossimo passo/)).toBeNull();
+});
+
+test("ci sono gli avvisi di Valentina", () => {
+  useOggiShared.mockReturnValue(vivo());
+  mostra();
+  expect(screen.getByText("AVVISI-VALENTINA")).toBeTruthy();
 });

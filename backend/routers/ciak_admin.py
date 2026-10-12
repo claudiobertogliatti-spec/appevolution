@@ -3223,6 +3223,119 @@ async def cronologia_contatto(email: str = Query(..., min_length=3), admin=Depen
     }
 
 
+# ─── Partner — compiti con scadenza + avvisi di percorso (Valentina) ────────
+# I compiti vivono in `ciak_partner_attivita` e si chiudono (non si cancellano). Gli avvisi
+# sono solo lettura di `partner_journey_steps`: non toccano mai il motore del percorso.
+
+class CompitoIn(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    testo: str = Field(..., max_length=600)
+    scadenza: Optional[str] = Field(None, max_length=10)
+
+
+class CompitoFatto(BaseModel):
+    id: str = Field(..., min_length=1, max_length=100)
+
+
+class AvvisoVisto(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    step_id: str = Field(..., min_length=1, max_length=100)
+
+
+@router.get("/partner-attivita")
+async def partner_attivita(partner_id: Optional[str] = Query(None), admin=Depends(require_ciak_admin)):
+    """Compiti aperti (di un partner o di tutti), scadenze prima; con nome del partner."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    filtro = {"fatto_at": None}
+    if partner_id:
+        filtro["partner_id"] = partner_id
+    righe = await db.ciak_partner_attivita.find(filtro, {"_id": 0}).to_list(2000)
+    nomi = {}
+    async for p in db.partners.find({"id": {"$in": list({r["partner_id"] for r in righe})}}, {"_id": 0, "id": 1, "name": 1}):
+        nomi[p.get("id")] = p.get("name")
+    items = [
+        {**r, "partner_nome": nomi.get(r["partner_id"]), "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))}
+        for r in righe
+    ]
+    items.sort(key=lambda r: (r.get("scadenza") or "9999", r.get("creato_at") or ""))
+    return {"items": items}
+
+
+@router.post("/partner-attivita")
+async def crea_compito(body: CompitoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, scadenza = pa.valida_compito(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await db.partners.find_one({"id": body.partner_id}, {"_id": 1}):
+        raise HTTPException(404, "Partner non trovato")
+    riga = pa.nuovo_compito(partner_id=body.partner_id, testo=testo, scadenza=scadenza, autore=_autore(admin))
+    await db.ciak_partner_attivita.insert_one(dict(riga))
+    return {"success": True, "compito": riga}
+
+
+@router.post("/partner-attivita/fatto")
+async def compito_fatto(body: CompitoFatto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    attuale = await db.ciak_partner_attivita.find_one({"id": body.id}, {"_id": 0})
+    if not attuale:
+        raise HTTPException(404, "Compito non trovato")
+    if attuale.get("fatto_at"):
+        return {"success": True, "gia_fatto": True}
+    await db.ciak_partner_attivita.update_one(
+        {"id": body.id},
+        {"$set": {"fatto_at": datetime.now(timezone.utc).isoformat(), "fatto_da": _autore(admin)}},
+    )
+    return {"success": True}
+
+
+@router.get("/avvisi-percorso")
+async def avvisi_percorso(admin=Depends(require_ciak_admin)):
+    """Passi completati dai partner attivi negli ultimi giorni, non ancora segnati come visti.
+    Sola lettura del percorso."""
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partners = {}
+    async for p in db.partners.find(
+        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}, {"_id": 0, "id": 1, "name": 1}
+    ):
+        partners[p.get("id")] = p.get("name")
+    steps_by: dict = {}
+    async for st in db.partner_journey_steps.find({"partner_id": {"$in": list(partners)}}, {"_id": 0}):
+        steps_by.setdefault(st.get("partner_id"), []).append(st)
+    visti = {(v["partner_id"], v["step_id"]) async for v in db.ciak_avvisi_visti.find({}, {"_id": 0})}
+    items = []
+    for pid, steps in steps_by.items():
+        for a in pa.avvisi_percorso(steps=steps, definizione=JOURNEY_STEPS_DEFINITION, visti=visti):
+            items.append({**a, "partner_nome": partners.get(pid)})
+    items.sort(key=lambda a: a["completato_at"], reverse=True)
+    return {"items": items}
+
+
+@router.post("/avvisi-percorso/visto")
+async def avviso_visto(body: AvvisoVisto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_avvisi_visti.update_one(
+        {"partner_id": body.partner_id, "step_id": body.step_id},
+        {"$set": {"partner_id": body.partner_id, "step_id": body.step_id,
+                  "visto_at": datetime.now(timezone.utc).isoformat(), "visto_da": _autore(admin)}},
+        upsert=True,
+    )
+    return {"success": True}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 
