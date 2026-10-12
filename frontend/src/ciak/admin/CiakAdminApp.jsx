@@ -65,6 +65,7 @@ import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { ClientiCiak } from "./pages/ClientiCiak";
 import { PartnerHub } from "./pages/PartnerHub";
+import { CodaLezioni } from "./pages/CodaLezioni";
 import { DeliveryAudit } from "./pages/DeliveryAudit";
 import { Approvazioni } from "./pages/Approvazioni";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
@@ -210,6 +211,7 @@ export const NAV = [
       ] },
       { title: "Materiali e video", pages: [
         { to: "/admin/documenti-partner", label: "File", desc: "Documenti e file caricati dai partner" },
+        { to: "/admin/coda-lezioni", label: "Coda lezioni", desc: "Lezioni montate da controllare e caricare su Systeme, con il piano di oggi dentro le ore concordate" },
         { to: "/admin/video-review", label: "Video da approvare", desc: "Coda unica: masterclass + lezioni da revisionare e approvare, con filtro e monitor tecnico" },
         { to: "/admin/risultati-finali", label: "Siti e funnel da guardare", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
@@ -958,6 +960,7 @@ export default function CiakAdminApp() {
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
+        <Route path="coda-lezioni" element={<CodaLezioni onAuthExpired={handleLogout} />} />
         <Route path="video-pipeline" element={<VideoPipelineMonitor onAuthExpired={handleLogout} />} />
         <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="consegne-mancate" element={<ConsegneMancate onAuthExpired={handleLogout} />} />

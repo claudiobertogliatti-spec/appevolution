@@ -17516,6 +17516,11 @@ from services.ciak_memoria import set_db as set_ciak_memoria_db
 set_ciak_memoria_db(db)
 app.include_router(ciak_admin_router)
 
+# Coda di Antonella: lezioni montate da controllare e caricare su Systeme, piano giornaliero
+from routers.ciak_coda import router as ciak_coda_router, set_db as set_ciak_coda_db
+set_ciak_coda_db(db)
+app.include_router(ciak_coda_router)
+
 # Liquidazioni, fatture passive e bonifici dei collaboratori (solo Claudio/superadmin)
 from routers.collaborator_settlements import router as collaborator_settlements_router, set_db as set_collaborator_settlements_db
 set_collaborator_settlements_db(db)
