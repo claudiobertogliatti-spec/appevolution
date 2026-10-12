@@ -16,6 +16,7 @@ jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 jest.mock("../components/CompitiPartner", () => ({
   CompitiPartner: ({ partnerId }) => <div data-testid="compiti-partner">{partnerId}</div>,
 }));
+jest.mock("../components/CommentiPannello", () => ({ CommentiPannello: () => <div data-testid="commenti-partner" /> }));
 jest.mock("../components/PercorsoEvoPanel", () => ({
   PercorsoEvoPanel: () => <div data-testid="percorso-panel" />,
 }));

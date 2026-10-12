@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, SCOPE_DENIED_DETAIL } from "../api";
 import { PassoPannello, dataIt, oggiISO } from "./PassoPannello";
+import { CommentiPannello } from "./CommentiPannello";
 
 const quando = (iso) => {
   try {
@@ -83,6 +84,8 @@ export function CronologiaLead({ email, nome, onAuthExpired }) {
           <p className="mt-4 text-xs text-slate-500">Qui compare solo ciò che Ciak ha registrato. Telefonate e messaggi fatti altrove non ci sono.</p>
         </>
       )}
+
+      {dati && <div className="mt-6"><CommentiPannello tipo="lead" id={email} onAuthExpired={onAuthExpired} /></div>}
 
       {apri && (
         <PassoPannello

@@ -3336,6 +3336,159 @@ async def avviso_visto(body: AvvisoVisto, admin=Depends(require_ciak_admin)):
     return {"success": True}
 
 
+# ─── Commenti interni con menzione di un agente + casella notifiche ─────────
+# Un commento con @Marco fa rispondere Marco sotto il commento (legge e consiglia, non esegue).
+# Ogni risposta crea una notifica. Se l'AI non risponde, nessuna risposta finta.
+
+class CommentoIn(BaseModel):
+    target_tipo: str = Field(..., max_length=20)
+    target_id: str = Field(..., min_length=1, max_length=254)
+    testo: str = Field(..., max_length=4000)
+
+
+class NotificaLetta(BaseModel):
+    id: Optional[str] = Field(None, max_length=100)
+    tutte: bool = False
+
+
+async def _chiedi_llm(system: str, user: str, max_tokens: int = 500) -> Optional[str]:
+    """Testo della risposta o None se l'AI non e' disponibile (mai un testo inventato)."""
+    import os
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    if not api_key:
+        return None
+    try:
+        import anthropic
+
+        from services import ciak_commenti
+
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=ciak_commenti.MODELLO, max_tokens=max_tokens, system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        testo = (resp.content[0].text or "").strip()
+        return testo or None
+    except Exception as e:
+        logger.warning("[commenti] AI non disponibile: %s", e)
+        return None
+
+
+async def _target_esiste(tipo: str, tid: str) -> bool:
+    if tipo == "partner":
+        return bool(await db.partners.find_one({"id": tid}, {"_id": 1}))
+    return bool(
+        await db.ciak_leads.find_one({"email": _email_ci(tid)}, {"_id": 1})
+        or await db.diagnostic_sessions.find_one({"user_email": _email_ci(tid)}, {"_id": 1})
+        or await db.proposte.find_one({"prospect_email": _email_ci(tid)}, {"_id": 1})
+    )
+
+
+async def _contesto_commento(tipo: str, tid: str) -> str:
+    """Fatti verificabili sul bersaglio, in testo semplice per l'agente."""
+    from services import ciak_trattativa as tr
+
+    righe: list[str] = []
+    if tipo == "partner":
+        p = await db.partners.find_one({"id": tid}, {"_id": 0, "name": 1, "stato": 1}) or {}
+        righe.append(f"Partner: {p.get('name') or 'sconosciuto'} (stato: {p.get('stato') or 'attivo'}).")
+        for c in await db.ciak_partner_attivita.find({"partner_id": tid, "fatto_at": None}, {"_id": 0}).to_list(20):
+            righe.append(f"Compito aperto: {c.get('testo')}" + (f" (entro il {c['scadenza']})" if c.get("scadenza") else ""))
+        return "\n".join(righe)
+
+    nome = ""
+    sess = await db.diagnostic_sessions.find({"user_email": _email_ci(tid)}, {"_id": 0, "state_history": 1, "user_name": 1}).to_list(20)
+    prop = await db.proposte.find({"prospect_email": _email_ci(tid)}, {"_id": 0}).to_list(20)
+    sol = await db.ciak_solleciti.find({"email": tid}, {"_id": 0, "body": 0}).to_list(50)
+    passo = await db.ciak_prossimi_passi.find_one({"email": tid}, {"_id": 0})
+    nome = (prop[0].get("prospect_nome") if prop else None) or (sess[0].get("user_name") if sess else None) or tid
+    righe.append(f"Persona: {nome} ({tid}).")
+    if passo and passo.get("testo"):
+        righe.append(f"Prossimo passo deciso: {passo['testo']} (entro il {passo.get('scadenza')}).")
+    else:
+        righe.append("Nessun prossimo passo impostato.")
+    for e in tr.costruisci_cronologia(diagnostics=sess, proposte=prop, solleciti=sol, passo=passo)[:15]:
+        righe.append(f"{e['at'][:10]} - {e['titolo']}" + (f": {e['dettaglio']}" if e.get("dettaglio") else ""))
+    return "\n".join(righe)
+
+
+@router.get("/commenti")
+async def elenco_commenti(target_tipo: str = Query(...), target_id: str = Query(..., min_length=1),
+                          admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        _t, tipo, tid = cm.valida_commento("x", target_tipo, target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    righe = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+    righe.sort(key=lambda r: r.get("creato_at") or "")
+    return {"items": righe}
+
+
+@router.post("/commenti")
+async def scrivi_commento(body: CommentoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, tipo, tid = cm.valida_commento(body.testo, body.target_tipo, body.target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await _target_esiste(tipo, tid):
+        raise HTTPException(404, "Non conosco questo contatto.")
+
+    commento = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo, autore=_autore(admin))
+    await db.ciak_commenti.insert_one(dict(commento))
+
+    risposte, non_riuscite = [], []
+    chiamati = commento["menzioni"][: cm.MAX_AGENTI_PER_COMMENTO]
+    if chiamati:
+        contesto = await _contesto_commento(tipo, tid)
+        thread = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+        thread.sort(key=lambda r: r.get("creato_at") or "")
+        thread = [c for c in thread if c["id"] != commento["id"]]
+        memoria = await ciak_memoria.render_active_block()
+        for agente in chiamati:
+            system, user = cm.prompt_agente(agente, contesto, thread, testo, memoria)
+            testo_ai = await _chiedi_llm(system, user)
+            if not testo_ai:
+                non_riuscite.append(cm.AGENTI[agente][0])
+                continue
+            r = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo_ai, autore=cm.AGENTI[agente][0],
+                                  agente=agente, risposta_a=commento["id"])
+            await db.ciak_commenti.insert_one(dict(r))
+            await db.ciak_notifiche.insert_one(cm.nuova_notifica(agente=agente, commento=r))
+            risposte.append(r)
+    saltati = [cm.AGENTI[a][0] for a in commento["menzioni"][cm.MAX_AGENTI_PER_COMMENTO:]]
+    return {"success": True, "commento": commento, "risposte": risposte, "non_riuscite": non_riuscite, "saltati": saltati}
+
+
+@router.get("/notifiche")
+async def elenco_notifiche(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_notifiche.find({}, {"_id": 0}).to_list(500)
+    righe.sort(key=lambda r: r.get("creato_at") or "", reverse=True)
+    return {"items": righe[:30], "non_lette": sum(1 for r in righe if not r.get("letta_at"))}
+
+
+@router.post("/notifiche/letta")
+async def notifica_letta(body: NotificaLetta, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if not body.tutte and not body.id:
+        raise HTTPException(422, "Indica quale notifica o tutte.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    filtro = {"letta_at": None} if body.tutte else {"id": body.id}
+    await db.ciak_notifiche.update_many(filtro, {"$set": {"letta_at": adesso}})
+    return {"success": True}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

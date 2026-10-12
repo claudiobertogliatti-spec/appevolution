@@ -18,6 +18,7 @@ import { useOggiShared } from "../components/OggiShared";
 import { fmtOraRoma } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
+import { NotificheInbox } from "../components/NotificheInbox";
 import { PartnerAvvisi } from "../components/PartnerAvvisi";
 import { SollecitoPannello } from "../components/SollecitoPannello";
 import { PassoPannello, dataIt } from "../components/PassoPannello";
@@ -157,6 +158,8 @@ export function NuovaHome({ user, onAuthExpired }) {
           <p className="mt-2 text-xl text-slate-600" aria-live="polite">{frase}</p>
         </div>
       </header>
+
+      <NotificheInbox onAuthExpired={onAuthExpired} />
 
       {/* 1. Call di oggi, con l'orario */}
       <Sezione id="t-call" titolo="Call di oggi">

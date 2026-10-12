@@ -3,6 +3,7 @@ import { CronologiaLead } from "./CronologiaLead";
 import { apiGet } from "../api";
 
 jest.mock("../api", () => ({ apiGet: jest.fn(), SCOPE_DENIED_DETAIL: "scope" }));
+jest.mock("./CommentiPannello", () => ({ CommentiPannello: ({ tipo, id }) => <div>COMMENTI-{tipo}-{id}</div> }));
 jest.mock("./PassoPannello", () => ({
   PassoPannello: () => <div>PANNELLO</div>,
   dataIt: (d) => d.split("-").reverse().join("/"),
@@ -51,4 +52,10 @@ test("account senza accesso: la sezione non compare", async () => {
   apiGet.mockRejectedValue(new Error("scope"));
   const { container } = mostra();
   await waitFor(() => expect(container.textContent).toBe(""));
+});
+
+test("sotto la cronologia ci sono i commenti del lead", async () => {
+  apiGet.mockResolvedValue({ eventi: [], passo: null });
+  mostra();
+  expect(await screen.findByText("COMMENTI-lead-a@x.it")).toBeTruthy();
 });

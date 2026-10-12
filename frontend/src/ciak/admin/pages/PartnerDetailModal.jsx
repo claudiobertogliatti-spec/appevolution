@@ -26,6 +26,7 @@ import { ContractParamsModal } from "./ContractParamsModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
 import { CompitiPartner } from "../components/CompitiPartner";
+import { CommentiPannello } from "../components/CommentiPannello";
 // Stesso registro domande usato dal wizard lato partner: unica fonte, così i due
 // elenchi non possono divergere.
 import { STORIA_QUESTIONS } from "../../partner/operativo/questionari/storiaQuestions";
@@ -1655,6 +1656,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {activeTab === "percorso" && (
               <div className="space-y-5" data-testid="tab-content-percorso">
                 <CompitiPartner partnerId={partner.id} />
+                <CommentiPannello tipo="partner" id={partner.id} />
                 <PercorsoEvoPanel partner={partner} />
               </div>
             )}
