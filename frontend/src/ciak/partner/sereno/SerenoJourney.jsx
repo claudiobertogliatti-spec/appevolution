@@ -12,7 +12,10 @@ export default function SerenoJourney({ state, loading, error, onRetry, onMateri
       <div className="sereno-journey-progress"><strong>{model.completed} di {model.total} passaggi completati</strong>{model.skipped > 0 && <small>{model.skipped} non richiesti per il tuo progetto</small>}<p>Apri una fase per consultare i suoi passaggi.</p></div>
       {model.phases.map(phase => <details key={`${phase.id}-${state?.current_step?.step_id}`} open={phase.steps.some(s => s.step_id === state?.current_step?.step_id)}>
         <summary>{phase.label}<small>{phase.description} · {phase.steps.filter(s => s.status === 'done').length}/{phase.steps.length} completati</small></summary>
-        <ol className="sereno-journey-list">{phase.steps.map(step => {
+        {phase.groups.map(group => <div key={group.id} className="sereno-journey-group">
+          {group.label && <h3 className="sereno-journey-group-title">{group.label}</h3>}
+          {group.description && <p className="sereno-journey-group-desc">{group.description}</p>}
+        <ol className="sereno-journey-list">{group.steps.map(step => {
           const status = stepPresentation(step, state?.current_step?.step_id);
           return <li className="sereno-row" key={step.step_id}><div><span className={`sereno-badge sereno-badge-${status.kind}`}>{status.label}</span><h2>{step.label || 'Passaggio del progetto'}</h2>{STEP_COPY[step.step_id]?.desc && ['action', 'started', 'pending'].includes(status.kind) && <small>{STEP_COPY[step.step_id].desc}</small>}</div><div>
             {status.kind === 'action' && <Link className="sereno-primary" to={stepHref ? stepHref(step) : `/partner?step=${encodeURIComponent(step.step_id)}`}>Apri il passaggio →</Link>}
@@ -22,6 +25,7 @@ export default function SerenoJourney({ state, loading, error, onRetry, onMateri
             {status.kind === 'waiting' && <small>Puoi chiedere un aggiornamento in Assistenza.</small>}
           </div></li>;
         })}</ol>
+        </div>)}
       </details>)}
     </>}
   </>;

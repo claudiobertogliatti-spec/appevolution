@@ -157,3 +157,4 @@
 .sereno-how-duo span{font-size:13px;font-weight:600;color:#A67C00}
 .sereno-how-duo p{margin:6px 0 0;font-size:14px}
 @media(max-width:700px){.sereno-tappa dl{grid-template-columns:1fr}.sereno-how-duo{grid-template-columns:1fr}.sereno-extra-side{align-items:flex-start}}
+.sereno-journey-group-title{font-size:16px;font-weight:600;margin:18px 0 2px}.sereno-journey-group-desc{font-size:14px;color:#475569;margin:0 0 4px}
