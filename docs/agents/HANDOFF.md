@@ -1,3 +1,26 @@
+### 2026-10-12 (6) · Claude Code · claude/modest-euler-xde2pw — Linda Pavia allineata, scheda a schede, Vista cliente
+
+**RICHIESTA:** finire l'account di Linda (risposte mancanti), poi «clienti e partner devono avere la stessa videata».
+
+**VERIFICATO (con prova)**
+- ✅ Materiale per le risposte di Linda: Gmail (solo la mail del Blueprint del 17/9), Drive (cartella «LINDA PAVIA»: solo materiali Video Up), Blueprint PDF (generico, 8 pagine). `GET /api/admin/ciak/lead?email=…`: `latest_diagnostic` e' un guscio `manual_delivery` senza risposte, `blueprint.stato = "mancante"`. Nessuna trascrizione di call e' salvata nel backend. Quindi nessuna risposta in piu' e' ricavabile: non se ne sono inventate.
+- ✅ Scritto da Claudio in console (200): 7 risposte confermate via `PUT /start/{id}/risposte-team` (`concorrenti_principali, contrarian_view, costo_del_no, desideri_avatar, livello_consapevolezza, paure_avatar, spazio_specialista`). `ancora_da_scrivere`: `metodo_step, prova_sociale_concreta, origin_story, obiezione_principale, limite_onesto` (strada scelta: le scrive Linda). `paure_avatar` e `costo_del_no` erano deduzioni, non parole sue, confermate da Claudio.
+- ✅ Linda: `access_level=cliente_start`, `start_purchased_at=2026-10-01`, `start_credit_amount=39000`. Claudio le ha mandato il messaggio e conferma che funziona.
+- ✅ Link d'accesso: valido 30 giorni e riutilizzabile (`create_magic_login_token`); il «48 ore» nella mail e' solo testo.
+
+**COMMIT (su main)**
+- `3613929` dashboard cliente: `start.attivo` (stessa regola dell'admin `has_start_entitlement`) + frontend `haStartAttivo`: un account Start attivato a mano non resta sull'area vecchia. NON era la causa per Linda (aveva gia' `cliente_start`): resta come difesa.
+- `e0913be` `SchedaStart` con schede come `PartnerDetailModal`: Panoramica · Percorso · Materiali · Documenti · Impostazioni (`?scheda=<id>`). Niente scheda Pagamenti (nessun dato verificato).
+- `9a250d7` pulsante «Vista cliente →» (come «Vista →» dei partner): apre `/cliente/accesso?token=…` in una scheda nuova, via `POST /clients/{id}/link-accesso` (crea un link nuovo e un evento nello storico; nessuna email).
+
+**TEST:** frontend `src/ciak/admin` 392/392; `src/ciak` 770/771 (l'unico rosso e' `PartnerFilesPage.loading`, preesistente); backend `test_ciak_clients_router.py` 55 passati (servono `MONGO_URL`, `DB_NAME`, `JWT_SECRET_KEY`, `APP_ENV=test`).
+
+**⛔ APERTO**
+- Il sito di Linda (`showcase`) e' stato generato con 8 risposte: NON approvarlo prima che abbia risposto alle 5 domande; decidere se rigenerare le bozze dopo.
+- Nessuna mail automatica avvisa il cliente della riapertura delle domande (l'ha avvisata Claudio a mano).
+- Generazione AI e invio email reali con le 20 risposte complete: mai provati.
+- «Vista cliente» lascia una sessione cliente nel browser dell'admin.
+
 ### 2026-10-12 (5) · Claude Code · claude/modest-euler-xde2pw — Scheda admin del cliente Start aggiornata al nuovo regime
 
 **RICHIESTA:** «aggiorna la pagina di Linda Pavia… l'account con tutte le nuove impostazioni» = la scheda admin `/admin/start/<id>` (`SchedaStart.jsx`), ferma al vecchio regime.
