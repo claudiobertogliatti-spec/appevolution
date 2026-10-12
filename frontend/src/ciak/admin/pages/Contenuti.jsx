@@ -13,6 +13,7 @@ import { messaggioErrore } from "../components/SollecitoPannello";
 import { AndreaChat } from "../components/AndreaChat";
 import { ReelStudio } from "../components/ReelStudio";
 import { CompetitorAnalisi } from "../components/CompetitorAnalisi";
+import { PianoSocial } from "../components/PianoSocial";
 
 const PAGINE = [
   { to: "/admin/acquisizione-editoriale", titolo: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare." },
@@ -40,6 +41,11 @@ export function Contenuti({ onAuthExpired }) {
   const [risultato, setRisultato] = useState(null); // { tipo, testo } | { tipo, seo }
   const [errore, setErrore] = useState(null);
   const [copiato, setCopiato] = useState(false);
+
+  const usaBrief = (b) => {
+    setBriefReel(b);
+    document.getElementById("t-reel")?.scrollIntoView?.({ behavior: "smooth" });
+  };
 
   const genera = async (ev) => {
     ev.preventDefault();
@@ -83,7 +89,9 @@ export function Contenuti({ onAuthExpired }) {
 
       <div className="mb-10"><AndreaChat onAuthExpired={onAuthExpired} /></div>
 
-      <CompetitorAnalisi onAuthExpired={onAuthExpired} onUsaBrief={(b) => { setBriefReel(b); document.getElementById("t-reel")?.scrollIntoView?.({ behavior: "smooth" }); }} />
+      <PianoSocial onAuthExpired={onAuthExpired} onUsaBrief={usaBrief} />
+
+      <CompetitorAnalisi onAuthExpired={onAuthExpired} onUsaBrief={usaBrief} />
 
       <ReelStudio briefIniziale={briefReel} onAuthExpired={onAuthExpired} />
 

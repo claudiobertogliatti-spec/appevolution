@@ -3735,6 +3735,104 @@ async def competitor_storico(admin=Depends(require_ciak_admin)):
     return {"items": righe}
 
 
+# ─── Piano social del mese (Andrea) con link tracciati ──────────────────────
+
+class PianoBozzaIn(BaseModel):
+    mese: str = Field(..., max_length=7)
+    obiettivo: str = Field(..., max_length=1000)
+    canali: list[str] = Field(default_factory=list)
+
+
+class PianoSalvaIn(BaseModel):
+    mese: str = Field(..., max_length=7)
+    voci: list[dict] = Field(..., max_length=40)
+    destinazione: str = Field("", max_length=500)
+    approvato: bool = False
+
+
+def _base_sito() -> str:
+    import os
+    return (os.environ.get("CIAK_BASE_URL") or os.environ.get("FRONTEND_URL_PROD") or "https://www.ciak.io").rstrip("/")
+
+
+@router.post("/piano-social/bozza")
+async def piano_social_bozza(body: PianoBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea propone il piano. Non salva e non pubblica nulla."""
+    from services import ciak_piano_social as ps, ciak_memoria
+
+    try:
+        mese, obiettivo, canali = ps.valida_richiesta(body.mese, body.obiettivo, body.canali)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    tetto = int((await _reel_config()).get("tetto_mensile") or 8)
+    system, user = ps.prompt(mese, obiettivo, canali, tetto, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 3000)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    piano = ps.parse_piano(raw, mese, canali, tetto)
+    if piano is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+    return {"mese": mese, **piano, "tetto_reel": tetto}
+
+
+@router.post("/piano-social")
+async def piano_social_salva(body: PianoSalvaIn, admin=Depends(require_ciak_admin)):
+    """Approva il piano: ogni voce riceve un link tracciato. Un piano per mese."""
+    import json as _json
+    import uuid as _uuid
+    from services import ciak_piano_social as ps
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione per salvare il piano.")
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    tetto = int((await _reel_config()).get("tetto_mensile") or 8)
+    try:
+        ps.valida_richiesta(body.mese, "x" * 10, ["instagram"])
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    piano = ps.parse_piano(_json.dumps(body.voci), body.mese, list(ps.CANALI), tetto)
+    if piano is None or piano["scartate"]:
+        raise HTTPException(422, "Una o più voci non sono valide (data fuori mese, canale/formato non ammessi, troppi reel o brief troppo corto).")
+    if await db.ciak_piano_social.find_one({"mese": body.mese}, {"_id": 0, "mese": 1}):
+        raise HTTPException(409, "Esiste già un piano approvato per questo mese.")
+    destinazione = (body.destinazione or "").strip() or _base_sito()
+    base = _base_sito()
+    now = datetime.now(timezone.utc).isoformat()
+    voci = []
+    for v in piano["voci"]:
+        vid, codice = str(_uuid.uuid4())[:8], ps.codice_breve()
+        try:
+            target = ps.url_tracciato(destinazione, canale=v["canale"], mese=body.mese, voce_id=vid)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        await db.ciak_link_tracciati.insert_one({"codice": codice, "target": target, "mese": body.mese, "voce_id": vid, "creato_at": now})
+        voci.append({**v, "id": vid, "codice": codice, "link": f"{base}/api/ciak/go/{codice}"})
+    doc = {"mese": body.mese, "voci": voci, "destinazione": destinazione, "approvato_da": _autore(admin), "approvato_at": now}
+    await db.ciak_piano_social.insert_one(dict(doc))
+    return {"ok": True, **doc}
+
+
+@router.get("/piano-social")
+async def piano_social_leggi(mese: str = Query(..., max_length=7), admin=Depends(require_ciak_admin)):
+    """Il piano approvato del mese con i clic contati per ogni voce."""
+    from services import ciak_piano_social as ps
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    piano = await db.ciak_piano_social.find_one({"mese": mese}, {"_id": 0})
+    if not piano:
+        return {"piano": None}
+    codici = [v["codice"] for v in piano["voci"]]
+    righe = await db.ciak_link_clic.find({"codice": {"$in": codici}}, {"_id": 0}).to_list(100000)
+    conta = ps.riepilogo_clic(righe)
+    for v in piano["voci"]:
+        v["clic"] = conta.get(v["codice"], {}).get("clic", 0)
+        v["robot"] = conta.get(v["codice"], {}).get("robot", 0)
+    piano["clic_totali"] = sum(v["clic"] for v in piano["voci"])
+    return {"piano": piano}
+
+
 # ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
 
 class ReelAvatarIn(BaseModel):

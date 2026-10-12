@@ -17492,6 +17492,11 @@ from routers.ciak_clients import router as ciak_clients_router, set_db as set_ci
 set_ciak_clients_db(db)
 app.include_router(ciak_clients_router)
 
+# Redirect pubblico dei link tracciati del piano social
+from routers.ciak_go import router as ciak_go_router, set_db as set_ciak_go_db
+set_ciak_go_db(db)
+app.include_router(ciak_go_router)
+
 # Ciak Social Router (publisher server-side della coda ciak_social_queue → Instagram)
 from routers.ciak_social import router as ciak_social_router, set_db as set_ciak_social_db
 set_ciak_social_db(db)
