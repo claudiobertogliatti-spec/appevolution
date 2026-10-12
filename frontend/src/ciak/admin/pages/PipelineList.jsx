@@ -39,7 +39,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-export function PipelineList({ endpoint, title, subtitle, agente, onAuthExpired, mirrorNote, deletable, editable, lockedStages }) {
+export function PipelineList({ endpoint, title, subtitle, agente, filtri, onAuthExpired, mirrorNote, deletable, editable, lockedStages }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -109,8 +109,8 @@ export function PipelineList({ endpoint, title, subtitle, agente, onAuthExpired,
     }
   };
 
-  if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Caricamento…</div>;
+  if (error) return <div className="px-5 py-8 sm:px-10 lg:px-16 text-slate-600">{filtri}Errore: {error}</div>;
+  if (!data) return <div className="px-5 py-8 sm:px-10 lg:px-16 text-slate-400">{filtri}Caricamento…</div>;
 
   // Appiattisce le colonne in righe, preservando l'ordine del funnel.
   const rows = [];
@@ -155,6 +155,7 @@ export function PipelineList({ endpoint, title, subtitle, agente, onAuthExpired,
                     </select>
         ) : null}
       />
+      {filtri}
 
       {mirrorNote && (
         <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-500">
