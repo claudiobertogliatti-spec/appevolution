@@ -69,3 +69,24 @@ test("Impostazioni: genera un link nuovo solo su richiesta, con l'email del clie
   await waitFor(() => expect(screen.getByTestId("link-generato").textContent).toContain("token=abc"));
   expect(apiPost).toHaveBeenCalledWith("/clients/c1/link-accesso", { email: "linda@x.it" });
 });
+
+test("Vista cliente: apre l'area del cliente in una scheda nuova con un link d'accesso", async () => {
+  const finestra = { location: { href: "" }, close: jest.fn() };
+  const apri = jest.spyOn(window, "open").mockReturnValue(finestra);
+  monta();
+  fireEvent.click(await screen.findByRole("button", { name: "Vista cliente →" }));
+  await waitFor(() => expect(finestra.location.href).toContain("/cliente/accesso?token=abc"));
+  expect(apiPost).toHaveBeenCalledWith("/clients/c1/link-accesso", { email: "linda@x.it" });
+  apri.mockRestore();
+});
+
+test("Vista cliente: se la richiesta fallisce chiude la scheda vuota e lo dice", async () => {
+  const finestra = { location: { href: "" }, close: jest.fn() };
+  const apri = jest.spyOn(window, "open").mockReturnValue(finestra);
+  apiPost.mockRejectedValue(new Error("L'email non combacia col cliente"));
+  monta();
+  fireEvent.click(await screen.findByRole("button", { name: "Vista cliente →" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("L'email non combacia");
+  expect(finestra.close).toHaveBeenCalled();
+  apri.mockRestore();
+});

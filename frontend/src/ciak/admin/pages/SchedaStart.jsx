@@ -167,6 +167,26 @@ export function SchedaStart({ onAuthExpired }) {
     }
   };
 
+  // "Vista cliente": come "Vista" dei partner, ma per Start. Apre in una scheda nuova l'area di
+  // Linda con la sua barra a sinistra. Usa un link d'accesso nuovo (tracciato nello storico
+  // del cliente come "link_accesso_generato_da_admin"): non invia nessuna email.
+  const apriVistaCliente = async () => {
+    const finestra = window.open("", "_blank"); // subito, nel clic: dopo un await il browser la blocca
+    setInCorso("vista");
+    setEsito(null);
+    try {
+      const r = await apiPost(`/clients/${clientId}/link-accesso`, { email: riga.email });
+      if (finestra) finestra.location.href = r.link;
+      else setEsito({ ok: false, testo: "Il browser ha bloccato la nuova scheda: consenti i popup per ciak.io e riprova." });
+    } catch (e) {
+      finestra?.close();
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else setEsito({ ok: false, testo: e.message });
+    } finally {
+      setInCorso(null);
+    }
+  };
+
   const carica = useCallback(() => {
     setErrore(null);
     Promise.all([apiGet("/start/pipeline"), apiGet(`/start/${clientId}/bozze`)])
@@ -247,7 +267,18 @@ export function SchedaStart({ onAuthExpired }) {
         <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Clienti
       </Link>
 
-      <h1 className="text-2xl font-semibold text-slate-900">{riga.nome || riga.email}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900">{riga.nome || riga.email}</h1>
+        <button
+          type="button"
+          disabled={inCorso === "vista"}
+          onClick={apriVistaCliente}
+          title="Entra nell'area del cliente, come la vede lui"
+          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-yellow-400 hover:bg-slate-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition"
+        >
+          {inCorso === "vista" ? "Attendi…" : "Vista cliente →"}
+        </button>
+      </div>
       <p className="mt-1 text-sm text-slate-500">
         {riga.email} · {STAGE_TESTO[riga.stage]} · {riga.approvati} di {riga.totale} materiali approvati
       </p>
