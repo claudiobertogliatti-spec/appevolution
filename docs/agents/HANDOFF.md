@@ -1,3 +1,20 @@
+### 2026-10-12 (4) · Claude Code · claude/modest-euler-xde2pw — Risposte mancanti: il team propone/inserisce, il cliente completa
+
+**CONTESTO:** dopo il passaggio alle 20 domande EVO, Linda Pavia (letta dalla console admin di Claudio, 12/10) aveva solo le 8 vecchie risposte. Online NON esiste nulla su di lei né su «Nuovi Inizi» (due ricerche): nessun dato inventato. Claudio ha confermato le risposte dedotte (A: 5 riformulazioni delle sue parole; B: 2 ipotesi, approvate da lui). Le 5 che solo lei puo' scrivere (`metodo_step`, `prova_sociale_concreta`, `origin_story`, `obiezione_principale`, `limite_onesto`) restano a lei.
+
+**DICHIARATO (codice)**
+- `PUT /api/admin/ciak/start/{id}/risposte-proposte` (`ProponiRisposteStartRequest`): proposte in `data.proposte`, MAI in `data.answers`; riapre il questionario (`data.integrazione_richiesta_at`).
+- `PUT /api/admin/ciak/start/{id}/risposte-team` (`RisposteTeamStartRequest`): risposte GIA' CONFERMATE da Claudio → `data.answers` + tracciate in `data.risposte_dal_team.<chiave> = {da, at}`; mai sopra una risposta vera (≥ 8 caratteri), solo le 20 chiavi Start; se mancano ancora domande lascia/imposta `integrazione_richiesta_at`, se non manca nulla lo azzera. Non tocca stato/approvazioni e NON rigenera bozze.
+- `GET /api/ciak/client/start/risposte` ora ritorna anche `proposte` (solo per domande senza risposta) e `integrazione`. `PUT .../risposte` con `completato`: se `integrazione_richiesta_at` e' valorizzato servono TUTTE e 20 (altrimenti restano le 8 per chi le aveva inviate); a completamento lo azzera (valore `None`).
+- Frontend: `StartDomandePage` non mostra «Grazie» con `integrazione`, riparte dalla prima domanda mancante, avviso «abbiamo gia' messo a posto noi alcune risposte», proposta del team con pulsante «Va bene così, la uso» (la proposta non diventa risposta da sola). `startOggiModel`: con `integrazione` il passo e' «Rispondi alle ultime domande» (conta quante restano), il percorso mostra «da fare».
+
+**VERIFICATO:** backend `tests/test_start_proposte.py` + `test_ciak_clients_router.py` + `test_start_autogenerazione.py` → 77+ passati, 0 fallimenti (APP_ENV=test JWT_SECRET_KEY=ci-test-secret MONGO_URL=mongodb://localhost:27017). Frontend `src/ciak` → 120 suite, 762 test; unico fallito `PartnerFilesPage.loading` (preesistente).
+
+**⛔ APERTO**
+- Lo snippet per scrivere le 7 risposte di Linda va lanciato da Claudio dalla console admin (io non ho il token di produzione): fino ad allora i suoi dati NON sono stati modificati.
+- Le bozze gia' approvate di Linda (posizionamento, profili) non vengono rigenerate dalle nuove risposte: decisione da prendere.
+- Sito web e calendario di Linda sono ancora `pending_review` (esistevano prima dell'approvazione automatica, che non li tocca).
+
 ### 2026-10-12 (3) · Claude Code · claude/modest-euler-xde2pw — Approvazione automatica dei materiali Start
 
 **DECISIONE DI CLAUDIO (11/10):** a mano restano SOLO sito vetrina e dominio (un solo passaggio: `live_url` https). Gli altri materiali vanno al cliente senza approvazione, MA (1) una bozza con testo di ripiego resta ferma, (2) UNA sola email al cliente. Supera la regola del 13/8/2026 «Claudio approva ogni deliverable».

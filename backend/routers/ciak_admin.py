@@ -5002,6 +5002,55 @@ async def proponi_risposte_start(
     return {"success": True, "proposte": sorted(valide)}
 
 
+class RisposteTeamStartRequest(BaseModel):
+    risposte: dict[str, str]
+
+
+@router.put("/start/{client_id}/risposte-team")
+async def inserisci_risposte_team_start(
+    client_id: str,
+    body: RisposteTeamStartRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """Il team inserisce risposte GIA' CONFERMATE da Claudio per domande senza risposta.
+
+    Diventano risposte del cliente (`data.answers`), segnate «inserite dal team» in
+    `data.risposte_dal_team` (chi e quando). Mai sopra una risposta vera del cliente, mai
+    domande estranee a Start. Se dopo l'inserimento mancano ancora domande (le 20), il
+    questionario resta/si riapre al cliente solo per quelle; se non manca nulla si chiude.
+    Non tocca stato ne' approvazioni, e non rigenera bozze.
+    """
+    from services.ciak_start_domande import DOMANDE_START_IDS, MAX_CARATTERI, MIN_CARATTERI, mancanti
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await _cliente_start_o_errore(client_id)
+    step = await _start_step(client_id, "04-posizionamento")
+    if not step:
+        raise HTTPException(409, "Il percorso del cliente non e' ancora pronto")
+    answers = dict((step.get("data") or {}).get("answers") or {})
+    valide = {}
+    for chiave, testo in body.risposte.items():
+        pulito = " ".join(str(testo or "").split())[:MAX_CARATTERI]
+        if chiave in DOMANDE_START_IDS and len(pulito) >= MIN_CARATTERI and len(str(answers.get(chiave) or "").strip()) < MIN_CARATTERI:
+            valide[chiave] = pulito
+    if not valide:
+        raise HTTPException(422, "Nessuna risposta valida: servono domande Start ancora senza risposta")
+    now = datetime.now(timezone.utc).isoformat()
+    attore = getattr(admin, "email", None) or "admin"
+    imposta = {f"data.answers.{k}": v for k, v in valide.items()}
+    imposta.update({f"data.risposte_dal_team.{k}": {"da": attore, "at": now} for k in valide})
+    ancora = mancanti({**answers, **valide})
+    # le proposte gia' fatte per queste domande non servono piu'
+    imposta.update({f"data.proposte.{k}": None for k in valide})
+    imposta["data.integrazione_richiesta_at"] = now if ancora else None
+    imposta["updated_at"] = now
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": "04-posizionamento"}, {"$set": imposta}
+    )
+    return {"success": True, "inserite": sorted(valide), "ancora_da_scrivere": ancora}
+
+
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,

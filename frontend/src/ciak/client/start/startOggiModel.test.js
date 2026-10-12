@@ -64,3 +64,13 @@ test("il percorso elenca 8 voci con lo stato in parole semplici", () => {
   const presto = startPercorsoModel({ risposte: R_VUOTE, marchio: M_VUOTO, deliverables: [] });
   expect(presto.find((x) => x.id === "social_profiles")).toMatchObject({ stato: "in_attesa" });
 });
+
+test("se il team ha chiesto di completare altre domande, le risposte non sono 'inviate' e il passo sono le ultime", () => {
+  const meta = { answers: Object.fromEntries(START_DOMANDE.slice(0, 15).map((d) => [d.id, `Risposta di prova per ${d.id}`])), completato_at: "2026-10-02", integrazione: true };
+  const m = startOggiModel({ risposte: meta, marchio: M_OK, deliverables: [], consegne: CONSEGNE });
+  expect(m).toMatchObject({ kind: "action", to: "/cliente/start/domande", title: "Rispondi alle ultime domande" });
+  expect(m.description).toMatch(/Te ne restano 5/);
+  const v = startPercorsoModel({ risposte: meta, marchio: M_OK, deliverables: [] });
+  expect(v.find((x) => x.id === "domande")).toMatchObject({ stato: "da_fare", nota: "15 su 20" });
+  expect(v.find((x) => x.id === "positioning")).toMatchObject({ stato: "in_attesa" });
+});

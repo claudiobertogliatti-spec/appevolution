@@ -17,6 +17,9 @@ export function StartDomandePage({ dashboard }) {
   const [salvataggio, setSalvataggio] = useState("");
   const [errore, setErrore] = useState("");
   const [invio, setInvio] = useState(false);
+  // Proposte del team per le domande senza risposta e richiesta di completare le altre.
+  const [proposte, setProposte] = useState({});
+  const [integrazione, setIntegrazione] = useState(false);
   const campoRef = useRef(null);
   // Salvataggio mentre scrive: dopo un secondo di pausa, e subito se la persona
   // cambia app o chiude la scheda. Cosi' non si perde l'ultima frase.
@@ -30,7 +33,10 @@ export function StartDomandePage({ dashboard }) {
         if (annullato) return;
         const date = dati.answers || {};
         setRisposte(date);
-        if (dati.completato_at) {
+        setProposte(dati.proposte || {});
+        setIntegrazione(Boolean(dati.integrazione));
+        // Se il team ha chiesto di completare anche le altre domande, non e' "finito".
+        if (dati.completato_at && !dati.integrazione) {
           setInviate(true);
         } else {
           // Si riparte dalla prima domanda senza risposta utile.
@@ -186,6 +192,12 @@ export function StartDomandePage({ dashboard }) {
         <div className="h-full bg-yellow-400" style={{ width: `${((indice + 1) / START_DOMANDE.length) * 100}%` }} />
       </div>
 
+      {integrazione && (
+        <p className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm leading-relaxed text-slate-700">
+          Abbiamo già messo a posto noi alcune risposte, partendo da quello che ci hai raccontato. Ne restano poche: rispondi
+          solo a queste, con calma.
+        </p>
+      )}
       <h1 className="mt-5 text-xl font-semibold leading-snug text-slate-900 sm:text-2xl">{domanda.domanda}</h1>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{domanda.hint}</p>
 
@@ -212,6 +224,25 @@ export function StartDomandePage({ dashboard }) {
         placeholder="Scrivi qui con parole tue"
         className="mt-4 w-full rounded-xl border border-slate-300 p-4 text-base leading-relaxed text-slate-900 outline-none focus:border-slate-900 focus-visible:ring-2 focus-visible:ring-yellow-400"
       />
+
+      {proposte[domanda.id] && testo.trim().length < MIN_CARATTERI && (
+        <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-slate-700">
+          <p><span className="font-semibold text-slate-900">Una proposta del team, dalle tue parole: </span>{proposte[domanda.id]}</p>
+          <button
+            type="button"
+            onClick={() => {
+              const valore = proposte[domanda.id];
+              setRisposte((r) => ({ ...r, [domanda.id]: valore }));
+              attesa.current = { id: domanda.id, valore };
+              if (timer.current) clearTimeout(timer.current);
+              timer.current = setTimeout(() => { timer.current = null; if (attesa.current) salva(attesa.current.id, attesa.current.valore); }, 1000);
+            }}
+            className="mt-2 min-h-[44px] rounded-xl border border-slate-900 bg-white px-4 font-semibold text-slate-900 hover:bg-slate-50"
+          >
+            Va bene così, la uso
+          </button>
+        </div>
+      )}
 
       <div className="mt-3 rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
         <span className="font-semibold text-slate-800">Un esempio: </span>

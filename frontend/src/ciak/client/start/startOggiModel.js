@@ -52,8 +52,19 @@ export function startOggiModel({ risposte, marchio, deliverables, consegne }) {
   const totDomande = START_DOMANDE.length;
   const base = { progress, tappa };
 
-  if (!risposte.completato_at) {
+  // "Inviate" vale solo se il team non ha chiesto di completare altre domande.
+  const risposteChiuse = Boolean(risposte.completato_at) && !risposte.integrazione;
+  if (!risposteChiuse) {
     const iniziato = fatte > 0;
+    const restano = totDomande - fatte;
+    if (risposte.integrazione) {
+      return {
+        ...base, kind: "action", badge: "Il tuo prossimo passo", to: "/cliente/start/domande",
+        title: "Rispondi alle ultime domande",
+        description: `Abbiamo già messo a posto noi alcune risposte, partendo da quello che ci hai raccontato. Te ne restano ${restano}: si salva da solo e puoi riprendere quando vuoi.`,
+        cta: "Rispondi alle ultime domande",
+      };
+    }
     return {
       ...base, kind: "action", badge: "Il tuo prossimo passo", to: "/cliente/start/domande",
       title: iniziato ? "Continua a rispondere alle domande su di te" : "Rispondi alle domande su di te",
@@ -102,8 +113,8 @@ export function startPercorsoModel({ risposte, marchio, deliverables }) {
   const inputs = [
     {
       id: "domande", titolo: "Rispondi alle domande su di te", tocca: "te",
-      stato: risposte.completato_at ? "fatto" : "da_fare",
-      nota: risposte.completato_at ? "Inviate" : fatte ? `${fatte} su ${START_DOMANDE.length}` : "Da iniziare",
+      stato: risposte.completato_at && !risposte.integrazione ? "fatto" : "da_fare",
+      nota: risposte.completato_at && !risposte.integrazione ? "Inviate" : fatte ? `${fatte} su ${START_DOMANDE.length}` : "Da iniziare",
       to: "/cliente/start/domande",
     },
     {
@@ -113,7 +124,7 @@ export function startPercorsoModel({ risposte, marchio, deliverables }) {
       to: "/cliente/start/marchio",
     },
   ];
-  const inviato = Boolean(risposte.completato_at && marchio.completato_at);
+  const inviato = Boolean(risposte.completato_at && !risposte.integrazione && marchio.completato_at);
   const materiali = MATERIALI.map((m) => ({
     id: m.type, titolo: m.titolo, tocca: "noi", tappa: m.tappa,
     stato: ok.has(m.type) ? "fatto" : inviato ? "in_preparazione" : "in_attesa",

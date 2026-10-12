@@ -168,3 +168,21 @@ test("sono le 20 domande del percorso EVO, raggruppate per blocco", async () => 
   render(<StartDomandePage dashboard={DASH} />);
   expect(await screen.findByText(/Il cliente ideale · Domanda 1 di 20/)).toBeTruthy();
 });
+
+test("con integrazione richiesta dal team non mostra 'Grazie' ma riparte dalle domande mancanti, con la proposta da confermare", async () => {
+  const quindici = Object.fromEntries(START_DOMANDE.slice(0, 14).map((d) => [d.id, `Risposta di prova per ${d.id}`]));
+  const quindicesima = START_DOMANDE[14];
+  clientGet.mockResolvedValue({
+    answers: quindici, completato_at: "2026-10-02T10:00:00+00:00", integrazione: true,
+    proposte: { [quindicesima.id]: "Proposta del team per questa domanda" },
+  });
+  render(<StartDomandePage dashboard={DASH} />);
+  expect(await screen.findByText(quindicesima.domanda)).toBeTruthy();
+  expect(screen.queryByTestId("domande-inviate")).toBeNull();
+  expect(screen.getByText(/Abbiamo già messo a posto noi alcune risposte/)).toBeTruthy();
+  expect(screen.getByText(/Proposta del team per questa domanda/)).toBeTruthy();
+  // la proposta NON diventa risposta da sola: serve un clic
+  expect(screen.getByRole("textbox").value).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Va bene così, la uso" }));
+  expect(screen.getByRole("textbox").value).toBe("Proposta del team per questa domanda");
+});

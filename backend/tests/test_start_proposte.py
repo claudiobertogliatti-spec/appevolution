@@ -102,3 +102,51 @@ async def test_cliente_non_start_409(monkeypatch):
     with pytest.raises(HTTPException) as e:
         await ciak_admin.proponi_risposte_start("c1", _body(paure_avatar="Paura di non essere all'altezza"), admin=ADMIN)
     assert e.value.status_code == 409
+
+
+# ─── Risposte inserite dal team (gia' confermate da Claudio) ───────────────
+
+@pytest.mark.asyncio
+async def test_il_team_inserisce_le_risposte_confermate_e_restano_da_scrivere_le_altre(monkeypatch):
+    db = _Db(CLIENT, [STEP])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    esito = await ciak_admin.inserisci_risposte_team_start(
+        "c1",
+        ciak_admin.RisposteTeamStartRequest(risposte={
+            "livello_consapevolezza": "Sanno di voler tornare a lavorare ma non sanno come fare",
+            "desideri_avatar": "Capire quale strada professionale prendere",
+            "nicchia": "Sovrascrittura vietata di una risposta vera",
+            "inventata": "x" * 30,
+        }),
+        admin=ADMIN,
+    )
+    assert esito["inserite"] == ["desideri_avatar", "livello_consapevolezza"]
+    assert "origin_story" in esito["ancora_da_scrivere"] and "desideri_avatar" not in esito["ancora_da_scrivere"]
+    dati = db.partner_journey_steps.docs[0]["data"]
+    assert dati["answers"]["desideri_avatar"].startswith("Capire quale strada")
+    assert dati["answers"]["nicchia"] == RISPOSTE_8["nicchia"]  # mai sovrascritta
+    assert dati["risposte_dal_team"]["desideri_avatar"]["da"] == ADMIN.email  # tracciato
+    assert dati["integrazione_richiesta_at"]  # restano domande: il cliente le vede
+    assert "answers_completed_at" in dati and db.partner_journey_steps.docs[0]["status"] == "in_progress"
+
+
+@pytest.mark.asyncio
+async def test_se_con_le_risposte_del_team_non_manca_piu_nulla_il_questionario_si_chiude(monkeypatch):
+    from services.ciak_start_domande import DOMANDE_START_IDS
+
+    db = _Db(CLIENT, [STEP])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    resto = {k: f"Risposta confermata per {k}" for k in DOMANDE_START_IDS if k not in RISPOSTE_8}
+    esito = await ciak_admin.inserisci_risposte_team_start("c1", ciak_admin.RisposteTeamStartRequest(risposte=resto), admin=ADMIN)
+    assert esito["ancora_da_scrivere"] == []
+    assert db.partner_journey_steps.docs[0]["data"]["integrazione_richiesta_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_risposte_troppo_corte_o_senza_domande_valide_422(monkeypatch):
+    db = _Db(CLIENT, [STEP])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    with pytest.raises(HTTPException) as e:
+        await ciak_admin.inserisci_risposte_team_start("c1", ciak_admin.RisposteTeamStartRequest(risposte={"origin_story": "no", "inventata": "x" * 20}), admin=ADMIN)
+    assert e.value.status_code == 422
+    assert "risposte_dal_team" not in db.partner_journey_steps.docs[0]["data"]
