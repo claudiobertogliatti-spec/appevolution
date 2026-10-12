@@ -99,16 +99,16 @@ describe("trovaSezione", () => {
   });
 });
 
-test("una pagina propria (Clienti Start) non apre la barra del reparto, ma resta nelle sorelle", () => {
+test("una pagina propria (Clienti Start) non apre la barra del reparto, e non si ripete nella barra delle sorelle", () => {
   const nav = [{
     id: "delivery", label: "Delivery", landing: true,
     pages: [
       { to: "/admin/metriche", label: "KPI Partner" },
-      { to: "/admin/start", label: "Clienti Start", propria: true },
+      { to: "/admin/start", label: "Clienti Start", propria: true, fuoriBarra: true },
     ],
   }];
   expect(trovaSezione("/admin/start", nav)).toBeNull();
   expect(trovaSezione("/admin/start/abc123", nav)).toBeNull();
   const delivery = trovaSezione("/admin/metriche", nav);
-  expect(delivery.voci.map((v) => v.to)).toContain("/admin/start");
+  expect(delivery.voci.map((v) => v.to)).not.toContain("/admin/start");
 });

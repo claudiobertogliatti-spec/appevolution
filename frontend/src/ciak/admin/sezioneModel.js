@@ -53,7 +53,8 @@ export function trovaSezione(pathname, nav, adminType = "claudio") {
       attiva,
       voci: [
         { to: panoramica, label: "Panoramica", gruppo: null },
-        ...pagine.map((p) => ({ to: p.to, label: p.label, gruppo: p.gruppo || null })),
+        // Le pagine con `fuoriBarra` (le due Start) hanno il loro accesso nel menu: non si ripetono qui.
+        ...pagine.filter((p) => !p.fuoriBarra).map((p) => ({ to: p.to, label: p.label, gruppo: p.gruppo || null })),
       ],
     };
   }

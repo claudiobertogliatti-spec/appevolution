@@ -214,8 +214,8 @@ const NAV = [
         { to: "/admin/risultati-finali", label: "Siti e funnel da guardare", desc: "Il lavoro finito da guardare: siti vetrina Start e funnel dei partner in anteprima" },
       ] },
       { title: "Contenuti e percorso", pages: [
-        { to: "/admin/start", propria: true, label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
-        { to: "/admin/consegne-start", label: "Scadenze Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
+        { to: "/admin/start", propria: true, fuoriBarra: true, label: "Clienti Start", desc: "Tutti i clienti Start in colonne: a che punto sono e cosa tocca a te. Un clic apre il loro account" },
+        { to: "/admin/consegne-start", fuoriBarra: true, label: "Scadenze Start", desc: "Le 3 tappe datate promesse per iscritto a ogni cliente Ciak Start" },
         { to: "/admin/delivery-audit", label: "Stato del percorso", desc: "Stato reale percorso EVO: offerta, videocorso, funnel, blocchi" },
         { to: "/admin/calendario-editoriale", label: "Calendario partner", desc: "Piano contenuti dei partner live" },
         { to: "/admin/campagne-ads", label: "Campagne partner", desc: "Gestione campagne pubblicitarie dei partner" },
