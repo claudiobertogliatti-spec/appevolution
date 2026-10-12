@@ -11,6 +11,7 @@ jest.mock("../api", () => ({
   apiGet: jest.fn(),
   adminFetch: jest.fn(),
   getAdminUser: jest.fn(() => null),
+  errorDetail: jest.fn(async () => "Errore"),
   SCOPE_DENIED_DETAIL: "Questo account ha accesso solo al reparto Acquisizione.",
 }));
 
@@ -275,4 +276,20 @@ describe("?vai= porta la scheda sulla sezione giusta (menu Azioni della pagina L
     await waitFor(() => expect(screen.getAllByText("Questionario (1)").length).toBe(2));
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
+});
+
+test("Modifica: si aggiunge il cognome dalla scheda e la scheda si ricarica", async () => {
+  adminFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+  render(<AdminLeadDetail onAuthExpired={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Modifica nome, cognome o email/i }));
+  const dialog = screen.getByRole("dialog");
+  fireEvent.change(within(dialog).getByLabelText("Cognome"), { target: { value: "Rossi" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Salva le modifiche" }));
+  await waitFor(() =>
+    expect(adminFetch).toHaveBeenCalledWith(
+      "/api/admin/ciak/lead",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ email: "mario@x.it", nome: "Mario", cognome: "Rossi", phone: "" }) })
+    )
+  );
+  await waitFor(() => expect(apiGet.mock.calls.length).toBeGreaterThan(1)); // ricarica la scheda
 });

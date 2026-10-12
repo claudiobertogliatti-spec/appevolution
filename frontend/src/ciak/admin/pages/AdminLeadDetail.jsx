@@ -11,6 +11,7 @@ import { apiGet, adminFetch, errorDetail, getAdminUser, SCOPE_DENIED_DETAIL } fr
 import LinkAccessoCliente from "../components/LinkAccessoCliente";
 import { CronologiaLead } from "../components/CronologiaLead";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { ModificaLead, BTN } from "../components/ModificaLead";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -336,6 +337,7 @@ export function AdminLeadDetail({ onAuthExpired }) {
   // fissata". Generare/inviare il Blueprint, la proposta e il ripristino sono
   // di Claudio (backend: 403, routers/ciak_admin.py): qui non compaiono.
   const isCommercial = getAdminUser()?.admin_type === "mariangela";
+  const [inModifica, setInModifica] = useState(false);
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -554,11 +556,31 @@ export function AdminLeadDetail({ onAuthExpired }) {
       >
         ← Tutti i leads
       </button>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">
-        {lead?.nome || data.email}
-      </h1>
-      <p className="text-slate-500 mb-3">{data.email}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-slate-900 mb-1">
+            {lead?.nome || data.email}
+          </h1>
+          <p className="text-slate-500 mb-3">{data.email}</p>
+        </div>
+        <button type="button" onClick={() => setInModifica(true)} className={BTN}>
+          Modifica nome, cognome o email
+        </button>
+      </div>
       <RuoloBadge ruolo={data.ruolo} />
+
+      {inModifica && (
+        <ModificaLead
+          riga={{ nome: lead?.nome, nome_proprio: lead?.nome_proprio, cognome: lead?.cognome, email: data.email, telefono: lead?.telefono || lead?.phone }}
+          onAuthExpired={onAuthExpired}
+          onChiudi={() => setInModifica(false)}
+          onSalvato={(nuovaEmail) => {
+            setInModifica(false);
+            if (nuovaEmail) navigate(`/admin/leads/${encodeURIComponent(nuovaEmail)}`, { replace: true });
+            else apiGet("/lead", { email: data.email }).then(setData).catch(() => {});
+          }}
+        />
+      )}
 
       {diagnostics.length > 0 && (
         <div id="lead-blueprint" className="scroll-mt-6">
