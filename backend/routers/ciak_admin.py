@@ -3440,7 +3440,7 @@ class NotificaLetta(BaseModel):
     tutte: bool = False
 
 
-async def _chiedi_llm(system: str, user: str, max_tokens: int = 500) -> Optional[str]:
+async def _chiedi_llm(system: str, user: str, max_tokens: int = 500, messages: Optional[list] = None) -> Optional[str]:
     """Testo della risposta o None se l'AI non e' disponibile (mai un testo inventato)."""
     import os
 
@@ -3455,7 +3455,7 @@ async def _chiedi_llm(system: str, user: str, max_tokens: int = 500) -> Optional
         client = anthropic.AsyncAnthropic(api_key=api_key)
         resp = await client.messages.create(
             model=ciak_commenti.MODELLO, max_tokens=max_tokens, system=system,
-            messages=[{"role": "user", "content": user}],
+            messages=messages or [{"role": "user", "content": user}],
         )
         testo = (resp.content[0].text or "").strip()
         return testo or None
@@ -3605,6 +3605,64 @@ async def contenuto_bozza(body: ContenutoBozzaIn, admin=Depends(require_ciak_adm
             raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
         return {"tipo": tipo, "seo": seo}
     return {"tipo": tipo, "testo": testo}
+
+
+# ─── Chat con Andrea (Contenuti): legge e consiglia, non esegue ─────────────
+
+class AndreaChatIn(BaseModel):
+    message: str = Field(..., max_length=6000)
+
+
+def _chiave_chat(admin, agente: str) -> str:
+    return f"{agente}_{getattr(admin, 'user_id', None) or _autore(admin)}"
+
+
+@router.post("/andrea/chat")
+async def andrea_chat(body: AndreaChatIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_andrea_chat as ac, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo = ac.valida_messaggio(body.message)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    chiave = _chiave_chat(admin, "andrea")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": chiave}, {"_id": 0}) or {}
+    storico = list(doc.get("messages") or [])
+    partners = await db.partners.find({}, {"_id": 0, "name": 1, "niche": 1, "revenue": 1, "stato": 1}).to_list(2000)
+    system = ac.prompt_sistema(ac.contesto_casi(partners), await ciak_memoria.render_active_block())
+    risposta = await _chiedi_llm(system, "", 900, messages=ac.messaggi_per_llm(storico, testo))
+    if not risposta:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico += [{"role": "user", "content": testo, "ts": adesso}, {"role": "assistant", "content": risposta, "ts": adesso}]
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave},
+        {"$set": {"chiave": chiave, "agente": "andrea", "messages": storico[-ac.STORICO_SALVATO:], "updated_at": adesso}},
+        upsert=True,
+    )
+    return {"reply": risposta}
+
+
+@router.get("/andrea/history")
+async def andrea_history(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": _chiave_chat(admin, "andrea")}, {"_id": 0}) or {}
+    return {"messages": (doc.get("messages") or [])[-50:]}
+
+
+@router.delete("/andrea/history")
+async def andrea_history_clear(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": _chiave_chat(admin, "andrea")},
+        {"$set": {"chiave": _chiave_chat(admin, "andrea"), "agente": "andrea", "messages": []}},
+        upsert=True,
+    )
+    return {"success": True}
 
 
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────

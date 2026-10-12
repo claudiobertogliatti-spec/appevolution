@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, LayoutDashboard, MessageCircle } from "lucide-react";
 import { LucaChat } from "../pages/LucaChat";
 import { StefaniaAdmin } from "../pages/StefaniaAdmin";
+import { AndreaChat } from "./AndreaChat";
 
 function AgentAvatar({ agent, size = "lg" }) {
   const dim = size === "sm" ? "w-10 h-10" : "w-16 h-16";
@@ -58,6 +59,9 @@ function AgentChat({ room, onAuthExpired }) {
   }
   if (room.agent.chat === "stefania") {
     return <StefaniaAdmin onAuthExpired={onAuthExpired} compact />;
+  }
+  if (room.agent.chat === "andrea") {
+    return <AndreaChat onAuthExpired={onAuthExpired} />;
   }
   return <MiniCheckBox room={room} />;
 }

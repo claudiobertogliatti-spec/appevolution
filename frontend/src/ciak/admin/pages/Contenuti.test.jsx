@@ -4,6 +4,7 @@ import { Contenuti } from "./Contenuti";
 import { apiPost } from "../api";
 
 jest.mock("../api", () => ({ apiPost: jest.fn() }));
+jest.mock("../components/AndreaChat", () => ({ AndreaChat: () => <div>CHAT-ANDREA</div> }));
 
 const mostra = () => render(<MemoryRouter><Contenuti /></MemoryRouter>);
 const scrivi = (brief = "Racconta il nuovo percorso EVO in modo semplice") => {
@@ -61,4 +62,9 @@ test("«Copia» mette la bozza negli appunti", async () => {
   scrivi();
   fireEvent.click(await screen.findByRole("button", { name: "Copia" }));
   await waitFor(() => expect(scritto).toHaveBeenCalledWith("Oggetto: Ciao\n\nCorpo"));
+});
+
+test("in cima c'è la chat con Andrea", () => {
+  mostra();
+  expect(screen.getByText("CHAT-ANDREA")).toBeTruthy();
 });
