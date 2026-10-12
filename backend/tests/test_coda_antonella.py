@@ -20,12 +20,11 @@ def test_stima_minuti_usa_rapporto_e_minuti_fissi():
 
 
 def test_config_valida_rifiuta_valori_fuori_range():
-    cfg = c.config_valida({"minuti_per_giorno": {"0": 9999, "1": "30", "9": 10}, "rapporto_visione": 99, "minuti_fissi": -1})
-    assert cfg["minuti_per_giorno"]["0"] == 60       # fuori range: resta il default
-    assert cfg["minuti_per_giorno"]["1"] == 30
-    assert "9" not in cfg["minuti_per_giorno"]
+    cfg = c.config_valida({"minuti_settimana": 99999, "rapporto_visione": 99, "minuti_fissi": -1})
+    assert cfg["minuti_settimana"] == c.MINUTI_SETTIMANA == 300   # fuori range: resta il default (5 ore)
     assert cfg["rapporto_visione"] == c.RAPPORTO_VISIONE
     assert cfg["minuti_fissi"] == c.MINUTI_FISSI
+    assert c.config_valida({"minuti_settimana": "180"})["minuti_settimana"] == 180
 
 
 def test_coda_esclude_senza_video_in_revisione_e_gia_verificate():
@@ -50,36 +49,50 @@ def compiti(*minuti, partner="p1"):
              "titolo": f"T{i}", "minuti": m, "durata_s": 0} for i, m in enumerate(minuti)]
 
 
-def test_piano_non_supera_mai_il_budget_del_giorno():
-    piano = c.piano_giornaliero(compiti(20, 20, 20, 20, 20), da=date(2026, 10, 12))  # lunedi, 60 min al giorno
-    for g in piano["giorni"]:
-        assert g["usati"] <= g["budget"]
-    assert [len(g["compiti"]) for g in piano["giorni"]] == [3, 2]
-    assert piano["giorni"][1]["data"] == "2026-10-13"
+LUN = date(2026, 10, 12)
 
 
-def test_piano_salta_il_weekend():
-    piano = c.piano_giornaliero(compiti(60, 60, 60), da=date(2026, 10, 16))  # venerdi
-    assert [g["data"] for g in piano["giorni"]] == ["2026-10-16", "2026-10-19", "2026-10-20"]
+def test_piano_non_supera_mai_il_tetto_della_settimana():
+    piano = c.piano_settimanale(compiti(100, 100, 100, 100, 100), {"minuti_settimana": 300}, da=LUN)
+    for w in piano["settimane"]:
+        assert w["usati"] <= w["budget"]
+    assert [len(w["compiti"]) for w in piano["settimane"]] == [3, 2]
+    assert piano["settimane"][1]["inizio"] == "2026-10-19"
 
 
-def test_compito_piu_lungo_di_ogni_giorno_va_negli_avvisi():
-    piano = c.piano_giornaliero(compiti(90, 20), da=date(2026, 10, 12))
+def test_la_settimana_parte_sempre_dal_lunedi_anche_se_si_guarda_di_venerdi():
+    piano = c.piano_settimanale(compiti(60), da=date(2026, 10, 16))
+    assert piano["settimane"][0]["inizio"] == "2026-10-12" and piano["settimane"][0]["fine"] == "2026-10-18"
+
+
+def test_gli_altri_compiti_gia_assegnati_riducono_la_settimana_in_corso():
+    piano = c.piano_settimanale(compiti(100, 100), da=LUN, minuti_gia_assegnati=270)
+    # restano 30 minuti questa settimana: nessuna lezione entra, tutte slittano alla prossima (settimane vuote non mostrate)
+    assert [len(w["compiti"]) for w in piano["settimane"]] == [2]
+    assert piano["settimane"][0]["inizio"] == "2026-10-19"
+
+
+def test_compito_piu_lungo_del_tetto_va_negli_avvisi():
+    piano = c.piano_settimanale(compiti(400, 20), {"minuti_settimana": 300}, da=LUN)
     assert [n["lesson_id"] for n in piano["non_pianificati"]] == ["0"]
-    assert piano["avvisi"] and "90" in piano["avvisi"][0]
-    assert piano["giorni"][0]["compiti"][0]["lesson_id"] == "1"
+    assert piano["avvisi"] and "400" in piano["avvisi"][0]
+    assert piano["settimane"][0]["compiti"][0]["lesson_id"] == "1"
 
 
 def test_ordine_di_arrivo_non_si_inverte():
-    # il compito grande (50) non entra dopo il primo (20)+(30) -> va al giorno dopo; il piccolo successivo non lo scavalca
-    piano = c.piano_giornaliero(compiti(20, 50, 10), da=date(2026, 10, 12))
-    assert [[t["lesson_id"] for t in g["compiti"]] for g in piano["giorni"]] == [["0"], ["1", "2"]]
+    # il compito grande non entra dopo il primo -> va alla settimana dopo; il piccolo successivo non lo scavalca
+    piano = c.piano_settimanale(compiti(200, 150, 10), {"minuti_settimana": 300}, da=LUN)
+    assert [[t["lesson_id"] for t in w["compiti"]] for w in piano["settimane"]] == [["0"], ["1", "2"]]
 
 
-def test_budget_zero_ovunque_non_pianifica_nulla():
-    cfg = {"minuti_per_giorno": {str(i): 0 for i in range(7)}}
-    piano = c.piano_giornaliero(compiti(20), cfg, da=date(2026, 10, 12))
-    assert piano["giorni"] == [] and len(piano["non_pianificati"]) == 1
+def test_tetto_zero_non_pianifica_nulla():
+    piano = c.piano_settimanale(compiti(20), {"minuti_settimana": 0}, da=LUN)
+    assert piano["settimane"] == [] and len(piano["non_pianificati"]) == 1
+
+
+def test_pronta_entro_e_la_fine_della_settimana_dell_ultima_lezione():
+    piano = c.piano_settimanale(compiti(200, 200), {"minuti_settimana": 300}, da=LUN)
+    assert c.prima_data_prevista(piano, "p1") == "2026-10-25"
 
 
 def test_valida_esito():

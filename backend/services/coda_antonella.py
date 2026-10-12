@@ -1,4 +1,4 @@
-"""Coda di lavoro di Antonella: lezioni montate da controllare e caricare su Systeme, in un piano giornaliero.
+"""Coda di lavoro di Antonella: lezioni montate da controllare e caricare su Systeme, in un piano settimanale.
 
 Funzioni PURE (nessun accesso a rete o database): il router legge i dati e li passa qui.
 
@@ -9,9 +9,10 @@ Regole (dichiarate, modificabili da config):
   - il tempo stimato di una lezione = durata del video x RAPPORTO_VISIONE + MINUTI_FISSI (caricamento su Systeme,
     titolo, verifica che il video parta). Sono STIME INIZIALI: non vengono da misure reali. Si correggono dalla
     config e, con `minuti_reali`, dai tempi veri registrati a ogni esito;
-  - il piano riempie ogni giorno fino al budget di minuti di quel giorno, mai oltre. Un compito che non entra
-    in un giorno passa al successivo. Un compito piu lungo di QUALSIASI giorno lavorativo non si pianifica da solo:
-    finisce negli avvisi, perche' la decisione e' di Claudio (spezzarlo, aumentare le ore...).
+  - il piano e' SETTIMANALE: ogni settimana (lunedi-domenica) ha un tetto di minuti, mai superato; Antonella sceglie
+    lei in quali giorni lavorare. Nella settimana in corso si tolgono i minuti degli altri compiti gia' assegnati.
+    Un compito che non entra in una settimana passa alla successiva. Un compito piu lungo del tetto settimanale non
+    si pianifica da solo: finisce negli avvisi, perche' la decisione e' di Claudio (spezzarlo, aumentare le ore...).
 """
 from __future__ import annotations
 
@@ -22,25 +23,22 @@ from typing import Any, Dict, Iterable, List, Optional
 RAPPORTO_VISIONE = 1.5          # minuti di lavoro per ogni minuto di video (stima iniziale)
 MINUTI_FISSI = 5                # per lezione: caricamento, titolo, prova di riproduzione (stima iniziale)
 MINUTI_SENZA_DURATA = 15        # se la durata del video non e' nota
-ORIZZONTE_GIORNI = 20           # quanti giorni di calendario si pianificano al massimo
-# lunedi=0 ... domenica=6. Default: 5 ore a settimana = 60 minuti dal lunedi al venerdi.
-BUDGET_DEFAULT = {"0": 60, "1": 60, "2": 60, "3": 60, "4": 60, "5": 0, "6": 0}
+ORIZZONTE_SETTIMANE = 8        # quante settimane si pianificano al massimo
+MINUTI_SETTIMANA = 300          # 5 ore a settimana (accordo con Antonella)
 
 ESITI = ("verificata", "da_correggere")
 CONTROLLI = ("audio", "inizio_fine", "parte_su_systeme", "titolo_ordine", "nessun_salto")
 
 
 def config_valida(raw: Optional[dict]) -> Dict[str, Any]:
-    """Config normalizzata: budget per giorno e rapporti di stima. Valori fuori range tornano al default."""
+    """Config normalizzata: tetto settimanale e rapporti di stima. Valori fuori range tornano al default."""
     raw = raw or {}
-    budget = dict(BUDGET_DEFAULT)
-    for k, v in (raw.get("minuti_per_giorno") or {}).items():
-        try:
-            n = int(v)
-        except (TypeError, ValueError):
-            continue
-        if str(k) in budget and 0 <= n <= 600:
-            budget[str(k)] = n
+    try:
+        tetto = int(raw.get("minuti_settimana", MINUTI_SETTIMANA))
+    except (TypeError, ValueError):
+        tetto = MINUTI_SETTIMANA
+    if not 0 <= tetto <= 2400:
+        tetto = MINUTI_SETTIMANA
     try:
         rapporto = float(raw.get("rapporto_visione", RAPPORTO_VISIONE))
     except (TypeError, ValueError):
@@ -53,7 +51,7 @@ def config_valida(raw: Optional[dict]) -> Dict[str, Any]:
         fissi = MINUTI_FISSI
     if not 0 <= fissi <= 60:
         fissi = MINUTI_FISSI
-    return {"minuti_per_giorno": budget, "rapporto_visione": rapporto, "minuti_fissi": fissi}
+    return {"minuti_settimana": tetto, "rapporto_visione": rapporto, "minuti_fissi": fissi}
 
 
 def stima_minuti(durata_s: Optional[float], rapporto: float = RAPPORTO_VISIONE, fissi: int = MINUTI_FISSI) -> int:
@@ -139,59 +137,64 @@ def raggruppa_per_partner(compiti: List[dict]) -> List[dict]:
     return sorted(gruppi.values(), key=lambda g: (str(g["arrivata_il"] or ""), g["partner_nome"]))
 
 
-def piano_giornaliero(compiti: List[dict], config: Optional[dict] = None, da: Optional[date] = None) -> Dict[str, Any]:
-    """Assegna i compiti ai giorni lavorativi senza mai superare il budget del giorno.
+def inizio_settimana(d: date) -> date:
+    return d - timedelta(days=d.weekday())
 
-    I compiti restano nell'ordine ricevuto (arrivo piu vecchio per primo): non si saltano compiti piccoli davanti
-    a uno grande piu vecchio, per non far aspettare sempre lo stesso partner.
+
+def piano_settimanale(compiti: List[dict], config: Optional[dict] = None, da: Optional[date] = None,
+                      minuti_gia_assegnati: int = 0) -> Dict[str, Any]:
+    """Assegna i compiti alle settimane senza mai superare il tetto settimanale.
+
+    Nella settimana in corso il tetto si riduce dei minuti degli altri compiti gia' assegnati. I compiti restano
+    nell'ordine ricevuto (arrivo piu vecchio per primo): non si saltano compiti piccoli davanti a uno grande piu
+    vecchio, per non far aspettare sempre lo stesso partner.
     """
     cfg = config_valida(config)
-    budget = cfg["minuti_per_giorno"]
-    inizio = da or datetime.now(timezone.utc).date()
-    massimo_giorno = max(budget.values()) if budget else 0
-    giorni: List[dict] = []
-    for i in range(ORIZZONTE_GIORNI):
-        d = inizio + timedelta(days=i)
-        b = budget.get(str(d.weekday()), 0)
-        if b > 0:
-            giorni.append({"data": d.isoformat(), "budget": b, "usati": 0, "compiti": []})
+    tetto = cfg["minuti_settimana"]
+    oggi = da or datetime.now(timezone.utc).date()
+    lunedi = inizio_settimana(oggi)
+    settimane: List[dict] = []
+    for i in range(ORIZZONTE_SETTIMANE):
+        ini = lunedi + timedelta(days=7 * i)
+        budget = max(0, tetto - max(0, int(minuti_gia_assegnati))) if i == 0 else tetto
+        settimane.append({"inizio": ini.isoformat(), "fine": (ini + timedelta(days=6)).isoformat(),
+                          "budget": budget, "usati": 0, "compiti": []})
     non_pianificati: List[dict] = []
     avvisi: List[str] = []
     idx = 0
     for c in compiti:
-        if c["minuti"] > massimo_giorno:
-            non_pianificati.append({**c, "motivo": "piu_lungo_di_un_giorno"})
+        if c["minuti"] > tetto:
+            non_pianificati.append({**c, "motivo": "piu_lungo_di_una_settimana"})
             avvisi.append(
-                f"«{c['titolo']}» ({c['partner_nome']}) richiede circa {c['minuti']} minuti: piu di qualsiasi giorno "
-                f"(massimo {massimo_giorno}). Serve una decisione: spezzarlo o aumentare le ore."
+                f"«{c['titolo']}» ({c['partner_nome']}) richiede circa {c['minuti']} minuti: piu del tetto settimanale "
+                f"({tetto}). Serve una decisione: spezzarlo o aumentare le ore."
             )
             continue
-        # primo giorno, da `idx` in poi, in cui il compito entra
         j = idx
-        while j < len(giorni) and giorni[j]["usati"] + c["minuti"] > giorni[j]["budget"]:
+        while j < len(settimane) and settimane[j]["usati"] + c["minuti"] > settimane[j]["budget"]:
             j += 1
-        if j >= len(giorni):
+        if j >= len(settimane):
             non_pianificati.append({**c, "motivo": "fuori_orizzonte"})
             continue
-        giorni[j]["compiti"].append(c)
-        giorni[j]["usati"] += c["minuti"]
+        settimane[j]["compiti"].append(c)
+        settimane[j]["usati"] += c["minuti"]
         idx = j  # mai tornare indietro: l'ordine di arrivo si rispetta
     if any(n["motivo"] == "fuori_orizzonte" for n in non_pianificati):
         avvisi.append(
-            f"Con le ore attuali alcune lezioni non entrano nei prossimi {ORIZZONTE_GIORNI} giorni: "
+            f"Con le ore attuali alcune lezioni non entrano nelle prossime {ORIZZONTE_SETTIMANE} settimane: "
             "serve piu tempo oppure meno partner in registrazione insieme."
         )
     totale = sum(c["minuti"] for c in compiti)
-    return {"giorni": [g for g in giorni if g["compiti"]], "non_pianificati": non_pianificati,
+    return {"settimane": [w for w in settimane if w["compiti"]], "non_pianificati": non_pianificati,
             "avvisi": avvisi, "minuti_totali": totale}
 
 
 def prima_data_prevista(piano: Dict[str, Any], partner_id: str) -> Optional[str]:
-    """Il giorno in cui sara' pronta l'ultima lezione di un partner (per dirgli quando)."""
+    """La fine della settimana in cui sara' pronta l'ultima lezione di un partner (per dirgli entro quando)."""
     ultima = None
-    for g in piano.get("giorni", []):
-        if any(c["partner_id"] == partner_id for c in g["compiti"]):
-            ultima = g["data"]
+    for w in piano.get("settimane", []):
+        if any(c["partner_id"] == partner_id for c in w["compiti"]):
+            ultima = w["fine"]
     return ultima
 
 

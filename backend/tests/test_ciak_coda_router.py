@@ -83,7 +83,7 @@ def test_coda_mostra_consegna_e_piano(db):
     assert len(r["consegne"]) == 1 and r["consegne"][0]["partner_nome"] == "Giulia Bianchi"
     assert [l["titolo"] for l in r["consegne"][0]["lezioni"]] == ["Intro", "Metodo"]
     assert r["consegne"][0]["pronta_entro"]
-    assert all(g["usati"] <= g["budget"] for g in r["piano"]["giorni"])
+    assert all(g["usati"] <= g["budget"] for g in r["piano"]["settimane"])
 
 
 def test_esito_verificata_toglie_la_lezione_dalla_coda(db):
@@ -123,10 +123,10 @@ def test_da_correggere_finisce_nella_sua_lista(db, monkeypatch):
 
 
 def test_config_salvata_e_riletta(db):
-    out = run(ciak_coda.put_config(ciak_coda.ConfigBody(minuti_per_giorno={"0": 30, "1": 0}), data=None))
-    assert out["config"]["minuti_per_giorno"]["0"] == 30
+    out = run(ciak_coda.put_config(ciak_coda.ConfigBody(minuti_settimana=180), data=None))
+    assert out["config"]["minuti_settimana"] == 180
     r = run(ciak_coda.get_coda())
-    assert r["config"]["minuti_per_giorno"]["1"] == 0
+    assert r["config"]["minuti_settimana"] == 180 and r["tetto_settimana_min"] == 180
 
 
 def test_esito_crea_l_attivita_per_la_fatturazione_con_i_minuti_veri(db):

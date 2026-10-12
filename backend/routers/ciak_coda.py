@@ -1,7 +1,7 @@
-"""Coda di Antonella — lezioni montate da controllare e caricare su Systeme, con piano giornaliero.
+"""Coda di Antonella — lezioni montate da controllare e caricare su Systeme, con piano settimanale.
 
-  - GET  /api/admin/ciak/coda          → coda, piano dei prossimi giorni (dentro le ore concordate), lezioni da correggere
-  - PUT  /api/admin/ciak/coda/config   → ore per giorno e stime di tempo
+  - GET  /api/admin/ciak/coda          → coda, piano per settimane (dentro le ore concordate), lezioni da correggere
+  - PUT  /api/admin/ciak/coda/config   → tetto settimanale e stime di tempo
   - POST /api/admin/ciak/coda/esito    → «verificata e caricata» oppure «da correggere» (con note)
 
 La logica e' in services/coda_antonella.py (pura). Qui solo lettura/scrittura database.
@@ -57,16 +57,16 @@ async def _stato():
 @router.get("")
 async def get_coda(_=Depends(require_ciak_admin)):
     cfg, gruppi = await _stato()
-    piano = coda.piano_giornaliero(gruppi["da_controllare"], cfg)
-    consegne = coda.raggruppa_per_partner(gruppi["da_controllare"])
-    for c in consegne:
-        c["pronta_entro"] = coda.prima_data_prevista(piano, c["partner_id"])
     altri = coda.minuti_altri_compiti([
         t async for t in db.agent_tasks.find({"assigned_to": "antonella", "week_start": _week_start()})
     ])
+    piano = coda.piano_settimanale(gruppi["da_controllare"], cfg, minuti_gia_assegnati=altri)
+    consegne = coda.raggruppa_per_partner(gruppi["da_controllare"])
+    for c in consegne:
+        c["pronta_entro"] = coda.prima_data_prevista(piano, c["partner_id"])
     return {
         "config": cfg,
-        "tetto_settimana_min": sum(cfg["minuti_per_giorno"].values()),
+        "tetto_settimana_min": cfg["minuti_settimana"],
         "altri_minuti_settimana": altri,
         "oggi": datetime.now(timezone.utc).date().isoformat(),
         "consegne": consegne,
@@ -77,7 +77,7 @@ async def get_coda(_=Depends(require_ciak_admin)):
 
 
 class ConfigBody(BaseModel):
-    minuti_per_giorno: Optional[Dict[str, int]] = None
+    minuti_settimana: Optional[int] = None
     rapporto_visione: Optional[float] = None
     minuti_fissi: Optional[int] = None
 

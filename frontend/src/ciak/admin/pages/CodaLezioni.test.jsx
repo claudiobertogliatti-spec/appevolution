@@ -13,10 +13,10 @@ const COMPITO = {
 };
 const DATI = {
   oggi: "2026-10-12",
-  config: { minuti_per_giorno: { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 0, 6: 0 }, rapporto_visione: 1.5, minuti_fissi: 5 },
+  config: { minuti_settimana: 300, rapporto_visione: 1.5, minuti_fissi: 5 },
   stime_iniziali: true,
-  consegne: [{ partner_id: "p1", partner_nome: "Giulia Bianchi", lezioni: [COMPITO], minuti: 20, durata_s: 600, pronta_entro: "2026-10-12" }],
-  piano: { giorni: [{ data: "2026-10-12", budget: 60, usati: 20, compiti: [COMPITO] }], non_pianificati: [], avvisi: [] },
+  consegne: [{ partner_id: "p1", partner_nome: "Giulia Bianchi", lezioni: [COMPITO], minuti: 20, durata_s: 600, pronta_entro: "2026-10-18" }],
+  piano: { settimane: [{ inizio: "2026-10-12", fine: "2026-10-18", budget: 300, usati: 20, compiti: [COMPITO] }], non_pianificati: [], avvisi: [] },
   da_correggere: [],
 };
 
@@ -30,8 +30,8 @@ beforeEach(() => {
 test("mostra la lezione di oggi con il tempo e le stime dichiarate", async () => {
   render(<CodaLezioni />);
   expect(await screen.findByText("Intro")).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "Oggi" })).toBeTruthy();
-  expect(screen.getByText(/circa 20 di 60 minuti/)).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Questa settimana" })).toBeTruthy();
+  expect(screen.getByText(/circa 20 di 300 minuti/)).toBeTruthy();
   expect(screen.getByText(/stime iniziali/)).toBeTruthy();
 });
 
@@ -65,7 +65,7 @@ test("«Da correggere» chiede la nota e la manda", async () => {
 });
 
 test("senza lezioni dice che non c'e' niente da fare", async () => {
-  apiGet.mockResolvedValue({ ...DATI, consegne: [], piano: { giorni: [], non_pianificati: [], avvisi: [] } });
+  apiGet.mockResolvedValue({ ...DATI, consegne: [], piano: { settimane: [], non_pianificati: [], avvisi: [] } });
   render(<CodaLezioni />);
   expect(await screen.findByText("Niente da fare")).toBeTruthy();
 });

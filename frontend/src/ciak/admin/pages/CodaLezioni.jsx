@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — Coda lezioni (Antonella).
  *
- * Le lezioni montate da guardare e caricare su Systeme, dentro le ore concordate: ogni giorno un elenco che non
+ * Le lezioni montate da guardare e caricare su Systeme, dentro le ore concordate: ogni settimana un elenco che non
  * supera il tempo disponibile. Per ogni lezione cinque controlli e due esiti: «Caricata e verificata» oppure
  * «Da correggere» (con la nota per chi fa il montaggio).
  *
@@ -21,8 +21,6 @@ export const CONTROLLI = [
   ["parte_su_systeme", "Il video parte nella pagina su Systeme"],
   ["titolo_ordine", "Titolo e posizione nel corso giusti"],
 ];
-
-const GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 
 export function formatGiorno(iso) {
   if (!iso) return "";
@@ -169,14 +167,14 @@ function Lezione({ compito, onFatto, onAuthExpired }) {
 
 function Impostazioni({ config, onSalvato, onAuthExpired }) {
   const [aperto, setAperto] = useState(false);
-  const [giorni, setGiorni] = useState(config.minuti_per_giorno);
+  const [tetto, setTetto] = useState(config.minuti_settimana);
   const [rapporto, setRapporto] = useState(config.rapporto_visione);
   const [fissi, setFissi] = useState(config.minuti_fissi);
 
   const salva = async () => {
     try {
       await apiPut("/coda/config", {
-        minuti_per_giorno: Object.fromEntries(Object.entries(giorni).map(([k, v]) => [k, Number(v) || 0])),
+        minuti_settimana: Number(tetto),
         rapporto_visione: Number(rapporto),
         minuti_fissi: Number(fissi),
       });
@@ -195,19 +193,14 @@ function Impostazioni({ config, onSalvato, onAuthExpired }) {
       </button>
       {aperto && (
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-4">
-            {GIORNI.map((nome, i) => (
-              <label key={nome} className="text-sm text-slate-700">
-                {nome} (minuti)
-                <input
-                  type="number" min="0" max="600" inputMode="numeric"
-                  value={giorni[String(i)] ?? 0}
-                  onChange={(e) => setGiorni((g) => ({ ...g, [String(i)]: e.target.value }))}
-                  className="mt-1 block h-11 w-full rounded-xl border border-slate-300 px-3"
-                />
-              </label>
-            ))}
-          </div>
+          <label className="block text-sm text-slate-700">
+            Minuti a settimana concordati (300 = 5 ore). Scegli tu in quali giorni lavorare.
+            <input
+              type="number" min="0" max="2400" inputMode="numeric" value={tetto}
+              onChange={(e) => setTetto(e.target.value)}
+              className="mt-1 block h-11 w-40 rounded-xl border border-slate-300 px-3"
+            />
+          </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm text-slate-700">
               Minuti di lavoro per ogni minuto di video
@@ -270,9 +263,10 @@ export function CodaLezioni({ onAuthExpired }) {
     );
   }
 
-  const giorni = dati.piano?.giorni || [];
-  const primo = giorni[0];
-  const prossimi = giorni.slice(1);
+  const settimane = dati.piano?.settimane || [];
+  const primo = settimane[0];
+  const prossimi = settimane.slice(1);
+  const inCorso = primo && primo.inizio <= dati.oggi && dati.oggi <= primo.fine;
   const nonPianificati = dati.piano?.non_pianificati || [];
 
   return (
@@ -301,7 +295,7 @@ export function CodaLezioni({ onAuthExpired }) {
       <section aria-labelledby="coda-oggi" className="space-y-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="coda-oggi" className="text-2xl font-semibold text-slate-900">
-            {primo ? (primo.data === dati.oggi ? "Oggi" : `Prossimo giorno: ${formatGiorno(primo.data)}`) : "Niente da fare"}
+            {primo ? (inCorso ? "Questa settimana" : `Settimana dal ${formatGiorno(primo.inizio)}`) : "Niente da fare"}
           </h2>
           {primo && (
             <p className="text-sm font-medium text-slate-700">
@@ -317,11 +311,11 @@ export function CodaLezioni({ onAuthExpired }) {
 
       {prossimi.length > 0 && (
         <section aria-labelledby="coda-prossimi" className="space-y-3">
-          <h2 id="coda-prossimi" className="text-xl font-semibold text-slate-900">Nei prossimi giorni</h2>
+          <h2 id="coda-prossimi" className="text-xl font-semibold text-slate-900">Nelle prossime settimane</h2>
           {prossimi.map((g) => (
-            <div key={g.data} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div key={g.inizio} className="rounded-2xl border border-slate-200 bg-white p-5">
               <p className="font-semibold text-slate-900">
-                {formatGiorno(g.data)} <span className="font-normal text-slate-600">· circa {g.usati} di {g.budget} minuti</span>
+                Settimana dal {formatGiorno(g.inizio)} <span className="font-normal text-slate-600">· circa {g.usati} di {g.budget} minuti</span>
               </p>
               <ul className="mt-2 space-y-1 text-sm text-slate-700">
                 {g.compiti.map((c) => <li key={c.chiave}>{c.partner_nome}: {c.titolo} (circa {c.minuti} min)</li>)}
@@ -333,7 +327,7 @@ export function CodaLezioni({ onAuthExpired }) {
 
       {nonPianificati.length > 0 && (
         <section aria-labelledby="coda-fuori" className="space-y-3">
-          <h2 id="coda-fuori" className="text-xl font-semibold text-slate-900">Senza un giorno assegnato</h2>
+          <h2 id="coda-fuori" className="text-xl font-semibold text-slate-900">Senza una settimana assegnata</h2>
           <ul className="space-y-1 text-sm text-slate-700">
             {nonPianificati.map((c) => <li key={c.chiave}>{c.partner_nome}: {c.titolo} (circa {c.minuti} min)</li>)}
           </ul>
@@ -351,7 +345,7 @@ export function CodaLezioni({ onAuthExpired }) {
                   {c.lezioni.length} {c.lezioni.length === 1 ? "lezione" : "lezioni"} · {formatDurata(c.durata_s)} di video · circa {c.minuti} min di lavoro
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
-                  {c.pronta_entro ? `Pronta entro ${formatGiorno(c.pronta_entro)}` : "Senza data: serve una decisione"}
+                  {c.pronta_entro ? `Pronta entro ${formatGiorno(c.pronta_entro)} (fine settimana)` : "Senza data: serve una decisione"}
                 </p>
               </div>
             ))}
