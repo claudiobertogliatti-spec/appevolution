@@ -95,6 +95,7 @@ import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { PartnerSalesEngine } from "./pages/PartnerSalesEngine";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { MemoriaCiak } from "./pages/MemoriaCiak";
+import { NuovaHome } from "./pages/NuovaHome";
 import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
@@ -855,6 +856,10 @@ export default function CiakAdminApp() {
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="memoria" element={<MemoriaCiak onAuthExpired={handleLogout} />} />
+        {/* Anteprima della nuova home «Oggi»: solo per Claudio, la home di /admin non cambia. */}
+        <Route path="nuova" element={isAntonella || isMariangela
+          ? <Navigate to="/admin" replace />
+          : <NuovaHome user={user} onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
         <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />
