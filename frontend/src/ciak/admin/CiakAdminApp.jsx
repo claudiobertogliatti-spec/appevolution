@@ -638,8 +638,8 @@ function AdminShell({ user, onLogout, children }) {
           <Search className="h-5 w-5" aria-hidden />
         </button>
       </div>
-      <main className="flex-1 min-w-0 overflow-auto">
-        {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} />}
+      <main className="ciak-pagina flex-1 min-w-0 overflow-auto">
+        {sezione && <SezioneNav label={sezione.label} voci={sezione.voci} attiva={sezione.attiva} volto={facce ? DEPARTMENT_ROOMS[sezione.id]?.agent?.avatar : null} />}
         {children}
       </main>
       </div>

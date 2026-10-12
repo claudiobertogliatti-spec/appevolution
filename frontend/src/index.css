@@ -113,3 +113,9 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* Admin Ciak: titolo di pagina grande e frase sotto più leggibile, come nella nuova home.
+   Solo tipografia: nessuna pagina cambia struttura. */
+.ciak-pagina h1 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.01em; }
+@media (min-width: 640px) { .ciak-pagina h1 { font-size: 2.25rem; line-height: 2.5rem; } }
+.ciak-pagina h1 + p { font-size: 1.0625rem; line-height: 1.6; color: rgb(71 85 105); }

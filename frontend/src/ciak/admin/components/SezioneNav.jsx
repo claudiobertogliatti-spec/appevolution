@@ -13,7 +13,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
-export function SezioneNav({ label, voci = [], attiva }) {
+export function SezioneNav({ label, voci = [], attiva, volto = null }) {
   const attivaRef = useRef(null);
 
   // Con molte voci la attiva puo' essere fuori vista: la si porta al centro.
@@ -24,7 +24,10 @@ export function SezioneNav({ label, voci = [], attiva }) {
   return (
     <nav aria-label={`Sezione ${label}`} className="px-4 pt-6 sm:px-8">
       <ul className="flex flex-nowrap items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 lg:flex-wrap lg:overflow-visible">
-        <li className="whitespace-nowrap px-2.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</li>
+        <li className="flex items-center gap-2 whitespace-nowrap px-2.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+          {volto && <img src={volto} alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover ring-2 ring-yellow-400 bg-slate-200" />}
+          {label}
+        </li>
         <li aria-hidden="true" className="h-5 w-px flex-shrink-0 bg-slate-200" />
         {voci.map((v, i) => {
           const sel = v.to === attiva;
