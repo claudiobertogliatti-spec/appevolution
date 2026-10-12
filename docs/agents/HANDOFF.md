@@ -1,3 +1,27 @@
+### 2026-10-12 (8) · Claude Code · cc/ciak-integrazione — Admin Ciak con gli agenti (Luca, Carlo, Marco, Simona, Andrea, Valentina)
+
+**RICHIESTA:** admin Ciak "macchina da guerra" in stile Sintra: 6 agenti con volto come menu, solo le funzioni HubSpot/Trello/Slack utili a Ciak. Tutto in un solo branch, un solo merge dopo il "go" esplicito di Claudio. Solo per Claudio: Antonella e Mariangela non cambiano (gli endpoint nuovi sono fuori dalla allowlist commerciale).
+
+**DICHIARATO** (tutti gli endpoint sono in `backend/routers/ciak_admin.py`, logica pura in `backend/services/ciak_*.py`, UI in `frontend/src/ciak/admin/`)
+- Memoria Ciak (regole condivise dagli agenti), home «Oggi» con i volti, menu laterale con i volti.
+- Sollecito trattative (Marco) e recupero 1 a 1 (Carlo): bozza AI, invio SOLO dopo «Invia» (`approvato: true`), registro `ciak_solleciti`, blocco doppio invio 24 h, nessun invio a chi ha pagato/firmato.
+- Prossimo passo con data + cronologia del contatto; compiti partner e avvisi percorso (Valentina); commenti con menzione agente + notifiche.
+- Contenuti (Andrea): pagina `/admin/contenuti`, bozze testo/SEO, chat di Andrea.
+- Reel con HeyGen (`services/ciak_reel.py`, `/reel/*`): Andrea scrive lo script, approvazione, video verticale 1080x1920 (`heygen_service.generate_video` ha il nuovo parametro `dimension`, default invariato), tetto mensile (default 8), coda di pubblicazione IG+FB (`social_publisher`: REELS e video Pagina).
+- Report della settimana (Luca): `/report/settimana`, 8 conteggi con confronto sui 7 giorni precedenti; una voce non contabile e' `n/d`, mai 0.
+- Integrata la PR #356 (striscia «Oggi hai N call»).
+
+**VERIFICATO:** frontend `src/ciak/admin` 82 suite / 500 test verdi; backend `tests/test_ciak_*.py` + `test_social_publisher.py` + `test_scheduler_social_trigger.py` 660 passati, 1 skipped (servono `stripe` e `apscheduler` installati nel sandbox); build frontend compila (warning preesistenti); il branch e' 0 indietro e senza conflitti con `main`.
+
+**⛔ NON VERIFICATO / APERTO**
+- Nessuna bozza AI e' mai stata generata dal vivo (nessuna chiave nel sandbox): qualita' di sollecito, recupero, contenuti, script reel da provare.
+- HeyGen mai chiamato dal vivo: l'elenco avatar/voci (`/reel/avatar`) dipende dal formato di risposta HeyGen non confermato; non si sa se la chiamata `/v2/video/generate` consumi crediti API o dell'abbonamento (fonte terza: separati). Da verificare col primo reel.
+- Pubblicazione reel su Meta mai provata dal vivo (IG REELS, video Pagina FB, permalink FB). Nel pannello reel non c'e' ancora il pulsante «Metti in coda» (esiste solo `POST /reel/{id}/in-coda`). YouTube Shorts e LinkedIn non supportati per i reel.
+- Il link HeyGen del video puo' scadere: non verificato; meglio copiarlo su Cloudinary prima della coda.
+- Non fatto: piano mensile dei social con link tracciati e report clic/lead per contenuto; analisi dei video virali dei competitor (non esiste una fonte dati); chat di Marco, Valentina, Luca.
+- Mobile del nuovo menu e foto degli agenti non verificati a vista (serve login).
+- Revisione Codex non eseguita (binario non installato, vedi voci precedenti).
+
 ### 2026-10-12 (7) · Claude Code · claude/modest-euler-xde2pw — Assistente chat nell'area cliente Start
 
 **RICHIESTA:** «inserisci un chatbot che risponde in automatico su tutte le questioni operative tecniche commerciali sui servizi evolution». Scelte di Claudio: dove = **area cliente Start** (pagina Assistenza); limiti = **passa al team** quando non sa o il tema e' delicato.
