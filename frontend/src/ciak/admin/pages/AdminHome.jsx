@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import { useRepartoMetrics } from "../repartoMetrics";
 import { OggiBlocks } from "../components/OggiBlocks";
+import { OggiCallStrip } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 
 // Primo intero da un valore tipo "3", "2 · €480" → numero; "Nessuna"/"—"/null → null.
@@ -59,6 +60,9 @@ export function AdminHome({ user, onAuthExpired }) {
         <h1 className="text-3xl font-semibold text-slate-900">Ciao {nome}</h1>
         <p className="text-slate-500 mt-2">Cosa fare oggi, in ordine. I reparti sono nel menu a sinistra.</p>
       </div>
+
+      {/* 1. Quante call oggi e a che ora: sempre in vista, non in un riquadro chiuso */}
+      <OggiCallStrip onAuthExpired={onAuthExpired} />
 
       {/* Richiede attenzione (soldi e approvazioni) */}
       <div className="mb-8" aria-label="Richiede la tua attenzione">

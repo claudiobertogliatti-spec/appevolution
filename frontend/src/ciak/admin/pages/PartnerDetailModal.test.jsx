@@ -13,6 +13,10 @@ jest.mock("../api", () => ({
   adminFetch: jest.fn(() => Promise.resolve({ ok: true, json: async () => ({}) })),
 }));
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
+jest.mock("../components/CompitiPartner", () => ({
+  CompitiPartner: ({ partnerId }) => <div data-testid="compiti-partner">{partnerId}</div>,
+}));
+jest.mock("../components/CommentiPannello", () => ({ CommentiPannello: () => <div data-testid="commenti-partner" /> }));
 jest.mock("../components/PercorsoEvoPanel", () => ({
   PercorsoEvoPanel: () => <div data-testid="percorso-panel" />,
 }));
@@ -69,6 +73,7 @@ test("il retab espone i 6 tab, apre sulla Panoramica e conserva le funzioni di e
   // Percorso EVO promosso a tab dedicato.
   fireEvent.click(screen.getByTestId("tab-percorso"));
   expect(screen.getByTestId("percorso-panel")).toBeTruthy();
+  expect(screen.getByTestId("compiti-partner")).toBeTruthy();
   // Impostazioni conserva l'editing (nicchia, id tecnici, salva, elimina).
   fireEvent.click(screen.getByTestId("tab-impostazioni"));
   expect(screen.getByTestId("input-nicchia")).toBeTruthy();

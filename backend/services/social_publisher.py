@@ -221,6 +221,31 @@ async def _pubblica_linkedin(client, urls: list[str], caption: str) -> dict:
 
 
 # ─── Orchestrazione ─────────────────────────────────────────────────────────────
+async def _pubblica_reel_ig(client, ig, token, video_url: str, caption: str) -> dict:
+    """Reel Instagram: container REELS con video_url -> si attende FINISHED (il video si
+    elabora piu' lentamente delle immagini) -> media_publish -> permalink riletto."""
+    cont = await _graph_post(client, f"{ig}/media", {
+        "media_type": "REELS", "video_url": video_url, "caption": caption,
+        "share_to_feed": "true", "access_token": token})
+    await _attendi_container_pronto(client, ig, cont["id"], token, tentativi=30, pausa=5.0)
+    pub = await _graph_post(client, f"{ig}/media_publish", {
+        "creation_id": cont["id"], "access_token": token})
+    info = await _graph_get(client, pub["id"], {"fields": "permalink", "access_token": token})
+    return {"media_id": pub["id"], "permalink": info.get("permalink")}
+
+
+async def _pubblica_reel_fb(client, page_id, token, video_url: str, caption: str) -> dict:
+    """Video sulla Pagina Facebook da URL; il permalink si rilegge dalla piattaforma."""
+    if not page_id:
+        raise RuntimeError("ID Pagina Facebook non disponibile")
+    j = await _graph_post(client, f"{page_id}/videos", {
+        "file_url": video_url, "description": caption, "access_token": token})
+    vid = j["id"]
+    info = await _graph_get(client, vid, {"fields": "permalink_url", "access_token": token})
+    rel = info.get("permalink_url")
+    return {"video_id": vid, "permalink": f"https://www.facebook.com{rel}" if rel and rel.startswith("/") else rel}
+
+
 async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, list[str]]:
     """
     Pubblica un post su tutti i suoi canali. Ritorna (results, errori):
@@ -228,15 +253,24 @@ async def _pubblica_post(client, ig, token, page_id, post: dict) -> tuple[dict, 
     """
     urls = post.get("image_urls") or []
     caption = post.get("caption") or ""
-    if not urls:
-        raise ValueError("post senza immagini")
+    video_url = post.get("video_url")
+    if not urls and not video_url:
+        raise ValueError("post senza immagini ne' video")
     canali = post.get("channels") or CANALI_DEFAULT
 
-    await _prewarm(client, urls)
+    if not video_url:
+        await _prewarm(client, urls)
     results, errori = {}, []
     for canale in canali:
         try:
-            if canale == "instagram":
+            if video_url:
+                if canale == "instagram":
+                    results["instagram"] = await _pubblica_reel_ig(client, ig, token, video_url, caption)
+                elif canale == "facebook":
+                    results["facebook"] = await _pubblica_reel_fb(client, page_id, token, video_url, caption)
+                else:
+                    errori.append(f"{canale}: i reel non sono ancora supportati su questo canale")
+            elif canale == "instagram":
                 results["instagram"] = await _pubblica_ig(client, ig, token, urls, caption)
             elif canale == "facebook":
                 results["facebook"] = await _pubblica_fb(client, page_id, token, urls, caption)

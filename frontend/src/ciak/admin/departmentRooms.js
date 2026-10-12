@@ -121,7 +121,7 @@ export const DEPARTMENT_ROOMS = {
       role: "Responsabile Prova Sociale",
       avatar: "/agents/andrea.jpg",
       initials: "A",
-      chat: "pending",
+      chat: "andrea",
       prompt: "Andrea, quali risultati possiamo trasformare in fiducia per vendere meglio?",
     },
     metrics: [

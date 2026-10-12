@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiGet, adminFetch, errorDetail, getAdminUser, SCOPE_DENIED_DETAIL } from "../api";
 import LinkAccessoCliente from "../components/LinkAccessoCliente";
+import { CronologiaLead } from "../components/CronologiaLead";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 const STATO_LABEL = {
@@ -681,6 +682,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
           {markMsg && <p className="text-sm text-slate-200 mt-3">{markMsg}</p>}
         </div>
       )}
+
+      <CronologiaLead email={data.email} nome={lead?.nome || data.email} onAuthExpired={onAuthExpired} />
 
       {/* Anagrafica */}
       <Section title="Anagrafica lead">

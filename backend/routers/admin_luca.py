@@ -563,6 +563,11 @@ async def admin_luca_chat(
     # Contesto live dei 4 reparti
     live_context = await build_luca_context()
     system_prompt = LUCA_AD_SYSTEM.replace("{context}", live_context)
+    # Memoria Ciak (regole scritte dal team). Vuota = nessuna aggiunta, comportamento invariato.
+    from services import ciak_memoria
+    memoria = await ciak_memoria.render_active_block()
+    if memoria:
+        system_prompt += "\n\n" + memoria
 
     messages = []
     for h in history:

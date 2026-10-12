@@ -2928,6 +2928,958 @@ async def activate_matteo_prompt(
     return {"success": True, "active": activated}
 
 
+# ─── Memoria Ciak — regole condivise da tutti gli agenti ───────────────────
+
+class MemoriaCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=200)
+    sections: dict
+    parent_id: Optional[str] = None
+    activate: bool = True
+
+
+@router.get("/memoria")
+async def get_memoria(admin=Depends(require_ciak_admin)):
+    """Versione attiva + storico. `active` e' None finche' nessuno ha scritto la memoria:
+    in quel caso gli agenti non ricevono nulla in piu'."""
+    from services import ciak_memoria
+
+    return {
+        "active": await ciak_memoria.get_active(),
+        "versions": await ciak_memoria.list_versions(limit=50),
+        "sections": [
+            {"key": k, "title": t, "hint": h} for k, t, h in ciak_memoria.SECTIONS
+        ],
+        "max_section_chars": ciak_memoria.MAX_SECTION_CHARS,
+    }
+
+
+@router.post("/memoria")
+async def create_memoria(body: MemoriaCreate, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    author_email = getattr(admin, "email", None) or getattr(admin, "sub", "unknown")
+    try:
+        version = await ciak_memoria.create_version(
+            sections=body.sections,
+            label=body.label,
+            author_email=author_email,
+            parent_id=body.parent_id,
+            activate=body.activate,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    return {"success": True, "version": version}
+
+
+@router.post("/memoria/{version_id}/activate")
+async def activate_memoria(version_id: str, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    activated = await ciak_memoria.activate_version(version_id)
+    if not activated:
+        raise HTTPException(404, "Versione non trovata")
+    return {"success": True, "active": activated}
+
+
+# ─── Sollecito trattative — bozza di Marco, approvazione di Claudio, registro ───
+# Nulla parte da solo: /bozza non invia niente, /invia richiede `approvato: true` nel body
+# (il clic su «Invia» dopo aver letto). Ogni tentativo finisce in `ciak_solleciti`.
+
+class SollecitoBozzaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+class SollecitoInviaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=5000)
+    approvato: bool = False
+
+
+async def _contesto_sollecito(email: str) -> tuple:
+    """(contesto | None, proposta piu' recente | None)."""
+    from services import ciak_sollecito
+
+    proposta = await db.proposte.find_one(
+        {"prospect_email": _email_ci(email)}, {"_id": 0}, sort=[("creato_at", -1)]
+    )
+    sessione = await db.diagnostic_sessions.find_one(
+        {"user_email": _email_ci(email)}, {"_id": 0, "user_name": 1}, sort=[("created_at", -1)]
+    )
+    return ciak_sollecito.build_contesto(email, proposta, sessione), proposta
+
+
+@router.post("/solleciti/bozza")
+async def sollecito_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Marco prepara la bozza. Non invia, non scrive nulla sul lead."""
+    import os
+    from services import ciak_sollecito, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+
+    memoria = await ciak_memoria.render_active_block()
+    system, user = ciak_sollecito.prompt_bozza(ctx, memoria)
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    bozza = None
+    if api_key:
+        try:
+            import anthropic
+
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            resp = await client.messages.create(
+                model=ciak_sollecito.MODELLO,
+                max_tokens=600,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+            bozza = ciak_sollecito.parse_bozza(resp.content[0].text)
+        except Exception as e:  # la bozza base resta disponibile: non si blocca il lavoro
+            logger.warning("[sollecito] bozza AI non disponibile: %s", e)
+    da_ai = bozza is not None
+    return {
+        "email": email,
+        "nome": ctx["nome"],
+        "da_ai": da_ai,
+        "bozza": bozza or ciak_sollecito.bozza_base(ctx),
+        "fatti": ciak_sollecito._fatti(ctx),
+    }
+
+
+async def _invia_approvato(*, email: str, subject: str, testo: str, nome: str, tipo: str, admin) -> dict:
+    """Invio approvato 1:1 (SMTP/Brevo) + registro in `ciak_solleciti`. Blocca il doppio invio
+    entro 24 ore (qualsiasi tipo). Non cambia stato del lead e non tocca Systeme."""
+    import asyncio
+    from services import ciak_sollecito
+    from services.lead_outreach import send_lead_email
+
+    recenti = await db.ciak_solleciti.find({"email": email, "ok": True}, {"_id": 0}).to_list(50)
+    dup = ciak_sollecito.duplicato_recente(recenti, email)
+    if dup:
+        raise HTTPException(409, f"Gli hai già scritto il {dup['sent_at'][:10]}: aspetta almeno 24 ore.")
+    ok, err = await asyncio.to_thread(send_lead_email, email, subject, ciak_sollecito.testo_in_html(testo))
+    riga = ciak_sollecito.riga_registro(
+        email=email, nome=nome, subject=subject, body=testo, by=_autore(admin), ok=ok, error=err,
+    )
+    riga["tipo"] = tipo
+    await db.ciak_solleciti.insert_one(dict(riga))
+    if not ok:
+        logger.warning("[%s] invio fallito per %s: %s", tipo, email, err)
+        raise HTTPException(502, f"Email non partita: {err}")
+    logger.info("[%s] inviato a %s da %s", tipo, email, riga["sent_by"])
+    return {"success": True, "email": email, "sent_at": riga["sent_at"]}
+
+
+def _controlla_invio(body) -> tuple:
+    """Validazione comune di /solleciti/invia e /recupero/invia: (email, oggetto, testo)."""
+    from services import ciak_sollecito
+
+    if body.approvato is not True:
+        raise HTTPException(422, "Serve l'approvazione esplicita prima di inviare.")
+    email = body.email.strip().lower()
+    subject, testo = body.subject.strip(), body.body.strip()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    if not (ciak_sollecito.OGGETTO_MIN <= len(subject) <= ciak_sollecito.OGGETTO_MAX):
+        raise HTTPException(422, "Oggetto mancante o troppo lungo")
+    if not (ciak_sollecito.CORPO_MIN <= len(testo) <= ciak_sollecito.CORPO_MAX):
+        raise HTTPException(422, "Testo troppo corto o troppo lungo")
+    if "\n" in subject or "\r" in subject:
+        raise HTTPException(422, "L'oggetto deve stare su una riga")
+    return email, subject, testo
+
+
+@router.post("/solleciti/invia")
+async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia il sollecito approvato. Stesso canale delle email 1:1 (SMTP/Brevo). Non cambia lo
+    stato del lead e non tocca Systeme."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=ctx["nome"], tipo="sollecito", admin=admin)
+
+
+# ─── Recupero 1 a 1 (Carlo): chi si è fermato nel funnel gratuito ───────────
+# Mai invio di massa: bozza di Carlo + approvazione + registro, come il sollecito.
+
+async def _candidati_recupero(only_email: Optional[str] = None) -> list:
+    from datetime import timedelta
+    from services import ciak_recupero as rc
+
+    def per(campo: str, extra: Optional[dict] = None) -> dict:
+        q = dict(extra or {})
+        if only_email:
+            q[campo] = _email_ci(only_email)
+        return q
+
+    minuscola = lambda v: (v or "").strip().lower()
+    sessioni = await db.diagnostic_sessions.find(
+        per("user_email", {"current_state": {"$in": rc.STATI_DA_LEGGERE}}),
+        {"_id": 0, "user_email": 1, "user_name": 1, "current_state": 1, "state_history": 1, "created_at": 1},
+    ).to_list(20000)
+    escluse: set = set()
+    # Chi ha gia' fissato/fatto la call, ha una proposta, e' cliente o partner: non si recupera.
+    for coll, campo, extra in [
+        (db.diagnostic_sessions, "user_email", {"current_state": {"$in": ["call_booked", "call_done", "partner_approved", "partner_active"]}}),
+        (db.proposte, "prospect_email", {}),
+        (db.ciak_clients, "email", {}),
+        (db.partners, "email", {}),
+        (db.lista_fredda, "email", {"stato": "disiscritto"}),
+    ]:
+        for r in await coll.find(per(campo, extra), {"_id": 0, campo: 1}).to_list(20000):
+            escluse.add(minuscola(r.get(campo)))
+    limite = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    for r in await db.ciak_solleciti.find(per("email", {"ok": True}), {"_id": 0, "email": 1, "sent_at": 1}).to_list(5000):
+        if (r.get("sent_at") or "") >= limite:
+            escluse.add(minuscola(r.get("email")))
+    return rc.candidati(sessioni, escluse)
+
+
+@router.get("/recupero")
+async def recupero_elenco(admin=Depends(require_ciak_admin)):
+    """Persone ferme nel funnel gratuito da recuperare (Carlo). Sola lettura."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    items = await _candidati_recupero()
+    return {"items": items, "totale": len(items)}
+
+
+@router.post("/recupero/bozza")
+async def recupero_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Carlo prepara la bozza per UNA persona che risulta ancora da recuperare. Non invia."""
+    from services import ciak_recupero as rc, ciak_memoria, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    system, user = rc.prompt_bozza(cand, await ciak_memoria.render_active_block())
+    bozza = ciak_sollecito.parse_bozza(await _chiedi_llm(system, user, 600) or "")
+    return {
+        "email": email, "nome": cand["nome"], "da_ai": bozza is not None,
+        "bozza": bozza or rc.bozza_base(cand), "fatti": rc.fatti(cand),
+    }
+
+
+@router.post("/recupero/invia")
+async def recupero_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia l'email di recupero approvata, solo se la persona risulta ancora da recuperare."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=cand["nome"], tipo="recupero", admin=admin)
+
+
+@router.get("/solleciti/recenti")
+async def solleciti_recenti(giorni: int = Query(14, ge=1, le=90), admin=Depends(require_ciak_admin)):
+    """Chi è stato sollecitato negli ultimi `giorni` (per non scrivere due volte)."""
+    from services import ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_solleciti.find({"ok": True}, {"_id": 0, "body": 0}).sort("sent_at", -1).to_list(500)
+    return {"items": ciak_sollecito.ultimi_per_email(righe, giorni)}
+
+
+# ─── Trattative — prossimo passo con data + cronologia del contatto ─────────
+# Un solo passo aperto per persona (`ciak_prossimi_passi`, chiave email). Quando cambia o si
+# chiude, il vecchio va in `storico` e compare nella cronologia.
+
+class ProssimoPassoIn(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    testo: str = Field(..., max_length=600)
+    scadenza: str = Field(..., max_length=10)
+
+
+class ProssimoPassoFatto(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+def _autore(admin) -> str:
+    return getattr(admin, "email", None) or "sconosciuto"
+
+
+@router.get("/prossimi-passi")
+async def prossimi_passi(admin=Depends(require_ciak_admin)):
+    """I passi aperti, con lo stato della scadenza (scaduto / oggi / futuro)."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_prossimi_passi.find({"testo": {"$nin": [None, ""]}}, {"_id": 0, "storico": 0}).to_list(2000)
+    items = [{**r, "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))} for r in righe]
+    items.sort(key=lambda r: r.get("scadenza") or "9999")
+    return {"items": items}
+
+
+@router.post("/prossimi-passi")
+async def imposta_prossimo_passo(body: ProssimoPassoIn, admin=Depends(require_ciak_admin)):
+    """Imposta (o sostituisce) il prossimo passo. Il vecchio passo aperto va nello storico."""
+    from services import ciak_trattativa as tr, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    try:
+        testo, scadenza = tr.valida_passo(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not (await db.ciak_leads.find_one({"email": _email_ci(email)}, {"_id": 1})
+            or await db.diagnostic_sessions.find_one({"user_email": _email_ci(email)}, {"_id": 1})
+            or await db.proposte.find_one({"prospect_email": _email_ci(email)}, {"_id": 1})):
+        raise HTTPException(404, "Non conosco questa persona.")
+
+    adesso = datetime.now(timezone.utc).isoformat()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0}) or {}
+    storico = list(attuale.get("storico") or [])
+    if attuale.get("testo"):
+        storico.append({
+            "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+            "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+            "sostituito_at": adesso,
+        })
+    doc = {
+        "email": email, "testo": testo, "scadenza": scadenza,
+        "creato_at": adesso, "creato_da": _autore(admin), "storico": storico,
+    }
+    await db.ciak_prossimi_passi.update_one({"email": email}, {"$set": doc}, upsert=True)
+    return {"success": True, "passo": {k: v for k, v in doc.items() if k != "storico"}}
+
+
+@router.post("/prossimi-passi/fatto")
+async def prossimo_passo_fatto(body: ProssimoPassoFatto, admin=Depends(require_ciak_admin)):
+    """Segna il passo come fatto: esce dai passi aperti, resta in cronologia."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    attuale = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not attuale or not attuale.get("testo"):
+        raise HTTPException(404, "Non c'è nessun passo aperto per questa persona.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico = list(attuale.get("storico") or [])
+    storico.append({
+        "testo": attuale["testo"], "scadenza": attuale.get("scadenza"),
+        "creato_at": attuale.get("creato_at"), "creato_da": attuale.get("creato_da"),
+        "fatto_at": adesso, "fatto_da": _autore(admin),
+    })
+    await db.ciak_prossimi_passi.update_one(
+        {"email": email},
+        {"$set": {"testo": None, "scadenza": None, "creato_at": None, "creato_da": None, "storico": storico}},
+    )
+    return {"success": True}
+
+
+@router.get("/cronologia")
+async def cronologia_contatto(email: str = Query(..., min_length=3), admin=Depends(require_ciak_admin)):
+    """Cronologia di una persona: solo eventi con data vera nelle fonti che abbiamo."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = email.strip().lower()
+    diagnostics = await db.diagnostic_sessions.find({"user_email": _email_ci(email)}, {"_id": 0, "state_history": 1}).to_list(50)
+    proposte = await db.proposte.find({"prospect_email": _email_ci(email)}, {"_id": 0}).to_list(50)
+    solleciti = await db.ciak_solleciti.find({"email": email}, {"_id": 0, "body": 0}).to_list(200)
+    passo = await db.ciak_prossimi_passi.find_one({"email": email}, {"_id": 0})
+    if not (diagnostics or proposte or solleciti or passo):
+        raise HTTPException(404, "Nessun evento registrato per questa persona.")
+    return {
+        "email": email,
+        "eventi": tr.costruisci_cronologia(diagnostics=diagnostics, proposte=proposte, solleciti=solleciti, passo=passo),
+        "passo": ({k: v for k, v in passo.items() if k != "storico"} if passo and passo.get("testo") else None),
+    }
+
+
+# ─── Partner — compiti con scadenza + avvisi di percorso (Valentina) ────────
+# I compiti vivono in `ciak_partner_attivita` e si chiudono (non si cancellano). Gli avvisi
+# sono solo lettura di `partner_journey_steps`: non toccano mai il motore del percorso.
+
+class CompitoIn(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    testo: str = Field(..., max_length=600)
+    scadenza: Optional[str] = Field(None, max_length=10)
+
+
+class CompitoFatto(BaseModel):
+    id: str = Field(..., min_length=1, max_length=100)
+
+
+class AvvisoVisto(BaseModel):
+    partner_id: str = Field(..., min_length=1, max_length=100)
+    step_id: str = Field(..., min_length=1, max_length=100)
+
+
+@router.get("/partner-attivita")
+async def partner_attivita(partner_id: Optional[str] = Query(None), admin=Depends(require_ciak_admin)):
+    """Compiti aperti (di un partner o di tutti), scadenze prima; con nome del partner."""
+    from services import ciak_trattativa as tr
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    filtro = {"fatto_at": None}
+    if partner_id:
+        filtro["partner_id"] = partner_id
+    righe = await db.ciak_partner_attivita.find(filtro, {"_id": 0}).to_list(2000)
+    nomi = {}
+    async for p in db.partners.find({"id": {"$in": list({r["partner_id"] for r in righe})}}, {"_id": 0, "id": 1, "name": 1}):
+        nomi[p.get("id")] = p.get("name")
+    items = [
+        {**r, "partner_nome": nomi.get(r["partner_id"]), "stato_scadenza": tr.stato_scadenza(r.get("scadenza"))}
+        for r in righe
+    ]
+    items.sort(key=lambda r: (r.get("scadenza") or "9999", r.get("creato_at") or ""))
+    return {"items": items}
+
+
+@router.post("/partner-attivita")
+async def crea_compito(body: CompitoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, scadenza = pa.valida_compito(body.testo, body.scadenza)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await db.partners.find_one({"id": body.partner_id}, {"_id": 1}):
+        raise HTTPException(404, "Partner non trovato")
+    riga = pa.nuovo_compito(partner_id=body.partner_id, testo=testo, scadenza=scadenza, autore=_autore(admin))
+    await db.ciak_partner_attivita.insert_one(dict(riga))
+    return {"success": True, "compito": riga}
+
+
+@router.post("/partner-attivita/fatto")
+async def compito_fatto(body: CompitoFatto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    attuale = await db.ciak_partner_attivita.find_one({"id": body.id}, {"_id": 0})
+    if not attuale:
+        raise HTTPException(404, "Compito non trovato")
+    if attuale.get("fatto_at"):
+        return {"success": True, "gia_fatto": True}
+    await db.ciak_partner_attivita.update_one(
+        {"id": body.id},
+        {"$set": {"fatto_at": datetime.now(timezone.utc).isoformat(), "fatto_da": _autore(admin)}},
+    )
+    return {"success": True}
+
+
+@router.get("/avvisi-percorso")
+async def avvisi_percorso(admin=Depends(require_ciak_admin)):
+    """Passi completati dai partner attivi negli ultimi giorni, non ancora segnati come visti.
+    Sola lettura del percorso."""
+    from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+    from services import ciak_partner_attivita as pa
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partners = {}
+    async for p in db.partners.find(
+        {"$or": [{"stato": {"$exists": False}}, {"stato": None}, {"stato": "attivo"}]}, {"_id": 0, "id": 1, "name": 1}
+    ):
+        partners[p.get("id")] = p.get("name")
+    steps_by: dict = {}
+    async for st in db.partner_journey_steps.find({"partner_id": {"$in": list(partners)}}, {"_id": 0}):
+        steps_by.setdefault(st.get("partner_id"), []).append(st)
+    visti = {(v["partner_id"], v["step_id"]) async for v in db.ciak_avvisi_visti.find({}, {"_id": 0})}
+    items = []
+    for pid, steps in steps_by.items():
+        for a in pa.avvisi_percorso(steps=steps, definizione=JOURNEY_STEPS_DEFINITION, visti=visti):
+            items.append({**a, "partner_nome": partners.get(pid)})
+    items.sort(key=lambda a: a["completato_at"], reverse=True)
+    return {"items": items}
+
+
+@router.post("/avvisi-percorso/visto")
+async def avviso_visto(body: AvvisoVisto, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_avvisi_visti.update_one(
+        {"partner_id": body.partner_id, "step_id": body.step_id},
+        {"$set": {"partner_id": body.partner_id, "step_id": body.step_id,
+                  "visto_at": datetime.now(timezone.utc).isoformat(), "visto_da": _autore(admin)}},
+        upsert=True,
+    )
+    return {"success": True}
+
+
+# ─── Commenti interni con menzione di un agente + casella notifiche ─────────
+# Un commento con @Marco fa rispondere Marco sotto il commento (legge e consiglia, non esegue).
+# Ogni risposta crea una notifica. Se l'AI non risponde, nessuna risposta finta.
+
+class CommentoIn(BaseModel):
+    target_tipo: str = Field(..., max_length=20)
+    target_id: str = Field(..., min_length=1, max_length=254)
+    testo: str = Field(..., max_length=4000)
+
+
+class NotificaLetta(BaseModel):
+    id: Optional[str] = Field(None, max_length=100)
+    tutte: bool = False
+
+
+async def _chiedi_llm(system: str, user: str, max_tokens: int = 500, messages: Optional[list] = None) -> Optional[str]:
+    """Testo della risposta o None se l'AI non e' disponibile (mai un testo inventato)."""
+    import os
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    if not api_key:
+        return None
+    try:
+        import anthropic
+
+        from services import ciak_commenti
+
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=ciak_commenti.MODELLO, max_tokens=max_tokens, system=system,
+            messages=messages or [{"role": "user", "content": user}],
+        )
+        testo = (resp.content[0].text or "").strip()
+        return testo or None
+    except Exception as e:
+        logger.warning("[commenti] AI non disponibile: %s", e)
+        return None
+
+
+async def _target_esiste(tipo: str, tid: str) -> bool:
+    if tipo == "partner":
+        return bool(await db.partners.find_one({"id": tid}, {"_id": 1}))
+    return bool(
+        await db.ciak_leads.find_one({"email": _email_ci(tid)}, {"_id": 1})
+        or await db.diagnostic_sessions.find_one({"user_email": _email_ci(tid)}, {"_id": 1})
+        or await db.proposte.find_one({"prospect_email": _email_ci(tid)}, {"_id": 1})
+    )
+
+
+async def _contesto_commento(tipo: str, tid: str) -> str:
+    """Fatti verificabili sul bersaglio, in testo semplice per l'agente."""
+    from services import ciak_trattativa as tr
+
+    righe: list[str] = []
+    if tipo == "partner":
+        p = await db.partners.find_one({"id": tid}, {"_id": 0, "name": 1, "stato": 1}) or {}
+        righe.append(f"Partner: {p.get('name') or 'sconosciuto'} (stato: {p.get('stato') or 'attivo'}).")
+        for c in await db.ciak_partner_attivita.find({"partner_id": tid, "fatto_at": None}, {"_id": 0}).to_list(20):
+            righe.append(f"Compito aperto: {c.get('testo')}" + (f" (entro il {c['scadenza']})" if c.get("scadenza") else ""))
+        return "\n".join(righe)
+
+    nome = ""
+    sess = await db.diagnostic_sessions.find({"user_email": _email_ci(tid)}, {"_id": 0, "state_history": 1, "user_name": 1}).to_list(20)
+    prop = await db.proposte.find({"prospect_email": _email_ci(tid)}, {"_id": 0}).to_list(20)
+    sol = await db.ciak_solleciti.find({"email": tid}, {"_id": 0, "body": 0}).to_list(50)
+    passo = await db.ciak_prossimi_passi.find_one({"email": tid}, {"_id": 0})
+    nome = (prop[0].get("prospect_nome") if prop else None) or (sess[0].get("user_name") if sess else None) or tid
+    righe.append(f"Persona: {nome} ({tid}).")
+    if passo and passo.get("testo"):
+        righe.append(f"Prossimo passo deciso: {passo['testo']} (entro il {passo.get('scadenza')}).")
+    else:
+        righe.append("Nessun prossimo passo impostato.")
+    for e in tr.costruisci_cronologia(diagnostics=sess, proposte=prop, solleciti=sol, passo=passo)[:15]:
+        righe.append(f"{e['at'][:10]} - {e['titolo']}" + (f": {e['dettaglio']}" if e.get("dettaglio") else ""))
+    return "\n".join(righe)
+
+
+@router.get("/commenti")
+async def elenco_commenti(target_tipo: str = Query(...), target_id: str = Query(..., min_length=1),
+                          admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        _t, tipo, tid = cm.valida_commento("x", target_tipo, target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    righe = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+    righe.sort(key=lambda r: r.get("creato_at") or "")
+    return {"items": righe}
+
+
+@router.post("/commenti")
+async def scrivi_commento(body: CommentoIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_commenti as cm, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo, tipo, tid = cm.valida_commento(body.testo, body.target_tipo, body.target_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not await _target_esiste(tipo, tid):
+        raise HTTPException(404, "Non conosco questo contatto.")
+
+    commento = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo, autore=_autore(admin))
+    await db.ciak_commenti.insert_one(dict(commento))
+
+    risposte, non_riuscite = [], []
+    chiamati = commento["menzioni"][: cm.MAX_AGENTI_PER_COMMENTO]
+    if chiamati:
+        contesto = await _contesto_commento(tipo, tid)
+        thread = await db.ciak_commenti.find({"target_tipo": tipo, "target_id": tid}, {"_id": 0}).to_list(300)
+        thread.sort(key=lambda r: r.get("creato_at") or "")
+        thread = [c for c in thread if c["id"] != commento["id"]]
+        memoria = await ciak_memoria.render_active_block()
+        for agente in chiamati:
+            system, user = cm.prompt_agente(agente, contesto, thread, testo, memoria)
+            testo_ai = await _chiedi_llm(system, user)
+            if not testo_ai:
+                non_riuscite.append(cm.AGENTI[agente][0])
+                continue
+            r = cm.nuovo_commento(target_tipo=tipo, target_id=tid, testo=testo_ai, autore=cm.AGENTI[agente][0],
+                                  agente=agente, risposta_a=commento["id"])
+            await db.ciak_commenti.insert_one(dict(r))
+            await db.ciak_notifiche.insert_one(cm.nuova_notifica(agente=agente, commento=r))
+            risposte.append(r)
+    saltati = [cm.AGENTI[a][0] for a in commento["menzioni"][cm.MAX_AGENTI_PER_COMMENTO:]]
+    return {"success": True, "commento": commento, "risposte": risposte, "non_riuscite": non_riuscite, "saltati": saltati}
+
+
+@router.get("/notifiche")
+async def elenco_notifiche(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_notifiche.find({}, {"_id": 0}).to_list(500)
+    righe.sort(key=lambda r: r.get("creato_at") or "", reverse=True)
+    return {"items": righe[:30], "non_lette": sum(1 for r in righe if not r.get("letta_at"))}
+
+
+@router.post("/notifiche/letta")
+async def notifica_letta(body: NotificaLetta, admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if not body.tutte and not body.id:
+        raise HTTPException(422, "Indica quale notifica o tutte.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    filtro = {"letta_at": None} if body.tutte else {"id": body.id}
+    await db.ciak_notifiche.update_many(filtro, {"$set": {"letta_at": adesso}})
+    return {"success": True}
+
+
+# ─── Andrea (Contenuti): bozze di testo e SEO. Solo bozze: non pubblica, non salva ─
+
+class ContenutoBozzaIn(BaseModel):
+    tipo: str = Field(..., max_length=30)
+    brief: str = Field(..., max_length=4000)
+
+
+@router.post("/contenuti/bozza")
+async def contenuto_bozza(body: ContenutoBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive una bozza dal brief + Memoria Ciak. Se l'AI non risponde: 503, nessun
+    testo inventato."""
+    from services import ciak_contenuti as ct, ciak_memoria
+
+    try:
+        tipo, brief = ct.valida_richiesta(body.tipo, body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = ct.prompt(tipo, brief, await ciak_memoria.render_active_block())
+    testo = await _chiedi_llm(system, user, 800)
+    if not testo:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    if tipo == "seo_pagina":
+        seo = ct.parse_seo(testo)
+        if seo is None:
+            raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+        return {"tipo": tipo, "seo": seo}
+    return {"tipo": tipo, "testo": testo}
+
+
+# ─── Chat con Andrea (Contenuti): legge e consiglia, non esegue ─────────────
+
+class AndreaChatIn(BaseModel):
+    message: str = Field(..., max_length=6000)
+
+
+def _chiave_chat(admin, agente: str) -> str:
+    return f"{agente}_{getattr(admin, 'user_id', None) or _autore(admin)}"
+
+
+@router.post("/andrea/chat")
+async def andrea_chat(body: AndreaChatIn, admin=Depends(require_ciak_admin)):
+    from services import ciak_andrea_chat as ac, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    try:
+        testo = ac.valida_messaggio(body.message)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    chiave = _chiave_chat(admin, "andrea")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": chiave}, {"_id": 0}) or {}
+    storico = list(doc.get("messages") or [])
+    partners = await db.partners.find({}, {"_id": 0, "name": 1, "niche": 1, "revenue": 1, "stato": 1}).to_list(2000)
+    system = ac.prompt_sistema(ac.contesto_casi(partners), await ciak_memoria.render_active_block())
+    risposta = await _chiedi_llm(system, "", 900, messages=ac.messaggi_per_llm(storico, testo))
+    if not risposta:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    adesso = datetime.now(timezone.utc).isoformat()
+    storico += [{"role": "user", "content": testo, "ts": adesso}, {"role": "assistant", "content": risposta, "ts": adesso}]
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": chiave},
+        {"$set": {"chiave": chiave, "agente": "andrea", "messages": storico[-ac.STORICO_SALVATO:], "updated_at": adesso}},
+        upsert=True,
+    )
+    return {"reply": risposta}
+
+
+@router.get("/andrea/history")
+async def andrea_history(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_agenti_chat.find_one({"chiave": _chiave_chat(admin, "andrea")}, {"_id": 0}) or {}
+    return {"messages": (doc.get("messages") or [])[-50:]}
+
+
+@router.delete("/andrea/history")
+async def andrea_history_clear(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    await db.ciak_agenti_chat.update_one(
+        {"chiave": _chiave_chat(admin, "andrea")},
+        {"$set": {"chiave": _chiave_chat(admin, "andrea"), "agente": "andrea", "messages": []}},
+        upsert=True,
+    )
+    return {"success": True}
+
+
+# ─── Report della settimana (Luca) ───────────────────────────────────────────
+
+@router.get("/report/settimana")
+async def report_settimana(admin=Depends(require_ciak_admin)):
+    """Conteggi degli ultimi 7 giorni contro i 7 precedenti. Una voce che non si riesce a
+    contare esce come non disponibile (None), mai come zero."""
+    from services import ciak_report as rp
+
+    fin = rp.finestre()
+    conteggi = {}
+    for chiave, _et, coll, campo, extra in rp.VOCI:
+        coppia = []
+        for nome in ("attuale", "precedente"):
+            da, a = fin[nome]
+            try:
+                n = await db[coll].count_documents({**extra, campo: {"$gte": da, "$lt": a}})
+            except Exception as e:  # noqa: BLE001
+                logger.warning("[REPORT] %s non contabile: %s", chiave, e)
+                n = None
+            coppia.append(n)
+        conteggi[chiave] = tuple(coppia)
+    return {"da": fin["attuale"][0], "a": fin["attuale"][1], "voci": rp.costruisci(conteggi)}
+
+
+# ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
+
+class ReelAvatarIn(BaseModel):
+    avatar_id: str = Field(..., min_length=3, max_length=200)
+    voice_id: str = Field(..., min_length=3, max_length=200)
+    tetto_mensile: int = Field(8, ge=1, le=60)
+
+
+class ReelBozzaIn(BaseModel):
+    brief: str = Field(..., max_length=2000)
+
+
+class ReelGeneraIn(BaseModel):
+    script: str = Field(..., max_length=2000)
+    didascalia: str = Field("", max_length=600)
+    approvato: bool = False
+
+
+async def _reel_config() -> dict:
+    doc = await db.ciak_site_config.find_one({"key": "reel_config"}, {"_id": 0}) or {}
+    return doc.get("value") or {}
+
+
+def _heygen():
+    from heygen_service import heygen_service
+    return heygen_service
+
+
+@router.get("/reel/avatar")
+async def reel_avatar(admin=Depends(require_ciak_admin)):
+    """Gli avatar e le voci che HeyGen ha sull'account, piu' la scelta fatta. Se HeyGen non
+    risponde lo dice (non inventa elenchi)."""
+    conf = await _reel_config()
+    out = {"scelta": {"avatar_id": conf.get("avatar_id"), "voice_id": conf.get("voice_id"),
+                      "tetto_mensile": conf.get("tetto_mensile", 8)},
+           "avatars": [], "voices": [], "heygen_ok": False, "errore": None}
+    try:
+        svc = _heygen()
+        av = await svc.get_my_avatars()
+        voci = await svc.get_voices()
+        out["avatars"] = [
+            {"avatar_id": a.get("avatar_id"), "nome": a.get("avatar_name") or a.get("name") or a.get("avatar_id"),
+             "anteprima": a.get("preview_image_url")}
+            for a in (av.get("data", {}).get("avatars") or []) if a.get("avatar_id")
+        ]
+        out["voices"] = [
+            {"voice_id": v.get("voice_id"), "nome": v.get("name") or v.get("display_name") or v.get("voice_id"),
+             "lingua": v.get("language")}
+            for v in (voci.get("data", {}).get("voices") or [])
+            if v.get("voice_id") and "ital" in str(v.get("language", "")).lower()
+        ][:100]
+        out["heygen_ok"] = True
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[REEL] HeyGen non raggiungibile: %s", e)
+        out["errore"] = "HeyGen non risponde (chiave mancante o servizio non raggiungibile)."
+    return out
+
+
+@router.post("/reel/avatar")
+async def reel_avatar_salva(body: ReelAvatarIn, admin=Depends(require_ciak_admin)):
+    now = datetime.now(timezone.utc).isoformat()
+    valore = {"avatar_id": body.avatar_id.strip(), "voice_id": body.voice_id.strip(),
+              "tetto_mensile": body.tetto_mensile}
+    await db.ciak_site_config.update_one(
+        {"key": "reel_config"},
+        {"$set": {"key": "reel_config", "value": valore, "updated_at": now, "updated_by": _autore(admin)}},
+        upsert=True,
+    )
+    return {"ok": True, "scelta": valore}
+
+
+@router.post("/reel/bozza")
+async def reel_bozza(body: ReelBozzaIn, admin=Depends(require_ciak_admin)):
+    """Andrea scrive script e didascalia. Non genera nulla e non consuma crediti HeyGen."""
+    from services import ciak_reel as cr, ciak_memoria
+
+    try:
+        brief = cr.valida_brief(body.brief)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = cr.prompt_script(brief, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 700)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    bozza = cr.parse_script(raw)
+    if bozza is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato o con una durata che non vanno bene. Riprova.")
+    return bozza
+
+
+@router.post("/reel/genera")
+async def reel_genera(body: ReelGeneraIn, admin=Depends(require_ciak_admin)):
+    """Genera il video con HeyGen (verticale). Solo con approvazione esplicita, avatar scelto e
+    sotto il tetto mensile. Consuma crediti HeyGen."""
+    from services import ciak_reel as cr
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione: leggi lo script e conferma.")
+    try:
+        script = cr.valida_script(body.script)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    conf = await _reel_config()
+    if not conf.get("avatar_id") or not conf.get("voice_id"):
+        raise HTTPException(409, "Scegli prima il tuo avatar e la tua voce.")
+    mese = cr.mese_corrente()
+    tetto = int(conf.get("tetto_mensile") or cr.TETTO_MENSILE_DEFAULT)
+    del_mese = await db.ciak_reel.find({"mese": mese}, {"_id": 0}).to_list(500)
+    if cr.tetto_raggiunto(del_mese, tetto, mese):
+        raise HTTPException(409, f"Hai raggiunto il tetto di {tetto} reel per questo mese. Alzalo nella scelta dell'avatar se vuoi continuare.")
+    didascalia = " ".join((body.didascalia or "").split())[:220]
+    try:
+        r = await _heygen().generate_video(
+            script=script, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            title=f"Reel {mese}", test=False, dimension=cr.DIMENSIONE_REEL,
+        )
+        video_id = (r.get("data") or {}).get("video_id")
+        if not video_id:
+            raise RuntimeError(f"risposta senza video_id: {str(r)[:200]}")
+    except Exception as e:  # noqa: BLE001
+        await db.ciak_reel.insert_one(cr.riga_reel(
+            script=script, didascalia=didascalia, avatar_id=conf["avatar_id"], voice_id=conf["voice_id"],
+            video_id=None, by=_autore(admin), stato="fallito", errore=str(e)[:300]))
+        raise HTTPException(502, "HeyGen non ha accettato la richiesta. Controlla i crediti sul tuo account HeyGen e riprova più tardi.")
+    riga = cr.riga_reel(script=script, didascalia=didascalia, avatar_id=conf["avatar_id"],
+                        voice_id=conf["voice_id"], video_id=video_id, by=_autore(admin), stato="in_generazione")
+    await db.ciak_reel.insert_one(dict(riga))
+    return {"ok": True, "reel": {k: v for k, v in riga.items() if k != "_id"}}
+
+
+class ReelInCodaIn(BaseModel):
+    data: str = Field(..., min_length=10, max_length=10)       # YYYY-MM-DD
+    canali: list[str] = Field(default_factory=lambda: ["instagram", "facebook"])
+    approvato: bool = False
+
+
+@router.post("/reel/{reel_id}/in-coda")
+async def reel_in_coda(reel_id: str, body: ReelInCodaIn, admin=Depends(require_ciak_admin)):
+    """Mette un reel PRONTO in coda: il motore lo pubblica nel giorno scelto (IG e FB).
+    Solo con approvazione e una sola volta per reel."""
+    from datetime import date as _date
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione per mettere il reel in coda.")
+    try:
+        giorno = _date.fromisoformat(body.data)
+    except ValueError:
+        raise HTTPException(422, "Data non valida (AAAA-MM-GG).")
+    if giorno < datetime.now(timezone.utc).date():
+        raise HTTPException(422, "La data è già passata.")
+    canali = [c for c in body.canali if c in ("instagram", "facebook")]
+    if not canali:
+        raise HTTPException(422, "Scegli almeno Instagram o Facebook: gli altri canali non supportano ancora i reel.")
+    reel = await db.ciak_reel.find_one({"id": reel_id}, {"_id": 0})
+    if not reel:
+        raise HTTPException(404, "Reel non trovato.")
+    if reel.get("stato") != "pronto" or not reel.get("video_url"):
+        raise HTTPException(409, "Il reel non è ancora pronto: aggiorna l'elenco e riprova.")
+    if reel.get("in_coda_at"):
+        raise HTTPException(409, "Questo reel è già in coda.")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.ciak_social_queue.insert_one({
+        "post_id": f"reel_{reel_id}", "source": "reel", "reel_id": reel_id,
+        "video_url": reel["video_url"], "caption": reel.get("didascalia") or "",
+        "channels": canali, "scheduled_date": body.data, "status": "pending", "attempts": 0, "created_at": now,
+    })
+    await db.ciak_reel.update_one({"id": reel_id}, {"$set": {"in_coda_at": now, "in_coda_data": body.data, "in_coda_canali": canali}})
+    return {"ok": True, "data": body.data, "canali": canali}
+
+
+@router.get("/reel")
+async def reel_elenco(admin=Depends(require_ciak_admin)):
+    """I reel degli ultimi mesi; quelli in generazione si aggiornano chiedendo a HeyGen."""
+    righe = await db.ciak_reel.find({}, {"_id": 0}).sort("creato_at", -1).to_list(60)
+    for r in righe:
+        if r.get("stato") != "in_generazione" or not r.get("heygen_video_id"):
+            continue
+        try:
+            st = (await _heygen().get_video_status(r["heygen_video_id"])).get("data", {})
+        except Exception:  # noqa: BLE001
+            continue
+        if st.get("status") == "completed" and st.get("video_url"):
+            r["stato"], r["video_url"] = "pronto", st["video_url"]
+        elif st.get("status") == "failed":
+            r["stato"], r["errore"] = "fallito", str((st.get("error") or {}))[:300]
+        else:
+            continue
+        await db.ciak_reel.update_one({"id": r["id"]}, {"$set": {"stato": r["stato"], "video_url": r.get("video_url"), "errore": r.get("errore")}})
+    return {"items": righe}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

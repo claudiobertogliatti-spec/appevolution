@@ -17507,6 +17507,8 @@ from routers.ciak_admin import router as ciak_admin_router, set_db as set_ciak_a
 from services.ciak_matteo_prompt_store import set_db as set_ciak_matteo_prompt_store_db
 set_ciak_admin_db(db)
 set_ciak_matteo_prompt_store_db(db)
+from services.ciak_memoria import set_db as set_ciak_memoria_db
+set_ciak_memoria_db(db)
 app.include_router(ciak_admin_router)
 
 # Liquidazioni, fatture passive e bonifici dei collaboratori (solo Claudio/superadmin)
