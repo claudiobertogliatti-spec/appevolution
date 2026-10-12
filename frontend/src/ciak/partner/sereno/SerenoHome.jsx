@@ -4,9 +4,10 @@ import { ArrowRight, Route, MessagesSquare } from 'lucide-react';
 import { homeModel, PHASE_COPY } from './homeModel';
 import { useHelp } from './SerenoHelp';
 import { TappaCard, ExtraTappa } from './TappaCard';
+import LibroProgetto from './LibroProgetto';
 import './sereno.css';
 
-export default function SerenoHome({ state, partnerName, onOpenStep }) {
+export default function SerenoHome({ state, partnerName, partnerId, onOpenStep }) {
   const model = homeModel(state);
   const { openHelp } = useHelp();
   const phase = PHASE_COPY[model.step?.macro_phase];
@@ -30,6 +31,7 @@ export default function SerenoHome({ state, partnerName, onOpenStep }) {
     </section>
     <TappaCard macroPhase={model.step?.macro_phase} />
     <ExtraTappa macroPhase={model.step?.macro_phase} />
+    <LibroProgetto state={state} partnerId={partnerId} />
     <section className="sereno-how" aria-labelledby="sereno-how-title">
       <h2 id="sereno-how-title">Ciak prepara. Systeme pubblica.</h2>
       <div className="sereno-how-duo">
