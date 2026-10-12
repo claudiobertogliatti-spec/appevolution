@@ -138,3 +138,47 @@ def test_bozza_senza_ai_503(monkeypatch):
     with pytest.raises(HTTPException) as e:
         run(ciak_admin.reel_bozza(ciak_admin.ReelBozzaIn(brief="Un reel sul perché i corsi online non vendono"), ADMIN))
     assert e.value.status_code == 503
+
+
+# ── in coda + publisher ──────────────────────────────────────────────────────
+
+def _coda(reel_id="r1", **kw):
+    base = dict(data="2099-01-01", canali=["instagram", "facebook"], approvato=True); base.update(kw)
+    return run(ciak_admin.reel_in_coda(reel_id, ciak_admin.ReelInCodaIn(**base), ADMIN))
+
+
+@pytest.fixture
+def fake_coda(fake):
+    fake.ciak_reel.docs.append({"id": "r1", "stato": "pronto", "video_url": "https://v/x.mp4", "didascalia": "Did"})
+    fake.ciak_social_queue = _Coll([])
+    return fake
+
+
+def test_in_coda_crea_il_post_video(fake_coda):
+    assert _coda()["ok"] is True
+    q = fake_coda.ciak_social_queue.docs[0]
+    assert q["video_url"] == "https://v/x.mp4" and q["status"] == "pending" and q["channels"] == ["instagram", "facebook"]
+    with pytest.raises(HTTPException) as e:
+        _coda()
+    assert e.value.status_code == 409 and len(fake_coda.ciak_social_queue.docs) == 1
+
+
+def test_in_coda_rifiuta_non_pronto_senza_ok_e_canali_non_supportati(fake_coda):
+    fake_coda.ciak_reel.docs[0]["stato"] = "in_generazione"
+    for kw, code in [({}, 409), ({"approvato": False}, 422), ({"canali": ["linkedin"]}, 422), ({"data": "2000-01-01"}, 422)]:
+        with pytest.raises(HTTPException) as e:
+            _coda(**kw)
+        assert e.value.status_code == code
+    assert fake_coda.ciak_social_queue.docs == []
+
+
+def test_publisher_manda_il_video_e_non_gli_altri_canali(monkeypatch):
+    from services import social_publisher as sp
+    visti = []
+    async def ig(c, i, t, v, cap): visti.append(("ig", v)); return {"permalink": "p"}
+    async def fb(c, p, t, v, cap): visti.append(("fb", v)); return {"permalink": "q"}
+    monkeypatch.setattr(sp, "_pubblica_reel_ig", ig)
+    monkeypatch.setattr(sp, "_pubblica_reel_fb", fb)
+    res, err = run(sp._pubblica_post(None, "ig", "tok", "pg", {"video_url": "https://v/x.mp4", "caption": "c", "channels": ["instagram", "facebook", "linkedin"]}))
+    assert set(res) == {"instagram", "facebook"} and visti == [("ig", "https://v/x.mp4"), ("fb", "https://v/x.mp4")]
+    assert len(err) == 1 and "linkedin" in err[0]

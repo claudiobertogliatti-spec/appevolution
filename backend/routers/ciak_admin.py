@@ -3795,6 +3795,46 @@ async def reel_genera(body: ReelGeneraIn, admin=Depends(require_ciak_admin)):
     return {"ok": True, "reel": {k: v for k, v in riga.items() if k != "_id"}}
 
 
+class ReelInCodaIn(BaseModel):
+    data: str = Field(..., min_length=10, max_length=10)       # YYYY-MM-DD
+    canali: list[str] = Field(default_factory=lambda: ["instagram", "facebook"])
+    approvato: bool = False
+
+
+@router.post("/reel/{reel_id}/in-coda")
+async def reel_in_coda(reel_id: str, body: ReelInCodaIn, admin=Depends(require_ciak_admin)):
+    """Mette un reel PRONTO in coda: il motore lo pubblica nel giorno scelto (IG e FB).
+    Solo con approvazione e una sola volta per reel."""
+    from datetime import date as _date
+
+    if not body.approvato:
+        raise HTTPException(422, "Serve la tua approvazione per mettere il reel in coda.")
+    try:
+        giorno = _date.fromisoformat(body.data)
+    except ValueError:
+        raise HTTPException(422, "Data non valida (AAAA-MM-GG).")
+    if giorno < datetime.now(timezone.utc).date():
+        raise HTTPException(422, "La data è già passata.")
+    canali = [c for c in body.canali if c in ("instagram", "facebook")]
+    if not canali:
+        raise HTTPException(422, "Scegli almeno Instagram o Facebook: gli altri canali non supportano ancora i reel.")
+    reel = await db.ciak_reel.find_one({"id": reel_id}, {"_id": 0})
+    if not reel:
+        raise HTTPException(404, "Reel non trovato.")
+    if reel.get("stato") != "pronto" or not reel.get("video_url"):
+        raise HTTPException(409, "Il reel non è ancora pronto: aggiorna l'elenco e riprova.")
+    if reel.get("in_coda_at"):
+        raise HTTPException(409, "Questo reel è già in coda.")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.ciak_social_queue.insert_one({
+        "post_id": f"reel_{reel_id}", "source": "reel", "reel_id": reel_id,
+        "video_url": reel["video_url"], "caption": reel.get("didascalia") or "",
+        "channels": canali, "scheduled_date": body.data, "status": "pending", "attempts": 0, "created_at": now,
+    })
+    await db.ciak_reel.update_one({"id": reel_id}, {"$set": {"in_coda_at": now, "in_coda_data": body.data, "in_coda_canali": canali}})
+    return {"ok": True, "data": body.data, "canali": canali}
+
+
 @router.get("/reel")
 async def reel_elenco(admin=Depends(require_ciak_admin)):
     """I reel degli ultimi mesi; quelli in generazione si aggiornano chiedendo a HeyGen."""
