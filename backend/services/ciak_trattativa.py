@@ -103,14 +103,15 @@ def costruisci_cronologia(
         at = _parse_iso(s.get("sent_at"))
         if at is None:
             continue
+        recupero = s.get("tipo") == "recupero"
         if s.get("ok"):
             eventi.append({
-                "at": at, "tipo": "sollecito", "titolo": "Sollecito inviato",
+                "at": at, "tipo": "sollecito", "titolo": "Email di recupero inviata" if recupero else "Sollecito inviato",
                 "dettaglio": s.get("subject"), "autore": s.get("sent_by"),
             })
         else:
             eventi.append({
-                "at": at, "tipo": "sollecito", "titolo": "Sollecito non partito",
+                "at": at, "tipo": "sollecito", "titolo": "Email di recupero non partita" if recupero else "Sollecito non partito",
                 "dettaglio": s.get("error"), "autore": s.get("sent_by"),
             })
 

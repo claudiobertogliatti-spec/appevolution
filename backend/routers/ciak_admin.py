@@ -3054,16 +3054,34 @@ async def sollecito_bozza(body: SollecitoBozzaRequest, admin=Depends(require_cia
     }
 
 
-@router.post("/solleciti/invia")
-async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
-    """Invia il sollecito approvato. Stesso canale delle email 1:1 (SMTP/Brevo). Non cambia lo
-    stato del lead e non tocca Systeme."""
+async def _invia_approvato(*, email: str, subject: str, testo: str, nome: str, tipo: str, admin) -> dict:
+    """Invio approvato 1:1 (SMTP/Brevo) + registro in `ciak_solleciti`. Blocca il doppio invio
+    entro 24 ore (qualsiasi tipo). Non cambia stato del lead e non tocca Systeme."""
     import asyncio
     from services import ciak_sollecito
     from services.lead_outreach import send_lead_email
 
-    if db is None:
-        raise HTTPException(503, "Database non configurato")
+    recenti = await db.ciak_solleciti.find({"email": email, "ok": True}, {"_id": 0}).to_list(50)
+    dup = ciak_sollecito.duplicato_recente(recenti, email)
+    if dup:
+        raise HTTPException(409, f"Gli hai già scritto il {dup['sent_at'][:10]}: aspetta almeno 24 ore.")
+    ok, err = await asyncio.to_thread(send_lead_email, email, subject, ciak_sollecito.testo_in_html(testo))
+    riga = ciak_sollecito.riga_registro(
+        email=email, nome=nome, subject=subject, body=testo, by=_autore(admin), ok=ok, error=err,
+    )
+    riga["tipo"] = tipo
+    await db.ciak_solleciti.insert_one(dict(riga))
+    if not ok:
+        logger.warning("[%s] invio fallito per %s: %s", tipo, email, err)
+        raise HTTPException(502, f"Email non partita: {err}")
+    logger.info("[%s] inviato a %s da %s", tipo, email, riga["sent_by"])
+    return {"success": True, "email": email, "sent_at": riga["sent_at"]}
+
+
+def _controlla_invio(body) -> tuple:
+    """Validazione comune di /solleciti/invia e /recupero/invia: (email, oggetto, testo)."""
+    from services import ciak_sollecito
+
     if body.approvato is not True:
         raise HTTPException(422, "Serve l'approvazione esplicita prima di inviare.")
     email = body.email.strip().lower()
@@ -3076,29 +3094,100 @@ async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_cia
         raise HTTPException(422, "Testo troppo corto o troppo lungo")
     if "\n" in subject or "\r" in subject:
         raise HTTPException(422, "L'oggetto deve stare su una riga")
+    return email, subject, testo
 
+
+@router.post("/solleciti/invia")
+async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia il sollecito approvato. Stesso canale delle email 1:1 (SMTP/Brevo). Non cambia lo
+    stato del lead e non tocca Systeme."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
     ctx, proposta = await _contesto_sollecito(email)
     if ctx is None:
         raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
     if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
         raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=ctx["nome"], tipo="sollecito", admin=admin)
 
-    recenti = await db.ciak_solleciti.find({"email": email, "ok": True}, {"_id": 0}).to_list(50)
-    dup = ciak_sollecito.duplicato_recente(recenti, email)
-    if dup:
-        raise HTTPException(409, f"Gli hai già scritto il {dup['sent_at'][:10]}: aspetta almeno 24 ore.")
 
-    ok, err = await asyncio.to_thread(send_lead_email, email, subject, ciak_sollecito.testo_in_html(testo))
-    riga = ciak_sollecito.riga_registro(
-        email=email, nome=ctx["nome"], subject=subject, body=testo,
-        by=getattr(admin, "email", None) or "sconosciuto", ok=ok, error=err,
-    )
-    await db.ciak_solleciti.insert_one(dict(riga))
-    if not ok:
-        logger.warning("[sollecito] invio fallito per %s: %s", email, err)
-        raise HTTPException(502, f"Email non partita: {err}")
-    logger.info("[sollecito] inviato a %s da %s", email, riga["sent_by"])
-    return {"success": True, "email": email, "sent_at": riga["sent_at"]}
+# ─── Recupero 1 a 1 (Carlo): chi si è fermato nel funnel gratuito ───────────
+# Mai invio di massa: bozza di Carlo + approvazione + registro, come il sollecito.
+
+async def _candidati_recupero(only_email: Optional[str] = None) -> list:
+    from datetime import timedelta
+    from services import ciak_recupero as rc
+
+    def per(campo: str, extra: Optional[dict] = None) -> dict:
+        q = dict(extra or {})
+        if only_email:
+            q[campo] = _email_ci(only_email)
+        return q
+
+    minuscola = lambda v: (v or "").strip().lower()
+    sessioni = await db.diagnostic_sessions.find(
+        per("user_email", {"current_state": {"$in": rc.STATI_DA_LEGGERE}}),
+        {"_id": 0, "user_email": 1, "user_name": 1, "current_state": 1, "state_history": 1, "created_at": 1},
+    ).to_list(20000)
+    escluse: set = set()
+    # Chi ha gia' fissato/fatto la call, ha una proposta, e' cliente o partner: non si recupera.
+    for coll, campo, extra in [
+        (db.diagnostic_sessions, "user_email", {"current_state": {"$in": ["call_booked", "call_done", "partner_approved", "partner_active"]}}),
+        (db.proposte, "prospect_email", {}),
+        (db.ciak_clients, "email", {}),
+        (db.partners, "email", {}),
+        (db.lista_fredda, "email", {"stato": "disiscritto"}),
+    ]:
+        for r in await coll.find(per(campo, extra), {"_id": 0, campo: 1}).to_list(20000):
+            escluse.add(minuscola(r.get(campo)))
+    limite = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    for r in await db.ciak_solleciti.find(per("email", {"ok": True}), {"_id": 0, "email": 1, "sent_at": 1}).to_list(5000):
+        if (r.get("sent_at") or "") >= limite:
+            escluse.add(minuscola(r.get("email")))
+    return rc.candidati(sessioni, escluse)
+
+
+@router.get("/recupero")
+async def recupero_elenco(admin=Depends(require_ciak_admin)):
+    """Persone ferme nel funnel gratuito da recuperare (Carlo). Sola lettura."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    items = await _candidati_recupero()
+    return {"items": items, "totale": len(items)}
+
+
+@router.post("/recupero/bozza")
+async def recupero_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Carlo prepara la bozza per UNA persona che risulta ancora da recuperare. Non invia."""
+    from services import ciak_recupero as rc, ciak_memoria, ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    system, user = rc.prompt_bozza(cand, await ciak_memoria.render_active_block())
+    bozza = ciak_sollecito.parse_bozza(await _chiedi_llm(system, user, 600) or "")
+    return {
+        "email": email, "nome": cand["nome"], "da_ai": bozza is not None,
+        "bozza": bozza or rc.bozza_base(cand), "fatti": rc.fatti(cand),
+    }
+
+
+@router.post("/recupero/invia")
+async def recupero_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia l'email di recupero approvata, solo se la persona risulta ancora da recuperare."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email, subject, testo = _controlla_invio(body)
+    cand = next(iter(await _candidati_recupero(only_email=email)), None)
+    if cand is None:
+        raise HTTPException(409, "Questa persona non risulta più da recuperare (ha avanzato, o è stata contattata da poco).")
+    return await _invia_approvato(email=email, subject=subject, testo=testo, nome=cand["nome"], tipo="recupero", admin=admin)
 
 
 @router.get("/solleciti/recenti")

@@ -13,6 +13,7 @@ jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
 jest.mock("../components/PassoPannello", () => ({ PassoPannello: ({ email }) => <div>PASSO-{email}</div>, dataIt: (d) => d.split("-").reverse().join("/") }));
 jest.mock("../components/PartnerAvvisi", () => ({ PartnerAvvisi: () => <div>AVVISI-VALENTINA</div> }));
 jest.mock("../components/NotificheInbox", () => ({ NotificheInbox: () => <div>CASELLA-NOTIFICHE</div> }));
+jest.mock("../components/DaRecuperare", () => ({ DaRecuperare: () => <div>DA-RECUPERARE-CARLO</div> }));
 jest.mock("../components/SollecitoPannello", () => ({ SollecitoPannello: ({ email }) => <div>PANNELLO-{email}</div> }));
 jest.mock("../components/ChiediALuca", () => ({ ChiediALuca: () => <div>CHIEDI-A-LUCA</div> }));
 
@@ -145,4 +146,10 @@ test("ci sono gli avvisi di Valentina", () => {
   useOggiShared.mockReturnValue(vivo());
   mostra();
   expect(screen.getByText("AVVISI-VALENTINA")).toBeTruthy();
+});
+
+test("c'è la sezione di Carlo «Da recuperare» tra le trattative e la consegna", () => {
+  useOggiShared.mockReturnValue(vivo());
+  mostra();
+  expect(screen.getByText("DA-RECUPERARE-CARLO")).toBeTruthy();
 });

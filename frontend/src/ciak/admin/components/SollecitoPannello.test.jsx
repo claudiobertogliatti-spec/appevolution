@@ -88,3 +88,15 @@ test("messaggioErrore: dettaglio se c'è, altrimenti frase generica", () => {
   expect(messaggioErrore(new Error('Errore 502: {"detail":"Email non partita: x"}'))).toBe("Email non partita: x");
   expect(messaggioErrore(new Error("boom"))).toMatch(/Riprova/);
 });
+
+test("flusso recupero: usa i percorsi di Carlo e lo dice", async () => {
+  apiPost.mockResolvedValueOnce(BOZZA).mockResolvedValueOnce({ success: true });
+  const onInviato = jest.fn();
+  apri({ tipo: "recupero", onInviato });
+  expect(await screen.findByText(/Bozza scritta da Carlo/)).toBeTruthy();
+  expect(screen.getByText("Email di recupero per Anna")).toBeTruthy();
+  expect(apiPost).toHaveBeenCalledWith("/recupero/bozza", { email: "a@x.it" });
+  fireEvent.click(screen.getByRole("button", { name: "Invia a a@x.it" }));
+  await waitFor(() => expect(onInviato).toHaveBeenCalled());
+  expect(apiPost).toHaveBeenLastCalledWith("/recupero/invia", expect.objectContaining({ approvato: true }));
+});

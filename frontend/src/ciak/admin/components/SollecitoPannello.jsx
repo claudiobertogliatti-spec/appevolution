@@ -18,7 +18,15 @@ export function messaggioErrore(e) {
   return d ? d[1] : "Non sono riuscito a completare l'operazione. Riprova tra un momento.";
 }
 
-export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpired }) {
+// Stesso pannello per due flussi: il sollecito di una trattativa (Marco) e il recupero di chi
+// si è fermato nel percorso gratuito (Carlo). Cambiano percorsi, titolo e chi scrive la bozza.
+const FLUSSI = {
+  sollecito: { bozza: "/solleciti/bozza", invia: "/solleciti/invia", titolo: "Sollecito per", agente: "Marco", foto: "/agents/marco.jpg", ruolo: "assistente AI di Ciak" },
+  recupero: { bozza: "/recupero/bozza", invia: "/recupero/invia", titolo: "Email di recupero per", agente: "Carlo", foto: "/agents/matteo.jpg", ruolo: "assistente AI di Ciak" },
+};
+
+export function SollecitoPannello({ email, nome, tipo = "sollecito", onClose, onInviato, onAuthExpired }) {
+  const flusso = FLUSSI[tipo] || FLUSSI.sollecito;
   const [stato, setStato] = useState("carico"); // carico | pronta | invio | errore-bozza
   const [bozza, setBozza] = useState({ subject: "", body: "" });
   const [daAi, setDaAi] = useState(true);
@@ -31,7 +39,7 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
 
   useEffect(() => {
     let vivo = true;
-    apiPost("/solleciti/bozza", { email })
+    apiPost(flusso.bozza, { email })
       .then((r) => {
         if (!vivo) return;
         setBozza(r.bozza);
@@ -46,7 +54,7 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
         setStato("errore-bozza");
       });
     return () => { vivo = false; };
-  }, [email]);
+  }, [email, flusso.bozza]);
 
   useEffect(() => {
     if (stato === "pronta") primoCampo.current?.focus();
@@ -56,7 +64,7 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
     setErrore(null);
     setStato("invio");
     try {
-      await apiPost("/solleciti/invia", {
+      await apiPost(flusso.invia, {
         email,
         subject: bozza.subject,
         body: bozza.body,
@@ -87,9 +95,9 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <img src="/agents/marco.jpg" alt="" width={56} height={56} className="h-14 w-14 rounded-full object-cover ring-2 ring-yellow-400 bg-slate-200" />
+            <img src={flusso.foto} alt="" width={56} height={56} className="h-14 w-14 rounded-full object-cover ring-2 ring-yellow-400 bg-slate-200" />
             <div>
-              <h2 id="soll-titolo" className="text-xl font-semibold text-slate-900">Sollecito per {nome}</h2>
+              <h2 id="soll-titolo" className="text-xl font-semibold text-slate-900">{flusso.titolo} {nome}</h2>
               <p className="text-sm text-slate-500">A: {email}</p>
             </div>
           </div>
@@ -104,7 +112,7 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
           </button>
         </div>
 
-        {stato === "carico" && <p className="mt-6 text-sm text-slate-600" aria-live="polite">Marco sta scrivendo la bozza…</p>}
+        {stato === "carico" && <p className="mt-6 text-sm text-slate-600" aria-live="polite">{flusso.agente} sta scrivendo la bozza…</p>}
 
         {stato === "errore-bozza" && (
           <p className="mt-6 text-sm text-red-700" role="alert">{errore}</p>
@@ -114,8 +122,8 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
           <>
             <p className={`mt-5 rounded-xl px-4 py-3 text-sm ${daAi ? "bg-slate-50 text-slate-600" : "bg-amber-50 text-amber-900"}`}>
               {daAi
-                ? "Bozza scritta da Marco, un assistente AI di Ciak, solo con i fatti qui sotto. Leggila: non parte finché non premi Invia."
-                : "Marco non ha potuto scrivere: questa è una bozza base, senza AI e senza dettagli. Completala tu prima di inviare."}
+                ? `Bozza scritta da ${flusso.agente}, un ${flusso.ruolo}, solo con i fatti qui sotto. Leggila: non parte finché non premi Invia.`
+                : `${flusso.agente} non ha potuto scrivere: questa è una bozza base, senza AI e senza dettagli. Completala tu prima di inviare.`}
             </p>
 
             <label htmlFor="soll-oggetto" className="mt-5 block text-sm font-semibold text-slate-900">Oggetto</label>
@@ -140,7 +148,7 @@ export function SollecitoPannello({ email, nome, onClose, onInviato, onAuthExpir
 
             {fatti.length > 0 && (
               <div className="mt-4">
-                <p className="text-sm font-semibold text-slate-900">Cosa sa Marco</p>
+                <p className="text-sm font-semibold text-slate-900">Cosa sa {flusso.agente}</p>
                 <ul className="mt-1 list-disc pl-5 text-sm text-slate-600">
                   {fatti.map((f) => <li key={f}>{f}</li>)}
                 </ul>

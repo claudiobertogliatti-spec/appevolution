@@ -18,6 +18,7 @@ import { useOggiShared } from "../components/OggiShared";
 import { fmtOraRoma } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
+import { DaRecuperare } from "../components/DaRecuperare";
 import { NotificheInbox } from "../components/NotificheInbox";
 import { PartnerAvvisi } from "../components/PartnerAvvisi";
 import { SollecitoPannello } from "../components/SollecitoPannello";
@@ -255,6 +256,8 @@ export function NuovaHome({ user, onAuthExpired }) {
           </p>
         )}
       </Sezione>
+
+      <DaRecuperare onAuthExpired={onAuthExpired} />
 
       {/* 3. Consegna: partner e clienti Start */}
       <Sezione id="t-del" titolo="Partner che aspettano te" sotto="Prima chi è bloccato, poi chi è fermo.">
