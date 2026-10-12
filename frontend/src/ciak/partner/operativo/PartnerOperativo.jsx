@@ -9,6 +9,7 @@ import GuidedHome from "./GuidedHome";
 import { STEP_COPY } from "./JourneyMap";
 import { useSearchParams } from "react-router-dom";
 import SerenoHome from "../sereno/SerenoHome";
+import { useHelp } from "../sereno/SerenoHelp";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 
 // Step components lazy-loaded — implementati in Phase 4
@@ -56,6 +57,9 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Con il nuovo layout la chat e' una sola (quella del bottone "Chiedi aiuto"): niente secondo cassetto.
+  const { openHelp } = useHelp();
+  const askHelp = () => (PARTNER_SERENO_ENABLED ? openHelp() : setDrawerOpen(true));
   // La home guidata e' la prima schermata reale del partner.
   // Il benvenuto resta ri-apribile dal pulsante "Rivedi il video di benvenuto".
   const [benvenutoSeen, setBenvenutoSeen] = useState(() => {
@@ -204,7 +208,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                 setViewingStepId(id);
                 if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              onAsk={() => setDrawerOpen(true)}
+              onAsk={askHelp}
               onReplayWelcome={() => {
                 try {
                   localStorage.removeItem(`ciak_benvenuto_seen_${partnerId}`);
@@ -226,7 +230,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               </button>
             )}
 
-            {!isBenvenuto && (
+            {!PARTNER_SERENO_ENABLED && !isBenvenuto && (
               <ProgressBar
                 macroPhases={state.macro_phases}
                 steps={state.steps}
@@ -238,7 +242,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
               <PhaseAgentHeader
                 macroPhaseId={stepToShow.macro_phase}
                 partnerName={partnerName}
-                onAsk={() => setDrawerOpen(true)}
+                onAsk={askHelp}
                 variant={showFullWelcome ? "full" : "compact"}
                 onStart={() => {
                   if (typeof document !== "undefined") {
@@ -257,7 +261,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                     step={stepToShow}
                     partnerId={partnerId}
                     partnerName={partnerName}
-                    onAsk={() => setDrawerOpen(true)}
+                    onAsk={askHelp}
                     onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
                     onComplete={async (d) => {
                       if (!stepToShow) return;
@@ -288,7 +292,7 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
                     qui a breve. Nel frattempo puoi proseguire con gli altri passi.
                   </p>
                   <button
-                    onClick={() => setDrawerOpen(true)}
+                    onClick={askHelp}
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-slate-800 transition"
                   >
                     Chiedi aiuto all'assistente
@@ -300,12 +304,14 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
         )}
       </div>
 
-      <AgentDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        partnerId={partnerId}
-        currentStep={stepToShow}
-      />
+      {!PARTNER_SERENO_ENABLED && (
+        <AgentDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          partnerId={partnerId}
+          currentStep={stepToShow}
+        />
+      )}
     </div>
   );
 }
