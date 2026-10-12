@@ -1,3 +1,17 @@
+### 2026-10-12 (9) · Claude Code · cc/competitor — Analisi competitor e piano social con link tracciati (Andrea)
+
+**DICHIARATO**
+- `POST /competitor/analisi` (`services/ciak_competitor.py`): Andrea lavora SOLO sul testo/trascrizione e sulle cifre incollate da Claudio (non guarda il video: nessuna fonte lo porta in Ciak). Il tasso di interazione lo calcola il codice. Il «perche' ha funzionato» e' dichiarato ipotesi. Output: brief di un reel originale che alimenta il flusso reel. Storico in `ciak_competitor_analisi`.
+- Piano social del mese (`services/ciak_piano_social.py`, `/piano-social*`): Andrea propone fino a 16 voci (canale, formato, tema, brief), Claudio corregge e approva una volta; un piano per mese. Ogni voce riceve un link breve `{CIAK_BASE_URL}/api/ciak/go/{codice}` (router pubblico `routers/ciak_go.py`, montato in `server.py`) che reindirizza SOLO alla destinazione salvata con UTM e conta i clic (robot riconoscibili a parte, nessun IP/cookie). Collection `ciak_piano_social`, `ciak_link_tracciati`, `ciak_link_clic`.
+- Il piano NON pubblica da solo: ogni voce dichiara come si realizza (caroselli → Editoriale; reel → flusso reel; YouTube/LinkedIn/post testo/blog → manuale).
+
+**VERIFICATO:** frontend `src/ciak/admin` 84 suite / 508 test verdi; backend test nuovi competitor (12) e piano social (12) verdi; build compila.
+
+**⛔ NON VERIFICATO / APERTO**
+- Il redirect `/api/ciak/go/*` e' pubblico: da verificare che il proxy Vercel→Cloud Run instradi `/api/ciak/*` sul dominio del sito e che nessun middleware lo blocchi. Se non e' instradato i link brevi non funzionano.
+- Nessuna analisi/piano generati dal vivo (nessuna chiave AI nel sandbox). Il conteggio clic non e' lead: i lead restano nel funnel.
+- Su Instagram i link in didascalia non sono cliccabili (link in bio). Nessun collegamento ad API YouTube/LinkedIn/TikTok per leggere i video dei competitor.
+
 ### 2026-10-12 (8) · Claude Code · cc/ciak-integrazione — Admin Ciak con gli agenti (Luca, Carlo, Marco, Simona, Andrea, Valentina)
 
 **RICHIESTA:** admin Ciak "macchina da guerra" in stile Sintra: 6 agenti con volto come menu, solo le funzioni HubSpot/Trello/Slack utili a Ciak. Tutto in un solo branch, un solo merge dopo il "go" esplicito di Claudio. Solo per Claudio: Antonella e Mariangela non cambiano (gli endpoint nuovi sono fuori dalla allowlist commerciale).

@@ -34,7 +34,7 @@ export const DEPARTMENT_ROOMS = {
       avatar: "/agents/matteo.jpg",
       initials: "C",
       accent: "bg-slate-900 text-yellow-400",
-      chat: "pending",
+      chat: "carlo",
       prompt: "Carlo, dimmi a che punto siamo su lead, questionari e call prenotate, e dove devo intervenire oggi.",
     },
     metrics: [
@@ -76,7 +76,7 @@ export const DEPARTMENT_ROOMS = {
       role: "Responsabile Vendite",
       avatar: "/agents/marco.jpg",
       initials: "M",
-      chat: "pending",
+      chat: "marco",
       prompt: "Marco, dimmi dove stiamo perdendo partner pronti a comprare e quali proposte sono ferme.",
     },
     metrics: [
@@ -144,7 +144,7 @@ export const DEPARTMENT_ROOMS = {
       role: "Responsabile Back Office",
       avatar: "/agents/valentina.jpg",
       initials: "V",
-      chat: "pending",
+      chat: "valentina",
       prompt: "Valentina, dimmi cosa puo' bloccare incasso, contratto o serenita operativa.",
     },
     metrics: [

@@ -14,7 +14,7 @@ import { messaggioErrore } from "./SollecitoPannello";
 
 const ETICHETTA_STATO = { in_generazione: "In generazione…", pronto: "Pronto", fallito: "Non riuscito", pubblicato: "Pubblicato" };
 
-export function ReelStudio({ onAuthExpired }) {
+export function ReelStudio({ briefIniziale = "", onAuthExpired }) {
   const [vietato, setVietato] = useState(false);
   const [conf, setConf] = useState(null);       // risposta di GET /reel/avatar
   const [avatarId, setAvatarId] = useState("");
@@ -45,6 +45,8 @@ export function ReelStudio({ onAuthExpired }) {
   }, [gestisci]);
 
   useEffect(() => { carica(); }, [carica]);
+  // Un brief che arriva da fuori (analisi competitor) riempie il campo; poi lo modifichi tu.
+  useEffect(() => { if (briefIniziale) setBrief(briefIniziale); }, [briefIniziale]);
 
   if (vietato) return null;
 

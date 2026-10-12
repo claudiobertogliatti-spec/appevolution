@@ -3,6 +3,7 @@ import { ArrowRight, LayoutDashboard, MessageCircle } from "lucide-react";
 import { LucaChat } from "../pages/LucaChat";
 import { StefaniaAdmin } from "../pages/StefaniaAdmin";
 import { AndreaChat } from "./AndreaChat";
+import { AgenteChat } from "./AgenteChat";
 
 function AgentAvatar({ agent, size = "lg" }) {
   const dim = size === "sm" ? "w-10 h-10" : "w-16 h-16";
@@ -62,6 +63,9 @@ function AgentChat({ room, onAuthExpired }) {
   }
   if (room.agent.chat === "andrea") {
     return <AndreaChat onAuthExpired={onAuthExpired} />;
+  }
+  if (["carlo", "marco", "valentina"].includes(room.agent.chat)) {
+    return <AgenteChat agente={room.agent.chat} onAuthExpired={onAuthExpired} />;
   }
   return <MiniCheckBox room={room} />;
 }
