@@ -2928,6 +2928,59 @@ async def activate_matteo_prompt(
     return {"success": True, "active": activated}
 
 
+# ─── Memoria Ciak — regole condivise da tutti gli agenti ───────────────────
+
+class MemoriaCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=200)
+    sections: dict
+    parent_id: Optional[str] = None
+    activate: bool = True
+
+
+@router.get("/memoria")
+async def get_memoria(admin=Depends(require_ciak_admin)):
+    """Versione attiva + storico. `active` e' None finche' nessuno ha scritto la memoria:
+    in quel caso gli agenti non ricevono nulla in piu'."""
+    from services import ciak_memoria
+
+    return {
+        "active": await ciak_memoria.get_active(),
+        "versions": await ciak_memoria.list_versions(limit=50),
+        "sections": [
+            {"key": k, "title": t, "hint": h} for k, t, h in ciak_memoria.SECTIONS
+        ],
+        "max_section_chars": ciak_memoria.MAX_SECTION_CHARS,
+    }
+
+
+@router.post("/memoria")
+async def create_memoria(body: MemoriaCreate, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    author_email = getattr(admin, "email", None) or getattr(admin, "sub", "unknown")
+    try:
+        version = await ciak_memoria.create_version(
+            sections=body.sections,
+            label=body.label,
+            author_email=author_email,
+            parent_id=body.parent_id,
+            activate=body.activate,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    return {"success": True, "version": version}
+
+
+@router.post("/memoria/{version_id}/activate")
+async def activate_memoria(version_id: str, admin=Depends(require_ciak_admin)):
+    from services import ciak_memoria
+
+    activated = await ciak_memoria.activate_version(version_id)
+    if not activated:
+        raise HTTPException(404, "Versione non trovata")
+    return {"success": True, "active": activated}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

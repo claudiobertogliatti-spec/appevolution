@@ -94,6 +94,7 @@ import { SystemHealth } from "./pages/SystemHealth";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { PartnerSalesEngine } from "./pages/PartnerSalesEngine";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
+import { MemoriaCiak } from "./pages/MemoriaCiak";
 import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
@@ -853,6 +854,7 @@ export default function CiakAdminApp() {
         <Route path="revisione-video/:partnerId/:lessonId" element={<MasterclassReview onAuthExpired={handleLogout} />} />
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
+        <Route path="memoria" element={<MemoriaCiak onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
         <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />
