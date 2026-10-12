@@ -8,14 +8,18 @@
  * Dati: gli stessi della home di oggi, caricati una volta per sessione (OggiShared).
  * Nessuna fonte nuova, nessuna cifra scritta a mano. Una fonte che non risponde lo dice.
  *
- * Non ci sono pulsanti che non fanno nulla: «Prepara il sollecito» arriva col punto 3.
+ * «Prepara il sollecito»: Marco scrive la bozza, la leggi, la modifichi, e solo «Invia» manda
+ * l'email (SollecitoPannello). Chi è già stato sollecitato negli ultimi 14 giorni lo mostra.
  */
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useOggiShared } from "../components/OggiShared";
 import { fmtOraRoma } from "../components/OggiCallStrip";
 import { OggiStart } from "../components/OggiStart";
 import { ChiediALuca } from "../components/ChiediALuca";
+import { SollecitoPannello } from "../components/SollecitoPannello";
+import { apiGet } from "../api";
 import { daSollecitare, frasePrincipale, SOLLECITO_GIORNI } from "../nuovaHomeModel";
 
 const RIGHE = 5;
@@ -68,6 +72,22 @@ const Scheda = ({ children }) => (
 export function NuovaHome({ user, onAuthExpired }) {
   const nome = (user?.name || "").trim().split(/\s+/)[0] || "Claudio";
   const shared = useOggiShared();
+  const [sollecito, setSollecito] = useState(null); // { email, nome } aperto
+  const [recenti, setRecenti] = useState({}); // email -> data ISO dell'ultimo sollecito
+  const abilitata = Boolean(shared);
+
+  useEffect(() => {
+    if (!abilitata) return undefined;
+    let vivo = true;
+    apiGet("/solleciti/recenti", { giorni: 14 })
+      .then((r) => {
+        if (!vivo) return;
+        setRecenti(Object.fromEntries((r.items || []).map((i) => [i.email, i.sent_at])));
+      })
+      .catch(() => {}); // senza l'elenco si perde solo l'etichetta: il server blocca comunque i doppi
+    return () => { vivo = false; };
+  }, [abilitata]);
+
   if (!shared) {
     return <div className="p-10 text-slate-600">Questa pagina è disponibile solo dal tuo account.</div>;
   }
@@ -162,9 +182,25 @@ export function NuovaHome({ user, onAuthExpired }) {
                     {t.nome}
                   </Link>
                 </div>
-                <span className={`flex-shrink-0 rounded-full px-3 py-1 text-sm font-semibold ${PILLOLA[t.tone] || PILLOLA.neutral}`}>
-                  In trattativa da {giorniLabel(t.giorni)}
-                </span>
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-3">
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${PILLOLA[t.tone] || PILLOLA.neutral}`}>
+                    In trattativa da {giorniLabel(t.giorni)}
+                  </span>
+                  {recenti[(t.email || "").toLowerCase()] ? (
+                    <span className="text-sm text-slate-500">
+                      Sollecitato il {String(recenti[(t.email || "").toLowerCase()]).slice(0, 10).split("-").reverse().join("/")}
+                    </span>
+                  ) : null}
+                  {t.email && (
+                    <button
+                      type="button"
+                      onClick={() => setSollecito({ email: t.email, nome: t.nome })}
+                      className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-yellow-400 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+                    >
+                      Prepara il sollecito
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </Scheda>
@@ -219,6 +255,16 @@ export function NuovaHome({ user, onAuthExpired }) {
       <OggiStart onAuthExpired={onAuthExpired} />
 
       <ChiediALuca onAuthExpired={onAuthExpired} />
+
+      {sollecito && (
+        <SollecitoPannello
+          email={sollecito.email}
+          nome={sollecito.nome}
+          onClose={() => setSollecito(null)}
+          onInviato={(e) => setRecenti((r) => ({ ...r, [e.toLowerCase()]: new Date().toISOString() }))}
+          onAuthExpired={onAuthExpired}
+        />
+      )}
     </div>
   );
 }

@@ -2981,6 +2981,137 @@ async def activate_memoria(version_id: str, admin=Depends(require_ciak_admin)):
     return {"success": True, "active": activated}
 
 
+# ─── Sollecito trattative — bozza di Marco, approvazione di Claudio, registro ───
+# Nulla parte da solo: /bozza non invia niente, /invia richiede `approvato: true` nel body
+# (il clic su «Invia» dopo aver letto). Ogni tentativo finisce in `ciak_solleciti`.
+
+class SollecitoBozzaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+
+
+class SollecitoInviaRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=5000)
+    approvato: bool = False
+
+
+async def _contesto_sollecito(email: str) -> tuple:
+    """(contesto | None, proposta piu' recente | None)."""
+    from services import ciak_sollecito
+
+    proposta = await db.proposte.find_one(
+        {"prospect_email": _email_ci(email)}, {"_id": 0}, sort=[("creato_at", -1)]
+    )
+    sessione = await db.diagnostic_sessions.find_one(
+        {"user_email": _email_ci(email)}, {"_id": 0, "user_name": 1}, sort=[("created_at", -1)]
+    )
+    return ciak_sollecito.build_contesto(email, proposta, sessione), proposta
+
+
+@router.post("/solleciti/bozza")
+async def sollecito_bozza(body: SollecitoBozzaRequest, admin=Depends(require_ciak_admin)):
+    """Marco prepara la bozza. Non invia, non scrive nulla sul lead."""
+    import os
+    from services import ciak_sollecito, ciak_memoria
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = body.email.strip().lower()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+
+    memoria = await ciak_memoria.render_active_block()
+    system, user = ciak_sollecito.prompt_bozza(ctx, memoria)
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY") or ""
+    bozza = None
+    if api_key:
+        try:
+            import anthropic
+
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            resp = await client.messages.create(
+                model=ciak_sollecito.MODELLO,
+                max_tokens=600,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+            bozza = ciak_sollecito.parse_bozza(resp.content[0].text)
+        except Exception as e:  # la bozza base resta disponibile: non si blocca il lavoro
+            logger.warning("[sollecito] bozza AI non disponibile: %s", e)
+    da_ai = bozza is not None
+    return {
+        "email": email,
+        "nome": ctx["nome"],
+        "da_ai": da_ai,
+        "bozza": bozza or ciak_sollecito.bozza_base(ctx),
+        "fatti": ciak_sollecito._fatti(ctx),
+    }
+
+
+@router.post("/solleciti/invia")
+async def sollecito_invia(body: SollecitoInviaRequest, admin=Depends(require_ciak_admin)):
+    """Invia il sollecito approvato. Stesso canale delle email 1:1 (SMTP/Brevo). Non cambia lo
+    stato del lead e non tocca Systeme."""
+    import asyncio
+    from services import ciak_sollecito
+    from services.lead_outreach import send_lead_email
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if body.approvato is not True:
+        raise HTTPException(422, "Serve l'approvazione esplicita prima di inviare.")
+    email = body.email.strip().lower()
+    subject, testo = body.subject.strip(), body.body.strip()
+    if not ciak_sollecito.email_valida(email):
+        raise HTTPException(422, "Email non valida")
+    if not (ciak_sollecito.OGGETTO_MIN <= len(subject) <= ciak_sollecito.OGGETTO_MAX):
+        raise HTTPException(422, "Oggetto mancante o troppo lungo")
+    if not (ciak_sollecito.CORPO_MIN <= len(testo) <= ciak_sollecito.CORPO_MAX):
+        raise HTTPException(422, "Testo troppo corto o troppo lungo")
+    if "\n" in subject or "\r" in subject:
+        raise HTTPException(422, "L'oggetto deve stare su una riga")
+
+    ctx, proposta = await _contesto_sollecito(email)
+    if ctx is None:
+        raise HTTPException(404, "Non conosco questa persona: nessuna proposta e nessun questionario.")
+    if proposta and (proposta.get("pagamento_completato") or proposta.get("stato") == "contratto_firmato"):
+        raise HTTPException(409, "Ha già firmato o pagato: non c'è niente da sollecitare.")
+
+    recenti = await db.ciak_solleciti.find({"email": email, "ok": True}, {"_id": 0}).to_list(50)
+    dup = ciak_sollecito.duplicato_recente(recenti, email)
+    if dup:
+        raise HTTPException(409, f"Gli hai già scritto il {dup['sent_at'][:10]}: aspetta almeno 24 ore.")
+
+    ok, err = await asyncio.to_thread(send_lead_email, email, subject, ciak_sollecito.testo_in_html(testo))
+    riga = ciak_sollecito.riga_registro(
+        email=email, nome=ctx["nome"], subject=subject, body=testo,
+        by=getattr(admin, "email", None) or "sconosciuto", ok=ok, error=err,
+    )
+    await db.ciak_solleciti.insert_one(dict(riga))
+    if not ok:
+        logger.warning("[sollecito] invio fallito per %s: %s", email, err)
+        raise HTTPException(502, f"Email non partita: {err}")
+    logger.info("[sollecito] inviato a %s da %s", email, riga["sent_by"])
+    return {"success": True, "email": email, "sent_at": riga["sent_at"]}
+
+
+@router.get("/solleciti/recenti")
+async def solleciti_recenti(giorni: int = Query(14, ge=1, le=90), admin=Depends(require_ciak_admin)):
+    """Chi è stato sollecitato negli ultimi `giorni` (per non scrivere due volte)."""
+    from services import ciak_sollecito
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_solleciti.find({"ok": True}, {"_id": 0, "body": 0}).sort("sent_at", -1).to_list(500)
+    return {"items": ciak_sollecito.ultimi_per_email(righe, giorni)}
+
+
 # ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
 # Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
 

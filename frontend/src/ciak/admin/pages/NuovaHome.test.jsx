@@ -1,14 +1,20 @@
 /**
  * Nuova home «Oggi»: frase con numeri veri, stati onesti, nessun pulsante finto.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { NuovaHome } from "./NuovaHome";
 import { useOggiShared } from "../components/OggiShared";
+import { apiGet } from "../api";
 
 jest.mock("../components/OggiShared", () => ({ useOggiShared: jest.fn() }));
 jest.mock("../components/OggiStart", () => ({ OggiStart: () => <div>CLIENTI-START</div> }));
+jest.mock("../api", () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
+jest.mock("../components/SollecitoPannello", () => ({ SollecitoPannello: ({ email }) => <div>PANNELLO-{email}</div> }));
 jest.mock("../components/ChiediALuca", () => ({ ChiediALuca: () => <div>CHIEDI-A-LUCA</div> }));
+
+// CRA azzera le implementazioni dei mock a ogni test: si rimette qui.
+beforeEach(() => apiGet.mockResolvedValue({ items: [] }));
 
 const vivo = ({ oggi = {}, calls = {} } = {}) => ({
   oggi: {
@@ -61,10 +67,14 @@ test("non scrive «senza risposta»: il dato è da quanto è in trattativa", () 
   expect(document.body.textContent).not.toMatch(/senza risposta/i);
 });
 
-test("non c'è nessun pulsante «Prepara il sollecito» finché non esiste", () => {
+test("ogni trattativa da sollecitare ha «Prepara il sollecito»; il pannello si apre solo al clic", () => {
   useOggiShared.mockReturnValue(vivo());
   mostra();
-  expect(screen.queryByText(/Prepara il sollecito/)).toBeNull();
+  const tasti = screen.getAllByRole("button", { name: "Prepara il sollecito" });
+  expect(tasti).toHaveLength(2);
+  expect(screen.queryByText(/PANNELLO-/)).toBeNull();
+  fireEvent.click(tasti[0]);
+  expect(screen.getByText("PANNELLO-a@x.it")).toBeTruthy();
 });
 
 test("c'è la barra «Chiedi a Luca»", () => {
