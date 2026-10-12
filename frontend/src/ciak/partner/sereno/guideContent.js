@@ -46,5 +46,23 @@ export const GUIDE = [
   },
 ];
 
+// Guida alle pubblicità: base di partenza da far rivedere al team (solo Meta: Facebook e Instagram). Nessun budget o
+// risultato promesso. Per chi non vuole farle da solo: servizio extra «campagne-adv».
+GUIDE.push({
+  id: 'pubblicita',
+  titolo: 'Le pubblicità, se vuoi farle da solo',
+  intro: 'Le pubblicità portano più persone alla tua diretta o alla tua pagina. Si parte in piccolo e si impara dai numeri.',
+  passi: [
+    ['Scegli un solo obiettivo', 'Per esempio: più iscritti alla tua diretta. Un obiettivo alla volta.'],
+    ['Parti da un contenuto che già funziona', 'Usa un reel o un carosello che ha avuto buone risposte: è la pubblicità più facile da fare.'],
+    ['Definisci a chi parli', 'Descrivi la persona che vuoi raggiungere con le stesse parole che usi con i tuoi clienti.'],
+    ['Decidi tu quanto spendere', 'Scegli una cifra piccola che puoi permetterti di perdere e non cambiarla nei primi giorni.'],
+    ['Guarda tre numeri', 'Quante persone hanno visto la pubblicità, quante hanno cliccato, quante si sono iscritte. Aspetta qualche giorno prima di giudicare.'],
+  ],
+  nota: 'Il budget delle pubblicità è sempre tuo e va pagato a parte. Se preferisci non occupartene, c’è il servizio extra qui sotto.',
+  extra: 'campagne-adv',
+  extraTesto: 'Impostiamo e seguiamo noi le tue campagne. Il budget delle pubblicità resta a tuo carico.',
+});
+
 export const PUBBLICAZIONE = 'Pubblichi tu i tuoi contenuti. Se preferisci non occupartene, puoi affidarli a noi come servizio extra.';
 export const EXTRA_CONTENUTI = 'contenuti-social-extra';

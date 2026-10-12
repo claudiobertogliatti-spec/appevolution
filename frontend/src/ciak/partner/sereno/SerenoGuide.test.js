@@ -10,7 +10,7 @@ const wrap = () => render(<MemoryRouter><SerenoGuide /></MemoryRouter>);
 
 test('le tre guide ci sono, ciascuna con i suoi passi', () => {
   wrap();
-  ['Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
+  ['Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello', 'Le pubblicità, se vuoi farle da solo'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
   GUIDE.forEach(g => g.passi.forEach(([t]) => expect(screen.getByText(t + '.')).toBeTruthy()));
 });
 
@@ -25,7 +25,12 @@ test('il servizio extra viene dal catalogo, con il suo prezzo', () => {
   expect(s).toBeTruthy();
   expect(screen.getByRole('heading', { name: s.name })).toBeTruthy();
   expect(screen.getByText(s.prezzo)).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Scopri' }).getAttribute('href')).toBe(`/partner/servizi-extra/${s.id}`);
+  const href = screen.getAllByRole('link', { name: 'Scopri' }).map(a => a.getAttribute('href'));
+  expect(href).toContain(`/partner/servizi-extra/${s.id}`);
+  // la guida alle pubblicità porta alle campagne, con il prezzo del catalogo
+  const adv = BOOSTER_CATALOG['campagne-adv'];
+  expect(href).toContain(`/partner/servizi-extra/${adv.id}`);
+  expect(screen.getByText(adv.prezzo)).toBeTruthy();
 });
 
 test('il formato del carosello dichiarato è quello verificato', () => {
