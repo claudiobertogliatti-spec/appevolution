@@ -544,7 +544,8 @@ function AdminShell({ user, onLogout, children }) {
             <>
           {bottoneCerca}
           <NavLink
-            to="/admin/nuova"
+            to="/admin"
+            end
             className={({ isActive }) => `flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors ${isActive ? "bg-slate-900 text-yellow-400" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
           >
             <Clock className="w-5 h-5" aria-hidden /> Oggi
@@ -826,7 +827,11 @@ export default function CiakAdminApp() {
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : isMariangela
             ? <Navigate to="/admin/reparto/acquisizione" replace />
-            : <AdminHome user={user} onAuthExpired={handleLogout} />} />
+            : <NuovaHome user={user} onAuthExpired={handleLogout} />} />
+        {/* La vecchia home «Regia» resta raggiungibile qui (riserva), solo per Claudio. */}
+        <Route path="regia" element={isAntonella || isMariangela
+          ? <Navigate to="/admin" replace />
+          : <AdminHome user={user} onAuthExpired={handleLogout} />} />
         <Route path="direzione" element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : isMariangela
@@ -958,10 +963,8 @@ export default function CiakAdminApp() {
         <Route path="sistema" element={<SystemHealth onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="memoria" element={<MemoriaCiak onAuthExpired={handleLogout} />} />
-        {/* Anteprima della nuova home «Oggi»: solo per Claudio, la home di /admin non cambia. */}
-        <Route path="nuova" element={isAntonella || isMariangela
-          ? <Navigate to="/admin" replace />
-          : <NuovaHome user={user} onAuthExpired={handleLogout} />} />
+        {/* La nuova home «Oggi» ora e' la home di /admin: il vecchio indirizzo rimanda li'. */}
+        <Route path="nuova" element={<Navigate to="/admin" replace />} />
         {/* La stanza di Andrea: solo Claudio, voce nella colonna con le facce. */}
         <Route path="contenuti" element={isAntonella || isMariangela
           ? <Navigate to="/admin" replace />

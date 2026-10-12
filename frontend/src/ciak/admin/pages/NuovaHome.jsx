@@ -1,5 +1,5 @@
 /**
- * Ciak Admin — nuova home «Oggi» (anteprima su /admin/nuova, solo per Claudio).
+ * Ciak Admin — nuova home «Oggi» (home di /admin per Claudio; Antonella e Mariangela hanno le loro).
  *
  * Ordine deciso il 12/10/2026: 1) quante call oggi e a che ora, 2) le trattative da
  * sollecitare per chiudere, 3) la consegna (partner e clienti Start). In fondo la barra
