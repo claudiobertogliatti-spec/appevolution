@@ -3689,6 +3689,52 @@ async def report_settimana(admin=Depends(require_ciak_admin)):
     return {"da": fin["attuale"][0], "a": fin["attuale"][1], "voci": rp.costruisci(conteggi)}
 
 
+# ─── Competitor: Andrea analizza un video virale incollato e propone un reel tuo ───
+
+class CompetitorAnalisiIn(BaseModel):
+    piattaforma: str = Field(..., max_length=30)
+    competitor: str = Field("", max_length=100)
+    link: str = Field("", max_length=500)
+    testo: str = Field(..., max_length=8000)
+    views: Optional[str] = Field(None, max_length=20)
+    likes: Optional[str] = Field(None, max_length=20)
+    commenti: Optional[str] = Field(None, max_length=20)
+
+
+@router.post("/competitor/analisi")
+async def competitor_analisi(body: CompetitorAnalisiIn, admin=Depends(require_ciak_admin)):
+    """Andrea scompone il testo incollato e propone il brief di un reel originale. Non guarda il
+    video e non pubblica nulla. Se l'AI non risponde: 503, nessuna analisi inventata."""
+    from services import ciak_competitor as cp, ciak_memoria
+
+    try:
+        d = cp.valida_input(piattaforma=body.piattaforma, competitor=body.competitor, link=body.link,
+                            testo=body.testo, views=body.views, likes=body.likes, commenti=body.commenti)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    system, user = cp.prompt(d, await ciak_memoria.render_active_block())
+    raw = await _chiedi_llm(system, user, 1100)
+    if not raw:
+        raise HTTPException(503, "Andrea non può rispondere adesso. Riprova tra un momento.")
+    analisi = cp.parse_analisi(raw)
+    if analisi is None:
+        raise HTTPException(502, "Andrea ha risposto in un formato che non riesco a leggere. Riprova.")
+    out = {**analisi, "metriche": cp.metriche(d), "piattaforma": d["piattaforma"], "competitor": d["competitor"], "link": d["link"]}
+    if db is not None:
+        await db.ciak_competitor_analisi.insert_one({
+            **out, "id": str(__import__("uuid").uuid4()), "creato_da": _autore(admin),
+            "creato_at": datetime.now(timezone.utc).isoformat()})
+    return out
+
+
+@router.get("/competitor/analisi")
+async def competitor_storico(admin=Depends(require_ciak_admin)):
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = await db.ciak_competitor_analisi.find({}, {"_id": 0}).sort("creato_at", -1).to_list(30)
+    return {"items": righe}
+
+
 # ─── Reel con HeyGen (Andrea scrive, Claudio approva, poi si genera) ──────────
 
 class ReelAvatarIn(BaseModel):

@@ -4,6 +4,7 @@ import { Contenuti } from "./Contenuti";
 import { apiPost } from "../api";
 
 jest.mock("../api", () => ({ apiPost: jest.fn() }));
+jest.mock("../components/CompetitorAnalisi", () => ({ CompetitorAnalisi: () => <div>COMPETITOR</div> }));
 jest.mock("../components/ReelStudio", () => ({ ReelStudio: () => <div>REEL-STUDIO</div> }));
 jest.mock("../components/AndreaChat", () => ({ AndreaChat: () => <div>CHAT-ANDREA</div> }));
 

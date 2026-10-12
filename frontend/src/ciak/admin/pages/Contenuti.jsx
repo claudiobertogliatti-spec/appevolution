@@ -12,6 +12,7 @@ import { apiPost } from "../api";
 import { messaggioErrore } from "../components/SollecitoPannello";
 import { AndreaChat } from "../components/AndreaChat";
 import { ReelStudio } from "../components/ReelStudio";
+import { CompetitorAnalisi } from "../components/CompetitorAnalisi";
 
 const PAGINE = [
   { to: "/admin/acquisizione-editoriale", titolo: "Editoriale", desc: "Caroselli con l'AI: obiettivi del mese, contenuti da approvare e pubblicare." },
@@ -33,6 +34,7 @@ function Conteggio({ n, max }) {
 
 export function Contenuti({ onAuthExpired }) {
   const [tipo, setTipo] = useState("post_linkedin");
+  const [briefReel, setBriefReel] = useState("");
   const [brief, setBrief] = useState("");
   const [busy, setBusy] = useState(false);
   const [risultato, setRisultato] = useState(null); // { tipo, testo } | { tipo, seo }
@@ -81,7 +83,9 @@ export function Contenuti({ onAuthExpired }) {
 
       <div className="mb-10"><AndreaChat onAuthExpired={onAuthExpired} /></div>
 
-      <ReelStudio onAuthExpired={onAuthExpired} />
+      <CompetitorAnalisi onAuthExpired={onAuthExpired} onUsaBrief={(b) => { setBriefReel(b); document.getElementById("t-reel")?.scrollIntoView?.({ behavior: "smooth" }); }} />
+
+      <ReelStudio briefIniziale={briefReel} onAuthExpired={onAuthExpired} />
 
       <section aria-labelledby="t-pagine" className="mb-10">
         <h2 id="t-pagine" className="text-2xl font-semibold text-slate-900">Le pagine dei contenuti</h2>
