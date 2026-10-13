@@ -149,6 +149,15 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
                   "by": str(getattr(data, "user_id", "") or "")}},
         upsert=True,
     )
+    # Verificata: e' il momento in cui il montaggio ha passato il controllo umano. Solo adesso il
+    # video entra nella playlist YouTube del partner (sequenza: editing -> verifica -> playlist ->
+    # Systeme). Se la playlist non risponde l'esito resta comunque salvato: non si perde il lavoro.
+    playlist = None
+    if esito["esito"] == "verificata":
+        from services import youtube_playlist
+        playlist = await youtube_playlist.aggiungi_video(
+            db, body.partner_id, lesson.get("video_youtube_id") or "")
+
     if esito["esito"] == "da_correggere":
         try:
             from routers.partner_journey import notify_telegram
@@ -158,4 +167,4 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
             )
         except Exception:
             logger.exception("[CODA] avviso Telegram non inviato")
-    return {"success": True, "esito": esito["esito"]}
+    return {"success": True, "esito": esito["esito"], "playlist": playlist}
