@@ -100,7 +100,7 @@ def env(monkeypatch):
 @pytest.mark.asyncio
 async def test_publish_first_time_sets_url_and_does_not_release(env):
     f = env(None)
-    out = await route.admin_publish_draft("p1", None)
+    out = await route.admin_publish_draft("p1", False, None)
     assert out["url"] == "https://n.vercel.app" and out["released"] is False
     assert out["pagine_senza_file"] == []
     assert out["iscrizioni_attive"] is True and out["sync_systeme"] is False
@@ -110,19 +110,51 @@ async def test_publish_first_time_sets_url_and_does_not_release(env):
 @pytest.mark.asyncio
 async def test_republish_bumps_version_and_keeps_release_state(env):
     f = env({"partner_id": "p1", "preview_url": "https://old.vercel.app", "preview_version": 1, "preview_released": True,
-             "review": {"pages": {"optin": {"state": "approvata", "approved_version": 1}}}})
-    await route.admin_publish_draft("p1", None)
+             "review": {"pages": {}}})
+    await route.admin_publish_draft("p1", False, None)
     assert f.doc["preview_version"] == 2 and f.doc["preview_url"] == "https://n.vercel.app"
     assert f.doc["preview_released"] is True
-    assert f.doc["review"]["pages"]["optin"]["state"] == fr.DA_CONTROLLARE
 
 
 @pytest.mark.asyncio
 async def test_partner_cannot_publish(env):
     env(None, role="partner")
     with pytest.raises(HTTPException) as e:
-        await route.admin_publish_draft("p1", None)
+        await route.admin_publish_draft("p1", False, None)
     assert e.value.status_code == 403
+
+
+APPROVATO = {"partner_id": "p1", "preview_url": "https://old.vercel.app", "preview_version": 1,
+             "preview_released": True,
+             "review": {"pages": {p["id"]: {"state": "approvata", "approved_version": 1} for p in fr.PAGES}}}
+
+
+@pytest.mark.asyncio
+async def test_publish_refuses_to_wipe_a_partner_who_already_approved(env):
+    """Il caso Daniele: 4 pagine approvate. Ripubblicare le azzererebbe → 409, niente scritto."""
+    f = env(dict(APPROVATO))
+    with pytest.raises(HTTPException) as e:
+        await route.admin_publish_draft("p1", False, None)
+    assert e.value.status_code == 409 and "prova=true" in e.value.detail
+    assert f.doc["preview_url"] == "https://old.vercel.app" and f.doc["preview_version"] == 1
+    assert all(v["state"] == "approvata" for v in f.doc["review"]["pages"].values())
+
+
+@pytest.mark.asyncio
+async def test_prova_publishes_to_a_separate_project_and_writes_nothing(env, monkeypatch):
+    f = env(dict(APPROVATO))
+    seen = {}
+
+    async def spy(files, name, client=None):
+        seen["name"] = name
+        return {"url": "https://n-prova.vercel.app", "deployment_id": "dpl_p", "state": "QUEUED"}
+
+    monkeypatch.setattr(vd, "deploy", spy)
+    before = dict(f.doc)
+    out = await route.admin_publish_draft("p1", True, None)
+    assert out["prova"] is True and out["url"] == "https://n-prova.vercel.app"
+    assert seen["name"].endswith("-prova")
+    assert f.doc == before
 
 
 def test_missing_pages_still_reported_when_a_file_is_absent():

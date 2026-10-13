@@ -330,11 +330,18 @@ async def admin_set(partner_id: str, body: AdminSetBody,
 
 
 @router.post("/{partner_id}/admin/publish-draft")
-async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def admin_publish_draft(partner_id: str, prova: bool = False,
+                              credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Costruisce la bozza del funnel e la pubblica su Vercel (*.vercel.app).
 
-    Non rilascia nulla al partner: `preview_released` resta com'è, lo decide il team dopo aver
-    guardato la bozza. Se esisteva già un'anteprima, sale la versione e le pagine tornano da controllare."""
+    `prova=true`: pubblica su un progetto separato (suffisso -prova) e NON scrive nulla sul
+    partner. Serve per vedere com'e' venuta la bozza senza toccare un funnel gia' in revisione.
+
+    Senza `prova`: salva `preview_url` sul partner. Non rilascia nulla (`preview_released`
+    resta com'e', lo decide il team). Se c'era gia' un'anteprima, sale la versione e le pagine
+    tornano da controllare: per questo un partner che ha gia' approvato tutto e' protetto
+    (serve `conferma=true`, altrimenti 409).
+    """
     token = await _authorize(partner_id, credentials)
     if not _is_admin(token):
         raise HTTPException(status_code=403, detail="Solo il team può farlo.")
@@ -345,11 +352,32 @@ async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCre
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1, "public_optin": 1}) or {}
+    rec = await _record(partner_id)
+
+    if not prova:
+        approvate = [p["id"] for p in fr.PAGES if fr.item_state(rec, p["id"]) == fr.APPROVATA]
+        if approvate:
+            raise HTTPException(status_code=409, detail=(
+                f"Questo partner ha già approvato {len(approvate)} pagine: ripubblicare le "
+                "farebbe tornare tutte da controllare. Usa ?prova=true per vedere la bozza "
+                "senza toccare il suo funnel."))
+
+    name = vd.project_name(str(partner_id), partner.get("name", "")) + ("-prova" if prova else "")
     try:
-        res = await vd.deploy(files, vd.project_name(str(partner_id), partner.get("name", "")))
+        res = await vd.deploy(files, name[:52].strip("-"))
     except vd.DeployError as e:
         raise HTTPException(status_code=502, detail=str(e))
-    rec = await _record(partner_id)
+
+    opt = partner.get("public_optin") or {}
+    esito = {"success": True, "url": res["url"], "prova": bool(prova),
+             "pagine_senza_file": vd.missing_pages(files, fr.PAGES),
+             # le iscrizioni funzionano solo con il flag acceso (altrimenti l'endpoint risponde 404)
+             "iscrizioni_attive": opt.get("enabled") is True,
+             "sync_systeme": opt.get("systeme_sync") is True}
+    if prova:
+        esito["nota"] = "Prova: niente è stato scritto sul partner."
+        return esito
+
     now = _now()
     update = {"$set": {"preview_url": res["url"], "updated_at": now, "last_deployment_id": res["deployment_id"]}}
     if rec.get("preview_url"):
@@ -359,11 +387,8 @@ async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCre
     await db.partner_funnel.update_one(
         {"partner_id": str(partner_id)},
         {**update, "$setOnInsert": {"partner_id": str(partner_id), "created_at": now}}, upsert=True)
-    return {"success": True, "url": res["url"], "released": bool((await _record(partner_id)).get("preview_released")),
-            "pagine_senza_file": vd.missing_pages(files, fr.PAGES),
-            # le iscrizioni funzionano solo con il flag acceso (altrimenti l'endpoint risponde 404)
-            "iscrizioni_attive": (partner.get("public_optin") or {}).get("enabled") is True,
-            "sync_systeme": (partner.get("public_optin") or {}).get("systeme_sync") is True}
+    esito["released"] = bool((await _record(partner_id)).get("preview_released"))
+    return esito
 
 
 @router.post("/{partner_id}/admin/new-version")
