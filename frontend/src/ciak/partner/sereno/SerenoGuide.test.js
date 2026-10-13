@@ -10,7 +10,7 @@ const wrap = () => render(<MemoryRouter><SerenoGuide /></MemoryRouter>);
 
 test('le tre guide ci sono, ciascuna con i suoi passi', () => {
   wrap();
-  ['Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello', 'Le pubblicità, se vuoi farle da solo'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
+  ['Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello', 'Come ci mandi i tuoi video', 'Le pubblicità, se vuoi farle da solo'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
   GUIDE.forEach(g => g.passi.forEach(([t]) => expect(screen.getByText(t + '.')).toBeTruthy()));
 });
 

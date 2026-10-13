@@ -16,7 +16,7 @@ export const GUIDE = [
       ['L’audio', 'È la cosa che si nota di più. Registra in una stanza silenziosa, senza eco, lontano da frigorifero, traffico e notifiche. Fai una prova di 10 secondi e riascoltala con le cuffie.'],
       ['Una prova prima', 'Registra 20 secondi, guardali dal telefono, poi parti. Se qualcosa non ti piace lo correggi adesso, non dopo mezz’ora di registrazione.'],
     ],
-    nota: 'Se ti blocchi su un errore mentre parli, fermati un secondo e ripeti la frase da capo: al montaggio ci pensiamo noi.',
+    nota: 'Se ti blocchi su un errore mentre parli, fermati un secondo e ripeti la frase da capo: al montaggio ci pensiamo noi. Importante: tieni da parte i file originali, non cancellarli dopo averli caricati.',
   },
   {
     id: 'reel',
@@ -62,6 +62,22 @@ GUIDE.push({
   nota: 'Il budget delle pubblicità è sempre tuo e va pagato a parte. Se preferisci non occupartene, c’è il servizio extra qui sotto.',
   extra: 'campagne-adv',
   extraTesto: 'Impostiamo e seguiamo noi le tue campagne. Il budget delle pubblicità resta a tuo carico.',
+});
+
+// Come il partner ci manda i video: le due regole che gli chiediamo (originali da conservare,
+// tre per volta) e cosa succede dopo, passo per passo. Testo deciso con Claudio il 13/10/2026.
+GUIDE.push({
+  id: 'mandare-i-video',
+  titolo: 'Come ci mandi i tuoi video',
+  intro: 'Due cose da sapere prima di caricare, e poi ci pensiamo noi.',
+  passi: [
+    ['Tieni gli originali', 'Non cancellare i file dal telefono o dal computer dopo averli caricati. Se il montaggio viene male o manca un pezzo, ti chiediamo il video originale: senza, bisogna rigirare la lezione.'],
+    ['Tre video per volta', 'Caricane al massimo tre e poi aspetta: te lo diciamo noi quando puoi mandare i prossimi. Serve a noi per montarli e controllarli uno a uno, con calma.'],
+    ['Li montiamo', 'Togliamo pause, errori e ripetizioni. Le tue parole non si toccano.'],
+    ['Li guardiamo', 'Una persona del team guarda il video dall’inizio alla fine prima che vada online. Se qualcosa non va, lo rimontiamo.'],
+    ['Li mettiamo nel tuo corso', 'Solo dopo quel controllo il video entra nel tuo corso. Lo vedi nel tuo spazio: ti diciamo sempre a che punto è.'],
+  ],
+  nota: 'Caricarne di più tutti insieme non li fa uscire prima: allunga solo l’attesa di tutti.',
 });
 
 export const PUBBLICAZIONE = 'Pubblichi tu i tuoi contenuti. Se preferisci non occupartene, puoi affidarli a noi come servizio extra.';

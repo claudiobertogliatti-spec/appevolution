@@ -195,14 +195,33 @@ export default function Workspace2Corso({ partnerId, onBack }) {
     </>
   );
 
+  // Le due regole che chiediamo al partner, dove servono: prima di scegliere il file.
+  // `upload` arriva da services/limite_video (tre video per volta, il posto si libera
+  // quando il team ha controllato il montaggio).
+  const up = state.upload || { puo_caricare: true, in_lavorazione: 0, massimo: 3, messaggio: "" };
   const uploadSlot = state.course_approved ? (
     <div>
+      <div className="border border-slate-200 bg-slate-50 rounded-xl p-4 mb-3" data-testid="regole-video">
+        <p className="text-[13px] font-semibold text-slate-900 mb-2">Due cose, prima di caricare</p>
+        <ul className="text-[13px] text-slate-700 space-y-1.5">
+          <li><span className="font-semibold">Tieni i file originali.</span> Non cancellarli dopo il caricamento: se il montaggio viene male te li richiediamo, altrimenti va rigirata la lezione.</li>
+          <li><span className="font-semibold">Tre video per volta.</span> Poi aspetta: ti diciamo noi quando puoi mandare i prossimi. Serve a montarli e controllarli uno a uno.</li>
+        </ul>
+        <p className={`text-[13px] mt-3 ${up.puo_caricare ? "text-slate-600" : "font-semibold text-slate-900"}`} data-testid="stato-upload">{up.messaggio}</p>
+      </div>
+      {up.puo_caricare ? (
       <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${busy === "upload" ? "opacity-60 pointer-events-none" : "border-slate-300 hover:border-yellow-400"}`}>
         <input type="file" accept="video/*" className="hidden" disabled={busy === "upload"} onChange={(e) => handleUpload(e.target.files?.[0])} />
         <div className="text-2xl mb-1">⬆️</div>
         <div className="text-[14px] text-slate-600">Carica la prossima lezione, o <span className="text-blue-600">scegli un file</span></div>
         <div className="text-[12px] text-slate-400 mt-1">Una lezione alla volta · MP4 o MOV grezzo, ci pensiamo noi al montaggio</div>
       </label>
+      ) : (
+      <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center bg-white" data-testid="upload-in-pausa">
+        <div className="text-[14px] text-slate-700 font-semibold">Per ora ci fermiamo qui</div>
+        <div className="text-[13px] text-slate-500 mt-1">Hai {up.in_lavorazione} video in lavorazione. Ti avvisiamo appena puoi caricare i prossimi.</div>
+      </div>
+      )}
       {busy === "upload" && (
         <div className="mt-3">
           <div className="bg-slate-200 rounded h-2 overflow-hidden"><div className="bg-yellow-400 h-full transition-all" style={{ width: `${progress}%` }} /></div>
