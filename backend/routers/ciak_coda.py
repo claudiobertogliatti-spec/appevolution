@@ -50,7 +50,18 @@ async def _stato():
     async for e in db.ciak_coda_lezioni.find({}, {"_id": 1, "esito": 1, "note": 1, "at": 1}):
         esiti[e["_id"]] = e
     docs = [d async for d in db.partner_videocorso.find({"lessons": {"$exists": True}}, {"_id": 0, "partner_id": 1, "lessons": 1})]
-    gruppi = coda.lezioni_da_controllare(docs, nomi, esiti, cfg)
+    # Anche la masterclass passa dal controllo: e' il video che il pubblico vede per primo.
+    # Sta in `masterclass_factory` (set-youtube-url) o in `partner_masterclass` (upload): si
+    # leggono entrambe e, se un partner e' in tutt'e due, vince la prima (stesso ordine di
+    # _load_partner_masterclass in partner_journey).
+    campi = {"_id": 0, "partner_id": 1, "video_final_duration_s": 1, "output_version": 1,
+             "video_ciak_url": 1, "video_embed_url": 1, "video_systeme_embed": 1,
+             "video_approved": 1, "pipeline_completed_at": 1, "updated_at": 1}
+    mc: Dict[str, dict] = {}
+    for coll in (db.masterclass_factory, db.partner_masterclass):
+        async for d in coll.find({"video_final_duration_s": {"$exists": True}}, campi):
+            mc.setdefault(str(d.get("partner_id") or ""), d)
+    gruppi = coda.lezioni_da_controllare(docs, nomi, esiti, cfg, docs_masterclass=list(mc.values()))
     return cfg, gruppi
 
 
@@ -110,16 +121,25 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
         esito = coda.valida_esito(body.dict())
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    vc = await db.partner_videocorso.find_one({"partner_id": body.partner_id}, {"_id": 0, "lessons": 1}) or {}
-    lesson = (vc.get("lessons") or {}).get(body.lesson_id)
-    if not lesson:
-        raise HTTPException(404, "Lezione non trovata")
-    if int(lesson.get("output_version") or 0) != int(body.output_version):
+    if body.lesson_id == coda.MASTERCLASS_ID:
+        lesson = (await db.masterclass_factory.find_one({"partner_id": body.partner_id}, {"_id": 0})
+                  or await db.partner_masterclass.find_one({"partner_id": body.partner_id}, {"_id": 0}))
+        if not lesson or not lesson.get("video_final_duration_s"):
+            raise HTTPException(404, "Masterclass non trovata")
+        versione_attuale = max(1, int(lesson.get("output_version") or 1))
+    else:
+        vc = await db.partner_videocorso.find_one({"partner_id": body.partner_id}, {"_id": 0, "lessons": 1}) or {}
+        lesson = (vc.get("lessons") or {}).get(body.lesson_id)
+        if not lesson:
+            raise HTTPException(404, "Lezione non trovata")
+        versione_attuale = int(lesson.get("output_version") or 0)
+    if versione_attuale != int(body.output_version):
         raise HTTPException(409, "Il video e' stato aggiornato: ricarica la pagina")
     chiave = coda.chiave_lezione(body.partner_id, body.lesson_id, body.output_version)
     now = datetime.now(timezone.utc).isoformat()
     partner = await db.partners.find_one({"id": body.partner_id}, {"_id": 0, "name": 1}) or {}
-    titolo = lesson.get("title") or lesson.get("titolo") or body.lesson_id
+    titolo = ("Masterclass" if body.lesson_id == coda.MASTERCLASS_ID
+              else lesson.get("title") or lesson.get("titolo") or body.lesson_id)
     # FATTURAZIONE: prima l'attivita' con i minuti veri (stesso flusso di tutte le attivita' di Antonella: Claudio
     # approva i minuti, poi entrano nella liquidazione). Id stabile: ripetere l'invio non la duplica. Se questo
     # passo fallisce l'esito non viene salvato e la lezione resta in coda: nessuna ora puo' andare persa.
@@ -133,7 +153,9 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
             "approved_minutes": 0, "time_entries": [], "active_timer_started_at": None, "created_at": now,
         }, "$set": {
             "title": f"Controllo lezione: {partner.get('name', body.partner_id)} — {titolo}",
-            "description": "Lezione montata guardata e caricata su Systeme (coda lezioni).",
+            "description": ("Masterclass montata guardata e caricata su Systeme (coda lezioni)."
+                            if body.lesson_id == coda.MASTERCLASS_ID
+                            else "Lezione montata guardata e caricata su Systeme (coda lezioni)."),
             "status": "completed", "work_category": "video", "estimated_minutes": stima,
             "actual_minutes": esito["minuti_reali"], "week_start": _week_start(), "updated_at": now,
             "resolution_notes": esito["note"] or "",
@@ -149,6 +171,15 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
                   "by": str(getattr(data, "user_id", "") or "")}},
         upsert=True,
     )
+    # Verificata: e' il momento in cui il montaggio ha passato il controllo umano. Solo adesso il
+    # video entra nella playlist YouTube del partner (sequenza: editing -> verifica -> playlist ->
+    # Systeme). Se la playlist non risponde l'esito resta comunque salvato: non si perde il lavoro.
+    playlist = None
+    if esito["esito"] == "verificata":
+        from services import youtube_playlist
+        playlist = await youtube_playlist.aggiungi_video(
+            db, body.partner_id, lesson.get("video_youtube_id") or "")
+
     if esito["esito"] == "da_correggere":
         try:
             from routers.partner_journey import notify_telegram
@@ -158,4 +189,4 @@ async def post_esito(body: EsitoBody, data=Depends(require_ciak_admin)):
             )
         except Exception:
             logger.exception("[CODA] avviso Telegram non inviato")
-    return {"success": True, "esito": esito["esito"]}
+    return {"success": True, "esito": esito["esito"], "playlist": playlist}

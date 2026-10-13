@@ -2,7 +2,16 @@
 // Non contiene misure o promesse tecniche non verificate. I formati dei caroselli vengono da fonti pubbliche
 // (verificate il 12/10/2026): Instagram e LinkedIn accettano 1080×1350 (4:5) e la prima slide decide il rapporto
 // di tutte; su LinkedIn il carosello è un documento, di solito PDF.
-export const VIDEO_DI_PROVA = []; // quando ci sono: { titolo, url } — la sezione compare solo se non è vuota
+// I video di esempio girati dal team: { titolo, url }. Finché la lista è vuota la sezione mostra
+// solo le regole, senza promettere esempi che non ci sono ancora.
+export const VIDEO_DI_PROVA = [];
+
+// Le due cose che chiediamo al partner quando registra le lezioni. Stanno qui, insieme agli
+// esempi, perché è il punto che apre prima di registrare (deciso con Claudio il 13/10/2026).
+export const REGOLE_VIDEO = [
+  ['Tieni i file originali', 'Non cancellarli dal telefono o dal computer dopo averceli mandati. Se il montaggio viene male o manca un pezzo ti chiediamo l’originale: senza, la lezione va rigirata.'],
+  ['Mandane tre per volta', 'Carica al massimo tre video e poi aspetta: ti diciamo noi quando puoi mandare i prossimi. Li montiamo e li guardiamo uno a uno, quindi mandarne di più non li fa uscire prima.'],
+];
 
 export const GUIDE = [
   {
@@ -16,7 +25,7 @@ export const GUIDE = [
       ['L’audio', 'È la cosa che si nota di più. Registra in una stanza silenziosa, senza eco, lontano da frigorifero, traffico e notifiche. Fai una prova di 10 secondi e riascoltala con le cuffie.'],
       ['Una prova prima', 'Registra 20 secondi, guardali dal telefono, poi parti. Se qualcosa non ti piace lo correggi adesso, non dopo mezz’ora di registrazione.'],
     ],
-    nota: 'Se ti blocchi su un errore mentre parli, fermati un secondo e ripeti la frase da capo: al montaggio ci pensiamo noi.',
+    nota: 'Se ti blocchi su un errore mentre parli, fermati un secondo e ripeti la frase da capo: al montaggio ci pensiamo noi. Importante: tieni da parte i file originali, non cancellarli dopo averli caricati.',
   },
   {
     id: 'reel',

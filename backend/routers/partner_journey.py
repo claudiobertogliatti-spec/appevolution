@@ -2590,35 +2590,21 @@ async def approve_videocorso_video(
         }}
     )
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin).
-    try:
-        import asyncio
-        partner = await db.partners.find_one({"id": partner_id})
-        vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
-        lesson = ((vc or {}).get("lessons") or {}).get(lesson_id, {})
-        yt_id = lesson.get("video_youtube_id") or ""
-        if yt_id:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-    except Exception as e:
-        logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
+    # La playlist NON si popola qui. La sequenza voluta e': editing -> verifica di Antonella ->
+    # playlist -> Systeme. Prima l'approvazione admin poteva precedere il controllo del montaggio,
+    # e il video entrava nella playlist del partner senza che nessuno l'avesse guardato per intero.
+    # Se la lezione e' GIA' stata verificata (ordine invertito) la si aggiunge adesso. (13/10/2026)
+    from services import youtube_playlist, coda_antonella as _ca
+    _vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0, "lessons": 1}) or {}
+    _les = (_vc.get("lessons") or {}).get(lesson_id, {})
+    _chiave = _ca.chiave_lezione(partner_id, lesson_id, int(_les.get("output_version") or 0))
+    _esito = await db.ciak_coda_lezioni.find_one({"_id": _chiave}, {"_id": 0, "esito": 1})
+    if youtube_playlist.verificata(_esito):
+        await youtube_playlist.aggiungi_video(db, partner_id, _les.get("video_youtube_id") or "")
+        return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+    return {"success": True, "message": f"Lezione {lesson_id} approvata",
+            "playlist": f"non aggiunta: {youtube_playlist.motivo_attesa(_esito)}"}
 
-    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 
 class PartnerLessonReviewRequest(BaseModel):
@@ -6899,6 +6885,19 @@ async def confirm_video_upload(
             upsert=True
         )
     elif req.video_type == "videocorso" and req.lesson_id:
+        # Tetto di tre video in lavorazione per partner: oltre, la coda di controllo diventa
+        # impossibile da programmare (vedi services/limite_video.py). Non vale per una lezione
+        # gia' in coda che viene rimandata: il posto e' gia' suo.
+        from services import limite_video, coda_antonella as _coda
+        _vc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}, {"_id": 0, "lessons": 1}) or {}
+        _lessons = _vc.get("lessons") or {}
+        _esiti = {}
+        async for _e in db.ciak_coda_lezioni.find({"partner_id": str(req.partner_id)}, {"_id": 1, "esito": 1}):
+            _esiti[_e["_id"]] = _e
+        _stato = limite_video.stato_upload(_lessons, _esiti, _coda.chiave_lezione, str(req.partner_id))
+        if not _stato["puo_caricare"] and req.lesson_id not in _stato["lezioni_in_lavorazione"]:
+            raise HTTPException(status_code=409, detail=_stato["messaggio"])
+
         # NB: partner_videocorso.lessons è un DICT keyed per lesson_id (vedi
         # upload_videocorso_lesson / approve_videocorso_lesson / pipeline set_status),
         # NON un array — quindi niente operatore posizionale `$`.
@@ -6967,6 +6966,21 @@ _LEGACY_STEP_MIGRATIONS = [
 ]
 
 
+# Gli step della vecchia numerazione restano nel database (la migrazione sotto li
+# archivia come `skipped`, con i loro dati: documenti e video caricati allora). Non
+# appartengono piu' al percorso: il registry non li conosce, quindi la vista partner
+# mostrava il loro ID grezzo ("09-funnel-asset") sotto "Non richiesto" e li contava nel
+# totale. Si nascondono qui, una volta per tutti i partner; i documenti NON si toccano.
+_LEGACY_STEP_IDS = frozenset(old for old, _ in _LEGACY_STEP_MIGRATIONS)
+
+
+def visible_journey_steps(steps: list) -> list:
+    """Step da mostrare al partner: via quelli della vecchia numerazione e quelli
+    che nessuna definizione conosce (senza definizione la label sarebbe l'ID)."""
+    return [
+        s for s in steps
+        if s.get("step_id") not in _LEGACY_STEP_IDS and step_definition(s.get("step_id"))
+    ]
 def passo_corrente(steps: list):
     """Lo step su cui il partner si trova adesso: il primo aperto CHE TOCCA A LUI.
 
@@ -7123,6 +7137,8 @@ async def get_operativo_state(
         steps = await db.partner_journey_steps.find(
             {"partner_id": partner_id}, {"_id": 0}
         ).sort("step_number", 1).to_list(length=40)
+
+    steps = visible_journey_steps(steps)
 
     # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
     # Si guarda a TUTTI gli step conosciuti (canonici + start-only): chi e' salito
