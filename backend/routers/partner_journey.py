@@ -6899,6 +6899,19 @@ async def confirm_video_upload(
             upsert=True
         )
     elif req.video_type == "videocorso" and req.lesson_id:
+        # Tetto di tre video in lavorazione per partner: oltre, la coda di controllo diventa
+        # impossibile da programmare (vedi services/limite_video.py). Non vale per una lezione
+        # gia' in coda che viene rimandata: il posto e' gia' suo.
+        from services import limite_video, coda_antonella as _coda
+        _vc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}, {"_id": 0, "lessons": 1}) or {}
+        _lessons = _vc.get("lessons") or {}
+        _esiti = {}
+        async for _e in db.ciak_coda_lezioni.find({"partner_id": str(req.partner_id)}, {"_id": 1, "esito": 1}):
+            _esiti[_e["_id"]] = _e
+        _stato = limite_video.stato_upload(_lessons, _esiti, _coda.chiave_lezione, str(req.partner_id))
+        if not _stato["puo_caricare"] and req.lesson_id not in _stato["lezioni_in_lavorazione"]:
+            raise HTTPException(status_code=409, detail=_stato["messaggio"])
+
         # NB: partner_videocorso.lessons è un DICT keyed per lesson_id (vedi
         # upload_videocorso_lesson / approve_videocorso_lesson / pipeline set_status),
         # NON un array — quindi niente operatore posizionale `$`.
