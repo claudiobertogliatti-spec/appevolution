@@ -72,7 +72,7 @@ async def test_deploy_sends_files_and_never_leaks_token(monkeypatch):
 
 class Partners:
     async def find_one(self, q, p=None):
-        return {"id": "p1", "name": "Daniele Andolfi"}
+        return {"id": "p1", "name": "Daniele Andolfi", "public_optin": {"enabled": True}}
 
 
 @pytest.fixture
@@ -103,6 +103,7 @@ async def test_publish_first_time_sets_url_and_does_not_release(env):
     out = await route.admin_publish_draft("p1", None)
     assert out["url"] == "https://n.vercel.app" and out["released"] is False
     assert out["pagine_senza_file"] == []
+    assert out["iscrizioni_attive"] is True and out["sync_systeme"] is False
     assert f.doc["preview_url"] == "https://n.vercel.app" and not f.doc.get("preview_released")
 
 

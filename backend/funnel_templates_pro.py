@@ -99,6 +99,9 @@ OPTIN_TEMPLATE = r"""<!DOCTYPE html>
   .btn-cta{width:100%;background:var(--brand);color:var(--brand-ink);font-family:Sora;font-weight:800;font-size:17px;border:none;padding:16px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:filter .2s,transform .05s}
   .btn-cta:hover{filter:brightness(1.05)}
   .btn-cta:active{transform:translateY(1px)}
+  .consent{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--ink-soft);margin:4px 0 14px;line-height:1.4}
+  .consent input{margin-top:3px;flex:none}
+  .optin-msg{color:#b91c1c;font-size:13.5px;margin-bottom:10px}
   .reassure{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ink-soft);font-size:12.5px;margin-top:13px}
   .reassure svg{color:#16a34a;flex:none}
   .strip{background:var(--night-2);border-top:1px solid rgba(255,255,255,.06);color:#8ea2c0}
@@ -167,12 +170,32 @@ OPTIN_TEMPLATE = r"""<!DOCTYPE html>
     <div class="kicker"><span class="badge">Gratis</span> {OPTIN_KICKER}</div>
     <h3>{OPTIN_H3}</h3>
     <p class="lead">{OPTIN_LEAD}</p>
-    <form action="{OPTIN_ACTION}" method="post">
-      <div class="field"><label for="n">Il tuo nome</label><input id="n" name="nome" type="text" placeholder="Es. Giulia" autocomplete="given-name" required></div>
-      <div class="field"><label for="e">La tua email</label><input id="e" name="email" type="email" placeholder="latuaemail@esempio.it" autocomplete="email" required></div>
+    <form action="{OPTIN_ACTION}" method="post" data-optin data-endpoint="{OPTIN_ENDPOINT}" data-next="{OPTIN_NEXT}">
+      <div class="field"><label for="n">Il tuo nome</label><input id="n" name="nome" type="text" placeholder="Es. Giulia" autocomplete="given-name" required maxlength="120"></div>
+      <div class="field"><label for="e">La tua email</label><input id="e" name="email" type="email" placeholder="latuaemail@esempio.it" autocomplete="email" required maxlength="200"></div>
+      <div style="position:absolute;left:-9999px" aria-hidden="true"><label>Sito web<input name="website" type="text" tabindex="-1" autocomplete="off"></label></div>
+      <label class="consent"><input name="consenso" type="checkbox" required> Ho letto l'<a href="/privacy.html" target="_blank" rel="noopener">informativa privacy</a> e acconsento al trattamento dei miei dati.</label>
+      <p class="optin-msg" role="alert" hidden></p>
       <button class="btn-cta" type="submit">{CTA_TESTO}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
     </form>
+    <script>
+    (function(){
+      var f=document.querySelector('form[data-optin]');if(!f)return;
+      var E=f.elements,msg=f.querySelector('.optin-msg'),btn=f.querySelector('button[type=submit]');
+      f.addEventListener('submit',function(ev){
+        var ep=f.getAttribute('data-endpoint');if(!ep)return;
+        ev.preventDefault();msg.hidden=true;btn.disabled=true;
+        var q=new URLSearchParams(location.search);
+        var body={nome:E.nome.value.trim(),email:E.email.value.trim(),consenso:E.consenso.checked,website:E.website.value,
+          pagina:location.pathname,referrer:document.referrer.slice(0,500),
+          utm_source:q.get('utm_source')||undefined,utm_medium:q.get('utm_medium')||undefined,utm_campaign:q.get('utm_campaign')||undefined};
+        fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+          .then(function(r){if(!r.ok)throw new Error(r.status);location.href=f.getAttribute('data-next')||'/guarda.html';})
+          .catch(function(e){btn.disabled=false;msg.textContent=(e&&e.message==='429')?'Troppi tentativi, riprova tra poco.':'Non siamo riusciti a registrarti. Riprova tra un attimo.';msg.hidden=false;});
+      });
+    })();
+    </script>
     <div class="reassure"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> {OPTIN_REASSURE}</div>
   </div>
 </div></section>
@@ -255,6 +278,8 @@ OPTIN_DEFAULTS: dict[str, str] = {
     "OPTIN_H3": "Guarda i 3 passi per andare online",
     "OPTIN_LEAD": "Inserisci i tuoi dati: ti apro subito la masterclass e ti mando il link via email.",
     "OPTIN_ACTION": "#",
+    "OPTIN_ENDPOINT": "",   # vuoto = modulo non collegato (nessun invio); la fabbrica imposta /api/optin
+    "OPTIN_NEXT": "/guarda.html",
     "CTA_TESTO": "Guarda la masterclass gratuita",
     "OPTIN_REASSURE": "Niente spam. Accesso immediato, disiscrizione in un clic.",
     "STRIP_1_B": "30 min", "STRIP_1_T": "di contenuto pratico",

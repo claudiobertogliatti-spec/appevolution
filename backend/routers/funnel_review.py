@@ -344,7 +344,7 @@ async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCre
         files = await funnel_factory.build_funnel_for_partner(db, str(partner_id))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1}) or {}
+    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1, "public_optin": 1}) or {}
     try:
         res = await vd.deploy(files, vd.project_name(str(partner_id), partner.get("name", "")))
     except vd.DeployError as e:
@@ -360,7 +360,10 @@ async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCre
         {"partner_id": str(partner_id)},
         {**update, "$setOnInsert": {"partner_id": str(partner_id), "created_at": now}}, upsert=True)
     return {"success": True, "url": res["url"], "released": bool((await _record(partner_id)).get("preview_released")),
-            "pagine_senza_file": vd.missing_pages(files, fr.PAGES)}
+            "pagine_senza_file": vd.missing_pages(files, fr.PAGES),
+            # le iscrizioni funzionano solo con il flag acceso (altrimenti l'endpoint risponde 404)
+            "iscrizioni_attive": (partner.get("public_optin") or {}).get("enabled") is True,
+            "sync_systeme": (partner.get("public_optin") or {}).get("systeme_sync") is True}
 
 
 @router.post("/{partner_id}/admin/new-version")
