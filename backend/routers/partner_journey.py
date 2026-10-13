@@ -6967,6 +6967,23 @@ _LEGACY_STEP_MIGRATIONS = [
 ]
 
 
+# Gli step della vecchia numerazione restano nel database (la migrazione sotto li
+# archivia come `skipped`, con i loro dati: documenti e video caricati allora). Non
+# appartengono piu' al percorso: il registry non li conosce, quindi la vista partner
+# mostrava il loro ID grezzo ("09-funnel-asset") sotto "Non richiesto" e li contava nel
+# totale. Si nascondono qui, una volta per tutti i partner; i documenti NON si toccano.
+_LEGACY_STEP_IDS = frozenset(old for old, _ in _LEGACY_STEP_MIGRATIONS)
+
+
+def visible_journey_steps(steps: list) -> list:
+    """Step da mostrare al partner: via quelli della vecchia numerazione e quelli
+    che nessuna definizione conosce (senza definizione la label sarebbe l'ID)."""
+    return [
+        s for s in steps
+        if s.get("step_id") not in _LEGACY_STEP_IDS and step_definition(s.get("step_id"))
+    ]
+
+
 async def _project_legacy_phase(partner_id: str):
     """Riallinea partner.phase (F1..F7 / LIVE) allo stato canonico del journey.
     Fase = fase_legacy dello step in_progress; se tutti done → 'LIVE'.
@@ -7100,6 +7117,8 @@ async def get_operativo_state(
         steps = await db.partner_journey_steps.find(
             {"partner_id": partner_id}, {"_id": 0}
         ).sort("step_number", 1).to_list(length=40)
+
+    steps = visible_journey_steps(steps)
 
     # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
     # Si guarda a TUTTI gli step conosciuti (canonici + start-only): chi e' salito
