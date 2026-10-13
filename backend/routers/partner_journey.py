@@ -2590,35 +2590,21 @@ async def approve_videocorso_video(
         }}
     )
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin).
-    try:
-        import asyncio
-        partner = await db.partners.find_one({"id": partner_id})
-        vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
-        lesson = ((vc or {}).get("lessons") or {}).get(lesson_id, {})
-        yt_id = lesson.get("video_youtube_id") or ""
-        if yt_id:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-    except Exception as e:
-        logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
+    # La playlist NON si popola qui. La sequenza voluta e': editing -> verifica di Antonella ->
+    # playlist -> Systeme. Prima l'approvazione admin poteva precedere il controllo del montaggio,
+    # e il video entrava nella playlist del partner senza che nessuno l'avesse guardato per intero.
+    # Se la lezione e' GIA' stata verificata (ordine invertito) la si aggiunge adesso. (13/10/2026)
+    from services import youtube_playlist, coda_antonella as _ca
+    _vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0, "lessons": 1}) or {}
+    _les = (_vc.get("lessons") or {}).get(lesson_id, {})
+    _chiave = _ca.chiave_lezione(partner_id, lesson_id, int(_les.get("output_version") or 0))
+    _esito = await db.ciak_coda_lezioni.find_one({"_id": _chiave}, {"_id": 0, "esito": 1})
+    if youtube_playlist.verificata(_esito):
+        await youtube_playlist.aggiungi_video(db, partner_id, _les.get("video_youtube_id") or "")
+        return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+    return {"success": True, "message": f"Lezione {lesson_id} approvata",
+            "playlist": f"non aggiunta: {youtube_playlist.motivo_attesa(_esito)}"}
 
-    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 
 class PartnerLessonReviewRequest(BaseModel):
