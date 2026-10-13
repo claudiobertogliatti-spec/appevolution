@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { House, Route, FolderOpen, MessagesSquare, Plus, CreditCard, LogOut, Ellipsis, KeyRound } from 'lucide-react';
+import { House, Route, FolderOpen, MessagesSquare, Plus, CreditCard, LogOut, Ellipsis, KeyRound, BookOpen } from 'lucide-react';
 import SerenoHelp, { useHelp } from './SerenoHelp';
 import './sereno.css';
 
@@ -28,7 +28,7 @@ export default function SerenoShell({ user, children, onLogout, adminViewLabel, 
         <aside className="sereno-sidebar">
           <Link to="/partner" className="sereno-brand" aria-label="Ciak — torna a Oggi"><img src="/ciak/logo.webp" alt="Ciak — Si cambia" width="1580" height="1054" /></Link>
           <nav aria-label="Area partner">{NAV.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to === '/partner'}><Icon aria-hidden="true"/><span>{label}</span></NavLink>)}</nav>
-          <nav aria-label="Piano e servizi" className="sereno-extra"><NavLink to="/partner/servizi-extra"><Plus aria-hidden="true"/>Servizi aggiuntivi</NavLink><NavLink to="/partner/rinnovo"><CreditCard aria-hidden="true"/>Il tuo piano</NavLink></nav>
+          <nav aria-label="Piano e servizi" className="sereno-extra"><NavLink to="/partner/guide"><BookOpen aria-hidden="true"/>Guide</NavLink><NavLink to="/partner/servizi-extra"><Plus aria-hidden="true"/>Servizi aggiuntivi</NavLink><NavLink to="/partner/rinnovo"><CreditCard aria-hidden="true"/>Il tuo piano</NavLink></nav>
           <SideHelp />
           <div className="sereno-profile"><span>{user?.name || 'Area partner'}</span><Link to="/partner/cambia-password">Account e password</Link>{onLogout && <button onClick={onLogout}><LogOut aria-hidden="true"/>Esci</button>}</div>
         </aside>
@@ -44,6 +44,7 @@ export default function SerenoShell({ user, children, onLogout, adminViewLabel, 
         <button type="button" aria-expanded={more} aria-controls="sereno-more" onClick={() => setMore((v) => !v)}><Ellipsis aria-hidden="true"/>Altro</button>
       </nav>
       {more && <div className="sereno-more" id="sereno-more">
+        <Link to="/partner/guide" onClick={() => setMore(false)}><BookOpen aria-hidden="true"/>Guide</Link>
         <Link to="/partner/servizi-extra" onClick={() => setMore(false)}><Plus aria-hidden="true"/>Servizi aggiuntivi</Link>
         <Link to="/partner/rinnovo" onClick={() => setMore(false)}><CreditCard aria-hidden="true"/>Il tuo piano</Link>
         <Link to="/partner/cambia-password" onClick={() => setMore(false)}><KeyRound aria-hidden="true"/>Account e password</Link>
