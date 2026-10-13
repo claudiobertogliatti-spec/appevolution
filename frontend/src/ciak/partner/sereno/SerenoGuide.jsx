@@ -19,10 +19,10 @@ export default function SerenoGuide() {
     <section className="sereno-guida sereno-guida-chiave" aria-labelledby="guida-video">
       <h2 id="guida-video">Le tue lezioni: come ce le mandi</h2>
       <ol>{REGOLE_VIDEO.map(([t, d]) => <li key={t}><strong>{t}.</strong> {d}</li>)}</ol>
-      {VIDEO_DI_PROVA.length > 0 && <>
-        <h3>Guarda un esempio</h3>
-        <ul>{VIDEO_DI_PROVA.map(v => <li key={v.url}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.titolo}</a></li>)}</ul>
-      </>}
+      <h3>Guarda un esempio</h3>
+      {VIDEO_DI_PROVA.length > 0
+        ? <ul>{VIDEO_DI_PROVA.map(v => <li key={v.url}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.titolo}</a></li>)}</ul>
+        : <p className="sereno-guida-nota">In arrivo: tre video brevi che ti mostrano la distanza dalla telecamera, lo sfondo e la luce.</p>}
     </section>
     {GUIDE.map(g => <React.Fragment key={g.id}><section className="sereno-guida" aria-labelledby={`guida-${g.id}`}>
       <h2 id={`guida-${g.id}`}>{g.titolo}</h2><p>{g.intro}</p>

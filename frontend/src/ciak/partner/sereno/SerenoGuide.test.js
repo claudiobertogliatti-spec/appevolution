@@ -45,6 +45,7 @@ it('le regole sui video stanno dove andranno gli esempi, in evidenza', () => {
   expect(sezione.className).toMatch(/sereno-guida-chiave/);
   expect(sezione.textContent).toMatch(/Tieni i file originali/);
   expect(sezione.textContent).toMatch(/Mandane tre per volta/);
-  // senza esempi caricati non si promette nulla
-  expect(sezione.textContent).not.toMatch(/esempio/i);
+  // finché non ci sono, il posto degli esempi resta annunciato
+  expect(sezione.textContent).toMatch(/Guarda un esempio/);
+  expect(sezione.textContent).toMatch(/In arrivo/);
 });
