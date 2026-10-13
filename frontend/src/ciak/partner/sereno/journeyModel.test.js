@@ -44,3 +44,24 @@ test('le altre fasi hanno un solo gruppo senza titolo', () => {
   expect(m.phases[0].groups).toHaveLength(1);
   expect(m.phases[0].groups[0].label).toBeNull();
 });
+
+describe('passaggi a carico del team', () => {
+  // Caso Andolfi: F-16, F-18, F-19 restano aperti per mesi e non hanno schermata partner.
+  it('non invita ad aprire un passaggio del team', () => {
+    const inCorso = stepPresentation({ step_id: '16-readiness-lancio', status: 'in_progress', azione: 'team' }, 'altro');
+    expect(inCorso).toEqual({ label: 'Ci stiamo lavorando noi', kind: 'team' });
+    const dopo = stepPresentation({ step_id: '19-workbook-finale', status: 'pending', azione: 'team' }, 'altro');
+    expect(dopo.kind).toBe('team-pending');
+  });
+
+  it('un passaggio del team non diventa «il tuo prossimo passo» nemmeno se è il corrente', () => {
+    const s = { step_id: '18-certificato-valida', status: 'in_progress', azione: 'team' };
+    expect(stepPresentation(s, '18-certificato-valida').kind).toBe('team');
+  });
+
+  it('i passaggi del partner restano come prima', () => {
+    const mio = { step_id: 'obiettivo', status: 'in_progress', azione: 'partner' };
+    expect(stepPresentation(mio, 'obiettivo')).toEqual({ label: 'Il tuo prossimo passo', kind: 'action' });
+    expect(stepPresentation({ ...mio, status: 'done' }).kind).toBe('complete');
+  });
+});

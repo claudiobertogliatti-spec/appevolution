@@ -35,6 +35,13 @@ export function stepPresentation(step, currentId) {
   if (step.approval_status === 'pending_review') return { label: 'In revisione al team', kind: 'waiting' };
   if (step.status === 'done') return { label: 'Completato', kind: 'complete' };
   if (step.status === 'skipped') return { label: 'Non richiesto', kind: 'skipped' };
+  // Passaggi che fa il team: restano aperti nei dati per mesi (Andolfi ne aveva quattro) e
+  // prima comparivano come «Già avviato» con il pulsante Apri — che per tre di loro portava a
+  // una schermata inesistente. Il partner non deve aprirli: deve solo sapere a che punto sono.
+  if (step.azione === 'team') {
+    if (step.status === 'in_progress') return { label: 'Ci stiamo lavorando noi', kind: 'team' };
+    return { label: 'Lo facciamo noi', kind: 'team-pending' };
+  }
   // Only the step the server picked as the current one is "il tuo prossimo passo".
   // Several steps can be `in_progress` in the data (opened by the team, left open):
   // marking all of them as "next" gave the partner seven starting points.
