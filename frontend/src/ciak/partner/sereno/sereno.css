@@ -175,3 +175,9 @@
 .sereno-guida ol{margin:0;padding-left:22px;display:grid;gap:10px;font-size:15px}.sereno-guida-nota{margin:14px 0 0!important;padding:12px 14px;background:#F7F8FA;border-radius:10px}
 .sereno-guida-chiave{border:2px solid var(--sereno-giallo,#F5C518);background:#FFFDF4}
 .sereno-guida-chiave h3{margin-top:1.1rem;font-size:1rem}
+
+/* Passaggi a carico del team: niente invito ad agire, solo lo stato. */
+.sereno-badge-team{background:#E8F0FB;color:#1F4E79;border:1px solid #BBD3EC}
+.sereno-badge-team-pending{background:#F3F1EC;color:#5F5A4E;border:1px solid #E0DBD0}
+.sereno-legenda{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;max-width:62ch}
+.sereno-legenda li{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;font-size:.95rem;line-height:1.5}

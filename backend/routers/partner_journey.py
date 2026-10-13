@@ -6981,6 +6981,27 @@ def visible_journey_steps(steps: list) -> list:
         s for s in steps
         if s.get("step_id") not in _LEGACY_STEP_IDS and step_definition(s.get("step_id"))
     ]
+def passo_corrente(steps: list):
+    """Lo step su cui il partner si trova adesso: il primo aperto CHE TOCCA A LUI.
+
+    Il team apre in anticipo gli step di sua competenza e non li richiude. Andolfi ne aveva
+    cinque aperti insieme (F-13, F-16, F-17, F-18, F-19) e tre non hanno nemmeno una schermata
+    partner: mostrarli come "il tuo prossimo passo" mandava il partner su una pagina vuota.
+    Si parte comunque dopo l'ultimo completato: un singolo step lasciato indietro a meta'
+    strada non deve riportare la vista all'inizio del percorso (regola del 30/07/2026).
+    """
+    if not steps:
+        return None
+    ultimo_done = max((i for i, s in enumerate(steps) if s.get("status") == "done"), default=-1)
+    aperti = [s for s in steps[ultimo_done + 1:] if s.get("status") in ("in_progress", "pending")]
+    scelto = next((s for s in aperti if s.get("azione", "partner") == "partner"), None)
+    if scelto:
+        return scelto
+    # Nessuno step del partner davanti: resta quello del team (ci stiamo lavorando noi),
+    # poi un eventuale step rimasto indietro, infine l'ultimo (percorso finito).
+    return next(iter(aperti), None) \
+        or next((s for s in steps if s.get("status") == "in_progress"), None) \
+        or steps[-1]
 
 
 async def _project_legacy_phase(partner_id: str):
@@ -7130,6 +7151,8 @@ async def get_operativo_state(
         s["owner"] = meta.get("owner")
         s["completion_policy"] = meta.get("completion_policy")
         s["material_categories"] = meta.get("material_categories", [])
+        # chi deve muoversi: "partner" oppure "team" (vedi models/partner_journey_step.py)
+        s["azione"] = meta.get("azione", "partner")
 
     # Il punto in cui si trova il partner e' il FRONTE del percorso: il primo step
     # aperto DOPO l'ultimo completato. Prendendo il primo `in_progress` in assoluto,
@@ -7141,17 +7164,11 @@ async def get_operativo_state(
         (i for i, s in enumerate(steps) if s["status"] == "done"),
         default=-1,
     )
-    current_step = next(
-        (s for s in steps[ultimo_done + 1:] if s["status"] in ("in_progress", "pending")),
-        None,
-    )
-    if not current_step:
-        # Nessuno step aperto dopo l'ultimo completato: se ne e' rimasto qualcuno
-        # indietro lo si mostra comunque, altrimenti il journey e' finito.
-        current_step = next((s for s in steps if s["status"] == "in_progress"), None)
-    if not current_step:
-        # Tutti done -> partner ha completato il journey
-        current_step = steps[-1] if steps else None
+    # Il team apre in anticipo gli step di sua competenza e non li richiude: Andolfi ne
+    # aveva cinque aperti insieme, di cui tre (F-16, F-18, F-19) senza nemmeno una schermata
+    # partner. Il passo corrente e' quindi il primo aperto CHE TOCCA AL PARTNER; gli step del
+    # team restano aperti nei dati ma non diventano mai "il tuo prossimo passo". (13/10/2026)
+    current_step = passo_corrente(steps)
 
     # Stato "Avvio" (step 1-2 pre-percorso, non in macro-fasi)
     avvio_steps = [s for s in steps if s["step_id"] in AVVIO_STEP_IDS]
