@@ -61,6 +61,10 @@ class Db:
             "l1": {"output_version": 2, "video_final_duration_s": 600, "title": "Intro", "pipeline_completed_at": "2026-10-10"},
             "l2": {"output_version": 1, "video_final_duration_s": 300, "title": "Metodo", "pipeline_completed_at": "2026-10-11"},
         }}])
+        # anche la masterclass passa dalla coda: le due collezioni dove puo' stare
+        self.masterclass_factory = Col([{"partner_id": "p1", "video_final_duration_s": 1800,
+                                         "pipeline_completed_at": "2026-10-09"}])
+        self.partner_masterclass = Col()
         self.ciak_coda_lezioni = Col()
         self.ciak_coda_config = Col()
         self.agent_tasks = Col([{"task_id": "x1", "assigned_to": "antonella", "week_start": _week_start(), "status": "open", "estimated_minutes": 90}])
@@ -81,7 +85,7 @@ def test_coda_mostra_consegna_e_piano(db):
     r = run(ciak_coda.get_coda())
     assert r["stime_iniziali"] is True
     assert len(r["consegne"]) == 1 and r["consegne"][0]["partner_nome"] == "Giulia Bianchi"
-    assert [l["titolo"] for l in r["consegne"][0]["lezioni"]] == ["Intro", "Metodo"]
+    assert [l["titolo"] for l in r["consegne"][0]["lezioni"]] == ["Masterclass", "Intro", "Metodo"]
     assert r["consegne"][0]["pronta_entro"]
     assert all(g["usati"] <= g["budget"] for g in r["piano"]["settimane"])
 
@@ -92,7 +96,7 @@ def test_esito_verificata_toglie_la_lezione_dalla_coda(db):
                                minuti_reali=18)
     run(ciak_coda.post_esito(body, data=None))
     r = run(ciak_coda.get_coda())
-    assert [l["lesson_id"] for l in r["consegne"][0]["lezioni"]] == ["l2"]
+    assert [l["lesson_id"] for l in r["consegne"][0]["lezioni"]] == ["masterclass", "l2"]
     assert db.ciak_coda_lezioni.docs["p1|l1|2"]["minuti_reali"] == 18
 
 
@@ -119,7 +123,7 @@ def test_da_correggere_finisce_nella_sua_lista(db, monkeypatch):
     run(ciak_coda.post_esito(body, data=None))
     r = run(ciak_coda.get_coda())
     assert [l["lesson_id"] for l in r["da_correggere"]] == ["l2"]
-    assert [l["lesson_id"] for l in r["consegne"][0]["lezioni"]] == ["l1"]
+    assert [l["lesson_id"] for l in r["consegne"][0]["lezioni"]] == ["masterclass", "l1"]
 
 
 def test_config_salvata_e_riletta(db):
@@ -146,3 +150,25 @@ def test_la_coda_dice_quanto_e_gia_assegnato_nella_settimana(db):
     r = run(ciak_coda.get_coda())
     assert r["altri_minuti_settimana"] == 90
     assert r["tetto_settimana_min"] == 300
+
+
+def test_lesito_sulla_masterclass_viene_accettato(db):
+    """La masterclass sta in un'altra collezione: l'esito deve trovarla lo stesso."""
+    body = ciak_coda.EsitoBody(partner_id="p1", lesson_id="masterclass", output_version=1, esito="verificata",
+                               controlli={k: True for k in ("audio", "inizio_fine", "parte_su_systeme", "titolo_ordine", "nessun_salto")},
+                               minuti_reali=40)
+    run(ciak_coda.post_esito(body, data=None))
+    r = run(ciak_coda.get_coda())
+    assert "masterclass" not in [l["lesson_id"] for l in r["consegne"][0]["lezioni"]]
+    salvato = db.ciak_coda_lezioni.docs["p1|masterclass|1"]
+    assert salvato["minuti_reali"] == 40 and salvato["esito"] == "verificata"
+
+
+def test_lesito_su_una_masterclass_inesistente_e_404(db):
+    db.masterclass_factory.docs = {}
+    body = ciak_coda.EsitoBody(partner_id="p1", lesson_id="masterclass", output_version=1, esito="verificata",
+                               controlli={k: True for k in ("audio", "inizio_fine", "parte_su_systeme", "titolo_ordine", "nessun_salto")},
+                               minuti_reali=40)
+    with pytest.raises(HTTPException) as e:
+        run(ciak_coda.post_esito(body, data=None))
+    assert e.value.status_code == 404

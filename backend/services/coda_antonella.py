@@ -68,14 +68,51 @@ def chiave_lezione(partner_id: str, lesson_id: str, output_version: int) -> str:
     return f"{partner_id}|{lesson_id}|{int(output_version)}"
 
 
+MASTERCLASS_ID = "masterclass"
+
+
+def voce_masterclass(doc: dict, nomi_partner: Dict[str, str], cfg: dict) -> Optional[dict]:
+    """La masterclass come voce di coda, con la stessa forma di una lezione.
+
+    Anche la masterclass va guardata prima di andare online (Claudio, 13/10/2026): e' il video
+    che il pubblico vede per primo. Il documento non ha `output_version` (lo hanno solo le
+    lezioni), quindi la versione e' 1 salvo rimontaggi che la impostano.
+    """
+    pid = str((doc or {}).get("partner_id") or "")
+    durata = (doc or {}).get("video_final_duration_s")
+    if not pid or not durata:
+        return None
+    try:
+        versione = max(1, int(doc.get("output_version") or 1))
+    except (TypeError, ValueError):
+        versione = 1
+    return {
+        "chiave": chiave_lezione(pid, MASTERCLASS_ID, versione),
+        "partner_id": pid,
+        "partner_nome": nomi_partner.get(pid) or pid,
+        "lesson_id": MASTERCLASS_ID,
+        "titolo": "Masterclass",
+        "tipo": MASTERCLASS_ID,
+        "output_version": versione,
+        "durata_s": int(durata),
+        "minuti": stima_minuti(durata, cfg["rapporto_visione"], cfg["minuti_fissi"]),
+        "link_video": doc.get("video_ciak_url") or doc.get("video_embed_url"),
+        "snippet_systeme": doc.get("video_systeme_embed"),
+        "partner_approvato": bool(doc.get("video_approved")),
+        "arrivata_il": doc.get("pipeline_completed_at") or doc.get("updated_at"),
+    }
+
+
 def lezioni_da_controllare(
     docs_videocorso: Iterable[dict],
     nomi_partner: Dict[str, str],
     esiti: Dict[str, dict],
     config: Optional[dict] = None,
+    docs_masterclass: Optional[Iterable[dict]] = None,
 ) -> Dict[str, List[dict]]:
-    """Divide le lezioni montate in: `da_controllare` (la coda) e `da_correggere` (segnalate, in attesa del nuovo montaggio).
+    """Divide i montaggi in: `da_controllare` (la coda) e `da_correggere` (segnalati, in attesa del nuovo montaggio).
 
+    Comprende le lezioni del videocorso e, se passate, le masterclass.
     `esiti`: chiave_lezione -> record dell'esito di Antonella per quella versione.
     """
     cfg = config_valida(config)
@@ -103,6 +140,7 @@ def lezioni_da_controllare(
                 "partner_nome": nomi_partner.get(pid) or pid,
                 "lesson_id": str(lid),
                 "titolo": les.get("title") or les.get("titolo") or f"Lezione {lid}",
+                "tipo": "lezione",
                 "output_version": versione,
                 "durata_s": int(durata),
                 "minuti": stima_minuti(durata, cfg["rapporto_visione"], cfg["minuti_fissi"]),
@@ -117,6 +155,16 @@ def lezioni_da_controllare(
                 continue
             else:
                 da_controllare.append(base)
+    for doc in docs_masterclass or []:
+        voce = voce_masterclass(doc, nomi_partner, cfg)
+        if not voce:
+            continue
+        esito = (esiti or {}).get(voce["chiave"])
+        if esito and esito.get("esito") == "da_correggere":
+            da_correggere.append({**voce, "nota": esito.get("note"), "segnalata_il": esito.get("at")})
+        elif not (esito and esito.get("esito") == "verificata"):
+            da_controllare.append(voce)
+
     ordine = lambda t: (str(t.get("arrivata_il") or ""), t["partner_nome"], t["titolo"])
     da_controllare.sort(key=ordine)
     da_correggere.sort(key=ordine)

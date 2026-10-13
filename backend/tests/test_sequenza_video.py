@@ -88,3 +88,51 @@ async def test_a_network_failure_never_breaks_the_caller(monkeypatch):
     monkeypatch.setattr(vpt, "create_youtube_playlist_sync", esplode, raising=False)
     out = await yp.aggiungi_video(FakeDb({"id": "p1", "name": "D"}), "p1", "VID1")
     assert out["ok"] is False and "errore tecnico" in out["motivo"]
+
+
+# ── La masterclass passa dallo stesso controllo delle lezioni (Claudio, 13/10/2026) ──
+
+from services import coda_antonella as coda
+
+
+def _mc(pid="p1", durata=1800, **kw):
+    return {"partner_id": pid, "video_final_duration_s": durata,
+            "pipeline_completed_at": "2026-10-13T08:00:00Z", **kw}
+
+
+def test_the_masterclass_enters_the_same_queue_as_the_lessons():
+    g = coda.lezioni_da_controllare([], {"p1": "Daniele"}, {}, None, docs_masterclass=[_mc()])
+    assert len(g["da_controllare"]) == 1
+    voce = g["da_controllare"][0]
+    assert voce["titolo"] == "Masterclass" and voce["tipo"] == "masterclass"
+    assert voce["lesson_id"] == "masterclass" and voce["partner_nome"] == "Daniele"
+    assert voce["minuti"] > 0 and voce["chiave"] == coda.chiave_lezione("p1", "masterclass", 1)
+
+
+def test_a_verified_masterclass_leaves_the_queue_and_a_flagged_one_moves_to_corrections():
+    esiti = {coda.chiave_lezione("p1", "masterclass", 1): {"esito": "verificata"}}
+    g = coda.lezioni_da_controllare([], {}, esiti, None, docs_masterclass=[_mc()])
+    assert g["da_controllare"] == [] and g["da_correggere"] == []
+
+    esiti = {coda.chiave_lezione("p1", "masterclass", 1): {"esito": "da_correggere", "note": "taglio brusco"}}
+    g = coda.lezioni_da_controllare([], {}, esiti, None, docs_masterclass=[_mc()])
+    assert len(g["da_correggere"]) == 1 and g["da_correggere"][0]["nota"] == "taglio brusco"
+
+
+def test_a_remounted_masterclass_comes_back_to_be_checked():
+    """Versione 2: l'esito sulla 1 non vale piu'."""
+    esiti = {coda.chiave_lezione("p1", "masterclass", 1): {"esito": "verificata"}}
+    g = coda.lezioni_da_controllare([], {}, esiti, None, docs_masterclass=[_mc(output_version=2)])
+    assert len(g["da_controllare"]) == 1 and g["da_controllare"][0]["output_version"] == 2
+
+
+def test_a_masterclass_without_a_finished_edit_is_not_queued():
+    for doc in ({"partner_id": "p1"}, {"video_final_duration_s": 10}, {}):
+        assert coda.lezioni_da_controllare([], {}, {}, None, docs_masterclass=[doc])["da_controllare"] == []
+
+
+def test_lessons_and_masterclass_share_one_ordered_queue():
+    lez = {"partner_id": "p1", "lessons": {"l1": {"output_version": 1, "video_final_duration_s": 600,
+                                                  "title": "Lezione 1", "pipeline_completed_at": "2026-10-13T09:00:00Z"}}}
+    g = coda.lezioni_da_controllare([lez], {"p1": "Daniele"}, {}, None, docs_masterclass=[_mc()])
+    assert [v["tipo"] for v in g["da_controllare"]] == ["masterclass", "lezione"]  # ordinata per arrivo
