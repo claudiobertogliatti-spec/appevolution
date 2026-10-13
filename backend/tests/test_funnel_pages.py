@@ -44,3 +44,22 @@ def test_factory_produces_every_review_page():
     files = funnel_factory.build_funnel_files(sales={"PARTNER_NOME": "Dani"})
     for name in ("index.html", "guarda.html", "grazie.html", "vendita.html", "privacy.html", "cookie.html", "termini.html"):
         assert name in files and files[name].strip()
+
+
+def test_optin_form_is_wired_to_the_public_endpoint_with_consent_and_trap():
+    import json
+    files = funnel_factory.build_funnel_files(partner_id="23")
+    cfg = json.loads(files["vercel.json"])
+    assert cfg["rewrites"] == [{"source": "/api/optin", "destination": "https://www.ciak.io/api/partner-optin/23"}]
+    html = files["index.html"]
+    assert 'data-endpoint="/api/optin"' in html and 'data-next="/guarda.html"' in html
+    assert 'name="consenso" type="checkbox" required' in html and 'name="website"' in html
+    assert 'href="/privacy.html"' in html and "{OPTIN_" not in html
+
+
+def test_partner_id_in_rewrite_is_sanitised_and_absent_id_leaves_form_unwired():
+    import json
+    files = funnel_factory.build_funnel_files(partner_id="2/../3?x")
+    assert json.loads(files["vercel.json"])["rewrites"][0]["destination"].endswith("/partner-optin/23x")
+    plain = funnel_factory.build_funnel_files()
+    assert "vercel.json" not in plain and 'data-endpoint=""' in plain["index.html"]
