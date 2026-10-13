@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import WorkspaceShell from "./WorkspaceShell";
 import { API } from "../../../utils/api-config";
 import { uploadVideoResumable } from "../../lib/gcsResumableUpload";
@@ -201,13 +202,10 @@ export default function Workspace2Corso({ partnerId, onBack }) {
   const up = state.upload || { puo_caricare: true, in_lavorazione: 0, massimo: 3, messaggio: "" };
   const uploadSlot = state.course_approved ? (
     <div>
-      <div className="border border-slate-200 bg-slate-50 rounded-xl p-4 mb-3" data-testid="regole-video">
-        <p className="text-[13px] font-semibold text-slate-900 mb-2">Due cose, prima di caricare</p>
-        <ul className="text-[13px] text-slate-700 space-y-1.5">
-          <li><span className="font-semibold">Tieni i file originali.</span> Non cancellarli dopo il caricamento: se il montaggio viene male te li richiediamo, altrimenti va rigirata la lezione.</li>
-          <li><span className="font-semibold">Tre video per volta.</span> Poi aspetta: ti diciamo noi quando puoi mandare i prossimi. Serve a montarli e controllarli uno a uno.</li>
-        </ul>
-        <p className={`text-[13px] mt-3 ${up.puo_caricare ? "text-slate-600" : "font-semibold text-slate-900"}`} data-testid="stato-upload">{up.messaggio}</p>
+      <div className="border-2 border-yellow-300 bg-yellow-50 rounded-xl p-4 mb-3" data-testid="regole-video">
+        <p className="text-[13px] font-semibold text-slate-900">Tieni i file originali e mandane tre per volta.</p>
+        <p className="text-[13px] text-slate-700 mt-1">Se il montaggio viene male ti chiediamo il video originale. <Link to="/partner/guide" className="underline font-semibold">Leggi come funziona</Link></p>
+        <p className={`text-[13px] mt-2 ${up.puo_caricare ? "text-slate-600" : "font-semibold text-slate-900"}`} data-testid="stato-upload">{up.messaggio}</p>
       </div>
       {up.puo_caricare ? (
       <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${busy === "upload" ? "opacity-60 pointer-events-none" : "border-slate-300 hover:border-yellow-400"}`}>

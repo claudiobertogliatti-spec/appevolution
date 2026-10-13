@@ -2,7 +2,16 @@
 // Non contiene misure o promesse tecniche non verificate. I formati dei caroselli vengono da fonti pubbliche
 // (verificate il 12/10/2026): Instagram e LinkedIn accettano 1080×1350 (4:5) e la prima slide decide il rapporto
 // di tutte; su LinkedIn il carosello è un documento, di solito PDF.
-export const VIDEO_DI_PROVA = []; // quando ci sono: { titolo, url } — la sezione compare solo se non è vuota
+// I video di esempio girati dal team: { titolo, url }. Finché la lista è vuota la sezione mostra
+// solo le regole, senza promettere esempi che non ci sono ancora.
+export const VIDEO_DI_PROVA = [];
+
+// Le due cose che chiediamo al partner quando registra le lezioni. Stanno qui, insieme agli
+// esempi, perché è il punto che apre prima di registrare (deciso con Claudio il 13/10/2026).
+export const REGOLE_VIDEO = [
+  ['Tieni i file originali', 'Non cancellarli dal telefono o dal computer dopo averceli mandati. Se il montaggio viene male o manca un pezzo ti chiediamo l’originale: senza, la lezione va rigirata.'],
+  ['Mandane tre per volta', 'Carica al massimo tre video e poi aspetta: ti diciamo noi quando puoi mandare i prossimi. Li montiamo e li guardiamo uno a uno, quindi mandarne di più non li fa uscire prima.'],
+];
 
 export const GUIDE = [
   {
@@ -62,22 +71,6 @@ GUIDE.push({
   nota: 'Il budget delle pubblicità è sempre tuo e va pagato a parte. Se preferisci non occupartene, c’è il servizio extra qui sotto.',
   extra: 'campagne-adv',
   extraTesto: 'Impostiamo e seguiamo noi le tue campagne. Il budget delle pubblicità resta a tuo carico.',
-});
-
-// Come il partner ci manda i video: le due regole che gli chiediamo (originali da conservare,
-// tre per volta) e cosa succede dopo, passo per passo. Testo deciso con Claudio il 13/10/2026.
-GUIDE.push({
-  id: 'mandare-i-video',
-  titolo: 'Come ci mandi i tuoi video',
-  intro: 'Due cose da sapere prima di caricare, e poi ci pensiamo noi.',
-  passi: [
-    ['Tieni gli originali', 'Non cancellare i file dal telefono o dal computer dopo averli caricati. Se il montaggio viene male o manca un pezzo, ti chiediamo il video originale: senza, bisogna rigirare la lezione.'],
-    ['Tre video per volta', 'Caricane al massimo tre e poi aspetta: te lo diciamo noi quando puoi mandare i prossimi. Serve a noi per montarli e controllarli uno a uno, con calma.'],
-    ['Li montiamo', 'Togliamo pause, errori e ripetizioni. Le tue parole non si toccano.'],
-    ['Li guardiamo', 'Una persona del team guarda il video dall’inizio alla fine prima che vada online. Se qualcosa non va, lo rimontiamo.'],
-    ['Li mettiamo nel tuo corso', 'Solo dopo quel controllo il video entra nel tuo corso. Lo vedi nel tuo spazio: ti diciamo sempre a che punto è.'],
-  ],
-  nota: 'Caricarne di più tutti insieme non li fa uscire prima: allunga solo l’attesa di tutti.',
 });
 
 export const PUBBLICAZIONE = 'Pubblichi tu i tuoi contenuti. Se preferisci non occupartene, puoi affidarli a noi come servizio extra.';

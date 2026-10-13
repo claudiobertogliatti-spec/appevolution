@@ -10,7 +10,7 @@ const wrap = () => render(<MemoryRouter><SerenoGuide /></MemoryRouter>);
 
 test('le tre guide ci sono, ciascuna con i suoi passi', () => {
   wrap();
-  ['Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello', 'Come ci mandi i tuoi video', 'Le pubblicità, se vuoi farle da solo'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
+  ['Le tue lezioni: come ce le mandi', 'Prima di registrare', 'Come si fa un reel', 'Come si fa un carosello', 'Le pubblicità, se vuoi farle da solo'].forEach(t => expect(screen.getByRole('heading', { name: t })).toBeTruthy());
   GUIDE.forEach(g => g.passi.forEach(([t]) => expect(screen.getByText(t + '.')).toBeTruthy()));
 });
 
@@ -36,4 +36,15 @@ test('il servizio extra viene dal catalogo, con il suo prezzo', () => {
 test('il formato del carosello dichiarato è quello verificato', () => {
   wrap();
   expect(screen.getByText(/1080 × 1350 pixel \(4:5/)).toBeTruthy();
+});
+
+
+it('le regole sui video stanno dove andranno gli esempi, in evidenza', () => {
+  render(<MemoryRouter><SerenoGuide /></MemoryRouter>);
+  const sezione = screen.getByRole('heading', { name: 'Le tue lezioni: come ce le mandi' }).closest('section');
+  expect(sezione.className).toMatch(/sereno-guida-chiave/);
+  expect(sezione.textContent).toMatch(/Tieni i file originali/);
+  expect(sezione.textContent).toMatch(/Mandane tre per volta/);
+  // senza esempi caricati non si promette nulla
+  expect(sezione.textContent).not.toMatch(/esempio/i);
 });
