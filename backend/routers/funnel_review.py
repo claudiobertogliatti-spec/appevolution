@@ -329,6 +329,40 @@ async def admin_set(partner_id: str, body: AdminSetBody,
     return {"success": True, **(await _state(partner_id))}
 
 
+@router.post("/{partner_id}/admin/publish-draft")
+async def admin_publish_draft(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Costruisce la bozza del funnel e la pubblica su Vercel (*.vercel.app).
+
+    Non rilascia nulla al partner: `preview_released` resta com'è, lo decide il team dopo aver
+    guardato la bozza. Se esisteva già un'anteprima, sale la versione e le pagine tornano da controllare."""
+    token = await _authorize(partner_id, credentials)
+    if not _is_admin(token):
+        raise HTTPException(status_code=403, detail="Solo il team può farlo.")
+    import funnel_factory
+    from services import vercel_deploy as vd
+    try:
+        files = await funnel_factory.build_funnel_for_partner(db, str(partner_id))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    partner = await db.partners.find_one({"id": str(partner_id)}, {"_id": 0, "name": 1}) or {}
+    try:
+        res = await vd.deploy(files, vd.project_name(str(partner_id), partner.get("name", "")))
+    except vd.DeployError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    rec = await _record(partner_id)
+    now = _now()
+    update = {"$set": {"preview_url": res["url"], "updated_at": now, "last_deployment_id": res["deployment_id"]}}
+    if rec.get("preview_url"):
+        nv = fr.new_version_update(rec, int(rec.get("preview_version") or 1) + 1, [p["id"] for p in fr.PAGES], now)
+        update["$set"].update(nv["$set"])
+        update["$set"]["preview_url"] = res["url"]
+    await db.partner_funnel.update_one(
+        {"partner_id": str(partner_id)},
+        {**update, "$setOnInsert": {"partner_id": str(partner_id), "created_at": now}}, upsert=True)
+    return {"success": True, "url": res["url"], "released": bool((await _record(partner_id)).get("preview_released")),
+            "pagine_senza_file": vd.missing_pages(files, fr.PAGES)}
+
+
 @router.post("/{partner_id}/admin/new-version")
 async def admin_new_version(partner_id: str, body: NewVersionBody,
                             credentials: HTTPAuthorizationCredentials = Depends(security)):
