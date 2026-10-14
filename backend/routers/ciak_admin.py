@@ -21,7 +21,7 @@ import logging
 import re
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -2108,6 +2108,38 @@ async def ciak_video_pipeline_health(admin=Depends(require_ciak_admin)):
         items.extend(vh.items_from_videocorso(doc, partner_names, now))
 
     return vh.build_summary(items, now)
+
+
+class VideoIntakeRequest(BaseModel):
+    items: List[Dict[str, Any]]
+
+
+@router.post("/video-intake/{partner_id}")
+async def ciak_video_intake(partner_id: str, req: VideoIntakeRequest, admin=Depends(require_ciak_admin)):
+    """Registra nel videocorso lezioni già caricate nello storage (da Drive), SENZA montarle.
+
+    Body: {"items":[{"lesson_id":"lez-34","title":"…","gcs_path":"gs://…/raw_videos/<partner>/videocorso/lez-34/x.mp4"}]}.
+    La lezione compare con il suo titolo in stato "caricato": nessuna pipeline parte. Il montaggio si lancia dopo,
+    una lezione alla volta, con /video-pipeline-retry (force_phase "a": trascrizione e revisione dei tagli)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_video_intake import IntakeError, intake_fields, resolve_items
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "id": 1})
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0}) or {}
+    try:
+        items = resolve_items(partner_id, vc, req.items)
+    except IntakeError as exc:
+        raise HTTPException(exc.status, exc.message)
+    now = datetime.now(timezone.utc).isoformat()
+    actor = getattr(admin, "email", None) or getattr(admin, "user_id", None) or "admin"
+    sets: Dict[str, Any] = {"updated_at": now}
+    for it in items:
+        sets.update(intake_fields(it, now, actor))
+    await db.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": sets}, upsert=True)
+    return {"success": True, "partner_id": partner_id,
+            "lessons": [{"lesson_id": i["lesson_id"], "title": i["title"], "status": "caricato"} for i in items]}
 
 
 class VideoRetryRequest(BaseModel):
