@@ -124,7 +124,9 @@ async def require_partner_or_admin_for_partner(
             raise HTTPException(status_code=404, detail="Utente non trovato")
 
         user_partner_id = str(user.get("partner_id") or "")
-        if user_partner_id != str(partner_id):
+        # Un utente senza `partner_id` collegato non e' "il partner di id vuoto": "" == "" non
+        # deve mai autorizzare (fail-open trovato in revisione, 14/10/2026).
+        if not user_partner_id or not str(partner_id).strip() or user_partner_id != str(partner_id):
             raise HTTPException(status_code=403, detail="Partner non autorizzato")
 
         return token_data

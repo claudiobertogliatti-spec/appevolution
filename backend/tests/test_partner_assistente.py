@@ -218,3 +218,23 @@ def test_limite_di_messaggi(monkeypatch, app_db):
     for _ in range(proposta_chat.RATE_MAX_MESSAGES + 1):
         ultimo = _eventi(client.post("/api/partner-assistente/p1/chat", json={"message": "ciao"}))
     assert ultimo[0] == {"t": proposta_chat.RATE_LIMIT_REPLY}
+
+
+# ── auth REALE (senza sostituire la guardia): 401 senza token, 403 per un altro partner ─────────
+def test_auth_reale_senza_token_o_con_token_inventato_401(monkeypatch, app_db):
+    import auth
+    from routers import partner_journey
+
+    client, db = app_db
+    db.users = _Coll([{"id": "u1", "partner_id": "p1"}, {"id": "u2", "partner_id": "p2"}])
+    monkeypatch.setattr(partner_journey, "db", db)
+    tokens = {"t1": SimpleNamespace(role="partner", user_id="u1"), "t2": SimpleNamespace(role="partner", user_id="u2")}
+    monkeypatch.setattr(auth, "decode_token", lambda t: tokens.get(t))
+    _modello(monkeypatch, ["ok"])
+    url = "/api/partner-assistente/p1/chat"
+    corpo = {"message": "ciao"}
+    assert client.post(url, json=corpo).status_code == 401
+    assert client.post(url, json=corpo, headers={"Authorization": "Bearer inventato"}).status_code == 401
+    assert client.post(url, json=corpo, headers={"Authorization": "Bearer t2"}).status_code == 403  # un altro partner
+    assert db.partner_assistente.docs == []
+    assert client.post(url, json=corpo, headers={"Authorization": "Bearer t1"}).status_code == 200

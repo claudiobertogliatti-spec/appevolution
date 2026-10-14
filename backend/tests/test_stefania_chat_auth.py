@@ -139,3 +139,70 @@ def test_l_admin_legge_lo_storico(api):
     client, _ = api
     r = client.get("/api/stefania/conversations/p-sarah", headers=H("tok-admin"))
     assert r.json()["messages"][0]["content"] == "privato"
+
+
+# ── fail-open sulla stringa vuota (revisione 14/10/2026) ────────────────────
+def test_partner_id_vuoto_non_autorizza_nessuno(api):
+    client, db = api
+    db.users.docs.append({"id": "u-orfano", "partner_id": None})  # utente non collegato a un partner
+    TOKENS["tok-orfano"] = SimpleNamespace(role="partner", user_id="u-orfano", email="o@x.it")
+    try:
+        for corpo in ({"partner_id": "", "message": "x"}, {"partner_id": "   ", "message": "x"}):
+            assert client.post("/api/stefania/chat", json=corpo, headers=H("tok-orfano")).status_code == 400
+            assert client.post("/api/stefania/escalation", json=corpo, headers=H("tok-orfano")).status_code == 400
+        assert db.stefania_conversations.updates == []
+    finally:
+        TOKENS.pop("tok-orfano", None)
+
+
+@pytest.mark.asyncio
+async def test_la_guardia_comune_non_fa_passare_vuoto_contro_vuoto(api):
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    _, db = api
+    db.users.docs.append({"id": "u-orfano", "partner_id": None})
+    TOKENS["tok-orfano"] = SimpleNamespace(role="partner", user_id="u-orfano", email="o@x.it")
+    try:
+        cred = HTTPAuthorizationCredentials(scheme="Bearer", credentials="tok-orfano")
+        for vuoto in ("", None):
+            with pytest.raises(Exception) as e:
+                await partner_journey.require_partner_or_admin_for_partner(vuoto or "", cred)
+            assert getattr(e.value, "status_code", None) == 403
+    finally:
+        TOKENS.pop("tok-orfano", None)
+
+
+# ── solo gli agenti ufficiali ───────────────────────────────────────────────
+def test_agenti_ammessi_sono_solo_quelli_ufficiali():
+    assert sc.AGENTI_CHAT_PARTNER == {"STEFANIA", "VALENTINA", "ANDREA", "GAIA", "MARCO", "MATTEO"}
+    from agent_prompts import AGENT_SYSTEM_PROMPTS
+
+    assert sc.AGENTI_CHAT_PARTNER <= set(AGENT_SYSTEM_PROMPTS)  # ogni agente ammesso ha davvero un prompt
+
+
+@pytest.mark.parametrize("richiesto,atteso", [("MAIN", None), ("elena", None), ("RESEARCH", None), ("inventato", None), ("andrea", "ANDREA")])
+def test_il_partner_non_puo_scegliere_prompt_interni(api, monkeypatch, richiesto, atteso):
+    import agent_prompts
+    import anthropic
+
+    client, db = api
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    chiesti = []
+    monkeypatch.setattr(agent_prompts, "get_agent_prompt", lambda a: chiesti.append(a) or "PROMPT")
+
+    class _Msgs:
+        async def create(self, **k):
+            return SimpleNamespace(content=[SimpleNamespace(text="ok")])
+
+    monkeypatch.setattr(anthropic, "AsyncAnthropic", lambda api_key: SimpleNamespace(messages=_Msgs()))
+    r = client.post("/api/stefania/chat", json={**CHAT, "target_agent": richiesto}, headers=H("tok-sarah"))
+    assert r.status_code == 200
+    assert r.json()["agent"] == (atteso or "STEFANIA")
+    assert chiesti == ([atteso] if atteso else [])  # MAIN/ELENA/RESEARCH non arrivano mai a get_agent_prompt
+
+
+# ── Telegram: i testi liberi del partner non rompono il Markdown ─────────────
+def test_testo_sicuro_toglie_la_formattazione_e_limita():
+    assert sc._testo_sicuro("*Claudio* [clicca](http://x) _ciao_\nsecondo", 100) == "Claudio clicca http://x ciao secondo"
+    assert len(sc._testo_sicuro("a" * 500, 80)) == 80
+    assert sc._testo_sicuro(None, 10) == ""

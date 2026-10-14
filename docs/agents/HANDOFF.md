@@ -1,3 +1,22 @@
+### 2026-10-14 (2) · Claude Code · claude/modest-euler-xde2pw — Chat degli agenti (/api/stefania/*) protetta
+
+**RICHIESTA:** «si proteggilo» (la chat con gli agenti era aperta: scoperta durante l'assistente partner).
+
+**DICHIARATO**
+- `routers/stefania_chat.py`: `POST /chat` e `POST /escalation` richiedono il token e il `partner_id` del body deve essere quello di chi scrive (`require_partner_or_admin_for_partner`; l'admin in supervisione passa; un cliente Start passa solo per il proprio id); `partner_id` vuoto → 400. `GET /conversations/{id}`, `GET /escalations`, `PATCH /escalations/{id}` solo admin. `target_agent` ammesso solo tra STEFANIA/VALENTINA/ANDREA/GAIA/MARCO/MATTEO (prima anche MAIN, ELENA, RESEARCH = prompt interni; ora ripiega su STEFANIA). Testi liberi dell'escalation puliti prima di Telegram (Markdown).
+- `routers/partner_journey.py` `require_partner_or_admin_for_partner`: **fail-open corretto** — un utente partner senza `partner_id` collegato non passa piu' con `partner_id=""` ("" == "" autorizzava; trovato dal revisore). Vale per tutte le rotte che usano la guardia.
+- Frontend: i 4 punti che chiamano la chat (`AgentDrawer`, `SerenoHelp`, `TeamSupportoPage`, `StefaniaChat`) mandano `authHeaders()` (token partner; in vista admin il token e' quello dell'admin).
+
+**VERIFICATO**
+- Revisione indipendente (`auth-reviewer`): nessun percorso per leggere dati di un altro partner da questi endpoint; segnalati e sistemati: test non in CI, fail-open sul vuoto, `target_agent` troppo largo, Markdown Telegram, test partner senza auth reale.
+- `tests/test_stefania_chat_auth.py` (18 casi) e `test_partner_assistente.py` (con auth reale) in CI. Sul codice vecchio 9 dei nuovi test falliscono, sul nuovo passano. 72 passati su Stefania + assistenti. Frontend `src/ciak/partner` 198/199.
+- 10 test del backend rossi in `test_partner_journey_operativo.py` (8) e `test_sequenza_video.py` (2) falliscono IDENTICI con il codice precedente: preesistenti, non toccati.
+
+**⛔ APERTO — GRAVE, NON SISTEMATO**
+- In `server.py` ci sono rotte `/stefania/*` (con `api_router`) SENZA parametri di auth nella firma, con `partner_id` nel path: `GET /stefania/api/credentials/{partner_id}` (8702), `/stefania/api/roi/{partner_id}` (8758), `/stefania/api/crm/sales/{partner_id}` (8809), `/stefania/war-mode/campaigns[/{id}]` (8073, 8079), `/stefania/war-mode/performance/{id}` (8168), `/stefania/course-builder/{id}` (11480), `POST /stefania/api/sync-metrics/{id}` (8721), `/stefania/memory/conversations`, `/stefania/admin-review/pending`, `POST /stefania/review-script` e `/generate-draft`. NON verificato se `AgentTokenMiddleware` (server.py:140) le copre. Da far rivedere e proteggere (segnalato come task a parte).
+- Un cliente Start (`ciak_client`) puo' usare `/api/stefania/chat` per il proprio id: voluto dalla guardia comune, non testato.
+- Dopo il deploy un partner con la pagina aperta prima vedra' «Messaggio non inviato» finche' non ricarica.
+
 ### 2026-10-14 (1) · Claude Code · claude/modest-euler-xde2pw — Assistente esteso all'area partner
 
 **RICHIESTA:** «estendilo anche all'area partner» (l'assistente chat gia' fatto per i clienti Start).

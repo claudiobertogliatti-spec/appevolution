@@ -25,6 +25,17 @@ def set_db(database):
     global db
     db = database
 
+# Gli agenti con cui un partner puo' parlare (roster canonico: frontend/src/ciak/partner/operativo/agents.js).
+AGENTI_CHAT_PARTNER = frozenset({"STEFANIA", "VALENTINA", "ANDREA", "GAIA", "MARCO", "MATTEO"})
+
+
+def _testo_sicuro(valore, massimo: int) -> str:
+    """Testo libero del partner reso innocuo per un messaggio Telegram in Markdown: niente simboli di
+    formattazione, a capo ridotti a spazi, lunghezza limitata."""
+    pulito = "".join(c if c not in "*_`[]()\\" else " " for c in str(valore or ""))
+    return " ".join(pulito.split())[:massimo]
+
+
 # ─── Autenticazione ───────────────────────────────────────────────────────────
 # Prima di ottobre 2026 questi endpoint erano aperti: chiunque conoscesse un `partner_id` poteva
 # leggere il contesto di quel partner (nome, nicchia, step, offerta) e il suo storico di chat, e
@@ -32,9 +43,14 @@ def set_db(database):
 # chiunque), le letture/scritture di servizio solo admin.
 
 async def _require_partner_self(partner_id: str, credentials: Optional[HTTPAuthorizationCredentials]):
-    """Il partner e' chi dice di essere (o e' un admin in supervisione). 401/403 altrimenti."""
+    """Il partner e' chi dice di essere (o e' un admin in supervisione). 401/403 altrimenti.
+
+    Un `partner_id` vuoto non e' mai valido. Chi ha accesso come cliente Start passa solo per il
+    proprio id (regola di `require_partner_or_admin_for_partner`)."""
     from routers.partner_journey import require_partner_or_admin_for_partner
 
+    if not str(partner_id or "").strip():
+        raise HTTPException(status_code=400, detail="partner_id mancante")
     return await require_partner_or_admin_for_partner(str(partner_id), credentials)
 
 
@@ -308,12 +324,18 @@ async def stefania_chat(
 
     # Selezione system prompt: se target_agent passato, usa quello (sub-progetto A
     # AgentDrawer manda target_agent per step per cambiare voce/persona).
-    resolved_agent = (data.target_agent or "STEFANIA").upper()
+    # Il partner puo' scegliere SOLO tra gli agenti ufficiali (CLAUDE.md «Team AI Ciak»): le altre
+    # chiavi di AGENT_SYSTEM_PROMPTS (MAIN, ELENA, RESEARCH) sono prompt interni, non per i partner.
+    richiesto = (data.target_agent or "STEFANIA").strip().upper()
+    if richiesto not in AGENTI_CHAT_PARTNER:
+        logger.warning(f"[stefania_chat] target_agent={data.target_agent!r} non ammesso: uso STEFANIA")
+        richiesto = "STEFANIA"
+    resolved_agent = richiesto
     base_prompt = STEFANIA_SYSTEM_PROMPT
-    if data.target_agent and data.target_agent.upper() != "STEFANIA":
+    if resolved_agent != "STEFANIA":
         try:
             from agent_prompts import get_agent_prompt
-            base_prompt = get_agent_prompt(data.target_agent)
+            base_prompt = get_agent_prompt(resolved_agent)
         except Exception as e:
             logger.warning(f"[stefania_chat] target_agent={data.target_agent} non risolto: {e} — fallback STEFANIA")
 
@@ -411,7 +433,7 @@ async def create_escalation(
     await _require_partner_self(data.partner_id, credentials)
     escalation_doc = {
         "id": str(uuid.uuid4()),
-        "partner_id": data.partner_id,
+        "partner_id": str(data.partner_id),
         "partner_name": data.partner_name,
         "partner_phase": data.partner_phase,
         "message": data.message,
@@ -423,9 +445,9 @@ async def create_escalation(
         if db is not None:
             await db.stefania_escalations.insert_one(escalation_doc)
         await _send_telegram_escalation(
-            data.partner_name or "Partner",
-            data.partner_phase or "N/D",
-            data.message,
+            _testo_sicuro(data.partner_name or "Partner", 80),
+            _testo_sicuro(data.partner_phase or "N/D", 20),
+            _testo_sicuro(data.message, 500),
         )
     except Exception as e:
         logger.error(f"[stefania_chat] Escalation error: {e}")
