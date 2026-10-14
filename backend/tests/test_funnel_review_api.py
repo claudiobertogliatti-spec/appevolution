@@ -185,3 +185,15 @@ async def test_documents_are_served_only_after_release_and_never_with_blanks(env
 
 async def _coro(value):
     return value
+
+
+@pytest.mark.asyncio
+async def test_documents_use_the_refund_days_and_course_title_set_for_the_partner(env):
+    env({**RELEASED, "documents_released": True, "documents_released_at": "2026-10-14T10:00:00+00:00",
+         "refund_days": 21, "course_title": "Metodo TAI – Medintenzione"})
+    # nessun titolo sul partner: basta quello impostato dal team sul funnel
+    route.db.partners = SimpleNamespace(find_one=lambda *a, **k: _coro({"id": "p1", "name": "Andrea Fredi"}))
+    out = await route.get_documents("p1", object())
+    termini = next(d for d in out["documents"] if d["id"] == "termini")["html"]
+    assert "Rimborso entro 21 giorni" in termini and "Metodo TAI" in termini
+    assert "14 giorni" not in termini

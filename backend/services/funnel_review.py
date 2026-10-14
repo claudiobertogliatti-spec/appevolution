@@ -421,7 +421,8 @@ def golive_update(rec: Dict[str, Any], now: str) -> Dict[str, Any]:
     return {"$set": {"golive_requested_at": now, "updated_at": now}}
 
 
-ADMIN_SETTABLE = {"content", "domain_records", "preview_released", "documents_released", "team_ready", "preview_url", "preview_version"}
+ADMIN_SETTABLE = {"content", "domain_records", "preview_released", "documents_released", "team_ready", "preview_url", "preview_version",
+                  "refund_days", "course_title"}
 
 
 def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> Dict[str, Any]:
@@ -458,6 +459,20 @@ def admin_set_update(rec: Dict[str, Any], payload: Dict[str, Any], now: str) -> 
             sets[key] = (str(value).strip() if value else None)
         elif key == "preview_version":
             sets[key] = max(1, int(value))
+        elif key == "refund_days":
+            # giorni di rimborso scritti nei documenti: mai meno del minimo di legge (14), al massimo 60
+            try:
+                days = int(value)
+            except (TypeError, ValueError):
+                raise ReviewError("I giorni di rimborso devono essere un numero.")
+            if not 14 <= days <= 60:
+                raise ReviewError("I giorni di rimborso vanno da 14 a 60.")
+            sets[key] = days
+        elif key == "course_title":
+            title = _SPACES.sub(" ", _TAGS.sub("", str(value or ""))).strip()
+            if not 3 <= len(title) <= 120:
+                raise ReviewError("Il nome del corso deve avere da 3 a 120 caratteri.")
+            sets[key] = title
         else:
             raise ReviewError(f"Campo non modificabile: {key}")
     if len(sets) == 1:
@@ -469,7 +484,10 @@ def legal_data_from_partner(partner: Dict[str, Any]) -> Dict[str, str]:
     """Dati del titolare mostrati al partner per confermarli. Solo quelli che finiscono nelle
     pagine legali: niente codice fiscale, IBAN, data di nascita."""
     b = (partner or {}).get("dati_burocrazia") or {}
-    nome = " ".join(x for x in (b.get("nome"), b.get("cognome")) if x).strip() or (partner or {}).get("name", "")
+    persona = " ".join(x for x in (b.get("nome"), b.get("cognome")) if x).strip() or (partner or {}).get("name", "")
+    # Con una partita IVA aziendale il titolare è la società (ragione sociale), non la persona:
+    # Andrea Fredi fatturava come GENESIS SRL e la sua P.IVA è quella della società.
+    nome = str(b.get("ragione_sociale") or "").strip() or persona
     via = ", ".join(x for x in (b.get("indirizzo"), " ".join(y for y in (b.get("cap"), b.get("comune")) if y)) if x)
     sede = f"{via} ({b.get('provincia')})" if via and b.get("provincia") else via
     data = {
