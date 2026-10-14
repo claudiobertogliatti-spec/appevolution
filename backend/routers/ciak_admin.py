@@ -5087,6 +5087,39 @@ async def assistente_start_gestita(client_id: str, riga_id: str, admin=Depends(r
     return {"success": True}
 
 
+@router.get("/partner/{partner_id}/assistente")
+async def assistente_partner_coda(partner_id: str, _admin=Depends(require_ciak_admin)):
+    """Sola lettura: le ultime domande fatte all'assistente dal partner (stessa forma di Start)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    righe = [
+        r
+        async for r in db.partner_assistente.find({"partner_id": str(partner_id)}, {"_id": 0})
+        .sort("at", -1)
+        .limit(30)
+    ]
+    return {
+        "partner_id": str(partner_id),
+        "righe": righe,
+        "da_rispondere": sum(1 for r in righe if r.get("passato_al_team") and not r.get("gestita")),
+    }
+
+
+@router.post("/partner/{partner_id}/assistente/{riga_id}/gestita")
+async def assistente_partner_gestita(partner_id: str, riga_id: str, admin=Depends(require_ciak_admin)):
+    """Segna come gestita una domanda passata al team (hai risposto tu, di persona)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    res = await db.partner_assistente.update_one(
+        {"id": riga_id, "partner_id": str(partner_id)},
+        {"$set": {"gestita": True, "gestita_da": getattr(admin, "email", None) or "admin",
+                  "gestita_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(404, "Domanda non trovata")
+    return {"success": True}
+
+
 @router.post("/start/{client_id}/calendario-90/genera")
 async def genera_calendario_start(
     client_id: str,

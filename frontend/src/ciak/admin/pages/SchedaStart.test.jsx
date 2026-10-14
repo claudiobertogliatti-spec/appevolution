@@ -105,7 +105,8 @@ test("Vista cliente: se la richiesta fallisce chiude la scheda vuota e lo dice",
 
 test("Panoramica: le domande passate al team sono in coda, con il motivo, e si segnano gestite", async () => {
   monta();
-  const coda = await screen.findByTestId("assistente-coda");
+  await screen.findByText("«Voglio un rimborso»");
+  const coda = screen.getByTestId("assistente-coda");
   expect(coda.textContent).toContain("«Voglio un rimborso»");
   expect(coda.textContent).toContain("tema delicato");
   expect(coda.textContent).toContain("rispondi tu a linda@x.it");

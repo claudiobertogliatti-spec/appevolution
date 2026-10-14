@@ -1,11 +1,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import StartAssistenza from "./StartAssistenza";
-import { streamAssistente, ChatError } from "./assistenteStream";
+import { streamAssistente } from "./assistenteStream";
+import { ChatError } from "../../insider/chatStream";
 
-jest.mock("./assistenteStream", () => {
-  class ChatError extends Error {}
-  return { streamAssistente: jest.fn(), ChatError };
-});
+jest.mock("./assistenteStream", () => ({ streamAssistente: jest.fn() }));
 
 const client = { name: "Linda Pavia" };
 

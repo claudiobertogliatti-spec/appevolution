@@ -177,6 +177,7 @@ jobs:
           tests/test_ciak_clients_router.py
           tests/test_start_assistente.py
           tests/test_start_assistente_admin.py
+          tests/test_partner_assistente.py
           tests/test_ciak_bonus_offer.py
           tests/test_ciak_bonus_reminder.py
           tests/test_ciak_client_reengagement.py

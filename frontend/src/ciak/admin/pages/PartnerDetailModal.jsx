@@ -25,6 +25,7 @@ import { PRICING } from "../../pricing";
 import { ContractParamsModal } from "./ContractParamsModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
+import { CodaAssistente } from "../components/CodaAssistente";
 // Stesso registro domande usato dal wizard lato partner: unica fonte, così i due
 // elenchi non possono divergere.
 import { STORIA_QUESTIONS } from "../../partner/operativo/questionari/storiaQuestions";
@@ -1644,6 +1645,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     ))}
                   </div>
                 </div>
+                <CodaAssistente base={`/partner/${partner.id}`} email={partner.email} />
                 <p className="text-xs text-slate-400">
                   Modifica i dati nelle schede <b>Materiali</b>, <b>Percorso EVO</b> e <b>Impostazioni</b>.
                 </p>

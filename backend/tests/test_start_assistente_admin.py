@@ -100,3 +100,35 @@ async def test_cliente_senza_start_409(monkeypatch):
     with pytest.raises(HTTPException) as e:
         await ciak_admin.assistente_start_cliente("c2", _admin=ADMIN)
     assert e.value.status_code == 409
+
+
+# ── stessa coda per i partner ───────────────────────────────────────────────
+class _DbPartner:
+    def __init__(self, righe):
+        self.partner_assistente = _Coll(righe)
+
+
+def _riga_p(i, at, passato, gestita=False, partner="p1"):
+    return {"id": i, "partner_id": partner, "at": at, "domanda": f"d{i}", "passato_al_team": passato, "gestita": gestita, "motivo": "non_sa" if passato else ""}
+
+
+@pytest.mark.asyncio
+async def test_coda_partner_solo_del_partner_e_conta_le_aperte(monkeypatch):
+    db = _DbPartner([
+        _riga_p("a", "2026-10-12T09:00", True), _riga_p("b", "2026-10-12T10:00", True, gestita=True),
+        _riga_p("c", "2026-10-12T11:00", False), _riga_p("x", "2026-10-12T12:00", True, partner="p9"),
+    ])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    res = await ciak_admin.assistente_partner_coda("p1", _admin=ADMIN)
+    assert [r["id"] for r in res["righe"]] == ["c", "b", "a"] and res["da_rispondere"] == 1
+
+
+@pytest.mark.asyncio
+async def test_segna_gestita_partner_non_tocca_altri_partner(monkeypatch):
+    db = _DbPartner([_riga_p("a", "2026-10-12T09:00", True), _riga_p("x", "2026-10-12T12:00", True, partner="p9")])
+    monkeypatch.setattr(ciak_admin, "db", db)
+    assert (await ciak_admin.assistente_partner_gestita("p1", "a", admin=ADMIN)) == {"success": True}
+    assert db.partner_assistente.docs[0]["gestita_da"] == "claudio@x.it"
+    with pytest.raises(HTTPException) as e:
+        await ciak_admin.assistente_partner_gestita("p1", "x", admin=ADMIN)
+    assert e.value.status_code == 404

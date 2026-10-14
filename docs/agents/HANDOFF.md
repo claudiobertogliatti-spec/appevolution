@@ -1,3 +1,22 @@
+### 2026-10-14 (1) · Claude Code · claude/modest-euler-xde2pw — Assistente esteso all'area partner
+
+**RICHIESTA:** «estendilo anche all'area partner» (l'assistente chat gia' fatto per i clienti Start).
+
+**DICHIARATO**
+- `backend/services/partner_assistente.py`: scheda verificata costruita dalle FONTI, non scritta a mano: i 20 passi, le 3 fasi e chi segue ogni passo da `models.partner_journey_step` (`JOURNEY_STEPS_DEFINITION`, `MACRO_PHASES_DEFINITION`); «cosa fa / cosa NON fa Evolution PRO» dalla sezione verificata sul contratto (`proposta_chat.SCHEDA_VERIFICATA`, solo «COSA FA EVOLUTION PRO»); obiettivo go-live 21 giorni (`goLivePromise.js`); flusso video (CLAUDE.md). NON contiene prezzo, royalty, rimborso, esclusiva: su quelli passa al team (regex `argomento_delicato` = temi di Start + royalty/sospensione/risoluzione/esclusiva/rinnovo).
+- `POST /api/partner-assistente/{partner_id}/chat` (`routers/partner_assistente.py`, registrato in `server.py` dopo `stefania_router`): SSE, stesso motore di Start. Auth = `require_partner_or_admin_for_partner` (un partner scrive solo per se' stesso; un cliente Start riceve 403, ha il suo assistente; l'admin in vista supervisione e' tracciato `da: "admin"`). Coda in `partner_assistente` (`partner_id, id, at, domanda, risposta, passato_al_team, motivo, gestita, da`).
+- Admin: `GET /partner/{id}/assistente` e `POST /partner/{id}/assistente/{riga}/gestita` (`ciak_admin.py`); componente condiviso `admin/components/CodaAssistente.jsx` usato dalla scheda Start (Panoramica) e dalla Panoramica di `PartnerDetailModal`.
+- Frontend: chat condivisa `components/ChatAssistente.jsx` + `components/assistenteSse.js` (Start e partner la usano); `partner/assistente/PartnerAssistente.jsx` montato in `TeamSupportoPage` sia nella variante legacy (default di produzione) sia in quella Sereno (`REACT_APP_PARTNER_SERENO`, spenta di default).
+
+**VERIFICATO:** backend `test_partner_assistente.py` (23) + Start (25+5) + clienti router: 108 passati (con MONGO_URL, DB_NAME, JWT_SECRET_KEY, APP_ENV=test); frontend `src/ciak` 784/785 (rosso = `PartnerFilesPage.loading`, preesistente). Aggiunto il test alla CI.
+
+**⛔ NON VERIFICATO / APERTO**
+- `import server` NON e' stato eseguito nel sandbox (mancano dipendenze: stripe, google-cloud-storage…): la registrazione in `server.py` (5 righe, stesso schema di `stefania_router`) e' verificata solo per sintassi e per i nomi (`db` e' definito a riga 110). **Controllare dopo il deploy che `POST /api/partner-assistente/<id>/chat` risponda 401/403 senza token e non 404.**
+- Nessuna chiave Anthropic nel sandbox: il modello vero non e' stato mai interrogato (tono, regole, qualita'). Da provare con una partner reale (es. Sarah Arensi) con 5-6 domande, una delicata e una fuori scheda.
+- **⚠️ Scoperto, NON sistemato (fuori scope):** `POST /api/stefania/chat` (chat con gli agenti, `routers/stefania_chat.py`) NON ha autenticazione: accetta qualunque `partner_id` nel body e inietta nel prompt il contesto di quel partner (nome, nicchia, step, offerta). Un partner, o chiunque, puo' interrogare il contesto di un altro. Da far rivedere ad `auth-reviewer` e proteggere come `partner_assistente`.
+- Anche la pagina legacy dei partner nomina «Simona» e «Carlo» tra gli agenti (non nel roster canonico di CLAUDE.md): non toccato.
+- Nessuna notifica quando una domanda va in coda (la vede chi apre la scheda); nessun contatore in Home.
+
 ### 2026-10-12 (7) · Claude Code · claude/modest-euler-xde2pw — Assistente chat nell'area cliente Start
 
 **RICHIESTA:** «inserisci un chatbot che risponde in automatico su tutte le questioni operative tecniche commerciali sui servizi evolution». Scelte di Claudio: dove = **area cliente Start** (pagina Assistenza); limiti = **passa al team** quando non sa o il tema e' delicato.

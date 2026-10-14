@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoAssistenza from "../sereno/SerenoAssistenza";
+import PartnerAssistente from "../assistente/PartnerAssistente";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -398,14 +399,17 @@ export function TeamSupportoPage({ partner }) {
   // same honest failure handling, restyled. The current UI stays the default.
   if (PARTNER_SERENO_ENABLED) {
     return (
-      <SerenoAssistenza
-        agents={AGENTIC_TEAM}
-        team={HUMAN_TEAM}
-        telegramUrl={partner?.telegram_group_url || "https://t.me/ciak_partner_support"}
-        apiBase={API}
-        partnerId={partner?.id}
-        partnerName={partner?.name}
-      />
+      <>
+        <PartnerAssistente partner={partner} />
+        <SerenoAssistenza
+          agents={AGENTIC_TEAM}
+          team={HUMAN_TEAM}
+          telegramUrl={partner?.telegram_group_url || "https://t.me/ciak_partner_support"}
+          apiBase={API}
+          partnerId={partner?.id}
+          partnerName={partner?.name}
+        />
+      </>
     );
   }
 
@@ -426,6 +430,9 @@ export function TeamSupportoPage({ partner }) {
           </p>
         </div>
       </header>
+
+      {/* ASSISTENTE: risposte subito su percorso, tempi e servizi; passa al team quando non sa */}
+      <PartnerAssistente partner={partner} />
 
       {/* CONTENUTO DIVISO IN 2 GRUPPI A TENDINA (ACCORDION STILE MATERIALI) */}
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 space-y-12 sm:space-y-16">

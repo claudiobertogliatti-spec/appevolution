@@ -8,10 +8,18 @@
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PartnerOpHeader, PartnerDetailModal } from "./PartnerDetailModal";
+import { apiGet, apiPost } from "../api";
 
 jest.mock("../api", () => ({
   adminFetch: jest.fn(() => Promise.resolve({ ok: true, json: async () => ({}) })),
+  // coda delle domande all'assistente, nella Panoramica (le risposte si impostano in beforeEach: CRA resetta i mock)
+  apiGet: jest.fn(),
+  apiPost: jest.fn(),
 }));
+beforeEach(() => {
+  apiGet.mockResolvedValue({ righe: [], da_rispondere: 0 });
+  apiPost.mockResolvedValue({ success: true });
+});
 jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 jest.mock("../components/PercorsoEvoPanel", () => ({
   PercorsoEvoPanel: () => <div data-testid="percorso-panel" />,
@@ -75,4 +83,17 @@ test("il retab espone i 6 tab, apre sulla Panoramica e conserva le funzioni di e
   expect(screen.getByTestId("input-systeme-subdomain")).toBeTruthy();
   expect(screen.getByTestId("save-profile-btn")).toBeTruthy();
   expect(screen.getByTestId("delete-partner-btn")).toBeTruthy();
+});
+
+test("la Panoramica mostra la coda delle domande all'assistente del partner", async () => {
+  apiGet.mockResolvedValue({
+    da_rispondere: 1,
+    righe: [{ id: "r1", at: "2026-10-12T09:00:00+00:00", domanda: "Quanto sono le royalty?", passato_al_team: true, gestita: false, motivo: "argomento_delicato" }],
+  });
+  render(<PartnerDetailModal partner={MODAL_PARTNER} isOpen onClose={() => {}} />);
+  expect(await screen.findByText("«Quanto sono le royalty?»")).toBeTruthy();
+  expect(apiGet).toHaveBeenCalledWith("/partner/9/assistente");
+  fireEvent.click(screen.getByRole("button", { name: "Fatto, ho risposto" }));
+  await screen.findByText("«Quanto sono le royalty?»");
+  expect(apiPost).toHaveBeenCalledWith("/partner/9/assistente/r1/gestita", {});
 });

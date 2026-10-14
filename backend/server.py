@@ -17313,6 +17313,11 @@ from routers.stefania_chat import router as stefania_router, set_db as set_stefa
 set_stefania_db(db)
 app.include_router(stefania_router)
 
+# Assistente dell'area partner (chat in streaming + coda al team): vedi routers/partner_assistente.py
+from routers.partner_assistente import router as partner_assistente_router, set_db as set_partner_assistente_db
+set_partner_assistente_db(db)
+app.include_router(partner_assistente_router)
+
 # Include analisi consulenziale router (Analisi Preliminare, Script Call, Analisi Finale)
 from routers.analisi_consulenziale import router as analisi_consulenziale_router, set_db as set_analisi_consulenziale_db
 set_analisi_consulenziale_db(db)
