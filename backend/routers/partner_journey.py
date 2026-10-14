@@ -17,6 +17,7 @@ from pathlib import Path
 
 from jose import jwt
 
+from services import youtube_playlist
 from models.start_journey import (
     is_start_tier,
     journey_definition_for_tier,
@@ -2110,33 +2111,16 @@ async def approve_masterclass_video(
         if exc.status_code != 404:
             raise
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin):
-    # la playlist contiene solo video approvati, mai gli scarti in review.
+    # La playlist aspetta il controllo del montaggio, come per le lezioni: editing -> verifica
+    # di Antonella -> playlist -> Systeme. Se la masterclass e' gia' stata verificata la si
+    # aggiunge adesso, altrimenti ci pensera' l'esito in coda. (13/10/2026)
     playlist_note = ""
-    yt_id = doc.get("video_youtube_id")
-    if yt_id:
-        try:
-            import asyncio
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-                playlist_note = "\n📋 Aggiunto a playlist partner" if ok else ""
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist add (approve) non bloccante: {e}")
+    esito_mc = await _esito_masterclass(partner_id, doc)
+    if youtube_playlist.verificata(esito_mc):
+        res = await youtube_playlist.aggiungi_video(db, partner_id, doc.get("video_youtube_id") or "")
+        playlist_note = "\n📋 Aggiunto a playlist partner" if res["ok"] else ""
+    else:
+        playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(esito_mc)}"
 
     await notify_telegram(
         f"✅ VIDEO MASTERCLASS APPROVATO\n\n"
@@ -2509,36 +2493,21 @@ async def set_masterclass_youtube_url(
     now = datetime.now(timezone.utc).isoformat()
     partner_name = partner.get("name", req.partner_id)
 
-    # Playlist YouTube: crea se non esiste, poi aggiungi il video
+    # Playlist YouTube: solo dopo il controllo del montaggio (vedi services/youtube_playlist.py).
     playlist_id = partner.get("youtube_playlist_id")
     playlist_url = partner.get("youtube_playlist_url")
     playlist_note = ""
-
     if yt_id:
-        try:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, partner_name
-                )
-                if playlist_id:
-                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-                    await db.partners.update_one(
-                        {"id": req.partner_id},
-                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
-                    )
-                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
-
-            if playlist_id:
-                ok = await loop.run_in_executor(
-                    None, add_to_youtube_playlist_sync, yt_id, playlist_id
-                )
-                if ok and not playlist_note:
-                    playlist_note = f"\n📋 Video aggiunto alla playlist partner"
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist error (non bloccante): {e}")
+        _doc_mc = await db.masterclass_factory.find_one({"partner_id": req.partner_id}, {"_id": 0, "output_version": 1}) or {}
+        _esito = await _esito_masterclass(req.partner_id, _doc_mc)
+        if youtube_playlist.verificata(_esito):
+            res = await youtube_playlist.aggiungi_video(db, req.partner_id, yt_id)
+            if res["ok"]:
+                playlist_id = res["playlist_id"]
+                playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                playlist_note = "\n📋 Video aggiunto alla playlist partner"
+        else:
+            playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(_esito)}"
 
     await db.masterclass_factory.update_one(
         {"partner_id": req.partner_id},
@@ -7002,6 +6971,18 @@ def passo_corrente(steps: list):
     return next(iter(aperti), None) \
         or next((s for s in steps if s.get("status") == "in_progress"), None) \
         or steps[-1]
+
+
+async def _esito_masterclass(partner_id: str, doc: Optional[dict] = None) -> Optional[dict]:
+    """L'esito del controllo di Antonella sulla masterclass, per la versione attuale del montaggio.
+
+    Serve a tenere la stessa regola delle lezioni anche sulle due vie piu' vecchie
+    (`approve-masterclass`, `set-youtube-url`): in playlist solo dopo il controllo.
+    """
+    from services import coda_antonella as _ca
+    versione = max(1, int((doc or {}).get("output_version") or 1))
+    chiave = _ca.chiave_lezione(str(partner_id), _ca.MASTERCLASS_ID, versione)
+    return await db.ciak_coda_lezioni.find_one({"_id": chiave}, {"_id": 0, "esito": 1})
 
 
 async def _project_legacy_phase(partner_id: str):

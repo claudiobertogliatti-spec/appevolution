@@ -136,3 +136,30 @@ def test_lessons_and_masterclass_share_one_ordered_queue():
                                                   "title": "Lezione 1", "pipeline_completed_at": "2026-10-13T09:00:00Z"}}}
     g = coda.lezioni_da_controllare([lez], {"p1": "Daniele"}, {}, None, docs_masterclass=[_mc()])
     assert [v["tipo"] for v in g["da_controllare"]] == ["masterclass", "lezione"]  # ordinata per arrivo
+
+
+# ── Anche le due vie piu' vecchie della masterclass aspettano la verifica ──
+
+@pytest.mark.asyncio
+async def test_the_masterclass_approval_waits_for_the_check(monkeypatch):
+    """`approve-masterclass` non deve popolare la playlist prima del controllo del montaggio."""
+    import routers.partner_journey as pj
+
+    esiti = {}
+
+    class Coda:
+        async def find_one(self, q, p=None):
+            return esiti.get(q["_id"])
+
+    pj.db = SimpleNamespace(ciak_coda_lezioni=Coda())
+    doc = {"output_version": 1, "video_youtube_id": "VID1"}
+
+    assert await pj._esito_masterclass("p1", doc) is None
+    assert yp.verificata(await pj._esito_masterclass("p1", doc)) is False
+
+    from services.coda_antonella import chiave_lezione, MASTERCLASS_ID
+    esiti[chiave_lezione("p1", MASTERCLASS_ID, 1)] = {"esito": "verificata"}
+    assert yp.verificata(await pj._esito_masterclass("p1", doc)) is True
+
+    # una masterclass rimontata (versione 2) torna in attesa: l'esito sulla 1 non vale
+    assert yp.verificata(await pj._esito_masterclass("p1", {"output_version": 2})) is False
