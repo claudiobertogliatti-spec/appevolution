@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { Send, Sparkles, User, RefreshCw } from "lucide-react";
+import { authHeaders } from "../api";
 
 // Messaggio di benvenuto di Stefania
 const STEFANIA_WELCOME = `🎙️ Ciao! Sono **Simona**, e da questo momento prendo io il timone per guidarti nella creazione della tua **Masterclass Trasformativa**.
@@ -46,7 +47,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
     try {
       const res = await fetch(`/api/stefania/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           session_id: sessionId,
           message: input,

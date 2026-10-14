@@ -3,6 +3,7 @@ import { MessagesSquare, X } from 'lucide-react';
 import { useJourneyState } from '../operativo/hooks/useJourneyState';
 import { getAgentForStep } from '../operativo/agents';
 import { API } from '../../../utils/api-config';
+import { authHeaders } from '../api';
 
 // Help one tap away on every page. Same chat endpoint and the same honesty rule
 // as the Assistenza page: a failed send never becomes a fake answer — the text
@@ -42,7 +43,7 @@ function HelpSheet({ partnerId, partnerName, supervision, onClose }) {
     try {
       const r = await fetch(`${API}/api/stefania/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           partner_id: partnerId,
           user_name: partnerName || undefined,

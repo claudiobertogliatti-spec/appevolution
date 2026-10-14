@@ -37,3 +37,16 @@ test('a network error behaves the same way', async () => {
   expect(await screen.findByText(/Messaggio non inviato/)).toBeTruthy();
   expect(screen.queryByText(/Failed to fetch/)).toBeNull();
 });
+
+test('la chat con gli agenti manda il token del partner: senza, il server risponde 401', async () => {
+  localStorage.setItem('ciak_partner_token', 'tok-partner');
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ reply: 'Ciao!' }) });
+  open();
+  write('Ciao');
+  expect(await screen.findByText('Ciao!')).toBeTruthy();
+  const [url, opts] = global.fetch.mock.calls[0];
+  expect(url).toContain('/api/stefania/chat');
+  expect(opts.headers.Authorization).toBe('Bearer tok-partner');
+  expect(opts.headers['Content-Type']).toBe('application/json');
+  localStorage.removeItem('ciak_partner_token');
+});

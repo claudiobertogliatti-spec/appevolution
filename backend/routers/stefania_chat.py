@@ -12,16 +12,42 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stefania", tags=["stefania"])
+security = HTTPBearer(auto_error=False)
 
 db = None
 def set_db(database):
     global db
     db = database
+
+# ─── Autenticazione ───────────────────────────────────────────────────────────
+# Prima di ottobre 2026 questi endpoint erano aperti: chiunque conoscesse un `partner_id` poteva
+# leggere il contesto di quel partner (nome, nicchia, step, offerta) e il suo storico di chat, e
+# scrivere/chiudere escalation. Ora: il partner solo per se' stesso (l'admin in supervisione per
+# chiunque), le letture/scritture di servizio solo admin.
+
+async def _require_partner_self(partner_id: str, credentials: Optional[HTTPAuthorizationCredentials]):
+    """Il partner e' chi dice di essere (o e' un admin in supervisione). 401/403 altrimenti."""
+    from routers.partner_journey import require_partner_or_admin_for_partner
+
+    return await require_partner_or_admin_for_partner(str(partner_id), credentials)
+
+
+async def _require_admin(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    from auth import decode_token
+
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    data = decode_token(credentials.credentials)
+    if not data or data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return data
+
 
 # ─── Voce Partner (regola di tono universale, vince su tutto) ──────────────────
 
@@ -246,8 +272,15 @@ class EscalationRequest(BaseModel):
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/chat")
-async def stefania_chat(data: ChatMessage):
-    """Chat partner con Stefania — contesto fase e step iniettato ad ogni messaggio."""
+async def stefania_chat(
+    data: ChatMessage,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Chat partner con Stefania — contesto fase e step iniettato ad ogni messaggio.
+
+    Autenticata: il partner scrive solo per il proprio `partner_id` (401/403 prima di leggere
+    qualunque dato del partner o chiamare il modello)."""
+    await _require_partner_self(data.partner_id, credentials)
     import anthropic
 
     api_key = (
@@ -370,8 +403,12 @@ async def stefania_chat(data: ChatMessage):
 
 
 @router.post("/escalation")
-async def create_escalation(data: EscalationRequest):
-    """Escalation a Claudio per situazioni critiche."""
+async def create_escalation(
+    data: EscalationRequest,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Escalation a Claudio per situazioni critiche. Autenticata: parte un messaggio Telegram."""
+    await _require_partner_self(data.partner_id, credentials)
     escalation_doc = {
         "id": str(uuid.uuid4()),
         "partner_id": data.partner_id,
@@ -401,8 +438,8 @@ async def create_escalation(data: EscalationRequest):
 
 
 @router.get("/conversations/{partner_id}")
-async def get_conversation_history(partner_id: str):
-    """Storico conversazione — per review admin."""
+async def get_conversation_history(partner_id: str, _admin=Depends(_require_admin)):
+    """Storico conversazione — per review admin (solo admin: sono conversazioni private del partner)."""
     try:
         doc = await db.stefania_conversations.find_one(
             {"partner_id": partner_id}, {"_id": 0}
@@ -415,7 +452,7 @@ async def get_conversation_history(partner_id: str):
 
 
 @router.get("/escalations")
-async def get_escalations(status: str = None):
+async def get_escalations(status: str = None, _admin=Depends(_require_admin)):
     query = {}
     if status:
         query["status"] = status
@@ -426,7 +463,7 @@ async def get_escalations(status: str = None):
 
 
 @router.patch("/escalations/{escalation_id}")
-async def update_escalation(escalation_id: str, status: str):
+async def update_escalation(escalation_id: str, status: str, _admin=Depends(_require_admin)):
     await db.stefania_escalations.update_one(
         {"id": escalation_id},
         {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}},

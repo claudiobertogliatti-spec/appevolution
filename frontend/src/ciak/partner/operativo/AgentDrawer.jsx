@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { getAgentForStep } from "./agents";
+import { authHeaders } from "../api";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 const TELEGRAM_SUPPORT_URL = "https://t.me/ciak_partner_support";
@@ -44,7 +45,7 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
     try {
       const r = await fetch(`${API}/api/stefania/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           partner_id: partnerId,
           message: userMsg.content,

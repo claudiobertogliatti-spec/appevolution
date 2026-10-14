@@ -15,6 +15,7 @@ import {
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoAssistenza from "../sereno/SerenoAssistenza";
 import PartnerAssistente from "../assistente/PartnerAssistente";
+import { authHeaders } from "../api";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -184,7 +185,7 @@ function AgentChatDrawer({ agent, partner, onClose }) {
     try {
       const r = await fetch(`${API}/api/stefania/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           partner_id: partner?.id || "demo_partner",
           user_name: partner?.name || "Partner CIAK",
