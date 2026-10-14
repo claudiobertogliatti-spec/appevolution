@@ -241,6 +241,21 @@ def real_lesson_title(raw_name: str, outline_text: str) -> tuple:
     return f"{m.group(1).capitalize()} {int(m.group(2))} Lezione {int(m.group(3))} - {found['title']}", found["subtitle"]
 
 
+def reusable_intro(lesson: dict, title: str):
+    """Intro gia usata per QUESTO titolo, da riusare nei rifacimenti (None se non c'e o il titolo e cambiato).
+
+    Prima si guarda l'intro salvata sulla lezione, poi quella dell'ultimo rapporto di montaggio."""
+    lesson = lesson or {}
+    candidates = [(lesson.get("intro_text"), lesson.get("intro_title"))]
+    report = lesson.get("lesson_standard_report") or {}
+    candidates.append((report.get("intro_text"), report.get("title")))
+    for text, saved_title in candidates:
+        text = str(text or "").strip()
+        if text and saved_title == title and 12 <= len(text.split()) <= 45:
+            return text
+    return None
+
+
 def cover_names(brand: dict) -> str:
     """'PROGETTO • PARTNER' senza ripetere lo stesso nome due volte."""
     seen, out = set(), []

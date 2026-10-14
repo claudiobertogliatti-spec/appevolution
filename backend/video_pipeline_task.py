@@ -1464,21 +1464,29 @@ async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
     ) or {}
     brand = brand_profile(partner, hub, step)
     intro_text = intro_fallback(title)
-    try:
-        from services.ciak_llm import LlmChat, UserMessage
-        prompt = (
-            "Scrivi UNA sola frase italiana di 20-35 parole per introdurre una videolezione. "
-            "Inizia con 'In questa lezione'. Spiega cosa si impara e perché serve. "
-            "Niente inglese, slogan, saluti o promesse inventate. Usa solo titolo e trascrizione.\n"
-            f"Titolo: {title}\nTrascrizione: {(transcript or '')[:6000]}"
-        )
-        chat = LlmChat(session_id=f"lesson-intro-{partner_id}-{lesson_id}",
-                       system_message="Sei la voce narrante editoriale di un videocorso italiano.")
-        generated = (await chat.send_message(UserMessage(text=prompt)) or "").strip().strip('"')
-        if generated.lower().startswith("in questa lezione") and 12 <= len(generated.split()) <= 45:
-            intro_text = generated
-    except Exception as intro_err:
-        logger.warning(f"[LESSON-STANDARD] intro AI fallback: {intro_err}")
+    # L'intro parlata non si riscrive a ogni rifacimento: cambiava lunghezza (15,7 s -> 19,2 s) e spostava tutti i tempi
+    # misurati sul video. Si riusa quella gia usata per questo titolo; se il titolo cambia se ne scrive una nuova.
+    from services.ciak_lesson_standard import reusable_intro
+    reused_intro = reusable_intro(lesson, title)
+    if reused_intro:
+        intro_text = reused_intro
+        logger.info("[LESSON-STANDARD] intro riusata (stesso titolo)")
+    else:
+        try:
+            from services.ciak_llm import LlmChat, UserMessage
+            prompt = (
+                "Scrivi UNA sola frase italiana di 20-35 parole per introdurre una videolezione. "
+                "Inizia con 'In questa lezione'. Spiega cosa si impara e perché serve. "
+                "Niente inglese, slogan, saluti o promesse inventate. Usa solo titolo e trascrizione.\n"
+                f"Titolo: {title}\nTrascrizione: {(transcript or '')[:6000]}"
+            )
+            chat = LlmChat(session_id=f"lesson-intro-{partner_id}-{lesson_id}",
+                           system_message="Sei la voce narrante editoriale di un videocorso italiano.")
+            generated = (await chat.send_message(UserMessage(text=prompt)) or "").strip().strip('"')
+            if generated.lower().startswith("in questa lezione") and 12 <= len(generated.split()) <= 45:
+                intro_text = generated
+        except Exception as intro_err:
+            logger.warning(f"[LESSON-STANDARD] intro AI fallback: {intro_err}")
 
     output_path = str(tmp_dir / "lesson-standard.mp4")
     report = await render_standard_lesson(
@@ -1486,6 +1494,12 @@ async def apply_ciak_lesson_standard(db, *, partner: dict, partner_id: str,
         title=title, intro_text=intro_text, brand=brand, subtitle=subtitle,
     )
     report.update({"title": title, "subtitle": subtitle, "intro_text": intro_text})
+    try:
+        await db.partner_videocorso.update_one(
+            {"partner_id": partner_id},
+            {"$set": {f"lessons.{lesson_id}.intro_text": intro_text, f"lessons.{lesson_id}.intro_title": title}})
+    except Exception as save_err:
+        logger.warning(f"[LESSON-STANDARD] intro non salvata (si riscrivera al prossimo giro): {save_err}")
     return output_path, report
 
 
@@ -1783,6 +1797,16 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     except Exception as _sil_err:
                         logger.warning(f"[LESSON-CUTS] analisi silenzi non riuscita, uso i vuoti fra parole: {_sil_err}")
                         _sil = None
+                    # "aria morta" con rumorini (click, respiri): silencedetect non la vede come pausa, il livello a
+                    # finestre di 0,1 s si. Si uniscono le due misure; se la nuova analisi fallisce resta la vecchia.
+                    try:
+                        from services.ciak_quiet_stretches import merge_silences, quiet_stretches
+                        _quiet = await _loop.run_in_executor(None, quiet_stretches, raw_path)
+                        if _sil is not None or _quiet:
+                            _sil = merge_silences(_sil or [], _quiet)
+                        logger.info(f"[LESSON-CUTS] {label}: {len(_quiet)} tratti di quasi-silenzio misurati")
+                    except Exception as _q_err:
+                        logger.warning(f"[LESSON-CUTS] analisi quasi-silenzio non riuscita: {_q_err}")
                     # filo del discorso: l'AI propone, le regole decidono (se l'AI non risponde si taglia comunque con le regole)
                     _ai_cands = []
                     try:
