@@ -202,7 +202,12 @@ def trigger_stefania_daily():
         
         # NEW: Task review orchestration
         try:
-            task_response = httpx.post(f"{BASE_URL}/agent-tasks/stefania-review", timeout=60)
+            # la rotta richiede admin oppure la chiave di report (come gli altri job di sistema)
+            task_response = httpx.post(
+                f"{BASE_URL}/agent-tasks/stefania-review",
+                headers={"X-Report-Key": os.environ.get("LUCA_REPORT_KEY", "")},
+                timeout=60,
+            )
             task_result = task_response.json()
             logger.info(f"[SCHEDULER] STEFANIA task review — Reviewed: {task_result.get('reviewed', 0)} | Escalated: {task_result.get('escalated', 0)}")
         except Exception as task_err:

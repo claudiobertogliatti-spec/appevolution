@@ -1,3 +1,27 @@
+### 2026-10-14 (3) · Claude Code · claude/modest-euler-xde2pw — Chiuse le 50 rotte /stefania/* aperte di server.py
+
+**RICHIESTA:** «si» (verifica e proteggi le rotte `/stefania/*` di `server.py` segnalate dal revisore).
+
+**VERIFICATO PRIMA (dal vivo, solo codice HTTP):** 11 rotte su 12 provate su `https://www.ciak.io/api/...` rispondevano **200 senza token**: war-mode dashboard/alerts/campaigns, `api/credentials/{id}`, `api/roi/{id}`, `course-builder/{id}`, `memory/conversations`, `admin-review/pending`, `status`, `systeme/stefania/campaigns`. Nessun middleware globale richiede l'accesso (`CommercialScopeMiddleware` e `AgentTokenMiddleware` filtrano solo, non autenticano; `api_router` non ha `dependencies`). Chiamanti trovati: solo le pagine admin War Mode (`adminFetch`, gia' col token) e `scheduler.py` per `/agent-tasks/stefania-review`.
+
+**DICHIARATO (server.py)**
+- Admin-only (`require_admin_role`): tutto `/stefania/memory/*`, `success-cases`, `golden-rules`, `status`, `check`, `admin-review/pending`, tutto `/stefania/war-mode/*`, `/stefania/api/*` (credenziali, ROI, CRM sale/sales, sync-metrics, smart-optimization), `/systeme/stefania/*`.
+- Partner o admin (`require_partner_or_admin_any`, nuova guardia): `review-script`, `generate-draft`, `course-builder/generate`, `course-builder/chat` (chiamate LLM a costo).
+- Partner solo se stesso: `GET course-builder/{partner_id}` (`require_partner_or_admin`) e `POST course-builder/save` (guardia nel corpo sul `partner_id` del body, prima di scrivere).
+- `POST /agent-tasks/stefania-review`: admin OPPURE chiave di report (`X-Report-Key` = `LUCA_REPORT_KEY`); `scheduler.py` ora manda l'header (se la variabile non e' configurata la revisione giornaliera risponde 401: stesso comportamento degli altri job di sistema).
+- `require_partner_or_admin` di `server.py`: stesso fail-open sulla stringa vuota di `partner_journey` corretto.
+
+**VERIFICATO DOPO (programma reale importato con dipendenze installate a mano)**
+- 50 rotte `/stefania/*` senza token: 49 → 401/403; `course-builder/save` → 422 solo se il body manca, 401 con body valido e senza token.
+- Con token finti: admin passa (500 = DB assente nel sandbox, 200 sulle statiche); partner → 403 sulle admin-only e passa solo sul proprio `course-builder/{id}` (altro id 403, id vuoto 403); `ciak_client` → 403 ovunque.
+- `tests/test_stefania_routes_protected.py` (7, in CI): legge `server.py` come testo e FALLISCE se una rotta con «stefania» nel percorso non ha guardia nella firma; + comportamento delle guardie. Con il vecchio `server.py` 5 su 6 falliscono.
+
+**⛔ APERTO / DA SAPERE**
+- `POST /stefania/api/crm/sale` e' ora admin-only: nel repo nessuno la chiama, ma se un'automazione ESTERNA (Systeme/Zapier/MARTA) la usa senza token ora riceve 401. Se serve, darle la chiave di report come allo scheduler.
+- `tests/test_course_builder.py` e `tests/test_credentials_telegram_auth.py` sono test HTTP contro un backend vivo (`REACT_APP_BACKEND_URL`) e non girano in CI: chiamano senza token, quindi su un backend vero ora fallirebbero. Da aggiornare con un token se si vogliono riattivare.
+- Questo era SOLO il prefisso `/stefania/`: altre rotte di `server.py` senza guardia (es. `/partners`, `/systeme/sync-all`, `/notify/telegram`, `/admin/clienti-analisi`, tutte chiamate dallo scheduler senza token) NON sono state esaminate. Serve un audit completo di `server.py` (migliaia di righe, ~300+ rotte).
+- Il router `/api/stefania/*` di `stefania_chat.py` e' gia' protetto (voce precedente).
+
 ### 2026-10-14 (2) · Claude Code · claude/modest-euler-xde2pw — Chat degli agenti (/api/stefania/*) protetta
 
 **RICHIESTA:** «si proteggilo» (la chat con gli agenti era aperta: scoperta durante l'assistente partner).

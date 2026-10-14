@@ -1086,6 +1086,11 @@ auth_service = None  # Will be initialized after db connection
 # routers/ciak_admin.py::require_ciak_admin, senza dipendere da
 # get_current_user/auth_service (non ancora inizializzati a questo punto).
 
+# Chiamate di sistema dello scheduler (stessa chiave gia' usata da scheduler.py per i promemoria):
+# admin OPPURE chiave di report. Per la revisione giornaliera delle attivita' di Stefania.
+from report_key_auth import require_admin_or_report_key
+
+
 async def require_admin_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Consente il passaggio ai soli ruoli admin/superadmin. Ritorna il TokenData."""
     if not credentials:
@@ -1125,9 +1130,24 @@ async def require_partner_or_admin(
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
 
-    if str(user.get("partner_id") or "") != str(partner_id):
+    user_partner_id = str(user.get("partner_id") or "")
+    # "" == "" non deve mai autorizzare: un utente senza partner_id collegato non e' il partner "vuoto".
+    if not user_partner_id or not str(partner_id).strip() or user_partner_id != str(partner_id):
         raise HTTPException(status_code=403, detail="Partner non autorizzato")
 
+    return token_data
+
+
+async def require_partner_or_admin_any(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Qualunque partner o admin autenticato (per le rotte senza un partner_id da controllare, es. le
+    chat/bozze LLM a costo). Un cliente Start o un token mancante/non valido restano fuori."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    if token_data.role not in ("admin", "superadmin", "partner"):
+        raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
     return token_data
 
 @api_router.on_event("startup")
@@ -6893,7 +6913,8 @@ from stefania_memory import stefania_memory
 async def add_stefania_knowledge(
     category: str,
     content: str,
-    user_id: str = "claudio"
+    user_id: str = "claudio",
+    _auth=Depends(require_admin_role),
 ):
     """
     Aggiungi una conoscenza alla memoria di STEFANIA.
@@ -6921,7 +6942,8 @@ async def add_stefania_knowledge(
 @api_router.get("/stefania/memory/knowledge")
 async def get_stefania_knowledge(
     user_id: str = "claudio",
-    category: str = None
+    category: str = None,
+    _auth=Depends(require_admin_role),
 ):
     """Recupera la knowledge base di STEFANIA"""
     knowledge = await stefania_memory.get_knowledge(user_id, category)
@@ -7345,7 +7367,8 @@ async def add_stefania_feedback(
     original_response: str,
     correction: str,
     feedback_type: str = "correction",
-    user_id: str = "claudio"
+    user_id: str = "claudio",
+    _auth=Depends(require_admin_role),
 ):
     """
     Invia feedback a STEFANIA per migliorare le risposte future.
@@ -7369,7 +7392,8 @@ async def add_stefania_feedback(
 async def get_stefania_conversations(
     user_id: str = "claudio",
     limit: int = 50,
-    only_important: bool = False
+    only_important: bool = False,
+    _auth=Depends(require_admin_role),
 ):
     """Recupera lo storico conversazioni di STEFANIA"""
     if only_important:
@@ -7386,7 +7410,8 @@ async def get_stefania_conversations(
 @api_router.post("/stefania/memory/mark-important")
 async def mark_conversation_important(
     user_id: str = "claudio",
-    content_snippet: str = ""
+    content_snippet: str = "",
+    _auth=Depends(require_admin_role),
 ):
     """Marca un messaggio come importante per la memoria a lungo termine"""
     await stefania_memory.mark_as_important(user_id, content_snippet)
@@ -7397,7 +7422,7 @@ async def mark_conversation_important(
     }
 
 @api_router.get("/stefania/memory/stats")
-async def get_stefania_memory_stats(user_id: str = "claudio"):
+async def get_stefania_memory_stats(user_id: str = "claudio", _auth=Depends(require_admin_role)):
     """Statistiche sulla memoria di STEFANIA"""
     await stefania_memory.connect()
     
@@ -7490,7 +7515,7 @@ Rispondi in italiano, in modo diretto e operativo. Non fare complimenti vuoti - 
 # responsible_agent}). E' registrato a fondo file via app.include_router.
 
 @api_router.post("/stefania/review-script")
-async def stefania_review_script(request: ScriptReviewRequest):
+async def stefania_review_script(request: ScriptReviewRequest, _auth=Depends(require_partner_or_admin_any)):
     """Have STEFANIA review a complete script and provide feedback"""
     try:
         script_text = "\n\n".join([
@@ -7549,7 +7574,7 @@ Fornisci:
 # =============================================================================
 
 @api_router.get("/stefania/success-cases")
-async def get_success_cases():
+async def get_success_cases(_auth=Depends(require_admin_role)):
     """Get Evolution PRO Success Cases - Master Input database"""
     cases = await db.success_cases.find({}, {"_id": 0}).to_list(50)
     if not cases:
@@ -7565,7 +7590,8 @@ async def add_success_case(
     hook_example: str = Form(None),
     grande_promessa_example: str = Form(None),
     metodo_name: str = Form(None),
-    testimonial_quote: str = Form(None)
+    testimonial_quote: str = Form(None),
+    _auth=Depends(require_admin_role),
 ):
     """Add a new success case to the Master Input database"""
     case = SuccessCase(
@@ -7581,7 +7607,7 @@ async def add_success_case(
     return {"success": True, "case_id": case.id}
 
 @api_router.get("/stefania/golden-rules")
-async def get_golden_rules():
+async def get_golden_rules(_auth=Depends(require_admin_role)):
     """Get the 10 Golden Rules of Copy Core"""
     return {
         "rules": GOLDEN_RULES_COPY_CORE,
@@ -7590,7 +7616,7 @@ async def get_golden_rules():
 
 
 @api_router.get("/stefania/status")
-async def get_stefania_status():
+async def get_stefania_status(_auth=Depends(require_admin_role)):
     """
     Stato operativo di STEFANIA.
     Verifica che tutti i servizi siano attivi.
@@ -7632,7 +7658,7 @@ async def get_stefania_status():
 
 
 @api_router.get("/stefania/check")
-async def check_stefania():
+async def check_stefania(_auth=Depends(require_admin_role)):
     """
     Health check per STEFANIA.
     Endpoint leggero per verifiche di sistema.
@@ -7646,7 +7672,7 @@ async def check_stefania():
 
 
 @api_router.post("/stefania/generate-draft")
-async def generate_script_draft(request: DraftGenerationRequest):
+async def generate_script_draft(request: DraftGenerationRequest, _auth=Depends(require_partner_or_admin_any)):
     """STEFANIA Drafting Engine - Generate a complete script draft based on Golden Rules"""
     try:
         # Get success cases for reference
@@ -7793,7 +7819,7 @@ Rispondi in formato JSON con questa struttura:
 # =============================================================================
 
 @api_router.get("/stefania/admin-review/pending")
-async def get_pending_admin_reviews():
+async def get_pending_admin_reviews(_auth=Depends(require_admin_role)):
     """Get all scripts pending Admin review (status: in_review or ai_draft)"""
     scripts = await db.masterclass_scripts.find(
         {"status": {"$in": ["in_review", "ai_draft", "needs_revision"]}},
@@ -7962,7 +7988,7 @@ async def get_script_edit_history(partner_id: str):
 # =============================================================================
 
 @api_router.post("/stefania/war-mode/generate-hooks")
-async def generate_ad_hooks(request: AdHookRequest):
+async def generate_ad_hooks(request: AdHookRequest, _auth=Depends(require_admin_role)):
     """Ads Script Generator - Extract 5 powerful hooks from Copy Core for Meta/Google ads"""
     try:
         # Get the partner's script
@@ -8071,13 +8097,13 @@ Rispondi in formato JSON:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/stefania/war-mode/campaigns")
-async def get_all_campaigns():
+async def get_all_campaigns(_auth=Depends(require_admin_role)):
     """Get all ad campaigns for Admin dashboard"""
     campaigns = await db.ads_campaigns.find({}, {"_id": 0}).sort("updated_at", -1).to_list(100)
     return campaigns
 
 @api_router.get("/stefania/war-mode/campaigns/{partner_id}")
-async def get_partner_campaigns(partner_id: str):
+async def get_partner_campaigns(partner_id: str, _auth=Depends(require_admin_role)):
     """Get campaigns for a specific partner"""
     campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(20)
     return campaigns
@@ -8088,7 +8114,8 @@ async def update_campaign_metrics(
     spend: float = 0,
     leads: int = 0,
     conversions: int = 0,
-    revenue: float = 0
+    revenue: float = 0,
+    _auth=Depends(require_admin_role),
 ):
     """Performance Bridge - Update campaign metrics (simulating MARTA API connection)"""
     campaign = await db.ads_campaigns.find_one({"id": campaign_id}, {"_id": 0})
@@ -8166,7 +8193,7 @@ async def update_campaign_metrics(
     }
 
 @api_router.get("/stefania/war-mode/performance/{partner_id}")
-async def get_partner_performance(partner_id: str):
+async def get_partner_performance(partner_id: str, _auth=Depends(require_admin_role)):
     """Performance Bridge - Get performance metrics aggregated (MARTA connection)"""
     campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
     alerts = await db.performance_alerts.find({"partner_id": partner_id, "resolved": False}, {"_id": 0}).to_list(20)
@@ -8189,13 +8216,13 @@ async def get_partner_performance(partner_id: str):
     }
 
 @api_router.get("/stefania/war-mode/alerts")
-async def get_performance_alerts(resolved: bool = False):
+async def get_performance_alerts(resolved: bool = False, _auth=Depends(require_admin_role)):
     """Get all performance alerts for Admin dashboard"""
     alerts = await db.performance_alerts.find({"resolved": resolved}, {"_id": 0}).sort("created_at", -1).to_list(50)
     return alerts
 
 @api_router.post("/stefania/war-mode/alerts/{alert_id}/resolve")
-async def resolve_performance_alert(alert_id: str):
+async def resolve_performance_alert(alert_id: str, _auth=Depends(require_admin_role)):
     """Resolve a performance alert"""
     await db.performance_alerts.update_one(
         {"id": alert_id},
@@ -8204,7 +8231,7 @@ async def resolve_performance_alert(alert_id: str):
     return {"success": True, "alert_id": alert_id}
 
 @api_router.post("/stefania/war-mode/generate-utm")
-async def generate_utm_link(request: UTMGeneratorRequest):
+async def generate_utm_link(request: UTMGeneratorRequest, _auth=Depends(require_admin_role)):
     """Tracking Automatizzato - Generate UTM tracked links"""
     # Sanitize values for URL
     def sanitize(value: str) -> str:
@@ -8249,7 +8276,7 @@ async def generate_utm_link(request: UTMGeneratorRequest):
     }
 
 @api_router.post("/stefania/war-mode/campaigns/{campaign_id}/set-threshold")
-async def set_cpl_threshold(campaign_id: str, cpl_max: float):
+async def set_cpl_threshold(campaign_id: str, cpl_max: float, _auth=Depends(require_admin_role)):
     """Set CPL max threshold for auto-optimization alerts"""
     await db.ads_campaigns.update_one(
         {"id": campaign_id},
@@ -8261,7 +8288,7 @@ async def set_cpl_threshold(campaign_id: str, cpl_max: float):
     return {"success": True, "campaign_id": campaign_id, "new_threshold": cpl_max}
 
 @api_router.get("/stefania/war-mode/dashboard")
-async def get_war_mode_dashboard():
+async def get_war_mode_dashboard(_auth=Depends(require_admin_role)):
     """Complete War Mode dashboard data for Admin"""
     campaigns = await db.ads_campaigns.find({}, {"_id": 0}).to_list(100)
     alerts = await db.performance_alerts.find({"resolved": False}, {"_id": 0}).to_list(50)
@@ -8317,7 +8344,7 @@ async def get_war_mode_dashboard():
 # =============================================================================
 
 @api_router.post("/stefania/war-mode/hook-gallery")
-async def generate_hook_gallery(request: HookGalleryRequest):
+async def generate_hook_gallery(request: HookGalleryRequest, _auth=Depends(require_admin_role)):
     """Generate 3-variant Hook Gallery for Meta (Pain, Secret, Result angles)"""
     try:
         # Get Copy Core for context
@@ -8415,7 +8442,7 @@ Rispondi in JSON:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/stefania/war-mode/linkedin-content")
-async def generate_linkedin_content(request: LinkedInContentRequest):
+async def generate_linkedin_content(request: LinkedInContentRequest, _auth=Depends(require_admin_role)):
     """Generate LinkedIn-specific content (Thought Leadership, ABM, Lead Gen Forms)"""
     try:
         # Get Copy Core
@@ -8543,7 +8570,7 @@ Rispondi in JSON:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/stefania/war-mode/cross-platform-analysis")
-async def analyze_cross_platform(partner_id: str):
+async def analyze_cross_platform(partner_id: str, _auth=Depends(require_admin_role)):
     """Auto-Pivot Analysis: Compare Meta vs LinkedIn and suggest budget shifts"""
     try:
         meta_campaign = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
@@ -8635,7 +8662,7 @@ RACCOMANDAZIONE: Sposta 30-50% del budget da Meta a LinkedIn per ottimizzare il 
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/stefania/war-mode/multi-channel/{partner_id}")
-async def get_multi_channel_data(partner_id: str):
+async def get_multi_channel_data(partner_id: str, _auth=Depends(require_admin_role)):
     """Get all multi-channel data for a partner (Meta + LinkedIn)"""
     meta = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
     linkedin = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "linkedin"}, {"_id": 0})
@@ -8649,7 +8676,7 @@ async def get_multi_channel_data(partner_id: str):
     }
 
 @api_router.post("/stefania/war-mode/campaigns/{campaign_id}/update-ltv")
-async def update_campaign_ltv(campaign_id: str, ltv_avg: float, qualified_leads: int = None):
+async def update_campaign_ltv(campaign_id: str, ltv_avg: float, qualified_leads: int = None, _auth=Depends(require_admin_role)):
     """Update LTV and qualified lead data for a campaign (for comparison analysis)"""
     update_data = {
         "ltv_avg": ltv_avg,
@@ -8700,7 +8727,7 @@ async def store_partner_api_credentials(
     return result
 
 @api_router.get("/stefania/api/credentials/{partner_id}")
-async def get_partner_credentials_status(partner_id: str):
+async def get_partner_credentials_status(partner_id: str, _auth=Depends(require_admin_role)):
     """Check which API credentials are configured for a partner"""
     creds = await db.partner_api_credentials.find_one({"partner_id": partner_id}, {"_id": 0})
     
@@ -8722,7 +8749,8 @@ async def get_partner_credentials_status(partner_id: str):
 async def sync_partner_metrics_realtime(
     partner_id: str,
     cpl_threshold_meta: float = 15.0,
-    cpl_threshold_linkedin: float = 25.0
+    cpl_threshold_linkedin: float = 25.0,
+    _auth=Depends(require_admin_role),
 ):
     """
     Sync real-time metrics from Meta/LinkedIn APIs
@@ -8756,7 +8784,7 @@ async def sync_partner_metrics_realtime(
     return result
 
 @api_router.get("/stefania/api/roi/{partner_id}")
-async def get_partner_roi_realtime(partner_id: str, days: int = 30):
+async def get_partner_roi_realtime(partner_id: str, days: int = 30, _auth=Depends(require_admin_role)):
     """
     Calculate real ROI using CRM data from MARTA
     Shows actual revenue vs ad spend
@@ -8774,7 +8802,8 @@ async def record_crm_sale(
     amount: float = Form(...),
     utm_source: str = Form(None),
     utm_campaign: str = Form(None),
-    customer_email: str = Form(None)
+    customer_email: str = Form(None),
+    _auth=Depends(require_admin_role),
 ):
     """
     Record a sale in MARTA CRM for ROI attribution
@@ -8807,7 +8836,7 @@ async def record_crm_sale(
     return await marta.record_sale(partner_id, amount, utm_source, utm_campaign, customer_email)
 
 @api_router.get("/stefania/api/crm/sales/{partner_id}")
-async def get_partner_crm_sales(partner_id: str, days: int = 30):
+async def get_partner_crm_sales(partner_id: str, days: int = 30, _auth=Depends(require_admin_role)):
     """Get CRM sales data for a partner"""
     end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
@@ -8842,7 +8871,8 @@ async def run_smart_optimization_check(
     cpl_meta: float = Form(0),
     cpl_linkedin: float = Form(0),
     threshold_meta: float = Form(15.0),
-    threshold_linkedin: float = Form(25.0)
+    threshold_linkedin: float = Form(25.0),
+    _auth=Depends(require_admin_role),
 ):
     """
     Manual Smart-Optimization check
@@ -11210,7 +11240,7 @@ class CourseOutlineSaveRequest(BaseModel):
     status: Optional[str] = "saved"
 
 @api_router.post("/stefania/course-builder/generate")
-async def generate_course_structure(request: CourseBuilderRequest):
+async def generate_course_structure(request: CourseBuilderRequest, _auth=Depends(require_partner_or_admin_any)):
     """Generate course structure using STEFANIA AI"""
     
     # Build prompt for STEFANIA
@@ -11418,7 +11448,7 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
         }
 
 @api_router.post("/stefania/course-builder/chat")
-async def course_builder_chat(request: CourseBuilderChatRequest):
+async def course_builder_chat(request: CourseBuilderChatRequest, _auth=Depends(require_partner_or_admin_any)):
     """Chat with STEFANIA about course structure"""
     
     context = ""
@@ -11461,8 +11491,9 @@ Massimo 3-4 frasi, linguaggio diretto e amichevole."""
         return {"response": "Mi dispiace, non sono riuscita a elaborare la richiesta. Riprova."}
 
 @api_router.post("/stefania/course-builder/save")
-async def save_course_outline(request: CourseOutlineSaveRequest):
-    """Save the final course outline"""
+async def save_course_outline(request: CourseOutlineSaveRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Save the final course outline (un partner salva solo il proprio; l'admin qualunque)"""
+    await require_partner_or_admin(request.partner_id, credentials)
     
     await db.course_outlines.update_one(
         {"partner_id": request.partner_id},
@@ -11478,7 +11509,7 @@ async def save_course_outline(request: CourseOutlineSaveRequest):
     return {"success": True, "message": "Struttura corso salvata con successo"}
 
 @api_router.get("/stefania/course-builder/{partner_id}")
-async def get_course_outline(partner_id: str):
+async def get_course_outline(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get saved course outline for partner"""
     
     doc = await db.course_outlines.find_one(
@@ -12340,19 +12371,19 @@ async def gaia_get_funnels():
     return await client.get_funnels()
 
 @api_router.get("/systeme/stefania/campaigns")
-async def stefania_get_campaigns():
+async def stefania_get_campaigns(_auth=Depends(require_admin_role)):
     """STEFANIA: Recupera tutte le campagne email"""
     client = get_systeme_client()
     return await client.get_campaigns()
 
 @api_router.get("/systeme/stefania/tags")
-async def stefania_get_tags():
+async def stefania_get_tags(_auth=Depends(require_admin_role)):
     """STEFANIA: Recupera tutti i tag"""
     client = get_systeme_client()
     return await client.get_tags()
 
 @api_router.post("/systeme/stefania/tag")
-async def stefania_create_tag(name: str):
+async def stefania_create_tag(name: str, _auth=Depends(require_admin_role)):
     """STEFANIA: Crea un nuovo tag"""
     client = get_systeme_client()
     return await client.create_tag(name)
@@ -12402,19 +12433,19 @@ class EnrollStudentRequest(BaseModel):
 # --- STEFANIA: Gestione fasi partner ---
 
 @api_router.post("/systeme/stefania/move-phase")
-async def stefania_move_contact_phase(request: MoveToPhaseRequest):
+async def stefania_move_contact_phase(request: MoveToPhaseRequest, _auth=Depends(require_admin_role)):
     """STEFANIA: Sposta un partner a una nuova fase"""
     client = get_systeme_client()
     return await client.move_contact_to_phase(request.contact_id, request.phase)
 
 @api_router.get("/systeme/stefania/contacts-by-phase/{phase}")
-async def stefania_get_contacts_by_phase(phase: str, limit: int = 100):
+async def stefania_get_contacts_by_phase(phase: str, limit: int = 100, _auth=Depends(require_admin_role)):
     """STEFANIA: Recupera tutti i contatti in una fase specifica"""
     client = get_systeme_client()
     return await client.get_contacts_by_phase(phase, limit)
 
 @api_router.post("/systeme/stefania/notify")
-async def stefania_send_notification(request: SendNotificationRequest):
+async def stefania_send_notification(request: SendNotificationRequest, _auth=Depends(require_admin_role)):
     """STEFANIA: Invia notifica email a un partner"""
     client = get_systeme_client()
     return await client.send_notification_email(request.contact_id, request.notification_type)
@@ -12422,19 +12453,19 @@ async def stefania_send_notification(request: SendNotificationRequest):
 # --- STEFANIA: Marketing e campagne ---
 
 @api_router.post("/systeme/stefania/trigger-automation")
-async def stefania_trigger_automation(request: TriggerAutomationRequest):
+async def stefania_trigger_automation(request: TriggerAutomationRequest, _auth=Depends(require_admin_role)):
     """STEFANIA: Triggera un'automazione via tag"""
     client = get_systeme_client()
     return await client.trigger_automation(request.contact_id, request.tag_name)
 
 @api_router.post("/systeme/stefania/bulk-tag")
-async def stefania_bulk_add_tag(request: BulkTagRequest):
+async def stefania_bulk_add_tag(request: BulkTagRequest, _auth=Depends(require_admin_role)):
     """STEFANIA: Aggiunge tag a multipli contatti"""
     client = get_systeme_client()
     return await client.bulk_add_tag(request.contact_ids, request.tag_id)
 
 @api_router.post("/systeme/stefania/subscribe-campaign")
-async def stefania_subscribe_to_campaign(campaign_id: str, contact_id: str):
+async def stefania_subscribe_to_campaign(campaign_id: str, contact_id: str, _auth=Depends(require_admin_role)):
     """STEFANIA: Iscrive contatto a campagna email"""
     client = get_systeme_client()
     return await client.subscribe_to_campaign(campaign_id, contact_id)
@@ -16734,7 +16765,7 @@ async def api_create_agent_task(request: CreateTaskRequest):
     return {"success": True, "task_id": task_id}
 
 @api_router.post("/agent-tasks/stefania-review")
-async def api_stefania_task_review():
+async def api_stefania_task_review(_auth=Depends(require_admin_or_report_key)):
     """Stefania's daily task review - checks open tasks and escalates if needed"""
     result = await stefania_daily_task_review(db)
     return result
