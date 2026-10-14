@@ -2946,3 +2946,80 @@ def apply_manual_cut(self, cut_id: str):
         loop.run_until_complete(_process_manual_cut(cut_id))
     finally:
         loop.close()
+
+
+async def _process_youtube_publish(job_id: str):
+    """Carica su YouTube i video finali indicati dall'admin, li registra e li mette nella playlist del partner."""
+    from motor.motor_asyncio import AsyncIOMotorClient
+    from services.ciak_youtube_publish import registration_fields
+    from services.youtube_titles import youtube_id_from_url
+    from services.youtube_playlist import aggiungi_video
+    mongo_url = os.environ.get("MONGO_ATLAS_URL") or os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
+    mongo = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+    database = mongo[os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))]
+    loop = asyncio.get_event_loop()
+    try:
+        job = await database.youtube_publish_jobs.find_one_and_update(
+            {"job_id": job_id, "status": "queued"},
+            {"$set": {"status": "processing", "started_at": datetime.now(timezone.utc).isoformat()}})
+        if not job:
+            return  # già presa (riconsegna dopo un riavvio): non si carica due volte
+        partner_id = job["partner_id"]
+        partner = await database.partners.find_one({"id": partner_id}, {"_id": 0, "name": 1}) or {}
+        done = failed = 0
+        for idx, item in enumerate(job["items"]):
+            base = f"items.{idx}"
+            tmp_dir = Path(tempfile.mkdtemp(prefix="ciak-ytpub-"))
+            try:
+                local = str(tmp_dir / "video.mp4")
+                await download_from_gcs(item["gs_url"], local)
+                url = await loop.run_in_executor(
+                    None, upload_to_youtube_sync, local, item["title"], partner.get("name", partner_id))
+                yt_id = youtube_id_from_url(url) if url else None
+                if not yt_id:
+                    raise RuntimeError("Caricamento su YouTube non riuscito (credenziali o quota)")
+                await database.youtube_publish_jobs.update_one(
+                    {"job_id": job_id}, {"$set": {f"{base}.youtube_id": yt_id, f"{base}.status": "uploaded"}})
+                fields = registration_fields(item["kind"], item.get("lesson_id"), yt_id)
+                if item["kind"] == "lesson":
+                    await database.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": fields})
+                else:
+                    coll = database.masterclass_factory if await database.masterclass_factory.find_one(
+                        {"partner_id": partner_id}, {"_id": 1}) else database.partner_masterclass
+                    await coll.update_one({"partner_id": partner_id}, {"$set": fields})
+                playlist = await aggiungi_video(database, partner_id, yt_id)
+                await database.youtube_publish_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$set": {f"{base}.status": "done", f"{base}.in_playlist": bool(playlist.get("ok")),
+                              f"{base}.playlist_note": playlist.get("motivo")}})
+                done += 1
+            except Exception as exc:
+                failed += 1
+                logger.error("[YT-PUBLISH] %s: %s", item.get("key"), exc, exc_info=True)
+                await database.youtube_publish_jobs.update_one(
+                    {"job_id": job_id}, {"$set": {f"{base}.status": "failed", f"{base}.error": str(exc)[:300]}})
+            finally:
+                shutil.rmtree(str(tmp_dir), ignore_errors=True)
+        await database.youtube_publish_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {"status": "completed" if not failed else "partial",
+                      "completed_at": datetime.now(timezone.utc).isoformat()}})
+        await telegram(f"▶️ <b>YouTube</b>\nPartner {partner.get('name', partner_id)}: {done} video pubblicati"
+                       + (f", {failed} non riusciti" if failed else ""))
+    except Exception as exc:
+        logger.error("[YT-PUBLISH] %s", exc, exc_info=True)
+        await database.youtube_publish_jobs.update_one(
+            {"job_id": job_id}, {"$set": {"status": "failed", "error": str(exc)[:300]}})
+    finally:
+        mongo.close()
+
+
+@celery_app.task(name="publish_youtube_finals", bind=True, acks_late=False,
+                 max_retries=0, soft_time_limit=5400, time_limit=5700)
+def publish_youtube_finals(self, job_id: str):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_process_youtube_publish(job_id))
+    finally:
+        loop.close()
