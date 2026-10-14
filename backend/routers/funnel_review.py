@@ -74,6 +74,8 @@ class AdminSetBody(BaseModel):
     connections: Optional[Dict[str, bool]] = None
     content: Optional[Dict[str, Dict[str, str]]] = None
     domain_records: Optional[List[Dict[str, str]]] = None
+    refund_days: Optional[int] = None     # giorni di rimborso scritti nei documenti (default 14)
+    course_title: Optional[str] = None    # nome del corso nei documenti (se manca su partners.corso_titolo)
 
 
 class NewVersionBody(BaseModel):
@@ -134,7 +136,9 @@ async def get_documents(partner_id: str, credentials: HTTPAuthorizationCredentia
     stamp = str(rec.get("documents_released_at") or "")[:10]
     try:
         updated = datetime.strptime(stamp, "%Y-%m-%d").strftime("%d/%m/%Y")
-        docs = legal_docs.render_documents(partner.get("name", ""), partner.get("corso_titolo", ""), updated)
+        docs = legal_docs.render_documents(
+            partner.get("name", ""), rec.get("course_title") or partner.get("corso_titolo", ""), updated,
+            refund_days=int(rec.get("refund_days") or legal_docs.REFUND_DAYS))
     except ValueError as e:  # data mancante o dato obbligatorio assente: messaggio chiaro, mai documenti con vuoti
         raise HTTPException(status_code=400, detail=f"Documenti non generabili: {e}")
     return {"success": True, "documents": [{"id": k, **v} for k, v in docs.items()]}

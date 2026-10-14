@@ -317,3 +317,21 @@ def test_an_approved_item_can_still_be_corrected_and_loses_its_approval():
     state = fr.review_state(rec)
     assert state["legal"]["state"] == fr.IN_MODIFICA and state["corrections_open"] == 1
     assert {s["id"]: s["state"] for s in state["steps"]}["dati"] == "da_fare"
+
+
+def test_titolare_is_the_company_when_the_partner_bills_as_one():
+    partner = {"name": "Andrea Fredi", "dati_burocrazia": {"nome": "Andrea", "cognome": "Fredi",
+                                                           "ragione_sociale": "GENESIS SRL", "partita_iva": "04394860987"}}
+    assert fr.legal_data_from_partner(partner)["Titolare"] == "GENESIS SRL"
+    # senza ragione sociale resta la persona (partner con partita IVA personale)
+    persona = {"name": "Daniele Andolfi", "dati_burocrazia": {"nome": "Daniele", "cognome": "Andolfi", "ragione_sociale": ""}}
+    assert fr.legal_data_from_partner(persona)["Titolare"] == "Daniele Andolfi"
+
+
+def test_admin_can_set_refund_days_and_course_title_with_limits():
+    update = fr.admin_set_update({}, {"refund_days": 21, "course_title": "  Metodo TAI – Medintenzione "}, NOW)
+    assert update["$set"]["refund_days"] == 21 and update["$set"]["course_title"] == "Metodo TAI – Medintenzione"
+    for bad in ({"refund_days": 7}, {"refund_days": 90}, {"refund_days": "venti"}, {"course_title": "ab"},
+                {"course_title": "x" * 121}):
+        with pytest.raises(fr.ReviewError):
+            fr.admin_set_update({}, bad, NOW)
