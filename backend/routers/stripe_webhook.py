@@ -1170,7 +1170,9 @@ async def send_partnership_welcome_email(partner_id: str):
             # Stessa storia della porta: qui c'era localhost:8001 hardcoded, quindi
             # la welcome email non e' mai partita da questo percorso.
             risposta = await client.post(
-                internal_api_url(f"/api/onboarding/send-welcome-email/{partner_id}")
+                internal_api_url(f"/api/onboarding/send-welcome-email/{partner_id}"),
+                # rotta chiusa a chi non e' admin: la chiamata di sistema porta la chiave interna
+                headers={"X-Internal-Key": os.environ.get("INTERNAL_API_KEY", "")},
             )
             if risposta.status_code >= 400:
                 # Un "triggered" scritto senza guardare la risposta e' il motivo per cui

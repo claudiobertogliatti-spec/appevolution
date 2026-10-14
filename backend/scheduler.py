@@ -33,6 +33,12 @@ BASE_URL = os.environ.get("INTERNAL_API_BASE") or (
 )
 
 
+def _chiave_di_sistema() -> dict:
+    """Header per le rotte che accettano admin OPPURE una chiamata di sistema (`require_admin_or_system`
+    in server.py): la stessa chiave `LUCA_REPORT_KEY` gia' usata dagli altri job di questo file."""
+    return {"X-Report-Key": os.environ.get("LUCA_REPORT_KEY", "")}
+
+
 def trigger_luca_briefing():
     """
     Ogni giorno alle 7:45 — briefing AD di Luca.
@@ -260,7 +266,7 @@ def trigger_systeme_sync():
     """Ogni 6 ore — sync completo con Systeme.io per non perdere lead."""
     try:
         logger.info("[SCHEDULER] Systeme.io sync — avvio sincronizzazione")
-        response = httpx.post(f"{BASE_URL}/systeme/sync-all", json={}, timeout=180)
+        response = httpx.post(f"{BASE_URL}/systeme/sync-all", json={}, headers=_chiave_di_sistema(), timeout=180)
         result = response.json()
         
         new_contacts = result.get("new_contacts", 0)
@@ -287,7 +293,7 @@ def trigger_partnership_expiry_reminder():
     try:
         logger.info("[SCHEDULER] Partnership expiry check — controllo scadenze")
         
-        response = httpx.get(f"{BASE_URL}/partners", timeout=30)
+        response = httpx.get(f"{BASE_URL}/partners", headers=_chiave_di_sistema(), timeout=30)
         partners_data = response.json()
         partners = partners_data.get("partners", [])
         
@@ -376,7 +382,7 @@ def trigger_weekly_kpi_report():
         
         # Partner stats
         try:
-            response = httpx.get(f"{BASE_URL}/partners", timeout=30)
+            response = httpx.get(f"{BASE_URL}/partners", headers=_chiave_di_sistema(), timeout=30)
             partners = response.json().get("partners", [])
             
             now = datetime.now()

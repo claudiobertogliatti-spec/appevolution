@@ -17,7 +17,7 @@ from fastapi import HTTPException
 pytestmark = pytest.mark.unit
 
 SERVER = Path(__file__).resolve().parents[1] / "server.py"
-GUARDIE = {"require_admin_role", "require_partner_or_admin", "require_partner_or_admin_any", "require_admin_or_report_key"}
+GUARDIE = {"require_admin_role", "require_partner_or_admin", "require_partner_or_admin_any", "require_admin_or_report_key", "require_admin_or_system"}
 METODI = {"get", "post", "put", "patch", "delete"}
 
 # Rotte con «stefania» nel percorso che restano pubbliche di proposito: nessuna.

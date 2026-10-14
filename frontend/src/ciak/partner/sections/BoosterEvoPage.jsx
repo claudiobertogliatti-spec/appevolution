@@ -18,6 +18,7 @@ import {
 import { BOOSTER_CATALOG, BOOSTER_ORDER } from "../booster/boosterCatalog";
 import { PARTNER_SERENO_ENABLED } from "../sereno/feature";
 import SerenoServizi from "../sereno/SerenoServizi";
+import { authHeaders } from "../api";
 
 /**
  * Booster EVO — vetrina (stile e-commerce) dei servizi extra attivabili durante
@@ -339,7 +340,7 @@ function Dettaglio({ item, partnerId, onBack, onSupport }) {
       if (item.consultantId) {
         res = await fetch(`/api/consulenza-checkout`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             service_type: "consulenza_marketing",
             consultant_id: item.consultantId,

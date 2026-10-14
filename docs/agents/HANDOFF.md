@@ -1,3 +1,36 @@
+### 2026-10-14 (4) · Claude Code · claude/modest-euler-xde2pw — Controllo completo di server.py: 238 rotte chiuse
+
+**RICHIESTA:** «si controllo completo» (dopo le rotte `/stefania/*`).
+
+**TROVATO (dal vivo, solo codice HTTP; nessun valore letto)**
+- 410 rotte in `server.py`; **255 senza alcuna guardia**. Su `https://www.ciak.io` rispondevano 200 senza token: `GET /api/partners` (25 partner con nome, nicchia, fase, fatturato, contratto), `/partners/{id}/payments`, `/stats`, `/alerts`, `/agent-tasks`, `/files`, `/notifications`, `/youtube/status`, `/videos/jobs`, `/systeme/contacts`, `/celery/status`, `/storage/stats`… e, per lettura del codice, SCRITTURE aperte: `POST /systeme/credentials` (chiave API Systeme di un partner), `/partners/{id}/attiva-piano`, upload file/video, `/youtube/*`, `/heygen/*`, `/domain/*`, `/email-automation/*`, `/telegram/*`.
+- Le 6 letture `cliente-analisi/.../{user_id}` (dati personali dei prospect) erano gia' chiuse con 410 dal 29/9 (`_analisi_67_dismessa`).
+
+**DICHIARATO (server.py, 238 rotte + 1 guardia nuova `require_admin_or_system`)**
+- Default **admin-only** (`require_admin_role`, 191 rotte): nessun frontend dei partner le chiamava (verificato con espressioni esatte sul percorso; le pagine admin usano `adminFetch`).
+- **Partner su se stesso** (`require_partner_or_admin`, 37): letture con `{partner_id}` nel percorso + 7 scritture del partner (`files/upload`, `onboarding-documents/upload`, `profile` PATCH, `masterclass/script` POST/submit/partner-approve, `brandkit` POST).
+- **Partner o admin** (`require_partner_or_admin_any`, 7): checkout dei servizi (avatar, consulenza, growth-system, legal-pages, branding) e `payment-status`.
+- **Admin oppure chiave di sistema** (`require_admin_or_system`, 3): `GET /partners`, `POST /systeme/sync-all` (scheduler, header `X-Report-Key`=`LUCA_REPORT_KEY`), `POST /onboarding/send-welcome-email/{id}` (webhook Stripe, header `X-Internal-Key`=`INTERNAL_API_KEY`). Aggiornati `scheduler.py` e `routers/stripe_webhook.py` per mandarli.
+- Frontend: `AvatarCheckout`, `ConsulenzaCheckout`, `BoosterEvoPage`, `GrowthSystemPage` mandano il token del partner (`authHeaders`).
+- Restano pubbliche 17 rotte, ognuna motivata in `tests/test_server_routes_guarded.py::PUBBLICHE` (login, registrazione, tracking, health, webhook con segreto, listino avatar, `/notify/telegram`…).
+- `tests/test_server_routes_guarded.py` (6, in CI): FALLISCE se una rotta di `server.py` nasce senza guardia e non e' in `PUBBLICHE`; segnala le guardie "deboli" (`if not credentials` che accetta qualunque header) e le voci morte.
+
+**VERIFICATO sul programma reale (server importato, token e DB finti)**
+- 398 rotte non pubbliche, senza token e con token finto: nessun 2xx. 16 risposte 500 (non 401) su rotte `/api/admin/*` che leggono `credentials.credentials` prima di tutto: negano, non eseguono nulla (sporco, non pericoloso).
+- 347 rotte guardate con identita' valide: admin passa; partner e cliente Start respinti sulle admin-only; partner passa solo sul PROPRIO id (altro id → 403); chiavi di sistema giuste passano, sbagliate 401. Unica "anomalia": 3 rotte YouTube rispondono 401 perche' YouTube non e' collegato (dopo la guardia).
+- 135 test passati (guardie, Stefania, assistenti, admin auth, agent token); frontend `src/ciak` 942/943 (rosso preesistente `PartnerFilesPage.loading`).
+
+**⛔ DA FARE PRIMA/DOPO IL DEPLOY**
+1. Verificare su Cloud Run che **`INTERNAL_API_KEY` e `LUCA_REPORT_KEY` siano configurate sul servizio backend**: senza, la email di benvenuto dopo il pagamento Stripe, lo sync Systeme notturno, il monitoraggio partner e la revisione task di Stefania rispondono 401 (e loggano l'errore).
+2. `POST /api/notify/telegram` e' ancora APERTA di proposito: la chiamano celery/agenti/scheduler senza chiave e il worker (`evolution-pro-worker`) puo' avere env diverse. Chiuderla = dare `INTERNAL_API_KEY` al worker + header nei 7 chiamanti (`celery_tasks`, `agent_task_system` x2, `morning_briefing_task`, `luca_briefing_task`, `scheduler` x2) + guardia `require_admin_or_system`. Chiunque conosca l'URL oggi puo' mandarti messaggi Telegram.
+3. `/webhooks/systeme` e `/telegram/webhook` sono "rollout-safe": se `SYSTEME_WEBHOOK_SECRET` / `TELEGRAM_WEBHOOK_SECRET` NON sono configurate passano senza segreto (fail-open). Verificare che siano impostate in produzione.
+4. `GET /api/files/{path}` ora e' admin-only: link diretti a `internal_url` (`/api/files/...`) salvati nel DB non si aprono piu' senza token. Nessun frontend li usa (cercato), ma documenti/video vecchi potrebbero avere quei link.
+5. `POST /stefania/api/crm/sale` e le altre rotte `/api/*` chiamate da automazioni ESTERNE (Systeme/Zapier/MARTA) ora danno 401 senza token: nel repo nessuno le chiama.
+
+**⛔ APERTO — ROUTERS (`backend/routers/*.py`, NON toccati)**
+Euristica statica: 135 rotte su 663 senza guardia riconoscibile in 31 file. Provate dal vivo (solo codice): `GET /api/masterclass-factory/stats` 200, `/api/journey/dashboard` 200, `/api/servizi-extra` 200, `/api/heygen/videos/{id}` 200, `/api/media/calendario/partner/{id}` 200, `/api/partner/payment-info` 200. File piu' sospetti: `media_integrations` (14), `heygen_production` (12), `avatar_social` (11), `agents_router` (8), `masterclass_factory` (8), `partnership` (7), `funnel_builder` (6), `journey_automation` (6), `systeme_contacts` (5). Molte sono pubbliche di proposito (proposta/token, booking e stripe webhook, diagnostic, ciak_go, magic-login, lead capture). Serve lo stesso lavoro fatto per server.py, con test analogo.
+Nota: `tests/test_course_builder.py` e `tests/test_credentials_telegram_auth.py` sono test HTTP contro un backend vivo (non in CI) e chiamano senza token.
+
 ### 2026-10-14 (3) · Claude Code · claude/modest-euler-xde2pw — Chiuse le 50 rotte /stefania/* aperte di server.py
 
 **RICHIESTA:** «si» (verifica e proteggi le rotte `/stefania/*` di `server.py` segnalate dal revisore).

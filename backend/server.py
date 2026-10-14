@@ -1150,6 +1150,27 @@ async def require_partner_or_admin_any(credentials: HTTPAuthorizationCredentials
         raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
     return token_data
 
+
+async def require_admin_or_system(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Admin (JWT) OPPURE una chiamata di sistema con una delle chiavi interne gia' usate nel repo:
+    `X-Internal-Key` (= INTERNAL_API_KEY, come stripe_webhook) o `X-Report-Key` (= LUCA_REPORT_KEY, come
+    scheduler.py). Per le poche rotte che il backend chiama su se stesso (scheduler, webhook Stripe)."""
+    import hmac as _hmac
+
+    for header, env in (("x-internal-key", "INTERNAL_API_KEY"), ("x-report-key", "LUCA_REPORT_KEY")):
+        atteso = os.environ.get(env, "")
+        fornito = request.headers.get(header, "")
+        if atteso and fornito and _hmac.compare_digest(fornito, atteso):
+            return {"role": "system", "via": header}
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    if token_data.role not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+    return token_data
+
 @api_router.on_event("startup")
 async def init_auth():
     global auth_service
@@ -1268,7 +1289,7 @@ class CreatePartnerAccountRequest(BaseModel):
 
 
 @api_router.post("/users/create-partner-account")
-async def create_partner_account(request: CreatePartnerAccountRequest):
+async def create_partner_account(request: CreatePartnerAccountRequest, _auth=Depends(require_admin_role)):
     """
     Crea un account utente per un partner esistente.
     Usato dal form NuovoPartnerForm quando il partner è già stato creato.
@@ -4274,7 +4295,7 @@ async def genera_analisi_cliente(user_id: str, _admin=Depends(require_admin_role
     return {"success": True, "message": "Analisi segnata come generata"}
 
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
-async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
+async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None, _auth=Depends(require_admin_role)):
     """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -4362,7 +4383,7 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
     return {"success": True, "message": f"Email istruzioni Systeme.io inviata a {email}"}
 
 @api_router.post("/onboarding/send-welcome-email/{partner_id}")
-async def resend_welcome_email(partner_id: str):
+async def resend_welcome_email(partner_id: str, _auth=Depends(require_admin_or_system)):
     """Send or resend welcome email to partner"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -4389,7 +4410,7 @@ async def resend_welcome_email(partner_id: str):
         raise HTTPException(status_code=500, detail=f"Errore invio email: {str(e)}")
 
 @api_router.patch("/onboarding/systeme-account/{partner_id}")
-async def mark_systeme_account_created(partner_id: str, systeme_email: str = None):
+async def mark_systeme_account_created(partner_id: str, systeme_email: str = None, _auth=Depends(require_admin_role)):
     """Mark that Systeme.io sub-account has been created for partner"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -4407,7 +4428,7 @@ async def mark_systeme_account_created(partner_id: str, systeme_email: str = Non
     return {"success": True, "message": "Account Systeme.io contrassegnato come creato"}
 
 @api_router.get("/onboarding/status")
-async def get_onboarding_status():
+async def get_onboarding_status(_auth=Depends(require_admin_role)):
     """Get onboarding status for all partners (for admin dashboard)"""
     partners = await db.partners.find(
         only_real_partners(),
@@ -4520,12 +4541,12 @@ async def list_users(_admin=Depends(require_admin_role)):
 # =============================================================================
 
 @api_router.get("/agents", response_model=List[Agent])
-async def get_agents():
+async def get_agents(_auth=Depends(require_admin_role)):
     agents = await db.agents.find({}, {"_id": 0}).to_list(100)
     return agents
 
 @api_router.patch("/agents/{agent_id}")
-async def update_agent(agent_id: str, status: Optional[str] = None, budget: Optional[int] = None):
+async def update_agent(agent_id: str, status: Optional[str] = None, budget: Optional[int] = None, _auth=Depends(require_admin_role)):
     update = {}
     if status:
         update["status"] = status
@@ -4549,30 +4570,30 @@ from ollama_service import (
 )
 
 @api_router.get("/ollama/status")
-async def get_ollama_status():
+async def get_ollama_status(_auth=Depends(require_admin_role)):
     """Verifica stato del servizio Ollama locale"""
     return await ollama_service.get_status()
 
 @api_router.post("/ollama/pull-model")
-async def pull_ollama_model(model: str = "llama3:8b"):
+async def pull_ollama_model(model: str = "llama3:8b", _auth=Depends(require_admin_role)):
     """Scarica un modello su Ollama"""
     return await ollama_service.pull_model(model)
 
 @api_router.post("/ollama/extract-lead-html")
-async def api_extract_lead_html(request: dict):
+async def api_extract_lead_html(request: dict, _auth=Depends(require_admin_role)):
     """[GAIA] Estrai dati lead da HTML usando Llama 3 locale"""
     url = request.get("url", "")
     html = request.get("html", "")
     return await extract_lead_data_from_html(html, url)
 
 @api_router.post("/ollama/clean-leads")
-async def api_clean_leads(request: dict):
+async def api_clean_leads(request: dict, _auth=Depends(require_admin_role)):
     """[DISCOVERY] Pulisci e deduplica lead usando Llama 3 locale"""
     leads = request.get("leads", [])
     return await clean_and_deduplicate_leads(leads)
 
 @api_router.post("/ollama/generate-micropost")
-async def api_generate_micropost(request: dict):
+async def api_generate_micropost(request: dict, _auth=Depends(require_admin_role)):
     """Genera micro-post usando Llama 3 locale"""
     topic = request.get("topic", "")
     platform = request.get("platform", "linkedin")
@@ -4580,14 +4601,14 @@ async def api_generate_micropost(request: dict):
     return await generate_micro_post(topic, platform, tone)
 
 @api_router.post("/ollama/validate-data")
-async def api_validate_data(request: dict):
+async def api_validate_data(request: dict, _auth=Depends(require_admin_role)):
     """Valida e normalizza dati usando Llama 3 locale"""
     data = request.get("data", {})
     schema_type = request.get("schema_type", "lead")
     return await validate_and_normalize_data(data, schema_type)
 
 @api_router.post("/ollama/test")
-async def test_ollama_generation(prompt: str):
+async def test_ollama_generation(prompt: str, _auth=Depends(require_admin_role)):
     """Test generazione con Ollama"""
     result = await ollama_service.generate(prompt, temperature=0.3)
     return {
@@ -4602,7 +4623,7 @@ async def test_ollama_generation(prompt: str):
 # =============================================================================
 
 @api_router.get("/partners/with-social")
-async def get_partners_with_social():
+async def get_partners_with_social(_auth=Depends(require_admin_role)):
     """Lista partner con avatar o social plan configurato per la dashboard produzione video"""
     partners = await db.partners.find(
         only_real_partners({
@@ -4632,19 +4653,19 @@ async def get_partners_with_social():
     return {"partners": partners, "count": len(partners)}
 
 @api_router.get("/partners", response_model=List[Partner])
-async def get_partners():
+async def get_partners(_auth=Depends(require_admin_or_system)):
     partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
     return partners
 
 @api_router.get("/partners/{partner_id}")
-async def get_partner(partner_id: str):
+async def get_partner(partner_id: str, _auth=Depends(require_partner_or_admin)):
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
     return partner
 
 @api_router.post("/partners", response_model=Partner)
-async def create_partner(data: PartnerCreate):
+async def create_partner(data: PartnerCreate, _auth=Depends(require_admin_role)):
     partner = Partner(**data.model_dump())
     doc = partner.model_dump()
     await db.partners.insert_one(doc)
@@ -5076,7 +5097,7 @@ class PaymentRecord(BaseModel):
     invoice_number: Optional[str] = None
 
 @api_router.get("/partners/{partner_id}/profile")
-async def get_partner_profile(partner_id: str):
+async def get_partner_profile(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get extended partner profile"""
     # Get base partner data
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
@@ -5103,7 +5124,7 @@ async def get_partner_profile(partner_id: str):
     return result
 
 @api_router.patch("/partners/{partner_id}/profile")
-async def update_partner_profile(partner_id: str, data: PartnerProfileUpdate):
+async def update_partner_profile(partner_id: str, data: PartnerProfileUpdate, _auth=Depends(require_partner_or_admin)):
     """Update extended partner profile"""
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["partner_id"] = partner_id
@@ -5126,7 +5147,7 @@ async def update_partner_profile(partner_id: str, data: PartnerProfileUpdate):
     return {"success": True, "partner_id": partner_id}
 
 @api_router.get("/partners/{partner_id}/payments")
-async def get_partner_payments(partner_id: str):
+async def get_partner_payments(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get partner payment history"""
     payments = await db.partner_payments.find(
         {"partner_id": partner_id},
@@ -5286,7 +5307,7 @@ async def segna_pagamento_partnership(partner_id: str, request: Request, _admin=
 
 
 @api_router.post("/partners/{partner_id}/files/upload")
-async def upload_partner_files(partner_id: str, files: List[UploadFile] = File(...), is_raw: str = Form("false")):
+async def upload_partner_files(partner_id: str, files: List[UploadFile] = File(...), is_raw: str = Form("false"), _auth=Depends(require_partner_or_admin)):
     """Upload files for partner (can be marked as RAW for admin review)"""
     from cloudinary_service import cloudinary_upload
     
@@ -5501,7 +5522,7 @@ async def admin_get_partner_full_data(partner_id: str, _admin=Depends(require_ad
 # =============================================================================
 
 @api_router.get("/partners/{partner_id}/piano-continuita")
-async def get_piano_continuita(partner_id: str):
+async def get_piano_continuita(partner_id: str, _auth=Depends(require_admin_role)):
     """Get partner's Piano Continuità"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "piano_continuita": 1, "phase": 1})
     if not partner:
@@ -5528,7 +5549,7 @@ async def get_piano_continuita(partner_id: str):
     return piano
 
 @api_router.put("/partners/{partner_id}/piano-continuita")
-async def update_piano_continuita(partner_id: str, data: dict):
+async def update_piano_continuita(partner_id: str, data: dict, _auth=Depends(require_admin_role)):
     """Update partner's Piano Continuità"""
     partner = await db.partners.find_one({"id": partner_id})
     if not partner:
@@ -5586,7 +5607,7 @@ async def update_piano_continuita(partner_id: str, data: dict):
 
 
 @api_router.post("/partners/{partner_id}/attiva-piano")
-async def attiva_piano_partner(partner_id: str, piano: str = None):
+async def attiva_piano_partner(partner_id: str, piano: str = None, _auth=Depends(require_admin_role)):
     """
     Attiva un piano per il partner (continuita_attiva o growth_partner_attivo).
     """
@@ -5616,7 +5637,7 @@ async def attiva_piano_partner(partner_id: str, piano: str = None):
 
 
 @api_router.post("/partners/{partner_id}/send-documents")
-async def send_partner_documents(partner_id: str, email: str = None):
+async def send_partner_documents(partner_id: str, email: str = None, _auth=Depends(require_admin_role)):
     """Send documents to partner via email (placeholder)"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -5636,7 +5657,7 @@ async def send_partner_documents(partner_id: str, email: str = None):
     return {"success": True, "email": target_email, "message": "Documents queued for sending"}
 
 @api_router.get("/partners/{partner_id}/export-pdf")
-async def export_partner_pdf(partner_id: str):
+async def export_partner_pdf(partner_id: str, _auth=Depends(require_admin_role)):
     """Export partner documents as PDF (returns text for now)"""
     from fastapi.responses import PlainTextResponse
     
@@ -5688,7 +5709,7 @@ Revenue Generato: €{partner.get('revenue', 0):,}
     return PlainTextResponse(content, media_type="text/plain")
 
 @api_router.get("/partners/{partner_id}/contract-pdf")
-async def get_partner_contract_pdf(partner_id: str):
+async def get_partner_contract_pdf(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Generate and return the partner's contract as a professionally formatted PDF"""
     from fastapi.responses import StreamingResponse
     from reportlab.lib.pagesizes import A4
@@ -5938,7 +5959,7 @@ class OnboardingDocument(BaseModel):
 ONBOARDING_DOC_TYPES = ["contratto_firmato", "documenti_personali", "distinta_pagamento"]
 
 @api_router.get("/partners/{partner_id}/onboarding-documents")
-async def get_onboarding_documents(partner_id: str):
+async def get_onboarding_documents(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all onboarding documents for a partner"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -5969,7 +5990,8 @@ async def get_onboarding_documents(partner_id: str):
 async def upload_onboarding_document(
     partner_id: str,
     file: UploadFile = File(...),
-    document_type: str = Form(...)
+    document_type: str = Form(...),
+    _auth=Depends(require_partner_or_admin),
 ):
     """Upload an onboarding document for a partner"""
     # Validate partner exists
@@ -6116,7 +6138,7 @@ async def verify_onboarding_document(
     return {"success": True, "status": "verified", "all_verified": all_verified}
 
 @api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/reject")
-async def reject_onboarding_document(partner_id: str, document_type: str, reason: str = ""):
+async def reject_onboarding_document(partner_id: str, document_type: str, reason: str = "", _auth=Depends(require_admin_role)):
     """Reject an onboarding document (Admin only)"""
     result = await db.onboarding_documents.update_one(
         {"partner_id": partner_id, "document_type": document_type},
@@ -6346,7 +6368,7 @@ async def send_capi_event(body: CapiEventRequest, request: Request):
 # =============================================================================
 
 @api_router.get("/alerts")
-async def get_alerts():
+async def get_alerts(_auth=Depends(require_admin_role)):
     """Get all alerts - returns list of alert objects"""
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
     
@@ -6425,14 +6447,14 @@ async def get_alerts():
     return alerts
 
 @api_router.delete("/alerts/{alert_id}")
-async def delete_alert(alert_id: str):
+async def delete_alert(alert_id: str, _auth=Depends(require_admin_role)):
     result = await db.alerts.delete_one({"id": alert_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"status": "deleted"}
 
 @api_router.post("/alerts")
-async def create_alert(agent: str, type: str, msg: str, partner: str):
+async def create_alert(agent: str, type: str, msg: str, partner: str, _auth=Depends(require_admin_role)):
     alert = Alert(
         agent=agent,
         type=type,
@@ -6448,7 +6470,7 @@ async def create_alert(agent: str, type: str, msg: str, partner: str):
 # =============================================================================
 
 @api_router.get("/modules")
-async def get_modules():
+async def get_modules(_auth=Depends(require_admin_role)):
     modules = await db.modules.find({}, {"_id": 0}).to_list(100)
     return modules
 
@@ -6463,7 +6485,7 @@ class PositioningData(BaseModel):
     canvas: Optional[str] = None  # Generated canvas text
 
 @api_router.post("/positioning/save")
-async def save_positioning(data: PositioningData):
+async def save_positioning(data: PositioningData, _auth=Depends(require_admin_role)):
     """Save partner positioning data from wizard"""
     doc = {
         "partner_id": data.partner_id,
@@ -6485,7 +6507,7 @@ async def save_positioning(data: PositioningData):
     return {"success": True, "partner_id": data.partner_id}
 
 @api_router.get("/positioning/{partner_id}")
-async def get_positioning(partner_id: str):
+async def get_positioning(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get partner positioning data"""
     positioning = await db.partner_positioning.find_one(
         {"partner_id": partner_id},
@@ -6494,7 +6516,7 @@ async def get_positioning(partner_id: str):
     return positioning or {"partner_id": partner_id, "status": "not_started"}
 
 @api_router.get("/positioning/generate")
-async def generate_positioning_canvas(partner_id: str, partner_name: str, partner_niche: str, answers: str):
+async def generate_positioning_canvas(partner_id: str, partner_name: str, partner_niche: str, answers: str, _auth=Depends(require_admin_role)):
     """Generate positioning canvas (placeholder for AI generation)"""
     # For now just return the answers - can be enhanced with AI later
     return {"canvas": answers, "status": "generated"}
@@ -6504,7 +6526,7 @@ async def generate_positioning_canvas(partner_id: str, partner_name: str, partne
 # =============================================================================
 
 @api_router.get("/partners/{partner_id}/documents")
-async def get_partner_all_documents(partner_id: str):
+async def get_partner_all_documents(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all documents and files for a partner"""
     # Get uploaded files from partner_files collection
     files = await db.partner_files.find(
@@ -6720,7 +6742,7 @@ def build_context_block(req) -> str:
         return ""
 
 @api_router.post("/chat")
-async def chat_with_agent(request: ChatRequest):
+async def chat_with_agent(request: ChatRequest, _auth=Depends(require_admin_role)):
     """
     Endpoint unificato per chat con tutti gli agenti.
     Il campo 'agent' determina quale agente risponde.
@@ -6817,7 +6839,7 @@ async def chat_with_agent(request: ChatRequest):
         return {"response": fallback, "reply": fallback, "agent": agent_name, "error": str(e)}
 
 @api_router.get("/chat/{session_id}")
-async def get_chat_history(session_id: str):
+async def get_chat_history(session_id: str, _auth=Depends(require_admin_role)):
     messages = await db.chat_messages.find(
         {"session_id": session_id},
         {"_id": 0}
@@ -6830,7 +6852,7 @@ async def get_chat_history(session_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/orchestrator/status/{task_id}")
-async def get_orchestrator_status(task_id: str):
+async def get_orchestrator_status(task_id: str, _auth=Depends(require_admin_role)):
     """Verifica lo stato di un'analisi multi-agente in corso"""
     try:
         from orchestrator import get_orchestrator
@@ -6840,7 +6862,7 @@ async def get_orchestrator_status(task_id: str):
 
 
 @api_router.get("/orchestrator/report/{task_id}")
-async def get_orchestrator_report(task_id: str):
+async def get_orchestrator_report(task_id: str, _auth=Depends(require_admin_role)):
     """Recupera il report finale dell'analisi multi-agente"""
     try:
         from orchestrator import get_orchestrator
@@ -6855,7 +6877,7 @@ async def get_orchestrator_report(task_id: str):
 
 
 @api_router.post("/orchestrator/start")
-async def start_orchestrator_analysis(user_id: str, questionario: dict = None):
+async def start_orchestrator_analysis(user_id: str, questionario: dict = None, _auth=Depends(require_admin_role)):
     """
     Avvia manualmente un'analisi multi-agente.
     Normalmente viene triggerato da Stefania con "Analisi Strategica".
@@ -6880,7 +6902,7 @@ async def start_orchestrator_analysis(user_id: str, questionario: dict = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/chat/{session_id}")
-async def clear_chat_history(session_id: str):
+async def clear_chat_history(session_id: str, _auth=Depends(require_admin_role)):
     await db.chat_messages.delete_many({"session_id": session_id})
     # Also reset STEFANIA LLM session to clear conversation memory
     from stefania_ai_onboarding import stefania_reset_session
@@ -6888,7 +6910,7 @@ async def clear_chat_history(session_id: str):
     return {"status": "cleared", "llm_session_reset": True}
 
 @api_router.post("/chat/reset/{session_id}")
-async def reset_stefania_session(session_id: str):
+async def reset_stefania_session(session_id: str, _auth=Depends(require_admin_role)):
     """Reset STEFANIA's conversation memory for a session"""
     from stefania_ai_onboarding import stefania_reset_session
     reset = stefania_reset_session(session_id)
@@ -6897,7 +6919,7 @@ async def reset_stefania_session(session_id: str):
     return {"success": True, "message": f"No active session found for {session_id}"}
 
 @api_router.get("/chat/sessions/active")
-async def get_active_stefania_sessions():
+async def get_active_stefania_sessions(_auth=Depends(require_admin_role)):
     """Get list of active STEFANIA sessions (admin only)"""
     from stefania_ai_onboarding import stefania_get_active_sessions
     sessions = stefania_get_active_sessions()
@@ -6968,7 +6990,7 @@ class AgentTaskCreate(BaseModel):
     created_by: str = "stefania"
 
 @api_router.post("/agent-tasks")
-async def create_agent_task(task: AgentTaskCreate):
+async def create_agent_task(task: AgentTaskCreate, _auth=Depends(require_admin_role)):
     """Create a task assigned to an agent"""
     valid_agents = ["STEFANIA", "VALENTINA", "GAIA", "ANDREA", "MARCO"]
     if task.agent.upper() not in valid_agents:
@@ -6999,7 +7021,8 @@ async def create_agent_task(task: AgentTaskCreate):
 async def list_agent_tasks(
     agent: str = None,
     status: str = None,
-    limit: int = 50
+    limit: int = 50,
+    _auth=Depends(require_admin_role),
 ):
     """List agent tasks with optional filters"""
     query = {}
@@ -7014,7 +7037,7 @@ async def list_agent_tasks(
 
 # NOTE: Static routes BEFORE parametric routes to avoid conflicts
 @api_router.get("/agent-tasks/summary/dashboard")
-async def get_tasks_dashboard():
+async def get_tasks_dashboard(_auth=Depends(require_admin_role)):
     """Get task dashboard summary"""
     pending = await db.agent_tasks.count_documents({"status": "pending"})
     in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
@@ -7128,7 +7151,7 @@ async def api_dismiss_agent_task(task_id: str, request: DismissRequest, _admin=D
 
 # Parametric routes AFTER static routes
 @api_router.get("/agent-tasks/{task_id}")
-async def get_agent_task(task_id: str):
+async def get_agent_task(task_id: str, _auth=Depends(require_admin_role)):
     """Get a specific task"""
     task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
     if not task:
@@ -7136,7 +7159,7 @@ async def get_agent_task(task_id: str):
     return task
 
 @api_router.get("/agent-tasks/{task_id}/preview")
-async def get_task_preview(task_id: str):
+async def get_task_preview(task_id: str, _auth=Depends(require_admin_role)):
     """Ottieni l'output generato di un task per la preview"""
     task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
     
@@ -7188,7 +7211,7 @@ async def update_task_status(task_id: str, status: str, result: str = None, _adm
     return {"success": True, "task_id": task_id, "new_status": status}
 
 @api_router.get("/agent-tasks/summary/dashboard")
-async def get_tasks_dashboard():
+async def get_tasks_dashboard(_auth=Depends(require_admin_role)):
     """Get summary of all agent tasks for dashboard"""
     # Count by status
     pending = await db.agent_tasks.count_documents({"status": "pending"})
@@ -7260,7 +7283,7 @@ class AgentTaskRequest(BaseModel):
     execute_now: bool = False
 
 @api_router.post("/systeme/welcome/{partner_id}")
-async def api_send_welcome_via_systeme(partner_id: str):
+async def api_send_welcome_via_systeme(partner_id: str, _auth=Depends(require_admin_role)):
     """Send welcome email sequence to partner via Systeme.io automation"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -7286,19 +7309,19 @@ async def api_send_welcome_via_systeme(partner_id: str):
     return result
 
 @api_router.post("/systeme/campaign")
-async def api_trigger_campaign(request: CampaignRequest):
+async def api_trigger_campaign(request: CampaignRequest, _auth=Depends(require_admin_role)):
     """Trigger email campaign to a segment via Systeme.io"""
     result = await trigger_email_campaign(request.segment_tag, request.campaign_tag)
     return result
 
 @api_router.post("/systeme/tag/add")
-async def api_add_systeme_tag(request: TagRequest):
+async def api_add_systeme_tag(request: TagRequest, _auth=Depends(require_admin_role)):
     """Add tag to contact in Systeme.io"""
     result = await integrated_add_tag(request.email, request.tag_name)
     return result
 
 @api_router.get("/systeme/contacts")
-async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
+async def api_get_systeme_contacts(limit: int = 100, page: int = 1, _auth=Depends(require_admin_role)):
     """Get contacts from Systeme.io"""
     try:
         contacts = await systeme_client.get_contacts(limit=limit, page=page)
@@ -7307,7 +7330,7 @@ async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/systeme/tags")
-async def api_get_systeme_tags():
+async def api_get_systeme_tags(_auth=Depends(require_admin_role)):
     """Get all tags from Systeme.io"""
     try:
         tags = await systeme_client.get_tags()
@@ -7316,7 +7339,7 @@ async def api_get_systeme_tags():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/systeme/sync-contacts")
-async def api_sync_systeme_contacts():
+async def api_sync_systeme_contacts(_auth=Depends(require_admin_role)):
     """Sync contacts from Systeme.io to local database"""
     task = await create_agent_task(
         agent="GAIA",
@@ -7327,7 +7350,7 @@ async def api_sync_systeme_contacts():
     return task
 
 @api_router.post("/jobs/task")
-async def api_create_task(request: AgentTaskRequest):
+async def api_create_task(request: AgentTaskRequest, _auth=Depends(require_admin_role)):
     """Create an agent task (optionally execute immediately)"""
     result = await create_agent_task(
         agent=request.agent,
@@ -7340,13 +7363,13 @@ async def api_create_task(request: AgentTaskRequest):
     return result
 
 @api_router.post("/jobs/process")
-async def api_process_pending_tasks():
+async def api_process_pending_tasks(_auth=Depends(require_admin_role)):
     """Manually trigger processing of pending tasks"""
     await job_executor.process_pending_tasks()
     return {"success": True, "message": "Pending tasks processed"}
 
 @api_router.get("/jobs/status")
-async def api_get_job_status():
+async def api_get_job_status(_auth=Depends(require_admin_role)):
     """Get status of background job system"""
     pending = await db.agent_tasks.count_documents({"status": "pending"})
     in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
@@ -7836,7 +7859,7 @@ async def get_pending_admin_reviews(_auth=Depends(require_admin_role)):
     return enriched
 
 @api_router.post("/masterclass/script/{partner_id}/send-to-admin")
-async def send_script_to_admin_review(partner_id: str):
+async def send_script_to_admin_review(partner_id: str, _auth=Depends(require_admin_role)):
     """Partner sends script to Admin (Claudio/Antonella) for final editing"""
     script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
     if not script:
@@ -7866,7 +7889,7 @@ async def send_script_to_admin_review(partner_id: str):
     return {"success": True, "status": "in_review", "message": "Script inviato a Claudio/Antonella per editing finale"}
 
 @api_router.post("/masterclass/script/{partner_id}/admin-edit")
-async def admin_edit_script(partner_id: str, edit: AdminEditRequest):
+async def admin_edit_script(partner_id: str, edit: AdminEditRequest, _auth=Depends(require_admin_role)):
     """Admin (Claudio/Antonella) edits the script before sending to partner for approval"""
     script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
     if not script:
@@ -7917,7 +7940,7 @@ async def admin_edit_script(partner_id: str, edit: AdminEditRequest):
     }
 
 @api_router.post("/masterclass/script/{partner_id}/partner-approve")
-async def partner_approve_admin_edit(partner_id: str, approved: bool = True, feedback: str = None):
+async def partner_approve_admin_edit(partner_id: str, approved: bool = True, feedback: str = None, _auth=Depends(require_partner_or_admin)):
     """Partner approves or requests revision of Admin edits"""
     script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
     if not script:
@@ -7975,7 +7998,7 @@ async def partner_approve_admin_edit(partner_id: str, approved: bool = True, fee
     return {"success": True, "status": new_status, "message": message}
 
 @api_router.get("/masterclass/script/{partner_id}/edit-history")
-async def get_script_edit_history(partner_id: str):
+async def get_script_edit_history(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get edit history for a script"""
     edits = await db.admin_script_edits.find(
         {"partner_id": partner_id},
@@ -9191,7 +9214,7 @@ OPEN CART 5-7 giorni: lancio → obiezioni → social proof → scarsità → ch
 REGOLA FERREA: Il carrello che non chiude mai distrugge la credibilità."""
 
 @api_router.post("/andrea/chat")
-async def chat_with_andrea(request: AndreaChatRequest):
+async def chat_with_andrea(request: AndreaChatRequest, _auth=Depends(require_admin_role)):
     """Chat with ANDREA - Video Production tutor"""
     try:
         session_id = f"andrea_{request.session_id}"
@@ -9245,7 +9268,7 @@ async def chat_with_andrea(request: AndreaChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/andrea/preflight/{partner_id}")
-async def get_preflight_check(partner_id: str):
+async def get_preflight_check(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get pre-flight checklist for a partner"""
     preflight = await db.preflight_checks.find_one(
         {"partner_id": partner_id},
@@ -9268,7 +9291,7 @@ async def get_preflight_check(partner_id: str):
     return preflight
 
 @api_router.post("/andrea/preflight/{partner_id}")
-async def update_preflight_check(partner_id: str, checklist: Dict[str, bool]):
+async def update_preflight_check(partner_id: str, checklist: Dict[str, bool], _auth=Depends(require_admin_role)):
     """Update pre-flight checklist"""
     existing = await db.preflight_checks.find_one({"partner_id": partner_id})
     
@@ -9287,7 +9310,7 @@ async def update_preflight_check(partner_id: str, checklist: Dict[str, bool]):
     return {"success": True}
 
 @api_router.get("/andrea/blocks/{partner_id}")
-async def get_video_blocks(partner_id: str):
+async def get_video_blocks(partner_id: str, _auth=Depends(require_admin_role)):
     """Get all video blocks for a partner's production"""
     blocks = await db.video_blocks.find(
         {"partner_id": partner_id},
@@ -9325,7 +9348,8 @@ async def get_video_blocks(partner_id: str):
 async def upload_block_video(
     partner_id: str,
     block_type: str,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    _auth=Depends(require_admin_role),
 ):
     """Upload a video for a specific block and trigger Surgical Cut"""
     # Upload the file
@@ -9355,7 +9379,7 @@ async def upload_block_video(
     }
 
 @api_router.post("/andrea/blocks/{partner_id}/{block_type}/approve")
-async def approve_block_video(partner_id: str, block_type: str):
+async def approve_block_video(partner_id: str, block_type: str, _auth=Depends(require_admin_role)):
     """Approve a block video after review"""
     await db.video_blocks.update_one(
         {"partner_id": partner_id, "block_type": block_type},
@@ -9386,7 +9410,7 @@ async def approve_block_video(partner_id: str, block_type: str):
     return {"success": True, "all_approved": all_approved}
 
 @api_router.post("/andrea/assembly/{partner_id}")
-async def assemble_final_video(partner_id: str, request: VideoAssemblyRequest):
+async def assemble_final_video(partner_id: str, request: VideoAssemblyRequest, _auth=Depends(require_admin_role)):
     """Assemble all approved blocks into final video with intro/outro"""
     blocks = await db.video_blocks.find(
         {"partner_id": partner_id, "status": "approved"},
@@ -9431,7 +9455,7 @@ async def assemble_final_video(partner_id: str, request: VideoAssemblyRequest):
 # =============================================================================
 
 @api_router.get("/masterclass/script/{partner_id}")
-async def get_masterclass_script(partner_id: str):
+async def get_masterclass_script(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get the masterclass script for a partner"""
     script = await db.masterclass_scripts.find_one(
         {"partner_id": partner_id},
@@ -9454,7 +9478,7 @@ async def get_masterclass_script(partner_id: str):
     return script
 
 @api_router.post("/masterclass/script/{partner_id}")
-async def save_masterclass_script(partner_id: str, update: MasterclassScriptUpdate):
+async def save_masterclass_script(partner_id: str, update: MasterclassScriptUpdate, _auth=Depends(require_partner_or_admin)):
     """Save or update masterclass script"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -9481,7 +9505,7 @@ async def save_masterclass_script(partner_id: str, update: MasterclassScriptUpda
     return {"success": True, "partner_id": partner_id}
 
 @api_router.post("/masterclass/script/{partner_id}/submit")
-async def submit_script_for_review(partner_id: str):
+async def submit_script_for_review(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Submit script for STEFANIA review"""
     script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
     if not script:
@@ -9517,7 +9541,7 @@ async def submit_script_for_review(partner_id: str):
 # =============================================================================
 
 @api_router.get("/brandkit/{partner_id}")
-async def get_brand_kit(partner_id: str):
+async def get_brand_kit(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get brand kit for a partner"""
     brandkit = await db.brand_kits.find_one(
         {"partner_id": partner_id},
@@ -9538,7 +9562,7 @@ async def get_brand_kit(partner_id: str):
     return brandkit
 
 @api_router.post("/brandkit/{partner_id}")
-async def update_brand_kit(partner_id: str, update: PartnerBrandKitUpdate):
+async def update_brand_kit(partner_id: str, update: PartnerBrandKitUpdate, _auth=Depends(require_partner_or_admin)):
     """Update brand kit for a partner"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
@@ -9569,7 +9593,7 @@ async def update_brand_kit(partner_id: str, update: PartnerBrandKitUpdate):
 # =============================================================================
 
 @api_router.get("/notifications")
-async def get_notifications(limit: int = 20):
+async def get_notifications(limit: int = 20, _auth=Depends(require_admin_role)):
     """Get recent notifications"""
     notifications = await db.notifications.find(
         {},
@@ -9578,7 +9602,7 @@ async def get_notifications(limit: int = 20):
     return notifications
 
 @api_router.post("/notifications/{notification_id}/read")
-async def mark_notification_read(notification_id: str):
+async def mark_notification_read(notification_id: str, _auth=Depends(require_admin_role)):
     """Mark a notification as read"""
     await db.notifications.update_one(
         {"id": notification_id},
@@ -10234,7 +10258,7 @@ async def admin_setup_default_passwords(
 
 
 @api_router.post("/notifications/mark-all-read")
-async def mark_all_notifications_read():
+async def mark_all_notifications_read(_auth=Depends(require_admin_role)):
     """Mark all notifications as read"""
     await db.notifications.update_many({}, {"$set": {"read": True}})
     return {"success": True}
@@ -10247,7 +10271,8 @@ async def mark_all_notifications_read():
 async def upload_file(
     file: UploadFile = File(...),
     partner_id: str = Form(...),
-    category: str = Form(default="document")
+    category: str = Form(default="document"),
+    _auth=Depends(require_admin_role),
 ):
     """Upload a file (video or document) for a partner.
 
@@ -10341,7 +10366,8 @@ async def upload_file(
 async def list_files(
     category: str = "all",
     status: str = "all",
-    partner_id: Optional[str] = None
+    partner_id: Optional[str] = None,
+    _auth=Depends(require_admin_role),
 ):
     """List files in storage"""
     return file_storage.list_files(category, status, partner_id)
@@ -10390,7 +10416,7 @@ async def get_partner_files(
     }
 
 @api_router.delete("/files/{file_id}")
-async def delete_partner_file(file_id: str):
+async def delete_partner_file(file_id: str, _auth=Depends(require_admin_role)):
     """Elimina un file caricato dalla collezione `files` (tasto Elimina in 'I miei file').
     Usato per rimuovere un caricamento sbagliato."""
     result = await db.files.delete_one({"file_id": file_id})
@@ -10399,7 +10425,7 @@ async def delete_partner_file(file_id: str):
     return {"success": True, "deleted": file_id}
 
 @api_router.patch("/files/{file_id}/rename")
-async def rename_partner_file(file_id: str, name: str):
+async def rename_partner_file(file_id: str, name: str, _auth=Depends(require_admin_role)):
     """Rinomina il nome visualizzato di un file (tasto Rinomina in 'I miei file')."""
     new_name = (name or "").strip()
     if not new_name:
@@ -10457,7 +10483,7 @@ async def repair_pdf_extension(file_id: str, _admin=Depends(require_admin_role))
 
 
 @api_router.get("/files/{path:path}")
-async def serve_file(path: str):
+async def serve_file(path: str, _auth=Depends(require_admin_role)):
     """Serve a file from storage"""
     file_path = file_storage.get_file_path(path)
     if not file_path:
@@ -10465,7 +10491,7 @@ async def serve_file(path: str):
     return FileResponse(file_path)
 
 @api_router.get("/storage/stats")
-async def get_storage_stats():
+async def get_storage_stats(_auth=Depends(require_admin_role)):
     """Get storage usage statistics"""
     return file_storage.get_storage_stats()
 
@@ -10501,7 +10527,7 @@ async def reject_document(
 # =============================================================================
 
 @api_router.post("/videos/process")
-async def start_video_processing(request: VideoProcessRequest, background_tasks: BackgroundTasks):
+async def start_video_processing(request: VideoProcessRequest, background_tasks: BackgroundTasks, _auth=Depends(require_admin_role)):
     """Start video processing job"""
     # Create job record
     job = VideoJob(
@@ -10594,7 +10620,7 @@ async def process_video_background(
         )
 
 @api_router.get("/videos/jobs")
-async def list_video_jobs(status: Optional[str] = None, partner_id: Optional[str] = None):
+async def list_video_jobs(status: Optional[str] = None, partner_id: Optional[str] = None, _auth=Depends(require_admin_role)):
     """List video processing jobs"""
     query = {}
     if status:
@@ -10606,7 +10632,7 @@ async def list_video_jobs(status: Optional[str] = None, partner_id: Optional[str
     return jobs
 
 @api_router.get("/videos/jobs/{job_id}")
-async def get_video_job(job_id: str):
+async def get_video_job(job_id: str, _auth=Depends(require_admin_role)):
     """Get video job details"""
     job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
@@ -10614,7 +10640,7 @@ async def get_video_job(job_id: str):
     return job
 
 @api_router.post("/videos/jobs/{job_id}/approve")
-async def approve_video(job_id: str):
+async def approve_video(job_id: str, _auth=Depends(require_admin_role)):
     """Approve a processed video"""
     job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
@@ -10657,7 +10683,7 @@ async def approve_video(job_id: str):
     return result
 
 @api_router.delete("/videos/jobs/{job_id}")
-async def delete_video_job(job_id: str):
+async def delete_video_job(job_id: str, _auth=Depends(require_admin_role)):
     """Delete a video job and associated files"""
     job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
@@ -10680,7 +10706,7 @@ async def delete_video_job(job_id: str):
 # =============================================================================
 
 @api_router.get("/compliance/pending")
-async def get_pending_documents():
+async def get_pending_documents(_auth=Depends(require_admin_role)):
     """Get documents pending verification for compliance dashboard"""
     docs = file_storage.list_files(category="document", status="pending")
     return {
@@ -10689,7 +10715,7 @@ async def get_pending_documents():
     }
 
 @api_router.get("/compliance/stats")
-async def get_compliance_stats():
+async def get_compliance_stats(_auth=Depends(require_admin_role)):
     """Get compliance statistics for LUCA dashboard"""
     all_docs = file_storage.list_files(category="document")
     pending = [d for d in all_docs if d["status"] == "pending"]
@@ -10707,7 +10733,7 @@ async def get_compliance_stats():
 # =============================================================================
 
 @api_router.get("/stats")
-async def get_stats():
+async def get_stats(_auth=Depends(require_admin_role)):
     partners = await db.partners.find(only_real_partners(), {"_id": 0}).to_list(100)
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
     
@@ -10758,7 +10784,7 @@ async def get_stats():
 # =============================================================================
 
 @api_router.post("/youtube/config")
-async def set_youtube_config(file: UploadFile = File(...)):
+async def set_youtube_config(file: UploadFile = File(...), _auth=Depends(require_admin_role)):
     """Upload YouTube OAuth client_secret.json"""
     try:
         content = await file.read()
@@ -10769,7 +10795,7 @@ async def set_youtube_config(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.get("/youtube/auth-url")
-async def get_youtube_auth_url():
+async def get_youtube_auth_url(_auth=Depends(require_admin_role)):
     """Get OAuth authorization URL"""
     try:
         url = youtube_uploader.get_auth_url()
@@ -10778,7 +10804,7 @@ async def get_youtube_auth_url():
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.post("/youtube/complete-auth")
-async def complete_youtube_auth(auth_code: str):
+async def complete_youtube_auth(auth_code: str, _auth=Depends(require_admin_role)):
     """Complete OAuth flow with authorization code"""
     success = youtube_uploader.complete_auth(auth_code)
     if success:
@@ -10786,7 +10812,7 @@ async def complete_youtube_auth(auth_code: str):
     raise HTTPException(status_code=400, detail="Authentication failed")
 
 @api_router.get("/youtube/status")
-async def get_youtube_status():
+async def get_youtube_status(_auth=Depends(require_admin_role)):
     """Check YouTube authentication status"""
     return {
         "authenticated": youtube_uploader.is_authenticated(),
@@ -10794,7 +10820,7 @@ async def get_youtube_status():
     }
 
 @api_router.post("/youtube/upload/{job_id}")
-async def upload_to_youtube(job_id: str, request: YouTubeUploadRequest, background_tasks: BackgroundTasks):
+async def upload_to_youtube(job_id: str, request: YouTubeUploadRequest, background_tasks: BackgroundTasks, _auth=Depends(require_admin_role)):
     """Upload approved video to YouTube"""
     if not youtube_uploader.is_authenticated():
         raise HTTPException(status_code=401, detail="YouTube not authenticated")
@@ -10875,7 +10901,7 @@ async def youtube_upload_background(
         logging.exception(f"YouTube upload failed: {e}")
 
 @api_router.delete("/youtube/revoke")
-async def revoke_youtube_auth():
+async def revoke_youtube_auth(_auth=Depends(require_admin_role)):
     """Revoke YouTube authentication"""
     youtube_uploader.revoke_credentials()
     return {"success": True, "message": "YouTube credentials revoked"}
@@ -10885,7 +10911,7 @@ async def revoke_youtube_auth():
 # =============================================================================
 
 @api_router.get("/youtube/partner/{partner_id}/playlist")
-async def get_partner_playlist(partner_id: str):
+async def get_partner_playlist(partner_id: str, _auth=Depends(require_admin_role)):
     """Get or create playlist for a specific partner"""
     if not youtube_uploader.is_authenticated():
         raise HTTPException(status_code=401, detail="YouTube not authenticated")
@@ -10912,7 +10938,7 @@ async def get_partner_playlist(partner_id: str):
     return result
 
 @api_router.get("/youtube/partner/{partner_id}/videos")
-async def get_partner_videos(partner_id: str):
+async def get_partner_videos(partner_id: str, _auth=Depends(require_admin_role)):
     """Get all videos in a partner's playlist"""
     if not youtube_uploader.is_authenticated():
         raise HTTPException(status_code=401, detail="YouTube not authenticated")
@@ -10967,7 +10993,8 @@ async def upload_partner_video_to_youtube(
     file: UploadFile = File(...),
     video_title: str = Form(...),
     lesson_title: str = Form(default=""),
-    module_title: str = Form(default="")
+    module_title: str = Form(default=""),
+    _auth=Depends(require_admin_role),
 ):
     """Upload a video directly to partner's YouTube playlist"""
     if not youtube_uploader.is_authenticated():
@@ -11062,7 +11089,7 @@ async def upload_partner_video_background(
             os.remove(video_path)
 
 @api_router.delete("/youtube/partner/{partner_id}/video/{playlist_item_id}")
-async def remove_partner_video(partner_id: str, playlist_item_id: str):
+async def remove_partner_video(partner_id: str, playlist_item_id: str, _auth=Depends(require_admin_role)):
     """Remove a video from partner's playlist"""
     if not youtube_uploader.is_authenticated():
         raise HTTPException(status_code=401, detail="YouTube not authenticated")
@@ -11083,7 +11110,7 @@ async def remove_partner_video(partner_id: str, playlist_item_id: str):
 # =============================================================================
 
 @api_router.get("/gaia/templates")
-async def list_systeme_templates(category: Optional[str] = None):
+async def list_systeme_templates(category: Optional[str] = None, _auth=Depends(require_admin_role)):
     """List Systeme.io funnel templates"""
     query = {}
     if category:
@@ -11097,7 +11124,8 @@ async def create_systeme_template(
     category: str = Form(...),
     share_link: str = Form(...),
     description: str = Form(default=""),
-    brand_variables: str = Form(default="Nome_Partner,Colore_Brand")
+    brand_variables: str = Form(default="Nome_Partner,Colore_Brand"),
+    _auth=Depends(require_admin_role),
 ):
     """Add a new Systeme.io template"""
     template = SystemeTemplate(
@@ -11115,7 +11143,7 @@ async def create_systeme_template(
     return template
 
 @api_router.delete("/gaia/templates/{template_id}")
-async def delete_systeme_template(template_id: str):
+async def delete_systeme_template(template_id: str, _auth=Depends(require_admin_role)):
     """Delete a Systeme.io template"""
     result = await db.systeme_templates.delete_one({"id": template_id})
     if result.deleted_count == 0:
@@ -11123,7 +11151,7 @@ async def delete_systeme_template(template_id: str):
     return {"success": True}
 
 @api_router.get("/gaia/templates/categories")
-async def get_template_categories():
+async def get_template_categories(_auth=Depends(require_admin_role)):
     """Get available template categories"""
     return {
         "categories": [
@@ -11140,7 +11168,7 @@ async def get_template_categories():
 # =============================================================================
 
 @api_router.get("/gaia/brandkit/{partner_id}")
-async def get_brand_kit(partner_id: str):
+async def get_brand_kit(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get partner's brand kit"""
     kit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
     if not kit:
@@ -11153,7 +11181,7 @@ async def get_brand_kit(partner_id: str):
     return kit
 
 @api_router.post("/gaia/brandkit")
-async def save_brand_kit(kit: BrandKit):
+async def save_brand_kit(kit: BrandKit, _auth=Depends(require_admin_role)):
     """Save or update partner's brand kit"""
     await db.brand_kits.update_one(
         {"partner_id": kit.partner_id},
@@ -11163,7 +11191,7 @@ async def save_brand_kit(kit: BrandKit):
     return {"success": True, "brand_kit": kit}
 
 @api_router.get("/gaia/brandkit/{partner_id}/preview")
-async def preview_template_with_brand(partner_id: str, template_id: str):
+async def preview_template_with_brand(partner_id: str, template_id: str, _auth=Depends(require_partner_or_admin)):
     """Preview template variables replaced with brand kit"""
     kit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
     template = await db.systeme_templates.find_one({"id": template_id}, {"_id": 0})
@@ -11192,7 +11220,7 @@ async def preview_template_with_brand(partner_id: str, template_id: str):
 # =============================================================================
 
 @api_router.post("/tts/generate")
-async def generate_tts(request: TTSRequest):
+async def generate_tts(request: TTSRequest, _auth=Depends(require_admin_role)):
     """Generate TTS audio for intro/outro"""
     if request.type == "intro":
         result = await tts_generator.generate_intro(
@@ -11210,7 +11238,7 @@ async def generate_tts(request: TTSRequest):
     return result
 
 @api_router.get("/tts/voices")
-async def list_tts_voices():
+async def list_tts_voices(_auth=Depends(require_admin_role)):
     """List available TTS voices"""
     return {"voices": tts_generator.list_available_voices()}
 
@@ -11523,7 +11551,7 @@ async def get_course_outline(partner_id: str, _auth=Depends(require_partner_or_a
     return {"outline": doc.get("outline"), "status": doc.get("status", "draft")}
 
 @api_router.get("/tts/files")
-async def list_tts_files():
+async def list_tts_files(_auth=Depends(require_admin_role)):
     """List generated intro/outro files"""
     intros = list(Path("/app/storage/intros").glob("*.mp3"))
     outros = list(Path("/app/storage/outros").glob("*.mp3"))
@@ -11614,7 +11642,7 @@ async def systeme_api_request(api_key: str, endpoint: str, method: str = "GET", 
         return response.json()
 
 @api_router.post("/systeme/credentials")
-async def store_systeme_credentials(request: SystemeIOCredentialsRequest):
+async def store_systeme_credentials(request: SystemeIOCredentialsRequest, _auth=Depends(require_admin_role)):
     """Store Systeme.io API credentials for a partner"""
     try:
         # Validate API key by making a test request
@@ -11652,7 +11680,7 @@ async def store_systeme_credentials(request: SystemeIOCredentialsRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/systeme/status/{partner_id}")
-async def get_systeme_connection_status(partner_id: str):
+async def get_systeme_connection_status(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get Systeme.io connection status for a partner"""
     # Prima cerca credenziali specifiche del partner, poi globali
     credentials = await db.systeme_credentials.find_one(
@@ -11683,7 +11711,7 @@ async def get_systeme_connection_status(partner_id: str):
     }
 
 @api_router.post("/systeme/sync-batch")
-async def sync_systeme_contacts_batch(partner_id: str = "global", start_page: int = 1, pages_per_batch: int = 10):
+async def sync_systeme_contacts_batch(partner_id: str = "global", start_page: int = 1, pages_per_batch: int = 10, _auth=Depends(require_admin_role)):
     """
     Sync contacts from Systeme.io in batches to avoid timeouts.
     Call multiple times with increasing start_page to sync all contacts.
@@ -11775,7 +11803,7 @@ async def sync_systeme_contacts_batch(partner_id: str = "global", start_page: in
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/systeme/sync-all")
-async def sync_all_systeme_contacts(background_tasks: BackgroundTasks, partner_id: str = "global"):
+async def sync_all_systeme_contacts(background_tasks: BackgroundTasks, partner_id: str = "global", _auth=Depends(require_admin_or_system)):
     """
     Start background sync of all Systeme.io contacts.
     Returns immediately, sync happens in background.
@@ -11859,7 +11887,7 @@ async def sync_all_systeme_contacts(background_tasks: BackgroundTasks, partner_i
     }
 
 @api_router.get("/systeme/sync-status/{partner_id}")
-async def get_sync_status(partner_id: str):
+async def get_sync_status(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get current sync status"""
     credentials = await db.systeme_credentials.find_one({"partner_id": partner_id}, {"_id": 0})
     if not credentials:
@@ -11877,7 +11905,7 @@ async def get_sync_status(partner_id: str):
     }
 
 @api_router.post("/systeme/sync")
-async def sync_systeme_contacts(request: SystemeIOSyncRequest):
+async def sync_systeme_contacts(request: SystemeIOSyncRequest, _auth=Depends(require_admin_role)):
     """Sync contacts from Systeme.io API"""
     try:
         # Get credentials
@@ -12098,7 +12126,7 @@ async def calculate_systeme_stats(partner_id: str) -> dict:
     return stats
 
 @api_router.get("/systeme/stats/{partner_id}")
-async def get_systeme_stats(partner_id: str, refresh: bool = False):
+async def get_systeme_stats(partner_id: str, refresh: bool = False, _auth=Depends(require_partner_or_admin)):
     """Get aggregated Systeme.io stats for a partner"""
     # Check if connected - prima partner specifico, poi globale
     credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
@@ -12151,7 +12179,7 @@ async def get_systeme_stats(partner_id: str, refresh: bool = False):
     return stats
 
 @api_router.get("/systeme/contacts/{partner_id}")
-async def get_systeme_contacts(partner_id: str, limit: int = 50, skip: int = 0, tag: Optional[str] = None):
+async def get_systeme_contacts(partner_id: str, limit: int = 50, skip: int = 0, tag: Optional[str] = None, _auth=Depends(require_partner_or_admin)):
     """Get synced Systeme.io contacts for a partner"""
     query = {"partner_id": partner_id}
     if tag:
@@ -12172,7 +12200,7 @@ async def get_systeme_contacts(partner_id: str, limit: int = 50, skip: int = 0, 
     }
 
 @api_router.delete("/systeme/disconnect/{partner_id}")
-async def disconnect_systeme(partner_id: str):
+async def disconnect_systeme(partner_id: str, _auth=Depends(require_admin_role)):
     """Disconnect Systeme.io integration for a partner"""
     await db.systeme_credentials.delete_one({"partner_id": partner_id})
     await db.systeme_contacts.delete_many({"partner_id": partner_id})
@@ -12187,7 +12215,8 @@ async def disconnect_systeme(partner_id: str):
 @api_router.post("/systeme/import-csv")
 async def import_systeme_contacts_csv(
     file: UploadFile = File(...),
-    partner_id: str = Form(default="global")
+    partner_id: str = Form(default="global"),
+    _auth=Depends(require_admin_role),
 ):
     """
     Import contacts from a Systeme.io CSV export.
@@ -12302,7 +12331,7 @@ async def import_systeme_contacts_csv(
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/systeme/dashboard/{partner_id}")
-async def get_systeme_dashboard(partner_id: str):
+async def get_systeme_dashboard(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get complete Systeme.io dashboard data for a partner"""
     # Get connection status
     status = await get_systeme_connection_status(partner_id)
@@ -12335,7 +12364,7 @@ class AgentSystemeRequest(BaseModel):
     params: Dict[str, Any] = Field(default_factory=dict)
 
 @api_router.post("/systeme/agent/action")
-async def execute_agent_systeme_action(request: AgentSystemeRequest):
+async def execute_agent_systeme_action(request: AgentSystemeRequest, _auth=Depends(require_admin_role)):
     """Esegue un'azione Systeme.io per conto di un agente AI"""
     result = await agent_systeme_action(
         agent_name=request.agent_name,
@@ -12345,7 +12374,7 @@ async def execute_agent_systeme_action(request: AgentSystemeRequest):
     return result
 
 @api_router.get("/systeme/agent/permissions")
-async def get_agent_permissions():
+async def get_agent_permissions(_auth=Depends(require_admin_role)):
     """Restituisce i permessi Systeme.io per ogni agente"""
     return {
         "permissions": AGENT_PERMISSIONS,
@@ -12353,7 +12382,7 @@ async def get_agent_permissions():
     }
 
 @api_router.get("/systeme/agent/{agent_name}/actions")
-async def get_agent_available_actions(agent_name: str):
+async def get_agent_available_actions(agent_name: str, _auth=Depends(require_admin_role)):
     """Restituisce le azioni disponibili per un agente specifico"""
     actions = AGENT_PERMISSIONS.get(agent_name.upper(), [])
     return {
@@ -12365,7 +12394,7 @@ async def get_agent_available_actions(agent_name: str):
 # Endpoint diretti per gli agenti più usati
 
 @api_router.get("/systeme/gaia/funnels")
-async def gaia_get_funnels():
+async def gaia_get_funnels(_auth=Depends(require_admin_role)):
     """GAIA: Recupera tutti i funnel da Systeme.io"""
     client = get_systeme_client()
     return await client.get_funnels()
@@ -12389,13 +12418,13 @@ async def stefania_create_tag(name: str, _auth=Depends(require_admin_role)):
     return await client.create_tag(name)
 
 @api_router.get("/systeme/andrea/courses")
-async def andrea_get_courses():
+async def andrea_get_courses(_auth=Depends(require_admin_role)):
     """ANDREA: Recupera corsi"""
     client = get_systeme_client()
     return await client.get_courses()
 
 @api_router.get("/systeme/andrea/course/{course_id}/students")
-async def andrea_get_course_students(course_id: str):
+async def andrea_get_course_students(course_id: str, _auth=Depends(require_admin_role)):
     """ANDREA: Recupera studenti di un corso"""
     client = get_systeme_client()
     return await client.get_course_students(course_id)
@@ -12473,7 +12502,7 @@ async def stefania_subscribe_to_campaign(campaign_id: str, contact_id: str, _aut
 # --- GAIA: Creazione contatti e funnel ---
 
 @api_router.post("/systeme/gaia/create-partner")
-async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest):
+async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest, _auth=Depends(require_admin_role)):
     """GAIA: Crea nuovo partner e lo assegna a una fase"""
     client = get_systeme_client()
     return await client.create_contact_with_phase(
@@ -12486,13 +12515,13 @@ async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest)
 # --- ANDREA: Gestione corsi ---
 
 @api_router.post("/systeme/andrea/enroll")
-async def andrea_enroll_student(request: EnrollStudentRequest):
+async def andrea_enroll_student(request: EnrollStudentRequest, _auth=Depends(require_admin_role)):
     """ANDREA: Iscrive studente a un corso"""
     client = get_systeme_client()
     return await client.enroll_student(request.course_id, request.contact_id)
 
 @api_router.post("/systeme/andrea/notify-access")
-async def andrea_notify_course_access(contact_id: str):
+async def andrea_notify_course_access(contact_id: str, _auth=Depends(require_admin_role)):
     """ANDREA: Notifica accesso corso a uno studente"""
     client = get_systeme_client()
     return await client.send_notification_email(contact_id, "course_access")
@@ -12510,14 +12539,15 @@ from cloudinary_service import (
 )
 
 @api_router.get("/cloudinary/status")
-async def cloudinary_status():
+async def cloudinary_status(_auth=Depends(require_admin_role)):
     """Check Cloudinary configuration status"""
     return get_cloudinary_status()
 
 @api_router.get("/cloudinary/signature")
 async def get_cloudinary_signature(
     resource_type: str = "image",
-    folder: str = "avatar-uploads"
+    folder: str = "avatar-uploads",
+    _auth=Depends(require_admin_role),
 ):
     """
     Generate signed upload parameters for frontend direct upload to Cloudinary
@@ -12541,7 +12571,8 @@ async def get_cloudinary_signature(
 async def upload_to_cloudinary(
     file: UploadFile = File(...),
     folder: str = Form("avatar-uploads"),
-    resource_type: str = Form("auto")
+    resource_type: str = Form("auto"),
+    _auth=Depends(require_admin_role),
 ):
     """
     Backend direct upload to Cloudinary
@@ -12587,7 +12618,7 @@ async def upload_to_cloudinary(
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/cloudinary/{public_id:path}")
-async def delete_from_cloudinary(public_id: str, resource_type: str = "image"):
+async def delete_from_cloudinary(public_id: str, resource_type: str = "image", _auth=Depends(require_admin_role)):
     """Delete a file from Cloudinary"""
     try:
         result = await cloudinary_delete_file(public_id, resource_type)
@@ -12624,7 +12655,7 @@ class AvatarOrderRequest(BaseModel):
     voice_id: str
 
 @api_router.get("/heygen/status")
-async def heygen_status():
+async def heygen_status(_auth=Depends(require_admin_role)):
     """Check HeyGen API connection status"""
     if not HEYGEN_API_KEY:
         return {"connected": False, "error": "API key not configured"}
@@ -12640,7 +12671,7 @@ async def heygen_status():
         return {"connected": False, "error": str(e)}
 
 @api_router.get("/heygen/avatars")
-async def get_heygen_avatars():
+async def get_heygen_avatars(_auth=Depends(require_admin_role)):
     """Get available HeyGen avatars"""
     try:
         result = await heygen_service.get_avatars()
@@ -12649,7 +12680,7 @@ async def get_heygen_avatars():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/heygen/voices")
-async def get_heygen_voices():
+async def get_heygen_voices(_auth=Depends(require_admin_role)):
     """Get available HeyGen voices"""
     try:
         result = await heygen_service.get_voices()
@@ -12658,7 +12689,7 @@ async def get_heygen_voices():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/heygen/sample/generate")
-async def generate_avatar_sample(request: AvatarSampleRequest, background_tasks: BackgroundTasks):
+async def generate_avatar_sample(request: AvatarSampleRequest, background_tasks: BackgroundTasks, _auth=Depends(require_admin_role)):
     """
     Generate a free 30-second sample video with Avatar + Voice Clone
     
@@ -12699,7 +12730,7 @@ async def generate_avatar_sample(request: AvatarSampleRequest, background_tasks:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/heygen/sample/{video_id}/status")
-async def get_sample_status(video_id: str):
+async def get_sample_status(video_id: str, _auth=Depends(require_admin_role)):
     """Check the status of a sample video generation"""
     try:
         result = await heygen_service.get_video_status(video_id)
@@ -12729,7 +12760,7 @@ async def get_sample_status(video_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/heygen/lesson/generate")
-async def generate_lesson_video(request: AvatarLessonRequest):
+async def generate_lesson_video(request: AvatarLessonRequest, _auth=Depends(require_admin_role)):
     """
     Generate a full lesson video (paid service - €120/video)
     """
@@ -12773,7 +12804,7 @@ async def generate_lesson_video(request: AvatarLessonRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/heygen/order")
-async def create_avatar_order(request: AvatarOrderRequest):
+async def create_avatar_order(request: AvatarOrderRequest, _auth=Depends(require_admin_role)):
     """
     Create an order for multiple Avatar videos
     """
@@ -12816,7 +12847,7 @@ async def create_avatar_order(request: AvatarOrderRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/heygen/orders/{partner_id}")
-async def get_partner_avatar_orders(partner_id: str):
+async def get_partner_avatar_orders(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all avatar orders for a partner"""
     orders = await db.avatar_orders.find(
         {"partner_id": partner_id},
@@ -12826,7 +12857,7 @@ async def get_partner_avatar_orders(partner_id: str):
     return {"orders": orders}
 
 @api_router.get("/heygen/lessons/{partner_id}")
-async def get_partner_avatar_lessons(partner_id: str):
+async def get_partner_avatar_lessons(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all avatar lesson videos for a partner"""
     lessons = await db.avatar_lessons.find(
         {"partner_id": partner_id},
@@ -12882,7 +12913,7 @@ class BurnSubtitlesRequest(BaseModel):
     output_name: Optional[str] = None
 
 @api_router.post("/editor/upload")
-async def editor_upload_video(file: UploadFile = File(...)):
+async def editor_upload_video(file: UploadFile = File(...), _auth=Depends(require_admin_role)):
     """Upload video for editing"""
     try:
         from pathlib import Path
@@ -12911,13 +12942,13 @@ async def editor_upload_video(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/editor/video-info")
-async def get_video_info(path: str):
+async def get_video_info(path: str, _auth=Depends(require_admin_role)):
     """Get video metadata"""
     info = video_editor.get_video_info(path)
     return info
 
 @api_router.post("/editor/trim")
-async def editor_trim_video(request: VideoTrimRequest):
+async def editor_trim_video(request: VideoTrimRequest, _auth=Depends(require_admin_role)):
     """Trim video to specific segment"""
     from pathlib import Path
     
@@ -12938,7 +12969,7 @@ async def editor_trim_video(request: VideoTrimRequest):
     return result
 
 @api_router.post("/editor/cut")
-async def editor_cut_segment(request: VideoCutRequest):
+async def editor_cut_segment(request: VideoCutRequest, _auth=Depends(require_admin_role)):
     """Remove a segment from video"""
     from pathlib import Path
     
@@ -12959,7 +12990,7 @@ async def editor_cut_segment(request: VideoCutRequest):
     return result
 
 @api_router.post("/editor/merge")
-async def editor_merge_videos(request: VideoMergeRequest):
+async def editor_merge_videos(request: VideoMergeRequest, _auth=Depends(require_admin_role)):
     """Merge multiple videos"""
     from pathlib import Path
     
@@ -12979,7 +13010,7 @@ async def editor_merge_videos(request: VideoMergeRequest):
     return result
 
 @api_router.post("/editor/intro-outro")
-async def editor_add_intro_outro(request: IntroOutroRequest):
+async def editor_add_intro_outro(request: IntroOutroRequest, _auth=Depends(require_admin_role)):
     """Add intro and/or outro to video"""
     from pathlib import Path
     
@@ -13001,7 +13032,7 @@ async def editor_add_intro_outro(request: IntroOutroRequest):
     return result
 
 @api_router.post("/editor/subtitles/generate")
-async def editor_generate_subtitles(video_path: str, language: str = "it"):
+async def editor_generate_subtitles(video_path: str, language: str = "it", _auth=Depends(require_admin_role)):
     """Generate subtitles using Whisper"""
     result = await video_editor.generate_subtitles(video_path, language)
     
@@ -13011,7 +13042,7 @@ async def editor_generate_subtitles(video_path: str, language: str = "it"):
     return result
 
 @api_router.post("/editor/subtitles/burn")
-async def editor_burn_subtitles(request: BurnSubtitlesRequest):
+async def editor_burn_subtitles(request: BurnSubtitlesRequest, _auth=Depends(require_admin_role)):
     """Burn subtitles into video"""
     from pathlib import Path
     
@@ -13033,7 +13064,7 @@ async def editor_burn_subtitles(request: BurnSubtitlesRequest):
     return result
 
 @api_router.post("/editor/text-overlay")
-async def editor_add_text_overlay(request: TextOverlayRequest):
+async def editor_add_text_overlay(request: TextOverlayRequest, _auth=Depends(require_admin_role)):
     """Add text overlay to video"""
     from pathlib import Path
     
@@ -13059,7 +13090,7 @@ async def editor_add_text_overlay(request: TextOverlayRequest):
     return result
 
 @api_router.get("/editor/files/{filename}")
-async def editor_get_file(filename: str):
+async def editor_get_file(filename: str, _auth=Depends(require_admin_role)):
     """Serve exported video file"""
     from pathlib import Path
     
@@ -13074,7 +13105,7 @@ async def editor_get_file(filename: str):
     return FileResponse(str(file_path), media_type="video/mp4", filename=filename)
 
 @api_router.get("/editor/subtitles/{filename}")
-async def editor_get_subtitles(filename: str):
+async def editor_get_subtitles(filename: str, _auth=Depends(require_admin_role)):
     """Serve SRT subtitle file"""
     from pathlib import Path
     
@@ -13183,12 +13214,12 @@ class AllLegalPagesRequest(BaseModel):
     business_data: Dict[str, Any]
 
 @api_router.get("/legal/templates")
-async def get_legal_templates():
+async def get_legal_templates(_auth=Depends(require_admin_role)):
     """Get list of available legal page templates"""
     return legal_generator.list_available_templates()
 
 @api_router.get("/legal/template/{page_type}")
-async def get_legal_template_info(page_type: str):
+async def get_legal_template_info(page_type: str, _auth=Depends(require_admin_role)):
     """Get detailed info about a specific template"""
     info = legal_generator.get_template_info(page_type)
     if "error" in info:
@@ -13196,7 +13227,7 @@ async def get_legal_template_info(page_type: str):
     return info
 
 @api_router.post("/legal/generate")
-async def generate_legal_page(request: LegalPageRequest):
+async def generate_legal_page(request: LegalPageRequest, _auth=Depends(require_admin_role)):
     """Generate a single legal page"""
     result = await legal_generator.generate_legal_page(
         request.page_type,
@@ -13227,7 +13258,7 @@ async def generate_legal_page(request: LegalPageRequest):
     return result
 
 @api_router.post("/legal/generate-all")
-async def generate_all_legal_pages(request: AllLegalPagesRequest):
+async def generate_all_legal_pages(request: AllLegalPagesRequest, _auth=Depends(require_admin_role)):
     """Generate all legal pages at once"""
     result = await legal_generator.generate_all_legal_pages(request.business_data)
     
@@ -13256,7 +13287,7 @@ async def generate_all_legal_pages(request: AllLegalPagesRequest):
     return result
 
 @api_router.get("/legal/partner/{partner_id}")
-async def get_partner_legal_pages(partner_id: str):
+async def get_partner_legal_pages(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all generated legal pages for a partner"""
     pages = await db.legal_pages.find(
         {"partner_id": partner_id},
@@ -13270,7 +13301,7 @@ async def get_partner_legal_pages(partner_id: str):
     }
 
 @api_router.get("/legal/partner/{partner_id}/{page_type}")
-async def get_partner_legal_page(partner_id: str, page_type: str):
+async def get_partner_legal_page(partner_id: str, page_type: str, _auth=Depends(require_partner_or_admin)):
     """Get specific legal page for a partner"""
     page = await db.legal_pages.find_one(
         {"partner_id": partner_id, "page_type": page_type},
@@ -13283,7 +13314,7 @@ async def get_partner_legal_page(partner_id: str, page_type: str):
     return page
 
 @api_router.delete("/legal/partner/{partner_id}/{page_type}")
-async def delete_partner_legal_page(partner_id: str, page_type: str):
+async def delete_partner_legal_page(partner_id: str, page_type: str, _auth=Depends(require_admin_role)):
     """Delete a legal page"""
     result = await db.legal_pages.delete_one(
         {"partner_id": partner_id, "page_type": page_type}
@@ -14168,7 +14199,7 @@ async def receive_systeme_webhook(
     }
 
 @api_router.get("/webhooks/logs")
-async def get_webhook_logs(limit: int = 50, event_type: Optional[str] = None):
+async def get_webhook_logs(limit: int = 50, event_type: Optional[str] = None, _auth=Depends(require_admin_role)):
     """Get webhook logs for admin dashboard"""
     query = {}
     if event_type:
@@ -14193,7 +14224,7 @@ async def get_webhook_logs(limit: int = 50, event_type: Optional[str] = None):
     }
 
 @api_router.get("/webhooks/stats")
-async def get_webhook_stats():
+async def get_webhook_stats(_auth=Depends(require_admin_role)):
     """Get webhook statistics"""
     # Count by event type
     pipeline = [
@@ -14226,7 +14257,7 @@ async def get_webhook_stats():
 # =============================================================================
 
 @api_router.get("/sales/kpi")
-async def get_sales_kpi():
+async def get_sales_kpi(_auth=Depends(require_admin_role)):
     """
     Get sales KPIs for Tripwire and all products.
     Tracks conversions from Systeme.io webhooks.
@@ -14345,7 +14376,7 @@ async def record_manual_sale(
     }
 
 @api_router.get("/sales/recent")
-async def get_recent_sales(limit: int = 20):
+async def get_recent_sales(limit: int = 20, _auth=Depends(require_admin_role)):
     """Get recent sales for the dashboard"""
     sales = await db.payments.find(
         {},
@@ -14355,7 +14386,7 @@ async def get_recent_sales(limit: int = 20):
     return {"sales": sales, "count": len(sales)}
 
 @api_router.get("/leads")
-async def get_leads(status: Optional[str] = None, min_score: int = 0):
+async def get_leads(status: Optional[str] = None, min_score: int = 0, _auth=Depends(require_admin_role)):
     """Get all leads with optional filtering"""
     query = {"score": {"$gte": min_score}}
     if status:
@@ -14365,7 +14396,7 @@ async def get_leads(status: Optional[str] = None, min_score: int = 0):
     return {"leads": leads, "count": len(leads)}
 
 @api_router.patch("/leads/{email}/score")
-async def update_lead_score(email: str, score_delta: int):
+async def update_lead_score(email: str, score_delta: int, _auth=Depends(require_admin_role)):
     """Manually adjust lead score"""
     lead = await db.leads.find_one({"email": email})
     if not lead:
@@ -14380,7 +14411,7 @@ async def update_lead_score(email: str, score_delta: int):
     return {"email": email, "old_score": lead.get("score", 0), "new_score": new_score}
 
 @api_router.get("/partners/{partner_id}/achievements")
-async def get_partner_achievements(partner_id: str):
+async def get_partner_achievements(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get achievements for a partner"""
     achievements = await db.achievements.find(
         {"partner_id": partner_id},
@@ -14390,7 +14421,7 @@ async def get_partner_achievements(partner_id: str):
     return {"achievements": achievements}
 
 @api_router.get("/partners/{partner_id}/students")
-async def get_partner_students(partner_id: str):
+async def get_partner_students(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get students enrolled in partner's courses"""
     students = await db.partner_students.find(
         {"partner_id": partner_id},
@@ -14418,7 +14449,7 @@ class TelegramNotifyRequest(BaseModel):
     message: Optional[str] = None
 
 @api_router.post("/telegram/setup-admin")
-async def setup_telegram_admin(request: TelegramAdminSetup):
+async def setup_telegram_admin(request: TelegramAdminSetup, _auth=Depends(require_admin_role)):
     """Register admin chat ID for notifications"""
     # Save to database
     await db.telegram_admins.update_one(
@@ -14440,13 +14471,13 @@ async def setup_telegram_admin(request: TelegramAdminSetup):
     return {"success": True, "chat_id": request.chat_id, "telegram_result": result}
 
 @api_router.get("/telegram/admins")
-async def get_telegram_admins():
+async def get_telegram_admins(_auth=Depends(require_admin_role)):
     """Get list of registered admin chat IDs"""
     admins = await db.telegram_admins.find({}, {"_id": 0}).to_list(100)
     return {"admins": admins, "count": len(admins)}
 
 @api_router.post("/telegram/notify")
-async def send_telegram_notification(request: TelegramNotifyRequest):
+async def send_telegram_notification(request: TelegramNotifyRequest, _auth=Depends(require_admin_role)):
     """Send a notification via Telegram"""
     result = await telegram_notify(
         notification_type=request.notification_type,
@@ -14460,7 +14491,7 @@ async def send_telegram_notification(request: TelegramNotifyRequest):
     return {"success": True, "result": result}
 
 @api_router.get("/telegram/updates")
-async def get_telegram_updates():
+async def get_telegram_updates(_auth=Depends(require_admin_role)):
     """Get recent Telegram updates (for discovering chat IDs)"""
     result = await telegram_notifier.get_updates()
     
@@ -14476,7 +14507,7 @@ async def get_telegram_updates():
     return {"updates": result, "discovered_chat_ids": chat_ids}
 
 @api_router.post("/telegram/test")
-async def test_telegram_notification(request: Request):
+async def test_telegram_notification(request: Request, _auth=Depends(require_admin_role)):
     """
     Invia un messaggio Telegram di test.
     Body: {"message": "testo", "chat_id": "opzionale"}
@@ -14502,7 +14533,7 @@ async def test_telegram_notification(request: Request):
 # ═══════════════════════════════════════════════════════════════
 
 @api_router.post("/agents/systeme-stats/refresh")
-async def systeme_stats_refresh():
+async def systeme_stats_refresh(_auth=Depends(require_admin_role)):
     """Esegue un refresh manuale delle statistiche Systeme (incl. MRR)."""
     try:
         result = await refresh_dashboard_stats(db=db)
@@ -14512,12 +14543,12 @@ async def systeme_stats_refresh():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/agents/systeme-stats/status")
-async def systeme_stats_status():
+async def systeme_stats_status(_auth=Depends(require_admin_role)):
     """Ritorna lo stato corrente dell'agente statistiche Systeme."""
     return await get_stats_status()
 
 @api_router.get("/agents/systeme-stats/logs")
-async def systeme_stats_logs():
+async def systeme_stats_logs(_auth=Depends(require_admin_role)):
     """Ultimi log da MongoDB."""
     try:
         logs = await db.stats_agent_logs.find().sort("timestamp", -1).limit(20).to_list(20)
@@ -14717,7 +14748,7 @@ Se hai urgenza, contatta il supporto Evolution PRO."""
         return {"ok": False, "error": str(e)}
 
 @api_router.post("/telegram/set-webhook")
-async def set_telegram_webhook(webhook_url: str = None):
+async def set_telegram_webhook(webhook_url: str = None, _auth=Depends(require_admin_role)):
     """
     Set or update the Telegram webhook URL.
     If no URL provided, uses the current server URL.
@@ -14753,7 +14784,7 @@ async def set_telegram_webhook(webhook_url: str = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/telegram/webhook-info")
-async def get_telegram_webhook_info():
+async def get_telegram_webhook_info(_auth=Depends(require_admin_role)):
     """Get current webhook information from Telegram"""
     telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not telegram_token:
@@ -14787,7 +14818,7 @@ async def health_check():
     return {"status": "healthy", "service": "evolution-pro-os"}
 
 @api_router.get("/debug/db-check")
-async def debug_db_check():
+async def debug_db_check(_auth=Depends(require_admin_role)):
     """Diagnostic endpoint — mostra a quale DB è connesso il backend"""
     import hashlib
     mongo_raw = os.environ.get('MONGO_URL', '')
@@ -14823,7 +14854,7 @@ async def root():
     return {"message": "Evolution PRO OS API v3.0", "status": "online"}
 
 @api_router.get("/control")
-async def control_dashboard():
+async def control_dashboard(_auth=Depends(require_admin_role)):
     """Dashboard control endpoint - returns system status"""
     agents = await db.agents.find({}, {"_id": 0}).to_list(100)
     stats = await get_stats()
@@ -14868,7 +14899,7 @@ class DomainStatusUpdate(BaseModel):
     status: str  # pending, configuring, active, error
 
 @api_router.post("/domain/request")
-async def create_domain_request(request: DomainRequest):
+async def create_domain_request(request: DomainRequest, _auth=Depends(require_admin_role)):
     """Partner submits a domain configuration request"""
     # Check if domain already requested
     existing = await db.domain_requests.find_one({
@@ -14910,19 +14941,19 @@ async def create_domain_request(request: DomainRequest):
     return {"success": True, "domain_request": {k: v for k, v in domain_doc.items() if k != "_id"}}
 
 @api_router.get("/domain/partner/{partner_id}")
-async def get_partner_domain_request(partner_id: str):
+async def get_partner_domain_request(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get domain request for a partner"""
     domain = await db.domain_requests.find_one({"partner_id": partner_id}, {"_id": 0})
     return {"domain_request": domain}
 
 @api_router.get("/domain/all")
-async def get_all_domain_requests():
+async def get_all_domain_requests(_auth=Depends(require_admin_role)):
     """Admin: Get all domain requests"""
     domains = await db.domain_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
     return {"domains": domains, "count": len(domains)}
 
 @api_router.put("/domain/{domain_id}/dns-params")
-async def update_domain_dns_params(domain_id: str, data: DomainDnsParams):
+async def update_domain_dns_params(domain_id: str, data: DomainDnsParams, _auth=Depends(require_admin_role)):
     """Admin adds DNS parameters from Systeme.io"""
     domain = await db.domain_requests.find_one({"id": domain_id})
     if not domain:
@@ -14950,7 +14981,7 @@ async def update_domain_dns_params(domain_id: str, data: DomainDnsParams):
     return {"success": True, "domain_request": updated}
 
 @api_router.put("/domain/{domain_id}/status")
-async def update_domain_status(domain_id: str, data: DomainStatusUpdate):
+async def update_domain_status(domain_id: str, data: DomainStatusUpdate, _auth=Depends(require_admin_role)):
     """Admin updates domain status"""
     domain = await db.domain_requests.find_one({"id": domain_id})
     if not domain:
@@ -14978,7 +15009,7 @@ async def update_domain_status(domain_id: str, data: DomainStatusUpdate):
     return {"success": True, "domain_request": updated}
 
 @api_router.delete("/domain/{domain_id}")
-async def delete_domain_request(domain_id: str):
+async def delete_domain_request(domain_id: str, _auth=Depends(require_admin_role)):
     """Admin deletes a domain request"""
     result = await db.domain_requests.delete_one({"id": domain_id})
     if result.deleted_count == 0:
@@ -15337,12 +15368,12 @@ Se scegli la seconda, ho un'offerta speciale per te:
 }
 
 @api_router.get("/email-automation/reactivation-sequences")
-async def get_reactivation_sequences():
+async def get_reactivation_sequences(_auth=Depends(require_admin_role)):
     """Get predefined reactivation sequences"""
     return {"sequences": REACTIVATION_SEQUENCES}
 
 @api_router.post("/email-automation/create-reactivation/{sequence_type}")
-async def create_reactivation_sequence(sequence_type: str, partner_id: str):
+async def create_reactivation_sequence(sequence_type: str, partner_id: str, _auth=Depends(require_admin_role)):
     """Create a predefined reactivation sequence for a partner"""
     if sequence_type not in REACTIVATION_SEQUENCES:
         raise HTTPException(status_code=400, detail=f"Tipo sequenza non valido. Usa: {list(REACTIVATION_SEQUENCES.keys())}")
@@ -15366,12 +15397,12 @@ async def create_reactivation_sequence(sequence_type: str, partner_id: str):
     return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
 
 @api_router.get("/email-automation/templates")
-async def get_email_templates():
+async def get_email_templates(_auth=Depends(require_admin_role)):
     """Get predefined email templates"""
     return {"templates": EMAIL_TEMPLATES}
 
 @api_router.get("/email-automation/partner/{partner_id}")
-async def get_partner_email_automations(partner_id: str):
+async def get_partner_email_automations(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all email automations for a partner"""
     automations = await db.email_automations.find(
         {"partner_id": partner_id},
@@ -15389,7 +15420,7 @@ async def get_partner_email_automations(partner_id: str):
     }
 
 @api_router.post("/email-automation/create")
-async def create_email_automation(data: EmailAutomationCreate):
+async def create_email_automation(data: EmailAutomationCreate, _auth=Depends(require_admin_role)):
     """Create a single email automation"""
     automation = {
         "id": str(uuid.uuid4()),
@@ -15403,7 +15434,7 @@ async def create_email_automation(data: EmailAutomationCreate):
     return {"success": True, "automation": {k: v for k, v in automation.items() if k != "_id"}}
 
 @api_router.post("/email-automation/sequence")
-async def create_email_sequence(data: EmailSequenceCreate):
+async def create_email_sequence(data: EmailSequenceCreate, _auth=Depends(require_admin_role)):
     """Create an email sequence (drip campaign)"""
     sequence = {
         "id": str(uuid.uuid4()),
@@ -15420,7 +15451,7 @@ async def create_email_sequence(data: EmailSequenceCreate):
     return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
 
 @api_router.put("/email-automation/{automation_id}/toggle")
-async def toggle_email_automation(automation_id: str):
+async def toggle_email_automation(automation_id: str, _auth=Depends(require_admin_role)):
     """Toggle automation active/inactive"""
     automation = await db.email_automations.find_one({"id": automation_id})
     if not automation:
@@ -15435,7 +15466,7 @@ async def toggle_email_automation(automation_id: str):
     return {"success": True, "is_active": new_status}
 
 @api_router.delete("/email-automation/{automation_id}")
-async def delete_email_automation(automation_id: str):
+async def delete_email_automation(automation_id: str, _auth=Depends(require_admin_role)):
     """Delete an email automation"""
     result = await db.email_automations.delete_one({"id": automation_id})
     if result.deleted_count == 0:
@@ -15447,7 +15478,7 @@ async def delete_email_automation(automation_id: str):
     return {"success": True}
 
 @api_router.post("/email-automation/generate-sequence")
-async def generate_email_sequence_ai(partner_id: str, partner_name: str, partner_niche: str, sequence_type: str = "nurture"):
+async def generate_email_sequence_ai(partner_id: str, partner_name: str, partner_niche: str, sequence_type: str = "nurture", _auth=Depends(require_admin_role)):
     """Generate an email sequence using AI (STEFANIA)"""
     
     # Use Claude to generate a personalized sequence
@@ -15515,22 +15546,22 @@ Rispondi in JSON con questo formato:
 # =============================================================================
 
 @api_router.get("/agent-hub/status")
-async def get_all_agents_status():
+async def get_all_agents_status(_auth=Depends(require_admin_role)):
     """Get status and metrics for all 9 agents"""
     return await agent_hub.get_all_agents_status()
 
 @api_router.get("/agent-hub/agent/{agent_id}")
-async def get_single_agent_status(agent_id: str):
+async def get_single_agent_status(agent_id: str, _auth=Depends(require_admin_role)):
     """Get detailed status for a specific agent"""
     return await agent_hub.get_agent_status(agent_id.upper())
 
 @api_router.get("/agent-hub/summary")
-async def get_business_summary():
+async def get_business_summary(_auth=Depends(require_admin_role)):
     """Get comprehensive business summary from all agents"""
     return await agent_hub.get_business_summary()
 
 @api_router.get("/agent-hub/alerts")
-async def get_system_alerts():
+async def get_system_alerts(_auth=Depends(require_admin_role)):
     """Get all active alerts across agents"""
     summary = await agent_hub.get_business_summary()
     return {
@@ -15540,7 +15571,7 @@ async def get_system_alerts():
     }
 
 @api_router.post("/agent-hub/activate/{agent_id}")
-async def activate_agent(agent_id: str):
+async def activate_agent(agent_id: str, _auth=Depends(require_admin_role)):
     """Activate an agent - creates if doesn't exist"""
     agent_id_upper = agent_id.upper()
     
@@ -15567,7 +15598,7 @@ async def activate_agent(agent_id: str):
 # =============================================================================
 
 @api_router.get("/email-queue/{partner_id}")
-async def get_email_queue(partner_id: str, status: Optional[str] = None):
+async def get_email_queue(partner_id: str, status: Optional[str] = None, _auth=Depends(require_partner_or_admin)):
     """Get email queue for a partner"""
     query = {"partner_id": partner_id}
     if status:
@@ -15587,7 +15618,7 @@ async def get_email_queue(partner_id: str, status: Optional[str] = None):
     return {"queue": queue, "stats": stats}
 
 @api_router.post("/email-queue/trigger-test")
-async def trigger_test_sequence(partner_id: str, email: str, name: str = "Test User"):
+async def trigger_test_sequence(partner_id: str, email: str, name: str = "Test User", _auth=Depends(require_admin_role)):
     """Manually trigger email sequence for testing"""
     actions = await trigger_email_sequence(
         partner_id=partner_id,
@@ -15598,7 +15629,7 @@ async def trigger_test_sequence(partner_id: str, email: str, name: str = "Test U
     return {"success": True, "actions": actions}
 
 @api_router.delete("/email-queue/{queue_id}")
-async def cancel_queued_email(queue_id: str):
+async def cancel_queued_email(queue_id: str, _auth=Depends(require_admin_role)):
     """Cancel a queued email"""
     result = await db.email_queue.update_one(
         {"id": queue_id},
@@ -15609,7 +15640,7 @@ async def cancel_queued_email(queue_id: str):
     return {"success": True}
 
 @api_router.get("/email-queue/stats/global")
-async def get_global_email_stats():
+async def get_global_email_stats(_auth=Depends(require_admin_role)):
     """Get global email queue statistics"""
     pipeline = [
         {"$group": {
@@ -15686,7 +15717,7 @@ async def get_avatar_packages():
     return {"packages": AVATAR_SERVICE_PACKAGES}
 
 @api_router.post("/avatar-checkout")
-async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
+async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest, _auth=Depends(require_partner_or_admin_any)):
     """Create Stripe checkout session for avatar service"""
     
     # Validate package
@@ -15761,7 +15792,7 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
         raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
 
 @api_router.get("/avatar-checkout/status/{session_id}")
-async def get_avatar_checkout_status(session_id: str):
+async def get_avatar_checkout_status(session_id: str, _auth=Depends(require_partner_or_admin_any)):
     """Get payment status for avatar checkout"""
     
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
@@ -15868,7 +15899,7 @@ class ConsulenzaPaymentRequest(BaseModel):
     price: int = 147
 
 @api_router.post("/consulenza-checkout")
-async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRequest):
+async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRequest, _auth=Depends(require_partner_or_admin_any)):
     """Create Stripe checkout session for marketing consultation"""
     
     consultant_names = {
@@ -15958,7 +15989,7 @@ class GrowthSystemCheckoutRequest(BaseModel):
     origin_url: str
 
 @api_router.post("/growth-system-checkout")
-async def create_growth_system_checkout(request: Request, data: GrowthSystemCheckoutRequest):
+async def create_growth_system_checkout(request: Request, data: GrowthSystemCheckoutRequest, _auth=Depends(require_partner_or_admin_any)):
     """Crea sessione Stripe per abbonamento Growth System"""
     plan = GROWTH_PLANS.get(data.level)
     if not plan:
@@ -16060,7 +16091,7 @@ class LegalPagesPaymentRequest(BaseModel):
 
 
 @api_router.get("/legal-pages-status/{partner_id}")
-async def get_legal_pages_payment_status(partner_id: str):
+async def get_legal_pages_payment_status(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Verifica se il partner ha già acquistato il servizio "Generazione Pagine Legali" (149€).
 
     Ritorna `paid: true` se esiste una transazione `legal_pages_pack` con
@@ -16079,7 +16110,7 @@ async def get_legal_pages_payment_status(partner_id: str):
 
 
 @api_router.post("/legal-pages-checkout")
-async def create_legal_pages_checkout(request: Request, data: LegalPagesPaymentRequest):
+async def create_legal_pages_checkout(request: Request, data: LegalPagesPaymentRequest, _auth=Depends(require_partner_or_admin_any)):
     """Stripe checkout per il pack "Generazione automatica pagine legali" (149€).
     Pattern identico a branding-checkout / avatar-checkout.
     """
@@ -16130,7 +16161,7 @@ async def create_legal_pages_checkout(request: Request, data: LegalPagesPaymentR
         raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
 
 @api_router.post("/branding-checkout")
-async def create_branding_checkout(request: Request, data: BrandingPaymentRequest):
+async def create_branding_checkout(request: Request, data: BrandingPaymentRequest, _auth=Depends(require_partner_or_admin_any)):
     """Create Stripe checkout session for branding pack"""
     
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
@@ -16198,7 +16229,7 @@ async def create_branding_checkout(request: Request, data: BrandingPaymentReques
 
 
 @api_router.get("/avatar-payments/{partner_id}")
-async def get_partner_avatar_payments(partner_id: str):
+async def get_partner_avatar_payments(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get all avatar payments for a partner"""
     
     payments = await db.payment_transactions.find(
@@ -16209,7 +16240,7 @@ async def get_partner_avatar_payments(partner_id: str):
     return {"payments": payments, "total": len(payments)}
 
 @api_router.get("/servizi-extra/payment-status/{session_id}")
-async def get_servizi_extra_payment_status(session_id: str):
+async def get_servizi_extra_payment_status(session_id: str, _auth=Depends(require_partner_or_admin_any)):
     """
     Verifica lo status di un pagamento per servizi extra (consulenza, branding)
     e sincronizza con Systeme.io se pagato.
@@ -16310,7 +16341,7 @@ async def get_servizi_extra_payment_status(session_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/systeme/payment-syncs")
-async def get_systeme_payment_syncs(limit: int = 50, payment_type: Optional[str] = None):
+async def get_systeme_payment_syncs(limit: int = 50, payment_type: Optional[str] = None, _auth=Depends(require_admin_role)):
     """
     Recupera lo storico delle sincronizzazioni pagamenti con Systeme.io.
     Endpoint admin per monitorare le integrazioni.
@@ -16355,7 +16386,8 @@ async def manual_systeme_payment_sync(
     nome: str,
     cognome: str,
     payment_type: str,
-    amount: float
+    amount: float,
+    _auth=Depends(require_admin_role),
 ):
     """
     Sincronizzazione manuale di un pagamento con Systeme.io.
@@ -16387,7 +16419,7 @@ except ImportError as e:
     ANALISI_MODULE_OK = False
 
 @api_router.get("/clienti-analisi")
-async def lista_clienti_analisi():
+async def lista_clienti_analisi(_auth=Depends(require_admin_role)):
     """Lista tutti i clienti dell'Analisi Strategica."""
     from datetime import timedelta
     clienti = await db.clienti_analisi.find({}).to_list(200)
@@ -16413,7 +16445,7 @@ async def lista_clienti_analisi():
     return result
 
 @api_router.post("/clienti-analisi/{cliente_id}/questionario")
-async def salva_questionario_analisi(cliente_id: str, body: dict, background_tasks: BackgroundTasks):
+async def salva_questionario_analisi(cliente_id: str, body: dict, background_tasks: BackgroundTasks, _auth=Depends(require_admin_role)):
     """Salva le risposte del questionario e avvia il workflow."""
     try:
         query = {"_id": ObjectId(cliente_id)}
@@ -16434,7 +16466,7 @@ async def salva_questionario_analisi(cliente_id: str, body: dict, background_tas
     return {"success": True}
 
 @api_router.get("/clienti-analisi/{cliente_id}/questionario")
-async def get_questionario_analisi(cliente_id: str):
+async def get_questionario_analisi(cliente_id: str, _auth=Depends(require_admin_role)):
     """Recupera le risposte del questionario di un cliente."""
     try:
         query = {"_id": ObjectId(cliente_id)}
@@ -16447,7 +16479,7 @@ async def get_questionario_analisi(cliente_id: str):
     return cliente.get("questionario", {})
 
 @api_router.post("/clienti-analisi/{cliente_id}/avvia-analisi")
-async def avvia_analisi_cliente(cliente_id: str, background_tasks: BackgroundTasks):
+async def avvia_analisi_cliente(cliente_id: str, background_tasks: BackgroundTasks, _auth=Depends(require_admin_role)):
     """Avvia manualmente il workflow di analisi."""
     if not ANALISI_MODULE_OK:
         raise HTTPException(status_code=503, detail="Modulo analisi non disponibile")
@@ -16462,7 +16494,7 @@ async def avvia_analisi_cliente(cliente_id: str, background_tasks: BackgroundTas
     return {"avviato": True}
 
 @api_router.get("/clienti-analisi/{cliente_id}/workflow-status")
-async def get_workflow_status_analisi(cliente_id: str):
+async def get_workflow_status_analisi(cliente_id: str, _auth=Depends(require_admin_role)):
     """Ottiene lo stato del workflow di analisi."""
     try:
         query = {"_id": ObjectId(cliente_id)}
@@ -16741,7 +16773,7 @@ class ResolveTaskRequest(BaseModel):
     resolved_by: str = "claudio"
 
 @api_router.post("/agent-tasks/create")
-async def api_create_agent_task(request: CreateTaskRequest):
+async def api_create_agent_task(request: CreateTaskRequest, _auth=Depends(require_admin_role)):
     """Create a new agent task for Stefania to monitor"""
     try:
         task_type = TaskType(request.task_type)
@@ -16775,7 +16807,8 @@ async def api_list_agent_tasks(
     status: Optional[str] = None,
     priority: Optional[str] = None,
     created_by: Optional[str] = None,
-    limit: int = 50
+    limit: int = 50,
+    _auth=Depends(require_admin_role),
 ):
     """List agent tasks with optional filters"""
     query = {}
@@ -16793,13 +16826,13 @@ async def api_list_agent_tasks(
     return {"tasks": tasks, "total": len(tasks)}
 
 @api_router.get("/agent-tasks/orchestration/summary")
-async def api_agent_tasks_summary():
+async def api_agent_tasks_summary(_auth=Depends(require_admin_role)):
     """Get summary of open tasks by priority (Stefania orchestration)"""
     summary = await get_open_tasks_summary(db)
     return summary
 
 @api_router.get("/agent-tasks/{task_id}")
-async def api_get_agent_task(task_id: str):
+async def api_get_agent_task(task_id: str, _auth=Depends(require_admin_role)):
     """Get a specific agent task"""
     task = await db.agent_tasks.find_one({"task_id": task_id}, {"_id": 0})
     if not task:
@@ -16807,7 +16840,7 @@ async def api_get_agent_task(task_id: str):
     return task
 
 @api_router.post("/agent-tasks/{task_id}/resolve")
-async def api_resolve_agent_task(task_id: str, request: ResolveTaskRequest):
+async def api_resolve_agent_task(task_id: str, request: ResolveTaskRequest, _auth=Depends(require_admin_role)):
     """Resolve an agent task"""
     success = await resolve_task(db, task_id, request.resolution_notes, request.resolved_by)
     if not success:
@@ -16815,7 +16848,7 @@ async def api_resolve_agent_task(task_id: str, request: ResolveTaskRequest):
     return {"success": True, "task_id": task_id}
 
 @api_router.post("/agent-tasks/{task_id}/update-status")
-async def api_update_task_status(task_id: str, new_status: str):
+async def api_update_task_status(task_id: str, new_status: str, _auth=Depends(require_admin_role)):
     """Update task status"""
     try:
         status = TaskStatus(new_status)
@@ -16847,13 +16880,13 @@ from mongodb_views import (
 )
 
 @api_router.get("/partners-unified")
-async def api_get_all_partners_unified(limit: int = 100):
+async def api_get_all_partners_unified(limit: int = 100, _auth=Depends(require_admin_role)):
     """Get all partners with unified data from multiple collections"""
     partners = await get_all_partners_unified(db, limit=limit)
     return {"partners": partners, "total": len(partners)}
 
 @api_router.get("/partners-unified/{partner_id}")
-async def api_get_partner_unified(partner_id: str):
+async def api_get_partner_unified(partner_id: str, _auth=Depends(require_partner_or_admin)):
     """Get unified partner data from aggregated view"""
     partner = await get_partner_unified(db, partner_id)
     if not partner:
@@ -16861,19 +16894,19 @@ async def api_get_partner_unified(partner_id: str):
     return partner
 
 @api_router.get("/partners-unified/filter/active-production")
-async def api_get_partners_active_production():
+async def api_get_partners_active_production(_auth=Depends(require_admin_role)):
     """Get partners with active video production"""
     partners = await get_partners_by_production_status(db, has_active=True)
     return {"partners": partners, "total": len(partners)}
 
 @api_router.get("/partners-unified/filter/needing-content")
-async def api_get_partners_needing_content():
+async def api_get_partners_needing_content(_auth=Depends(require_admin_role)):
     """Get partners missing content (posizionamento, masterclass, or funnel)"""
     partners = await get_partners_needing_content(db)
     return {"partners": partners, "total": len(partners)}
 
 @api_router.get("/partners-unified/filter/ready-for-video")
-async def api_get_partners_ready_for_video():
+async def api_get_partners_ready_for_video(_auth=Depends(require_admin_role)):
     """Get partners with avatar ready and masterclass but no active production"""
     partners = await get_partners_ready_for_video(db)
     return {"partners": partners, "total": len(partners)}
@@ -16884,7 +16917,7 @@ async def api_get_partners_ready_for_video():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/celery/status")
-async def api_get_celery_status():
+async def api_get_celery_status(_auth=Depends(require_admin_role)):
     """Get Celery worker status"""
     try:
         from celery_manager import get_celery_status

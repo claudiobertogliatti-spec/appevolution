@@ -442,7 +442,7 @@ export function GrowthSystemPage({ partnerId }) {
       // 2. Redirect a Stripe checkout
       const checkoutRes = await fetch(`/api/growth-system-checkout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           partner_id: String(partnerId),
           partner_name: "",
