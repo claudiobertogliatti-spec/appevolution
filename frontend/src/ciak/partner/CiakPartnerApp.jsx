@@ -7,18 +7,15 @@
  *
  * Token in localStorage `ciak_partner_token` (isolato). Endpoint backend invariati.
  */
+import SerenoGuide from "./sereno/SerenoGuide";
 import { useEffect, useState, useCallback } from "react";
-import { Routes, Route, Navigate, NavLink, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { FolderOpen, Home, LogOut, Map, Send, Users } from "lucide-react";
 import { getToken, getPartnerUser, clearSession, apiGet, isAdminUser } from "./api";
 import { PartnerSidebar } from "./PartnerSidebar";
 import { LoginScreen } from "./LoginScreen";
-import { WorkspacePage } from "./sections/WorkspacePage";
 import { MaterialiPage } from "./sections/MaterialiPage";
 import { MetodoEvoPage } from "./sections/MetodoEvoPage";
-import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
-import { GrowthSystemPage } from "./sections/GrowthSystemPage";
-import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { BoosterEvoPage } from "./sections/BoosterEvoPage";
 import { ServiziExtraPage } from "./sections/ServiziExtraPage";
 import { TeamSupportoPage } from "./sections/TeamSupportoPage";
@@ -99,28 +96,6 @@ function PartnerPicker({ onSelect, onLogout }) {
       </div>
     </div>
   );
-}
-
-// Pagina Team di supporto → griglia membri del team con chat dedicata.
-function SupportPage({ partnerId, partnerName }) {
-  return <TeamCiakPage partner={{ id: partnerId, name: partnerName }} />;
-}
-
-// AcceleraCrescitaPage instradata con :categoryId (acc-visibilita, acc-costanza, ...)
-function AcceleraRoute({ partnerId }) {
-  const { categoryId } = useParams();
-  // Redirect legacy: la categoria Monetizzazione è stata splittata in 3 (Spinta/Eventi/Prodotti).
-  // I bookmark esistenti atterrano su "Spinta Vendite" (la prima del trio).
-  if (categoryId === "acc-monetizzazione") {
-    return <Navigate to="/partner/accelera/acc-spinta-vendite" replace />;
-  }
-  return <AcceleraCrescitaPage partnerId={partnerId} categoryId={categoryId} />;
-}
-
-// Workspace con tab da URL (/partner/workspace/:tab)
-function WorkspaceRoute({ partnerId }) {
-  const { tab } = useParams();
-  return <WorkspacePage partnerId={partnerId} initialTab={tab} />;
 }
 
 const MOBILE_NAV = [
@@ -347,6 +322,7 @@ export default function CiakPartnerApp() {
         <Route path="team-ciak" element={<TeamSupportoPage partner={partnerContext} />} />
         <Route path="telegram" element={<TeamSupportoPage partner={partnerContext} />} />
         <Route path="supporto" element={<TeamSupportoPage partner={partnerContext} />} />
+        <Route path="guide" element={<SerenoGuide />} />
         <Route path="servizi-extra" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="servizi-extra/:serviceId" element={<ServiziExtraPage partnerId={partnerId} />} />
         <Route path="booster-evo" element={<ServiziExtraPage partnerId={partnerId} />} />

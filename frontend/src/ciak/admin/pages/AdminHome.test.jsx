@@ -4,6 +4,7 @@ jest.mock("react-router-dom", () => ({
 }), { virtual: true });
 jest.mock("../repartoMetrics", () => ({ useRepartoMetrics: jest.fn() }));
 // I blocchi "Oggi" hanno il loro test (OggiBlocks.test.jsx): qui basta sapere che ci sono.
+jest.mock("../components/OggiCallStrip", () => ({ OggiCallStrip: () => <div data-testid="oggi-call-strip" /> }));
 jest.mock("../components/OggiBlocks", () => ({ OggiBlocks: () => <div data-testid="oggi-blocks" /> }));
 
 import { AdminHome } from "./AdminHome";
@@ -75,4 +76,14 @@ test("un errore delle fonti non viene presentato come zero o dato valido", () =>
   render(<AdminHome user={{ name: "Claudio" }} />);
   expect(screen.getByText("Dati sulle urgenze non disponibili.")).toBeTruthy();
   expect(screen.queryByText("Nessuna urgenza in evidenza.")).toBeNull();
+});
+
+test("le call di oggi stanno in cima, prima della striscia attenzione e dei riquadri", () => {
+  useRepartoMetrics.mockImplementation((id) => LOADED[id] || {});
+  render(<AdminHome user={{ name: "Claudio" }} />);
+  const strip = screen.getByTestId("oggi-call-strip");
+  const attenzione = screen.getByLabelText("Richiede la tua attenzione");
+  const blocchi = screen.getByTestId("oggi-blocks");
+  expect(strip.compareDocumentPosition(attenzione) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(strip.compareDocumentPosition(blocchi) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

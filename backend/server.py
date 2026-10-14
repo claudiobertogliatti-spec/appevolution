@@ -17497,6 +17497,11 @@ from routers.ciak_clients import router as ciak_clients_router, set_db as set_ci
 set_ciak_clients_db(db)
 app.include_router(ciak_clients_router)
 
+# Redirect pubblico dei link tracciati del piano social
+from routers.ciak_go import router as ciak_go_router, set_db as set_ciak_go_db
+set_ciak_go_db(db)
+app.include_router(ciak_go_router)
+
 # Ciak Social Router (publisher server-side della coda ciak_social_queue → Instagram)
 from routers.ciak_social import router as ciak_social_router, set_db as set_ciak_social_db
 set_ciak_social_db(db)
@@ -17512,7 +17517,14 @@ from routers.ciak_admin import router as ciak_admin_router, set_db as set_ciak_a
 from services.ciak_matteo_prompt_store import set_db as set_ciak_matteo_prompt_store_db
 set_ciak_admin_db(db)
 set_ciak_matteo_prompt_store_db(db)
+from services.ciak_memoria import set_db as set_ciak_memoria_db
+set_ciak_memoria_db(db)
 app.include_router(ciak_admin_router)
+
+# Coda di Antonella: lezioni montate da controllare e caricare su Systeme, piano giornaliero
+from routers.ciak_coda import router as ciak_coda_router, set_db as set_ciak_coda_db
+set_ciak_coda_db(db)
+app.include_router(ciak_coda_router)
 
 # Liquidazioni, fatture passive e bonifici dei collaboratori (solo Claudio/superadmin)
 from routers.collaborator_settlements import router as collaborator_settlements_router, set_db as set_collaborator_settlements_db

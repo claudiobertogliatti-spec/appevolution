@@ -17,6 +17,7 @@ from pathlib import Path
 
 from jose import jwt
 
+from services import youtube_playlist
 from models.start_journey import (
     is_start_tier,
     journey_definition_for_tier,
@@ -2110,33 +2111,16 @@ async def approve_masterclass_video(
         if exc.status_code != 404:
             raise
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin):
-    # la playlist contiene solo video approvati, mai gli scarti in review.
+    # La playlist aspetta il controllo del montaggio, come per le lezioni: editing -> verifica
+    # di Antonella -> playlist -> Systeme. Se la masterclass e' gia' stata verificata la si
+    # aggiunge adesso, altrimenti ci pensera' l'esito in coda. (13/10/2026)
     playlist_note = ""
-    yt_id = doc.get("video_youtube_id")
-    if yt_id:
-        try:
-            import asyncio
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-                playlist_note = "\n📋 Aggiunto a playlist partner" if ok else ""
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist add (approve) non bloccante: {e}")
+    esito_mc = await _esito_masterclass(partner_id, doc)
+    if youtube_playlist.verificata(esito_mc):
+        res = await youtube_playlist.aggiungi_video(db, partner_id, doc.get("video_youtube_id") or "")
+        playlist_note = "\n📋 Aggiunto a playlist partner" if res["ok"] else ""
+    else:
+        playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(esito_mc)}"
 
     await notify_telegram(
         f"✅ VIDEO MASTERCLASS APPROVATO\n\n"
@@ -2509,36 +2493,21 @@ async def set_masterclass_youtube_url(
     now = datetime.now(timezone.utc).isoformat()
     partner_name = partner.get("name", req.partner_id)
 
-    # Playlist YouTube: crea se non esiste, poi aggiungi il video
+    # Playlist YouTube: solo dopo il controllo del montaggio (vedi services/youtube_playlist.py).
     playlist_id = partner.get("youtube_playlist_id")
     playlist_url = partner.get("youtube_playlist_url")
     playlist_note = ""
-
     if yt_id:
-        try:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, partner_name
-                )
-                if playlist_id:
-                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-                    await db.partners.update_one(
-                        {"id": req.partner_id},
-                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
-                    )
-                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
-
-            if playlist_id:
-                ok = await loop.run_in_executor(
-                    None, add_to_youtube_playlist_sync, yt_id, playlist_id
-                )
-                if ok and not playlist_note:
-                    playlist_note = f"\n📋 Video aggiunto alla playlist partner"
-        except Exception as e:
-            logging.warning(f"[MASTERCLASS] Playlist error (non bloccante): {e}")
+        _doc_mc = await db.masterclass_factory.find_one({"partner_id": req.partner_id}, {"_id": 0, "output_version": 1}) or {}
+        _esito = await _esito_masterclass(req.partner_id, _doc_mc)
+        if youtube_playlist.verificata(_esito):
+            res = await youtube_playlist.aggiungi_video(db, req.partner_id, yt_id)
+            if res["ok"]:
+                playlist_id = res["playlist_id"]
+                playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                playlist_note = "\n📋 Video aggiunto alla playlist partner"
+        else:
+            playlist_note = f"\n📋 Playlist: {youtube_playlist.motivo_attesa(_esito)}"
 
     await db.masterclass_factory.update_one(
         {"partner_id": req.partner_id},
@@ -2590,35 +2559,21 @@ async def approve_videocorso_video(
         }}
     )
 
-    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin).
-    try:
-        import asyncio
-        partner = await db.partners.find_one({"id": partner_id})
-        vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
-        lesson = ((vc or {}).get("lessons") or {}).get(lesson_id, {})
-        yt_id = lesson.get("video_youtube_id") or ""
-        if yt_id:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            playlist_id = (partner or {}).get("youtube_playlist_id")
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
-                )
-                if playlist_id:
-                    await db.partners.update_one(
-                        {"id": partner_id},
-                        {"$set": {
-                            "youtube_playlist_id": playlist_id,
-                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
-                        }},
-                    )
-            if playlist_id:
-                await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-    except Exception as e:
-        logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
+    # La playlist NON si popola qui. La sequenza voluta e': editing -> verifica di Antonella ->
+    # playlist -> Systeme. Prima l'approvazione admin poteva precedere il controllo del montaggio,
+    # e il video entrava nella playlist del partner senza che nessuno l'avesse guardato per intero.
+    # Se la lezione e' GIA' stata verificata (ordine invertito) la si aggiunge adesso. (13/10/2026)
+    from services import youtube_playlist, coda_antonella as _ca
+    _vc = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0, "lessons": 1}) or {}
+    _les = (_vc.get("lessons") or {}).get(lesson_id, {})
+    _chiave = _ca.chiave_lezione(partner_id, lesson_id, int(_les.get("output_version") or 0))
+    _esito = await db.ciak_coda_lezioni.find_one({"_id": _chiave}, {"_id": 0, "esito": 1})
+    if youtube_playlist.verificata(_esito):
+        await youtube_playlist.aggiungi_video(db, partner_id, _les.get("video_youtube_id") or "")
+        return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+    return {"success": True, "message": f"Lezione {lesson_id} approvata",
+            "playlist": f"non aggiunta: {youtube_playlist.motivo_attesa(_esito)}"}
 
-    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
 
 class PartnerLessonReviewRequest(BaseModel):
@@ -6899,6 +6854,19 @@ async def confirm_video_upload(
             upsert=True
         )
     elif req.video_type == "videocorso" and req.lesson_id:
+        # Tetto di tre video in lavorazione per partner: oltre, la coda di controllo diventa
+        # impossibile da programmare (vedi services/limite_video.py). Non vale per una lezione
+        # gia' in coda che viene rimandata: il posto e' gia' suo.
+        from services import limite_video, coda_antonella as _coda
+        _vc = await db.partner_videocorso.find_one({"partner_id": req.partner_id}, {"_id": 0, "lessons": 1}) or {}
+        _lessons = _vc.get("lessons") or {}
+        _esiti = {}
+        async for _e in db.ciak_coda_lezioni.find({"partner_id": str(req.partner_id)}, {"_id": 1, "esito": 1}):
+            _esiti[_e["_id"]] = _e
+        _stato = limite_video.stato_upload(_lessons, _esiti, _coda.chiave_lezione, str(req.partner_id))
+        if not _stato["puo_caricare"] and req.lesson_id not in _stato["lezioni_in_lavorazione"]:
+            raise HTTPException(status_code=409, detail=_stato["messaggio"])
+
         # NB: partner_videocorso.lessons è un DICT keyed per lesson_id (vedi
         # upload_videocorso_lesson / approve_videocorso_lesson / pipeline set_status),
         # NON un array — quindi niente operatore posizionale `$`.
@@ -6965,6 +6933,56 @@ _LEGACY_STEP_MIGRATIONS = [
     ("10-funnel-team-work", "10-sistema-vendita"),
     ("09-funnel-asset", "10-sistema-vendita"),
 ]
+
+
+# Gli step della vecchia numerazione restano nel database (la migrazione sotto li
+# archivia come `skipped`, con i loro dati: documenti e video caricati allora). Non
+# appartengono piu' al percorso: il registry non li conosce, quindi la vista partner
+# mostrava il loro ID grezzo ("09-funnel-asset") sotto "Non richiesto" e li contava nel
+# totale. Si nascondono qui, una volta per tutti i partner; i documenti NON si toccano.
+_LEGACY_STEP_IDS = frozenset(old for old, _ in _LEGACY_STEP_MIGRATIONS)
+
+
+def visible_journey_steps(steps: list) -> list:
+    """Step da mostrare al partner: via quelli della vecchia numerazione e quelli
+    che nessuna definizione conosce (senza definizione la label sarebbe l'ID)."""
+    return [
+        s for s in steps
+        if s.get("step_id") not in _LEGACY_STEP_IDS and step_definition(s.get("step_id"))
+    ]
+def passo_corrente(steps: list):
+    """Lo step su cui il partner si trova adesso: il primo aperto CHE TOCCA A LUI.
+
+    Il team apre in anticipo gli step di sua competenza e non li richiude. Andolfi ne aveva
+    cinque aperti insieme (F-13, F-16, F-17, F-18, F-19) e tre non hanno nemmeno una schermata
+    partner: mostrarli come "il tuo prossimo passo" mandava il partner su una pagina vuota.
+    Si parte comunque dopo l'ultimo completato: un singolo step lasciato indietro a meta'
+    strada non deve riportare la vista all'inizio del percorso (regola del 30/07/2026).
+    """
+    if not steps:
+        return None
+    ultimo_done = max((i for i, s in enumerate(steps) if s.get("status") == "done"), default=-1)
+    aperti = [s for s in steps[ultimo_done + 1:] if s.get("status") in ("in_progress", "pending")]
+    scelto = next((s for s in aperti if s.get("azione", "partner") == "partner"), None)
+    if scelto:
+        return scelto
+    # Nessuno step del partner davanti: resta quello del team (ci stiamo lavorando noi),
+    # poi un eventuale step rimasto indietro, infine l'ultimo (percorso finito).
+    return next(iter(aperti), None) \
+        or next((s for s in steps if s.get("status") == "in_progress"), None) \
+        or steps[-1]
+
+
+async def _esito_masterclass(partner_id: str, doc: Optional[dict] = None) -> Optional[dict]:
+    """L'esito del controllo di Antonella sulla masterclass, per la versione attuale del montaggio.
+
+    Serve a tenere la stessa regola delle lezioni anche sulle due vie piu' vecchie
+    (`approve-masterclass`, `set-youtube-url`): in playlist solo dopo il controllo.
+    """
+    from services import coda_antonella as _ca
+    versione = max(1, int((doc or {}).get("output_version") or 1))
+    chiave = _ca.chiave_lezione(str(partner_id), _ca.MASTERCLASS_ID, versione)
+    return await db.ciak_coda_lezioni.find_one({"_id": chiave}, {"_id": 0, "esito": 1})
 
 
 async def _project_legacy_phase(partner_id: str):
@@ -7101,6 +7119,8 @@ async def get_operativo_state(
             {"partner_id": partner_id}, {"_id": 0}
         ).sort("step_number", 1).to_list(length=40)
 
+    steps = visible_journey_steps(steps)
+
     # La definizione in codice resta la fonte dei metadati presentazionali e di policy.
     # Si guarda a TUTTI gli step conosciuti (canonici + start-only): chi e' salito
     # da Ciak Start si porta dietro i 4 step Start, che devono restare etichettati.
@@ -7112,6 +7132,8 @@ async def get_operativo_state(
         s["owner"] = meta.get("owner")
         s["completion_policy"] = meta.get("completion_policy")
         s["material_categories"] = meta.get("material_categories", [])
+        # chi deve muoversi: "partner" oppure "team" (vedi models/partner_journey_step.py)
+        s["azione"] = meta.get("azione", "partner")
 
     # Il punto in cui si trova il partner e' il FRONTE del percorso: il primo step
     # aperto DOPO l'ultimo completato. Prendendo il primo `in_progress` in assoluto,
@@ -7123,17 +7145,11 @@ async def get_operativo_state(
         (i for i, s in enumerate(steps) if s["status"] == "done"),
         default=-1,
     )
-    current_step = next(
-        (s for s in steps[ultimo_done + 1:] if s["status"] in ("in_progress", "pending")),
-        None,
-    )
-    if not current_step:
-        # Nessuno step aperto dopo l'ultimo completato: se ne e' rimasto qualcuno
-        # indietro lo si mostra comunque, altrimenti il journey e' finito.
-        current_step = next((s for s in steps if s["status"] == "in_progress"), None)
-    if not current_step:
-        # Tutti done -> partner ha completato il journey
-        current_step = steps[-1] if steps else None
+    # Il team apre in anticipo gli step di sua competenza e non li richiude: Andolfi ne
+    # aveva cinque aperti insieme, di cui tre (F-16, F-18, F-19) senza nemmeno una schermata
+    # partner. Il passo corrente e' quindi il primo aperto CHE TOCCA AL PARTNER; gli step del
+    # team restano aperti nei dati ma non diventano mai "il tuo prossimo passo". (13/10/2026)
+    current_step = passo_corrente(steps)
 
     # Stato "Avvio" (step 1-2 pre-percorso, non in macro-fasi)
     avvio_steps = [s for s in steps if s["step_id"] in AVVIO_STEP_IDS]

@@ -160,22 +160,6 @@ export function OggiBlocks({ onAuthExpired, clienti = null }) {
           summary={partner ? `${partner.totale} in EVO · ${partner.fermi} fermi · ${partner.tocca.length} aspettano te` : ""}>
           {partner && (
             <>
-              <div className="mb-5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Come procedono, per fase</h3>
-                {partner.perFase.length === 0 ? (
-                  <p className="text-sm text-slate-500">Nessun partner attivo.</p>
-                ) : (
-                  <ul className="flex flex-wrap gap-2">
-                    {partner.perFase.map((f) => (
-                      <li key={f.fase} className="rounded-xl border border-slate-200 px-3 py-2">
-                        <span className="block text-xs font-semibold text-slate-500">{f.fase}</span>
-                        <span className="text-xl font-semibold text-slate-900 tabular-nums">{f.totale}</span>
-                        {f.fermi > 0 && <span className="ml-2 text-xs font-semibold text-amber-800">{f.fermi} fermi</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
               <h3 className="sr-only">Urgenze di delivery</h3>
               {[
                 ["Tocca a te", partner.tocca, "Niente in attesa di te."],
@@ -192,6 +176,22 @@ export function OggiBlocks({ onAuthExpired, clienti = null }) {
                   ))}
                 </Sub>
               ))}
+              <div className="mt-5 mb-0">
+                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Come procedono, per fase</h3>
+                {partner.perFase.length === 0 ? (
+                  <p className="text-sm text-slate-500">Nessun partner attivo.</p>
+                ) : (
+                  <ul className="flex flex-wrap gap-2">
+                    {partner.perFase.map((f) => (
+                      <li key={f.fase} className="rounded-xl border border-slate-200 px-3 py-2">
+                        <span className="block text-xs font-semibold text-slate-500">{f.fase}</span>
+                        <span className="text-xl font-semibold text-slate-900 tabular-nums">{f.totale}</span>
+                        {f.fermi > 0 && <span className="ml-2 text-xs font-semibold text-amber-800">{f.fermi} fermi</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </>
           )}
         </Riquadro>

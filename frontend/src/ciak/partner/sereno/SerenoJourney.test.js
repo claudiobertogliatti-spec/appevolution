@@ -31,6 +31,20 @@ test('with many steps in progress only ONE says "Il tuo prossimo passo", no inte
   expect(screen.getAllByText('Il tuo prossimo passo')).toHaveLength(1);
   expect(screen.getAllByText('Già avviato')).toHaveLength(2);
   expect(screen.queryByText('F-12')).toBeNull(); // technical code hidden
-  expect(screen.getByText('Subaccount Systeme, dominio, legal pages, funnel e checkout.')).toBeTruthy(); // what comes later
+  expect(screen.getByText('Il tuo funnel in anteprima, le pagine legali, il tuo indirizzo web e il via libera.')).toBeTruthy(); // what comes later
   expect(screen.getAllByRole('link', { name: 'Apri →' })).toHaveLength(2);
+});
+
+
+test('spiega in cima chi fa cosa', () => {
+  const mio = {step_id:'obiettivo',label:'Il tuo obiettivo',status:'in_progress',macro_phase:'esamina',azione:'partner'};
+  const loro = {step_id:'18-certificato-valida',label:'Certificato',status:'in_progress',macro_phase:'valida',azione:'team'};
+  render(<MemoryRouter><SerenoJourney state={{current_step:mio,steps:[mio,loro]}} onMaterials={()=>{}}/></MemoryRouter>);
+  const legenda = screen.getByLabelText('Come leggere il percorso');
+  expect(legenda.textContent).toMatch(/Qui fai tu/);
+  expect(legenda.textContent).toMatch(/Qui facciamo noi/);
+  expect(legenda.textContent).toMatch(/non devi aprire niente/i);
+  // lo step del team non offre nessun pulsante da aprire
+  expect(screen.getByText('Ci stiamo lavorando noi')).toBeTruthy();
+  expect(screen.getAllByRole('link',{name:/Apri/}).length).toBe(1);
 });

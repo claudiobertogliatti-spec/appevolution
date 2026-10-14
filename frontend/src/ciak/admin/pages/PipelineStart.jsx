@@ -18,6 +18,7 @@
  * Backend: GET /api/admin/ciak/start/pipeline (la fase e il "fermo" li decide
  * `services/start_pipeline.py`).
  */
+import { IntestazioneAgente } from "../components/ui/IntestazioneAgente";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -152,11 +153,12 @@ export function PipelineStart({ onAuthExpired }) {
   ];
 
   return (
-    <div className="p-10 max-w-6xl">
-      <h1 className="mb-1 text-2xl font-semibold text-slate-900">Clienti</h1>
-      <p className="mb-6 max-w-2xl text-slate-500">
-        Chi ha comprato Start e a che punto è con il suo pacchetto: se avanza o si è fermato. Un clic su una riga apre il suo account.
-      </p>
+    <div className="px-5 py-8 sm:px-10 lg:px-16 lg:py-12 max-w-6xl">
+      <IntestazioneAgente
+        agente="stefania"
+        titolo="Clienti"
+        sotto="Chi ha comprato Start e a che punto è con il suo pacchetto: se avanza o si è fermato. Un clic su una riga apre il suo account."
+      />
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <label className="relative block w-full max-w-xs">

@@ -1,55 +1,44 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import SerenoAssistenza from './SerenoAssistenza';
+import { HelpContext } from './SerenoHelp';
 
-const AGENTS = [
-  { id: 'STEFANIA', name: 'Simona', role: 'Coordinatrice', focus: 'Orientamento' },
-  { id: 'VALENTINA', name: 'Valentina', role: 'Brand', focus: 'Identità' },
-];
-const TEAM = [{ id: 'CLAUDIO', name: 'Claudio B.', role: 'CEO', description: 'Direzione' }];
+afterEach(cleanup);
 
-afterEach(() => {
-  cleanup();
-  delete global.fetch;
-});
-
-function openChatWith(name) {
-  fireEvent.click(screen.getByRole('button', { name: new RegExp(`Chatta con ${name}`, 'i') }));
-}
-
-test('shows the full AI roster and the human team', () => {
-  render(<SerenoAssistenza agents={AGENTS} team={TEAM} />);
-  expect(screen.getByText('Simona')).toBeTruthy();
-  expect(screen.getByText('Valentina')).toBeTruthy();
-  expect(screen.getByText('Claudio B.')).toBeTruthy();
-});
-
-test('a failed chat send never fabricates "preso in carico" and offers the real fallback', async () => {
-  global.fetch = jest.fn(() => Promise.reject(new Error('down')));
-  render(<SerenoAssistenza agents={AGENTS} team={TEAM} telegramUrl="https://t.me/ciak_cosimo" />);
-
-  openChatWith('Simona');
-  fireEvent.change(screen.getByLabelText(/Scrivi a Simona/i), { target: { value: 'Come registro?' } });
-  fireEvent.click(screen.getByRole('button', { name: /^Invia$/i }));
-
-  await screen.findByText('Come registro?');
-  const alert = await screen.findByRole('alert');
-  expect(alert.textContent).toMatch(/Messaggio non inviato/i);
-  expect(screen.queryByText(/preso in carico/i)).toBeNull();
-  const links = screen.getAllByRole('link');
-  expect(links.some((a) => a.getAttribute('href') === 'https://t.me/ciak_cosimo')).toBe(true);
-});
-
-test('a successful reply is shown with no failure alert', async () => {
-  global.fetch = jest.fn(() =>
-    Promise.resolve({ ok: true, json: () => Promise.resolve({ reply: 'Ecco come procedere.' }) })
+const vista = (props = {}, openHelp = () => {}) =>
+  render(
+    <MemoryRouter>
+      <HelpContext.Provider value={{ openHelp }}>
+        <SerenoAssistenza {...props} />
+      </HelpContext.Provider>
+    </MemoryRouter>
   );
-  render(<SerenoAssistenza agents={AGENTS} team={TEAM} />);
 
-  openChatWith('Valentina');
-  fireEvent.change(screen.getByLabelText(/Scrivi a Valentina/i), { target: { value: 'Ciao' } });
-  fireEvent.click(screen.getByRole('button', { name: /^Invia$/i }));
+test('non mostra più i sei assistenti AI né il roster del team', () => {
+  vista();
+  ['Simona', 'Valentina', 'Gaia', 'Marco', 'Carlo', 'Claudio B.'].forEach((n) =>
+    expect(screen.queryByText(n)).toBeNull()
+  );
+  expect(screen.queryByText(/Chatta con/i)).toBeNull();
+});
 
-  await screen.findByText('Ecco come procedere.');
-  expect(screen.queryByRole('alert')).toBeNull();
+test('la chat è una sola: il pulsante apre quella di Chiedi aiuto', () => {
+  const openHelp = jest.fn();
+  vista({}, openHelp);
+  fireEvent.click(screen.getByRole('button', { name: /Apri la chat/i }));
+  expect(openHelp).toHaveBeenCalledTimes(1);
+});
+
+test('il team umano è su Telegram, con il canale del partner', () => {
+  vista({ telegramUrl: 'https://t.me/ciak_cosimo' });
+  const link = screen.getByRole('link', { name: /Apri Telegram/i });
+  expect(link.getAttribute('href')).toBe('https://t.me/ciak_cosimo');
+});
+
+test('le tre tappe rimandano ai Materiali, senza contenuti inventati', () => {
+  vista();
+  ['Esamina', 'Valida', 'Ottimizza'].forEach((t) => expect(screen.getByText(t)).toBeTruthy());
+  const link = screen.getByRole('link', { name: /Vai ai Materiali/i });
+  expect(link.getAttribute('href')).toBe('/partner/materiali');
 });
