@@ -9773,6 +9773,36 @@ async def cut_video_review(
         raise HTTPException(status_code=exc.status, detail=exc.message)
 
 
+@api_router.post("/admin/youtube-publish/{partner_id}")
+async def publish_final_videos_to_youtube(
+    partner_id: str,
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: carica su YouTube (non in elenco) i video FINALI indicati e li mette nella playlist del partner.
+    Body: {"items": [{"kind":"lesson","lesson_id":"lez-2","title":"..."}, {"kind":"masterclass","gcs_path":"gs://…/edited_videos/<partner>/….mp4","title":"..."}]}.
+    Il worker scarica dallo storage, carica, registra l'id e aggiunge alla playlist."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token mancante")
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from services.ciak_youtube_publish import create_publish_job, PublishError
+
+    def _dispatch(job_id: str):
+        from video_pipeline_task import publish_youtube_finals
+        return publish_youtube_finals.delay(job_id)
+
+    try:
+        return await create_publish_job(
+            db, partner_id=partner_id, requests=body.get("items") or [],
+            actor_id=user.get("id"), dispatch=_dispatch)
+    except PublishError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
+
+
 @api_router.delete("/admin/video-review/{partner_id}")
 async def delete_video_review_item(
     partner_id: str,
