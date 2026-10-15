@@ -328,7 +328,7 @@ def render_blueprint_html(payload: dict) -> str:
     nome = _esc(meta.get("nome", "Cliente"))
     progetto = _esc(meta.get("progetto", "Analisi Strategica"))
     accent_prog = _esc(meta.get("accent_progetto", ""))
-    foot = f'Progetto {progetto} — {nome}' if accent_prog == "" else f'Progetto {progetto} {accent_prog} — {nome}'
+    foot = f'{progetto} {accent_prog}, {nome}' if accent_prog else f'{progetto}, {nome}'
     prog_h = progetto + (f'<br><span class="y">{accent_prog}</span>' if accent_prog else "")
 
     # copertina
@@ -340,7 +340,7 @@ def render_blueprint_html(payload: dict) -> str:
         '<div class="ct">Analisi Strategica<br>Evolution PRO</div></div>'
         '<div class="cover-mid"><div class="dt">Analisi Strategica di Posizionamento</div>'
         f'<h1>{prog_h}</h1>'
-        f'<div class="sub">{_esc(meta.get("sub", "La lettura del tuo punto di partenza e del passo giusto per trasformare la tua competenza in un percorso che vende — restando tuo al 100%."))}</div></div>'
+        f'<div class="sub">{_esc(meta.get("sub", "La lettura del tuo punto di partenza e del passo giusto per trasformare la tua competenza in un percorso che vende, restando tuo al 100%."))}</div></div>'
         '<div class="cover-meta">'
         f'<div><div class="k">Preparato per</div><div class="v">{nome}</div></div>'
         '<div><div class="k">Preparato da</div><div class="v">Claudio e il team Evolution PRO</div></div>'

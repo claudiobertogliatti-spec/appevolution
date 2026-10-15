@@ -2,7 +2,7 @@
 Ciak — Scoring AI sulle risposte APERTE.
 
 Sostituisce la somma di crocette di `ciak_scoring.py` ora che le 10 Domande Ciak
-sono tutte aperte (testo libero). Legge le 8 risposte, chiede a un modello di
+sono tutte aperte (testo libero). Legge le 10 risposte, chiede a un modello di
 valutare quanto il prospect è PRONTO a costruire un'accademia digitale, e ritorna:
   - score_0_100 (int), stato 1-4, pronto (bool, score>=50), rationale (INTERNO).
 
@@ -175,7 +175,7 @@ def _fallback_result(reason: str) -> ScoringAIResult:
 
 async def calculate_scoring_ai(responses: dict[str, Any]) -> ScoringAIResult:
     """
-    Valuta la prontezza dalle 8 risposte aperte. Non solleva: in caso di errore
+    Valuta la prontezza dalle 10 risposte aperte. Non solleva: in caso di errore
     restituisce un fallback dichiarato (is_fallback=True), così il flusso non si blocca.
     """
     try:
