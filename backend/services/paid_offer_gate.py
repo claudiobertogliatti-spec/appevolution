@@ -7,7 +7,7 @@ import os
 
 from fastapi import HTTPException
 
-PAID_OFFERS = frozenset({"ciak_start", "partnership", "attivazione_partnership"})
+PAID_OFFERS = frozenset({"ciak_start", "ciak_start_plus", "partnership", "attivazione_partnership"})
 CLOSED_MESSAGE = "Il pagamento non è ancora disponibile. Il team ti avviserà quando potrai procedere."
 
 
@@ -34,6 +34,7 @@ def paid_offer_readiness() -> dict:
     primary_key = os.environ.get("STRIPE_API_KEY")
     return {
         "start": {"enabled": paid_offer_checkout_enabled(primary_key or os.environ.get("STRIPE_SECRET_KEY"))},
+        "start_plus": {"enabled": paid_offer_checkout_enabled(primary_key or os.environ.get("STRIPE_SECRET_KEY"))},
         "partnership": {"enabled": paid_offer_checkout_enabled(primary_key)},
         "message": CLOSED_MESSAGE,
     }

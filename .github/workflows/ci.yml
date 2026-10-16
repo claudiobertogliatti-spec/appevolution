@@ -86,6 +86,7 @@ jobs:
         run: >
           pytest -q
           tests/test_ciak_analisi.py
+          tests/test_start_plus.py
           tests/test_ciak_youtube_publish.py
           tests/test_ciak_video_intake.py
           tests/test_pipeline_blueprint_tempi.py

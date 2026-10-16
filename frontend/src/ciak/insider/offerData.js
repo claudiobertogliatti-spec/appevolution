@@ -42,7 +42,7 @@ export const offerData = {
   startPlus: {
     name: 'Start Plus',
     price: PRICING.startPlus.label,
-    priceNote: "si riscalano interi sulla Partnership entro 60 giorni dall'acquisto",
+    priceNote: "si riscalano interi sulla Partnership entro 60 giorni dall'acquisto, poi restano 390 €",
     // Testi dalla Scheda Start Plus (15/10/2026). Il prodotto lo vende il cliente, ai suoi contatti.
     tagline: 'Le fondamenta, più il tuo primo prodotto da vendere.',
     body:
@@ -50,7 +50,7 @@ export const offerData = {
       + 'e costruiamo con te un primo prodotto piccolo, con la sua pagina di vendita e il messaggio '
       + 'per presentarlo ai tuoi contatti. Il prodotto lo vendi tu.',
     creditCopy:
-      "I 790 € di Start Plus si scalano interi se passi alla Partnership entro 60 giorni dall'acquisto.",
+      "I 790 € di Start Plus si scalano interi se passi alla Partnership entro 60 giorni dall'acquisto. Dopo i 60 giorni restano 390 € di credito.",
     yourPart:
       'La tua parte è piccola, ed è quella che sai già fare: mettere la tua competenza nel prodotto. '
       + 'Struttura, pagina di vendita e checkout li costruiamo noi.',

@@ -29,6 +29,8 @@ from services.ciak_client_accounts import (
     OFFER_PARTNERSHIP,
     OFFER_START,
     START_AMOUNT_CENTS,
+    START_PLUS_AMOUNT_CENTS,
+    START_PLUS_CREDIT_DAYS,
     has_start_entitlement,
     partnership_price_for_client,
     verify_magic_login_token,
@@ -333,6 +335,24 @@ def _ensure_start_checkout_allowed(client: dict[str, Any], context: dict[str, An
     _ensure_completed_blueprint_path(context)
 
 
+def _ensure_start_plus_checkout_allowed(client: dict[str, Any], context: dict[str, Any]) -> None:
+    """Start Plus si compra una volta, da chi non ha ancora Start ne' Partnership.
+    Il passaggio Start -> Start Plus non e' deciso (prezzo di differenza da definire): per ora
+    si risponde 409 con un messaggio chiaro, invece di far pagare 790 EUR a chi ha gia' Start."""
+    if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
+        raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
+    if client.get("start_plus_purchased_at"):
+        raise HTTPException(status_code=409, detail="Start Plus risulta gia' attivo su questo account.")
+    if client.get("access_level") == ACCESS_START or has_start_entitlement(client):
+        raise HTTPException(
+            status_code=409,
+            detail="Hai gia' Ciak Start: per passare a Start Plus scrivi al team, ti diciamo come fare.",
+        )
+    if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
+        raise HTTPException(status_code=403, detail="Start Plus non e' disponibile per questo account.")
+    _ensure_completed_blueprint_path(context)
+
+
 def _ensure_partnership_checkout_allowed(client: dict[str, Any]) -> None:
     if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
         raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
@@ -550,10 +570,19 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 "label": "Ciak Start",
                 "credit_guaranteed": True,
             },
+            "ciak_start_plus": {
+                "amount_cents": START_PLUS_AMOUNT_CENTS,
+                "currency": "eur",
+                "label": "Start Plus",
+                "credit_guaranteed": True,
+                "credit_valid_days": START_PLUS_CREDIT_DAYS,
+                "credit_after_expiry_cents": START_AMOUNT_CENTS,
+            },
             "partnership": {
                 **partnership_price,
                 "label": "Partnership",
                 "upgrade_from_start_cents": PARTNERSHIP_PRICE_CENTS - START_AMOUNT_CENTS,
+                "upgrade_from_start_plus_cents": PARTNERSHIP_PRICE_CENTS - START_PLUS_AMOUNT_CENTS,
             },
         },
         "partner_area": {
@@ -1425,6 +1454,33 @@ async def start_checkout(client: dict[str, Any] = Depends(require_client)):
         "checkout_url": session.url,
         "amount_cents": START_AMOUNT_CENTS,
         "credit_amount_cents": START_AMOUNT_CENTS,
+    }
+
+
+@router.post("/start-plus/checkout")
+async def start_plus_checkout(client: dict[str, Any] = Depends(require_client)):
+    canonical_user = await _canonical_user_for_client(client)
+    effective_client = _effective_client_snapshot(client, canonical_user)
+    effective_client["access_level"] = _effective_access_level(client, canonical_user)
+    context = await _blueprint_context(client)
+    _ensure_start_plus_checkout_allowed(effective_client, context)
+    frontend = _frontend_url()
+    session = await _create_checkout_session(
+        amount_cents=START_PLUS_AMOUNT_CENTS,
+        success_url=f"{frontend}/cliente?checkout=start&payment=success",
+        cancel_url=f"{frontend}/cliente?checkout=start-plus&payment=cancel",
+        metadata={
+            "tipo": "ciak_start_plus",
+            "client_id": client["id"],
+            "email": client["email"],
+        },
+    )
+    return {
+        "success": True,
+        "checkout_url": session.url,
+        "amount_cents": START_PLUS_AMOUNT_CENTS,
+        "credit_amount_cents": START_PLUS_AMOUNT_CENTS,
+        "credit_valid_days": START_PLUS_CREDIT_DAYS,
     }
 
 

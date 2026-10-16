@@ -4772,12 +4772,13 @@ async def _build_all_sources(db) -> list[dict]:
         })
 
     # ── Ciak Start €390 (ciak_clients che hanno acquistato lo Start) ──
-    start_offer = MAIN_OFFERS["CIAK-START"]
     async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
+        # Chi ha comprato Start Plus si fattura a 790 EUR, non a 390.
+        start_offer = MAIN_OFFERS["CIAK-START-PLUS"] if c.get("start_plus_purchased_at") else MAIN_OFFERS["CIAK-START"]
         key = f"start:client:{c.get('id')}"
         sources.append({
             "source_key": key, "source_type": "ciak_start", "fonte": "ciak_start",
-            "fonte_label": "Ciak Start", "service_code": start_offer["code"],
+            "fonte_label": "Start Plus" if c.get("start_plus_purchased_at") else "Ciak Start", "service_code": start_offer["code"],
             "descrizione": start_offer["descrizione"], "periodicita": "una_tantum",
             "importo": eur_from_cents(start_offer["amount_cents"]),
             "source_payment_id": c.get("last_checkout_session_id"),
@@ -4793,7 +4794,10 @@ async def _build_all_sources(db) -> list[dict]:
     async for c in db.ciak_clients.find({"partnership_attiva": True}):
         is_upgrade = has_start_entitlement(c)
         offer = upgrade_offer if is_upgrade else partnership_offer
-        pricing = partnership_price_for_client(c)
+        if c.get("start_plus_purchased_at"):
+            offer = MAIN_OFFERS["CIAK-UPGRADE-PLUS"]
+        # Il credito di Start Plus scade a 60 giorni: si prezza alla data del pagamento, non a oggi.
+        pricing = partnership_price_for_client(c, now=c.get("partnership_purchased_at"))
         key = f"partnership:client:{c.get('id')}"
         sources.append({
             "source_key": key, "source_type": "partnership",

@@ -81,6 +81,7 @@ export function PartnershipEducationPage({ dashboard }) {
   const fullAmount = pricing.full_amount_cents ?? PRICING.partnership.cents;
   const creditAmount = pricing.credit_amount_cents ?? 0;
   const dueAmount = pricing.due_amount_cents ?? fullAmount - creditAmount;
+  const plusCredit = pricing.start_plus || null;
   // Contratto e pagamento si aprono dopo la call (o per chi ha gia' Start): prima non c'e' niente da firmare.
   const canBuy = !isPartner && (callDone || access === "cliente_start");
 
@@ -119,7 +120,7 @@ export function PartnershipEducationPage({ dashboard }) {
       {!isPartner ? (
         <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-6" aria-labelledby="partnership-prezzo">
           <h2 id="partnership-prezzo" className="text-lg font-semibold text-slate-900">
-            {creditAmount > 0 ? "Credito Start garantito" : "Il prezzo"}
+            {creditAmount > 0 ? (plusCredit ? "Credito Start Plus" : "Credito Start garantito") : "Il prezzo"}
           </h2>
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <div className="flex items-center justify-between gap-4">
@@ -129,13 +130,20 @@ export function PartnershipEducationPage({ dashboard }) {
             {creditAmount > 0 ? (
               <>
                 <div className="flex items-center justify-between gap-4">
-                  <span>Credito Ciak Start</span>
+                  <span>{plusCredit ? "Credito Start Plus" : "Credito Ciak Start"}</span>
                   <strong>-{euro(creditAmount)}</strong>
                 </div>
                 <div className="flex items-center justify-between gap-4 border-t border-yellow-200 pt-3 text-base text-slate-900">
                   <span>Totale upgrade</span>
                   <strong>{euro(dueAmount)}</strong>
                 </div>
+                {plusCredit?.credit_expires_at ? (
+                  <p className="text-xs text-slate-600">
+                    {plusCredit.credit_active
+                      ? `Il credito pieno vale fino al ${new Date(plusCredit.credit_expires_at).toLocaleDateString("it-IT")}; dopo restano ${euro(plusCredit.credit_after_expiry_cents)}.`
+                      : `Il credito pieno è scaduto il ${new Date(plusCredit.credit_expires_at).toLocaleDateString("it-IT")}: restano ${euro(plusCredit.credit_after_expiry_cents)}.`}
+                  </p>
+                ) : null}
               </>
             ) : (
               <p className="text-slate-600">

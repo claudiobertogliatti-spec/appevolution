@@ -15,6 +15,8 @@ Prezzi definitivi (LOCK):
   - CIAK-START       €390  una tantum
   - CIAK-PARTNERSHIP €2.990 una tantum
   - CIAK-UPGRADE     €2.600 una tantum  (Partnership - credito Start)
+  - CIAK-START-PLUS  €790   una tantum  (credito intero sulla Partnership entro 60 giorni)
+  - CIAK-UPGRADE-PLUS €2.200 una tantum (Partnership - credito Start Plus, entro 60 giorni)
   - EVO-S recover/start/grow/scale = 147/297/497/797 €/mese
 """
 from __future__ import annotations
@@ -24,12 +26,14 @@ from typing import Any, Optional
 from services.ciak_client_accounts import (
     BLUEPRINT_AMOUNT_CENTS,
     START_AMOUNT_CENTS,
+    START_PLUS_AMOUNT_CENTS,
     PARTNERSHIP_AMOUNT_CENTS,
 )
 
 # Upgrade = Partnership al netto del credito Ciak Start gia' versato.
 # NON duplicare il calcolo altrove: deriva dai valori canonici.
 UPGRADE_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_AMOUNT_CENTS  # 299000 - 39000 = 260000
+UPGRADE_PLUS_AMOUNT_CENTS = PARTNERSHIP_AMOUNT_CENTS - START_PLUS_AMOUNT_CENTS  # 299000 - 79000 = 220000
 
 # Condizioni EVO-S (abbonamenti post 12 mesi Partnership).
 EVO_S_MIN_MONTHS = 6              # permanenza minima
@@ -83,6 +87,26 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
         "descrizione": (
             "Progettazione, produzione e lancio dell'offerta digitale secondo "
             "il percorso Ciak."
+        ),
+    },
+    "CIAK-START-PLUS": {
+        "code": "CIAK-START-PLUS",
+        "nome": "Start Plus",
+        "amount_cents": START_PLUS_AMOUNT_CENTS,  # 79000 -> €790
+        "periodicita": "una_tantum",
+        "descrizione": (
+            "Percorso iniziale per posizionamento, brand, profili, sito e contenuti, "
+            "con un primo prodotto da vendere, pagina di vendita, checkout e messaggio di lancio."
+        ),
+    },
+    "CIAK-UPGRADE-PLUS": {
+        "code": "CIAK-UPGRADE-PLUS",
+        "nome": "Upgrade Partnership Ciak da Start Plus",
+        "amount_cents": UPGRADE_PLUS_AMOUNT_CENTS,  # 220000 -> €2.200
+        "periodicita": "una_tantum",
+        "descrizione": (
+            "Upgrade alla Partnership Ciak, al netto del credito Start Plus "
+            "gia' versato."
         ),
     },
     "CIAK-UPGRADE": {

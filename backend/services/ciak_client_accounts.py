@@ -10,6 +10,10 @@ from uuid import uuid4
 BLUEPRINT_AMOUNT_CENTS = 2700  # €27: importo STORICO per fatturare chi ha già pagato (il funnel nuovo è gratuito, checkout €27 ritirato)
 START_AMOUNT_CENTS = 39000
 PARTNERSHIP_AMOUNT_CENTS = 299000
+# Start Plus (decisione di Claudio 15-16/10/2026): 790 EUR. Il credito sulla Partnership e'
+# intero (790) entro 60 giorni dall'acquisto; dopo restano 390, come il credito di Start.
+START_PLUS_AMOUNT_CENTS = 79000
+START_PLUS_CREDIT_DAYS = 60
 ACCESS_BLUEPRINT = "cliente_blueprint"
 ACCESS_START = "cliente_start"
 ACCESS_PARTNER = "partner"
@@ -40,6 +44,36 @@ def has_start_entitlement(client: dict[str, Any]) -> bool:
         or client.get("start_purchased_at")
         or (stored_credit not in (None, "", 0, "0"))
     )
+
+
+def _parse_iso(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def has_start_plus(client: dict[str, Any]) -> bool:
+    """True se il cliente ha acquistato Start Plus (la data di acquisto e' il suo registro)."""
+    return bool(client.get("start_plus_purchased_at"))
+
+
+def start_plus_credit_expires_at(client: dict[str, Any]) -> datetime | None:
+    bought = _parse_iso(client.get("start_plus_purchased_at"))
+    return bought + timedelta(days=START_PLUS_CREDIT_DAYS) if bought else None
+
+
+def start_plus_credit_active(client: dict[str, Any], now: Any = None) -> bool:
+    """Il credito pieno di 790 EUR vale fino a 60 giorni dall'acquisto (estremo incluso)."""
+    expires = start_plus_credit_expires_at(client)
+    if expires is None:
+        return False
+    reference = _parse_iso(now) if now is not None else datetime.now(timezone.utc)
+    return reference is not None and reference <= expires
 
 
 def _valore_pieno(valore: Any) -> bool:
@@ -138,12 +172,17 @@ def ruolo_contatto(client: dict[str, Any] | None, partner: dict[str, Any] | None
         return {
             "tipo": "cliente_start",
             "label": "Cliente Ciak Start",
-            "dettaglio": "Ha pagato Ciak Start (390 €)." + (f" Attivo dal {str(when)[:10]}." if when else ""),
+            "dettaglio": (
+                ("Ha pagato Start Plus (790 €)." if has_start_plus(client) else "Ha pagato Ciak Start (390 €).")
+                + (f" Attivo dal {str(when)[:10]}." if when else "")
+            ),
         }
     return {"tipo": "lead", "label": "Lead", "dettaglio": "Non ha ancora pagato nessuna offerta."}
 
 
-def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
+def partnership_price_for_client(client: dict[str, Any], now: Any = None) -> dict[str, Any]:
+    """Prezzo della Partnership al netto del credito. `now` serve per ricalcolare a una data
+    passata (es. la data del pagamento, per fatturare): la scadenza di Start Plus dipende da lei."""
     stored_credit = client.get("start_credit_amount")
     if has_start_entitlement(client):
         try:
@@ -155,13 +194,25 @@ def partnership_price_for_client(client: dict[str, Any]) -> dict[str, Any]:
             credit = int(stored_credit or 0)
         except (TypeError, ValueError):
             credit = 0
+    plus = has_start_plus(client)
+    if plus:
+        # Start Plus: 790 interi entro 60 giorni, poi 390 (mai meno di Start).
+        credit = START_PLUS_AMOUNT_CENTS if start_plus_credit_active(client, now) else START_AMOUNT_CENTS
     credit = max(0, min(credit, PARTNERSHIP_AMOUNT_CENTS))
-    return {
+    result = {
         "full_amount_cents": PARTNERSHIP_AMOUNT_CENTS,
         "credit_amount_cents": credit,
         "due_amount_cents": PARTNERSHIP_AMOUNT_CENTS - credit,
         "currency": "eur",
     }
+    if plus:
+        expires = start_plus_credit_expires_at(client)
+        result["start_plus"] = {
+            "credit_expires_at": expires.isoformat() if expires else None,
+            "credit_after_expiry_cents": START_AMOUNT_CENTS,
+            "credit_active": start_plus_credit_active(client, now),
+        }
+    return result
 
 
 def _score_from_session(session: dict[str, Any]) -> int:
@@ -332,6 +383,31 @@ def build_start_entitlement_updates(
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
         "start_credit_amount": START_AMOUNT_CENTS,
+        "start_payments": registrati,
+        "updated_at": now,
+    }
+
+
+def build_start_plus_entitlement_updates(
+    client: dict[str, Any],
+    *,
+    reference_id: str,
+    now: str,
+) -> dict[str, Any] | None:
+    """Campi da scrivere per attivare Start Plus. Include l'accesso a Ciak Start (Start Plus
+    consegna anche le fondamenta). Ritorna None se quel pagamento e' gia' registrato.
+    La data `start_plus_purchased_at` e' il registro da cui scade il credito a 60 giorni."""
+    registrati = [dict(item) for item in (client.get("start_payments") or [])]
+    if any(item.get("reference_id") == reference_id for item in registrati):
+        return None
+    registrati.append({
+        "amount_cents": START_PLUS_AMOUNT_CENTS, "reference_id": reference_id, "at": now, "offer": "start_plus",
+    })
+    return {
+        "access_level": ACCESS_START,
+        "start_purchased_at": client.get("start_purchased_at") or now,
+        "start_plus_purchased_at": client.get("start_plus_purchased_at") or now,
+        "start_credit_amount": START_PLUS_AMOUNT_CENTS,
         "start_payments": registrati,
         "updated_at": now,
     }

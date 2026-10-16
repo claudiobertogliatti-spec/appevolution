@@ -85,7 +85,7 @@ export function HomePaths({ dashboard }) {
       kind="startPlus"
       name="Il tuo primo prodotto, in vendita"
       price={euro(startPlusCents)}
-      priceNote="Si scalano interi sulla Partnership entro 60 giorni dall'acquisto"
+      priceNote="Si scalano interi sulla Partnership entro 60 giorni dall'acquisto, poi restano 390 €"
       body={offerData.startPlus.tagline}
       bullets={offerData.startPlus.cardServizi}
       to="/cliente/start-plus"
@@ -119,7 +119,7 @@ export function HomePaths({ dashboard }) {
         <h2 className="pc-h2">Tre percorsi. Ognuno ha la sua pagina: scegli e approfondisci.</h2>
         <div className="mt-10 grid gap-5 lg:grid-cols-3">{partnershipFirst ? [partnership, start, startPlus] : [start, startPlus, partnership]}</div>
         <p className="mt-6 text-xs leading-relaxed text-slate-500">
-          I {euro(startCents)} di Ciak Start e i {euro(startPlusCents)} di Start Plus si scalano interi se poi passi alla Partnership (per Start Plus entro 60 giorni dall'acquisto). Nessun guadagno è garantito: ci impegniamo
+          I {euro(startCents)} di Ciak Start e i {euro(startPlusCents)} di Start Plus si scalano interi se poi passi alla Partnership (per Start Plus entro 60 giorni dall'acquisto, poi ne restano 390). Nessun guadagno è garantito: ci impegniamo
           sul lavoro e sul metodo, i risultati dipendono anche da mercato, contenuti e impegno.
         </p>
       </div>
