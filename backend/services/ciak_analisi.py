@@ -378,7 +378,10 @@ Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
 
 meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).
 
-⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri."""
+⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri.
+
+Cosa copre Ciak Start: direzione di posizionamento, basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia contenuti. Cosa NON copre: caso studio documentato, metodo formalizzato, canale B2B, lead magnet. Nelle sezioni "manca" e "roadmap" non far credere che Start risolva questi punti: di' quali restano da costruire dopo.
+Cosa copre la Partnership: applicazione del Metodo E.V.O., funnel, automazioni, area riservata e asset digitali, copywriting, supporto al lancio. Cosa NON dichiarare incluso: un caso studio documentato, un canale B2B, un lead magnet, perche' dipendono dai risultati e dal lavoro del cliente. Nelle sezioni "manca" e "roadmap" di' quali di questi restano da costruire dopo."""
 
 
 def _build_cta_section(instradamento, nome: str) -> dict:
