@@ -42,6 +42,26 @@ def _payload():
     }
 
 
+def test_13_nuovo_formato_tre_card_e_14_il_nostro_consiglio():
+    p = _payload()
+    p["sezioni"]["prossimo"] = {
+        "title": "Tre modi", "accent": "per partire", "lead": "L",
+        "cards": [{"h": "Card-uno", "p": "desc-uno"}, {"h": "Card-due", "p": "desc-due"},
+                  {"h": "Card-tre", "p": "desc-tre"}],
+    }
+    html = render_blueprint_html(p)
+    for t in ("Card-uno", "Card-due", "Card-tre", "desc-uno", "desc-tre"):
+        assert t in html
+    assert "Le tre strade" in html and "Il nostro consiglio" in html
+    assert "Dopo la call" not in html
+
+
+def test_card_su_pagina_scura_hanno_il_titolo_scuro():
+    """La 13 e' su pagina scura con card bianche: senza questa regola il titolo e' bianco su bianco."""
+    from services.ciak_pdf_blueprint import _CSS
+    assert ".dark .card h4{color:var(--ink)}" in _CSS
+
+
 def test_sono_14_sezioni_locked_in_ordine():
     # 13 sezioni diagnostiche LOCKATE + la CTA finale (sez. 14).
     assert [k for (k, *_r) in _SEZIONI] == [
