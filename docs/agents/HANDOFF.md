@@ -1,3 +1,24 @@
+### 2026-10-16 · Claude Code · cc/blueprint-13-14-genere — Blueprint: 13 "Le tre strade", 14 "Il nostro consiglio", regola sul genere
+
+**RICHIESTA:** Claudio presenta il Blueprint IN CALL: la 13 diceva "Dopo la call". Servono le 3 opzioni (solo descrizioni, niente prezzi) e subito dopo il nostro consiglio; inoltre errori di genere (Luca, Andrea non sono femminili).
+
+**DICHIARATO (backend/services/ciak_analisi.py, ciak_pdf_blueprint.py + test)**
+- Sezione 13 deterministica (`_build_strade_section`: Ciak Start, Start Plus, Partnership, sole descrizioni), iniettata come la 14; l'AI scrive 12 sezioni (prompt, schema, `_SEZIONI_BLUEPRINT`, user_message aggiornati).
+- Renderer `_c_strade`: i Blueprint già salvati con la vecchia 13 (no/yes/chiusura) continuano a renderizzare.
+- Sezione 14: eyebrow "Il nostro consiglio"; tolti i due testi al maschile ("Sei pronto per la", "ti porta pronto alla Partnership").
+- Regola sul genere in `_VINCOLI_STILE` (condiviso da research, definitiva, bozza, script_call, blueprint). Il nome del cliente NON viene mandato al modello.
+- CSS: `.dark .card h4{color:var(--ink)}` (la 13 è su pagina scura con card bianche: il titolo usciva bianco su bianco, trovato guardando il PDF).
+
+**VERIFICATO**
+- `cd backend && MONGO_URL=mongodb://localhost:27017 DB_NAME=t python3 -m pytest tests/test_ciak_blueprint_generator.py tests/test_ciak_pdf_blueprint.py tests/test_ciak_analisi.py tests/test_ciak_scoring_ai.py -q` → 48 passed.
+- PDF di prova per entrambi i rami (start e partnership), 16 pagine; `pdftotext`: 0 occorrenze di pronto/pronta/dopo la call/€/euro/trattino lungo; pagine 13 e 14 guardate.
+
+**⛔ NON VERIFICATO / APERTO**
+- Nessun Blueprint reale generato dal modello (serve ANTHROPIC_API_KEY): contenuto delle sezioni 1-12 e rispetto della regola genere da verificare con una rigenerazione.
+- Prompt store admin: `_resolve_prompt` usa la versione attiva dello store per `research`, `definitiva`, `bozza`, `script_call`: se ce n'è una, la regola sul genere NON vale lì finché non la si aggiunge nello store. `blueprint` usa il prompt nel codice (nessuno store).
+- Testo della card Partnership: costruito dalle voci di `offerData.js` (partnership.servizi); "12 mesi" viene dalla decisione di Claudio, non da offerData.js. Lo Start Plus coincide con `offerData.startPlus`.
+- Non toccati (decisioni di Claudio): ramo del Plus nella 14, "numero chiuso" (Partnership) e "entro 48 ore" (Start), "una struttura che venda al posto tuo".
+
 ### 2026-10-14 (4) · Claude Code · claude/modest-euler-xde2pw — Controllo completo di server.py: 238 rotte chiuse
 
 **RICHIESTA:** «si controllo completo» (dopo le rotte `/stefania/*`).
