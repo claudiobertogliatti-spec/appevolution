@@ -6,6 +6,7 @@
  *  - Ciak Start: 390 €
  *  - Partnership Evolution PRO: 2.990 €
  *  - Upgrade Start → Partnership: 2.600 € (credito dei 390 € già versati incluso)
+ *  - Start Plus: 790 € (decisione di Claudio 15/10/2026); upgrade verso la Partnership 2.200 €
  *
  * Il Blueprint (analisi consulenziale) NON è qui: è una decisione di flusso
  * separata (prezzo/checkout gestiti altrove) e va lasciata intatta.
@@ -15,6 +16,8 @@ export const PRICING = {
   start: { cents: 39000, label: "390 €" },
   partnership: { cents: 299000, label: "2.990 €" },
   upgradeFromStart: { cents: 260000, label: "2.600 €" },
+  startPlus: { cents: 79000, label: "790 €" },
+  upgradeFromStartPlus: { cents: 220000, label: "2.200 €" },
 };
 
 export const euro = (cents) => `${(cents / 100).toLocaleString("it-IT")} €`;

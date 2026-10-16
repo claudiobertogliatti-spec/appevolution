@@ -39,6 +39,41 @@ export const offerData = {
       'Revisione finale e readiness partnership',
     ],
   },
+  startPlus: {
+    name: 'Start Plus',
+    price: PRICING.startPlus.label,
+    priceNote: "si riscalano interi sulla Partnership entro 60 giorni dall'acquisto",
+    // Testi dalla Scheda Start Plus (15/10/2026). Il prodotto lo vende il cliente, ai suoi contatti.
+    tagline: 'Le fondamenta, più il tuo primo prodotto da vendere.',
+    body:
+      'Un pacchetto di servizi. Mettiamo in ordine posizionamento, brand, profili e contenuti, '
+      + 'e costruiamo con te un primo prodotto piccolo, con la sua pagina di vendita e il messaggio '
+      + 'per presentarlo ai tuoi contatti. Il prodotto lo vendi tu.',
+    creditCopy:
+      "I 790 € di Start Plus si scalano interi se passi alla Partnership entro 60 giorni dall'acquisto.",
+    yourPart:
+      'La tua parte è piccola, ed è quella che sai già fare: mettere la tua competenza nel prodotto. '
+      + 'Struttura, pagina di vendita e checkout li costruiamo noi.',
+    disclaimer:
+      'Nessun guadagno è garantito: ci impegniamo sul lavoro e sul metodo, i risultati dipendono anche da '
+      + 'mercato, contenuti e impegno. Le vendite del prodotto le fai tu, ai tuoi contatti.',
+    cta: 'Scopri Start Plus',
+    servizi: [
+      'Direzione di posizionamento',
+      'Basi del brand e sistemazione dei profili social',
+      'Sito vetrina semplice',
+      'Strategia e calendario dei contenuti',
+      'Un primo prodotto con una sola promessa',
+      'Pagina di vendita, checkout e testo del messaggio di lancio',
+      'Revisione finale e prontezza alla Partnership',
+    ],
+    cardServizi: [
+      'Le fondamenta di Start: posizionamento, brand, profili, sito vetrina, contenuti',
+      'Un primo prodotto con una sola promessa',
+      'Pagina di vendita, checkout e testo del messaggio di lancio',
+      'Revisione finale e prontezza alla Partnership',
+    ],
+  },
   partnership: {
     name: 'Partnership Evolution PRO',
     price: PRICING.partnership.label,

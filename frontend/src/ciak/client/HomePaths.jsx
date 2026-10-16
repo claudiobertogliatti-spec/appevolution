@@ -6,6 +6,8 @@ import { PRICING } from "../pricing";
 const euro = (cents) =>
   `${new Intl.NumberFormat("it-IT", { useGrouping: true, maximumFractionDigits: 0 }).format((cents || 0) / 100)} €`;
 
+const KIND_LABEL = { start: "Ciak Start", startPlus: "Start Plus", partnership: "Partnership" };
+
 function PathCard({ kind, badge, name, price, priceNote, body, bullets, to, cta, strong }) {
   return (
     <section
@@ -19,7 +21,7 @@ function PathCard({ kind, badge, name, price, priceNote, body, bullets, to, cta,
           {badge}
         </span>
       ) : null}
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{kind === "start" ? "Ciak Start" : "Partnership"}</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{KIND_LABEL[kind]}</p>
       <h3 className="mt-2 text-2xl font-extrabold text-slate-900">{name}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
       <p className="mt-5 flex flex-wrap items-baseline gap-x-2 text-slate-900">
@@ -59,6 +61,7 @@ function PathCard({ kind, badge, name, price, priceNote, body, bullets, to, cta,
  */
 export function HomePaths({ dashboard }) {
   const startCents = dashboard.pricing?.ciak_start?.amount_cents ?? PRICING.start.cents;
+  const startPlusCents = PRICING.startPlus.cents;
   const fullCents = dashboard.pricing?.partnership?.full_amount_cents ?? PRICING.partnership.cents;
   const partnershipFirst = dashboard.raccomandata === "partnership";
 
@@ -74,6 +77,19 @@ export function HomePaths({ dashboard }) {
       bullets={offerData.start.servizi.slice(0, 5)}
       to="/cliente/start"
       cta="Scopri Ciak Start"
+    />
+  );
+  const startPlus = (
+    <PathCard
+      key="startPlus"
+      kind="startPlus"
+      name="Il tuo primo prodotto, in vendita"
+      price={euro(startPlusCents)}
+      priceNote="Si scalano interi sulla Partnership entro 60 giorni dall'acquisto"
+      body={offerData.startPlus.tagline}
+      bullets={offerData.startPlus.cardServizi}
+      to="/cliente/start-plus"
+      cta="Scopri Start Plus"
     />
   );
   const partnership = (
@@ -100,10 +116,10 @@ export function HomePaths({ dashboard }) {
     <section className="pc-section" id="prossimo-passo">
       <div className="pc-wrap">
         <p className="pc-kicker">Il tuo prossimo passo</p>
-        <h2 className="pc-h2">Due percorsi. Ognuno ha la sua pagina: scegli e approfondisci.</h2>
-        <div className="mt-10 grid gap-5 lg:grid-cols-2">{partnershipFirst ? [partnership, start] : [start, partnership]}</div>
+        <h2 className="pc-h2">Tre percorsi. Ognuno ha la sua pagina: scegli e approfondisci.</h2>
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">{partnershipFirst ? [partnership, start, startPlus] : [start, startPlus, partnership]}</div>
         <p className="mt-6 text-xs leading-relaxed text-slate-500">
-          I {euro(startCents)} di Ciak Start si scalano interi se poi passi alla Partnership. Nessun guadagno è garantito: ci impegniamo
+          I {euro(startCents)} di Ciak Start e i {euro(startPlusCents)} di Start Plus si scalano interi se poi passi alla Partnership (per Start Plus entro 60 giorni dall'acquisto). Nessun guadagno è garantito: ci impegniamo
           sul lavoro e sul metodo, i risultati dipendono anche da mercato, contenuti e impegno.
         </p>
       </div>
