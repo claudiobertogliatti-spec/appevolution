@@ -180,4 +180,26 @@ describe("Account Ciak: chi ha comprato e chi ha solo il Blueprint gratuito", ()
     expect(screen.getByText("Start Plus (da Start)")).toBeTruthy();
     expect(screen.getByText(/40 giorni rimasti/)).toBeTruthy();
   });
+
+  test("il pulsante Primo prodotto c'e' solo per i clienti Plus e apre il pannello", async () => {
+    apiGet.mockImplementation(async (path) => {
+      if (path === "/clienti-ciak") {
+        return { count: 2, items: [
+          { id: "p", name: "Pia Plus", email: "p@x.it", access_level: "cliente_start", start_purchased_at: "2026-10-01",
+            start_plus: { acquistato_il: "2026-10-01T10:00:00+00:00", da_start: false, credito_pieno_attivo: true,
+              giorni_rimasti: 40, credito_pieno_cents: 79000, credito_dopo_cents: 39000 } },
+          { id: "s", name: "Sara Start", email: "s@x.it", access_level: "cliente_start", start_purchased_at: "2026-10-01", start_plus: null },
+        ] };
+      }
+      return { voci: [], via_finale: null, mancanti: [], stato_passo: "pending" };
+    });
+    render(<MemoryRouter><ClientiCiak /></MemoryRouter>);
+    await screen.findByText("Pia Plus");
+    expect(screen.getAllByRole("button", { name: "Primo prodotto" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Primo prodotto" }));
+    expect(await screen.findByTestId("primo-prodotto-panel")).toBeTruthy();
+    expect(apiGet).toHaveBeenCalledWith("/start/p/primo-prodotto");
+    fireEvent.click(screen.getByRole("button", { name: "Chiudi primo prodotto" }));
+    expect(screen.queryByTestId("primo-prodotto-panel")).toBeNull();
+  });
 });

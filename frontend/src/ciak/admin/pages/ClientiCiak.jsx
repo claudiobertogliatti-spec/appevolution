@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch, apiGet, apiPost } from "../api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import LinkAccessoCliente from "../components/LinkAccessoCliente";
+import { PrimoProdottoPanel } from "../components/PrimoProdottoPanel";
 
 const ACCESS_LABELS = {
   cliente_blueprint: "Blueprint",
@@ -265,6 +266,7 @@ export function ClientiCiak({ onAuthExpired }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [decisionLoading, setDecisionLoading] = useState(null);
+  const [primoProdottoAperto, setPrimoProdottoAperto] = useState(null);
   const [notice, setNotice] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -514,7 +516,8 @@ export function ClientiCiak({ onAuthExpired }) {
                 </tr>
               ) : (
                 visibili.map((row) => (
-                  <tr key={row.key} className="align-top">
+                  <Fragment key={row.key}>
+                  <tr className="align-top">
                     <td className="px-4 py-4">
                       {row.email && row.email !== "-" ? (
                         <Link
@@ -557,6 +560,14 @@ export function ClientiCiak({ onAuthExpired }) {
                             <div className="mt-1 text-xs text-slate-500">Acquistato il {row.plus.acquisto}</div>
                           )}
                           <div className="mt-1 text-xs text-slate-500">{row.plus.credito}</div>
+                          <button
+                            type="button"
+                            onClick={() => setPrimoProdottoAperto(primoProdottoAperto === row.id ? null : row.id)}
+                            className="mt-2 min-h-[44px] rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                            aria-expanded={primoProdottoAperto === row.id}
+                          >
+                            {primoProdottoAperto === row.id ? "Chiudi primo prodotto" : "Primo prodotto"}
+                          </button>
                         </div>
                       )}
                       <div>{row.startCredit === "-" ? "Credito: -" : `Credito: ${row.startCredit}`}</div>
@@ -627,6 +638,14 @@ export function ClientiCiak({ onAuthExpired }) {
                       </button>
                     </td>
                   </tr>
+                  {row.plus && row.id && primoProdottoAperto === row.id && (
+                    <tr className="bg-slate-50">
+                      <td colSpan={7}>
+                        <PrimoProdottoPanel clientId={row.id} />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))
               )}
             </tbody>

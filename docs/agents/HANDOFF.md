@@ -1,3 +1,13 @@
+### 2026-10-16 · Claude Code · cc/start-primo-prodotto — Start Plus: le quattro voci del primo prodotto in /admin
+
+**COSA:** schema approvato da Claudio. Dentro il passo `start-primo-prodotto` ci sono 4 voci (Promessa, Pagina di vendita, Checkout, Messaggio di lancio), ognuna con stato `da_fare / in_lavorazione / consegnato`, contenuto e nota. Lo stato lo scrive una persona dal pulsante «Primo prodotto» nella riga del cliente Plus in /admin/clienti-ciak. «Consegnato» richiede il contenuto (link `https://` per pagina di vendita e checkout). Il passo diventa `done` solo col via finale, concesso dal server a voci tutte consegnate; qualsiasi modifica successiva a una voce toglie il via finale e riapre il passo.
+
+**DOVE:** `backend/services/start_primo_prodotto.py` (regole pure), 3 rotte in `backend/routers/ciak_admin.py` (`GET /start/{id}/primo-prodotto`, `PUT .../voce`, `POST .../via-finale`; 409 se il cliente non ha Plus), dati in `partner_journey_steps.data.primo_prodotto`, `frontend/src/ciak/admin/components/PrimoProdottoPanel.jsx`.
+
+**VERIFICATO:** backend 70 passati (nuovo `test_start_primo_prodotto.py` 13 + `test_start_plus`, `test_ciak_admin_clienti_ciak`, `test_start_journey_tiers`); frontend `PrimoProdottoPanel.test.jsx` e `ClientiCiak.test.jsx` 15 passati. Entrambi aggiunti alla CI.
+
+**APERTO / NON VERIFICATO:** (1) chi da' il via finale: oggi qualsiasi admin non limitato al reparto Acquisizione, il nome resta registrato in `via_finale.da`; la proposta era che lo dia Claudio. Se serve bloccarlo a un solo account va deciso come identificarlo. (2) Nessuna prova visiva del pannello renderizzato e nessun test su DB reale o Stripe test. (3) Il cliente non vede ancora queste voci: sono solo lato admin.
+
 ### 2026-10-16 · Claude Code · cc/start-plus-admin-vista — Admin: Start Plus visibile per cliente
 
 **COSA:** in /admin/clienti-ciak chi ha Start Plus ha l'etichetta «Start Plus» (con «da Start» se `start_plus_from_start`), la data di acquisto e i giorni rimasti al credito pieno di 790 €; scaduto, «restano 390 €». Dati solo dal documento cliente: `start_plus_admin_view` (`services/ciak_client_accounts.py`) riusa `start_plus_credit_expires_at`/`start_plus_credit_active`, esposto come `start_plus` da `GET /api/admin/ciak/clienti-ciak`.

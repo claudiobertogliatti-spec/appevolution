@@ -8236,3 +8236,105 @@ async def avanza_lead(lead_id: str, body: AvanzaLeadIn, admin=Depends(require_ci
         except Exception as e:  # noqa: BLE001
             logger.warning(f"[AVANZA] Systeme emit fallito per {email}: {e}")
     return {"ok": True, "stage": stage, "systeme": systeme_ok}
+
+
+
+# ─── Start Plus: dettaglio del passo "Il tuo primo prodotto" ───────────────
+# Stato per voce scritto a mano da un admin; il passo si chiude solo col via finale.
+
+async def _cliente_plus_o_errore(client_id: str) -> dict:
+    from services.ciak_client_accounts import has_start_plus
+
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(404, "Cliente non trovato")
+    if not has_start_plus(client):
+        raise HTTPException(409, "Il cliente non ha Start Plus")
+    return client
+
+
+async def _passo_primo_prodotto(client_id: str) -> dict:
+    from models.start_journey import START_PLUS_STEP_ID
+    from services.journey_seed import seed_start_plus_step
+
+    await seed_start_plus_step(db, client_id)  # idempotente: crea il passo se manca
+    return await db.partner_journey_steps.find_one(
+        {"partner_id": client_id, "step_id": START_PLUS_STEP_ID}, {"_id": 0}
+    ) or {}
+
+
+def _vista_primo_prodotto(blocco: dict) -> dict:
+    from services.start_primo_prodotto import VOCI, VOCI_LABEL, voci_mancanti
+
+    return {
+        "voci": [{"chiave": k, "label": VOCI_LABEL[k], **blocco["voci"][k]} for k in VOCI],
+        "via_finale": blocco["via_finale"],
+        "mancanti": voci_mancanti(blocco),
+    }
+
+
+async def _salva_primo_prodotto(client_id: str, blocco: dict, now: str) -> str:
+    from models.start_journey import START_PLUS_STEP_ID
+    from services.start_primo_prodotto import stato_passo
+
+    stato = stato_passo(blocco)
+    update: dict = {"$set": {"data.primo_prodotto": blocco, "status": stato, "updated_at": now}}
+    if stato == "done":
+        update["$set"]["completed_at"] = now
+    else:
+        update["$unset"] = {"completed_at": ""}
+    await db.partner_journey_steps.update_one(
+        {"partner_id": client_id, "step_id": START_PLUS_STEP_ID}, update
+    )
+    return stato
+
+
+@router.get("/start/{client_id}/primo-prodotto")
+async def leggi_primo_prodotto(client_id: str, admin=Depends(require_ciak_admin)):
+    from services.start_primo_prodotto import normalizza
+
+    await _cliente_plus_o_errore(client_id)
+    passo = await _passo_primo_prodotto(client_id)
+    return {"stato_passo": passo.get("status"), **_vista_primo_prodotto(normalizza(passo.get("data")))}
+
+
+class PrimoProdottoVoceRequest(BaseModel):
+    voce: str
+    stato: str
+    valore: Optional[str] = None
+    nota: Optional[str] = None
+
+
+@router.put("/start/{client_id}/primo-prodotto/voce")
+async def aggiorna_voce_primo_prodotto(
+    client_id: str, body: PrimoProdottoVoceRequest, admin=Depends(require_ciak_admin)
+):
+    from services.start_primo_prodotto import VoceNonValida, aggiorna_voce, normalizza
+
+    await _cliente_plus_o_errore(client_id)
+    passo = await _passo_primo_prodotto(client_id)
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        blocco = aggiorna_voce(normalizza(passo.get("data")), body.voce, body.stato, body.valore, body.nota, now)
+    except VoceNonValida as exc:
+        raise HTTPException(422, str(exc))
+    stato = await _salva_primo_prodotto(client_id, blocco, now)
+    return {"ok": True, "stato_passo": stato, **_vista_primo_prodotto(blocco)}
+
+
+@router.post("/start/{client_id}/primo-prodotto/via-finale")
+async def via_finale_primo_prodotto(client_id: str, admin=Depends(require_ciak_admin)):
+    """Il via finale lo da' una persona, e solo a voci tutte consegnate."""
+    from services.start_primo_prodotto import VoceNonValida, dai_via_finale, normalizza
+
+    await _cliente_plus_o_errore(client_id)
+    passo = await _passo_primo_prodotto(client_id)
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        blocco = dai_via_finale(normalizza(passo.get("data")), getattr(admin, "email", None) or "admin", now)
+    except VoceNonValida as exc:
+        raise HTTPException(409, str(exc))
+    stato = await _salva_primo_prodotto(client_id, blocco, now)
+    return {"ok": True, "stato_passo": stato, **_vista_primo_prodotto(blocco)}
