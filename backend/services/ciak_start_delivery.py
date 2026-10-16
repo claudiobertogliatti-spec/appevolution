@@ -67,6 +67,8 @@ def _send_email(
     paid_at: str,
     guide_pdf: bytes | None = None,
     plus: bool = False,
+    amount_cents: int = 79000,
+    from_start: bool = False,
 ) -> tuple[bool, str | None]:
     host = os.environ.get("SMTP_HOST", "smtp.register.it")
     port = int(os.environ.get("SMTP_PORT", "587"))
@@ -85,15 +87,20 @@ def _send_email(
     )
     if plus:
         # Start Plus: niente date per il primo prodotto, la durata non e' ancora decisa.
+        fondamenta = (
+            "Le fondamenta di Ciak Start sono gia' nella tua area: continui da dove eri."
+            if from_start
+            else "Le fondamenta di Ciak Start: marchio, profili, sito vetrina e contenuti, con le tappe che vedi nella tua area."
+        )
         plain = f"""Ciao {safe_name},
 
-il pagamento di 790 euro e' arrivato e Start Plus e' attivo.
+il pagamento di {amount_cents // 100} euro e' arrivato e Start Plus e' attivo.
 
 Accedi alla tua area da qui:
 {access_url}
 
 Cosa succede adesso:
-1. Le fondamenta di Ciak Start: marchio, profili, sito vetrina e contenuti, con le tappe che vedi nella tua area.
+1. {fondamenta}
 2. Il tuo primo prodotto: ti scriviamo noi per scegliere insieme la promessa e costruire pagina di vendita, checkout e messaggio di lancio.
 
 I 790 euro saranno scalati interamente se passerai alla Partnership entro 60 giorni dall'acquisto. Dopo i 60 giorni restano 390 euro di credito.
@@ -180,6 +187,8 @@ async def deliver_start_access(
     paid_at: str,
     checkout_session_id: str,
     plus: bool = False,
+    amount_cents: int = 79000,
+    from_start: bool = False,
 ) -> bool:
     """Crea un token monouso, invia la mail e rende ogni fallimento recuperabile."""
     audit = {
@@ -227,7 +236,7 @@ async def deliver_start_access(
         login = await create_magic_login_token(db, client_id, email)
         base_url = os.environ.get("CIAK_BASE_URL", "https://www.ciak.io").rstrip("/")
         access_url = f"{base_url}/cliente/accesso?token={login['token']}"
-        sent, error = await asyncio.to_thread(_send_email, email, name, access_url, paid_at, guide_pdf, plus)
+        sent, error = await asyncio.to_thread(_send_email, email, name, access_url, paid_at, guide_pdf, plus, amount_cents, from_start)
     except Exception as exc:  # noqa: BLE001 - persistenza recovery obbligatoria
         sent, error = False, str(exc)
 

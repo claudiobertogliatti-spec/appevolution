@@ -47,14 +47,26 @@ test("prima della call il pulsante non c'e'", () => {
   expect(screen.queryByRole("button", { name: /Attiva Start Plus/ })).toBeNull();
 });
 
-test("chi ha gia' Start non vede il pulsante ma un messaggio per scrivere al team", () => {
+test("chi ha gia' Start vede il passaggio a 400 euro, non l'acquisto da 790", () => {
   const { container } = vedi({ ...base, client: { ...base.client, access_level: "cliente_start" } });
   expect(screen.queryByRole("button", { name: /Attiva Start Plus/ })).toBeNull();
-  expect(container.textContent).toMatch(/Hai già Ciak Start/);
+  expect(screen.getByRole("button", { name: /Passa a Start Plus, 400€/ })).toBeTruthy();
+  expect(container.textContent).toMatch(/paghi solo la differenza/);
+});
+
+test("chi ha gia' Start Plus non vede nessun pulsante", () => {
+  const dashboard = {
+    ...base,
+    client: { ...base.client, access_level: "cliente_start" },
+    pricing: { ciak_start_plus: { ...base.pricing.ciak_start_plus, already_active: true } },
+  };
+  const { container } = vedi(dashboard);
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(container.textContent).toMatch(/Start Plus è attivo sul tuo account/);
 });
 
 test("il partner non vede ne' pulsante ne' messaggio di passaggio", () => {
   const { container } = vedi({ ...base, client: { ...base.client, access_level: "partner" } });
   expect(screen.queryByRole("button", { name: /Attiva Start Plus/ })).toBeNull();
-  expect(container.textContent).not.toMatch(/Hai già Ciak Start/);
+  expect(container.textContent).not.toMatch(/paghi solo la differenza/);
 });

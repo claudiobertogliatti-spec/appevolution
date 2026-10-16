@@ -1248,11 +1248,26 @@ def test_start_plus_live_checkout_closed_without_approvals(monkeypatch, client_a
     assert FakeStripeCheckout.created_requests == []
 
 
-def test_start_plus_checkout_rejects_clients_who_already_have_start(monkeypatch, client_app, fake_db):
+def test_start_plus_checkout_for_start_clients_charges_only_the_400_difference(monkeypatch, client_app, fake_db):
     monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    monkeypatch.setenv("FRONTEND_URL", "https://frontend.example")
     token = _prepara_lead(fake_db)
     fake_db.ciak_clients.docs[0].update(access_level="cliente_start", start_purchased_at="2026-10-01T00:00:00+00:00",
                                         start_credit_amount=39000)
+    response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["amount_cents"] == 40000
+    assert body["credit_amount_cents"] == 79000
+    assert body["from_start"] is True
+    assert FakeStripeCheckout.created_requests[0]["request"].amount == 400.0
+
+
+def test_start_plus_checkout_rejects_who_already_bought_plus(monkeypatch, client_app, fake_db):
+    monkeypatch.setenv("STRIPE_API_KEY", "sk_test_123")
+    token = _prepara_lead(fake_db)
+    fake_db.ciak_clients.docs[0].update(access_level="cliente_start", start_purchased_at="2026-10-01T00:00:00+00:00",
+                                        start_plus_purchased_at="2026-10-02T00:00:00+00:00", start_credit_amount=79000)
     response = client_app.post("/api/ciak/client/start-plus/checkout", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 409
     assert FakeStripeCheckout.created_requests == []

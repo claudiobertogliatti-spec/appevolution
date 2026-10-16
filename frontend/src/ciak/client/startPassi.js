@@ -6,6 +6,7 @@ const ETICHETTE = {
   "start-profili": "I tuoi profili social",
   "start-vetrina": "La tua pagina web",
   "start-contenuti-90": "Il calendario dei 60 giorni",
+  "start-primo-prodotto": "Il tuo primo prodotto",
   "start-readiness": "Il controllo finale",
 };
 

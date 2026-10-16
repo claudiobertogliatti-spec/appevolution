@@ -27,6 +27,7 @@ from services.ciak_client_accounts import (
     BLUEPRINT_AMOUNT_CENTS,
     START_AMOUNT_CENTS,
     START_PLUS_AMOUNT_CENTS,
+    START_PLUS_UPGRADE_FROM_START_CENTS,
     PARTNERSHIP_AMOUNT_CENTS,
 )
 
@@ -97,6 +98,16 @@ MAIN_OFFERS: dict[str, dict[str, Any]] = {
         "descrizione": (
             "Percorso iniziale per posizionamento, brand, profili, sito e contenuti, "
             "con un primo prodotto da vendere, pagina di vendita, checkout e messaggio di lancio."
+        ),
+    },
+    "CIAK-START-PLUS-UPGRADE": {
+        "code": "CIAK-START-PLUS-UPGRADE",
+        "nome": "Passaggio da Ciak Start a Start Plus",
+        "amount_cents": START_PLUS_UPGRADE_FROM_START_CENTS,  # 40000 -> €400
+        "periodicita": "una_tantum",
+        "descrizione": (
+            "Passaggio da Ciak Start a Start Plus: primo prodotto, pagina di vendita, "
+            "checkout e messaggio di lancio, al netto di Ciak Start gia' versato."
         ),
     },
     "CIAK-UPGRADE-PLUS": {

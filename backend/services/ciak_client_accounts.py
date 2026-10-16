@@ -14,6 +14,8 @@ PARTNERSHIP_AMOUNT_CENTS = 299000
 # intero (790) entro 60 giorni dall'acquisto; dopo restano 390, come il credito di Start.
 START_PLUS_AMOUNT_CENTS = 79000
 START_PLUS_CREDIT_DAYS = 60
+# Chi ha gia' Start paga solo la differenza per passare a Start Plus (decisione del 16/10/2026).
+START_PLUS_UPGRADE_FROM_START_CENTS = START_PLUS_AMOUNT_CENTS - START_AMOUNT_CENTS  # 79000 - 39000 = 40000
 ACCESS_BLUEPRINT = "cliente_blueprint"
 ACCESS_START = "cliente_start"
 ACCESS_PARTNER = "partner"
@@ -60,6 +62,13 @@ def _parse_iso(value: Any) -> datetime | None:
 def has_start_plus(client: dict[str, Any]) -> bool:
     """True se il cliente ha acquistato Start Plus (la data di acquisto e' il suo registro)."""
     return bool(client.get("start_plus_purchased_at"))
+
+
+def start_plus_amount_due_for_client(client: dict[str, Any]) -> int:
+    """Quanto paga questo cliente per Start Plus: 790, o 400 se ha gia' Ciak Start."""
+    if has_start_entitlement(client) and not has_start_plus(client):
+        return START_PLUS_UPGRADE_FROM_START_CENTS
+    return START_PLUS_AMOUNT_CENTS
 
 
 def start_plus_credit_expires_at(client: dict[str, Any]) -> datetime | None:
@@ -400,10 +409,11 @@ def build_start_plus_entitlement_updates(
     registrati = [dict(item) for item in (client.get("start_payments") or [])]
     if any(item.get("reference_id") == reference_id for item in registrati):
         return None
+    pagato = start_plus_amount_due_for_client(client)
     registrati.append({
-        "amount_cents": START_PLUS_AMOUNT_CENTS, "reference_id": reference_id, "at": now, "offer": "start_plus",
+        "amount_cents": pagato, "reference_id": reference_id, "at": now, "offer": "start_plus",
     })
-    return {
+    updates = {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
         "start_plus_purchased_at": client.get("start_plus_purchased_at") or now,
@@ -411,6 +421,9 @@ def build_start_plus_entitlement_updates(
         "start_payments": registrati,
         "updated_at": now,
     }
+    if pagato != START_PLUS_AMOUNT_CENTS:
+        updates["start_plus_from_start"] = True  # aveva gia' Start: ha pagato solo la differenza
+    return updates
 
 
 async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, str]:

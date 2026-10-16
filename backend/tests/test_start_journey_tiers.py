@@ -115,7 +115,7 @@ def test_all_known_step_definitions_copre_canonici_e_start_only():
     known = {d["step_id"] for d in all_known_step_definitions()}
     assert known == {d["step_id"] for d in JOURNEY_STEPS_DEFINITION} | {
         d["step_id"] for d in START_JOURNEY_STEPS_DEFINITION
-    }
+    } | {"start-primo-prodotto"}  # passo proprio di Start Plus, seminato solo a chi lo compra
 
 
 # ─── min_tier / gate ───────────────────────────────────────────────────────────
