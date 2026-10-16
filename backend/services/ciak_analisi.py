@@ -44,7 +44,8 @@ _VINCOLI_STILE = """VINCOLI DI STILE NON NEGOZIABILI:
 - VERITÀ BRUTALE: se il modello è debole o il target generico, dillo. Niente adulazione.
 - NO dati inventati: usa solo numeri/competitor dalla ricerca web reale fornita. Se un dato manca, dichiaralo ("non ho elementi sufficienti per...").
 - NO coach-speak: ROI→il guadagno che porti | funnel→percorso | target→chi vuoi raggiungere | nicchia→ambito specifico | scalare→che funziona anche senza di te. Vietati: "potente", "incredibile", "trasforma la tua vita", "rivoluziona", "10x".
-- Personalizza: cita la competenza e il problema specifici del cliente."""
+- Personalizza: cita la competenza e il problema specifici del cliente, ma mai nomi di persone, agenzie o consulenti terzi: scrivi "un consulente", "una psicologa".
+- Mai il trattino lungo: usa virgola, punto o parentesi."""
 
 _PROMPT_RESEARCH = """Sei un analista di mercato. Devi produrre un RESEARCH BRIEF per un professionista che vuole creare un'accademia digitale nel suo settore.
 
@@ -67,14 +68,14 @@ OUTPUT: SOLO JSON valido con questa struttura:
   "note_data_gap": "string (cosa non è stato possibile trovare)"
 }"""
 
-_PROMPT_DEFINITIVA = """Sei il Senior Strategic Advisor di Evolution PRO. Genera l'ANALISI STRATEGICA DEFINITIVA per un professionista, basata sulle sue 8 risposte e sul research brief di mercato.
+_PROMPT_DEFINITIVA = """Sei il Senior Strategic Advisor di Evolution PRO. Genera l'ANALISI STRATEGICA DEFINITIVA per un professionista, basata sulle sue 10 risposte e sul research brief di mercato.
 
 L'analisi segue un ARCO NARRATIVO in 6 capitoli che culmina nel desiderio della partnership:
 1. "Il tuo punto di partenza" — sintesi del profilo dalle 10 domande (60-100 parole)
 2. "Dove sei adesso" — stato reale + limite strutturale del modello attuale (tempo=denaro) + costo di restare fermo (120-180 parole)
 3. "Il tuo mercato" — settore, domanda, competitor REALI e prezzi REALI dal research brief, spazio non presidiato (150-220 parole)
 4. "La tua Accademia Digitale" — visione concreta: nome percorso possibile, promessa di trasformazione, 4 moduli, pricing realistico tarato sul mercato trovato (180-250 parole)
-5. "La roadmap" — fasi/tempi/priorità concrete per costruire l'accademia (5 fasi con durata)
+5. "La roadmap" — tempi e priorità concrete per costruire l'accademia, in 3 fasi del Metodo E.V.O. (Esamina, Valida, Ottimizza) con durata
 6. "Il prossimo passo" — la partnership Evolution PRO come veicolo che realizza la roadmap (80-120 parole)
 
 """ + _VINCOLI_STILE + """
@@ -289,7 +290,7 @@ async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> di
     """Step 2: 6 capitoli arco narrativo, integra il research brief."""
     prompt = await _resolve_prompt("definitiva")
     user_message = (
-        "Genera l'analisi definitiva.\n\n8 RISPOSTE:\n"
+        "Genera l'analisi definitiva.\n\n10 RISPOSTE:\n"
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
     )
@@ -313,7 +314,7 @@ async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: i
     """Step 4: canovaccio vendita per Claudio."""
     prompt = await _resolve_prompt("script_call")
     user_message = (
-        f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
+        f"Stato cliente: {stato}\n\n10 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
         f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
     )
     return await _run(_call_claude_structured, prompt, user_message, _SCHEMA_SCRIPT, "script_call")
@@ -372,12 +373,15 @@ Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
 9. accademia — lead + moduli: 5-6 moduli {titolo, contenuto} = ipotesi di struttura del percorso, da rifinire in call.
 10. rischio — lead + callout: il rischio di restare fermi + (callout) il rischio opposto di fare in fretta e male. Nel callout puoi usare <b>...</b>.
 11. manca — items: 5 elementi {h,p} che servono per un'accademia che vende.
-12. roadmap — lead + steps: 5 fasi {titolo, desc} dalla strategia al lancio.
-13. prossimo — lead + no (la strada sbagliata) + yes (2 voci: la strada corretta col metodo, e che e' il punto della call) + chiusura: <b>Dopo la call.</b> prosegui con Ciak Start o la Partnership; "nessun guadagno garantito".
+12. roadmap — lead + steps: ESATTAMENTE 3 fasi, quelle del Metodo E.V.O., in quest'ordine: Esamina, Valida, Ottimizza. Ogni fase {titolo, desc}: titolo = il nome della fase, desc = cosa si fa in quella fase per questo cliente. Mai 5 fasi, mai numeri di fase inventati.
+13. prossimo — lead + no (la strada sbagliata) + yes (2 voci: la strada corretta col metodo, e che e' il punto della call) + chiusura: <b>Dopo la call.</b> decidiamo insieme il passo giusto per te; "nessun guadagno garantito". NON nominare Ciak Start né la Partnership: li indica la sezione successiva.
 
 meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).
 
-⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri."""
+⛔ NON citare prezzi, pacchetti o "acquista": il Blueprint e' gratuito e l'analisi non vende. La proposta commerciale e' un passo separato. Niente casi studio con numeri.
+
+Cosa copre Ciak Start: direzione di posizionamento, basi del brand, sistemazione dei profili social, sito vetrina semplice, strategia contenuti. Cosa NON copre: caso studio documentato, metodo formalizzato, canale B2B, lead magnet. Nelle sezioni "manca" e "roadmap" non far credere che Start risolva questi punti: di' quali restano da costruire dopo.
+Cosa copre la Partnership: applicazione del Metodo E.V.O., funnel, automazioni, area riservata e asset digitali, copywriting, supporto al lancio. Cosa NON dichiarare incluso: un caso studio documentato, un canale B2B, un lead magnet, perche' dipendono dai risultati e dal lavoro del cliente. Nelle sezioni "manca" e "roadmap" di' quali di questi restano da costruire dopo."""
 
 
 def _build_cta_section(instradamento, nome: str) -> dict:
@@ -415,7 +419,7 @@ def _build_cta_section(instradamento, nome: str) -> dict:
         "title": "Il tuo primo passo è",
         "accent": "Ciak Start.",
         "lead": (f"{n}, hai basi solide ma il progetto va ancora messo a fuoco. Parti da Ciak Start: "
-                 "il gradino guidato che ti porta pronto alla Partnership — e vale come credito verso di essa."),
+                 "il gradino guidato che ti porta pronto alla Partnership, e vale come credito verso di essa."),
         "body": ("È la via più rapida e sicura per trasformare la tua competenza in qualcosa di "
                  "vendibile, senza bruciare tempo e budget in tentativi."),
         "callout": ("<b>Solo se parti entro 48 ore dalla nostra call</b> ricevi in omaggio la guida "
@@ -423,6 +427,17 @@ def _build_cta_section(instradamento, nome: str) -> dict:
                     "nella mail che accompagna questa analisi."),
         "note": "Nessun guadagno garantito: costruiamo un percorso, non promesse. Il prossimo passo lo fai tu.",
     }
+
+
+def _senza_trattino_lungo(obj):
+    """Sostituisce il trattino lungo nell'output dell'AI (regola di scrittura Ciak)."""
+    if isinstance(obj, str):
+        return obj.replace(" — ", ", ").replace("—", ",")
+    if isinstance(obj, list):
+        return [_senza_trattino_lungo(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _senza_trattino_lungo(v) for k, v in obj.items()}
+    return obj
 
 
 async def genera_blueprint(session_token: str) -> dict:
@@ -446,12 +461,13 @@ async def genera_blueprint(session_token: str) -> dict:
         research = {"settore": responses.get("q1_competenza", ""), "dimensione_trend": "", "fascia_prezzo_mercato": "", "note_data_gap": "ricerca web non disponibile"}
 
     user_message = (
-        "Genera il Blueprint definitivo (13 sezioni).\n\n8 RISPOSTE:\n"
+        "Genera il Blueprint definitivo (13 sezioni).\n\n10 RISPOSTE:\n"
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF DI MERCATO:\n{json.dumps(research, ensure_ascii=False, indent=2)}"
     )
     data = await _run(_call_claude_structured, _PROMPT_BLUEPRINT, user_message, _SCHEMA_BLUEPRINT, "blueprint", max_tokens=8000)
 
+    data = _senza_trattino_lungo(data)
     sez = data.get("sezioni") or {}
     mancanti = [k for k in _SEZIONI_BLUEPRINT if k not in sez]
     if mancanti:
