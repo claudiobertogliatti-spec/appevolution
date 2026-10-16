@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { ClientHome } from "./pages/ClientHome";
 import { StartPage } from "./pages/StartPage";
+import { StartPlusPage } from "./pages/StartPlusPage";
 import { StartDomandePage } from "./pages/StartDomandePage";
 import { StartMarchioPage } from "./pages/StartMarchioPage";
 import { PartnershipEducationPage } from "./pages/PartnershipEducationPage";
@@ -193,6 +194,7 @@ function ProtectedClient() {
         {/* Il Blueprint vive nella Home, personalizzata: il vecchio indirizzo rimanda li'. */}
         <Route path="blueprint" element={<Navigate to="/cliente" replace />} />
         <Route path="start" element={<StartPage dashboard={dashboard} />} />
+        <Route path="start-plus" element={<StartPlusPage dashboard={dashboard} />} />
         <Route path="start/domande" element={<StartDomandePage dashboard={dashboard} />} />
         <Route path="start/marchio" element={<StartMarchioPage dashboard={dashboard} />} />
         <Route path="partnership" element={<PartnershipEducationPage dashboard={dashboard} />} />

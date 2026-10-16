@@ -54,12 +54,12 @@ test("i due percorsi stanno nella Home, ognuno porta alla sua pagina", () => {
 test("il percorso consigliato dal Blueprint va per primo, con l'etichetta", () => {
   const { container } = vedi(base);
   const ordine = [...container.querySelectorAll("[data-path]")].map((n) => n.getAttribute("data-path"));
-  expect(ordine).toEqual(["partnership", "start"]);
+  expect(ordine).toEqual(["partnership", "start", "startPlus"]);
   expect(within(container.querySelector('[data-path="partnership"]')).getByText("Consigliato per te")).toBeTruthy();
 
   const rec = vedi({ ...base, raccomandata: "start" });
   const ordine2 = [...rec.container.querySelectorAll("[data-path]")].map((n) => n.getAttribute("data-path"));
-  expect(ordine2).toEqual(["start", "partnership"]);
+  expect(ordine2).toEqual(["start", "startPlus", "partnership"]);
 });
 
 test("la Partnership dichiara il prezzo E il 10%: niente 'tutto incluso'", () => {
@@ -96,7 +96,7 @@ test("senza Blueprint pronto le sezioni personali NON compaiono, ne' testo segna
   expect(screen.queryByText("Competenza")).toBeNull();
   expect(container.textContent).not.toMatch(/lorem|segnaposto|in preparazione/i);
   // i due percorsi ci sono comunque
-  expect(container.querySelectorAll("[data-path]")).toHaveLength(2);
+  expect(container.querySelectorAll("[data-path]")).toHaveLength(3);
 });
 
 test("prima della call resta la Home di stato (nessuna persuasione prematura)", () => {
