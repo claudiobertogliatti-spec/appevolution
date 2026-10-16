@@ -1,3 +1,13 @@
+### 2026-10-16 · Claude Code · cc/start-plus-admin-vista — Admin: Start Plus visibile per cliente
+
+**COSA:** in /admin/clienti-ciak chi ha Start Plus ha l'etichetta «Start Plus» (con «da Start» se `start_plus_from_start`), la data di acquisto e i giorni rimasti al credito pieno di 790 €; scaduto, «restano 390 €». Dati solo dal documento cliente: `start_plus_admin_view` (`services/ciak_client_accounts.py`) riusa `start_plus_credit_expires_at`/`start_plus_credit_active`, esposto come `start_plus` da `GET /api/admin/ciak/clienti-ciak`.
+
+**BASE:** il branch parte da `cc/start-plus-completamento` (PR #387, ancora APERTA al momento della scrittura). Merge solo dopo la #387; la PR ha base main e include il commit della #387 finché non è mergiata.
+
+**VERIFICATO:** backend 118 passati (`test_start_plus`, `test_ciak_admin_clienti_ciak`, `test_start_journey_tiers`, `test_ciak_clients_router`); frontend `ClientiCiak.test.jsx` 9 passati.
+
+**NON FATTO / APERTO:** nessuna rotta marca completato `start-primo-prodotto` (`first_product_reviewed` esiste solo nel modello); l'admin non mostra i passi della journey per cliente Start. Schema per il dettaglio dentro `start-primo-prodotto` da proporre a Claudio. Revisore del primo prodotto: da confermare (oggi owner Marco). Nessuna prova con Stripe test né sul DB reale.
+
 ### 2026-10-16 · Claude Code · cc/blueprint-13-14-genere — Blueprint: 13 "Le tre strade", 14 "Il nostro consiglio", regola sul genere
 
 **RICHIESTA:** Claudio presenta il Blueprint IN CALL: la 13 diceva "Dopo la call". Servono le 3 opzioni (solo descrizioni, niente prezzi) e subito dopo il nostro consiglio; inoltre errori di genere (Luca, Andrea non sono femminili).

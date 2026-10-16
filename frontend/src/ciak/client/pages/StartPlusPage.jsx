@@ -26,10 +26,12 @@ export function StartPlusPage({ dashboard = {} }) {
   const isPartner = access === "partner" || dashboard.partner_area?.status === "attiva";
   const hasStart = access === "cliente_start" || dashboard.start?.attivo === true;
   const callDone = dashboard.diagnostic?.state === "call_done";
-  const canBuy = callDone && !hasStart && !isPartner;
-
   const plus = dashboard.pricing?.ciak_start_plus || {};
+  const plusActive = plus.already_active === true;
+  // Dopo la call si compra da zero (790); chi ha gia' Ciak Start paga solo la differenza (400).
+  const canBuy = !isPartner && !plusActive && (hasStart || callDone);
   const plusCents = plus.amount_cents ?? PRICING.startPlus.cents;
+  const dueCents = plus.amount_due_cents ?? (hasStart ? plusCents - PRICING.start.cents : plusCents);
   const afterExpiryCents = plus.credit_after_expiry_cents ?? PRICING.start.cents;
   const days = plus.credit_valid_days ?? 60;
   const total = PRICING.partnership.cents;
@@ -119,9 +121,14 @@ export function StartPlusPage({ dashboard = {} }) {
             disabled={loading}
             className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 text-[15px] font-bold text-slate-900 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "Apro il checkout..." : `Attiva Start Plus, ${euro(plusCents)}`}
+            {loading ? "Apro il checkout..." : `${hasStart ? "Passa a Start Plus" : "Attiva Start Plus"}, ${euro(dueCents)}`}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
+          {hasStart ? (
+            <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
+              Hai già Ciak Start: paghi solo la differenza ({euro(dueCents)}). Il credito di {euro(plusCents)} sulla Partnership vale {days} giorni dal passaggio.
+            </p>
+          ) : null}
           <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
             Puoi rateizzare con Klarna, dentro il checkout.
           </p>
@@ -129,9 +136,9 @@ export function StartPlusPage({ dashboard = {} }) {
         </section>
       ) : null}
 
-      {!canBuy && hasStart && !isPartner ? (
-        <section className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-          Hai già Ciak Start. Se ti interessa Start Plus, scrivi al team: ti diciamo come fare il passaggio.
+      {plusActive && !isPartner ? (
+        <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+          Start Plus è attivo sul tuo account. Trovi i passi nella pagina Ciak Start.
         </section>
       ) : null}
     </div>

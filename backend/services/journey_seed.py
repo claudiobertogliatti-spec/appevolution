@@ -15,7 +15,39 @@ from typing import Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from models.partner_journey_step import JourneyStepStatus
-from models.start_journey import journey_definition_for_tier
+from models.start_journey import START_PLUS_ONLY_STEPS_DEFINITION, journey_definition_for_tier
+
+
+async def seed_start_plus_step(db: AsyncIOMotorDatabase, partner_id: str) -> int:
+    """Aggiunge il passo 'Il tuo primo prodotto' a chi ha acquistato Start Plus. Idempotente.
+    Parte in attesa: il lavoro comincia dopo risposte e marchio, non all'acquisto."""
+    now = datetime.utcnow()
+    created = 0
+    for definition in START_PLUS_ONLY_STEPS_DEFINITION:
+        if await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "step_id": definition["step_id"]}
+        ):
+            continue
+        await db.partner_journey_steps.insert_one({
+            "partner_id": partner_id,
+            "step_id": definition["step_id"],
+            "step_number": definition["step_number"],
+            "fase_legacy": definition["fase_legacy"],
+            "code": definition["code"],
+            "macro_phase": definition["macro_phase"],
+            "owner": definition["owner"],
+            "completion_policy": definition["completion_policy"],
+            "material_categories": definition["material_categories"],
+            "status": JourneyStepStatus.PENDING.value,
+            "started_at": None,
+            "completed_at": None,
+            "data": {},
+            "stefania_briefing_shown": False,
+            "stefania_proactive_sent_at": None,
+            "updated_at": now,
+        })
+        created += 1
+    return created
 
 
 async def seed_partner_journey(

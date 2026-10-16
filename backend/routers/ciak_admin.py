@@ -528,6 +528,8 @@ def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
     effective = _effective_clienti_ciak_snapshot(doc, user)
     payload = {key: value for key, value in effective.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
     payload["access_level"] = effective.get("access_level")
+    from services.ciak_client_accounts import start_plus_admin_view
+    payload["start_plus"] = start_plus_admin_view(effective)
     if user is None:
         payload.pop("partnership_attiva", None)
         payload.pop("stato_cliente", None)
@@ -1294,7 +1296,9 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS}}
+    # I due campi Plus servono solo a calcolare `start_plus`: non finiscono nel payload grezzo.
+    projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS},
+                  "start_plus_purchased_at": 1, "start_plus_from_start": 1}
     cur = db.ciak_clients.find({}, projection).sort("updated_at", -1).limit(limit)
     docs = await cur.to_list(limit)
     items = []
@@ -4773,16 +4777,38 @@ async def _build_all_sources(db) -> list[dict]:
 
     # ── Ciak Start €390 (ciak_clients che hanno acquistato lo Start) ──
     async for c in db.ciak_clients.find({"start_purchased_at": {"$ne": None}}):
-        # Chi ha comprato Start Plus si fattura a 790 EUR, non a 390.
-        start_offer = MAIN_OFFERS["CIAK-START-PLUS"] if c.get("start_plus_purchased_at") else MAIN_OFFERS["CIAK-START"]
+        # Chi ha comprato Start Plus si fattura a 790 EUR, non a 390. Chi aveva gia' Start e ha pagato la
+        # differenza (start_plus_from_start) ha DUE incassi: Start 390 (gia' fatturabile) e passaggio 400.
+        da_start = bool(c.get("start_plus_from_start"))
+        start_offer = (
+            MAIN_OFFERS["CIAK-START-PLUS"]
+            if c.get("start_plus_purchased_at") and not da_start
+            else MAIN_OFFERS["CIAK-START"]
+        )
         key = f"start:client:{c.get('id')}"
         sources.append({
             "source_key": key, "source_type": "ciak_start", "fonte": "ciak_start",
-            "fonte_label": "Start Plus" if c.get("start_plus_purchased_at") else "Ciak Start", "service_code": start_offer["code"],
+            "fonte_label": "Start Plus" if (c.get("start_plus_purchased_at") and not da_start) else "Ciak Start", "service_code": start_offer["code"],
             "descrizione": start_offer["descrizione"], "periodicita": "una_tantum",
             "importo": eur_from_cents(start_offer["amount_cents"]),
             "source_payment_id": c.get("last_checkout_session_id"),
             "data": c.get("start_purchased_at"),
+            "partner_id": c.get("partner_id"),
+            "cliente": _client_cliente(c),
+            "gia_fatturata": key in invoiced,
+        })
+
+    # ── Passaggio Start -> Start Plus €400 (chi aveva gia' Start) ──
+    passaggio_offer = MAIN_OFFERS["CIAK-START-PLUS-UPGRADE"]
+    async for c in db.ciak_clients.find({"start_plus_from_start": True}):
+        key = f"startplus_upgrade:client:{c.get('id')}"
+        sources.append({
+            "source_key": key, "source_type": "ciak_start_plus_upgrade", "fonte": "ciak_start",
+            "fonte_label": "Passaggio a Start Plus", "service_code": passaggio_offer["code"],
+            "descrizione": passaggio_offer["descrizione"], "periodicita": "una_tantum",
+            "importo": eur_from_cents(passaggio_offer["amount_cents"]),
+            "source_payment_id": c.get("last_checkout_session_id"),
+            "data": c.get("start_plus_purchased_at"),
             "partner_id": c.get("partner_id"),
             "cliente": _client_cliente(c),
             "gia_fatturata": key in invoiced,
@@ -6034,6 +6060,7 @@ class AttivaStartRequest(BaseModel):
     email: str
     name: Optional[str] = None
     riferimento: Optional[str] = None
+    plus: bool = False  # True = attiva Start Plus (790, o 400 se ha gia' Start) invece di Start
 
 
 @router.post("/start/attiva")
@@ -6047,8 +6074,11 @@ async def attiva_ciak_start(
     from services.ciak_client_accounts import (
         START_AMOUNT_CENTS,
         build_start_entitlement_updates,
+        build_start_plus_entitlement_updates,
         ensure_client_for_direct_start,
         has_start_entitlement,
+        has_start_plus,
+        start_plus_amount_due_for_client,
     )
     from services.ciak_start_delivery import deliver_start_access
     from routers.stripe_webhook import _record_checkout_payment
@@ -6065,7 +6095,10 @@ async def attiva_ciak_start(
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
-    already_active = has_start_entitlement(client)
+    plus = bool(body.plus)
+    # Con plus=True «gia' attivo» significa gia' Start Plus: chi ha solo Start passa a Plus (400).
+    already_active = has_start_plus(client) if plus else has_start_entitlement(client)
+    importo_incasso = start_plus_amount_due_for_client(client) if plus else START_AMOUNT_CENTS
     now = datetime.now(timezone.utc).isoformat()
     reference = (body.riferimento or "").strip() or f"admin:{uuid.uuid4().hex}"
     actor = getattr(admin, "email", None) or "admin"
@@ -6073,16 +6106,17 @@ async def attiva_ciak_start(
     # Su chi e' gia' attivo non si riscrive niente e non si registra un secondo
     # incasso: quella chiamata e' il caso «non mi e' arrivata la mail», e l'unica
     # cosa che serve e' un link nuovo.
+    builder = build_start_plus_entitlement_updates if plus else build_start_entitlement_updates
     updates = {} if already_active else (
-        build_start_entitlement_updates(client, reference_id=reference, now=now) or {}
+        builder(client, reference_id=reference, now=now) or {}
     )
     incasso_da_registrare = bool(updates)
     events = [dict(item) for item in (client.get("events") or [])]
     events.append({
-        "event": "ciak_start_activated_by_admin",
+        "event": "ciak_start_plus_activated_by_admin" if plus else "ciak_start_activated_by_admin",
         "timestamp": now,
         "reference_id": reference,
-        "amount_cents": START_AMOUNT_CENTS if incasso_da_registrare else 0,
+        "amount_cents": importo_incasso if incasso_da_registrare else 0,
         "by": actor,
     })
     await db.ciak_clients.update_one(
@@ -6100,11 +6134,15 @@ async def attiva_ciak_start(
         await _record_checkout_payment(
             db,
             session_id=reference,
-            tipo="ciak_start",
-            amount_cents=START_AMOUNT_CENTS,
+            tipo="ciak_start_plus" if plus else "ciak_start",
+            amount_cents=importo_incasso,
             email=email,
             client_id=client["id"],
         )
+    if plus:
+        from services.journey_seed import seed_start_plus_step
+
+        await seed_start_plus_step(db, client["id"])
 
     access_sent = await deliver_start_access(
         db,
@@ -6113,6 +6151,9 @@ async def attiva_ciak_start(
         name=body.name or client.get("name"),
         paid_at=updates.get("start_purchased_at") or client.get("start_purchased_at") or now,
         checkout_session_id=reference,
+        plus=plus,
+        amount_cents=importo_incasso if plus else 79000,
+        from_start=bool(updates.get("start_plus_from_start")),
     )
     logger.info(
         "[CIAK_ADMIN] Ciak Start attivato per %s da %s (creato=%s, accesso=%s)",

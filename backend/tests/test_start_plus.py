@@ -121,13 +121,17 @@ def _guard():
     return ciak_clients
 
 
-def test_chi_ha_gia_start_non_puo_comprare_plus_per_errore():
+def test_chi_ha_gia_start_puo_passare_a_plus_pagando_400():
     router = _guard()
     start = {"id": "c", "access_level": acc.ACCESS_START, "start_purchased_at": "2026-10-01T00:00:00+00:00"}
-    with pytest.raises(HTTPException) as err:
-        router._ensure_start_plus_checkout_allowed(start, {})
-    assert err.value.status_code == 409
-    assert "Ciak Start" in err.value.detail
+    router._ensure_start_plus_checkout_allowed(start, {})  # non solleva
+    assert acc.start_plus_amount_due_for_client(start) == 40000
+    assert acc.START_PLUS_UPGRADE_FROM_START_CENTS == 40000
+
+
+def test_chi_parte_da_zero_paga_790():
+    assert acc.start_plus_amount_due_for_client({"id": "c"}) == 79000
+    assert acc.start_plus_amount_due_for_client(_plus_client()) == 79000  # gia' Plus: nessun secondo importo
 
 
 def test_chi_ha_gia_plus_non_puo_ricomprarlo():
@@ -162,6 +166,7 @@ class _FakeClients:
 class _FakeDb:
     def __init__(self, doc):
         self.ciak_clients = _FakeClients(doc)
+        self.partner_journey_steps = _Steps()
 
 
 @pytest.fixture
@@ -330,3 +335,159 @@ def test_email_start_resta_invariata(monkeypatch):
     assert ok
     body = _plain_text(sent[0])
     assert "390 euro" in body and "Start Plus" not in body
+
+
+# ---- passaggio Start -> Start Plus (400 EUR) --------------------------------
+
+START_CLIENT = {"id": "c1", "email": "anna@example.com", "name": "Anna Rossi", "access_level": acc.ACCESS_START,
+                "start_purchased_at": "2026-10-01T09:00:00+00:00", "start_credit_amount": 39000}
+
+
+async def test_pagamento_del_passaggio_accetta_400_e_porta_il_credito_a_790(env):
+    stripe_webhook, calls = env
+    db = _FakeDb(dict(START_CLIENT))
+    await stripe_webhook.process_ciak_start_payment(
+        db, "c1", "cs_up_1", session={"amount_total": 40000, "currency": "eur"}, plus=True,
+    )
+    await asyncio.sleep(0)
+    setted = db.ciak_clients.updates[0][1]["$set"]
+    assert setted["start_credit_amount"] == 79000  # 390 + 400 versati
+    assert setted["start_plus_purchased_at"]
+    assert setted["start_plus_from_start"] is True
+    assert setted["start_purchased_at"] == "2026-10-01T09:00:00+00:00"  # la data di Start non si sposta
+    assert calls["record"][0]["amount_cents"] == 40000
+    assert calls["deliver"][0]["from_start"] is True
+    assert calls["deliver"][0]["amount_cents"] == 40000
+    assert calls["emit"] == []  # gia' acquirente: nessun secondo evento Systeme
+
+
+async def test_passaggio_rifiuta_790_perche_ha_gia_pagato_390(env):
+    stripe_webhook, _ = env
+    db = _FakeDb(dict(START_CLIENT))
+    with pytest.raises(RuntimeError):
+        await stripe_webhook.process_ciak_start_payment(
+            db, "c1", "cs_up_2", session={"amount_total": 79000, "currency": "eur"}, plus=True,
+        )
+    assert db.ciak_clients.updates == []
+
+
+def test_registro_del_passaggio_scrive_400_e_il_flag():
+    updates = acc.build_start_plus_entitlement_updates(dict(START_CLIENT), reference_id="admin:1", now="2026-10-20T00:00:00+00:00")
+    assert updates["start_payments"][-1]["amount_cents"] == 40000
+    assert updates["start_plus_from_start"] is True
+    assert updates["start_credit_amount"] == 79000
+    assert updates["start_purchased_at"] == "2026-10-01T09:00:00+00:00"
+    da_zero = acc.build_start_plus_entitlement_updates({"id": "x"}, reference_id="admin:2", now="2026-10-20T00:00:00+00:00")
+    assert "start_plus_from_start" not in da_zero
+    assert da_zero["start_payments"][-1]["amount_cents"] == 79000
+
+
+def test_email_del_passaggio_dice_400_e_che_le_fondamenta_ci_sono_gia(monkeypatch):
+    from services import ciak_start_delivery as delivery
+
+    sent = []
+
+    class _Smtp:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self):
+            pass
+
+        def login(self, *a):
+            pass
+
+        def send_message(self, message):
+            sent.append(message)
+
+    monkeypatch.setenv("SMTP_USER", "u")
+    monkeypatch.setenv("SMTP_PASSWORD", "p")
+    monkeypatch.setattr(delivery.smtplib, "SMTP", _Smtp)
+    ok, _ = delivery._send_email("a@example.com", "Anna", "https://x/a", BOUGHT.isoformat(), None, True, 40000, True)
+    assert ok
+    body = _plain_text(sent[0])
+    assert "pagamento di 400 euro" in body
+    assert "sono gia' nella tua area" in body
+
+
+def test_catalogo_ha_la_voce_del_passaggio():
+    from services.ciak_offers import MAIN_OFFERS
+
+    assert MAIN_OFFERS["CIAK-START-PLUS-UPGRADE"]["amount_cents"] == 40000
+
+
+# ---- journey: passo "Il tuo primo prodotto" ---------------------------------
+
+class _Steps:
+    def __init__(self):
+        self.docs = []
+
+    async def find_one(self, query, *a, **k):
+        return next((d for d in self.docs if all(d.get(key) == v for key, v in query.items())), None)
+
+    async def insert_one(self, doc):
+        self.docs.append(doc)
+
+
+class _JourneyDb:
+    def __init__(self):
+        self.partner_journey_steps = _Steps()
+
+
+async def test_il_passo_primo_prodotto_si_semina_una_volta_ed_e_in_attesa():
+    from services.journey_seed import seed_start_plus_step
+
+    db = _JourneyDb()
+    assert await seed_start_plus_step(db, "c1") == 1
+    assert await seed_start_plus_step(db, "c1") == 0  # idempotente
+    step = db.partner_journey_steps.docs[0]
+    assert step["step_id"] == "start-primo-prodotto"
+    assert step["status"] == "pending"
+    assert step["owner"] == "MARCO"
+    assert step["step_number"] == 7.35
+
+
+def test_il_passo_e_conosciuto_visibile_e_accessibile_a_chi_ha_start():
+    from models import start_journey as sj
+
+    assert sj.step_definition("start-primo-prodotto")["label"] == "Il tuo primo prodotto"
+    assert sj.tier_allows_step("start", "start-primo-prodotto")
+    assert not sj.tier_allows_step("blueprint", "start-primo-prodotto")
+    # non entra nella journey base di Start: lo semina solo l'acquisto di Plus
+    assert "start-primo-prodotto" not in sj.START_STEP_IDS
+    assert all(d["step_id"] != "start-primo-prodotto" for d in sj.journey_definition_for_tier("start"))
+    assert 7.3 < sj.START_PLUS_ONLY_STEPS_DEFINITION[0]["step_number"] < 7.4
+
+
+# ── Vista admin: riepilogo Plus letto dal solo documento cliente ──────────────
+
+def test_start_plus_admin_view_none_senza_plus():
+    from services.ciak_client_accounts import start_plus_admin_view
+    assert start_plus_admin_view({"start_purchased_at": "2026-10-01T10:00:00+00:00"}) is None
+
+
+def test_start_plus_admin_view_giorni_rimasti_e_da_start():
+    from services.ciak_client_accounts import start_plus_admin_view
+    cliente = {"start_plus_purchased_at": "2026-10-01T10:00:00+00:00", "start_plus_from_start": True}
+    v = start_plus_admin_view(cliente, now="2026-10-11T10:00:00+00:00")
+    assert v["da_start"] is True and v["credito_pieno_attivo"] is True
+    assert v["giorni_rimasti"] == 50
+    assert v["credito_pieno_cents"] == 79000 and v["credito_dopo_cents"] == 39000
+    # un'ora oltre mezzanotte di residuo conta come giorno intero (arrotondo per eccesso)
+    assert start_plus_admin_view(cliente, now="2026-10-11T11:00:00+00:00")["giorni_rimasti"] == 50
+
+
+def test_start_plus_admin_view_estremo_incluso_e_scaduto():
+    from services.ciak_client_accounts import start_plus_admin_view
+    cliente = {"start_plus_purchased_at": "2026-10-01T10:00:00+00:00"}
+    ultimo = start_plus_admin_view(cliente, now="2026-11-30T10:00:00+00:00")  # 60 giorni esatti
+    assert ultimo["credito_pieno_attivo"] is True and ultimo["giorni_rimasti"] == 0
+    dopo = start_plus_admin_view(cliente, now="2026-11-30T10:00:01+00:00")
+    assert dopo["credito_pieno_attivo"] is False and dopo["giorni_rimasti"] == 0
+    assert dopo["da_start"] is False

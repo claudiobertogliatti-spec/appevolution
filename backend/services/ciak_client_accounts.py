@@ -14,6 +14,8 @@ PARTNERSHIP_AMOUNT_CENTS = 299000
 # intero (790) entro 60 giorni dall'acquisto; dopo restano 390, come il credito di Start.
 START_PLUS_AMOUNT_CENTS = 79000
 START_PLUS_CREDIT_DAYS = 60
+# Chi ha gia' Start paga solo la differenza per passare a Start Plus (decisione del 16/10/2026).
+START_PLUS_UPGRADE_FROM_START_CENTS = START_PLUS_AMOUNT_CENTS - START_AMOUNT_CENTS  # 79000 - 39000 = 40000
 ACCESS_BLUEPRINT = "cliente_blueprint"
 ACCESS_START = "cliente_start"
 ACCESS_PARTNER = "partner"
@@ -62,6 +64,13 @@ def has_start_plus(client: dict[str, Any]) -> bool:
     return bool(client.get("start_plus_purchased_at"))
 
 
+def start_plus_amount_due_for_client(client: dict[str, Any]) -> int:
+    """Quanto paga questo cliente per Start Plus: 790, o 400 se ha gia' Ciak Start."""
+    if has_start_entitlement(client) and not has_start_plus(client):
+        return START_PLUS_UPGRADE_FROM_START_CENTS
+    return START_PLUS_AMOUNT_CENTS
+
+
 def start_plus_credit_expires_at(client: dict[str, Any]) -> datetime | None:
     bought = _parse_iso(client.get("start_plus_purchased_at"))
     return bought + timedelta(days=START_PLUS_CREDIT_DAYS) if bought else None
@@ -74,6 +83,31 @@ def start_plus_credit_active(client: dict[str, Any], now: Any = None) -> bool:
         return False
     reference = _parse_iso(now) if now is not None else datetime.now(timezone.utc)
     return reference is not None and reference <= expires
+
+
+def start_plus_admin_view(client: dict[str, Any], now: Any = None) -> dict[str, Any] | None:
+    """Riepilogo Start Plus per l'admin: None se il cliente non ha Plus.
+
+    Legge solo il documento cliente (nessuna nuova fonte). `giorni_rimasti` e' 0 a credito
+    scaduto; dopo la scadenza resta il credito di Start (390), come in `partnership_price_for_client`.
+    """
+    if not has_start_plus(client):
+        return None
+    reference = (_parse_iso(now) if now is not None else None) or datetime.now(timezone.utc)
+    expires = start_plus_credit_expires_at(client)
+    active = start_plus_credit_active(client, reference)
+    giorni = 0
+    if active and expires is not None:
+        giorni = max(0, -(-int((expires - reference).total_seconds()) // 86400))
+    return {
+        "acquistato_il": client.get("start_plus_purchased_at"),
+        "da_start": bool(client.get("start_plus_from_start")),
+        "credito_scade_il": expires.isoformat() if expires else None,
+        "credito_pieno_attivo": active,
+        "giorni_rimasti": giorni,
+        "credito_pieno_cents": START_PLUS_AMOUNT_CENTS,
+        "credito_dopo_cents": START_AMOUNT_CENTS,
+    }
 
 
 def _valore_pieno(valore: Any) -> bool:
@@ -400,10 +434,11 @@ def build_start_plus_entitlement_updates(
     registrati = [dict(item) for item in (client.get("start_payments") or [])]
     if any(item.get("reference_id") == reference_id for item in registrati):
         return None
+    pagato = start_plus_amount_due_for_client(client)
     registrati.append({
-        "amount_cents": START_PLUS_AMOUNT_CENTS, "reference_id": reference_id, "at": now, "offer": "start_plus",
+        "amount_cents": pagato, "reference_id": reference_id, "at": now, "offer": "start_plus",
     })
-    return {
+    updates = {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
         "start_plus_purchased_at": client.get("start_plus_purchased_at") or now,
@@ -411,6 +446,9 @@ def build_start_plus_entitlement_updates(
         "start_payments": registrati,
         "updated_at": now,
     }
+    if pagato != START_PLUS_AMOUNT_CENTS:
+        updates["start_plus_from_start"] = True  # aveva gia' Start: ha pagato solo la differenza
+    return updates
 
 
 async def create_magic_login_token(db, client_id: str, email: str) -> dict[str, str]:

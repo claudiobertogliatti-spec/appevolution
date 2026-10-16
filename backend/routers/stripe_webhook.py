@@ -24,6 +24,7 @@ from services.ciak_client_accounts import (
     ACCESS_START,
     START_AMOUNT_CENTS,
     START_PLUS_AMOUNT_CENTS,
+    start_plus_amount_due_for_client,
     has_start_entitlement,
 )
 from security_config import require_stripe_webhook_secret
@@ -450,26 +451,31 @@ async def process_ciak_start_payment(
     """Start (390) o Start Plus (790, `plus=True`). Plus include l'accesso a Start e registra
     `start_plus_purchased_at`, da cui scade il credito a 60 giorni."""
     session = session or {}
-    amount_cents = START_PLUS_AMOUNT_CENTS if plus else START_AMOUNT_CENTS
-    if session.get("amount_total") not in (None, amount_cents):
-        raise RuntimeError(f"Invalid Ciak Start{' Plus' if plus else ''} amount for session {reference_id}")
     if session.get("currency") not in (None, "eur"):
         raise RuntimeError(f"Invalid Ciak Start currency for session {reference_id}")
     client = await db.ciak_clients.find_one({"id": client_id}, {"_id": 0})
     if not client:
         raise RuntimeError(f"Ciak client not found for Start payment: {client_id}")
+    # Importo pagato: Start 390; Plus 790, oppure 400 per chi aveva gia' Start (si paga la differenza).
+    # Si calcola dal documento cliente, non dai metadata della sessione.
+    amount_cents = start_plus_amount_due_for_client(client) if plus else START_AMOUNT_CENTS
+    from_start = plus and amount_cents != START_PLUS_AMOUNT_CENTS
+    if session.get("amount_total") not in (None, amount_cents):
+        raise RuntimeError(f"Invalid Ciak Start{' Plus' if plus else ''} amount for session {reference_id}")
 
     now = _iso_now()
     updates = {
         "access_level": ACCESS_START,
         "start_purchased_at": client.get("start_purchased_at") or now,
-        "start_credit_amount": amount_cents,
+        "start_credit_amount": START_PLUS_AMOUNT_CENTS if plus else START_AMOUNT_CENTS,
         "updated_at": now,
         "last_checkout_session_id": reference_id,
         "last_checkout_completed_at": now,
     }
     if plus:
         updates["start_plus_purchased_at"] = client.get("start_plus_purchased_at") or now
+        if from_start:
+            updates["start_plus_from_start"] = True
     events = _append_payment_event(
         client.get("events"),
         "ciak_start_plus_payment_completed" if plus else "ciak_start_payment_completed",
@@ -486,7 +492,8 @@ async def process_ciak_start_payment(
         from services.ciak_systeme import ciak_emit_event, fire_and_forget
 
         buyer_email = (client.get("email") or "").strip().lower()
-        if buyer_email:
+        # Chi passa da Start a Plus e' gia' un acquirente: nessun secondo evento verso Systeme.
+        if buyer_email and not from_start:
             fire_and_forget(ciak_emit_event(
                 email=buyer_email,
                 event_name="ciak_start_acquistato",
@@ -520,7 +527,13 @@ async def process_ciak_start_payment(
         paid_at=updates["start_purchased_at"],
         checkout_session_id=reference_id,
         plus=plus,
+        amount_cents=amount_cents,
+        from_start=from_start,
     )
+    if plus:
+        from services.journey_seed import seed_start_plus_step
+
+        await seed_start_plus_step(db, client_id)
 
 
 async def process_ciak_client_partnership_payment(db, client_id: str, reference_id: str, background_tasks: BackgroundTasks, metadata: dict) -> None:

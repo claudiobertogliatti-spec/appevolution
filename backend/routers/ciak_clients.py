@@ -32,6 +32,7 @@ from services.ciak_client_accounts import (
     START_PLUS_AMOUNT_CENTS,
     START_PLUS_CREDIT_DAYS,
     has_start_entitlement,
+    start_plus_amount_due_for_client,
     partnership_price_for_client,
     verify_magic_login_token,
 )
@@ -336,18 +337,14 @@ def _ensure_start_checkout_allowed(client: dict[str, Any], context: dict[str, An
 
 
 def _ensure_start_plus_checkout_allowed(client: dict[str, Any], context: dict[str, Any]) -> None:
-    """Start Plus si compra una volta, da chi non ha ancora Start ne' Partnership.
-    Il passaggio Start -> Start Plus non e' deciso (prezzo di differenza da definire): per ora
-    si risponde 409 con un messaggio chiaro, invece di far pagare 790 EUR a chi ha gia' Start."""
+    """Start Plus si compra una volta, da chi non ha ancora la Partnership: 790 EUR dopo la call,
+    oppure 400 EUR di differenza per chi ha gia' Ciak Start (decisione del 16/10/2026)."""
     if _partner_area_available(client) or client.get("access_level") == ACCESS_PARTNER:
         raise HTTPException(status_code=409, detail="La Partnership risulta gia' attiva su questo account.")
     if client.get("start_plus_purchased_at"):
         raise HTTPException(status_code=409, detail="Start Plus risulta gia' attivo su questo account.")
     if client.get("access_level") == ACCESS_START or has_start_entitlement(client):
-        raise HTTPException(
-            status_code=409,
-            detail="Hai gia' Ciak Start: per passare a Start Plus scrivi al team, ti diciamo come fare.",
-        )
+        return  # ha gia' Start: passa a Plus pagando la differenza (400 EUR); la call l'ha gia' fatta
     if client.get("access_level") not in (None, "", ACCESS_BLUEPRINT):
         raise HTTPException(status_code=403, detail="Start Plus non e' disponibile per questo account.")
     _ensure_completed_blueprint_path(context)
@@ -577,6 +574,8 @@ async def _dashboard_for_client(client: dict[str, Any]) -> dict[str, Any]:
                 "credit_guaranteed": True,
                 "credit_valid_days": START_PLUS_CREDIT_DAYS,
                 "credit_after_expiry_cents": START_AMOUNT_CENTS,
+                "amount_due_cents": start_plus_amount_due_for_client(effective_client),
+                "already_active": bool(effective_client.get("start_plus_purchased_at")),
             },
             "partnership": {
                 **partnership_price,
@@ -1464,9 +1463,10 @@ async def start_plus_checkout(client: dict[str, Any] = Depends(require_client)):
     effective_client["access_level"] = _effective_access_level(client, canonical_user)
     context = await _blueprint_context(client)
     _ensure_start_plus_checkout_allowed(effective_client, context)
+    due_cents = start_plus_amount_due_for_client(effective_client)
     frontend = _frontend_url()
     session = await _create_checkout_session(
-        amount_cents=START_PLUS_AMOUNT_CENTS,
+        amount_cents=due_cents,
         success_url=f"{frontend}/cliente?checkout=start&payment=success",
         cancel_url=f"{frontend}/cliente?checkout=start-plus&payment=cancel",
         metadata={
@@ -1478,9 +1478,10 @@ async def start_plus_checkout(client: dict[str, Any] = Depends(require_client)):
     return {
         "success": True,
         "checkout_url": session.url,
-        "amount_cents": START_PLUS_AMOUNT_CENTS,
+        "amount_cents": due_cents,
         "credit_amount_cents": START_PLUS_AMOUNT_CENTS,
         "credit_valid_days": START_PLUS_CREDIT_DAYS,
+        "from_start": due_cents != START_PLUS_AMOUNT_CENTS,
     }
 
 

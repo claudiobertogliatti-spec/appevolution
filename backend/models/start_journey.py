@@ -93,6 +93,24 @@ START_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
     },
 ]
 
+# Passo proprio di Start Plus: compare solo ai clienti che l'hanno acquistato (seed dedicato in
+# `journey_seed.seed_start_plus_step`, non nella definizione del livello). Responsabile Marco; chi
+# rivede il prodotto prima della consegna e' ancora da confermare.
+START_PLUS_STEP_ID = "start-primo-prodotto"
+START_PLUS_ONLY_STEPS_DEFINITION: list[dict[str, Any]] = [
+    {
+        "step_id": START_PLUS_STEP_ID,
+        "step_number": 7.35,
+        "code": "S-P",
+        "fase_legacy": "F2",
+        "macro_phase": "esamina",
+        "label": "Il tuo primo prodotto",
+        "owner": "MARCO",
+        "completion_policy": "first_product_reviewed",
+        "material_categories": ["primo_prodotto"],
+    },
+]
+
 # Gli step canonici che il cliente Start condivide con i partner. Riusati per
 # step_id, non ricreati: i motori che li servono (brand kit, posizionamento)
 # leggono da `partner_journey_steps` con quello slug.
@@ -115,6 +133,7 @@ START_STEP_IDS: frozenset[str] = frozenset(
 _ALL_STEPS_BY_ID: dict[str, dict[str, Any]] = {
     **_CANONICAL_BY_ID,
     **{d["step_id"]: d for d in START_ONLY_STEPS_DEFINITION},
+    **{d["step_id"]: d for d in START_PLUS_ONLY_STEPS_DEFINITION},
 }
 
 
@@ -143,7 +162,7 @@ def min_tier_for_step(step_id: str) -> str:
 
     Default chiuso: uno step non mappato richiede la Partnership.
     """
-    if step_id in START_STEP_IDS:
+    if step_id in START_STEP_IDS or step_id == START_PLUS_STEP_ID:
         return TIER_START
     return TIER_PARTNERSHIP
 
