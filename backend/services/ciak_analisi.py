@@ -75,7 +75,7 @@ L'analisi segue un ARCO NARRATIVO in 6 capitoli che culmina nel desiderio della 
 2. "Dove sei adesso" — stato reale + limite strutturale del modello attuale (tempo=denaro) + costo di restare fermo (120-180 parole)
 3. "Il tuo mercato" — settore, domanda, competitor REALI e prezzi REALI dal research brief, spazio non presidiato (150-220 parole)
 4. "La tua Accademia Digitale" — visione concreta: nome percorso possibile, promessa di trasformazione, 4 moduli, pricing realistico tarato sul mercato trovato (180-250 parole)
-5. "La roadmap" — fasi/tempi/priorità concrete per costruire l'accademia (5 fasi con durata)
+5. "La roadmap" — tempi e priorità concrete per costruire l'accademia, in 3 fasi del Metodo E.V.O. (Esamina, Valida, Ottimizza) con durata
 6. "Il prossimo passo" — la partnership Evolution PRO come veicolo che realizza la roadmap (80-120 parole)
 
 """ + _VINCOLI_STILE + """
@@ -373,7 +373,7 @@ Le 13 sezioni (usa ESATTAMENTE queste chiavi, in questo ordine):
 9. accademia — lead + moduli: 5-6 moduli {titolo, contenuto} = ipotesi di struttura del percorso, da rifinire in call.
 10. rischio — lead + callout: il rischio di restare fermi + (callout) il rischio opposto di fare in fretta e male. Nel callout puoi usare <b>...</b>.
 11. manca — items: 5 elementi {h,p} che servono per un'accademia che vende.
-12. roadmap — lead + steps: 5 fasi {titolo, desc} dalla strategia al lancio.
+12. roadmap — lead + steps: ESATTAMENTE 3 fasi, quelle del Metodo E.V.O., in quest'ordine: Esamina, Valida, Ottimizza. Ogni fase {titolo, desc}: titolo = il nome della fase, desc = cosa si fa in quella fase per questo cliente. Mai 5 fasi, mai numeri di fase inventati.
 13. prossimo — lead + no (la strada sbagliata) + yes (2 voci: la strada corretta col metodo, e che e' il punto della call) + chiusura: <b>Dopo la call.</b> decidiamo insieme il passo giusto per te; "nessun guadagno garantito". NON nominare Ciak Start né la Partnership: li indica la sezione successiva.
 
 meta: progetto (2-3 parole, es. "Progetto") + accent_progetto (il nome del progetto/percorso, es. "Career Scalability") + ambito (es. "Orientamento e carriera") + sub (una frase sotto il titolo di copertina).

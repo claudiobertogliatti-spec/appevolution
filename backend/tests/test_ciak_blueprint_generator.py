@@ -126,3 +126,9 @@ def test_cta_con_instradamento_noto_non_logga_warning(instradamento, caplog):
     with caplog.at_level("WARNING"):
         ca._build_cta_section(instradamento, "Mario")
     assert not any("instradamento inatteso" in r.message for r in caplog.records)
+
+
+def test_i_prompt_chiedono_3_fasi_evo_non_5():
+    for prompt in (ca._PROMPT_BLUEPRINT, ca._PROMPT_DEFINITIVA):
+        assert "Esamina, Valida, Ottimizza" in prompt
+        assert "5 fasi" not in prompt.replace("Mai 5 fasi", "")
