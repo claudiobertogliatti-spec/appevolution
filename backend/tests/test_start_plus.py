@@ -463,3 +463,31 @@ def test_il_passo_e_conosciuto_visibile_e_accessibile_a_chi_ha_start():
     assert "start-primo-prodotto" not in sj.START_STEP_IDS
     assert all(d["step_id"] != "start-primo-prodotto" for d in sj.journey_definition_for_tier("start"))
     assert 7.3 < sj.START_PLUS_ONLY_STEPS_DEFINITION[0]["step_number"] < 7.4
+
+
+# ── Vista admin: riepilogo Plus letto dal solo documento cliente ──────────────
+
+def test_start_plus_admin_view_none_senza_plus():
+    from services.ciak_client_accounts import start_plus_admin_view
+    assert start_plus_admin_view({"start_purchased_at": "2026-10-01T10:00:00+00:00"}) is None
+
+
+def test_start_plus_admin_view_giorni_rimasti_e_da_start():
+    from services.ciak_client_accounts import start_plus_admin_view
+    cliente = {"start_plus_purchased_at": "2026-10-01T10:00:00+00:00", "start_plus_from_start": True}
+    v = start_plus_admin_view(cliente, now="2026-10-11T10:00:00+00:00")
+    assert v["da_start"] is True and v["credito_pieno_attivo"] is True
+    assert v["giorni_rimasti"] == 50
+    assert v["credito_pieno_cents"] == 79000 and v["credito_dopo_cents"] == 39000
+    # un'ora oltre mezzanotte di residuo conta come giorno intero (arrotondo per eccesso)
+    assert start_plus_admin_view(cliente, now="2026-10-11T11:00:00+00:00")["giorni_rimasti"] == 50
+
+
+def test_start_plus_admin_view_estremo_incluso_e_scaduto():
+    from services.ciak_client_accounts import start_plus_admin_view
+    cliente = {"start_plus_purchased_at": "2026-10-01T10:00:00+00:00"}
+    ultimo = start_plus_admin_view(cliente, now="2026-11-30T10:00:00+00:00")  # 60 giorni esatti
+    assert ultimo["credito_pieno_attivo"] is True and ultimo["giorni_rimasti"] == 0
+    dopo = start_plus_admin_view(cliente, now="2026-11-30T10:00:01+00:00")
+    assert dopo["credito_pieno_attivo"] is False and dopo["giorni_rimasti"] == 0
+    assert dopo["da_start"] is False

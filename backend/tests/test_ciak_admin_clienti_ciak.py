@@ -229,3 +229,17 @@ def test_proposal_button_requires_call_done_and_explicit_partnership_decision():
     assert ciak_admin._qualified_for_partnership_proposal(
         paid_call, partnership, {"bozza_inviata_at": None}
     ) is False
+
+
+def test_item_pubblico_porta_il_riepilogo_start_plus_senza_campi_grezzi():
+    plus = {
+        "id": "c-plus", "email": "plus@example.com", "name": "Plus", "access_level": "cliente_start",
+        "start_purchased_at": "2026-10-01T10:00:00+00:00",
+        "start_plus_purchased_at": "2026-10-01T10:00:00+00:00", "start_plus_from_start": True,
+    }
+    item = ciak_admin._public_clienti_ciak_item(plus)
+    assert item["start_plus"]["da_start"] is True
+    assert item["start_plus"]["acquistato_il"] == "2026-10-01T10:00:00+00:00"
+    assert "start_plus_purchased_at" not in item and "start_plus_from_start" not in item
+    semplice = ciak_admin._public_clienti_ciak_item({"id": "c-s", "access_level": "cliente_start"})
+    assert semplice["start_plus"] is None

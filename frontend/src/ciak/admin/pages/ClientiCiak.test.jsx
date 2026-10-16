@@ -148,4 +148,36 @@ describe("Account Ciak: chi ha comprato e chi ha solo il Blueprint gratuito", ()
     render(<MemoryRouter><ClientiCiak /></MemoryRouter>);
     expect(await screen.findByText("Nessun cliente ha ancora comprato.")).toBeTruthy();
   });
+
+  test("riepilogoPlus: etichetta, data e giorni rimasti; scaduto mostra i 390", () => {
+    const { riepilogoPlus } = require("./ClientiCiak");
+    expect(riepilogoPlus(null)).toBeNull();
+    const base = { acquistato_il: "2026-10-01T10:00:00+00:00", credito_pieno_cents: 79000, credito_dopo_cents: 39000 };
+    const attivo = riepilogoPlus({ ...base, da_start: false, credito_pieno_attivo: true, giorni_rimasti: 1 });
+    expect(attivo.etichetta).toBe("Start Plus");
+    expect(attivo.credito).toMatch(/1 giorno rimasti/);
+    expect(riepilogoPlus({ ...base, da_start: true, credito_pieno_attivo: true, giorni_rimasti: 50 }).etichetta)
+      .toBe("Start Plus (da Start)");
+    const scaduto = riepilogoPlus({ ...base, da_start: false, credito_pieno_attivo: false, giorni_rimasti: 0 });
+    expect(scaduto.credito).toMatch(/scaduto/);
+    expect(scaduto.credito).toMatch(/390/);
+  });
+
+  test("in lista un cliente Plus ha l'etichetta; uno Start semplice no", async () => {
+    apiGet.mockResolvedValue({
+      items: [
+        { id: "p", name: "Pia Plus", email: "p@x.it", access_level: "cliente_start", start_purchased_at: "2026-10-01",
+          start_plus: { acquistato_il: "2026-10-01T10:00:00+00:00", da_start: true, credito_pieno_attivo: true,
+            giorni_rimasti: 40, credito_pieno_cents: 79000, credito_dopo_cents: 39000 } },
+        { id: "s", name: "Sara Start", email: "s@x.it", access_level: "cliente_start", start_purchased_at: "2026-10-01",
+          start_plus: null },
+      ],
+      count: 2,
+    });
+    render(<MemoryRouter><ClientiCiak /></MemoryRouter>);
+    expect(await screen.findByText("Pia Plus")).toBeTruthy();
+    expect(screen.getAllByTestId("riepilogo-plus")).toHaveLength(1);
+    expect(screen.getByText("Start Plus (da Start)")).toBeTruthy();
+    expect(screen.getByText(/40 giorni rimasti/)).toBeTruthy();
+  });
 });

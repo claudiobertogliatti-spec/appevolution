@@ -528,6 +528,8 @@ def _public_clienti_ciak_item(doc: dict, user: Optional[dict] = None) -> dict:
     effective = _effective_clienti_ciak_snapshot(doc, user)
     payload = {key: value for key, value in effective.items() if key in _CLIENTI_CIAK_PUBLIC_FIELDS}
     payload["access_level"] = effective.get("access_level")
+    from services.ciak_client_accounts import start_plus_admin_view
+    payload["start_plus"] = start_plus_admin_view(effective)
     if user is None:
         payload.pop("partnership_attiva", None)
         payload.pop("stato_cliente", None)
@@ -1294,7 +1296,9 @@ async def clienti_ciak(limit: int = 100, admin=Depends(require_ciak_admin)):
     if db is None:
         raise HTTPException(503, "Database non configurato")
 
-    projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS}}
+    # I due campi Plus servono solo a calcolare `start_plus`: non finiscono nel payload grezzo.
+    projection = {"_id": 0, **{field: 1 for field in _CLIENTI_CIAK_PUBLIC_FIELDS},
+                  "start_plus_purchased_at": 1, "start_plus_from_start": 1}
     cur = db.ciak_clients.find({}, projection).sort("updated_at", -1).limit(limit)
     docs = await cur.to_list(limit)
     items = []
